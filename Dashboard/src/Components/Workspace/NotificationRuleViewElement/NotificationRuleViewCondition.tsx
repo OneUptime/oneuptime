@@ -37,7 +37,9 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const getValueElement: GetReactElementFunction = (): ReactElement => {
-    let valueElement: ReactElement | undefined = undefined;
+    let valueElement: ReactElement | undefined = Array.isArray(props.value) ? <p>{
+      props.value.join(", ")
+    }</p> : <p>{props.value}</p>;
 
     if (
       props.notificationRuleCondition?.checkOn ===

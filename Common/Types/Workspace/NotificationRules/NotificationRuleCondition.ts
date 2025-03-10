@@ -40,6 +40,7 @@ export enum ConditionType {
   LessThan = "Less Than",
   GreaterThanOrEqualTo = "Greater Than Or Equal To",
   LessThanOrEqualTo = "Less Than Or Equal To",
+  Contains = "Contains",
   ContainsAny = "Contains Any",
   NotContains = "Not Contains",
   StartsWith = "Starts With",
@@ -321,7 +322,7 @@ export class NotificationRuleConditionUtil {
         return [
           ConditionType.EqualTo,
           ConditionType.NotEqualTo,
-          ConditionType.ContainsAny,
+          ConditionType.Contains,
           ConditionType.NotContains,
           ConditionType.StartsWith,
           ConditionType.EndsWith,
