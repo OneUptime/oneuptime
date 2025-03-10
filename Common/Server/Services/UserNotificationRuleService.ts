@@ -841,8 +841,6 @@ export class Service extends DatabaseService<Model> {
       onCallScheduleId?: ObjectID | undefined;
     },
   ): Promise<void> {
-
-
     // add user notification log.
     const userOnCallLog: UserOnCallLog = new UserOnCallLog();
 
@@ -896,8 +894,7 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // Alert workspace here. Invite users to channels for example. If they are not invited. 
-
+    // Alert workspace here. Invite users to channels for example. If they are not invited.
   }
 
   public static async runWorkspaceRulesForOnCallNotification(data: {
@@ -906,7 +903,6 @@ export class Service extends DatabaseService<Model> {
     alertId?: ObjectID | undefined;
     userId: ObjectID;
   }): Promise<void> {
-
     // if alert and incidient are both present, then throw an error.
     if (data.incidentId && data.alertId) {
       throw new BadDataException("Either incidentId or alertId is required.");
@@ -927,24 +923,25 @@ export class Service extends DatabaseService<Model> {
             incidentId: data.incidentId,
             alertId: data.alertId,
           },
-          notificationRuleEventType: data.incidentId ? NotificationRuleEventType.Incident : NotificationRuleEventType.Alert,
+          notificationRuleEventType: data.incidentId
+            ? NotificationRuleEventType.Incident
+            : NotificationRuleEventType.Alert,
         },
       );
 
+    let workspaceChannels: Array<NotificationRuleWorkspaceChannel> = [];
 
-      let workspaceChannels: Array<NotificationRuleWorkspaceChannel> = []; 
+    if (data.incidentId) {
+      workspaceChannels = await IncidentService.getWorkspaceChannelForIncident({
+        incidentId: data.incidentId!,
+      });
+    }
 
-      if(data.incidentId) {
-        workspaceChannels = await IncidentService.getWorkspaceChannelForIncident({
-          incidentId: data.incidentId!,
-        });
-      }
-
-      if(data.alertId) {
-        workspaceChannels = await AlertService.getWorkspaceChannelForAlert({
-          alertId: data.alertId!,
-        });
-      }
+    if (data.alertId) {
+      workspaceChannels = await AlertService.getWorkspaceChannelForAlert({
+        alertId: data.alertId!,
+      });
+    }
 
     WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
       {

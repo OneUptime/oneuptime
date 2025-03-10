@@ -249,7 +249,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       const filteredNotificationRules: Array<WorkspaceNotificationRule> =
         notificationRules.filter((rule: WorkspaceNotificationRule) => {
-          return (rule.notificationRule as IncidentNotificationRule).shouldAutomaticallyInviteOnCallUsersToNewChannel;
+          return (rule.notificationRule as IncidentNotificationRule)
+            .shouldAutomaticallyInviteOnCallUsersToNewChannel;
         });
 
       result.push(...filteredNotificationRules);

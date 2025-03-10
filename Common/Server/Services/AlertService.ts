@@ -351,35 +351,34 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
     return createdItem;
   }
 
+  public async getWorkspaceChannelForAlert(data: {
+    alertId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const alert: Model | null = await this.findOneById({
+      id: data.alertId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-    public async getWorkspaceChannelForAlert(data: {
-      alertId: ObjectID;
-      workspaceType?: WorkspaceType | null;
-    }): Promise<Array<NotificationRuleWorkspaceChannel>> {
-      const alert: Model | null = await this.findOneById({
-        id: data.alertId,
-        select: {
-          postUpdatesToWorkspaceChannels: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      if (!alert) {
-        throw new BadDataException("Incident not found.");
-      }
-  
-      return (alert.postUpdatesToWorkspaceChannels || []).filter(
-        (channel: NotificationRuleWorkspaceChannel) => {
-          if (!data.workspaceType) {
-            return true;
-          }
-  
-          return channel.workspaceType === data.workspaceType;
-        },
-      );
+    if (!alert) {
+      throw new BadDataException("Incident not found.");
     }
+
+    return (alert.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
+  }
 
   public async getAlertIdentifiedDate(alertId: ObjectID): Promise<Date> {
     const timeline: AlertStateTimeline | null =
