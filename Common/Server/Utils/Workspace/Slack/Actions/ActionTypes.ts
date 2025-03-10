@@ -12,7 +12,17 @@ enum SlackActionType {
   NewIncident = "/incident", // new incident slash command
   SubmitNewIncident = "SubmitNewIncident",
 
-  // Alert Actions
+  // Alert Actions just like Incident Actions
+  AcknowledgeAlert = "AcknowledgeAlert",
+  ResolveAlert = "ResolveAlert",
+  ViewAddAlertNote = "ViewAddAlertNote",
+  SubmitAlertNote = "SubmitAlertNote",
+  ViewChangeAlertState = "ViewChangeAlertState",
+  SubmitChangeAlertState = "SubmitChangeAlertState",
+  ViewExecuteAlertOnCallPolicy = "ViewExecuteAlertOnCallPolicy",
+  SubmitExecuteAlertOnCallPolicy = "SubmitExecuteAlertOnCallPolicy",
+  ViewAlert = "ViewAlert",
+
 
   // Scheduled Maintenance Actions.
 }

@@ -12,6 +12,26 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+    public async addNote(data: {
+      userId: ObjectID;
+      alertId: ObjectID;
+      projectId: ObjectID;
+      note: string;
+    }): Promise<Model> {
+      const internalNote: Model = new Model();
+      internalNote.createdByUserId = data.userId;
+      internalNote.alertId = data.alertId;
+      internalNote.projectId = data.projectId;
+      internalNote.note = data.note;
+  
+      return this.create({
+        data: internalNote,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
   public override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,

@@ -128,7 +128,7 @@ export class Service extends DatabaseService<Model> {
 
   public async acknowledgeAlert(
     alertId: ObjectID,
-    acknowledgedByUserId: ObjectID,
+    acknowledgedByUserId: ObjectID
   ): Promise<void> {
     const alert: Model | null = await this.findOneById({
       id: alertId,
@@ -159,7 +159,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
       );
     }
 
@@ -178,7 +178,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
+    createBy: CreateBy<Model>
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create alert.");
@@ -202,7 +202,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
+        "Created alert state not found for this project. Please add created alert state from settings."
       );
     }
 
@@ -236,7 +236,7 @@ export class Service extends DatabaseService<Model> {
           {
             userId: userId!,
             projectId: projectId,
-          },
+          }
         )}`;
       }
     }
@@ -246,7 +246,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model,
+    createdItem: Model
   ): Promise<Model> {
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
@@ -329,7 +329,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
-        onCreate.createBy.props,
+        onCreate.createBy.props
       );
     }
 
@@ -343,7 +343,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
           {
             triggeredByAlertId: createdItem.id!,
             userNotificationEventType: UserNotificationEventType.AlertCreated,
-          },
+          }
         );
       }
     }
@@ -366,7 +366,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
     });
 
     if (!alert) {
-      throw new BadDataException("Incident not found.");
+      throw new BadDataException("Alert not found.");
     }
 
     return (alert.postUpdatesToWorkspaceChannels || []).filter(
@@ -376,7 +376,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         }
 
         return channel.workspaceType === data.workspaceType;
-      },
+      }
     );
   }
 
@@ -465,7 +465,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          },
+          }
         );
 
         if (!isUserAlreadyAdded) {
@@ -483,7 +483,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -520,18 +520,18 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
 
   public async getAlertLinkInDashboard(
     projectId: ObjectID,
-    alertId: ObjectID,
+    alertId: ObjectID
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/alerts/${alertId.toString()}`,
+      `/${projectId.toString()}/alerts/${alertId.toString()}`
     );
   }
 
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[]
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentAlertStateId &&
@@ -653,7 +653,7 @@ ${labels
             await AlertSeverityService.findOneBy({
               query: {
                 _id: new ObjectID(
-                  (onUpdate.updateBy.data.alertSeverity as any)?._id.toString(),
+                  (onUpdate.updateBy.data.alertSeverity as any)?._id.toString()
                 ),
               },
               select: {
@@ -691,7 +691,7 @@ ${alertSeverity.name}
 
   public async doesMonitorHasMoreActiveManualAlerts(
     monitorId: ObjectID,
-    proojectId: ObjectID,
+    proojectId: ObjectID
   ): Promise<boolean> {
     const resolvedState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -724,7 +724,7 @@ ${alertSeverity.name}
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>,
+    deleteBy: DeleteBy<Model>
   ): Promise<OnDelete<Model>> {
     const alerts: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -913,7 +913,7 @@ ${alertSeverity.name}
 
     alertCountMetric.time = alertStartsAt;
     alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      alertCountMetric.time,
+      alertCountMetric.time
     );
     alertCountMetric.metricPointType = MetricPointType.Sum;
 
@@ -923,7 +923,7 @@ ${alertSeverity.name}
     const isAlertAcknowledged: boolean = alertStateTimelines.some(
       (timeline: AlertStateTimeline) => {
         return timeline.alertState?.isAcknowledgedState;
-      },
+      }
     );
 
     if (isAlertAcknowledged) {
@@ -943,7 +943,7 @@ ${alertSeverity.name}
           "Time taken to acknowledge the alert";
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
-          alertStartsAt,
+          alertStartsAt
         );
         timeToAcknowledgeMetric.unit = "seconds";
         timeToAcknowledgeMetric.attributes = {
@@ -960,7 +960,7 @@ ${alertSeverity.name}
           alert.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToAcknowledgeMetric.time,
+          timeToAcknowledgeMetric.time
         );
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
 
@@ -972,7 +972,7 @@ ${alertSeverity.name}
     const isAlertResolved: boolean = alertStateTimelines.some(
       (timeline: AlertStateTimeline) => {
         return timeline.alertState?.isResolvedState;
-      },
+      }
     );
 
     if (isAlertResolved) {
@@ -992,7 +992,7 @@ ${alertSeverity.name}
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedAlertStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
-          alertStartsAt,
+          alertStartsAt
         );
         timeToResolveMetric.unit = "seconds";
         timeToResolveMetric.attributes = {
@@ -1009,7 +1009,7 @@ ${alertSeverity.name}
           alert.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToResolveMetric.time,
+          timeToResolveMetric.time
         );
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
 
@@ -1037,7 +1037,7 @@ ${alertSeverity.name}
       alertDurationMetric.description = "Duration of the alert";
       alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         alertEndsAt,
-        alertStartsAt,
+        alertStartsAt
       );
       alertDurationMetric.unit = "seconds";
       alertDurationMetric.attributes = {
@@ -1054,7 +1054,7 @@ ${alertSeverity.name}
         alert.createdAt ||
         OneUptimeDate.getCurrentDate();
       alertDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-        alertDurationMetric.time,
+        alertDurationMetric.time
       );
       alertDurationMetric.metricPointType = MetricPointType.Sum;
     }
@@ -1076,6 +1076,48 @@ ${alertSeverity.name}
     });
   }
 
+  public async isAlertResolved(data: { alertId: ObjectID }): Promise<boolean> {
+    const alert: Model | null = await this.findOneBy({
+      query: {
+        _id: data.alertId,
+      },
+      select: {
+        projectId: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert) {
+      throw new BadDataException("Alert not found");
+    }
+
+    if (!alert.projectId) {
+      throw new BadDataException("Incient Project ID not found");
+    }
+
+    const resolvedAlertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
+        projectId: alert.projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
+    const resolvedAlertStateOrder: number = resolvedAlertState.order!;
+
+    if (currentAlertStateOrder >= resolvedAlertStateOrder) {
+      return true;
+    }
+
+    return false;
+  }
+
   public async getAlertNumber(data: {
     alertId: ObjectID;
   }): Promise<number | null> {
@@ -1095,5 +1137,64 @@ ${alertSeverity.name}
 
     return alert.alertNumber || null;
   }
+
+    public async resolveAlert(
+      alertId: ObjectID,
+      resolvedByUserId: ObjectID,
+    ): Promise<Model> {
+      const alert: Model | null = await this.findOneById({
+        id: alertId,
+        select: {
+          projectId: true,
+          alertNumber: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+  
+      if (!alert || !alert.projectId) {
+        throw new BadDataException("Alert not found.");
+      }
+  
+      const alertState: AlertState | null =
+        await AlertStateService.findOneBy({
+          query: {
+            projectId: alert.projectId,
+            isResolvedState: true,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+  
+      if (!alertState || !alertState.id) {
+        throw new BadDataException(
+          "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        );
+      }
+  
+      const alertStateTimeline: AlertStateTimeline =
+        new AlertStateTimeline();
+      alertStateTimeline.projectId = alert.projectId;
+      alertStateTimeline.alertId = alertId;
+      alertStateTimeline.alertStateId = alertState.id;
+      alertStateTimeline.createdByUserId = resolvedByUserId;
+  
+      await AlertStateTimelineService.create({
+        data: alertStateTimeline,
+        props: {
+          isRoot: true,
+        },
+      });
+  
+      // store alert metric
+  
+      return alert;
+    }
+
 }
 export default new Service();

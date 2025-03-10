@@ -20,14 +20,14 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     note: string;
   }): Promise<Model> {
-    const publicNote: Model = new Model();
-    publicNote.createdByUserId = data.userId;
-    publicNote.incidentId = data.incidentId;
-    publicNote.projectId = data.projectId;
-    publicNote.note = data.note;
+    const internalNote: Model = new Model();
+    internalNote.createdByUserId = data.userId;
+    internalNote.incidentId = data.incidentId;
+    internalNote.projectId = data.projectId;
+    internalNote.note = data.note;
 
     return this.create({
-      data: publicNote,
+      data: internalNote,
       props: {
         isRoot: true,
       },

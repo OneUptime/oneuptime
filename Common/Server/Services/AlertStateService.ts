@@ -15,9 +15,10 @@ export class Service extends DatabaseService<AlertState> {
   public constructor() {
     super(AlertState);
   }
+  
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<AlertState>,
+    createBy: CreateBy<AlertState>
   ): Promise<OnCreate<AlertState>> {
     if (!createBy.data.order) {
       throw new BadDataException("Alert State order is required");
@@ -30,7 +31,7 @@ export class Service extends DatabaseService<AlertState> {
     await this.rearrangeOrder(
       createBy.data.order,
       createBy.data.projectId,
-      true,
+      true
     );
 
     return {
@@ -40,11 +41,11 @@ export class Service extends DatabaseService<AlertState> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<AlertState>,
+    deleteBy: DeleteBy<AlertState>
   ): Promise<OnDelete<AlertState>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
-        "_id should be present when deleting alert states. Please try the delete with objectId",
+        "_id should be present when deleting alert states. Please try the delete with objectId"
       );
     }
 
@@ -71,7 +72,7 @@ export class Service extends DatabaseService<AlertState> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<AlertState>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<AlertState>> {
     const deleteBy: DeleteBy<AlertState> = onDelete.deleteBy;
     const alertState: AlertState | null = onDelete.carryForward;
@@ -81,7 +82,7 @@ export class Service extends DatabaseService<AlertState> {
         await this.rearrangeOrder(
           alertState.order,
           alertState.projectId,
-          false,
+          false
         );
       }
     }
@@ -93,11 +94,11 @@ export class Service extends DatabaseService<AlertState> {
   }
 
   protected override async onBeforeUpdate(
-    updateBy: UpdateBy<AlertState>,
+    updateBy: UpdateBy<AlertState>
   ): Promise<OnUpdate<AlertState>> {
     if (updateBy.data.order && !updateBy.props.isRoot) {
       throw new BadDataException(
-        "Alert State order should not be updated. Delete this alert state and create a new state with the right order.",
+        "Alert State order should not be updated. Delete this alert state and create a new state with the right order."
       );
     }
 
@@ -107,7 +108,7 @@ export class Service extends DatabaseService<AlertState> {
   private async rearrangeOrder(
     currentOrder: number,
     projectId: ObjectID,
-    increaseOrder: boolean = true,
+    increaseOrder: boolean = true
   ): Promise<void> {
     // get alert with this order.
     const alertStates: Array<AlertState> = await this.findBy({
@@ -180,7 +181,7 @@ export class Service extends DatabaseService<AlertState> {
 
   public async getUnresolvedAlertStates(
     projectId: ObjectID,
-    props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps
   ): Promise<AlertState[]> {
     const alertStates: Array<AlertState> = await this.getAllAlertStates({
       projectId: projectId,
@@ -200,6 +201,30 @@ export class Service extends DatabaseService<AlertState> {
     return unresolvedAlertStates;
   }
 
+  public async getResolvedAlertState(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<AlertState> {
+    const alertStates: Array<AlertState> = await this.getAllAlertStates({
+      projectId: data.projectId,
+      props: data.props,
+    });
+
+    const resolvedAlertState: AlertState | undefined = alertStates.find(
+      (alertState: AlertState) => {
+        return alertState?.isResolvedState;
+      }
+    );
+
+    if (!resolvedAlertState) {
+      throw new BadDataException(
+        "Resolved Alert State not found for this project"
+      );
+    }
+
+    return resolvedAlertState;
+  }
+
   public async getAcknowledgedAlertState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -212,12 +237,12 @@ export class Service extends DatabaseService<AlertState> {
     const ackAlertState: AlertState | undefined = alertStates.find(
       (alertState: AlertState) => {
         return alertState?.isAcknowledgedState;
-      },
+      }
     );
 
     if (!ackAlertState) {
       throw new BadDataException(
-        "Acknowledged Alert State not found for this project",
+        "Acknowledged Alert State not found for this project"
       );
     }
 
