@@ -895,9 +895,18 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Alert workspace here. Invite users to channels for example. If they are not invited.
+
+    this.runWorkspaceRulesForOnCallNotification({
+      projectId: options.projectId,
+      alertId: options.triggeredByAlertId,
+      incidentId: options.triggeredByIncidentId,
+      userId: userId,
+    }).catch((error: Error) => {
+      logger.error(error);
+    });
   }
 
-  public static async runWorkspaceRulesForOnCallNotification(data: {
+  public async runWorkspaceRulesForOnCallNotification(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
