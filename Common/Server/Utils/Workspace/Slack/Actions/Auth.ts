@@ -3,9 +3,7 @@ import WorkspaceProjectAuthToken, {
 } from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import ObjectID from "../../../../../Types/ObjectID";
-import  {
-  WorkspacePayloadMarkdown,
-} from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import { ExpressRequest } from "../../../Express";
 import SlackUtil from "../Slack";
@@ -90,10 +88,8 @@ export default class SlackAuthAction {
       (payload as JSONObject)?.["channel"] as JSONObject
     )?.["id"] as string;
 
-    if(!slackChannelId) {
-      slackChannelId = (
-        (payload as JSONObject)?.["channel_id"] as string
-      );
+    if (!slackChannelId) {
+      slackChannelId = (payload as JSONObject)?.["channel_id"] as string;
     }
 
     const slackMessageId: string | undefined = (
@@ -146,7 +142,6 @@ export default class SlackAuthAction {
     const projectId: ObjectID | undefined = projectAuth.projectId;
 
     if (!projectId) {
-
       logger.debug(
         "Project ID not found in project auth. Returning unauthorized.",
       );

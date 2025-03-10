@@ -38,7 +38,6 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
-
   public static async isUserInDirectMessageChannel(_data: {
     authToken: string;
     userId: string;
@@ -46,7 +45,7 @@ export default class WorkspaceBase {
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
-  public static async getUsernameFromUserId(_data: {  
+  public static async getUsernameFromUserId(_data: {
     authToken: string;
     userId: string;
   }): Promise<string> {

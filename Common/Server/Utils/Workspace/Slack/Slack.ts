@@ -1009,16 +1009,17 @@ export default class SlackUtil extends WorkspaceBase {
     directMessageChannelId: string;
   }): Promise<boolean> {
     // check of the user id is in the direct message channel id
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-      URL.fromString("https://slack.com/api/conversations.info"),
-      {
-        channel: data.directMessageChannelId,
-      },
-      {
-        Authorization: `Bearer ${data.authToken}`,
-        ["Content-Type"]: "application/x-www-form-urlencoded",
-      },
-    );
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post(
+        URL.fromString("https://slack.com/api/conversations.info"),
+        {
+          channel: data.directMessageChannelId,
+        },
+        {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+      );
 
     if (response instanceof HTTPErrorResponse) {
       logger.error("Error response from Slack API:");
@@ -1037,14 +1038,13 @@ export default class SlackUtil extends WorkspaceBase {
     // check if the user is in the channel
     const user: JSONObject = (
       (response.jsonData as JSONObject)["channel"] as JSONObject
-    )["user"] as JSONObject
+    )["user"] as JSONObject;
 
-    if(user?.['user_id']?.toString() === data.userId.toString()) {
+    if (user?.["user_id"]?.toString() === data.userId.toString()) {
       return true;
     }
 
     return false;
-
   }
 
   public static override async isUserInChannel(data: {

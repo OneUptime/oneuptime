@@ -150,8 +150,8 @@ export class Service extends DatabaseService<Model> {
         },
       );
 
-      logger.debug(`Notification Rules for Incident Owner Teams`);
-      logger.debug(notificationRules);
+    logger.debug(`Notification Rules for Incident Owner Teams`);
+    logger.debug(notificationRules);
 
     WorkspaceNotificationRuleService.inviteTeamsBasedOnRulesAndWorkspaceChannels(
       {
