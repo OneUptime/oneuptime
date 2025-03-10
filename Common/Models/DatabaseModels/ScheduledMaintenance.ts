@@ -35,7 +35,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import Recurring from "../../Types/Events/Recurring";
-import { NotificationRuleWorkspaceChannel } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")

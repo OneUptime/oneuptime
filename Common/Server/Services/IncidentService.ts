@@ -54,12 +54,10 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentSeverityService from "./IncidentSeverityService";
-
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
-import { NotificationRuleWorkspaceChannel } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
