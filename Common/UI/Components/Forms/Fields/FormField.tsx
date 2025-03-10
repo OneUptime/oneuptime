@@ -394,7 +394,7 @@ const FormField: <T extends GenericObject>(
                   },
                 ) || []
               }
-              initialValue={
+              value={
                 props.currentValues &&
                 (props.currentValues as any)[props.fieldName]
                   ? (props.currentValues as any)[props.fieldName]
@@ -584,7 +584,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldTouched(props.fieldName, true);
               }}
               dataTestId={props.field.dataTestId}
-              initialValue={booleanValue}
+              value={booleanValue}
             />
           )}
 

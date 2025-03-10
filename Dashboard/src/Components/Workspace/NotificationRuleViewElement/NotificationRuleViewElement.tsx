@@ -178,7 +178,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
                 | IncidentNotificationRule
                 | AlertNotificationRule
                 | ScheduledMaintenanceNotificationRule
-            ).inviteTeamsToNewChannel.find((j: ObjectID) => {
+            ).inviteTeamsToNewChannel?.find((j: ObjectID) => {
               return j.toString() === i._id!.toString();
             });
           });
@@ -206,7 +206,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
                 | IncidentNotificationRule
                 | AlertNotificationRule
                 | ScheduledMaintenanceNotificationRule
-            ).inviteUsersToNewChannel.find((j: ObjectID) => {
+            ).inviteUsersToNewChannel?.find((j: ObjectID) => {
               return j.toString() === i._id!.toString();
             });
           });

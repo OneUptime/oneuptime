@@ -1,6 +1,6 @@
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import Text from "Common/Types/Text";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 
 export interface RadioOption extends DropdownOption {}
 
@@ -26,6 +26,12 @@ const Radio: FunctionComponent<ComponentProps> = (
     props.initialValue || props.value || undefined,
   );
 
+
+  useEffect(() => {
+    setValue(props
+      .value);
+  }, [props.value])
+
   const groupName: string = Text.generateRandomText();
 
   return (
@@ -38,7 +44,7 @@ const Radio: FunctionComponent<ComponentProps> = (
           <div key={index} className="flex items-center gap-x-3">
             <input
               tabIndex={props.tabIndex}
-              defaultChecked={value === option.value}
+              checked={value === option.value}
               onClick={() => {
                 setValue(option.value);
                 props.onChange && props.onChange(option.value);
