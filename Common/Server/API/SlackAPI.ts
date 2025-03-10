@@ -40,11 +40,16 @@ export default class SlackAPI {
       (req: ExpressRequest, res: ExpressResponse) => {
         // return app manifest for slack app
 
-       const ServerURL: URL = new URL(HttpProtocol, Host);
+       let ServerURL: string = new URL(HttpProtocol, Host).toString();
+
+       //remove trailing slash if present.
+        if (ServerURL.endsWith("/")) {
+          ServerURL = ServerURL.slice(0, -1);
+        }
 
        // replace SERVER_URL in the manifest with the actual server url.
        const manifestInString: string = JSON.stringify(SlackAppManifest).replace(
-         /SERVER_URL/g,
+         /{{SERVER_URL}}/g,
          ServerURL.toString(),
         );
 
