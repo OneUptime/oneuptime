@@ -483,6 +483,44 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         if (workspaceUserId) {
           workspaceUserIds.push(workspaceUserId);
+        }else {
+          try {
+            // send a message to channel that user cannot be invited because the account is not connected to workspace.
+
+            const channelIds: Array<string> =
+              channelsToInviteToBasedOnRule.map((channel: NotificationRuleWorkspaceChannel) => {
+                return channel.id as string;
+              });
+
+            logger.debug("Channel IDs to send message to:");
+            logger.debug(channelIds);
+
+            await WorkspaceUtil.getWorkspaceTypeUtil(
+              workspaceType
+            ).sendMessage({
+              userId: projectAuth.workspaceProjectId!,
+              authToken: projectAuth.authToken!,
+              workspaceMessagePayload: {
+                _type: "WorkspaceMessagePayload",
+                channelNames: [],
+
+                channelIds: channelIds,
+                workspaceType: workspaceType,
+                messageBlocks: [
+                  {
+                    _type: "WorkspacePayloadMarkdown",
+                    text: `${await UserService.getUserMarkdownString({
+                      userId: userId,
+                      projectId: data.projectId,
+                    })} cannot be invited to the channel because the account is not connected to ${workspaceType}. Please go to User Settings > ${workspaceType} on OneUptime Dashboard and connect the account.`,
+                  } as WorkspacePayloadMarkdown,
+                ],
+              },
+            });
+          } catch (e) {
+            logger.error("Error in sending message to channel");
+            logger.error(e);
+          }
         }
       }
 
