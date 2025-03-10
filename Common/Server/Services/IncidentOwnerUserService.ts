@@ -9,6 +9,10 @@ import UserService from "./UserService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import IncidentService from "./IncidentService";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -130,7 +134,36 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+
+    // get notification rule where inviteOwners is true.
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+        {
+          projectId: projectId!,
+          notificationFor: {
+            incidentId: incidentId,
+          },
+          notificationRuleEventType: NotificationRuleEventType.Incident,
+        }
+      );
+
+    WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: projectId!,
+        workspaceChannels: await IncidentService.getWorkspaceChannelForIncident(
+          {
+            incidentId: incidentId!,
+          }
+        ),
+        userIds: [userId!],
+      }
+    ).catch((error) => {
+      logger.error(error);
+    });
+
     return createdItem;
+
   }
 }
 

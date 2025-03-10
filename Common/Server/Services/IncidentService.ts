@@ -1514,8 +1514,8 @@ ${incidentSeverity.name}
 
   public async getWorkspaceChannelForIncident(data: {
     incidentId: ObjectID;
-    workspaceType: WorkspaceType;
-  }): Promise<Array<WorkspaceChannel>> {
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
@@ -1531,7 +1531,11 @@ ${incidentSeverity.name}
     }
 
     return (incident.postUpdatesToWorkspaceChannels || []).filter(
-      (channel: WorkspaceChannel) => {
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if(!data.workspaceType) {
+          return true;
+        }
+        
         return channel.workspaceType === data.workspaceType;
       },
     );

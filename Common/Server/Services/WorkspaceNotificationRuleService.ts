@@ -224,6 +224,38 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  public async getNotificationRulesWhereInviteOwnersIsTrue(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    notificationRuleEventType: NotificationRuleEventType;
+  }): Promise<Array<WorkspaceNotificationRule>> {
+    const workspaceTypes: Array<WorkspaceType> = Service.getAllWorkspaceTypes();
+
+    const result: Array<WorkspaceNotificationRule> = [];
+
+    for (const workspaceType of workspaceTypes) {
+      // get matching notification rules
+      const notificationRules: Array<WorkspaceNotificationRule> =
+        await this.getMatchingNotificationRules({
+          projectId: data.projectId,
+          notificationFor: data.notificationFor,
+          workspaceType: workspaceType,
+          notificationRuleEventType: data.notificationRuleEventType,
+        });
+
+      const filteredNotificationRules = notificationRules.filter(
+        (rule: WorkspaceNotificationRule) => {
+          return (rule.notificationRule as CreateChannelNotificationRule)
+            .shouldInviteOwnersToNewChannel;
+        }
+      );
+
+      result.push(...filteredNotificationRules);
+    }
+
+    return result;
+  }
+
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
     projectId: ObjectID;
     projectOrUserAuthTokenForWorkspasce: string;
@@ -285,6 +317,111 @@ export class Service extends DatabaseService<Model> {
     }
 
     logger.debug("Users invited to channels successfully");
+  }
+
+  public async inviteUsersBasedOnRulesAndWorkspaceChannels(data: {
+    workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
+    projectId: ObjectID;
+    notificationRules: Array<WorkspaceNotificationRule>;
+    userIds: Array<ObjectID>;
+  }): Promise<void> {
+    const userIds: Array<ObjectID> = data.userIds; 
+
+    logger.debug("Users:");
+    logger.debug(userIds);
+
+    // get all workspasces.
+    const workspaceTypes: Array<WorkspaceType> = Service.getAllWorkspaceTypes();
+
+    for (const workspaceType of workspaceTypes) {
+      // filter rules by workspaceType.
+
+      const notificationRules: Array<WorkspaceNotificationRule> =
+        data.notificationRules.filter((rule: WorkspaceNotificationRule) => {
+          return rule.workspaceType === workspaceType;
+        });
+
+      const channelsToInviteToBasedOnRule: Array<NotificationRuleWorkspaceChannel> =
+        data.workspaceChannels.filter(
+          (channel: NotificationRuleWorkspaceChannel) => {
+            return notificationRules.find((rule: WorkspaceNotificationRule) => {
+              return rule.id?.toString() === channel.notificationRuleId;
+            });
+          }
+        );
+
+      // get auth token for workspace.
+
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            workspaceType: workspaceType,
+          },
+          select: {
+            authToken: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!projectAuth) {
+        logger.debug("No project auth found for workspace type");
+        continue;
+      }
+
+      // inivte users to channels.
+
+      const workspaceUserIds: Array<string> = [];
+
+      for (const userId of userIds) {
+        const workspaceUserId: string | null =
+          await this.getWorkspaceUserIdFromOneUptimeUserId({
+            projectId: data.projectId,
+            workspaceType: workspaceType,
+            oneuptimeUserId: userId,
+          });
+
+        if (workspaceUserId) {
+          workspaceUserIds.push(workspaceUserId);
+        }
+      }
+
+      await WorkspaceUtil.getWorkspaceTypeUtil(
+        workspaceType
+      ).inviteUsersToChannels({
+        authToken: projectAuth.authToken!,
+        workspaceChannelInvitationPayload: {
+          channelNames: channelsToInviteToBasedOnRule.map(
+            (channel: NotificationRuleWorkspaceChannel) => {
+              return channel.name;
+            }
+          ),
+          workspaceUserIds: workspaceUserIds,
+        },
+      });
+    }
+  }
+
+  public async inviteTeamsBasedOnRulesAndWorkspaceChannels(data: {
+    workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
+    projectId: ObjectID;
+    notificationRules: Array<WorkspaceNotificationRule>;
+    teamIds: Array<ObjectID>;
+  }): Promise<void> {
+    const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeams(
+      data.teamIds
+    );
+
+    return this.inviteUsersBasedOnRulesAndWorkspaceChannels({
+      workspaceChannels: data.workspaceChannels,
+      projectId: data.projectId,
+      notificationRules: data.notificationRules,
+      userIds: usersInTeam.map((user: User) => {
+        return user.id!;
+      })
+    });
   }
 
   public async getWorkspaceUserIdFromOneUptimeUserId(data: {
