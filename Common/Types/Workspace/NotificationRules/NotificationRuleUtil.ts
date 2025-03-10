@@ -1,3 +1,4 @@
+import logger from "../../../Server/Utils/Logger";
 import FilterCondition from "../../Filter/FilterCondition";
 import {
   ConditionType,
@@ -17,12 +18,19 @@ export class WorkspaceNotificationRuleUtil {
   }): boolean {
     const notificationRule: IncidentNotificationRule = data.notificationRule;
 
+    logger.debug("Checking if rule matches for notificationRule:");
+    logger.debug(notificationRule);
+
     // no filters means all filters are matched
     if (data.notificationRule.filters.length === 0) {
+      logger.debug("No filters found. Rule matches by default.");
       return true;
     }
 
     const filterCondition: FilterCondition = notificationRule.filterCondition;
+
+    logger.debug("Filter condition:");
+    logger.debug(filterCondition);
 
     for (const filter of notificationRule.filters) {
       const value: string | Array<string> | undefined =
@@ -30,7 +38,17 @@ export class WorkspaceNotificationRuleUtil {
       const condition: ConditionType | undefined = filter.conditionType;
       const filterValue: string | Array<string> | undefined = filter.value;
 
+      logger.debug("Evaluating filter:");
+      logger.debug(filter);
+      logger.debug("Value:");
+      logger.debug(value);
+      logger.debug("Condition:");
+      logger.debug(condition);
+      logger.debug("Filter value:");
+      logger.debug(filterValue);
+
       if (!condition) {
+        logger.debug("No condition found for filter. Skipping.");
         continue;
       }
 
@@ -40,27 +58,35 @@ export class WorkspaceNotificationRuleUtil {
         filterValue,
       });
 
+      logger.debug("Filter match result:");
+      logger.debug(isMatched);
+
       if (filterCondition === FilterCondition.All) {
         if (!isMatched) {
+          logger.debug("Filter condition is 'All' and a filter did not match. Rule does not match.");
           return false;
         }
       }
 
       if (filterCondition === FilterCondition.Any) {
         if (isMatched) {
+          logger.debug("Filter condition is 'Any' and a filter matched. Rule matches.");
           return true;
         }
       }
     }
 
     if (filterCondition === FilterCondition.All) {
+      logger.debug("All filters matched. Rule matches.");
       return true;
     }
 
     if (filterCondition === FilterCondition.Any) {
+      logger.debug("No filters matched. Rule does not match.");
       return false;
     }
 
+    logger.debug("No valid filter condition found. Rule does not match.");
     return false;
   }
 
@@ -73,187 +99,149 @@ export class WorkspaceNotificationRuleUtil {
     const condition: ConditionType = data.condition;
     const filterValue: string | Array<string> | undefined = data.filterValue;
 
+    logger.debug("Checking condition match:");
+    logger.debug("Value:");
+    logger.debug(value);
+    logger.debug("Condition:");
+    logger.debug(condition);
+    logger.debug("Filter value:");
+    logger.debug(filterValue);
+
     if (value === undefined || filterValue === undefined) {
+      logger.debug("Value or filter value is undefined. Condition does not match.");
       return false;
     }
 
     switch (condition) {
       case ConditionType.EqualTo: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.includes(val);
-          });
-        }
-        return value === filterValue;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.includes(val))
+          : value === filterValue;
+        logger.debug("EqualTo condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.NotEqualTo: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return !value.every((val: string) => {
-            return filterValue.includes(val);
-          });
-        }
-        return value !== filterValue;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? !value.every((val: string) => filterValue.includes(val))
+          : value !== filterValue;
+        logger.debug("NotEqualTo condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.GreaterThan: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.every((fVal: string) => {
-              return val > fVal;
-            });
-          });
-        } else if (value !== undefined && filterValue !== undefined) {
-          return value > filterValue;
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.every((fVal: string) => val > fVal))
+          : value > filterValue;
+        logger.debug("GreaterThan condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.LessThan: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.every((fVal: string) => {
-              return val < fVal;
-            });
-          });
-        } else if (value !== undefined && filterValue !== undefined) {
-          return value < filterValue;
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.every((fVal: string) => val < fVal))
+          : value < filterValue;
+        logger.debug("LessThan condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.GreaterThanOrEqualTo: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.every((fVal: string) => {
-              return val >= fVal;
-            });
-          });
-        } else if (value !== undefined && filterValue !== undefined) {
-          return value >= filterValue;
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.every((fVal: string) => val >= fVal))
+          : value >= filterValue;
+        logger.debug("GreaterThanOrEqualTo condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.LessThanOrEqualTo: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.every((fVal: string) => {
-              return val <= fVal;
-            });
-          });
-        } else if (value !== undefined && filterValue !== undefined) {
-          return value <= filterValue;
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.every((fVal: string) => val <= fVal))
+          : value <= filterValue;
+        logger.debug("LessThanOrEqualTo condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.ContainsAny: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.some((val: string) => {
-            return filterValue.includes(val);
-          });
-        } else if (
-          value !== undefined &&
-          filterValue !== undefined &&
-          typeof value === "string"
-        ) {
-          return filterValue.includes(value);
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.some((val: string) => filterValue.includes(val))
+          : typeof value === "string" && filterValue.includes(value);
+        logger.debug("ContainsAny condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.NotContains: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return !value.some((val: string) => {
-            return filterValue.includes(val);
-          });
-        } else if (
-          value !== undefined &&
-          filterValue !== undefined &&
-          typeof value === "string"
-        ) {
-          return !filterValue.includes(value);
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? !value.some((val: string) => filterValue.includes(val))
+          : typeof value === "string" && !filterValue.includes(value);
+        logger.debug("NotContains condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.StartsWith: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.every((fVal: string) => {
-              return val.startsWith(fVal);
-            });
-          });
-        } else if (
-          value !== undefined &&
-          filterValue !== undefined &&
-          typeof value === "string"
-        ) {
-          return value.startsWith(filterValue.toString());
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.every((fVal: string) => val.startsWith(fVal)))
+          : typeof value === "string" && value.startsWith(filterValue.toString());
+        logger.debug("StartsWith condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.EndsWith: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return value.every((val: string) => {
-            return filterValue.every((fVal: string) => {
-              return val.endsWith(fVal);
-            });
-          });
-        } else if (
-          value !== undefined &&
-          filterValue !== undefined &&
-          typeof value === "string"
-        ) {
-          return value.endsWith(filterValue.toString());
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? value.every((val: string) => filterValue.every((fVal: string) => val.endsWith(fVal)))
+          : typeof value === "string" && value.endsWith(filterValue.toString());
+        logger.debug("EndsWith condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.IsEmpty: {
-        if (Array.isArray(value)) {
-          return value.length === 0;
-        }
-        return value === "" || value === undefined;
+        const result = Array.isArray(value) ? value.length === 0 : value === "" || value === undefined;
+        logger.debug("IsEmpty condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.IsNotEmpty: {
-        if (Array.isArray(value)) {
-          return value.length > 0;
-        }
-        return value !== "" && value !== undefined;
+        const result = Array.isArray(value) ? value.length > 0 : value !== "" && value !== undefined;
+        logger.debug("IsNotEmpty condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.True: {
-        if (Array.isArray(value)) {
-          return value.every((val: string) => {
-            return val === "true";
-          });
-        }
-        return value === "true";
+        const result = Array.isArray(value) ? value.every((val: string) => val === "true") : value === "true";
+        logger.debug("True condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.False: {
-        if (Array.isArray(value)) {
-          return value.every((val: string) => {
-            return val === "false";
-          });
-        }
-        return value === "false";
+        const result = Array.isArray(value) ? value.every((val: string) => val === "false") : value === "false";
+        logger.debug("False condition result:");
+        logger.debug(result);
+        return result;
       }
 
       case ConditionType.ContainsAll: {
-        if (Array.isArray(value) && Array.isArray(filterValue)) {
-          return filterValue.every((fVal: string) => {
-            return value.includes(fVal);
-          });
-        }
-        return false;
+        const result = Array.isArray(value) && Array.isArray(filterValue)
+          ? filterValue.every((fVal: string) => value.includes(fVal))
+          : false;
+        logger.debug("ContainsAll condition result:");
+        logger.debug(result);
+        return result;
       }
 
       default: {
+        logger.debug("Unknown condition type. Condition does not match.");
         return false;
       }
     }

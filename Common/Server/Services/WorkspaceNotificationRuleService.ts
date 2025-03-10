@@ -881,6 +881,9 @@ export class Service extends DatabaseService<Model> {
       notificationRuleEventType: data.notificationRuleEventType,
     });
 
+    logger.debug("Notification rules retrieved:");
+    logger.debug(notificationRules);
+
     const values: {
       [key in NotificationRuleConditionCheckOn]:
         | string
@@ -890,9 +893,16 @@ export class Service extends DatabaseService<Model> {
       notificationFor: data.notificationFor,
     });
 
+
+    logger.debug("Values based on notification for:");
+    logger.debug(values);
+
+
+
     const matchingNotificationRules: Array<Model> = [];
 
     for (const notificationRule of notificationRules) {
+      logger.debug("Checking if rule matches:");
       if (
         WorkspaceNotificationRuleUtil.isRuleMatching({
           notificationRule:
@@ -900,7 +910,10 @@ export class Service extends DatabaseService<Model> {
           values: values,
         })
       ) {
+        logger.debug("Rule matches. Adding to the list.");
         matchingNotificationRules.push(notificationRule);
+      }else{
+        logger.debug("Rule does not match. Skipping.");
       }
     }
 
