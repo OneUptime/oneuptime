@@ -6,16 +6,16 @@ import {
   WorkspacePayloadButtons,
   WorkspacePayloadDivider,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
-import IncidentService from "../../../../Services/IncidentService";
+import AlertService from "../../../../Services/AlertService";
 import MicrosoftTeamsActionType from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 
-export default class MicrosoftTeamsIncidentMessages {
-  public static async getIncidentCreateMessageBlocks(data: {
-    incidentId: ObjectID;
+export default class MicrosoftTeamsAlertMessages {
+  public static async getAlertCreateMessageBlocks(data: {
+    alertId: ObjectID;
     projectId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
-    if (!data.incidentId) {
-      throw new BadDataException("Incident ID is required");
+    if (!data.alertId) {
+      throw new BadDataException("Alert ID is required");
     }
 
     // MicrosoftTeams.
@@ -33,73 +33,73 @@ export default class MicrosoftTeamsIncidentMessages {
     // now add buttons.
     // View data.
     // Execute On Call
-    // Acknowledge incident
+    // Acknowledge alert
     // Resolve data.
-    // Change Incident State.
+    // Change Alert State.
     // Add Note.
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 
     // view data.
-    const viewIncidentButton: WorkspaceMessagePayloadButton = {
+    const viewAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "🔗 View Incident",
-      url: await IncidentService.getIncidentLinkInDashboard(
+      title: "🔗 View Alert",
+      url: await AlertService.getAlertLinkInDashboard(
         data.projectId!,
-        data.incidentId!,
+        data.alertId!,
       ),
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewIncident,
+      value: data.alertId?.toString() || "",
+      actionId: MicrosoftTeamsActionType.ViewAlert,
     };
 
-    buttons.push(viewIncidentButton);
+    buttons.push(viewAlertButton);
 
     // execute on call.
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewExecuteIncidentOnCallPolicy,
+      value: data.alertId?.toString() || "",
+      actionId: MicrosoftTeamsActionType.ViewExecuteAlertOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);
 
     // acknowledge data.
-    const acknowledgeIncidentButton: WorkspaceMessagePayloadButton = {
+    const acknowledgeAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "👀 Acknowledge Incident",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.AcknowledgeIncident,
+      title: "👀 Acknowledge Alert",
+      value: data.alertId?.toString() || "",
+      actionId: MicrosoftTeamsActionType.AcknowledgeAlert,
     };
 
-    buttons.push(acknowledgeIncidentButton);
+    buttons.push(acknowledgeAlertButton);
 
     // resolve data.
-    const resolveIncidentButton: WorkspaceMessagePayloadButton = {
+    const resolveAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "✅ Resolve Incident",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ResolveIncident,
+      title: "✅ Resolve Alert",
+      value: data.alertId?.toString() || "",
+      actionId: MicrosoftTeamsActionType.ResolveAlert,
     };
 
-    buttons.push(resolveIncidentButton);
+    buttons.push(resolveAlertButton);
 
-    // change incident state.
-    const changeIncidentStateButton: WorkspaceMessagePayloadButton = {
+    // change alert state.
+    const changeAlertStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "➡️ Change Incident State",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewChangeIncidentState,
+      title: "➡️ Change Alert State",
+      value: data.alertId?.toString() || "",
+      actionId: MicrosoftTeamsActionType.ViewChangeAlertState,
     };
 
-    buttons.push(changeIncidentStateButton);
+    buttons.push(changeAlertStateButton);
 
     // add note.
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewAddIncidentNote,
+      value: data.alertId?.toString() || "",
+      actionId: MicrosoftTeamsActionType.ViewAddAlertNote,
     };
 
     buttons.push(addNoteButton);
