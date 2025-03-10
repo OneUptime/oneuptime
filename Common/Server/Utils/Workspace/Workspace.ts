@@ -193,7 +193,7 @@ export default class WorkspaceUtil {
 
   public static async postToWorkspaceChannels(data: {
     workspaceUserId: string;
-    projectOrUserAuthTokenForWorkspasce: string;
+    projectOrUserAuthTokenForWorkspace: string;
     workspaceType: WorkspaceType;
     workspaceMessagePayload: WorkspaceMessagePayload;
   }): Promise<WorkspaceSendMessageResponse> {
@@ -204,7 +204,7 @@ export default class WorkspaceUtil {
       await WorkspaceUtil.getWorkspaceTypeUtil(data.workspaceType).sendMessage({
         userId: data.workspaceUserId,
         workspaceMessagePayload: data.workspaceMessagePayload,
-        authToken: data.projectOrUserAuthTokenForWorkspasce,
+        authToken: data.projectOrUserAuthTokenForWorkspace,
       });
 
     logger.debug("Message posted to workspace channels successfully");
