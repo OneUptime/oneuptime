@@ -724,8 +724,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(workspaceRules);
 
       if (
-        workspaceRules.shouldCreateNewChannel &&
-        workspaceRules.newChannelTemplateName
+        workspaceRules.shouldCreateNewChannel
       ) {
         const notificationChannels: string =
           workspaceRules.newChannelTemplateName ||
@@ -742,11 +741,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.debug(channelName);
 
         if (
-          !channels.filter(
+          channels.filter(
             (name: { channelName: string; notificationRuleId: string }) => {
               return name.channelName === channelName;
             },
-          )
+          ).length === 0
         ) {
           // if channel name is not already added then add it.
           channels.push({
