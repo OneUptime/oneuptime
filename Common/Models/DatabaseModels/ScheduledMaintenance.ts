@@ -997,7 +997,8 @@ export default class ScheduledMaintenance extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> = undefined;
+  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
+    undefined;
 
   @ColumnAccessControl({
     create: [

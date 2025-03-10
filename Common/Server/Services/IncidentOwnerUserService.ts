@@ -134,7 +134,6 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-
     // get notification rule where inviteOwners is true.
     const notificationRules: Array<WorkspaceNotificationRule> =
       await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
@@ -144,7 +143,7 @@ export class Service extends DatabaseService<Model> {
             incidentId: incidentId,
           },
           notificationRuleEventType: NotificationRuleEventType.Incident,
-        }
+        },
       );
 
     WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
@@ -154,16 +153,15 @@ export class Service extends DatabaseService<Model> {
         workspaceChannels: await IncidentService.getWorkspaceChannelForIncident(
           {
             incidentId: incidentId!,
-          }
+          },
         ),
         userIds: [userId!],
-      }
-    ).catch((error) => {
+      },
+    ).catch((error: Error) => {
       logger.error(error);
     });
 
     return createdItem;
-
   }
 }
 

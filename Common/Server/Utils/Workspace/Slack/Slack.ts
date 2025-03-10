@@ -45,7 +45,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for getting user info:");
@@ -106,7 +106,7 @@ export default class SlackUtil extends WorkspaceBase {
       {
         Authorization: `Bearer ${data.authToken}`,
         ["Content-Type"]: "application/json",
-      }
+      },
     );
 
     if (result instanceof HTTPErrorResponse) {
@@ -134,7 +134,7 @@ export default class SlackUtil extends WorkspaceBase {
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       {
         messageBlocks: data.messageBlocks,
-      }
+      },
     );
 
     await this.sendPayloadBlocksToChannel({
@@ -165,7 +165,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for joining channel:");
@@ -205,7 +205,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for inviting user:");
@@ -340,7 +340,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for getting channel info:");
@@ -393,7 +393,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for getting all channels:");
@@ -495,7 +495,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
-      data.workspaceMessagePayload
+      data.workspaceMessagePayload,
     );
 
     logger.debug("Blocks generated from workspace message payload:");
@@ -606,7 +606,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for sending message:");
@@ -643,7 +643,7 @@ export default class SlackUtil extends WorkspaceBase {
       elements: data.payloadButtonsBlock.buttons.map(
         (button: WorkspaceMessagePayloadButton) => {
           return this.getButtonBlock({ payloadButtonBlock: button });
-        }
+        },
       ),
     };
 
@@ -656,8 +656,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
   }): Promise<WorkspaceChannel> {
-
-    if(data.channelName && data.channelName.startsWith("#")) {
+    if (data.channelName && data.channelName.startsWith("#")) {
       data.channelName = data.channelName.substring(1);
     }
 
@@ -676,7 +675,7 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
-        }
+        },
       );
 
     logger.debug("Response from Slack API for creating channel:");
@@ -918,7 +917,7 @@ export default class SlackUtil extends WorkspaceBase {
               },
               value: option.value,
             };
-          }
+          },
         ),
         initial_option: data.payloadDropdownBlock.initialValue
           ? {
@@ -1035,7 +1034,7 @@ export default class SlackUtil extends WorkspaceBase {
           {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
-          }
+          },
         );
 
       logger.debug("Response from Slack API for getting channel members:");

@@ -20,7 +20,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = await this.findBy({
       query: deleteBy.query,
@@ -46,7 +46,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deleteByUserId: ObjectID | undefined =
       onDelete.deleteBy.deletedByUser?.id || onDelete.deleteBy.props.userId;
@@ -96,7 +96,7 @@ export class Service extends DatabaseService<Model> {
 
   public override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     // add incident feed.
 
@@ -147,7 +147,7 @@ export class Service extends DatabaseService<Model> {
             incidentId: incidentId,
           },
           notificationRuleEventType: NotificationRuleEventType.Incident,
-        }
+        },
       );
 
     WorkspaceNotificationRuleService.inviteTeamsBasedOnRulesAndWorkspaceChannels(
@@ -157,11 +157,11 @@ export class Service extends DatabaseService<Model> {
         workspaceChannels: await IncidentService.getWorkspaceChannelForIncident(
           {
             incidentId: incidentId!,
-          }
+          },
         ),
         teamIds: [teamId!],
-      }
-    ).catch((error) => {
+      },
+    ).catch((error: Error) => {
       logger.error(error);
     });
 

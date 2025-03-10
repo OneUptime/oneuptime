@@ -64,7 +64,7 @@ export class WorkspaceNotificationRuleUtil {
       if (filterCondition === FilterCondition.All) {
         if (!isMatched) {
           logger.debug(
-            "Filter condition is 'All' and a filter did not match. Rule does not match."
+            "Filter condition is 'All' and a filter did not match. Rule does not match.",
           );
           return false;
         }
@@ -73,7 +73,7 @@ export class WorkspaceNotificationRuleUtil {
       if (filterCondition === FilterCondition.Any) {
         if (isMatched) {
           logger.debug(
-            "Filter condition is 'Any' and a filter matched. Rule matches."
+            "Filter condition is 'Any' and a filter matched. Rule matches.",
           );
           return true;
         }
@@ -113,7 +113,7 @@ export class WorkspaceNotificationRuleUtil {
 
     if (value === undefined || filterValue === undefined) {
       logger.debug(
-        "Value or filter value is undefined. Condition does not match."
+        "Value or filter value is undefined. Condition does not match.",
       );
       return false;
     }
@@ -125,25 +125,27 @@ export class WorkspaceNotificationRuleUtil {
           ? filterValue
           : [filterValue];
 
-        const result = values.every((val: string) =>
-          filterValues.every((fVal: string) => {
+        const result: boolean = values.every((val: string) => {
+          return filterValues.every((fVal: string) => {
             // if val and fVal can be  converted to numbers, compare them as numbers
             if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
               return Number(val) === Number(fVal);
             }
 
             return val === fVal;
-          })
-        );
+          });
+        });
         logger.debug("EqualTo condition result:");
         logger.debug(result);
         return result;
       }
 
       case ConditionType.NotEqualTo: {
-        const result =
+        const result: boolean =
           Array.isArray(value) && Array.isArray(filterValue)
-            ? !value.every((val: string) => filterValue.includes(val))
+            ? !value.every((val: string) => {
+                return filterValue.includes(val);
+              })
             : value !== filterValue;
         logger.debug("NotEqualTo condition result:");
         logger.debug(result);
@@ -156,16 +158,16 @@ export class WorkspaceNotificationRuleUtil {
           ? filterValue
           : [filterValue];
 
-        const result = values.every((val: string) =>
-          filterValues.every((fVal: string) => {
+        const result: boolean = values.every((val: string) => {
+          return filterValues.every((fVal: string) => {
             // if val and fVal can be  converted to numbers, compare them as numbers
             if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
               return Number(val) > Number(fVal);
             }
 
             return val > fVal;
-          })
-        );
+          });
+        });
         logger.debug("GreaterThan condition result:");
         logger.debug(result);
         return result;
@@ -177,16 +179,16 @@ export class WorkspaceNotificationRuleUtil {
           ? filterValue
           : [filterValue];
 
-        const result = values.every((val: string) =>
-          filterValues.every((fVal: string) => {
+        const result: boolean = values.every((val: string) => {
+          return filterValues.every((fVal: string) => {
             // if val and fVal can be  converted to numbers, compare them as numbers
             if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
               return Number(val) < Number(fVal);
             }
 
             return val < fVal;
-          })
-        );
+          });
+        });
         logger.debug("LessThan condition result:");
         logger.debug(result);
         return result;
@@ -198,16 +200,16 @@ export class WorkspaceNotificationRuleUtil {
           ? filterValue
           : [filterValue];
 
-        const result = values.every((val: string) =>
-          filterValues.every((fVal: string) => {
+        const result: boolean = values.every((val: string) => {
+          return filterValues.every((fVal: string) => {
             // if val and fVal can be  converted to numbers, compare them as numbers
             if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
               return Number(val) >= Number(fVal);
             }
 
             return val >= fVal;
-          })
-        );
+          });
+        });
         logger.debug("GreaterThanOrEqualTo condition result:");
         logger.debug(result);
         return result;
@@ -219,16 +221,16 @@ export class WorkspaceNotificationRuleUtil {
           ? filterValue
           : [filterValue];
 
-        const result = values.every((val: string) =>
-          filterValues.every((fVal: string) => {
+        const result: boolean = values.every((val: string) => {
+          return filterValues.every((fVal: string) => {
             // if val and fVal can be  converted to numbers, compare them as numbers
             if (!isNaN(Number(val)) && !isNaN(Number(fVal))) {
               return Number(val) <= Number(fVal);
             }
 
             return val <= fVal;
-          })
-        );
+          });
+        });
 
         logger.debug("LessThanOrEqualTo condition result:");
         logger.debug(result);
@@ -333,28 +335,28 @@ export class WorkspaceNotificationRuleUtil {
       }
 
       case ConditionType.IsEmpty: {
-        const result = Array.isArray(value) ? value.length === 0 : value === "";
+        const result: boolean = Array.isArray(value) ? value.length === 0 : value === "";
         logger.debug("IsEmpty condition result:");
         logger.debug(result);
         return result;
       }
 
       case ConditionType.IsNotEmpty: {
-        const result = Array.isArray(value) ? value.length > 0 : value !== "";
+        const result: boolean = Array.isArray(value) ? value.length > 0 : value !== "";
         logger.debug("IsNotEmpty condition result:");
         logger.debug(result);
         return result;
       }
 
       case ConditionType.True: {
-        const result = value === "true";
+        const result: boolean = value === "true";
         logger.debug("True condition result:");
         logger.debug(result);
         return result;
       }
 
       case ConditionType.False: {
-        const result = value === "false";
+        const result: boolean = value === "false";
         logger.debug("False condition result:");
         logger.debug(result);
         return result;
@@ -366,9 +368,11 @@ export class WorkspaceNotificationRuleUtil {
           ? filterValue
           : [filterValue];
 
-        const result = filterValues.every((fVal: string) =>
-          values.some((val: string) => val.includes(fVal))
-        );
+        const result: boolean = filterValues.every((fVal: string) => {
+          return values.some((val: string) => {
+            return val.includes(fVal);
+          });
+        });
         logger.debug("ContainsAll condition result:");
         logger.debug(result);
         return result;

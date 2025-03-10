@@ -37,12 +37,13 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const getValueElement: GetReactElementFunction = (): ReactElement => {
-    let valueElement: ReactElement | undefined = Array.isArray(props
-      .notificationRuleCondition?.value) ? <span>{
-        props
-          .notificationRuleCondition?.value.join(", ")
-      }</span> : <span>{props
-        .notificationRuleCondition?.value}</span>;
+    let valueElement: ReactElement | undefined = Array.isArray(
+      props.notificationRuleCondition?.value,
+    ) ? (
+      <span>{props.notificationRuleCondition?.value.join(", ")}</span>
+    ) : (
+      <span>{props.notificationRuleCondition?.value}</span>
+    );
 
     if (
       props.notificationRuleCondition?.checkOn ===
@@ -219,13 +220,13 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
 
     if (
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.AlertLabels ||
+        NotificationRuleConditionCheckOn.AlertLabels ||
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.IncidentLabels ||
+        NotificationRuleConditionCheckOn.IncidentLabels ||
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.MonitorLabels ||
+        NotificationRuleConditionCheckOn.MonitorLabels ||
       props.notificationRuleCondition?.checkOn ===
-      NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
+        NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels
     ) {
       const selectedLabels: Array<Label> = props.labels.filter(
         (label: Label) => {

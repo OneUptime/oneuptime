@@ -10,9 +10,6 @@ import logger from "../../Logger";
 import SlackIncidentMessages from "../Slack/Messages/Incident";
 
 export default class IncidentWorkspaceMessages {
-
-
-  
   public static async createChannelsAndInviteUsersToChannels(data: {
     projectId: ObjectID;
     incidentId: ObjectID;

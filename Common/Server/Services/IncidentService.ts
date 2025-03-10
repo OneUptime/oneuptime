@@ -1530,10 +1530,10 @@ ${incidentSeverity.name}
 
     return (incident.postUpdatesToWorkspaceChannels || []).filter(
       (channel: NotificationRuleWorkspaceChannel) => {
-        if(!data.workspaceType) {
+        if (!data.workspaceType) {
           return true;
         }
-        
+
         return channel.workspaceType === data.workspaceType;
       },
     );
