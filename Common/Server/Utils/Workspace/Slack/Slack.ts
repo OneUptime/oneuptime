@@ -656,6 +656,14 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
   }): Promise<WorkspaceChannel> {
+
+    if(data.channelName && data.channelName.startsWith("#")) {
+      data.channelName = data.channelName.substring(1);
+    }
+
+    // lower case channel name
+    data.channelName = data.channelName.toLowerCase();
+
     logger.debug("Creating channel with data:");
     logger.debug(data);
 
