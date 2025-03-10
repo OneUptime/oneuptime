@@ -36,7 +36,6 @@ import {
   ManyToOne,
 } from "typeorm";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
-import { WorkspaceChannel } from "../../Server/Utils/Workspace/WorkspaceBase";
 import { NotificationRuleWorkspaceChannel } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
