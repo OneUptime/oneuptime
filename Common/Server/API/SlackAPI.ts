@@ -12,6 +12,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import {
   AppApiClientUrl,
   DashboardClientUrl,
+  Host,
+  HttpProtocol,
   SlackAppClientId,
   SlackAppClientSecret,
 } from "../EnvironmentConfig";
@@ -37,7 +39,19 @@ export default class SlackAPI {
       "/slack/app-manifest",
       (req: ExpressRequest, res: ExpressResponse) => {
         // return app manifest for slack app
-        return Response.sendJsonObjectResponse(req, res, SlackAppManifest);
+
+       const ServerURL: URL = new URL(HttpProtocol, Host);
+
+       // replace SERVER_URL in the manifest with the actual server url.
+       const manifestInString: string = JSON.stringify(SlackAppManifest).replace(
+         /SERVER_URL/g,
+         ServerURL.toString(),
+        );
+
+        // convert it back to json. 
+        const manifest: JSONObject = JSON.parse(manifestInString);
+
+        return Response.sendJsonObjectResponse(req, res, manifest);
       },
     );
 

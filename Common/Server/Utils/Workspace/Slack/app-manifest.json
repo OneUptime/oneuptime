@@ -32,14 +32,14 @@
         "slash_commands": [
             {
                 "command": "/incident",
-                "url": "https://local.genosyn.com/api/slack/interactive",
+                "url": "{{SERVER_URL}}/api/slack/interactive",
                 "description": "Create a new Incident in OneUptime",
                 "usage_hint": "/incident [incident title]",
                 "should_escape": false
             },
             {
                 "command": "/maintenance",
-                "url": "https://local.genosyn.com/api/slack/interactive",
+                "url": "{{SERVER_URL}}/api/slack/interactive",
                 "description": "Create a new Scheduled Maintenance in OneUptime",
                 "usage_hint": "/maintenance [maintenance title]",
                 "should_escape": false
@@ -48,7 +48,7 @@
     },
     "oauth_config": {
         "redirect_urls": [
-            "https://local.genosyn.com/api/slack/auth"
+            "{{SERVER_URL}}/api/slack/auth"
         ],
         "scopes": {
             "user": [
@@ -70,8 +70,8 @@
     "settings": {
         "interactivity": {
             "is_enabled": true,
-            "request_url": "https://local.genosyn.com/api/slack/interactive",
-            "message_menu_options_url": "https://local.genosyn.com/api/slack/options-load"
+            "request_url": "{{SERVER_URL}}/api/slack/interactive",
+            "message_menu_options_url": "{{SERVER_URL}}/api/slack/options-load"
         },
         "org_deploy_enabled": true,
         "socket_mode_enabled": false,
