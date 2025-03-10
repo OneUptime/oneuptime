@@ -350,6 +350,11 @@ export class Service extends DatabaseService<Model> {
           }
         );
 
+        if(channelsToInviteToBasedOnRule.length === 0) {
+          logger.debug("No channels to invite to based on rule.");
+          continue;
+        }
+
       // get auth token for workspace.
 
       const projectAuth: WorkspaceProjectAuthToken | null =
