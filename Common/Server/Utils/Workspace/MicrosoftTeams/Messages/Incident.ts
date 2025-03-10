@@ -138,7 +138,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: ":telephone_receiver: Execute On Call",
       value: "execute_on_call",
-      actionId: SlackActionType.ExecuteIncidentOnCallPolicy,
+      actionId: SlackActionType.ViewExecuteIncidentOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);
@@ -168,7 +168,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: ":arrow_right: Change Incident State",
       value: "change_incident_state",
-      actionId: SlackActionType.ChangeIncidentState,
+      actionId: SlackActionType.ViewChangeIncidentState,
     };
 
     buttons.push(changeIncidentStateButton);
@@ -178,7 +178,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: ":page_facing_up: Add Note",
       value: "add_note",
-      actionId: SlackActionType.AddIncidentNote,
+      actionId: SlackActionType.ViewAddIncidentNote,
     };
 
     buttons.push(addNoteButton);
