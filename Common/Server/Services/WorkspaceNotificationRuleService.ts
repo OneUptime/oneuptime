@@ -331,6 +331,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         } else {
           try {
             // send a message to channel that user cannot be invited because the account is not connected to workspace.
+
+            const channelIds: Array<string> =
+              data.notificationChannels
+                ?.filter((channel: NotificationRuleWorkspaceChannel) => {
+                  return (
+                    channel.notificationRuleId ===
+                    inviteUserPayload.notificationRuleId
+                  );
+                })
+                ?.map((channel: NotificationRuleWorkspaceChannel) => {
+                  return channel.id as string;
+                }) || [];
+
+            logger.debug("Channel IDs to send message to:");
+            logger.debug(channelIds);
+
             await WorkspaceUtil.getWorkspaceTypeUtil(
               data.workspaceType
             ).sendMessage({
@@ -338,18 +354,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               authToken: data.projectAuth.authToken!,
               workspaceMessagePayload: {
                 _type: "WorkspaceMessagePayload",
-                channelNames:
-                  data.notificationChannels
-                    ?.filter((channel: NotificationRuleWorkspaceChannel) => {
-                      return (
-                        channel.notificationRuleId ===
-                        inviteUserPayload.notificationRuleId
-                      );
-                    })
-                    ?.map((channel: NotificationRuleWorkspaceChannel) => {
-                      return channel.name as string;
-                    }) || [],
-                channelIds: [],
+                channelNames: [],
+
+                channelIds: channelIds,
                 workspaceType: data.workspaceType,
                 messageBlocks: [
                   {
