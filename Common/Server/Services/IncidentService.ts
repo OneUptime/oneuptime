@@ -59,6 +59,7 @@ import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Incident";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import { NotificationRuleWorkspaceChannel } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -469,7 +470,7 @@ export class Service extends DatabaseService<Model> {
 
     // send message to workspaces - slack, teams,   etc.
     const workspaceResult: {
-      channelsCreated: Array<WorkspaceChannel>;
+      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
     } | null =
       await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
         projectId: createdItem.projectId,

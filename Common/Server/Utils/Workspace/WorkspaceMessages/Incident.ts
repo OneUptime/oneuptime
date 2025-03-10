@@ -1,5 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
+import { NotificationRuleWorkspaceChannel } from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import { WorkspaceMessageBlock } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
@@ -15,7 +16,7 @@ export default class IncidentWorkspaceMessages {
     incidentId: ObjectID;
     incidentNumber: number;
   }): Promise<{
-    channelsCreated: WorkspaceChannel[];
+    channelsCreated: NotificationRuleWorkspaceChannel[];
   } | null> {
     try {
       // we will notify the workspace about the incident creation with the bot tokken which is in WorkspaceProjectAuth Table.

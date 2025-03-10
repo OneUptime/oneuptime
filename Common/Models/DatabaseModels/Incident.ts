@@ -38,6 +38,7 @@ import {
 } from "typeorm";
 import { TelemetryQuery } from "../../Types/Telemetry/TelemetryQuery";
 import { WorkspaceChannel } from "../../Server/Utils/Workspace/WorkspaceBase";
+import { NotificationRuleWorkspaceChannel } from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -1138,7 +1139,7 @@ export default class Incident extends BaseModel {
     type: ColumnType.JSON,
     nullable: true,
   })
-  public postUpdatesToWorkspaceChannels?: Array<WorkspaceChannel> = undefined;
+  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> = undefined;
 
   @ColumnAccessControl({
     create: [
