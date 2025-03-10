@@ -26,6 +26,7 @@ export interface WorkspaceTextAreaBlock extends WorkspaceMessageBlock {
   placeholder: string;
   initialValue?: string | undefined;
   description?: string | undefined;
+  optional?: boolean | undefined;
 }
 
 export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {
@@ -35,6 +36,7 @@ export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {
   placeholder: string;
   initialValue?: string | undefined;
   description?: string | undefined;
+  optional?: boolean | undefined;
 }
 
 export interface WorkspacePayloadImage extends WorkspaceMessageBlock {
@@ -49,6 +51,7 @@ export interface WorkspaceCheckboxBlock extends WorkspaceMessageBlock {
   blockId: string;
   initialValue?: boolean | undefined;
   description?: string | undefined;
+  optional?: boolean | undefined;
 }
 
 export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
@@ -60,6 +63,7 @@ export interface WorkspaceDropdownBlock extends WorkspaceMessageBlock {
   initialValue?: string | undefined;
   description?: string | undefined;
   multiSelect?: boolean | undefined;
+  optional?: boolean | undefined;
 }
 
 export interface WorkspaceModalBlock extends WorkspaceMessageBlock {

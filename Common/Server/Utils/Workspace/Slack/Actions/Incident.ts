@@ -304,6 +304,7 @@ export default class SlackIncidentActions {
       placeholder: "Select Monitors",
       options: monitorDropdownOptions,
       multiSelect: true,
+      optional: true,
     };
 
     if (monitorsForProject.length > 0) {

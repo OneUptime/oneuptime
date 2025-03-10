@@ -19,13 +19,13 @@
             {
                 "name": "Create Scheduled Event",
                 "type": "global",
-                "callback_id": "create-scheduled-maintenance",
+                "callback_id": "/maintenance",
                 "description": "Create a new scheduled event in OneUptime"
             },
             {
                 "name": "Create New Incident",
                 "type": "global",
-                "callback_id": "create-incident",
+                "callback_id": "/incident",
                 "description": "Creates a new incident in OneUptime"
             }
         ],

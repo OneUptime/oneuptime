@@ -470,8 +470,10 @@ export default class SlackUtil extends WorkspaceBase {
           ] as string;
         }
 
-        if(Array.isArray(value["selected_options"])) {
-          values[blockId] = (value["selected_options"] as Array<JSONObject>).map((option: JSONObject) => {
+        if (Array.isArray(value["selected_options"])) {
+          values[blockId] = (
+            value["selected_options"] as Array<JSONObject>
+          ).map((option: JSONObject) => {
             return option["value"] as string | number;
           });
         }
@@ -786,8 +788,11 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting text area block with data:");
     logger.debug(data);
 
+    const optional: boolean = data.payloadTextAreaBlock.optional || false;
+
     const textAreaBlock: JSONObject = {
       type: "input",
+      optional: optional,
       element: {
         type: "plain_text_input",
         multiline: true,
@@ -824,8 +829,11 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting text box block with data:");
     logger.debug(data);
 
+    const optional: boolean = data.payloadTextBoxBlock.optional || false;
+
     const textBoxBlock: JSONObject = {
       type: "input",
+      optional: optional,
       element: {
         type: "plain_text_input",
         action_id: data.payloadTextBoxBlock.blockId,
@@ -878,11 +886,14 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting dropdown block with data:");
     logger.debug(data);
 
+    const optional: boolean = data.payloadDropdownBlock.optional || false;
+
     const isMiltiSelect: boolean =
       data.payloadDropdownBlock.multiSelect || false;
 
     const dropdownBlock: JSONObject = {
       type: "input",
+      optional: optional,
       element: {
         type: isMiltiSelect ? "multi_static_select" : "static_select",
         action_id: data.payloadDropdownBlock.blockId,
