@@ -335,14 +335,18 @@ export class WorkspaceNotificationRuleUtil {
       }
 
       case ConditionType.IsEmpty: {
-        const result: boolean = Array.isArray(value) ? value.length === 0 : value === "";
+        const result: boolean = Array.isArray(value)
+          ? value.length === 0
+          : value === "";
         logger.debug("IsEmpty condition result:");
         logger.debug(result);
         return result;
       }
 
       case ConditionType.IsNotEmpty: {
-        const result: boolean = Array.isArray(value) ? value.length > 0 : value !== "";
+        const result: boolean = Array.isArray(value)
+          ? value.length > 0
+          : value !== "";
         logger.debug("IsNotEmpty condition result:");
         logger.debug(result);
         return result;

@@ -89,20 +89,23 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug("getExistingChannelNamesBasedOnEventType called with data:");
     logger.debug(data);
 
-    const notificationRules: Array<WorkspaceNotificationRule> = await this.getNotificationRules({
-      projectId: data.projectId,
-      workspaceType: data.workspaceType,
-      notificationRuleEventType: data.notificationRuleEventType,
-    });
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await this.getNotificationRules({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        notificationRuleEventType: data.notificationRuleEventType,
+      });
 
     logger.debug("Notification rules retrieved:");
     logger.debug(notificationRules);
 
     const existingChannelNames: Array<string> =
       this.getExistingChannelNamesFromNotificationRules({
-        notificationRules: notificationRules.map((rule: WorkspaceNotificationRule) => {
-          return rule.notificationRule as BaseNotificationRule;
-        }),
+        notificationRules: notificationRules.map(
+          (rule: WorkspaceNotificationRule) => {
+            return rule.notificationRule as BaseNotificationRule;
+          },
+        ),
       }) || [];
 
     logger.debug("Existing channel names:");
@@ -191,9 +194,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug("Getting existing channel names from notification rules");
       const existingChannelNames: Array<string> =
         this.getExistingChannelNamesFromNotificationRules({
-          notificationRules: notificationRules.map((rule: WorkspaceNotificationRule) => {
-            return rule.notificationRule as BaseNotificationRule;
-          }),
+          notificationRules: notificationRules.map(
+            (rule: WorkspaceNotificationRule) => {
+              return rule.notificationRule as BaseNotificationRule;
+            },
+          ),
         }) || [];
 
       logger.debug("Existing channel names:");
@@ -242,12 +247,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationRuleEventType: data.notificationRuleEventType,
         });
 
-      const filteredNotificationRules: Array<WorkspaceNotificationRule> = notificationRules.filter(
-        (rule: WorkspaceNotificationRule) => {
+      const filteredNotificationRules: Array<WorkspaceNotificationRule> =
+        notificationRules.filter((rule: WorkspaceNotificationRule) => {
           return (rule.notificationRule as CreateChannelNotificationRule)
             .shouldInviteOwnersToNewChannel;
-        },
-      );
+        });
 
       result.push(...filteredNotificationRules);
     }
@@ -707,12 +711,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.debug(channelName);
 
         if (
-          !channels.filter((name: {
-            channelName: string;
-            notificationRuleId: string;
-        }) => {
-            return name.channelName === channelName;
-          })
+          !channels.filter(
+            (name: { channelName: string; notificationRuleId: string }) => {
+              return name.channelName === channelName;
+            },
+          )
         ) {
           // if channel name is not already added then add it.
           channels.push({
@@ -742,21 +745,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug("getNotificationRules called with data:");
     logger.debug(data);
 
-    const notificationRules: Array<WorkspaceNotificationRule> = await this.findBy({
-      query: {
-        projectId: data.projectId,
-        workspaceType: data.workspaceType,
-        eventType: data.notificationRuleEventType,
-      },
-      select: {
-        notificationRule: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    });
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await this.findBy({
+        query: {
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          eventType: data.notificationRuleEventType,
+        },
+        select: {
+          notificationRule: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
 
     logger.debug("Notification rules retrieved:");
     logger.debug(notificationRules);
@@ -1073,11 +1077,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRuleEventType: NotificationRuleEventType;
     notificationFor: NotificationFor;
   }): Promise<Array<WorkspaceNotificationRule>> {
-    const notificationRules: Array<WorkspaceNotificationRule> = await this.getNotificationRules({
-      projectId: data.projectId,
-      workspaceType: data.workspaceType,
-      notificationRuleEventType: data.notificationRuleEventType,
-    });
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await this.getNotificationRules({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        notificationRuleEventType: data.notificationRuleEventType,
+      });
 
     logger.debug("Notification rules retrieved:");
     logger.debug(notificationRules);
