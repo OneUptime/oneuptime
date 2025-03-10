@@ -228,6 +228,36 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     };
   }
 
+  public async getNotificationRulesWhereOnCallIsTrue(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    notificationRuleEventType: NotificationRuleEventType;
+  }): Promise<Array<WorkspaceNotificationRule>> {
+    const workspaceTypes: Array<WorkspaceType> = Service.getAllWorkspaceTypes();
+
+    const result: Array<WorkspaceNotificationRule> = [];
+
+    for (const workspaceType of workspaceTypes) {
+      // get matching notification rules
+      const notificationRules: Array<WorkspaceNotificationRule> =
+        await this.getMatchingNotificationRules({
+          projectId: data.projectId,
+          notificationFor: data.notificationFor,
+          workspaceType: workspaceType,
+          notificationRuleEventType: data.notificationRuleEventType,
+        });
+
+      const filteredNotificationRules: Array<WorkspaceNotificationRule> =
+        notificationRules.filter((rule: WorkspaceNotificationRule) => {
+          return (rule.notificationRule as IncidentNotificationRule).shouldAutomaticallyInviteOnCallUsersToNewChannel;
+        });
+
+      result.push(...filteredNotificationRules);
+    }
+
+    return result;
+  }
+
   public async getNotificationRulesWhereInviteOwnersIsTrue(data: {
     projectId: ObjectID;
     notificationFor: NotificationFor;

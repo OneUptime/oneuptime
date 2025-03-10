@@ -188,6 +188,11 @@ export class Service extends DatabaseService<Model> {
         teamId: ObjectID | null,
         scheduleId: ObjectID | null,
       ): Promise<void> => {
+
+
+        // This is where user is notified.
+       
+
         logger.debug(
           `Starting notification rule execution for userId: ${userId.toString()}`,
         );

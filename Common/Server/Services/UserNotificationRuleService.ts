@@ -43,6 +43,11 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -836,6 +841,8 @@ export class Service extends DatabaseService<Model> {
       onCallScheduleId?: ObjectID | undefined;
     },
   ): Promise<void> {
+
+
     // add user notification log.
     const userOnCallLog: UserOnCallLog = new UserOnCallLog();
 
@@ -887,6 +894,67 @@ export class Service extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    // Alert workspace here. Invite users to channels for example. If they are not invited. 
+
+  }
+
+  public static async runWorkspaceRulesForOnCallNotification(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    userId: ObjectID;
+  }): Promise<void> {
+
+    // if alert and incidient are both present, then throw an error.
+    if (data.incidentId && data.alertId) {
+      throw new BadDataException("Either incidentId or alertId is required.");
+    }
+
+    // if none are present, then throw an error.
+
+    if (!data.incidentId && !data.alertId) {
+      throw new BadDataException("Either incidentId or alertId is required.");
+    }
+
+    // get notification rule where inviteOwners is true.
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+        {
+          projectId: data.projectId!,
+          notificationFor: {
+            incidentId: data.incidentId,
+            alertId: data.alertId,
+          },
+          notificationRuleEventType: data.incidentId ? NotificationRuleEventType.Incident : NotificationRuleEventType.Alert,
+        },
+      );
+
+
+      let workspaceChannels: Array<NotificationRuleWorkspaceChannel> = []; 
+
+      if(data.incidentId) {
+        workspaceChannels = await IncidentService.getWorkspaceChannelForIncident({
+          incidentId: data.incidentId!,
+        });
+      }
+
+      if(data.alertId) {
+        workspaceChannels = await AlertService.getWorkspaceChannelForAlert({
+          alertId: data.alertId!,
+        });
+      }
+
+    WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: data.projectId!,
+        workspaceChannels: workspaceChannels,
+        userIds: [data.userId],
+      },
+    ).catch((error: Error) => {
+      logger.error(error);
     });
   }
 

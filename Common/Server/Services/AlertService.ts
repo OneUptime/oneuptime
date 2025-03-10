@@ -45,6 +45,8 @@ import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -348,6 +350,36 @@ ${createdItem.remediationNotes || "No remediation notes provided."}`,
 
     return createdItem;
   }
+
+
+    public async getWorkspaceChannelForAlert(data: {
+      alertId: ObjectID;
+      workspaceType?: WorkspaceType | null;
+    }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+      const alert: Model | null = await this.findOneById({
+        id: data.alertId,
+        select: {
+          postUpdatesToWorkspaceChannels: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+  
+      if (!alert) {
+        throw new BadDataException("Incident not found.");
+      }
+  
+      return (alert.postUpdatesToWorkspaceChannels || []).filter(
+        (channel: NotificationRuleWorkspaceChannel) => {
+          if (!data.workspaceType) {
+            return true;
+          }
+  
+          return channel.workspaceType === data.workspaceType;
+        },
+      );
+    }
 
   public async getAlertIdentifiedDate(alertId: ObjectID): Promise<Date> {
     const timeline: AlertStateTimeline | null =
