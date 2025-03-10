@@ -343,6 +343,7 @@ export default class SlackIncidentActions {
       blockId: "monitorStatus",
       placeholder: "Select Monitor Status",
       options: monitorStatusDropdownOptions,
+      optional: true
     };
 
     if (
