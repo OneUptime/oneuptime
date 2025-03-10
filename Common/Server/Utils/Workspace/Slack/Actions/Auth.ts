@@ -3,7 +3,9 @@ import WorkspaceProjectAuthToken, {
 } from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import ObjectID from "../../../../../Types/ObjectID";
-import { WorkspacePayloadMarkdown } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import  {
+  WorkspacePayloadMarkdown,
+} from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import { ExpressRequest } from "../../../Express";
 import SlackUtil from "../Slack";
@@ -11,7 +13,6 @@ import SlackActionType from "./ActionTypes";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../../../Logger";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
-import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import { Dictionary } from "lodash";
 
 export interface SlackAction {
@@ -85,9 +86,15 @@ export default class SlackAuthAction {
       };
     });
 
-    const slackChannelId: string | undefined = (
+    let slackChannelId: string | undefined = (
       (payload as JSONObject)?.["channel"] as JSONObject
     )?.["id"] as string;
+
+    if(!slackChannelId) {
+      slackChannelId = (
+        (payload as JSONObject)?.["channel_id"] as string
+      );
+    }
 
     const slackMessageId: string | undefined = (
       (payload as JSONObject)?.["message"] as JSONObject
@@ -139,6 +146,7 @@ export default class SlackAuthAction {
     const projectId: ObjectID | undefined = projectAuth.projectId;
 
     if (!projectId) {
+
       logger.debug(
         "Project ID not found in project auth. Returning unauthorized.",
       );
@@ -171,23 +179,18 @@ export default class SlackAuthAction {
     if (!userAuth || !userId) {
       const markdwonPayload: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",
-        text: `${slackUserFullName}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and connect then your slack account.`,
+        text: `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
       };
 
-      await SlackUtil.sendMessage({
-        workspaceMessagePayload: {
-          _type: "WorkspaceMessagePayload",
-          messageBlocks: [markdwonPayload],
-          channelNames: [],
-          channelIds: slackChannelId ? [slackChannelId] : [],
-          workspaceType: WorkspaceType.Slack,
-        },
+      await SlackUtil.sendDirectMessageToUser({
         authToken: projectAuth.authToken!,
-        userId: botUserId,
+        workspaceUserId: slackUserId,
+        messageBlocks: [markdwonPayload],
       });
 
       // clear response.
       logger.debug("User auth not found. Returning unauthorized.");
+
       return {
         isAuthorized: false,
       };

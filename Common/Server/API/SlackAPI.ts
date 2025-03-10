@@ -266,11 +266,8 @@ export default class SlackAPI {
         logger.debug(authResult);
 
         if (authResult.isAuthorized === false) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Invalid request"),
-          );
+          // return empty response if not authorized. Do nothing in this case.
+          return Response.sendTextResponse(req, res, "");
         }
 
         for (const action of authResult.actions || []) {
