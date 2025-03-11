@@ -78,7 +78,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           subItemLink={subItemMenuLink}
         />
       </SideMenuSection>
-      {/* <SideMenuSection title="Workspace Connections">
+      <SideMenuSection title="Workspace Connections">
         <SideMenuItem
           link={{
             title: "Slack",
@@ -99,7 +99,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           }}
           icon={IconProp.MicrosoftTeams}
         />
-      </SideMenuSection> */}
+      </SideMenuSection>
     </SideMenu>
   );
 };
