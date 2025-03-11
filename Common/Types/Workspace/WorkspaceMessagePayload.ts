@@ -39,6 +39,15 @@ export interface WorkspaceTextBoxBlock extends WorkspaceMessageBlock {
   optional?: boolean | undefined;
 }
 
+export interface WorkspaceDateTimePickerBlock extends WorkspaceMessageBlock {
+  _type: "WorkspaceDateTimePickerBlock";
+  label: string;
+  blockId: string;
+  initialValue?: string | undefined;
+  description?: string | undefined;
+  optional?: boolean | undefined;
+}
+
 export interface WorkspacePayloadImage extends WorkspaceMessageBlock {
   _type: "WorkspacePayloadImage";
   imageUrl: URL;

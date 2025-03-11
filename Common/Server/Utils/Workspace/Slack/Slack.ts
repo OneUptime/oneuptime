@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
+  WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
@@ -799,6 +800,30 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Checkbox block generated:");
     logger.debug(checkboxBlock);
     return checkboxBlock;
+  }
+
+  public static override getDateTimePickerBlock(data: {
+    payloadDateTimePickerBlock: WorkspaceDateTimePickerBlock;
+  }): JSONObject {
+    logger.debug("Getting date time picker block with data:");
+    logger.debug(data);
+
+    const dateTimePickerBlock: JSONObject = {
+      type: "input",
+      element: {
+        type: "datepicker",
+        action_id: data.payloadDateTimePickerBlock.blockId,
+        initial_date: data.payloadDateTimePickerBlock.initialValue,
+      },
+      label: {
+        type: "plain_text",
+        text: data.payloadDateTimePickerBlock.label,
+      },
+    };
+
+    logger.debug("Date time picker block generated:");
+    logger.debug(dateTimePickerBlock);
+    return dateTimePickerBlock;
   }
 
   public static override getTextAreaBlock(data: {
