@@ -7,6 +7,7 @@ import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
+  WorkspaceDateTimePickerBlock,
   WorkspaceDropdownBlock,
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
@@ -29,6 +30,7 @@ import MonitorStatusService from "../../../../Services/MonitorStatusService";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
+import OneUptimeDate from "../../../../../Types/Date";
 
 export default class SlackScheduledMaintenanceActions {
   public static isScheduledMaintenanceAction(data: {
@@ -115,6 +117,24 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
+      // check start date and end date.
+
+      if (!data.slackRequest.viewValues["startDate"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Start Date"),
+        );
+      }
+
+      if (!data.slackRequest.viewValues["endDate"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid End Date"),
+        );
+      }
+
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
@@ -150,12 +170,21 @@ export default class SlackScheduledMaintenanceActions {
         ? new ObjectID(monitorStatus)
         : undefined;
 
+      const startDate: Date = OneUptimeDate.fromString(
+        data.slackRequest.viewValues["startDate"].toString(),
+      );
+      const endDate: Date = OneUptimeDate.fromString(
+        data.slackRequest.viewValues["endDate"].toString(),
+      );
+
       const scheduledMaintenance: ScheduledMaintenance =
         new ScheduledMaintenance();
       scheduledMaintenance.title = title;
       scheduledMaintenance.description = description;
       scheduledMaintenance.projectId = slackRequest.projectId!;
       scheduledMaintenance.createdByUserId = userId;
+      scheduledMaintenance.startsAt = startDate;
+      scheduledMaintenance.endsAt = endDate;
 
       if (monitors.length > 0) {
         scheduledMaintenance.monitors = scheduledMaintenanceMonitors.map(
@@ -205,9 +234,11 @@ export default class SlackScheduledMaintenanceActions {
     // new scheduledMaintenance modal is :
     // ScheduledMaintenance Title (this can be prefilled with actionValue)
     // ScheduledMaintenance Description
-    // ScheduledMaintenance Severity (dropdown) (single select)
+    // Start Date and Time (date picker)
+    // End Date and Time (date picker)
     // Monitors (dropdown) (miltiselect)
     // Change Monitor Status to (dropdown) (single select)
+
     // Labels (dropdown) (multiselect)
 
     const scheduledMaintenanceTitle: WorkspaceTextBoxBlock = {
@@ -228,6 +259,27 @@ export default class SlackScheduledMaintenanceActions {
     };
 
     blocks.push(scheduledMaintenanceDescription);
+
+    // start date
+    const startDatePicker: WorkspaceDateTimePickerBlock = {
+      _type: "WorkspaceDateTimePickerBlock",
+      label: "Start Date and Time",
+      blockId: "startDate",
+      optional: false,
+    };
+
+    blocks.push(startDatePicker);
+
+    // end date
+
+    const endDatePicker: WorkspaceDateTimePickerBlock = {
+      _type: "WorkspaceDateTimePickerBlock",
+      label: "End Date and Time",
+      blockId: "endDate",
+      optional: false,
+    };
+
+    blocks.push(endDatePicker);
 
     const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
       query: {
