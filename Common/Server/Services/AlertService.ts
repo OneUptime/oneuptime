@@ -306,6 +306,9 @@ export class Service extends DatabaseService<Model> {
         alertNumber: createdItem.alertNumber!,
       });
 
+      logger.debug("Alert created. Workspace result:");
+      logger.debug(workspaceResult);
+
     if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
       // update alert with these channels.
       await this.updateOneById({

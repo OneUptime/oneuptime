@@ -31,6 +31,7 @@ export default class AlertWorkspaceMessages {
       );
     } catch (err) {
       // log the error and continue.
+      logger.error("Error in createChannelsAndInviteUsersToChannels");
       logger.error(err);
       return null;
     }
