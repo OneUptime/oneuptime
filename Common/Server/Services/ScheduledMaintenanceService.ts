@@ -548,9 +548,9 @@ export class Service extends DatabaseService<Model> {
 
     let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${createdItem.scheduledMaintenanceNumber?.toString()} Created: 
           
-    **${createdItem.title || "No title provided."}**:
+**${createdItem.title || "No title provided."}**:
     
-    ${createdItem.description || "No description provided."}
+${createdItem.description || "No description provided."}
     
     `;
 

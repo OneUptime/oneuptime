@@ -324,9 +324,9 @@ export class Service extends DatabaseService<Model> {
 
     let feedInfoInMarkdown: string = `#### 🚨 Alert ${createdItem.alertNumber?.toString()} Created: 
          
-   **${createdItem.title || "No title provided."}**:
+**${createdItem.title || "No title provided."}**:
    
-   ${createdItem.description || "No description provided."}
+${createdItem.description || "No description provided."}
    
    `;
 
@@ -351,7 +351,7 @@ export class Service extends DatabaseService<Model> {
       feedInfoInMarkdown += `\n
 📄 **Root Cause**:
    
-   ${createdItem.rootCause || "No root cause provided."}
+${createdItem.rootCause || "No root cause provided."}
    
    `;
     }
@@ -360,7 +360,7 @@ export class Service extends DatabaseService<Model> {
       feedInfoInMarkdown += `\n 
 🎯 **Remediation Notes**:
    
-   ${createdItem.remediationNotes || "No remediation notes provided."}
+${createdItem.remediationNotes || "No remediation notes provided."}
    
    
    `;
