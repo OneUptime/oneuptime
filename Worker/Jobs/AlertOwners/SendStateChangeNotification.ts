@@ -139,7 +139,7 @@ RunCron(
           currentState: alertState!.name!,
           alertDescription: await Markdown.convertToHTML(
             alert.description! || "",
-            MarkdownContentType.Email
+            MarkdownContentType.Email,
           ),
           resourcesAffected: alert.monitor?.name || "",
           stateChangedAt:
@@ -151,7 +151,7 @@ RunCron(
           alertViewLink: (
             await AlertService.getAlertLinkInDashboard(
               alertStateTimeline.projectId!,
-              alert.id!
+              alert.id!,
             )
           ).toString(),
         };
@@ -164,7 +164,7 @@ RunCron(
           templateType: EmailTemplateType.AlertOwnerStateChanged,
           vars: vars,
           subject: `[Alert ${Text.uppercaseFirstLetter(
-            alertState!.name!
+            alertState!.name!,
           )}] ${alert.title!}`,
         };
 
@@ -214,5 +214,5 @@ RunCron(
         },
       });
     }
-  }
+  },
 );

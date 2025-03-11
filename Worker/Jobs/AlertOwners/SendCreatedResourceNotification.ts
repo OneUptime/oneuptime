@@ -128,7 +128,7 @@ RunCron(
             currentState: alert.currentAlertState!.name!,
             alertDescription: await Markdown.convertToHTML(
               alert.description! || "",
-              MarkdownContentType.Email
+              MarkdownContentType.Email,
             ),
             resourcesAffected: alert.monitor?.name || "None",
             alertSeverity: alert.alertSeverity!.name!,
@@ -136,23 +136,23 @@ RunCron(
               {
                 date: alertIdentifiedDate,
                 timezones: user.timezone ? [user.timezone] : [],
-              }
+              },
             ),
             declaredBy: declaredBy,
             remediationNotes:
               (await Markdown.convertToHTML(
                 alert.remediationNotes! || "",
-                MarkdownContentType.Email
+                MarkdownContentType.Email,
               )) || "",
             rootCause:
               (await Markdown.convertToHTML(
                 alert.rootCause || "No root cause identified for this alert",
-                MarkdownContentType.Email
+                MarkdownContentType.Email,
               )) || "",
             alertViewLink: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,
-                alert.id!
+                alert.id!,
               )
             ).toString(),
           };
@@ -205,8 +205,8 @@ RunCron(
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-        }
+        },
       });
     }
-  }
+  },
 );

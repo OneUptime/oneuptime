@@ -46,7 +46,7 @@ RunCron(
     const privateNoteIds: Array<string> = privateNotes.map(
       (note: AlertInternalNote) => {
         return note._id!;
-      }
+      },
     );
 
     for (const note of privateNotes) {
@@ -102,7 +102,7 @@ RunCron(
       let doesResourceHasOwners: boolean = true;
 
       let owners: Array<User> = await AlertService.findOwners(
-        note.getColumnValue("alertId")! as ObjectID
+        note.getColumnValue("alertId")! as ObjectID,
       );
 
       if (owners.length === 0) {
@@ -110,7 +110,7 @@ RunCron(
 
         // find project owners.
         owners = await ProjectService.getOwners(
-          note.getColumnValue("projectId") as ObjectID
+          note.getColumnValue("projectId") as ObjectID,
         );
       }
 
@@ -124,14 +124,14 @@ RunCron(
         currentState: alert.currentAlertState!.name!,
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
-          MarkdownContentType.Email
+          MarkdownContentType.Email,
         ),
         resourcesAffected: alert.monitor?.name || "None",
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(
             alert.projectId!,
-            alert.id!
+            alert.id!,
           )
         ).toString(),
       };
@@ -196,5 +196,5 @@ RunCron(
         },
       });
     }
-  }
+  },
 );

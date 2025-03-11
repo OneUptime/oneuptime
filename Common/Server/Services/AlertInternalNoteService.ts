@@ -36,7 +36,7 @@ export class Service extends DatabaseService<Model> {
 
   public override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
@@ -69,7 +69,7 @@ ${createdItem.note}
 
   public override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>
+    _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.note) {
       const updatedItems: Array<Model> = await this.findBy({

@@ -67,22 +67,21 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (user && user.name) {
-           const alertNumber: number | null =
-                    await AlertService.getAlertNumber({
-                      alertId: alertId,
-                    });
-                    
+          const alertNumber: number | null = await AlertService.getAlertNumber({
+            alertId: alertId,
+          });
+
           await AlertFeedService.createAlertFeedItem({
             alertId: alertId,
             projectId: projectId,
             alertFeedEventType: AlertFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
-                        userId: deleteByUserId || undefined,
-                        workspaceNotification: {
-                          sendWorkspaceNotification: true,
-                          notifyUserId: userId || undefined,
-                        },
+            userId: deleteByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: userId || undefined,
+            },
           });
         }
       }
@@ -116,26 +115,25 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (user && user.name) {
-        const alertNumber: number | null =
-                await AlertService.getAlertNumber({
-                  alertId: alertId,
-                });
+        const alertNumber: number | null = await AlertService.getAlertNumber({
+          alertId: alertId,
+        });
         await AlertFeedService.createAlertFeedItem({
           alertId: alertId,
           projectId: projectId,
           alertFeedEventType: AlertFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
-                      {
-                        userId: userId,
-                        projectId: projectId,
-                      },
-                    )}** to the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
-                    userId: createdByUserId || undefined,
-                    workspaceNotification: {
-                      sendWorkspaceNotification: true,
-                      notifyUserId: userId || undefined,
-                    },
+            {
+              userId: userId,
+              projectId: projectId,
+            },
+          )}** to the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
+          userId: createdByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
+          },
         });
       }
     }

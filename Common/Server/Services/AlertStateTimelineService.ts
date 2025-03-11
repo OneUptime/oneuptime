@@ -179,46 +179,44 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     });
 
     const stateName: string = alertState?.name || "";
-       let stateEmoji: string = "➡️";
-   
-       // if resolved state then change emoji to ✅.
-   
-       if (alertState?.isResolvedState) {
-         stateEmoji = "✅";
-       } else if (alertState?.isAcknowledgedState) {
-         // eyes emoji for acknowledged state.
-         stateEmoji = "👀";
-       } else if (alertState?.isCreatedState) {
-         stateEmoji = "🔴";
-       }
-   
-       const alertNumber: number | null =
-         await AlertService.getAlertNumber({
-           alertId: createdItem.alertId,
-         });
-   
-       const projectId: ObjectID = createdItem.projectId!;
-       const alertId: ObjectID = createdItem.alertId!;
-   
-       await AlertFeedService.createAlertFeedItem({
-         alertId: createdItem.alertId!,
-         projectId: createdItem.projectId!,
-         alertFeedEventType: AlertFeedEventType.AlertStateChanged,
-         displayColor: alertState?.color,
-         feedInfoInMarkdown:
-           stateEmoji +
-           ` Changed **[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
-           stateName +
-           "**",
-         moreInformationInMarkdown: `**Cause:** 
+    let stateEmoji: string = "➡️";
+
+    // if resolved state then change emoji to ✅.
+
+    if (alertState?.isResolvedState) {
+      stateEmoji = "✅";
+    } else if (alertState?.isAcknowledgedState) {
+      // eyes emoji for acknowledged state.
+      stateEmoji = "👀";
+    } else if (alertState?.isCreatedState) {
+      stateEmoji = "🔴";
+    }
+
+    const alertNumber: number | null = await AlertService.getAlertNumber({
+      alertId: createdItem.alertId,
+    });
+
+    const projectId: ObjectID = createdItem.projectId!;
+    const alertId: ObjectID = createdItem.alertId!;
+
+    await AlertFeedService.createAlertFeedItem({
+      alertId: createdItem.alertId!,
+      projectId: createdItem.projectId!,
+      alertFeedEventType: AlertFeedEventType.AlertStateChanged,
+      displayColor: alertState?.color,
+      feedInfoInMarkdown:
+        stateEmoji +
+        ` Changed **[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **` +
+        stateName +
+        "**",
+      moreInformationInMarkdown: `**Cause:** 
    ${createdItem.rootCause}`,
-         userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
-         workspaceNotification: {
-           sendWorkspaceNotification: true,
-           notifyUserId: createdItem.createdByUserId,
-         },
-       });
-   
+      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: createdItem.createdByUserId,
+      },
+    });
 
     await AlertService.updateOneBy({
       query: {
