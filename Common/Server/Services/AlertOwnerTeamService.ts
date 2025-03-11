@@ -9,6 +9,10 @@ import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import AlertService from "./AlertService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -130,6 +134,37 @@ export class Service extends DatabaseService<Model> {
         });
       }
     }
+
+    // get notification rule where inviteOwners is true.
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+        {
+          projectId: projectId!,
+          notificationFor: {
+            alertId: alertId,
+          },
+          notificationRuleEventType: NotificationRuleEventType.Alert,
+        },
+      );
+
+    logger.debug(`Notification Rules for Alert Owner Teams`);
+    logger.debug(notificationRules);
+
+    WorkspaceNotificationRuleService.inviteTeamsBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: projectId!,
+        workspaceChannels: await AlertService.getWorkspaceChannelForAlert(
+          {
+            alertId: alertId!,
+          },
+        ),
+        teamIds: [teamId!],
+      },
+    ).catch((error: Error) => {
+      logger.error(error);
+    });
+
 
     return createdItem;
   }
