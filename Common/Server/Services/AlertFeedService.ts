@@ -117,16 +117,16 @@ export class Service extends DatabaseService<Model> {
               messageBlocksByWorkspaceTypes
                 .find(
                   (
-                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType
+                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
                   ) => {
                     return (
                       messageBlocksByWorkspaceType.workspaceType ===
                       workspaceType
                     );
-                  }
+                  },
                 )
                 ?.messageBlocks.push(
-                  ...messageBlocksByWorkspaceType.messageBlocks
+                  ...messageBlocksByWorkspaceType.messageBlocks,
                 );
             }
           }
@@ -141,7 +141,7 @@ export class Service extends DatabaseService<Model> {
                   projectId: data.projectId,
                   notificationRuleEventType: NotificationRuleEventType.Alert,
                   workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                }
+                },
               );
 
             const alertChannels: Array<WorkspaceChannel> =

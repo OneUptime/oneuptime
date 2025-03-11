@@ -23,7 +23,6 @@ enum SlackActionType {
   SubmitExecuteAlertOnCallPolicy = "SubmitExecuteAlertOnCallPolicy",
   ViewAlert = "ViewAlert",
 
-
   // Scheduled Maintenance Actions.
 }
 
