@@ -192,8 +192,7 @@ export default class SlackUtil extends WorkspaceBase {
     channelId: string;
     workspaceUserId: string;
   }): Promise<void> {
-
-    // check if already in channel. 
+    // check if already in channel.
     const isUserInChannel: boolean = await this.isUserInChannel({
       authToken: data.authToken,
       channelId: data.channelId,

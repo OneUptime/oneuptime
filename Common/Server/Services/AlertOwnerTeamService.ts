@@ -154,17 +154,14 @@ export class Service extends DatabaseService<Model> {
       {
         notificationRules: notificationRules,
         projectId: projectId!,
-        workspaceChannels: await AlertService.getWorkspaceChannelForAlert(
-          {
-            alertId: alertId!,
-          },
-        ),
+        workspaceChannels: await AlertService.getWorkspaceChannelForAlert({
+          alertId: alertId!,
+        }),
         teamIds: [teamId!],
       },
     ).catch((error: Error) => {
       logger.error(error);
     });
-
 
     return createdItem;
   }

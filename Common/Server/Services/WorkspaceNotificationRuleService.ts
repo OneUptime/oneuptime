@@ -408,8 +408,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<WorkspaceNotificationRule>;
     userIds: Array<ObjectID>;
   }): Promise<void> {
-
-
     // if no rules then return.
     if (data.notificationRules.length === 0) {
       logger.debug("No notification rules found. Returning.");
@@ -563,14 +561,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<WorkspaceNotificationRule>;
     teamIds: Array<ObjectID>;
   }): Promise<void> {
-
     // if no rules then return.
     if (data.notificationRules.length === 0) {
       logger.debug("No notification rules found. Returning.");
       return;
     }
 
-    
     const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeams(
       data.teamIds,
     );
