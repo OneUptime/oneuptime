@@ -56,7 +56,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!data.scheduledMaintenanceFeedEventType) {
         throw new BadDataException(
-          "Scheduled Maintenance log event is required"
+          "Scheduled Maintenance log event is required",
         );
       }
 
@@ -121,16 +121,16 @@ export class Service extends DatabaseService<Model> {
               messageBlocksByWorkspaceTypes
                 .find(
                   (
-                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType
+                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
                   ) => {
                     return (
                       messageBlocksByWorkspaceType.workspaceType ===
                       workspaceType
                     );
-                  }
+                  },
                 )
                 ?.messageBlocks.push(
-                  ...messageBlocksByWorkspaceType.messageBlocks
+                  ...messageBlocksByWorkspaceType.messageBlocks,
                 );
             }
           }
@@ -146,7 +146,7 @@ export class Service extends DatabaseService<Model> {
                   notificationRuleEventType:
                     NotificationRuleEventType.ScheduledMaintenance,
                   workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                }
+                },
               );
 
             const scheduledMaintenanceChannels: Array<WorkspaceChannel> =
@@ -154,7 +154,7 @@ export class Service extends DatabaseService<Model> {
                 {
                   scheduledMaintenanceId: data.scheduledMaintenanceId,
                   workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                }
+                },
               );
 
             const workspaceMessagePayload: WorkspaceMessagePayload = {
@@ -166,7 +166,7 @@ export class Service extends DatabaseService<Model> {
                 scheduledMaintenanceChannels.map(
                   (channel: WorkspaceChannel) => {
                     return channel.id;
-                  }
+                  },
                 ) || [],
             };
 
@@ -186,7 +186,7 @@ export class Service extends DatabaseService<Model> {
       }
     } catch (error) {
       logger.error(
-        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem"
+        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem",
       );
       logger.error(error);
       // we dont want to throw the error here, as this is not critical but we still log it.

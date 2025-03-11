@@ -25,7 +25,8 @@ export default class ScheduledMaintenanceWorkspaceMessages {
           notificationFor: {
             scheduledMaintenanceId: data.scheduledMaintenanceId,
           },
-          notificationRuleEventType: NotificationRuleEventType.ScheduledMaintenance,
+          notificationRuleEventType:
+            NotificationRuleEventType.ScheduledMaintenance,
           channelNameSiffix: data.scheduledMaintenanceNumber.toString(),
         },
       );
@@ -43,16 +44,20 @@ export default class ScheduledMaintenanceWorkspaceMessages {
     const { scheduledMaintenanceId, projectId } = data;
 
     const slackBlocks: WorkspaceMessageBlock[] =
-      await SlackScheduledMaintenanceMessages.getScheduledMaintenanceCreateMessageBlocks({
-        scheduledMaintenanceId: scheduledMaintenanceId,
-        projectId: projectId!,
-      });
+      await SlackScheduledMaintenanceMessages.getScheduledMaintenanceCreateMessageBlocks(
+        {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+          projectId: projectId!,
+        },
+      );
 
     const microsoftTeamsBlocks: WorkspaceMessageBlock[] =
-      await SlackScheduledMaintenanceMessages.getScheduledMaintenanceCreateMessageBlocks({
-        scheduledMaintenanceId: scheduledMaintenanceId,
-        projectId: projectId!,
-      });
+      await SlackScheduledMaintenanceMessages.getScheduledMaintenanceCreateMessageBlocks(
+        {
+          scheduledMaintenanceId: scheduledMaintenanceId,
+          projectId: projectId!,
+        },
+      );
 
     return [
       {

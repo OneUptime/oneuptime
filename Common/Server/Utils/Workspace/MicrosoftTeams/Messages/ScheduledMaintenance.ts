@@ -55,12 +55,13 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
     buttons.push(viewScheduledMaintenanceButton);
 
     // acknowledge data.
-    const acknowledgeScheduledMaintenanceButton: WorkspaceMessagePayloadButton = {
-      _type: "WorkspaceMessagePayloadButton",
-      title: "⌛ Mark as Ongoing",
-      value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.MarkScheduledMaintenanceAsOngoing,
-    };
+    const acknowledgeScheduledMaintenanceButton: WorkspaceMessagePayloadButton =
+      {
+        _type: "WorkspaceMessagePayloadButton",
+        title: "⌛ Mark as Ongoing",
+        value: data.scheduledMaintenanceId?.toString() || "",
+        actionId: MicrosoftTeamsActionType.MarkScheduledMaintenanceAsOngoing,
+      };
 
     buttons.push(acknowledgeScheduledMaintenanceButton);
 
@@ -75,12 +76,13 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
     buttons.push(resolveScheduledMaintenanceButton);
 
     // change scheduledMaintenance state.
-    const changeScheduledMaintenanceStateButton: WorkspaceMessagePayloadButton = {
-      _type: "WorkspaceMessagePayloadButton",
-      title: "➡️ Change Scheduled Maintenance State",
-      value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewChangeScheduledMaintenanceState,
-    };
+    const changeScheduledMaintenanceStateButton: WorkspaceMessagePayloadButton =
+      {
+        _type: "WorkspaceMessagePayloadButton",
+        title: "➡️ Change Scheduled Maintenance State",
+        value: data.scheduledMaintenanceId?.toString() || "",
+        actionId: MicrosoftTeamsActionType.ViewChangeScheduledMaintenanceState,
+      };
 
     buttons.push(changeScheduledMaintenanceStateButton);
 

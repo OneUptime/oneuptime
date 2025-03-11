@@ -136,7 +136,8 @@ export class Service extends DatabaseService<Model> {
           notificationFor: {
             scheduledMaintenanceId: scheduledMaintenanceId,
           },
-          notificationRuleEventType: NotificationRuleEventType.ScheduledMaintenance,
+          notificationRuleEventType:
+            NotificationRuleEventType.ScheduledMaintenance,
         },
       );
 
@@ -147,11 +148,12 @@ export class Service extends DatabaseService<Model> {
       {
         notificationRules: notificationRules,
         projectId: projectId!,
-        workspaceChannels: await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
-          {
-            scheduledMaintenanceId: scheduledMaintenanceId!,
-          },
-        ),
+        workspaceChannels:
+          await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
+            {
+              scheduledMaintenanceId: scheduledMaintenanceId!,
+            },
+          ),
         teamIds: [teamId!],
       },
     ).catch((error: Error) => {

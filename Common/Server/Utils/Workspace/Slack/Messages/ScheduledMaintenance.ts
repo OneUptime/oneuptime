@@ -55,12 +55,13 @@ export default class SlackScheduledMaintenanceMessages {
     buttons.push(viewScheduledMaintenanceButton);
 
     // acknowledge data.
-    const acknowledgeScheduledMaintenanceButton: WorkspaceMessagePayloadButton = {
-      _type: "WorkspaceMessagePayloadButton",
-      title: "⌛ Mark as Ongoing",
-      value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: SlackActionType.MarkScheduledMaintenanceAsOngoing,
-    };
+    const acknowledgeScheduledMaintenanceButton: WorkspaceMessagePayloadButton =
+      {
+        _type: "WorkspaceMessagePayloadButton",
+        title: "⌛ Mark as Ongoing",
+        value: data.scheduledMaintenanceId?.toString() || "",
+        actionId: SlackActionType.MarkScheduledMaintenanceAsOngoing,
+      };
 
     buttons.push(acknowledgeScheduledMaintenanceButton);
 
@@ -75,12 +76,13 @@ export default class SlackScheduledMaintenanceMessages {
     buttons.push(resolveScheduledMaintenanceButton);
 
     // change scheduledMaintenance state.
-    const changeScheduledMaintenanceStateButton: WorkspaceMessagePayloadButton = {
-      _type: "WorkspaceMessagePayloadButton",
-      title: "➡️ Change Scheduled Maintenance State",
-      value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: SlackActionType.ViewChangeScheduledMaintenanceState,
-    };
+    const changeScheduledMaintenanceStateButton: WorkspaceMessagePayloadButton =
+      {
+        _type: "WorkspaceMessagePayloadButton",
+        title: "➡️ Change Scheduled Maintenance State",
+        value: data.scheduledMaintenanceId?.toString() || "",
+        actionId: SlackActionType.ViewChangeScheduledMaintenanceState,
+      };
 
     buttons.push(changeScheduledMaintenanceStateButton);
 

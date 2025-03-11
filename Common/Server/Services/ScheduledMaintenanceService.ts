@@ -92,10 +92,10 @@ export class Service extends DatabaseService<Model> {
   }
 
   public async notififySubscribersOnEventScheduled(
-    scheduledEvents: Array<Model>
+    scheduledEvents: Array<Model>,
   ): Promise<void> {
     logger.debug(
-      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Running"
+      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Running",
     );
 
     const host: Hostname = await DatabaseConfig.getHost();
@@ -106,7 +106,7 @@ export class Service extends DatabaseService<Model> {
 
       logger.debug(
         "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Sending notification for event: " +
-          event.id
+          event.id,
       );
 
       let statusPageResources: Array<StatusPageResource> = [];
@@ -121,7 +121,7 @@ export class Service extends DatabaseService<Model> {
                 })
                 .map((m: Monitor) => {
                   return new ObjectID(m._id!);
-                })
+                }),
             ),
           },
           props: {
@@ -150,7 +150,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         statusPageToResources[resource.statusPageId?.toString()]?.push(
-          resource
+          resource,
         );
       }
 
@@ -158,7 +158,7 @@ export class Service extends DatabaseService<Model> {
         await StatusPageSubscriberService.getStatusPagesToSendNotification(
           event.statusPages?.map((i: StatusPage) => {
             return i.id!;
-          }) || []
+          }) || [],
         );
 
       for (const statuspage of statusPages) {
@@ -176,11 +176,11 @@ export class Service extends DatabaseService<Model> {
             {
               isRoot: true,
               ignoreHooks: true,
-            }
+            },
           );
 
         const statusPageURL: string = await StatusPageService.getStatusPageURL(
-          statuspage.id
+          statuspage.id,
         );
 
         const statusPageName: string =
@@ -215,7 +215,7 @@ export class Service extends DatabaseService<Model> {
           const unsubscribeUrl: string =
             StatusPageSubscriberService.getUnsubscribeLink(
               URL.fromString(statusPageURL),
-              subscriber.id!
+              subscriber.id!,
             ).toString();
 
           if (subscriber.subscriberPhone) {
@@ -242,7 +242,7 @@ export class Service extends DatabaseService<Model> {
             SmsService.sendSms(sms, {
               projectId: statuspage.projectId,
               customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                statuspage.callSmsConfig
+                statuspage.callSmsConfig,
               ),
             }).catch((err: Error) => {
               logger.error(err);
@@ -280,7 +280,7 @@ export class Service extends DatabaseService<Model> {
                   eventTitle: event.title || "",
                   eventDescription: await Markdown.convertToHTML(
                     event.description || "",
-                    MarkdownContentType.Email
+                    MarkdownContentType.Email,
                   ),
                   unsubscribeUrl: unsubscribeUrl,
                 },
@@ -289,10 +289,10 @@ export class Service extends DatabaseService<Model> {
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
-                  statuspage.smtpConfig
+                  statuspage.smtpConfig,
                 ),
                 projectId: statuspage.projectId!,
-              }
+              },
             ).catch((err: Error) => {
               logger.error(err);
             });
@@ -302,12 +302,12 @@ export class Service extends DatabaseService<Model> {
     }
 
     logger.debug(
-      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Completed"
+      "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Completed",
     );
   }
 
   protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>
+    updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (
       updateBy.query.id &&
@@ -349,7 +349,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -377,13 +377,13 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _deletedItemIds: ObjectID[]
+    _deletedItemIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward?.scheduledMaintenanceEvents) {
       for (const scheduledMaintenanceEvent of onDelete?.carryForward
         ?.scheduledMaintenanceEvents || []) {
         await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
-          scheduledMaintenanceEvent
+          scheduledMaintenanceEvent,
         );
       }
     }
@@ -401,7 +401,7 @@ export class Service extends DatabaseService<Model> {
       const notificationDate: Date = Recurring.getNextDateInterval(
         data.eventScheduledDate,
         recurringItem,
-        true
+        true,
       );
 
       // if this date is in the future. set it to recurring date.
@@ -422,11 +422,11 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>
+    createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
-        "ProjectId required to create scheduled maintenane."
+        "ProjectId required to create scheduled maintenane.",
       );
     }
 
@@ -449,7 +449,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
       throw new BadDataException(
-        "Scheduled state not found for this project. Please add an scheduled event state from settings."
+        "Scheduled state not found for this project. Please add an scheduled event state from settings.",
       );
     }
 
@@ -488,7 +488,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     // create new scheduled maintenance state timeline.
 
@@ -504,7 +504,7 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId!,
           scheduledMaintenanceId: createdItem.id!,
           scheduledMaintenanceNumber: createdItem.scheduledMaintenanceNumber!,
-        }
+        },
       );
 
     if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
@@ -585,7 +585,7 @@ export class Service extends DatabaseService<Model> {
         {
           scheduledMaintenanceId: createdItem.id!,
           projectId: createdItem.projectId!,
-        }
+        },
       );
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
@@ -608,10 +608,10 @@ export class Service extends DatabaseService<Model> {
     timeline.scheduledMaintenanceId = createdItem.id!;
     timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, you don't have to notify them for timeline event.
     timeline.shouldStatusPageSubscribersBeNotified = Boolean(
-      createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated
+      createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
     );
     timeline.isStatusPageSubscribersNotified = Boolean(
-      createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated
+      createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
     ); // ignore notifying subscribers because you already notify for Scheduled Event, you don't have to notify them for timeline event.
     timeline.scheduledMaintenanceStateId =
       createdItem.currentScheduledMaintenanceStateId!;
@@ -638,7 +638,7 @@ export class Service extends DatabaseService<Model> {
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
-        onCreate.createBy.props
+        onCreate.createBy.props,
       );
     }
 
@@ -651,7 +651,7 @@ export class Service extends DatabaseService<Model> {
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -690,17 +690,17 @@ export class Service extends DatabaseService<Model> {
 
   public async getScheduledMaintenanceLinkInDashboard(
     projectId: ObjectID,
-    scheduledMaintenanceId: ObjectID
+    scheduledMaintenanceId: ObjectID,
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/scheduled-maintenance-events/${scheduledMaintenanceId.toString()}`
+      `/${projectId.toString()}/scheduled-maintenance-events/${scheduledMaintenanceId.toString()}`,
     );
   }
 
   public async findOwners(
-    scheduledMaintenanceId: ObjectID
+    scheduledMaintenanceId: ObjectID,
   ): Promise<Array<User>> {
     if (!scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is required");
@@ -763,7 +763,7 @@ export class Service extends DatabaseService<Model> {
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          }
+          },
         );
 
         if (!isUserAlreadyAdded) {
@@ -777,7 +777,7 @@ export class Service extends DatabaseService<Model> {
 
   public async changeAttachedMonitorStates(
     item: Model,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     if (!item.projectId) {
       throw new BadDataException("projectId is required");
@@ -798,14 +798,14 @@ export class Service extends DatabaseService<Model> {
         true, // notify owners
         "Changed because of scheduled maintenance event: " + item.id.toString(),
         undefined,
-        props
+        props,
       );
     }
   }
 
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[]
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentScheduledMaintenanceStateId &&
@@ -875,7 +875,7 @@ ${onUpdate.updateBy.data.description || "No description provided."}
         if (
           onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent &&
           Array.isArray(
-            onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent
+            onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent,
           ) &&
           onUpdate.updateBy.data.sendSubscriberNotificationsOnBeforeTheEvent
             .length > 0
@@ -1044,7 +1044,7 @@ ${labels
               displayColor: Gray500,
               feedInfoInMarkdown: feedInfoInMarkdown,
               userId: createdByUserId || undefined,
-            }
+            },
           );
         }
       }
@@ -1176,7 +1176,7 @@ ${labels
           props: {
             isRoot: true,
           },
-        }
+        },
       );
 
     const currentScheduledMaintenanceStateOrder: number =
@@ -1247,7 +1247,7 @@ ${labels
           props: {
             isRoot: true,
           },
-        }
+        },
       );
 
     const currentScheduledMaintenanceStateOrder: number =
@@ -1266,7 +1266,7 @@ ${labels
 
   public async markScheduledMaintenanceAsComplete(
     scheduledMaintenanceId: ObjectID,
-    resolvedByUserId: ObjectID
+    resolvedByUserId: ObjectID,
   ): Promise<Model> {
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: scheduledMaintenanceId,
@@ -1299,7 +1299,7 @@ ${labels
 
     if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
       );
     }
 
@@ -1327,7 +1327,7 @@ ${labels
 
   public async markScheduledMaintenanceAsOngoing(
     scheduledMaintenanceId: ObjectID,
-    markedByUserId: ObjectID
+    markedByUserId: ObjectID,
   ): Promise<Model> {
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: scheduledMaintenanceId,
@@ -1360,7 +1360,7 @@ ${labels
 
     if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
       );
     }
 
@@ -1411,7 +1411,7 @@ ${labels
         }
 
         return channel.workspaceType === data.workspaceType;
-      }
+      },
     );
   }
 }

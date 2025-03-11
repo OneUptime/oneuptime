@@ -124,33 +124,34 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-
-        // get notification rule where inviteOwners is true.
-        const notificationRules: Array<WorkspaceNotificationRule> =
-        await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
-          {
-            projectId: projectId!,
-            notificationFor: {
-              scheduledMaintenanceId: scheduledMaintenanceId,
-            },
-            notificationRuleEventType: NotificationRuleEventType.ScheduledMaintenance,
-          },
-        );
-  
-      WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+    // get notification rule where inviteOwners is true.
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
         {
-          notificationRules: notificationRules,
           projectId: projectId!,
-          workspaceChannels: await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
+          notificationFor: {
+            scheduledMaintenanceId: scheduledMaintenanceId,
+          },
+          notificationRuleEventType:
+            NotificationRuleEventType.ScheduledMaintenance,
+        },
+      );
+
+    WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: projectId!,
+        workspaceChannels:
+          await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
             {
               scheduledMaintenanceId: scheduledMaintenanceId!,
             },
           ),
-          userIds: [userId!],
-        },
-      ).catch((error: Error) => {
-        logger.error(error);
-      });
+        userIds: [userId!],
+      },
+    ).catch((error: Error) => {
+      logger.error(error);
+    });
 
     return createdItem;
   }

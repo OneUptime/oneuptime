@@ -16,11 +16,8 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import ScheduledMaintenancePublicNoteService from "../../../../Services/ScheduledMaintenancePublicNoteService";
 import ScheduledMaintenanceInternalNoteService from "../../../../Services/ScheduledMaintenanceInternalNoteService";
-import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
-import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
-import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import ScheduledMaintenanceState from "../../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateService from "../../../../Services/ScheduledMaintenanceStateService";
 import logger from "../../../Logger";
@@ -88,7 +85,9 @@ export default class SlackScheduledMaintenanceActions {
       );
     }
 
-    if (data.action.actionType === SlackActionType.SubmitNewScheduledMaintenance) {
+    if (
+      data.action.actionType === SlackActionType.SubmitNewScheduledMaintenance
+    ) {
       // We send this early let slack know we're ok. We'll do the rest in the background.
 
       // if view values is empty, then return error.
@@ -116,8 +115,6 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
-    
-
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
@@ -125,7 +122,9 @@ export default class SlackScheduledMaintenanceActions {
       const title: string =
         data.slackRequest.viewValues["scheduledMaintenanceTitle"].toString();
       const description: string =
-        data.slackRequest.viewValues["scheduledMaintenanceDescription"].toString();
+        data.slackRequest.viewValues[
+          "scheduledMaintenanceDescription"
+        ].toString();
 
       const monitors: Array<string> = (data.slackRequest.viewValues[
         "scheduledMaintenanceMonitors"
@@ -141,26 +140,31 @@ export default class SlackScheduledMaintenanceActions {
           return new ObjectID(monitor);
         },
       );
-      const scheduledMaintenanceLabels: Array<ObjectID> = labels.map((label: string) => {
-        return new ObjectID(label);
-      });
+      const scheduledMaintenanceLabels: Array<ObjectID> = labels.map(
+        (label: string) => {
+          return new ObjectID(label);
+        },
+      );
 
       const monitorStatusId: ObjectID | undefined = monitorStatus
         ? new ObjectID(monitorStatus)
         : undefined;
 
-      const scheduledMaintenance: ScheduledMaintenance = new ScheduledMaintenance();
+      const scheduledMaintenance: ScheduledMaintenance =
+        new ScheduledMaintenance();
       scheduledMaintenance.title = title;
       scheduledMaintenance.description = description;
       scheduledMaintenance.projectId = slackRequest.projectId!;
       scheduledMaintenance.createdByUserId = userId;
 
       if (monitors.length > 0) {
-        scheduledMaintenance.monitors = scheduledMaintenanceMonitors.map((monitorId: ObjectID) => {
-          const monitor: Monitor = new Monitor();
-          monitor.id = monitorId;
-          return monitor;
-        });
+        scheduledMaintenance.monitors = scheduledMaintenanceMonitors.map(
+          (monitorId: ObjectID) => {
+            const monitor: Monitor = new Monitor();
+            monitor.id = monitorId;
+            return monitor;
+          },
+        );
       }
 
       if (monitorStatusId) {
@@ -168,11 +172,13 @@ export default class SlackScheduledMaintenanceActions {
       }
 
       if (scheduledMaintenanceLabels.length > 0) {
-        scheduledMaintenance.labels = scheduledMaintenanceLabels.map((labelId: ObjectID) => {
-          const label: Label = new Label();
-          label.id = labelId;
-          return label;
-        });
+        scheduledMaintenance.labels = scheduledMaintenanceLabels.map(
+          (labelId: ObjectID) => {
+            const label: Label = new Label();
+            label.id = labelId;
+            return label;
+          },
+        );
       }
 
       await ScheduledMaintenanceService.create({
@@ -183,8 +189,6 @@ export default class SlackScheduledMaintenanceActions {
       });
     }
   }
-
-
 
   public static async viewNewScheduledMaintenanceModal(data: {
     slackRequest: SlackRequest;
@@ -224,8 +228,6 @@ export default class SlackScheduledMaintenanceActions {
     };
 
     blocks.push(scheduledMaintenanceDescription);
-
-
 
     const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
       query: {
@@ -401,7 +403,10 @@ export default class SlackScheduledMaintenanceActions {
       );
     }
 
-    if (data.action.actionType === SlackActionType.MarkScheduledMaintenanceAsOngoing) {
+    if (
+      data.action.actionType ===
+      SlackActionType.MarkScheduledMaintenanceAsOngoing
+    ) {
       const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
 
       // We send this early let slack know we're ok. We'll do the rest in the background.
@@ -435,7 +440,10 @@ export default class SlackScheduledMaintenanceActions {
         return;
       }
 
-      await ScheduledMaintenanceService.markScheduledMaintenanceAsOngoing(scheduledMaintenanceId, userId);
+      await ScheduledMaintenanceService.markScheduledMaintenanceAsOngoing(
+        scheduledMaintenanceId,
+        userId,
+      );
 
       // ScheduledMaintenance Feed will send a message to the channel that the scheduledMaintenance has been Ongoing.
       return;
@@ -492,7 +500,10 @@ export default class SlackScheduledMaintenanceActions {
       );
     }
 
-    if (data.action.actionType === SlackActionType.MarkScheduledMaintenanceAsComplete) {
+    if (
+      data.action.actionType ===
+      SlackActionType.MarkScheduledMaintenanceAsComplete
+    ) {
       const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
 
       // We send this early let slack know we're ok. We'll do the rest in the background.
@@ -525,7 +536,10 @@ export default class SlackScheduledMaintenanceActions {
         return;
       }
 
-      await ScheduledMaintenanceService.markScheduledMaintenanceAsComplete(scheduledMaintenanceId, userId);
+      await ScheduledMaintenanceService.markScheduledMaintenanceAsComplete(
+        scheduledMaintenanceId,
+        userId,
+      );
 
       return;
     }
@@ -537,7 +551,6 @@ export default class SlackScheduledMaintenanceActions {
       new BadDataException("Invalid Action Type"),
     );
   }
-
 
   public static async viewChangeScheduledMaintenanceState(data: {
     slackRequest: SlackRequest;

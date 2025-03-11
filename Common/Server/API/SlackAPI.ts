@@ -325,18 +325,19 @@ export default class SlackAPI {
             });
           }
 
-
           if (
             SlackScheduledMaintenanceActions.isScheduledMaintenanceAction({
               actionType: action.actionType,
             })
           ) {
-            return SlackScheduledMaintenanceActions.handleScheduledMaintenanceAction({
-              slackRequest: authResult,
-              action: action,
-              req: req,
-              res: res,
-            });
+            return SlackScheduledMaintenanceActions.handleScheduledMaintenanceAction(
+              {
+                slackRequest: authResult,
+                action: action,
+                req: req,
+                res: res,
+              },
+            );
           }
         }
 

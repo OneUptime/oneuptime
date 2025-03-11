@@ -97,27 +97,26 @@ ${updatedItem.note}
     return onUpdate;
   }
 
-    public async addNote(data: {
-      userId: ObjectID;
-      scheduledMaintenanceId: ObjectID;
-      projectId: ObjectID;
-      note: string;
-    }): Promise<Model> {
-      const publicNote: Model = new Model();
-      publicNote.createdByUserId = data.userId;
-      publicNote.scheduledMaintenanceId = data.scheduledMaintenanceId;
-      publicNote.projectId = data.projectId;
-      publicNote.note = data.note;
-      publicNote.postedAt = OneUptimeDate.getCurrentDate();
-  
-      return this.create({
-        data: publicNote,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-  
+  public async addNote(data: {
+    userId: ObjectID;
+    scheduledMaintenanceId: ObjectID;
+    projectId: ObjectID;
+    note: string;
+  }): Promise<Model> {
+    const publicNote: Model = new Model();
+    publicNote.createdByUserId = data.userId;
+    publicNote.scheduledMaintenanceId = data.scheduledMaintenanceId;
+    publicNote.projectId = data.projectId;
+    publicNote.note = data.note;
+    publicNote.postedAt = OneUptimeDate.getCurrentDate();
+
+    return this.create({
+      data: publicNote,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
 }
 
 export default new Service();
