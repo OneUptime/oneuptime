@@ -407,7 +407,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             field: {
               notificationRule: true,
             },
-            title: "Notification Rules",
+            title: `Notify ${props.workspaceType} on ${props.eventType} when...`,
+            description: `Set the conditions to notify ${props.workspaceType} on ${props.eventType}. If you do not set any conditions, then this rule will trigger for every ${props.eventType}.`,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             stepId: "rules",
