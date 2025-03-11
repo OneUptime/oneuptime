@@ -22,6 +22,7 @@ import User from "Common/Models/DatabaseModels/User";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import UserService from "Common/Server/Services/UserService";
 
 RunCron(
   "AlertOwner:SendStateChangeEmail",
@@ -196,7 +197,12 @@ RunCron(
             NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
         });
 
-        moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+                  {
+                    userId: user.id!,
+                    projectId: alertStateTimeline.projectId!,
+                  }
+                )})\n`;
       }
 
       const alertNumber: number = alert.alertNumber!;

@@ -118,6 +118,7 @@ RunCron(
             currentScheduledMaintenanceState: {
               name: true,
             },
+            scheduledMaintenanceNumber: true,
           },
         });
 
@@ -208,18 +209,23 @@ RunCron(
         note._id!.toString(),
       );
 
-      const scheduledMaintenanceFeedText: string = `**Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the scheduled maintenance.`;
-
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-        scheduledMaintenanceId: scheduledMaintenance.id!,
-        projectId: scheduledMaintenance.projectId!,
-        scheduledMaintenanceFeedEventType:
-          ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: scheduledMaintenanceFeedText,
-        moreInformationInMarkdown:
-          moreScheduledMaintenanceFeedInformationInMarkdown,
-      });
+      const projectId: ObjectID = scheduledMaintenance.projectId!;
+            const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
+            const scheduledMaintenanceNumber: number = scheduledMaintenance.scheduledMaintenanceNumber!; // scheduledMaintenance number is not null here.
+      
+            const scheduledMaintenanceFeedText: string = `🔔 **Owners Notified because ${isPrivateNote ? "private" : "public"} note is posted** Owners have been notified about the new ${isPrivateNote ? "private" : "public"} note posted on the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).`;
+      
+            await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
+              scheduledMaintenanceId: scheduledMaintenance.id!,
+              projectId: scheduledMaintenance.projectId!,
+              scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
+              displayColor: Blue500,
+              feedInfoInMarkdown: scheduledMaintenanceFeedText,
+              moreInformationInMarkdown: moreScheduledMaintenanceFeedInformationInMarkdown,
+              workspaceNotification: {
+                sendWorkspaceNotification: false,
+              },
+            });
     }
   },
 );

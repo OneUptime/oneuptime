@@ -16,6 +16,7 @@ import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
+import ObjectID from "Common/Types/ObjectID";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendCreatedResourceEmail",
@@ -43,6 +44,7 @@ RunCron(
           currentScheduledMaintenanceState: {
             name: true,
           },
+          scheduledMaintenanceNumber: true,
         },
       });
 
@@ -135,20 +137,24 @@ RunCron(
         moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified**: ${user.name} (${user.email})\n`;
       }
 
-      const scheduledMaintenanceFeedText: string = `**Owner Scheduled Maintenance Created Notification Sent**:
-
-Notification sent to owners of this incident because this incident was created.`;
+      const projectId: ObjectID = scheduledMaintenance.projectId!;
+            const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
+            const scheduledMaintenanceNumber: number = scheduledMaintenance.scheduledMaintenanceNumber!;
+      
+            const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
+      Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-        scheduledMaintenanceId: scheduledMaintenance.id!,
-        projectId: scheduledMaintenance.projectId!,
-        scheduledMaintenanceFeedEventType:
-          ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
-        displayColor: Yellow500,
-        feedInfoInMarkdown: scheduledMaintenanceFeedText,
-        moreInformationInMarkdown:
-          moreScheduledMaintenanceFeedInformationInMarkdown,
-      });
+              scheduledMaintenanceId: scheduledMaintenance.id!,
+              projectId: scheduledMaintenance.projectId!,
+              scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
+              displayColor: Yellow500,
+              feedInfoInMarkdown: scheduledMaintenanceFeedText,
+              moreInformationInMarkdown: moreScheduledMaintenanceFeedInformationInMarkdown,
+              workspaceNotification: {
+                sendWorkspaceNotification: false,
+              },
+            });
     }
   },
 );

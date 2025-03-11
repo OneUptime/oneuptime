@@ -107,6 +107,7 @@ RunCron(
               _id: true,
             },
             isVisibleOnStatusPage: true,
+            scheduledMaintenanceNumber: true,
           },
         });
 
@@ -132,7 +133,7 @@ RunCron(
                 })
                 .map((m: Monitor) => {
                   return new ObjectID(m._id!);
-                }),
+                })
             ),
           },
           props: {
@@ -161,7 +162,7 @@ RunCron(
         }
 
         statusPageToResources[resource.statusPageId?.toString()]?.push(
-          resource,
+          resource
         );
       }
 
@@ -169,7 +170,7 @@ RunCron(
         await StatusPageSubscriberService.getStatusPagesToSendNotification(
           event.statusPages?.map((i: StatusPage) => {
             return i.id!;
-          }) || [],
+          }) || []
         );
 
       for (const statuspage of statusPages) {
@@ -178,7 +179,7 @@ RunCron(
         }
 
         if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
-          continue; // Do not send notification to subscribers if incidents are not visible on status page.
+          continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
         }
 
         const subscribers: Array<StatusPageSubscriber> =
@@ -187,11 +188,11 @@ RunCron(
             {
               isRoot: true,
               ignoreHooks: true,
-            },
+            }
           );
 
         const statusPageURL: string = await StatusPageService.getStatusPageURL(
-          statuspage.id,
+          statuspage.id
         );
 
         const statusPageName: string =
@@ -219,7 +220,7 @@ RunCron(
           const unsubscribeUrl: string =
             StatusPageSubscriberService.getUnsubscribeLink(
               URL.fromString(statusPageURL),
-              subscriber.id!,
+              subscriber.id!
             ).toString();
 
           if (subscriber.subscriberPhone) {
@@ -243,7 +244,7 @@ RunCron(
             SmsService.sendSms(sms, {
               projectId: statuspage.projectId,
               customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                statuspage.callSmsConfig,
+                statuspage.callSmsConfig
               ),
             }).catch((err: Error) => {
               logger.error(err);
@@ -282,7 +283,7 @@ RunCron(
                       ?.name || "",
 
                   scheduledAt: OneUptimeDate.getDateAsFormattedString(
-                    event.startsAt!,
+                    event.startsAt!
                   ),
                   eventTitle: event.title || "",
                   eventDescription: event.description || "",
@@ -291,15 +292,15 @@ RunCron(
                     statuspage.subscriberEmailNotificationFooterText || "",
                 },
                 subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-                  scheduledEventStateTimeline.scheduledMaintenanceState?.name,
+                  scheduledEventStateTimeline.scheduledMaintenanceState?.name
                 )}] ${statusPageName}`,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
-                  statuspage.smtpConfig,
+                  statuspage.smtpConfig
                 ),
                 projectId: statuspage.projectId,
-              },
+              }
             ).catch((err: Error) => {
               logger.error(err);
             });
@@ -307,14 +308,22 @@ RunCron(
         }
       }
 
+      const scheduledMaintenanceNumber: string =
+        event.scheduledMaintenanceNumber?.toString() || " - ";
+      const projectId: ObjectID = event.projectId!;
+      const scheduledMaintenanceId: ObjectID = event.id!;
+
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Status Page Subscribers have been notified** about the state change of the scheduled maintenance to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
       });
     }
-  },
+  }
 );

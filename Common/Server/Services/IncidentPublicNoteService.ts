@@ -9,6 +9,7 @@ import { Blue500, Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import IncidentService from "./IncidentService";
+import Incident from "../../Models/DatabaseModels/Incident";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -109,22 +110,24 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-        await IncidentFeedService.createIncidentFeedItem({
-          incidentId: updatedItem.incidentId!,
-          projectId: updatedItem.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.PublicNote,
-          displayColor: Blue500,
-          userId: userId || undefined,
-
-          feedInfoInMarkdown: `📄 **Updated Public Note**
-  
+        const incident: Incident = updatedItem.incident!;
+        
+                await IncidentFeedService.createIncidentFeedItem({
+                  incidentId: updatedItem.incidentId!,
+                  projectId: updatedItem.projectId!,
+                  incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+                  displayColor: Blue500,
+                  userId: userId || undefined,
+        
+                  feedInfoInMarkdown: `📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
+        
 ${updatedItem.note}
-            `,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-            notifyUserId: userId || undefined,
-          },
-        });
+                  `,
+                  workspaceNotification: {
+                    sendWorkspaceNotification: true,
+                    notifyUserId: userId || undefined,
+                  },
+                });
       }
     }
     return onUpdate;

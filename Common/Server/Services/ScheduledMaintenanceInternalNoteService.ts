@@ -6,6 +6,8 @@ import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -39,19 +41,29 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-      scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
-      projectId: createdItem.projectId!,
-      scheduledMaintenanceFeedEventType:
-        ScheduledMaintenanceFeedEventType.PrivateNote,
-      displayColor: Blue500,
-      userId: userId || undefined,
+          const scheduledMaintenanceId: ObjectID = createdItem.scheduledMaintenanceId!;
+      
+          const scheduledMaintenanceNumber: number | null =
+            await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+              scheduledMaintenanceId: scheduledMaintenanceId,
+            });
 
-      feedInfoInMarkdown: `**Posted Internal / Private Note**
-  
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
+          scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
+          projectId: createdItem.projectId!,
+          scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PrivateNote,
+          displayColor: Blue500,
+          userId: userId || undefined,
+    
+          feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
+    
 ${createdItem.note}
-            `,
-    });
+              `,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
+          },
+        });
 
     return createdItem;
   }
@@ -76,6 +88,9 @@ ${createdItem.note}
           createdByUser: {
             _id: true,
           },
+          scheduledMaintenance: {
+            scheduledMaintenanceNumber: true,
+          }
         },
       });
 
@@ -83,21 +98,26 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
-          {
-            scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
-            projectId: updatedItem.projectId!,
-            scheduledMaintenanceFeedEventType:
-              ScheduledMaintenanceFeedEventType.PrivateNote,
-            displayColor: Blue500,
-            userId: userId || undefined,
 
-            feedInfoInMarkdown: `**Updated Private Note**
-      
+         const scheduledMaintenance: ScheduledMaintenance = updatedItem.scheduledMaintenance!;
+
+
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
+                  scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
+                  projectId: updatedItem.projectId!,
+                  scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PrivateNote,
+                  displayColor: Blue500,
+                  userId: userId || undefined,
+        
+                  feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+        
 ${updatedItem.note}
-                `,
-          },
-        );
+                  `,
+                  workspaceNotification: {
+                    sendWorkspaceNotification: true,
+                    notifyUserId: userId || undefined,
+                  },
+                });
       }
     }
     return onUpdate;

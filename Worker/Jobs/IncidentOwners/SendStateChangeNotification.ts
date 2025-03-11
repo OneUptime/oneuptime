@@ -22,6 +22,7 @@ import User from "Common/Models/DatabaseModels/User";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import UserService from "Common/Server/Services/UserService";
 
 RunCron(
   "IncidentOwner:SendStateChangeEmail",
@@ -128,7 +129,7 @@ RunCron(
 
         // find project owners.
         owners = await ProjectService.getOwners(
-          incidentStateTimeline.projectId!,
+          incidentStateTimeline.projectId!
         );
       }
 
@@ -150,7 +151,7 @@ RunCron(
           currentState: incidentState!.name!,
           incidentDescription: await Markdown.convertToHTML(
             incident.description! || "",
-            MarkdownContentType.Email,
+            MarkdownContentType.Email
           ),
           resourcesAffected: resourcesAffected || "None",
           stateChangedAt:
@@ -162,7 +163,7 @@ RunCron(
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
               incidentStateTimeline.projectId!,
-              incident.id!,
+              incident.id!
             )
           ).toString(),
         };
@@ -215,7 +216,12 @@ RunCron(
             NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
         });
 
-        moreIncidentFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreIncidentFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+          {
+            userId: user.id!,
+            projectId: incidentStateTimeline.projectId!,
+          }
+        )})\n`;
       }
 
       const incidentNumber: number = incident.incidentNumber!;
@@ -233,5 +239,5 @@ RunCron(
         },
       });
     }
-  },
+  }
 );

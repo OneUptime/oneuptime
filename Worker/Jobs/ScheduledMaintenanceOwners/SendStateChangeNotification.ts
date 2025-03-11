@@ -21,6 +21,8 @@ import User from "Common/Models/DatabaseModels/User";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import ObjectID from "Common/Types/ObjectID";
+import UserService from "Common/Server/Services/UserService";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendStateChangeEmail",
@@ -50,6 +52,7 @@ RunCron(
             _id: true,
             title: true,
             description: true,
+            scheduledMaintenanceNumber: true,
           },
           scheduledMaintenanceState: {
             name: true,
@@ -80,7 +83,7 @@ RunCron(
       let doesResourceHasOwners: boolean = true;
 
       let owners: Array<User> = await ScheduledMaintenanceService.findOwners(
-        scheduledMaintenance.id!,
+        scheduledMaintenance.id!
       );
 
       if (owners.length === 0) {
@@ -88,7 +91,7 @@ RunCron(
 
         // find project owners.
         owners = await ProjectService.getOwners(
-          scheduledMaintenanceStateTimeline.projectId!,
+          scheduledMaintenanceStateTimeline.projectId!
         );
       }
 
@@ -103,7 +106,7 @@ RunCron(
           currentState: scheduledMaintenanceState!.name!,
           scheduledMaintenanceDescription: await Markdown.convertToHTML(
             scheduledMaintenance.description! || "",
-            MarkdownContentType.Email,
+            MarkdownContentType.Email
           ),
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -113,7 +116,7 @@ RunCron(
           scheduledMaintenanceViewLink: (
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               scheduledMaintenanceStateTimeline.projectId!,
-              scheduledMaintenance.id!,
+              scheduledMaintenance.id!
             )
           ).toString(),
         };
@@ -126,7 +129,7 @@ RunCron(
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
           vars: vars,
           subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-            scheduledMaintenanceState!.name!,
+            scheduledMaintenanceState!.name!
           )}] - ${scheduledMaintenance.title}`,
         };
 
@@ -158,8 +161,18 @@ RunCron(
             NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
         });
 
-        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
+        moreScheduledMaintenanceFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
+          {
+            userId: user.id!,
+            projectId: scheduledMaintenanceStateTimeline.projectId!,
+          }
+        )})\n`;
       }
+
+      const scheduledMaintenanceNumber: number =
+        scheduledMaintenance.scheduledMaintenanceNumber!;
+      const projectId: ObjectID = scheduledMaintenance.projectId!;
+      const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,
@@ -167,10 +180,13 @@ RunCron(
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Owners have been notified about the state change of the scheduled maintenance.**: Owners have been notified about the state change of the scheduled maintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}).**: Owners have been notified about the state change of the scheduledMaintenance because the scheduledMaintenance state changed to **${scheduledMaintenanceState.name}**.`,
         moreInformationInMarkdown:
           moreScheduledMaintenanceFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
       });
     }
-  },
+  }
 );

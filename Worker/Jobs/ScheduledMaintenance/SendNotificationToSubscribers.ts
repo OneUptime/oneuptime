@@ -8,6 +8,7 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import ObjectID from "Common/Types/ObjectID";
 RunCron(
   "ScheduledMaintenance:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -38,10 +39,18 @@ RunCron(
             _id: true,
           },
           isVisibleOnStatusPage: true,
+          scheduledMaintenanceNumber: true,
         },
       });
 
     for (const event of scheduledEvents) {
+      const scheduledMaintenanceId: ObjectID = event.id!;
+      const projectId: ObjectID = event.projectId!;
+      const scheduledMaintenanceNumber: string =
+        event.scheduledMaintenanceNumber?.toString() || " - ";
+      const scheduledMaintenanceFeedText: string = `📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
+            Notification sent to status page subscribers because this scheduled maintenance was created.`;
+
       await ScheduledMaintenanceService.updateOneById({
         id: event.id!,
         data: {
@@ -57,10 +66,6 @@ RunCron(
         continue; // skip if not visible on status page.
       }
 
-      const scheduledMaintenanceFeedText: string = `**Subscriber Scheduled Maintenance Created Notification Sent**:
-      
-Notification sent to status page subscribers because this scheduled maintenance was created.`;
-
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
@@ -68,11 +73,14 @@ Notification sent to status page subscribers because this scheduled maintenance 
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: scheduledMaintenanceFeedText,
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
       });
     }
 
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
-      scheduledEvents,
+      scheduledEvents
     );
-  },
+  }
 );

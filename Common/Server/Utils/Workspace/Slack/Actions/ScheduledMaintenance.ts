@@ -428,7 +428,7 @@ export default class SlackScheduledMaintenanceActions {
         // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[ScheduledMaintenance ${scheduledMaintenanceNumber?.toString()}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`,
+          text: `@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[Scheduled Maintenance ${scheduledMaintenanceNumber?.toString()}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`,
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -524,7 +524,7 @@ export default class SlackScheduledMaintenanceActions {
         // send a message to the channel visible to user, that the scheduledMaintenance has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot resolve the **[ScheduledMaintenance ${scheduledMaintenanceNumber?.toString()}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`,
+          text: `@${slackUsername}, unfortunately you cannot resolve the **[Scheduled Maintenance ${scheduledMaintenanceNumber?.toString()}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`,
         };
 
         await SlackUtil.sendDirectMessageToUser({

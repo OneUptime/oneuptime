@@ -83,6 +83,7 @@ RunCron(
               _id: true,
             },
             isVisibleOnStatusPage: true,
+            scheduledMaintenanceNumber:   true,
           },
         });
 
@@ -165,7 +166,7 @@ RunCron(
         }
 
         if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
-          continue; // Do not send notification to subscribers if incidents are not visible on status page.
+          continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
         }
 
         const subscribers: Array<StatusPageSubscriber> =
@@ -292,13 +293,15 @@ RunCron(
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
-        scheduledMaintenanceFeedEventType:
-          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Notification sent to subscribers** for public note added to this ScheduledMaintenance.`,
+        feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
         moreInformationInMarkdown: `**Public Note:**
-              
+        
 ${publicNote.note}`,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
       });
     }
   },

@@ -9,6 +9,7 @@ import logger from "Common/Server/Utils/Logger";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import ObjectID from "Common/Types/ObjectID";
 RunCron(
   "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -44,6 +45,7 @@ RunCron(
           },
           sendSubscriberNotificationsOnBeforeTheEvent: true,
           nextSubscriberNotificationBeforeTheEventAt: true,
+          scheduledMaintenanceNumber: true,
         },
       });
 
@@ -95,7 +97,11 @@ RunCron(
         logger.error(err);
       }
 
-      const scheduledMaintenanceFeedText: string = `**Reminder Notification Sent to Subscribers**:
+      const scheduledMaintenanceNumber: string = event.scheduledMaintenanceNumber?.toString() || " - ";
+      const projectId: ObjectID = event.projectId!;
+      const scheduledMaintenanceId: ObjectID = event.id!;
+
+      const scheduledMaintenanceFeedText: string = `🗓️ **Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})****:
             
 Reminder notification sent to status page subscribers for this scheduled maintenance event.`;
 
@@ -106,6 +112,9 @@ Reminder notification sent to status page subscribers for this scheduled mainten
           ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: scheduledMaintenanceFeedText,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
       });
     }
 
