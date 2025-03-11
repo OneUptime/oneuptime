@@ -8,6 +8,7 @@ import TeamService from "./TeamService";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
+import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -15,7 +16,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>,
+    deleteBy: DeleteBy<Model>
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = await this.findBy({
       query: deleteBy.query,
@@ -41,7 +42,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>,
+    _itemIdsBeforeDelete: Array<ObjectID>
   ): Promise<OnDelete<Model>> {
     const deleteByUserId: ObjectID | undefined =
       onDelete.deleteBy.deletedByUser?.id || onDelete.deleteBy.props.userId;
@@ -65,13 +66,20 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (team && team.name) {
+          const alertNumber: number | null = await AlertService.getAlertNumber({
+            alertId: alertId,
+          });
           await AlertFeedService.createAlertFeedItem({
             alertId: alertId,
             projectId: projectId,
             alertFeedEventType: AlertFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `Removed team **${team.name}** from the alert as the owner.`,
+            feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: deleteByUserId || undefined,
+            },
           });
         }
       }
@@ -82,7 +90,7 @@ export class Service extends DatabaseService<Model> {
 
   public override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model,
+    createdItem: Model
   ): Promise<Model> {
     // add alert feed.
 
@@ -104,13 +112,21 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
+        const alertNumber: number | null = await AlertService.getAlertNumber({
+          alertId: alertId,
+        });
+
         await AlertFeedService.createAlertFeedItem({
           alertId: alertId,
           projectId: projectId,
           alertFeedEventType: AlertFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
-          feedInfoInMarkdown: `Added team **${team.name}** to the alert as the owner.`,
+          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: createdByUserId || undefined,
+          },
         });
       }
     }

@@ -46,7 +46,7 @@ RunCron(
     const privateNoteIds: Array<string> = privateNotes.map(
       (note: AlertInternalNote) => {
         return note._id!;
-      },
+      }
     );
 
     for (const note of privateNotes) {
@@ -89,6 +89,7 @@ RunCron(
           monitor: {
             name: true,
           },
+          alertNumber: true,
         },
       });
 
@@ -101,7 +102,7 @@ RunCron(
       let doesResourceHasOwners: boolean = true;
 
       let owners: Array<User> = await AlertService.findOwners(
-        note.getColumnValue("alertId")! as ObjectID,
+        note.getColumnValue("alertId")! as ObjectID
       );
 
       if (owners.length === 0) {
@@ -109,7 +110,7 @@ RunCron(
 
         // find project owners.
         owners = await ProjectService.getOwners(
-          note.getColumnValue("projectId") as ObjectID,
+          note.getColumnValue("projectId") as ObjectID
         );
       }
 
@@ -123,14 +124,14 @@ RunCron(
         currentState: alert.currentAlertState!.name!,
         note: await Markdown.convertToHTML(
           (note.getColumnValue("note")! as string) || "",
-          MarkdownContentType.Email,
+          MarkdownContentType.Email
         ),
         resourcesAffected: alert.monitor?.name || "None",
         alertSeverity: alert.alertSeverity!.name!,
         alertViewLink: (
           await AlertService.getAlertLinkInDashboard(
             alert.projectId!,
-            alert.id!,
+            alert.id!
           )
         ).toString(),
       };
@@ -177,7 +178,11 @@ RunCron(
         moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
-      const alertFeedText: string = `**Owners Notified because note is posted** Owners have been notified about the new note posted on the alert.`;
+      const projectId: ObjectID = alert.projectId!;
+      const alertId: ObjectID = alert.id!;
+      const alertNumber: number = alert.alertNumber!; // alert number is not null here.
+
+      const alertFeedText: string = `🔔 **Owners Notified because private note is posted** Owners have been notified about the new private note posted on the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).`;
 
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
@@ -186,7 +191,10 @@ RunCron(
         displayColor: Blue500,
         feedInfoInMarkdown: alertFeedText,
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
       });
     }
-  },
+  }
 );

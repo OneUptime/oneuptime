@@ -6,6 +6,8 @@ import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Blue500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Alert from "../../Models/DatabaseModels/Alert";
+import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -34,10 +36,16 @@ export class Service extends DatabaseService<Model> {
 
   public override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model,
+    createdItem: Model
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    const alertId: ObjectID = createdItem.alertId!;
+
+    const alertNumber: number | null = await AlertService.getAlertNumber({
+      alertId: alertId,
+    });
 
     await AlertFeedService.createAlertFeedItem({
       alertId: createdItem.alertId!,
@@ -46,10 +54,14 @@ export class Service extends DatabaseService<Model> {
       displayColor: Blue500,
       userId: userId || undefined,
 
-      feedInfoInMarkdown: `**Posted Internal / Private Note**
-  
-  ${createdItem.note}
-            `,
+      feedInfoInMarkdown: `📄 posted **private note** for this [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(createdItem.projectId!, alertId)).toString()}):
+      
+${createdItem.note}
+                `,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: userId || undefined,
+      },
     });
 
     return createdItem;
@@ -57,7 +69,7 @@ export class Service extends DatabaseService<Model> {
 
   public override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>,
+    _updatedItemIds: Array<ObjectID>
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.note) {
       const updatedItems: Array<Model> = await this.findBy({
@@ -72,6 +84,10 @@ export class Service extends DatabaseService<Model> {
           projectId: true,
           note: true,
           createdByUserId: true,
+          alert: {
+            projectId: true,
+            alertNumber: true,
+          },
           createdByUser: {
             _id: true,
           },
@@ -82,6 +98,7 @@ export class Service extends DatabaseService<Model> {
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
+        const alert: Alert = updatedItem.alert!;
         await AlertFeedService.createAlertFeedItem({
           alertId: updatedItem.alertId!,
           projectId: updatedItem.projectId!,
@@ -89,10 +106,14 @@ export class Service extends DatabaseService<Model> {
           displayColor: Blue500,
           userId: userId || undefined,
 
-          feedInfoInMarkdown: `**Updated Internal / Private Note**
-  
-  ${updatedItem.note}
-            `,
+          feedInfoInMarkdown: `📄 updated **Private Note** for this [Alert ${alert.alertNumber}](${(await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)).toString()})
+          
+${updatedItem.note}
+                    `,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
+          },
         });
       }
     }

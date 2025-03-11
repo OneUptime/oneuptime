@@ -75,6 +75,7 @@ RunCron(
           monitor: {
             name: true,
           },
+          alertNumber: true,
         },
       });
 
@@ -138,7 +139,7 @@ RunCron(
           currentState: alertState!.name!,
           alertDescription: await Markdown.convertToHTML(
             alert.description! || "",
-            MarkdownContentType.Email,
+            MarkdownContentType.Email
           ),
           resourcesAffected: alert.monitor?.name || "",
           stateChangedAt:
@@ -150,7 +151,7 @@ RunCron(
           alertViewLink: (
             await AlertService.getAlertLinkInDashboard(
               alertStateTimeline.projectId!,
-              alert.id!,
+              alert.id!
             )
           ).toString(),
         };
@@ -163,7 +164,7 @@ RunCron(
           templateType: EmailTemplateType.AlertOwnerStateChanged,
           vars: vars,
           subject: `[Alert ${Text.uppercaseFirstLetter(
-            alertState!.name!,
+            alertState!.name!
           )}] ${alert.title!}`,
         };
 
@@ -198,14 +199,20 @@ RunCron(
         moreAlertFeedInformationInMarkdown += `**Notified:** ${user.name} (${user.email})\n`;
       }
 
+      const alertNumber: number = alert.alertNumber!;
+      const projectId: ObjectID = alert.projectId!;
+
       await AlertFeedService.createAlertFeedItem({
         alertId: alert.id!,
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
-        feedInfoInMarkdown: `**Owners have been notified about the state change of the alert.**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`,
+        feedInfoInMarkdown: `🔔 **Owners have been notified about the state change of the [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}).**: Owners have been notified about the state change of the alert because the alert state changed to **${alertState.name}**.`,
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        },
       });
     }
-  },
+  }
 );

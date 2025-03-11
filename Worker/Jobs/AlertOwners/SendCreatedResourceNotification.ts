@@ -21,6 +21,7 @@ import User from "Common/Models/DatabaseModels/User";
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { Yellow500 } from "Common/Types/BrandColors";
 import AlertFeedService from "Common/Server/Services/AlertFeedService";
+import ObjectID from "Common/Types/ObjectID";
 
 RunCron(
   "AlertOwner:SendCreatedResourceEmail",
@@ -62,12 +63,17 @@ RunCron(
           name: true,
           email: true,
         },
+        alertNumber: true,
       },
     });
 
     for (const alert of alerts) {
-      const alertFeedText: string = `**Owner Alert Created Notification Sent**:
-      Notification sent to owners of this alert because this alert was created.`;
+      const projectId: ObjectID = alert.projectId!;
+      const alertId: ObjectID = alert.id!;
+      const alertNumber: number = alert.alertNumber!;
+
+      const alertFeedText: string = `🔔 **Owner Alert Created Notification Sent**:
+      Notification sent to owners because [Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) was created.`;
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -122,7 +128,7 @@ RunCron(
             currentState: alert.currentAlertState!.name!,
             alertDescription: await Markdown.convertToHTML(
               alert.description! || "",
-              MarkdownContentType.Email,
+              MarkdownContentType.Email
             ),
             resourcesAffected: alert.monitor?.name || "None",
             alertSeverity: alert.alertSeverity!.name!,
@@ -130,23 +136,23 @@ RunCron(
               {
                 date: alertIdentifiedDate,
                 timezones: user.timezone ? [user.timezone] : [],
-              },
+              }
             ),
             declaredBy: declaredBy,
             remediationNotes:
               (await Markdown.convertToHTML(
                 alert.remediationNotes! || "",
-                MarkdownContentType.Email,
+                MarkdownContentType.Email
               )) || "",
             rootCause:
               (await Markdown.convertToHTML(
                 alert.rootCause || "No root cause identified for this alert",
-                MarkdownContentType.Email,
+                MarkdownContentType.Email
               )) || "",
             alertViewLink: (
               await AlertService.getAlertLinkInDashboard(
                 alert.projectId!,
-                alert.id!,
+                alert.id!
               )
             ).toString(),
           };
@@ -197,7 +203,10 @@ RunCron(
         displayColor: Yellow500,
         feedInfoInMarkdown: alertFeedText,
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+        }
       });
     }
-  },
+  }
 );
