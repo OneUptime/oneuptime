@@ -52,6 +52,10 @@ import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/S
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import ScheduledMaintenanceWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -491,24 +495,102 @@ export class Service extends DatabaseService<Model> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
+    // send message to workspaces - slack, teams,   etc.
+    const workspaceResult: {
+      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+    } | null =
+      await ScheduledMaintenanceWorkspaceMessages.createChannelsAndInviteUsersToChannels(
+        {
+          projectId: createdItem.projectId!,
+          scheduledMaintenanceId: createdItem.id!,
+          scheduledMaintenanceNumber: createdItem.scheduledMaintenanceNumber!,
+        }
+      );
+
+    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+      // update scheduledMaintenance with these channels.
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const scheduledMaintenance: Model | null = await this.findOneById({
+      id: createdItem.id!,
+      select: {
+        projectId: true,
+        scheduledMaintenanceNumber: true,
+        title: true,
+        description: true,
+        currentScheduledMaintenanceState: {
+          name: true,
+        },
+        startsAt: true,
+        endsAt: true,
+        monitors: {
+          name: true,
+          _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!scheduledMaintenance) {
+      throw new BadDataException("Scheduled Maintenance not found");
+    }
+
+    let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${createdItem.scheduledMaintenanceNumber?.toString()} Created: 
+          
+    **${createdItem.title || "No title provided."}**:
+    
+    ${createdItem.description || "No description provided."}
+    
+    `;
+
+    if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
+      feedInfoInMarkdown += `⏳ **ScheduledMaintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
+    }
+
+    if (
+      scheduledMaintenance.monitors &&
+      scheduledMaintenance.monitors.length > 0
+    ) {
+      feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+      for (const monitor of scheduledMaintenance.monitors) {
+        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+      }
+
+      feedInfoInMarkdown += `\n\n`;
+    }
+
+    const scheduledMaintenanceCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await ScheduledMaintenanceWorkspaceMessages.getScheduledMaintenanceCreateMessageBlocks(
+        {
+          scheduledMaintenanceId: createdItem.id!,
+          projectId: createdItem.projectId!,
+        }
+      );
+
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.id!,
       projectId: createdItem.projectId!,
       scheduledMaintenanceFeedEventType:
         ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
       displayColor: Red500,
-      feedInfoInMarkdown: `**Scheduled Maintenance #${createdItem.scheduledMaintenanceNumber?.toString()} Created**: 
-          
-**Scheduled Maintenance Title**:
-
-${createdItem.title || "No title provided."}
-
-**Description**:
-
-${createdItem.description || "No description provided."}
-    
-          `,
+      feedInfoInMarkdown: feedInfoInMarkdown,
       userId: createdByUserId || undefined,
+      workspaceNotification: {
+        appendMessageBlocks: scheduledMaintenanceCreateMessageBlocks,
+        sendWorkspaceNotification: true,
+      },
     });
 
     const timeline: ScheduledMaintenanceStateTimeline =
@@ -1173,121 +1255,155 @@ ${labels
     return false;
   }
 
-    public async markScheduledMaintenanceAsComplete(
-      scheduledMaintenanceId: ObjectID,
-      resolvedByUserId: ObjectID,
-    ): Promise<Model> {
-      const scheduledMaintenance: Model | null = await this.findOneById({
-        id: scheduledMaintenanceId,
-        select: {
-          projectId: true,
-          scheduledMaintenanceNumber: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
-        throw new BadDataException("ScheduledMaintenance not found.");
-      }
-  
-      const scheduledMaintenanceState: ScheduledMaintenanceState | null =
-        await ScheduledMaintenanceStateService.findOneBy({
-          query: {
-            projectId: scheduledMaintenance.projectId,
-            isResolvedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-  
-      if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
-        throw new BadDataException(
-          "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-        );
-      }
-  
-      const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-        new ScheduledMaintenanceStateTimeline();
-      scheduledMaintenanceStateTimeline.projectId = scheduledMaintenance.projectId;
-      scheduledMaintenanceStateTimeline.scheduledMaintenanceId = scheduledMaintenanceId;
-      scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId = scheduledMaintenanceState.id;
-      scheduledMaintenanceStateTimeline.createdByUserId = resolvedByUserId;
-  
-      await ScheduledMaintenanceStateTimelineService.create({
-        data: scheduledMaintenanceStateTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      // store scheduledMaintenance metric
-  
-      return scheduledMaintenance;
+  public async markScheduledMaintenanceAsComplete(
+    scheduledMaintenanceId: ObjectID,
+    resolvedByUserId: ObjectID
+  ): Promise<Model> {
+    const scheduledMaintenance: Model | null = await this.findOneById({
+      id: scheduledMaintenanceId,
+      select: {
+        projectId: true,
+        scheduledMaintenanceNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
+      throw new BadDataException("ScheduledMaintenance not found.");
     }
-  
-    public async markScheduledMaintenanceAsOngoing(
-      scheduledMaintenanceId: ObjectID,
-      markedByUserId: ObjectID,
-    ): Promise<Model> {
-      const scheduledMaintenance: Model | null = await this.findOneById({
-        id: scheduledMaintenanceId,
+
+    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          projectId: scheduledMaintenance.projectId,
+          isResolvedState: true,
+        },
         select: {
-          projectId: true,
-          scheduledMaintenanceNumber: true,
+          _id: true,
         },
         props: {
           isRoot: true,
         },
       });
-  
-      if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
-        throw new BadDataException("ScheduledMaintenance not found.");
-      }
-  
-      const scheduledMaintenanceState: ScheduledMaintenanceState | null =
-        await ScheduledMaintenanceStateService.findOneBy({
-          query: {
-            projectId: scheduledMaintenance.projectId,
-            isOngoingState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-  
-      if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
-        throw new BadDataException(
-          "Acknowledged state not found for this project. Please add acknowledged state from settings.",
-        );
-      }
-  
-      const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-        new ScheduledMaintenanceStateTimeline();
-      scheduledMaintenanceStateTimeline.projectId = scheduledMaintenance.projectId;
-      scheduledMaintenanceStateTimeline.scheduledMaintenanceId = scheduledMaintenanceId;
-      scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId = scheduledMaintenanceState.id;
-      scheduledMaintenanceStateTimeline.createdByUserId = markedByUserId;
-  
-      await ScheduledMaintenanceStateTimelineService.create({
-        data: scheduledMaintenanceStateTimeline,
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      // store scheduledMaintenance metric
-  
-      return scheduledMaintenance;
+
+    if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+      );
     }
-  
+
+    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
+      new ScheduledMaintenanceStateTimeline();
+    scheduledMaintenanceStateTimeline.projectId =
+      scheduledMaintenance.projectId;
+    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
+      scheduledMaintenanceId;
+    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
+      scheduledMaintenanceState.id;
+    scheduledMaintenanceStateTimeline.createdByUserId = resolvedByUserId;
+
+    await ScheduledMaintenanceStateTimelineService.create({
+      data: scheduledMaintenanceStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store scheduledMaintenance metric
+
+    return scheduledMaintenance;
+  }
+
+  public async markScheduledMaintenanceAsOngoing(
+    scheduledMaintenanceId: ObjectID,
+    markedByUserId: ObjectID
+  ): Promise<Model> {
+    const scheduledMaintenance: Model | null = await this.findOneById({
+      id: scheduledMaintenanceId,
+      select: {
+        projectId: true,
+        scheduledMaintenanceNumber: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
+      throw new BadDataException("ScheduledMaintenance not found.");
+    }
+
+    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          projectId: scheduledMaintenance.projectId,
+          isOngoingState: true,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!scheduledMaintenanceState || !scheduledMaintenanceState.id) {
+      throw new BadDataException(
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+      );
+    }
+
+    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
+      new ScheduledMaintenanceStateTimeline();
+    scheduledMaintenanceStateTimeline.projectId =
+      scheduledMaintenance.projectId;
+    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
+      scheduledMaintenanceId;
+    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
+      scheduledMaintenanceState.id;
+    scheduledMaintenanceStateTimeline.createdByUserId = markedByUserId;
+
+    await ScheduledMaintenanceStateTimelineService.create({
+      data: scheduledMaintenanceStateTimeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // store scheduledMaintenance metric
+
+    return scheduledMaintenance;
+  }
+
+  public async getWorkspaceChannelForScheduledMaintenance(data: {
+    scheduledMaintenanceId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const scheduledMaintenance: Model | null = await this.findOneById({
+      id: data.scheduledMaintenanceId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!scheduledMaintenance) {
+      throw new BadDataException("ScheduledMaintenance not found.");
+    }
+
+    return (scheduledMaintenance.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+
+        return channel.workspaceType === data.workspaceType;
+      }
+    );
+  }
 }
 export default new Service();

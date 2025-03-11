@@ -9,6 +9,15 @@ import DatabaseService from "./DatabaseService";
 import Model, {
   ScheduledMaintenanceFeedEventType,
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import WorkspaceNotificationRuleService, {
+  MessageBlocksByWorkspaceType,
+} from "./WorkspaceNotificationRuleService";
+import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePayload";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -28,6 +37,13 @@ export class Service extends DatabaseService<Model> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    workspaceNotification?:
+      | {
+          notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
+          sendWorkspaceNotification: boolean;
+          appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+        }
+      | undefined;
   }): Promise<void> {
     try {
       if (!data.scheduledMaintenanceId) {
@@ -40,7 +56,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!data.scheduledMaintenanceFeedEventType) {
         throw new BadDataException(
-          "Scheduled Maintenance log event is required",
+          "Scheduled Maintenance log event is required"
         );
       }
 
@@ -81,9 +97,96 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      try {
+        // send notification to slack and teams
+        if (data.workspaceNotification?.sendWorkspaceNotification) {
+          let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> =
+            [];
+
+          // use markdown to create blocks
+          messageBlocksByWorkspaceTypes =
+            await WorkspaceUtil.getMessageBlocksByMarkdown({
+              userId: data.workspaceNotification.notifyUserId,
+              markdown: data.feedInfoInMarkdown,
+              projectId: data.projectId,
+            });
+
+          if (data.workspaceNotification.appendMessageBlocks) {
+            for (const messageBlocksByWorkspaceType of data
+              .workspaceNotification.appendMessageBlocks) {
+              const workspaceType: WorkspaceType =
+                messageBlocksByWorkspaceType.workspaceType;
+
+              messageBlocksByWorkspaceTypes
+                .find(
+                  (
+                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType
+                  ) => {
+                    return (
+                      messageBlocksByWorkspaceType.workspaceType ===
+                      workspaceType
+                    );
+                  }
+                )
+                ?.messageBlocks.push(
+                  ...messageBlocksByWorkspaceType.messageBlocks
+                );
+            }
+          }
+
+          const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> =
+            [];
+
+          for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
+            const existingChannels: Array<string> =
+              await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
+                {
+                  projectId: data.projectId,
+                  notificationRuleEventType:
+                    NotificationRuleEventType.ScheduledMaintenance,
+                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                }
+              );
+
+            const scheduledMaintenanceChannels: Array<WorkspaceChannel> =
+              await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
+                {
+                  scheduledMaintenanceId: data.scheduledMaintenanceId,
+                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                }
+              );
+
+            const workspaceMessagePayload: WorkspaceMessagePayload = {
+              _type: "WorkspaceMessagePayload",
+              workspaceType: messageBlocksByWorkspaceType.workspaceType,
+              messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+              channelNames: existingChannels,
+              channelIds:
+                scheduledMaintenanceChannels.map(
+                  (channel: WorkspaceChannel) => {
+                    return channel.id;
+                  }
+                ) || [],
+            };
+
+            workspaceNotificationPaylaods.push(workspaceMessagePayload);
+          }
+
+          await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+            projectId: data.projectId,
+            messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+          });
+        }
+      } catch (e) {
+        logger.error("Error in sending notification to slack and teams");
+        logger.error(e);
+
+        // we dont throw this error as it is not a critical error
+      }
     } catch (error) {
       logger.error(
-        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem",
+        "ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem"
       );
       logger.error(error);
       // we dont want to throw the error here, as this is not critical but we still log it.
