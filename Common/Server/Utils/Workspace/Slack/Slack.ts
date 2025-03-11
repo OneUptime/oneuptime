@@ -811,7 +811,7 @@ export default class SlackUtil extends WorkspaceBase {
     const dateTimePickerBlock: JSONObject = {
       type: "input",
       element: {
-        type: "datepicker",
+        type: "datetimepicker",
         action_id: data.payloadDateTimePickerBlock.blockId,
         initial_date: data.payloadDateTimePickerBlock.initialValue,
       },
