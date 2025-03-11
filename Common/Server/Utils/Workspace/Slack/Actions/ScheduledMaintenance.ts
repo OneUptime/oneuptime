@@ -103,7 +103,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid ScheduledMaintenance Title"),
+          new BadDataException("Invalid Scheduled Maintenance Title"),
         );
       }
 
@@ -111,7 +111,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid ScheduledMaintenance Description"),
+          new BadDataException("Invalid Scheduled Maintenance Description"),
         );
       }
 
@@ -212,9 +212,9 @@ export default class SlackScheduledMaintenanceActions {
 
     const scheduledMaintenanceTitle: WorkspaceTextBoxBlock = {
       _type: "WorkspaceTextBoxBlock",
-      label: "ScheduledMaintenance Title",
+      label: "Scheduled Maintenance Title",
       blockId: "scheduledMaintenanceTitle",
-      placeholder: "ScheduledMaintenance Title",
+      placeholder: "Scheduled Maintenance Title",
       initialValue: data.action.actionValue || "",
     };
 
@@ -222,9 +222,9 @@ export default class SlackScheduledMaintenanceActions {
 
     const scheduledMaintenanceDescription: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",
-      label: "ScheduledMaintenance Description",
+      label: "Scheduled Maintenance Description",
       blockId: "scheduledMaintenanceDescription",
-      placeholder: "ScheduledMaintenance Description",
+      placeholder: "Scheduled Maintenance Description",
     };
 
     blocks.push(scheduledMaintenanceDescription);
@@ -345,7 +345,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "New ScheduledMaintenance",
+      title: "New Scheduled Maintenance",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewScheduledMaintenance,
@@ -375,7 +375,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid ScheduledMaintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID"),
       );
     }
 
@@ -445,7 +445,7 @@ export default class SlackScheduledMaintenanceActions {
         userId,
       );
 
-      // ScheduledMaintenance Feed will send a message to the channel that the scheduledMaintenance has been Ongoing.
+      // Scheduled Maintenance Feed will send a message to the channel that the scheduledMaintenance has been Ongoing.
       return;
     }
 
@@ -472,7 +472,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid ScheduledMaintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID"),
       );
     }
 
@@ -565,7 +565,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid ScheduledMaintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID"),
       );
     }
 
@@ -586,7 +586,7 @@ export default class SlackScheduledMaintenanceActions {
         },
       });
 
-    logger.debug("ScheduledMaintenance States: ");
+    logger.debug("Scheduled Maintenance States: ");
     logger.debug(scheduledMaintenanceStates);
 
     const dropdownOptions: Array<DropdownOption> = scheduledMaintenanceStates
@@ -605,15 +605,15 @@ export default class SlackScheduledMaintenanceActions {
 
     const statePickerDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "ScheduledMaintenance State",
+      label: "Scheduled Maintenance State",
       blockId: "scheduledMaintenanceState",
-      placeholder: "Select ScheduledMaintenance State",
+      placeholder: "Select Scheduled Maintenance State",
       options: dropdownOptions,
     };
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Change ScheduledMaintenance State",
+      title: "Change Scheduled Maintenance State",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitChangeScheduledMaintenanceState,
@@ -641,7 +641,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid ScheduledMaintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID"),
       );
     }
 
@@ -695,7 +695,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid ScheduledMaintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID"),
       );
     }
 
@@ -782,7 +782,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid ScheduledMaintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID"),
       );
     }
 
