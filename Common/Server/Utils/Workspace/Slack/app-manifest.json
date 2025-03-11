@@ -34,14 +34,14 @@
                 "command": "/incident",
                 "url": "{{SERVER_URL}}/api/slack/interactive",
                 "description": "Create a new Incident in OneUptime",
-                "usage_hint": "/incident [incident title]",
+                "usage_hint": "[incident title]",
                 "should_escape": false
             },
             {
                 "command": "/maintenance",
                 "url": "{{SERVER_URL}}/api/slack/interactive",
                 "description": "Create a new Scheduled Maintenance in OneUptime",
-                "usage_hint": "/maintenance [maintenance title]",
+                "usage_hint": "[maintenance title]",
                 "should_escape": false
             }
         ]
