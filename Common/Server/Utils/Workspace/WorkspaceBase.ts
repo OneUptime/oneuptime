@@ -270,6 +270,13 @@ export default class WorkspaceBase {
             }),
           );
           break;
+          case "WorkspaceDateTimePickerBlock":
+            blocks.push(
+              this.getDateTimePickerBlock({
+                payloadDateTimePickerBlock: block as WorkspaceDateTimePickerBlock,
+              }),
+            );
+            break;
         default:
           logger.error("Unknown block type: " + block._type);
           break;

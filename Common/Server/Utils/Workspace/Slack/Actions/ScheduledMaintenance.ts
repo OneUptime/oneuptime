@@ -243,7 +243,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const scheduledMaintenanceTitle: WorkspaceTextBoxBlock = {
       _type: "WorkspaceTextBoxBlock",
-      label: "Scheduled Maintenance Title",
+      label: "Event Title",
       blockId: "scheduledMaintenanceTitle",
       placeholder: "Scheduled Maintenance Title",
       initialValue: data.action.actionValue || "",
@@ -253,7 +253,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const scheduledMaintenanceDescription: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",
-      label: "Scheduled Maintenance Description",
+      label: "Event Description",
       blockId: "scheduledMaintenanceDescription",
       placeholder: "Scheduled Maintenance Description",
     };
@@ -305,7 +305,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const scheduledMaintenanceMonitors: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
-      label: "Monitors",
+      label: "Monitors affected",
       blockId: "scheduledMaintenanceMonitors",
       placeholder: "Select Monitors",
       options: monitorDropdownOptions,
@@ -346,6 +346,7 @@ export default class SlackScheduledMaintenanceActions {
     const monitorStatusDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
       label: "Change Monitor Status to",
+      description: "Select the status you want to change the monitor to when the event starts.",
       blockId: "monitorStatus",
       placeholder: "Select Monitor Status",
       options: monitorStatusDropdownOptions,
@@ -397,7 +398,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "New Scheduled Maintenance",
+      title: "New Scheduled Event",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewScheduledMaintenance,
