@@ -554,6 +554,15 @@ export class Service extends DatabaseService<Model> {
     
     `;
 
+    // add starts at and ends at.
+    if (scheduledMaintenance.startsAt) {
+      feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
+    }
+
+    if (scheduledMaintenance.endsAt) {
+      feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
+    }
+
     if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
       feedInfoInMarkdown += `⏳ **ScheduledMaintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
     }
