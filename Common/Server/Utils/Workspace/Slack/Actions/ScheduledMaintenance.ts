@@ -1,0 +1,883 @@
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import ObjectID from "../../../../../Types/ObjectID";
+import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
+import { ExpressRequest, ExpressResponse } from "../../../Express";
+import SlackUtil from "../Slack";
+import SlackActionType from "./ActionTypes";
+import { SlackAction, SlackRequest } from "./Auth";
+import Response from "../../../Response";
+import {
+  WorkspaceDropdownBlock,
+  WorkspaceMessageBlock,
+  WorkspaceModalBlock,
+  WorkspacePayloadMarkdown,
+  WorkspaceTextAreaBlock,
+  WorkspaceTextBoxBlock,
+} from "../../../../../Types/Workspace/WorkspaceMessagePayload";
+import ScheduledMaintenancePublicNoteService from "../../../../Services/ScheduledMaintenancePublicNoteService";
+import ScheduledMaintenanceInternalNoteService from "../../../../Services/ScheduledMaintenanceInternalNoteService";
+import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
+import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
+import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
+import ScheduledMaintenanceState from "../../../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceStateService from "../../../../Services/ScheduledMaintenanceStateService";
+import logger from "../../../Logger";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import MonitorService from "../../../../Services/MonitorService";
+import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusService from "../../../../Services/MonitorStatusService";
+import Label from "../../../../../Models/DatabaseModels/Label";
+import LabelService from "../../../../Services/LabelService";
+import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
+
+export default class SlackScheduledMaintenanceActions {
+  public static isScheduledMaintenanceAction(data: {
+    actionType: SlackActionType;
+  }): boolean {
+    const { actionType } = data;
+
+    switch (actionType) {
+      case SlackActionType.MarkScheduledMaintenanceAsOngoing:
+      case SlackActionType.MarkScheduledMaintenanceAsComplete:
+      case SlackActionType.ViewAddScheduledMaintenanceNote:
+      case SlackActionType.SubmitScheduledMaintenanceNote:
+      case SlackActionType.ViewChangeScheduledMaintenanceState:
+      case SlackActionType.SubmitChangeScheduledMaintenanceState:
+      case SlackActionType.ViewScheduledMaintenance:
+      case SlackActionType.NewScheduledMaintenance:
+      case SlackActionType.SubmitNewScheduledMaintenance:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  public static async submitNewScheduledMaintenance(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { slackRequest, req, res } = data;
+    const { botUserId, userId, projectAuthToken } = slackRequest;
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID"),
+      );
+    }
+
+    if (!projectAuthToken) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project Auth Token"),
+      );
+    }
+
+    if (!botUserId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Bot User ID"),
+      );
+    }
+
+    if (data.action.actionType === SlackActionType.SubmitNewScheduledMaintenance) {
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+
+      // if view values is empty, then return error.
+      if (!data.slackRequest.viewValues) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      if (!data.slackRequest.viewValues["scheduledMaintenanceTitle"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid ScheduledMaintenance Title"),
+        );
+      }
+
+      if (!data.slackRequest.viewValues["scheduledMaintenanceDescription"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid ScheduledMaintenance Description"),
+        );
+      }
+
+    
+
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
+      const title: string =
+        data.slackRequest.viewValues["scheduledMaintenanceTitle"].toString();
+      const description: string =
+        data.slackRequest.viewValues["scheduledMaintenanceDescription"].toString();
+
+      const monitors: Array<string> = (data.slackRequest.viewValues[
+        "scheduledMaintenanceMonitors"
+      ] || []) as Array<string>;
+      const monitorStatus: string | undefined =
+        data.slackRequest.viewValues["monitorStatus"]?.toString();
+
+      const labels: Array<string> =
+        (data.slackRequest.viewValues["labels"] as Array<string>) || [];
+
+      const scheduledMaintenanceMonitors: Array<ObjectID> = monitors.map(
+        (monitor: string) => {
+          return new ObjectID(monitor);
+        },
+      );
+      const scheduledMaintenanceLabels: Array<ObjectID> = labels.map((label: string) => {
+        return new ObjectID(label);
+      });
+
+      const monitorStatusId: ObjectID | undefined = monitorStatus
+        ? new ObjectID(monitorStatus)
+        : undefined;
+
+      const scheduledMaintenance: ScheduledMaintenance = new ScheduledMaintenance();
+      scheduledMaintenance.title = title;
+      scheduledMaintenance.description = description;
+      scheduledMaintenance.projectId = slackRequest.projectId!;
+      scheduledMaintenance.createdByUserId = userId;
+
+      if (monitors.length > 0) {
+        scheduledMaintenance.monitors = scheduledMaintenanceMonitors.map((monitorId: ObjectID) => {
+          const monitor: Monitor = new Monitor();
+          monitor.id = monitorId;
+          return monitor;
+        });
+      }
+
+      if (monitorStatusId) {
+        scheduledMaintenance.changeMonitorStatusToId = monitorStatusId;
+      }
+
+      if (scheduledMaintenanceLabels.length > 0) {
+        scheduledMaintenance.labels = scheduledMaintenanceLabels.map((labelId: ObjectID) => {
+          const label: Label = new Label();
+          label.id = labelId;
+          return label;
+        });
+      }
+
+      await ScheduledMaintenanceService.create({
+        data: scheduledMaintenance,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+
+
+  public static async viewNewScheduledMaintenanceModal(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const blocks: Array<WorkspaceMessageBlock> = [];
+
+    // send response to clear the action.
+    Response.sendTextResponse(data.req, data.res, "");
+
+    // show new scheduledMaintenance modal.
+    // new scheduledMaintenance modal is :
+    // ScheduledMaintenance Title (this can be prefilled with actionValue)
+    // ScheduledMaintenance Description
+    // ScheduledMaintenance Severity (dropdown) (single select)
+    // Monitors (dropdown) (miltiselect)
+    // Change Monitor Status to (dropdown) (single select)
+    // Labels (dropdown) (multiselect)
+
+    const scheduledMaintenanceTitle: WorkspaceTextBoxBlock = {
+      _type: "WorkspaceTextBoxBlock",
+      label: "ScheduledMaintenance Title",
+      blockId: "scheduledMaintenanceTitle",
+      placeholder: "ScheduledMaintenance Title",
+      initialValue: data.action.actionValue || "",
+    };
+
+    blocks.push(scheduledMaintenanceTitle);
+
+    const scheduledMaintenanceDescription: WorkspaceTextAreaBlock = {
+      _type: "WorkspaceTextAreaBlock",
+      label: "ScheduledMaintenance Description",
+      blockId: "scheduledMaintenanceDescription",
+      placeholder: "ScheduledMaintenance Description",
+    };
+
+    blocks.push(scheduledMaintenanceDescription);
+
+
+
+    const monitorsForProject: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        projectId: data.slackRequest.projectId!,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const monitorDropdownOptions: Array<DropdownOption> =
+      monitorsForProject.map((monitor: Monitor) => {
+        return {
+          label: monitor.name || "",
+          value: monitor._id?.toString() || "",
+        };
+      });
+
+    const scheduledMaintenanceMonitors: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Monitors",
+      blockId: "scheduledMaintenanceMonitors",
+      placeholder: "Select Monitors",
+      options: monitorDropdownOptions,
+      multiSelect: true,
+      optional: true,
+    };
+
+    if (monitorsForProject.length > 0) {
+      blocks.push(scheduledMaintenanceMonitors);
+    }
+
+    const monitorStatusForProject: Array<MonitorStatus> =
+      await MonitorStatusService.findBy({
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const monitorStatusDropdownOptions: Array<DropdownOption> =
+      monitorStatusForProject.map((status: MonitorStatus) => {
+        return {
+          label: status.name || "",
+          value: status._id?.toString() || "",
+        };
+      });
+
+    const monitorStatusDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Change Monitor Status to",
+      blockId: "monitorStatus",
+      placeholder: "Select Monitor Status",
+      options: monitorStatusDropdownOptions,
+      optional: true,
+    };
+
+    if (
+      monitorStatusForProject.length > 0 &&
+      monitorDropdownOptions.length > 0
+    ) {
+      blocks.push(monitorStatusDropdown);
+    }
+
+    const labelsForProject: Array<Label> = await LabelService.findBy({
+      query: {
+        projectId: data.slackRequest.projectId!,
+      },
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
+
+    const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
+      (label: Label) => {
+        return {
+          label: label.name || "",
+          value: label._id?.toString() || "",
+        };
+      },
+    );
+
+    const labelsDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Labels",
+      blockId: "labels",
+      placeholder: "Select Labels",
+      options: labelsDropdownOptions,
+      multiSelect: true,
+    };
+
+    if (labelsForProject.length > 0) {
+      blocks.push(labelsDropdown);
+    }
+
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "New ScheduledMaintenance",
+      submitButtonTitle: "Submit",
+      cancelButtonTitle: "Cancel",
+      actionId: SlackActionType.SubmitNewScheduledMaintenance,
+      actionValue: "",
+      blocks: blocks,
+    };
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    });
+  }
+
+  public static async markScheduledMaintenanceAsOngoing(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { slackRequest, req, res } = data;
+    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid ScheduledMaintenance ID"),
+      );
+    }
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID"),
+      );
+    }
+
+    if (!projectAuthToken) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project Auth Token"),
+      );
+    }
+
+    if (!botUserId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Bot User ID"),
+      );
+    }
+
+    if (data.action.actionType === SlackActionType.MarkScheduledMaintenanceAsOngoing) {
+      const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
+      const isAlreadyOngoing: boolean =
+        await ScheduledMaintenanceService.isScheduledMaintenanceOngoing({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        });
+
+      if (isAlreadyOngoing) {
+        const scheduledMaintenanceNumber: number | null =
+          await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+          });
+
+        // send a message to the channel visible to user, that the scheduledMaintenance has already been acknowledged.
+        const markdwonPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackUsername}, unfortunately you cannot change the state to ongoing because the **[ScheduledMaintenance ${scheduledMaintenanceNumber?.toString()}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})** is already in ongoing state.`,
+        };
+
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdwonPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!,
+        });
+
+        return;
+      }
+
+      await ScheduledMaintenanceService.markScheduledMaintenanceAsOngoing(scheduledMaintenanceId, userId);
+
+      // ScheduledMaintenance Feed will send a message to the channel that the scheduledMaintenance has been Ongoing.
+      return;
+    }
+
+    // invlaid action type.
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException("Invalid Action Type"),
+    );
+  }
+
+  public static async resolveScheduledMaintenance(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { slackRequest, req, res } = data;
+    const { botUserId, userId, projectAuthToken, slackUsername } = slackRequest;
+
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid ScheduledMaintenance ID"),
+      );
+    }
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID"),
+      );
+    }
+
+    if (!projectAuthToken) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Project Auth Token"),
+      );
+    }
+
+    if (!botUserId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Bot User ID"),
+      );
+    }
+
+    if (data.action.actionType === SlackActionType.MarkScheduledMaintenanceAsComplete) {
+      const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+
+      // We send this early let slack know we're ok. We'll do the rest in the background.
+      Response.sendJsonObjectResponse(req, res, {
+        response_action: "clear",
+      });
+
+      const isAlreadyResolved: boolean =
+        await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
+          scheduledMaintenanceId: scheduledMaintenanceId,
+        });
+
+      if (isAlreadyResolved) {
+        const scheduledMaintenanceNumber: number | null =
+          await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+            scheduledMaintenanceId: scheduledMaintenanceId,
+          });
+        // send a message to the channel visible to user, that the scheduledMaintenance has already been Resolved.
+        const markdwonPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackUsername}, unfortunately you cannot resolve the **[ScheduledMaintenance ${scheduledMaintenanceNumber?.toString()}](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(slackRequest.projectId!, scheduledMaintenanceId)})**. It has already been resolved.`,
+        };
+
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdwonPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!,
+        });
+
+        return;
+      }
+
+      await ScheduledMaintenanceService.markScheduledMaintenanceAsComplete(scheduledMaintenanceId, userId);
+
+      return;
+    }
+
+    // invlaid action type.
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException("Invalid Action Type"),
+    );
+  }
+
+
+  public static async viewChangeScheduledMaintenanceState(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid ScheduledMaintenance ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+      await ScheduledMaintenanceStateService.getAllScheduledMaintenanceStates({
+        projectId: data.slackRequest.projectId!,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    logger.debug("ScheduledMaintenance States: ");
+    logger.debug(scheduledMaintenanceStates);
+
+    const dropdownOptions: Array<DropdownOption> = scheduledMaintenanceStates
+      .map((state: ScheduledMaintenanceState) => {
+        return {
+          label: state.name || "",
+          value: state._id?.toString() || "",
+        };
+      })
+      .filter((option: DropdownOption) => {
+        return option.label !== "" || option.value !== "";
+      });
+
+    logger.debug("Dropdown Options: ");
+    logger.debug(dropdownOptions);
+
+    const statePickerDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "ScheduledMaintenance State",
+      blockId: "scheduledMaintenanceState",
+      placeholder: "Select ScheduledMaintenance State",
+      options: dropdownOptions,
+    };
+
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "Change ScheduledMaintenance State",
+      submitButtonTitle: "Submit",
+      cancelButtonTitle: "Cancel",
+      actionId: SlackActionType.SubmitChangeScheduledMaintenanceState,
+      actionValue: actionValue,
+      blocks: [statePickerDropdown],
+    };
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    });
+  }
+
+  public static async submitChangeScheduledMaintenanceState(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid ScheduledMaintenance ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    if (
+      !data.slackRequest.viewValues ||
+      !data.slackRequest.viewValues["scheduledMaintenanceState"]
+    ) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid View Values"),
+      );
+    }
+
+    const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+    const stateString: string =
+      data.slackRequest.viewValues["scheduledMaintenanceState"].toString();
+
+    const stateId: ObjectID = new ObjectID(stateString);
+
+    await ScheduledMaintenanceService.updateOneById({
+      id: scheduledMaintenanceId,
+      data: {
+        currentScheduledMaintenanceStateId: stateId,
+      },
+      props: {
+        userId: data.slackRequest.userId!,
+      },
+    });
+  }
+
+  public static async submitScheduledMaintenanceNote(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid ScheduledMaintenance ID"),
+      );
+    }
+
+    // const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    // if view values is empty, then return error.
+
+    if (!data.slackRequest.viewValues) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid View Values"),
+      );
+    }
+
+    if (!data.slackRequest.viewValues["noteType"]) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note Type"),
+      );
+    }
+
+    if (!data.slackRequest.viewValues["note"]) {
+      // return error.
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note"),
+      );
+    }
+
+    const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+    const note: string = data.slackRequest.viewValues["note"].toString();
+    const noteType: string =
+      data.slackRequest.viewValues["noteType"].toString();
+
+    if (noteType !== "public" && noteType !== "private") {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid Note Type"),
+      );
+    }
+
+    // send empty response.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // if public note then, add a note.
+    if (noteType === "public") {
+      await ScheduledMaintenancePublicNoteService.addNote({
+        scheduledMaintenanceId: scheduledMaintenanceId!,
+        note: note || "",
+        projectId: data.slackRequest.projectId!,
+        userId: data.slackRequest.userId!,
+      });
+    }
+
+    // if private note then, add a note.
+    if (noteType === "private") {
+      await ScheduledMaintenanceInternalNoteService.addNote({
+        scheduledMaintenanceId: scheduledMaintenanceId!,
+        note: note || "",
+        projectId: data.slackRequest.projectId!,
+        userId: data.slackRequest.userId!,
+      });
+    }
+  }
+
+  public static async viewAddScheduledMaintenanceNote(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    const { req, res } = data;
+    const { actionValue } = data.action;
+
+    if (!actionValue) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid ScheduledMaintenance ID"),
+      );
+    }
+
+    // We send this early let slack know we're ok. We'll do the rest in the background.
+    Response.sendJsonObjectResponse(req, res, {
+      response_action: "clear",
+    });
+
+    // const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
+
+    // send a modal with a dropdown that says "Public Note" or "Private Note" and a text area to add the note.
+
+    const notePickerDropdown: WorkspaceDropdownBlock = {
+      _type: "WorkspaceDropdownBlock",
+      label: "Note Type",
+      blockId: "noteType",
+      placeholder: "Select Note Type",
+      options: [
+        {
+          label: "Public Note (Will be posted on Status Page)",
+          value: "public",
+        },
+        {
+          label: "Private Note (Only visible to team members)",
+          value: "private",
+        },
+      ],
+    };
+
+    const noteTextArea: WorkspaceTextAreaBlock = {
+      _type: "WorkspaceTextAreaBlock",
+      label: "Note",
+      blockId: "note",
+      placeholder: "Note",
+      description: "Please type in plain text or markdown.",
+    };
+
+    const modalBlock: WorkspaceModalBlock = {
+      _type: "WorkspaceModalBlock",
+      title: "Add Note",
+      submitButtonTitle: "Submit",
+      cancelButtonTitle: "Cancel",
+      actionId: SlackActionType.SubmitScheduledMaintenanceNote,
+      actionValue: actionValue,
+      blocks: [notePickerDropdown, noteTextArea],
+    };
+
+    await SlackUtil.showModalToUser({
+      authToken: data.slackRequest.projectAuthToken!,
+      modalBlock: modalBlock,
+      triggerId: data.slackRequest.triggerId!,
+    });
+  }
+
+  public static async handleScheduledMaintenanceAction(data: {
+    slackRequest: SlackRequest;
+    action: SlackAction;
+    req: ExpressRequest;
+    res: ExpressResponse;
+  }): Promise<void> {
+    // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
+    const actionType: SlackActionType | undefined = data.action.actionType;
+
+    if (actionType === SlackActionType.MarkScheduledMaintenanceAsOngoing) {
+      return await this.markScheduledMaintenanceAsOngoing(data);
+    }
+
+    if (actionType === SlackActionType.MarkScheduledMaintenanceAsComplete) {
+      return await this.resolveScheduledMaintenance(data);
+    }
+
+    if (actionType === SlackActionType.ViewAddScheduledMaintenanceNote) {
+      return await this.viewAddScheduledMaintenanceNote(data);
+    }
+
+    if (actionType === SlackActionType.SubmitScheduledMaintenanceNote) {
+      return await this.submitScheduledMaintenanceNote(data);
+    }
+
+    if (actionType === SlackActionType.ViewChangeScheduledMaintenanceState) {
+      return await this.viewChangeScheduledMaintenanceState(data);
+    }
+
+    if (actionType === SlackActionType.SubmitChangeScheduledMaintenanceState) {
+      return await this.submitChangeScheduledMaintenanceState(data);
+    }
+
+    if (actionType === SlackActionType.NewScheduledMaintenance) {
+      return await this.viewNewScheduledMaintenanceModal(data);
+    }
+
+    if (actionType === SlackActionType.SubmitNewScheduledMaintenance) {
+      return await this.submitNewScheduledMaintenance(data);
+    }
+
+    if (actionType === SlackActionType.ViewScheduledMaintenance) {
+      // do nothing. This is just a view scheduledMaintenance action.
+      // clear response.
+      return Response.sendJsonObjectResponse(data.req, data.res, {
+        response_action: "clear",
+      });
+    }
+
+    // invalid action type.
+    return Response.sendErrorResponse(
+      data.req,
+      data.res,
+      new BadDataException("Invalid Action Type"),
+    );
+  }
+}

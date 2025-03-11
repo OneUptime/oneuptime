@@ -23,7 +23,18 @@ enum SlackActionType {
   SubmitExecuteAlertOnCallPolicy = "SubmitExecuteAlertOnCallPolicy",
   ViewAlert = "ViewAlert",
 
-  // Scheduled Maintenance Actions.
+  // Scheduled Maintenance Actions just like Incident Actions. 
+  MarkScheduledMaintenanceAsComplete = "MarkScheduledMaintenanceAsComplete",
+  MarkScheduledMaintenanceAsOngoing = "MarkScheduledMaintenanceAsOngoing",
+  ViewAddScheduledMaintenanceNote = "ViewAddScheduledMaintenanceNote",
+  SubmitScheduledMaintenanceNote = "SubmitScheduledMaintenanceNote",
+  ViewChangeScheduledMaintenanceState = "ViewChangeScheduledMaintenanceState",
+  SubmitChangeScheduledMaintenanceState = "SubmitChangeScheduledMaintenanceState",
+  ViewScheduledMaintenance = "ViewScheduledMaintenance",
+  NewScheduledMaintenance = "/maintenance", // new scheduled maintenance slash command
+  SubmitNewScheduledMaintenance = "SubmitNewScheduledMaintenance",
+
+  
 }
 
 export default SlackActionType;

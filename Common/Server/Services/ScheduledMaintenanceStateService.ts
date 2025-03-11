@@ -9,6 +9,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -19,11 +21,11 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.order) {
-      throw new BadDataException("Incident State order is required");
+      throw new BadDataException("ScheduledMaintenance State order is required");
     }
 
     if (!createBy.data.projectId) {
-      throw new BadDataException("Incident State projectId is required");
+      throw new BadDataException("ScheduledMaintenance State projectId is required");
     }
 
     await this.rearrangeOrder(
@@ -154,5 +156,83 @@ export class Service extends DatabaseService<Model> {
       });
     }
   }
+
+
+    public async getCompletedScheduledMaintenanceState(data: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<ScheduledMaintenanceState> {
+      const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+        await this.getAllScheduledMaintenanceStates({
+          projectId: data.projectId,
+          props: data.props,
+        });
+  
+      const resolvedScheduledMaintenanceState: ScheduledMaintenanceState | undefined =
+        scheduledMaintenanceStates.find((scheduledMaintenanceState: ScheduledMaintenanceState) => {
+          return scheduledMaintenanceState?.isResolvedState;
+        });
+  
+      if (!resolvedScheduledMaintenanceState) {
+        throw new BadDataException(
+          "Completed ScheduledMaintenance State not found for this project",
+        );
+      }
+  
+      return resolvedScheduledMaintenanceState;
+    }
+
+    public async getAllScheduledMaintenanceStates(data: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<Array<ScheduledMaintenanceState>> {
+      const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> = await this.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        select: {
+          _id: true,
+          isResolvedState: true,
+          isOngoingState: true,
+          isScheduledState: true,
+          order: true,
+          name: true,
+        },
+        props: data.props,
+      });
+  
+      return scheduledMaintenanceStates;
+    }
+  
+  
+    public async getOngoingScheduledMaintenanceState(data: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<ScheduledMaintenanceState> {
+      const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+        await this.getAllScheduledMaintenanceStates({
+          projectId: data.projectId,
+          props: data.props,
+        });
+  
+      const ackScheduledMaintenanceState: ScheduledMaintenanceState | undefined = scheduledMaintenanceStates.find(
+        (scheduledMaintenanceState: ScheduledMaintenanceState) => {
+          return scheduledMaintenanceState?.isOngoingState;
+        },
+      );
+  
+      if (!ackScheduledMaintenanceState) {
+        throw new BadDataException(
+          "Ongoing ScheduledMaintenance State not found for this project",
+        );
+      }
+  
+      return ackScheduledMaintenanceState;
+    }
 }
 export default new Service();
