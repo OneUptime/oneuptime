@@ -9,6 +9,12 @@ import Timezone from "./Timezone";
 export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
+
+  // get date time from unix timestamp
+  public static fromUnixTimestamp(timestamp: number): Date {
+    return new Date(timestamp * 1000);
+  }
+
   public static getInBetweenDatesAsFormattedString(
     inBetween: InBetween<Date>,
   ): string {

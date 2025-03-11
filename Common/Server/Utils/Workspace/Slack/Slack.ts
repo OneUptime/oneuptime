@@ -28,6 +28,7 @@ import WorkspaceBase, {
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
+import OneUptimeDate from "../../../../Types/Date";
 
 export default class SlackUtil extends WorkspaceBase {
   public static override async getUsernameFromUserId(data: {
@@ -454,12 +455,12 @@ export default class SlackUtil extends WorkspaceBase {
 
   public static getValuesFromView(data: {
     view: JSONObject;
-  }): Dictionary<string | number | Array<string | number>> {
+  }): Dictionary<string | number | Array<string | number> | Date> {
     logger.debug("Getting values from view with data:");
     logger.debug(JSON.stringify(data, null, 2));
 
     const slackView: JSONObject = data.view;
-    const values: Dictionary<string | number | Array<string | number>> = {};
+    const values: Dictionary<string | number | Array<string | number> | Date> = {};
 
     if (!slackView["state"] || !(slackView["state"] as JSONObject)["values"]) {
       return {};
@@ -489,6 +490,11 @@ export default class SlackUtil extends WorkspaceBase {
           ).map((option: JSONObject) => {
             return option["value"] as string | number;
           });
+        }
+
+        // if date picker
+        if (value["selected_date_time"]) {
+          values[blockId] = OneUptimeDate.fromUnixTimestamp(value["selected_date_time"] as number);
         }
       }
     }
