@@ -8,6 +8,11 @@ import UserService from "./UserService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -118,6 +123,34 @@ export class Service extends DatabaseService<Model> {
         );
       }
     }
+
+
+        // get notification rule where inviteOwners is true.
+        const notificationRules: Array<WorkspaceNotificationRule> =
+        await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+          {
+            projectId: projectId!,
+            notificationFor: {
+              scheduledMaintenanceId: scheduledMaintenanceId,
+            },
+            notificationRuleEventType: NotificationRuleEventType.ScheduledMaintenance,
+          },
+        );
+  
+      WorkspaceNotificationRuleService.inviteUsersBasedOnRulesAndWorkspaceChannels(
+        {
+          notificationRules: notificationRules,
+          projectId: projectId!,
+          workspaceChannels: await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
+            {
+              scheduledMaintenanceId: scheduledMaintenanceId!,
+            },
+          ),
+          userIds: [userId!],
+        },
+      ).catch((error: Error) => {
+        logger.error(error);
+      });
 
     return createdItem;
   }

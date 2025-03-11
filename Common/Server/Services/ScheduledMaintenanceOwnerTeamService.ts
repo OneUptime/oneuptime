@@ -8,6 +8,11 @@ import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/S
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import logger from "../Utils/Logger";
+import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -122,6 +127,36 @@ export class Service extends DatabaseService<Model> {
         );
       }
     }
+
+    // get notification rule where inviteOwners is true.
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await WorkspaceNotificationRuleService.getNotificationRulesWhereInviteOwnersIsTrue(
+        {
+          projectId: projectId!,
+          notificationFor: {
+            scheduledMaintenanceId: scheduledMaintenanceId,
+          },
+          notificationRuleEventType: NotificationRuleEventType.ScheduledMaintenance,
+        },
+      );
+
+    logger.debug(`Notification Rules for ScheduledMaintenance Owner Teams`);
+    logger.debug(notificationRules);
+
+    WorkspaceNotificationRuleService.inviteTeamsBasedOnRulesAndWorkspaceChannels(
+      {
+        notificationRules: notificationRules,
+        projectId: projectId!,
+        workspaceChannels: await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
+          {
+            scheduledMaintenanceId: scheduledMaintenanceId!,
+          },
+        ),
+        teamIds: [teamId!],
+      },
+    ).catch((error: Error) => {
+      logger.error(error);
+    });
 
     return createdItem;
   }
