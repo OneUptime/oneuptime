@@ -346,7 +346,8 @@ export default class SlackScheduledMaintenanceActions {
     const monitorStatusDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",
       label: "Change Monitor Status to",
-      description: "Select the status you want to change the monitor to when the event starts.",
+      description:
+        "Select the status you want to change the monitor to when the event starts.",
       blockId: "monitorStatus",
       placeholder: "Select Monitor Status",
       options: monitorStatusDropdownOptions,

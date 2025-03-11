@@ -460,7 +460,8 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(JSON.stringify(data, null, 2));
 
     const slackView: JSONObject = data.view;
-    const values: Dictionary<string | number | Array<string | number> | Date> = {};
+    const values: Dictionary<string | number | Array<string | number> | Date> =
+      {};
 
     if (!slackView["state"] || !(slackView["state"] as JSONObject)["values"]) {
       return {};
@@ -494,7 +495,9 @@ export default class SlackUtil extends WorkspaceBase {
 
         // if date picker
         if (value["selected_date_time"]) {
-          values[blockId] = OneUptimeDate.fromUnixTimestamp(value["selected_date_time"] as number);
+          values[blockId] = OneUptimeDate.fromUnixTimestamp(
+            value["selected_date_time"] as number,
+          );
         }
       }
     }

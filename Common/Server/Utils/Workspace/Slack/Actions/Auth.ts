@@ -33,7 +33,9 @@ export interface SlackRequest {
   actions?: SlackAction[] | undefined;
   triggerId?: string | undefined;
   view?: JSONObject | undefined; // view object from slack.
-  viewValues?: Dictionary<string | number | Array<string | number> | Date> | undefined;
+  viewValues?:
+    | Dictionary<string | number | Array<string | number> | Date>
+    | undefined;
 }
 
 export default class SlackAuthAction {
@@ -194,7 +196,9 @@ export default class SlackAuthAction {
     const view: JSONObject | undefined =
       (payload["view"] as JSONObject) || undefined;
 
-    let viewValues: Dictionary<string | number | Array<string | number> | Date> = {};
+    let viewValues: Dictionary<
+      string | number | Array<string | number> | Date
+    > = {};
 
     if (view) {
       viewValues = SlackUtil.getValuesFromView({
