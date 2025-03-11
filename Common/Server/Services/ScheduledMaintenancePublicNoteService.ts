@@ -17,7 +17,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>
+    createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
@@ -31,7 +31,7 @@ export class Service extends DatabaseService<Model> {
 
   public override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
@@ -66,7 +66,7 @@ export class Service extends DatabaseService<Model> {
 
   public override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>
+    _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.note) {
       const updatedItems: Array<Model> = await this.findBy({
@@ -111,7 +111,7 @@ ${updatedItem.note}
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
             },
-          }
+          },
         );
       }
     }

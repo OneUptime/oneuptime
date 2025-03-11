@@ -97,7 +97,8 @@ RunCron(
         logger.error(err);
       }
 
-      const scheduledMaintenanceNumber: string = event.scheduledMaintenanceNumber?.toString() || " - ";
+      const scheduledMaintenanceNumber: string =
+        event.scheduledMaintenanceNumber?.toString() || " - ";
       const projectId: ObjectID = event.projectId!;
       const scheduledMaintenanceId: ObjectID = event.id!;
 

@@ -198,11 +198,11 @@ RunCron(
         });
 
         moreAlertFeedInformationInMarkdown += `**Notified:** ${await UserService.getUserMarkdownString(
-                  {
-                    userId: user.id!,
-                    projectId: alertStateTimeline.projectId!,
-                  }
-                )})\n`;
+          {
+            userId: user.id!,
+            projectId: alertStateTimeline.projectId!,
+          },
+        )})\n`;
       }
 
       const alertNumber: number = alert.alertNumber!;

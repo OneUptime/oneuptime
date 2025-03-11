@@ -78,7 +78,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<ScheduledMaintenanceState>> {
     const deleteBy: DeleteBy<ScheduledMaintenanceState> = onDelete.deleteBy;
-    const scheduledMaintenanceState: ScheduledMaintenanceState | null = onDelete.carryForward;
+    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
+      onDelete.carryForward;
 
     if (!deleteBy.props.isRoot && scheduledMaintenanceState) {
       if (
@@ -118,24 +119,25 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     increaseOrder: boolean = true,
   ): Promise<void> {
     // get scheduledMaintenance with this order.
-    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        projectId: projectId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
+    const scheduledMaintenanceStates: Array<ScheduledMaintenanceState> =
+      await this.findBy({
+        query: {
+          order: QueryHelper.greaterThanEqualTo(currentOrder),
+          projectId: projectId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          order: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+      });
 
     let newOrder: number = currentOrder;
 

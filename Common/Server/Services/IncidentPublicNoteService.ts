@@ -111,23 +111,23 @@ ${createdItem.note}
 
       for (const updatedItem of updatedItems) {
         const incident: Incident = updatedItem.incident!;
-        
-                await IncidentFeedService.createIncidentFeedItem({
-                  incidentId: updatedItem.incidentId!,
-                  projectId: updatedItem.projectId!,
-                  incidentFeedEventType: IncidentFeedEventType.PrivateNote,
-                  displayColor: Blue500,
-                  userId: userId || undefined,
-        
-                  feedInfoInMarkdown: `📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
+
+        await IncidentFeedService.createIncidentFeedItem({
+          incidentId: updatedItem.incidentId!,
+          projectId: updatedItem.projectId!,
+          incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+          displayColor: Blue500,
+          userId: userId || undefined,
+
+          feedInfoInMarkdown: `📄 updated **Public Note** for this [Incident ${incident.incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})
         
 ${updatedItem.note}
                   `,
-                  workspaceNotification: {
-                    sendWorkspaceNotification: true,
-                    notifyUserId: userId || undefined,
-                  },
-                });
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: userId || undefined,
+          },
+        });
       }
     }
     return onUpdate;

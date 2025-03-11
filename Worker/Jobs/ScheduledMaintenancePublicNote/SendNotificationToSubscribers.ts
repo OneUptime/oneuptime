@@ -83,7 +83,7 @@ RunCron(
               _id: true,
             },
             isVisibleOnStatusPage: true,
-            scheduledMaintenanceNumber:   true,
+            scheduledMaintenanceNumber: true,
           },
         });
 
@@ -293,7 +293,8 @@ RunCron(
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: event.id!,
         projectId: event.projectId!,
-        scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: `📧 **Notification sent to subscribers** because a public note is added to this [Scheduled Maintenance ${event.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(event.projectId!, event.id!)).toString()}).`,
         moreInformationInMarkdown: `**Public Note:**

@@ -83,7 +83,7 @@ RunCron(
       let doesResourceHasOwners: boolean = true;
 
       let owners: Array<User> = await ScheduledMaintenanceService.findOwners(
-        scheduledMaintenance.id!
+        scheduledMaintenance.id!,
       );
 
       if (owners.length === 0) {
@@ -91,7 +91,7 @@ RunCron(
 
         // find project owners.
         owners = await ProjectService.getOwners(
-          scheduledMaintenanceStateTimeline.projectId!
+          scheduledMaintenanceStateTimeline.projectId!,
         );
       }
 
@@ -106,7 +106,7 @@ RunCron(
           currentState: scheduledMaintenanceState!.name!,
           scheduledMaintenanceDescription: await Markdown.convertToHTML(
             scheduledMaintenance.description! || "",
-            MarkdownContentType.Email
+            MarkdownContentType.Email,
           ),
           stateChangedAt:
             OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -116,7 +116,7 @@ RunCron(
           scheduledMaintenanceViewLink: (
             await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
               scheduledMaintenanceStateTimeline.projectId!,
-              scheduledMaintenance.id!
+              scheduledMaintenance.id!,
             )
           ).toString(),
         };
@@ -129,7 +129,7 @@ RunCron(
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerStateChanged,
           vars: vars,
           subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-            scheduledMaintenanceState!.name!
+            scheduledMaintenanceState!.name!,
           )}] - ${scheduledMaintenance.title}`,
         };
 
@@ -165,7 +165,7 @@ RunCron(
           {
             userId: user.id!,
             projectId: scheduledMaintenanceStateTimeline.projectId!,
-          }
+          },
         )})\n`;
       }
 
@@ -188,5 +188,5 @@ RunCron(
         },
       });
     }
-  }
+  },
 );

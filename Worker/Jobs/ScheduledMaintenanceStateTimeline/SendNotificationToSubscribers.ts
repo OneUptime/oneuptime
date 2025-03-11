@@ -133,7 +133,7 @@ RunCron(
                 })
                 .map((m: Monitor) => {
                   return new ObjectID(m._id!);
-                })
+                }),
             ),
           },
           props: {
@@ -162,7 +162,7 @@ RunCron(
         }
 
         statusPageToResources[resource.statusPageId?.toString()]?.push(
-          resource
+          resource,
         );
       }
 
@@ -170,7 +170,7 @@ RunCron(
         await StatusPageSubscriberService.getStatusPagesToSendNotification(
           event.statusPages?.map((i: StatusPage) => {
             return i.id!;
-          }) || []
+          }) || [],
         );
 
       for (const statuspage of statusPages) {
@@ -188,11 +188,11 @@ RunCron(
             {
               isRoot: true,
               ignoreHooks: true,
-            }
+            },
           );
 
         const statusPageURL: string = await StatusPageService.getStatusPageURL(
-          statuspage.id
+          statuspage.id,
         );
 
         const statusPageName: string =
@@ -220,7 +220,7 @@ RunCron(
           const unsubscribeUrl: string =
             StatusPageSubscriberService.getUnsubscribeLink(
               URL.fromString(statusPageURL),
-              subscriber.id!
+              subscriber.id!,
             ).toString();
 
           if (subscriber.subscriberPhone) {
@@ -244,7 +244,7 @@ RunCron(
             SmsService.sendSms(sms, {
               projectId: statuspage.projectId,
               customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                statuspage.callSmsConfig
+                statuspage.callSmsConfig,
               ),
             }).catch((err: Error) => {
               logger.error(err);
@@ -283,7 +283,7 @@ RunCron(
                       ?.name || "",
 
                   scheduledAt: OneUptimeDate.getDateAsFormattedString(
-                    event.startsAt!
+                    event.startsAt!,
                   ),
                   eventTitle: event.title || "",
                   eventDescription: event.description || "",
@@ -292,15 +292,15 @@ RunCron(
                     statuspage.subscriberEmailNotificationFooterText || "",
                 },
                 subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-                  scheduledEventStateTimeline.scheduledMaintenanceState?.name
+                  scheduledEventStateTimeline.scheduledMaintenanceState?.name,
                 )}] ${statusPageName}`,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
-                  statuspage.smtpConfig
+                  statuspage.smtpConfig,
                 ),
                 projectId: statuspage.projectId,
-              }
+              },
             ).catch((err: Error) => {
               logger.error(err);
             });
@@ -325,5 +325,5 @@ RunCron(
         },
       });
     }
-  }
+  },
 );

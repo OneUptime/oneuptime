@@ -138,23 +138,26 @@ RunCron(
       }
 
       const projectId: ObjectID = scheduledMaintenance.projectId!;
-            const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
-            const scheduledMaintenanceNumber: number = scheduledMaintenance.scheduledMaintenanceNumber!;
-      
-            const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
+      const scheduledMaintenanceId: ObjectID = scheduledMaintenance.id!;
+      const scheduledMaintenanceNumber: number =
+        scheduledMaintenance.scheduledMaintenanceNumber!;
+
+      const scheduledMaintenanceFeedText: string = `🔔 **Owner Scheduled Maintenance Created Notification Sent**:
       Notification sent to owners because [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) was created.`;
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-              scheduledMaintenanceId: scheduledMaintenance.id!,
-              projectId: scheduledMaintenance.projectId!,
-              scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
-              displayColor: Yellow500,
-              feedInfoInMarkdown: scheduledMaintenanceFeedText,
-              moreInformationInMarkdown: moreScheduledMaintenanceFeedInformationInMarkdown,
-              workspaceNotification: {
-                sendWorkspaceNotification: false,
-              },
-            });
+        scheduledMaintenanceId: scheduledMaintenance.id!,
+        projectId: scheduledMaintenance.projectId!,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.OwnerNotificationSent,
+        displayColor: Yellow500,
+        feedInfoInMarkdown: scheduledMaintenanceFeedText,
+        moreInformationInMarkdown:
+          moreScheduledMaintenanceFeedInformationInMarkdown,
+        workspaceNotification: {
+          sendWorkspaceNotification: false,
+        },
+      });
     }
   },
 );

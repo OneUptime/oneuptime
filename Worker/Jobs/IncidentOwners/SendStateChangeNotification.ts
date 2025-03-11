@@ -129,7 +129,7 @@ RunCron(
 
         // find project owners.
         owners = await ProjectService.getOwners(
-          incidentStateTimeline.projectId!
+          incidentStateTimeline.projectId!,
         );
       }
 
@@ -151,7 +151,7 @@ RunCron(
           currentState: incidentState!.name!,
           incidentDescription: await Markdown.convertToHTML(
             incident.description! || "",
-            MarkdownContentType.Email
+            MarkdownContentType.Email,
           ),
           resourcesAffected: resourcesAffected || "None",
           stateChangedAt:
@@ -163,7 +163,7 @@ RunCron(
           incidentViewLink: (
             await IncidentService.getIncidentLinkInDashboard(
               incidentStateTimeline.projectId!,
-              incident.id!
+              incident.id!,
             )
           ).toString(),
         };
@@ -220,7 +220,7 @@ RunCron(
           {
             userId: user.id!,
             projectId: incidentStateTimeline.projectId!,
-          }
+          },
         )})\n`;
       }
 
@@ -239,5 +239,5 @@ RunCron(
         },
       });
     }
-  }
+  },
 );

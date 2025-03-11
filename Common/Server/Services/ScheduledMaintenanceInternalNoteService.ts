@@ -41,29 +41,31 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-          const scheduledMaintenanceId: ObjectID = createdItem.scheduledMaintenanceId!;
-      
-          const scheduledMaintenanceNumber: number | null =
-            await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-              scheduledMaintenanceId: scheduledMaintenanceId,
-            });
+    const scheduledMaintenanceId: ObjectID =
+      createdItem.scheduledMaintenanceId!;
+
+    const scheduledMaintenanceNumber: number | null =
+      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+        scheduledMaintenanceId: scheduledMaintenanceId,
+      });
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-          scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
-          projectId: createdItem.projectId!,
-          scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PrivateNote,
-          displayColor: Blue500,
-          userId: userId || undefined,
-    
-          feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
+      projectId: createdItem.projectId!,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.PrivateNote,
+      displayColor: Blue500,
+      userId: userId || undefined,
+
+      feedInfoInMarkdown: `📄 posted **private note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(createdItem.projectId!, scheduledMaintenanceId)).toString()}):
     
 ${createdItem.note}
               `,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-            notifyUserId: userId || undefined,
-          },
-        });
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: userId || undefined,
+      },
+    });
 
     return createdItem;
   }
@@ -90,7 +92,7 @@ ${createdItem.note}
           },
           scheduledMaintenance: {
             scheduledMaintenanceNumber: true,
-          }
+          },
         },
       });
 
@@ -98,26 +100,28 @@ ${createdItem.note}
         onUpdate.updateBy.props.userId;
 
       for (const updatedItem of updatedItems) {
+        const scheduledMaintenance: ScheduledMaintenance =
+          updatedItem.scheduledMaintenance!;
 
-         const scheduledMaintenance: ScheduledMaintenance = updatedItem.scheduledMaintenance!;
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
+            projectId: updatedItem.projectId!,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.PrivateNote,
+            displayColor: Blue500,
+            userId: userId || undefined,
 
-
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-                  scheduledMaintenanceId: updatedItem.scheduledMaintenanceId!,
-                  projectId: updatedItem.projectId!,
-                  scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.PrivateNote,
-                  displayColor: Blue500,
-                  userId: userId || undefined,
-        
-                  feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
+            feedInfoInMarkdown: `📄 updated **Private Note** for this [Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(scheduledMaintenance.projectId!, scheduledMaintenance.id!)).toString()})
         
 ${updatedItem.note}
                   `,
-                  workspaceNotification: {
-                    sendWorkspaceNotification: true,
-                    notifyUserId: userId || undefined,
-                  },
-                });
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: userId || undefined,
+            },
+          },
+        );
       }
     }
     return onUpdate;

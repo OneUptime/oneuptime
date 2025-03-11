@@ -158,13 +158,13 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
     const stateName: string = scheduledMaintenanceState?.name || "";
 
-        const scheduledMaintenanceNumber: number | null =
-          await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-            scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
-          });
+    const scheduledMaintenanceNumber: number | null =
+      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+        scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+      });
 
-              // if resolved state then change emoji to ✅.
-              let stateEmoji: string = "➡️";
+    // if resolved state then change emoji to ✅.
+    let stateEmoji: string = "➡️";
 
     if (scheduledMaintenanceState?.isResolvedState) {
       stateEmoji = "✅";
@@ -174,26 +174,28 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     } else if (scheduledMaintenanceState?.isScheduledState) {
       stateEmoji = "🕒";
     }
-    
-        const projectId: ObjectID = createdItem.projectId!;
-        const scheduledMaintenanceId: ObjectID = createdItem.scheduledMaintenanceId!;
-    
-        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-          scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
-          projectId: createdItem.projectId!,
-          scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
-          displayColor: scheduledMaintenanceState?.color,
-          feedInfoInMarkdown:
-            stateEmoji +
-            ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
-            stateName +
-            "**",
-          userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
-          workspaceNotification: {
-            sendWorkspaceNotification: true,
-            notifyUserId: createdItem.createdByUserId,
-          },
-        });
+
+    const projectId: ObjectID = createdItem.projectId!;
+    const scheduledMaintenanceId: ObjectID =
+      createdItem.scheduledMaintenanceId!;
+
+    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
+      scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
+      projectId: createdItem.projectId!,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+      displayColor: scheduledMaintenanceState?.color,
+      feedInfoInMarkdown:
+        stateEmoji +
+        ` Changed **[Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) State** to **` +
+        stateName +
+        "**",
+      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: createdItem.createdByUserId,
+      },
+    });
 
     // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.
     // check if this is resolved state, and if it is then resolve all the monitors.

@@ -80,7 +80,7 @@ RunCron(
     }
 
     await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
-      scheduledEvents
+      scheduledEvents,
     );
-  }
+  },
 );
