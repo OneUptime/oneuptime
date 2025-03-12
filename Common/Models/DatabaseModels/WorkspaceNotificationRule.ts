@@ -19,6 +19,8 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import Permission from "../../Types/Permission";
+import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 
 @TenantColumn("projectId")
 @AllowAccessIfSubscriptionIsUnpaid()
@@ -47,6 +49,12 @@ import Permission from "../../Types/Permission";
     Permission.ProjectMember,
     Permission.EditWorkspaceNotificationRule,
   ],
+})
+@TableBillingAccessControl({
+  create: PlanType.Growth,
+  read: PlanType.Growth,
+  update: PlanType.Growth,
+  delete: PlanType.Growth,
 })
 @CrudApiEndpoint(new Route("/workspace-notification-rule"))
 @Entity({
