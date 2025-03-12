@@ -32,6 +32,7 @@ export interface SlackRequest {
   slackUsername?: string | undefined;
   actions?: SlackAction[] | undefined;
   triggerId?: string | undefined;
+  payloadType?: string | undefined;
   view?: JSONObject | undefined; // view object from slack.
   viewValues?:
     | Dictionary<string | number | Array<string | number> | Date>
@@ -69,6 +70,7 @@ export default class SlackAuthAction {
       (!payload["actions"] || (payload["actions"] as JSONArray).length === 0) &&
       payload["type"] !== "view_submission" &&
       payload["type"] !== "shortcut" &&
+      payload["type"] !== "app_uninstalled" &&
       !payload["command"]
     ) {
       logger.debug("No actions found in payload. Returning unauthorized.");
@@ -246,6 +248,7 @@ export default class SlackAuthAction {
     const slackRequest: SlackRequest = {
       isAuthorized: true,
       slackUserId: slackUserId,
+      payloadType: payload["type"] as string,
       userId: userId,
       projectId: projectId,
       projectAuthToken: projectAuth.authToken!,

@@ -32,6 +32,7 @@ import SlackAuthAction, {
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/ScheduledMaintenance";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -284,6 +285,45 @@ export default class SlackAPI {
 
         logger.debug("Slack Interactive Auth Result: ");
         logger.debug(authResult);
+
+        // if slack uninstall app then, 
+        if(authResult.payloadType === "app_uninstall") {
+
+          logger.debug("Slack App Uninstall Request: ");
+
+          // remove the project auth and user auth.
+
+          // delete all user auth tokens for this project.
+          await WorkspaceUserAuthTokenService.deleteBy({
+            query: {
+              projectId: authResult.projectId,
+              workspaceType: WorkspaceType.Slack,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            }
+          });
+
+          await WorkspaceProjectAuthTokenService.deleteBy({
+            query: {
+              projectId: authResult.projectId,
+              workspaceType: WorkspaceType.Slack,
+            },
+            limit: 1,
+            skip: 0,
+            props: {
+              isRoot: true,
+            }
+          });
+
+          logger.debug("Slack App Uninstall Request: Deleted all auth tokens.");
+          // return empty response.
+
+          return Response.sendTextResponse(req, res, "");
+
+        }
 
         if (authResult.isAuthorized === false) {
           // return empty response if not authorized. Do nothing in this case.
