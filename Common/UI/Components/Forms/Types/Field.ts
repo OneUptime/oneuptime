@@ -86,7 +86,9 @@ export default interface Field<TEntity> {
   fieldType?: FormFieldSchemaType;
   overrideFieldKey?: string;
   defaultValue?: boolean | string | Date | number | undefined;
-  getDefaultValue?: ((item: FormValues<TEntity>) => boolean | string | Date | number) | undefined;
+  getDefaultValue?:
+    | ((item: FormValues<TEntity>) => boolean | string | Date | number)
+    | undefined;
   radioButtonOptions?: Array<RadioButton>;
   footerElement?: ReactElement | undefined;
   id?: string | undefined;

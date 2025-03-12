@@ -540,7 +540,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
           (values as any)[fieldName] = field.defaultValue;
         }
 
-        if(field.getDefaultValue && (values as any)[fieldName] === undefined) {
+        if (field.getDefaultValue && (values as any)[fieldName] === undefined) {
           (values as any)[fieldName] = field.getDefaultValue(values);
         }
 

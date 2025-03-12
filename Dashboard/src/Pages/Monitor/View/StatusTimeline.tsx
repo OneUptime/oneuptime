@@ -134,7 +134,9 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.DateTime,
             required: true,
             placeholder: "Starts At",
-            getDefaultValue: () => OneUptimeDate.getCurrentDate(),
+            getDefaultValue: () => {
+              return OneUptimeDate.getCurrentDate();
+            },
           },
         ]}
         showRefreshButton={true}
