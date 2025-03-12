@@ -123,6 +123,16 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
               valueField: "_id",
             },
           },
+          {
+            field: {
+              startsAt: true,
+            },
+            title: "Starts At",
+            fieldType: FormFieldSchemaType.DateTime,
+            required: false,
+            placeholder: "Starts At",
+            defaultValue: OneUptimeDate.getCurrentDate(),
+          }
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -146,7 +156,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              startsAt: true,
             },
             title: "Starts At",
             type: FieldType.Date,
@@ -185,7 +195,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              startsAt: true,
             },
             title: "Starts At",
             type: FieldType.DateTime,
