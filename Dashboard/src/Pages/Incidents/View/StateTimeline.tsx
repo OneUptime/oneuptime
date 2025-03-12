@@ -23,6 +23,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -53,6 +54,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           stateChangeLog: true,
           rootCause: true,
         }}
+        sortBy="startsAt"
+        sortOrder={SortOrder.Descending}
         actionButtons={[
           {
             title: "View Cause",
@@ -123,6 +126,18 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              startsAt: true,
+            },
+            title: "Starts At",
+            fieldType: FormFieldSchemaType.DateTime,
+            required: true,
+            placeholder: "Starts At",
+            getDefaultValue: () => {
+              return OneUptimeDate.getCurrentDate();
+            },
+          },
+          {
+            field: {
               shouldStatusPageSubscribersBeNotified: true,
             },
 
@@ -155,7 +170,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              startsAt: true,
             },
             title: "Starts At",
             type: FieldType.Date,
@@ -194,7 +209,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              startsAt: true,
             },
             title: "Starts At",
             type: FieldType.DateTime,
@@ -217,7 +232,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               return (
                 <p>
                   {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-                    item["createdAt"] as Date,
+                    item["startsAt"] as Date,
                     (item["endsAt"] as Date) || OneUptimeDate.getCurrentDate(),
                   )}
                 </p>

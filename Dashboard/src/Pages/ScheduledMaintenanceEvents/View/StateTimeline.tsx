@@ -12,6 +12,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -67,6 +68,18 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              startsAt: true,
+            },
+            title: "Starts At",
+            fieldType: FormFieldSchemaType.DateTime,
+            required: true,
+            placeholder: "Starts At",
+            getDefaultValue: () => {
+              return OneUptimeDate.getCurrentDate();
+            },
+          },
+          {
+            field: {
               shouldStatusPageSubscribersBeNotified: true,
             },
 
@@ -79,6 +92,8 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
+        sortBy="startsAt"
+        sortOrder={SortOrder.Descending}
         filters={[
           {
             field: {
@@ -91,7 +106,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              startsAt: true,
             },
             title: "Starts At",
             type: FieldType.DateTime,
@@ -141,7 +156,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              createdAt: true,
+              startsAt: true,
             },
             title: "Starts At",
             type: FieldType.DateTime,
@@ -166,7 +181,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
               return (
                 <p>
                   {OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-                    item["createdAt"] as Date,
+                    item["startsAt"] as Date,
                     (item["endsAt"] as Date) || OneUptimeDate.getCurrentDate(),
                   )}
                 </p>

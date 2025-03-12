@@ -82,28 +82,65 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       if (userId) {
         createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
           {
-            userId: userId,
+            userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
           },
         )}`;
       }
     }
 
-    const lastAlertStateTimeline: AlertStateTimeline | null =
-      await this.findOneBy({
-        query: {
-          alertId: createBy.data.alertId,
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
+    const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy({
+      query: {
+        alertId: createBy.data.alertId,
+        startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        alertStateId: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
+
+    logger.debug("State Before this");
+    logger.debug(stateBeforeThis);
+
+    // If this is the first state, then do not notify the owner.
+    if (!stateBeforeThis) {
+      // since this is the first status, do not notify the owner.
+      createBy.data.isOwnerNotified = true;
+    }
+
+    const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
+      query: {
+        alertId: createBy.data.alertId,
+        startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+      },
+      sort: {
+        startsAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        alertStateId: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
+
+    // compute ends at. It's the start of the next status.
+    if (stateAfterThis && stateAfterThis.startsAt) {
+      createBy.data.endsAt = stateAfterThis.startsAt;
+    }
+
+    logger.debug("State After this");
+    logger.debug(stateAfterThis);
 
     const internalNote: string | undefined = (
       createBy.miscDataProps as JSONObject | undefined
@@ -129,7 +166,8 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     return {
       createBy,
       carryForward: {
-        lastAlertStateTimelineId: lastAlertStateTimeline?.id || null,
+        statusTimelineBeforeThisStatus: stateBeforeThis || null,
+        statusTimelineAfterThisStatus: stateAfterThis || null,
         privateNote: privateNote,
       },
     };
@@ -147,17 +185,68 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       throw new BadDataException("alertStateId is null");
     }
 
-    // update the last status as ended.
+    logger.debug("Status Timeline Before this");
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus);
 
-    if (onCreate.carryForward.lastAlertStateTimelineId) {
+    logger.debug("Status Timeline After this");
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus);
+
+    logger.debug("Created Item");
+    logger.debug(createdItem);
+
+    // now there are three cases.
+    // 1. This is the first status OR there's no status after this.
+    if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
+      // This is the first status, no need to update previous status.
+      logger.debug("This is the first status.");
+    } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
+      // 2. This is the last status.
+      // Update the previous status to end at the start of this status.
       await this.updateOneById({
-        id: onCreate.carryForward.lastAlertStateTimelineId!,
+        id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
         data: {
-          endsAt: createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+          endsAt: createdItem.startsAt!,
         },
         props: {
           isRoot: true,
         },
+      });
+      logger.debug("This is the last status.");
+    } else {
+      // 3. This is in the middle.
+      // Update the previous status to end at the start of this status.
+      await this.updateOneById({
+        id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
+        data: {
+          endsAt: createdItem.startsAt!,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // Update the next status to start at the end of this status.
+      await this.updateOneById({
+        id: onCreate.carryForward.statusTimelineAfterThisStatus.id!,
+        data: {
+          startsAt: createdItem.endsAt!,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+      logger.debug("This status is in the middle.");
+    }
+
+    if (!createdItem.endsAt) {
+      await AlertService.updateOneBy({
+        query: {
+          _id: createdItem.alertId?.toString(),
+        },
+        data: {
+          currentAlertStateId: createdItem.alertStateId,
+        },
+        props: onCreate.createBy.props,
       });
     }
 
@@ -210,23 +299,13 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         stateName +
         "**",
       moreInformationInMarkdown: `**Cause:** 
-   ${createdItem.rootCause}`,
+${createdItem.rootCause}`,
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId:
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
-    });
-
-    await AlertService.updateOneBy({
-      query: {
-        _id: createdItem.alertId?.toString(),
-      },
-      data: {
-        currentAlertStateId: createdItem.alertStateId,
-      },
-      props: onCreate.createBy.props,
     });
 
     if (onCreate.carryForward.privateNote) {
@@ -266,6 +345,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
           select: {
             alertId: true,
             startsAt: true,
+            endsAt: true,
           },
           props: {
             isRoot: true,
@@ -285,78 +365,102 @@ export class Service extends DatabaseService<AlertStateTimeline> {
           },
         });
 
+        if (!alertStateTimelineToBeDeleted) {
+          throw new BadDataException("Alert state timeline not found.");
+        }
+
         if (alertStateTimeline.isOne()) {
           throw new BadDataException(
             "Cannot delete the only state timeline. Alert should have at least one state in its timeline.",
           );
         }
 
-        if (alertStateTimelineToBeDeleted?.startsAt) {
-          const beforeState: AlertStateTimeline | null = await this.findOneBy({
-            query: {
-              alertId: alertId,
-              startsAt: QueryHelper.lessThan(
-                alertStateTimelineToBeDeleted?.startsAt,
-              ),
-            },
-            sort: {
-              createdAt: SortOrder.Descending,
+        // There are three cases.
+        // 1. This is the first state.
+        // 2. This is the last state.
+        // 3. This is in the middle.
+
+        const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy({
+          query: {
+            _id: QueryHelper.notEquals(deleteBy.query._id as string),
+            alertId: alertId,
+            startsAt: QueryHelper.lessThanEqualTo(
+              alertStateTimelineToBeDeleted.startsAt!,
+            ),
+          },
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            alertStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        });
+
+        const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
+          query: {
+            alertId: alertId,
+            startsAt: QueryHelper.greaterThan(
+              alertStateTimelineToBeDeleted.startsAt!,
+            ),
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            alertStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        });
+
+        if (!stateBeforeThis) {
+          // This is the first state, no need to update previous state.
+          logger.debug("This is the first state.");
+        } else if (!stateAfterThis) {
+          // This is the last state.
+          // Update the previous state to end at the end of this state.
+          await this.updateOneById({
+            id: stateBeforeThis.id!,
+            data: {
+              endsAt: alertStateTimelineToBeDeleted.endsAt!,
             },
             props: {
               isRoot: true,
             },
-            select: {
-              _id: true,
-              startsAt: true,
+          });
+          logger.debug("This is the last state.");
+        } else {
+          // This state is in the middle.
+          // Update the previous state to end at the start of the next state.
+          await this.updateOneById({
+            id: stateBeforeThis.id!,
+            data: {
+              endsAt: stateAfterThis.startsAt!,
+            },
+            props: {
+              isRoot: true,
             },
           });
 
-          if (beforeState) {
-            const afterState: AlertStateTimeline | null = await this.findOneBy({
-              query: {
-                alertId: alertId,
-                startsAt: QueryHelper.greaterThan(
-                  alertStateTimelineToBeDeleted?.startsAt,
-                ),
-              },
-              sort: {
-                createdAt: SortOrder.Ascending,
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-                startsAt: true,
-              },
-            });
-
-            if (!afterState) {
-              // if there's nothing after then end date of before state is null.
-
-              await this.updateOneById({
-                id: beforeState.id!,
-                data: {
-                  endsAt: null as any,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            } else {
-              // if there's something after then end date of before state is start date of after state.
-
-              await this.updateOneById({
-                id: beforeState.id!,
-                data: {
-                  endsAt: afterState.startsAt!,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            }
-          }
+          // Update the next state to start at the start of this state.
+          await this.updateOneById({
+            id: stateAfterThis.id!,
+            data: {
+              startsAt: alertStateTimelineToBeDeleted.startsAt!,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          logger.debug("This state is in the middle.");
         }
       }
 
@@ -374,14 +478,14 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       // this is alertId.
       const alertId: ObjectID = onDelete.carryForward as ObjectID;
 
-      // get last status of this monitor.
+      // get last status of this alert.
       const alertStateTimeline: AlertStateTimeline | null =
         await this.findOneBy({
           query: {
             alertId: alertId,
           },
           sort: {
-            createdAt: SortOrder.Descending,
+            startsAt: SortOrder.Descending,
           },
           props: {
             isRoot: true,
