@@ -7,6 +7,7 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement } from "react";
+import DashboardNavigation from "../../Utils/Navigation";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   return (
@@ -32,7 +33,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Workspace Connections">
+      {DashboardNavigation.getProjectId()?.toString() === "6abae240-09de-4a94-949a-f2badeca84b3" ?  <SideMenuSection title="Workspace Connections">
         <SideMenuItem
           link={{
             title: "Slack",
@@ -52,7 +53,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.MicrosoftTeams}
         />
-      </SideMenuSection>
+      </SideMenuSection> : <></>}
 
       <SideMenuSection title="Monitors">
         <SideMenuItem

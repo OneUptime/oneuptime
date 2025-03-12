@@ -10,6 +10,7 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import DashboardNavigation from "../../Utils/Navigation";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -50,7 +51,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Workspace Connections">
+      { DashboardNavigation.getProjectId()?.toString() === "6abae240-09de-4a94-949a-f2badeca84b3" ? <SideMenuSection title="Workspace Connections">
         <SideMenuItem
           link={{
             title: "Slack",
@@ -71,7 +72,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.MicrosoftTeams}
         />
-      </SideMenuSection>
+      </SideMenuSection> : <></>}
     </SideMenu>
   );
 };
