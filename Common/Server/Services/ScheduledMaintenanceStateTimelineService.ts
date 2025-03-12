@@ -207,7 +207,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           _id: createdItem.scheduledMaintenanceId?.toString(),
         },
         data: {
-          currentScheduledMaintenanceStateId: createdItem.scheduledMaintenanceStateId,
+          currentScheduledMaintenanceStateId:
+            createdItem.scheduledMaintenanceStateId,
         },
         props: onCreate.createBy.props,
       });
@@ -251,12 +252,14 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       });
 
     const projectId: ObjectID = createdItem.projectId!;
-    const scheduledMaintenanceId: ObjectID = createdItem.scheduledMaintenanceId!;
+    const scheduledMaintenanceId: ObjectID =
+      createdItem.scheduledMaintenanceId!;
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
-      scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+      scheduledMaintenanceFeedEventType:
+        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
         stateEmoji +
@@ -272,88 +275,88 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     });
 
     const isResolvedState: ScheduledMaintenanceState | null =
-    await ScheduledMaintenanceStateService.findOneBy({
-      query: {
-        _id: createdItem.scheduledMaintenanceStateId.toString()!,
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
-
-  const isEndedState: ScheduledMaintenanceState | null =
-    await ScheduledMaintenanceStateService.findOneBy({
-      query: {
-        _id: createdItem.scheduledMaintenanceStateId.toString()!,
-        isEndedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
-
-  const isOngoingState: ScheduledMaintenanceState | null =
-    await ScheduledMaintenanceStateService.findOneBy({
-      query: {
-        _id: createdItem.scheduledMaintenanceStateId.toString()!,
-        isOngoingState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
-
-  const scheduledMaintenanceEvent: ScheduledMaintenance | null =
-    await ScheduledMaintenanceService.findOneBy({
-      query: {
-        _id: createdItem.scheduledMaintenanceId?.toString(),
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        monitors: {
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          _id: createdItem.scheduledMaintenanceStateId.toString()!,
+          isResolvedState: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
           _id: true,
         },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+      });
 
-  if (isOngoingState) {
-    if (
-      scheduledMaintenanceEvent &&
-      scheduledMaintenanceEvent.monitors &&
-      scheduledMaintenanceEvent.monitors.length > 0
-    ) {
-      for (const monitor of scheduledMaintenanceEvent.monitors) {
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
+    const isEndedState: ScheduledMaintenanceState | null =
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          _id: createdItem.scheduledMaintenanceStateId.toString()!,
+          isEndedState: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    const isOngoingState: ScheduledMaintenanceState | null =
+      await ScheduledMaintenanceStateService.findOneBy({
+        query: {
+          _id: createdItem.scheduledMaintenanceStateId.toString()!,
+          isOngoingState: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    const scheduledMaintenanceEvent: ScheduledMaintenance | null =
+      await ScheduledMaintenanceService.findOneBy({
+        query: {
+          _id: createdItem.scheduledMaintenanceId?.toString(),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          monitors: {
+            _id: true,
           },
-          props: {
-            isRoot: true,
-          },
-        });
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (isOngoingState) {
+      if (
+        scheduledMaintenanceEvent &&
+        scheduledMaintenanceEvent.monitors &&
+        scheduledMaintenanceEvent.monitors.length > 0
+      ) {
+        for (const monitor of scheduledMaintenanceEvent.monitors) {
+          await MonitorService.updateOneById({
+            id: monitor.id!,
+            data: {
+              disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
       }
     }
-  }
 
-  if (isResolvedState || isEndedState) {
-    // resolve all the monitors.
-    await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
-  }
+    if (isResolvedState || isEndedState) {
+      // resolve all the monitors.
+      await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
+    }
 
     return createdItem;
   }
@@ -497,7 +500,9 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           });
 
         if (!scheduledMaintenanceStateTimelineToBeDeleted) {
-          throw new BadDataException("Scheduled maintenance state timeline not found.");
+          throw new BadDataException(
+            "Scheduled maintenance state timeline not found.",
+          );
         }
 
         if (scheduledMaintenanceStateTimeline.isOne()) {
@@ -517,7 +522,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               scheduledMaintenanceId: scheduledMaintenanceId,
               startsAt: QueryHelper.lessThanEqualTo(
-                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!
+                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,
               ),
             },
             sort: {
@@ -538,7 +543,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             query: {
               scheduledMaintenanceId: scheduledMaintenanceId,
               startsAt: QueryHelper.greaterThan(
-                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!
+                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,
               ),
             },
             sort: {

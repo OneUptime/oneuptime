@@ -31,7 +31,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   }
 
   public async getResolvedStateIdForProject(
-    projectId: ObjectID
+    projectId: ObjectID,
   ): Promise<ObjectID> {
     const resolvedState: IncidentState | null =
       await IncidentStateService.findOneBy({
@@ -55,7 +55,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<IncidentStateTimeline>
+    createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
     if (!createBy.data.incidentId) {
       throw new BadDataException("incidentId is null");
@@ -86,7 +86,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           {
             userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
-          }
+          },
         )}`;
       }
     }
@@ -167,7 +167,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<IncidentStateTimeline>,
-    createdItem: IncidentStateTimeline
+    createdItem: IncidentStateTimeline,
   ): Promise<IncidentStateTimeline> {
     if (!createdItem.incidentId) {
       throw new BadDataException("incidentId is null");
@@ -325,7 +325,7 @@ ${createdItem.rootCause}`,
       if (incident) {
         await IncidentService.markMonitorsActiveForMonitoring(
           incident.projectId!,
-          incident.monitors || []
+          incident.monitors || [],
         );
       }
     }
@@ -359,7 +359,7 @@ ${createdItem.rootCause}`,
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<IncidentStateTimeline>
+    deleteBy: DeleteBy<IncidentStateTimeline>,
   ): Promise<OnDelete<IncidentStateTimeline>> {
     if (deleteBy.query._id) {
       const incidentStateTimelineToBeDeleted: IncidentStateTimeline | null =
@@ -394,7 +394,7 @@ ${createdItem.rootCause}`,
 
         if (incidentStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Incident should have at least one state in its timeline."
+            "Cannot delete the only state timeline. Incident should have at least one state in its timeline.",
           );
         }
 
@@ -409,7 +409,7 @@ ${createdItem.rootCause}`,
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               incidentId: incidentId,
               startsAt: QueryHelper.lessThanEqualTo(
-                incidentStateTimelineToBeDeleted.startsAt!
+                incidentStateTimelineToBeDeleted.startsAt!,
               ),
             },
             sort: {
@@ -430,7 +430,7 @@ ${createdItem.rootCause}`,
             query: {
               incidentId: incidentId,
               startsAt: QueryHelper.greaterThan(
-                incidentStateTimelineToBeDeleted.startsAt!
+                incidentStateTimelineToBeDeleted.startsAt!,
               ),
             },
             sort: {
@@ -497,7 +497,7 @@ ${createdItem.rootCause}`,
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<IncidentStateTimeline>,
-    _itemIdsBeforeDelete: ObjectID[]
+    _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<IncidentStateTimeline>> {
     if (onDelete.carryForward) {
       // this is incidentId.

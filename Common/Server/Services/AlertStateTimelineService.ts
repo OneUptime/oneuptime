@@ -380,26 +380,28 @@ ${createdItem.rootCause}`,
         // 2. This is the last state.
         // 3. This is in the middle.
 
-        const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy({
-          query: {
-            _id: QueryHelper.notEquals(deleteBy.query._id as string),
-            alertId: alertId,
-            startsAt: QueryHelper.lessThanEqualTo(
-              alertStateTimelineToBeDeleted.startsAt!,
-            ),
+        const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy(
+          {
+            query: {
+              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              alertId: alertId,
+              startsAt: QueryHelper.lessThanEqualTo(
+                alertStateTimelineToBeDeleted.startsAt!,
+              ),
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              alertStateId: true,
+              startsAt: true,
+              endsAt: true,
+            },
           },
-          sort: {
-            startsAt: SortOrder.Descending,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            alertStateId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-        });
+        );
 
         const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
           query: {
