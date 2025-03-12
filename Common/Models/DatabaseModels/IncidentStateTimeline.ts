@@ -567,7 +567,7 @@ export default class IncidentStateTimeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Starts At",
-    description: "When did this status change start?",
+    description: "When did this status change?",
   })
   @Column({
     type: ColumnType.Date,
