@@ -10,7 +10,6 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
-import DashboardNavigation from "../../Utils/Navigation";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -50,34 +49,29 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
-      {DashboardNavigation.getProjectId()?.toString() ===
-      "6abae240-09de-4a94-949a-f2badeca84b3" ? (
-        <SideMenuSection title="Workspace Connections">
-          <SideMenuItem
-            link={{
-              title: "Slack",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route,
-              ),
-            }}
-            icon={IconProp.Slack}
-          />
+      <SideMenuSection title="Workspace Connections">
+        <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
+        />
 
-          <SideMenuItem
-            link={{
-              title: "Microsoft Teams",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[
-                  PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                ] as Route,
-              ),
-            }}
-            icon={IconProp.MicrosoftTeams}
-          />
-        </SideMenuSection>
-      ) : (
-        <></>
-      )}
+        <SideMenuItem
+          link={{
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              ] as Route,
+            ),
+          }}
+          icon={IconProp.MicrosoftTeams}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };

@@ -132,7 +132,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "Starts At",
             defaultValue: OneUptimeDate.getCurrentDate(),
-          }
+          },
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
