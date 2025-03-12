@@ -102,12 +102,14 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
-      if (!data.slackRequest.viewValues["scheduledMaintenanceTitle"]) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid Scheduled Maintenance Title")
-        );
+      if (data.slackRequest.viewValues["scheduledMaintenanceTitle"]) {
+        // return slack error
+        return Response.sendJsonObjectResponse(req, res, {
+          response_action: "errors",
+          errors: {
+            scheduledMaintenanceTitle: "Title is required",
+          },
+        });
       }
 
       if (!data.slackRequest.viewValues["scheduledMaintenanceDescription"]) {
@@ -141,7 +143,7 @@ export default class SlackScheduledMaintenanceActions {
       });
 
       const title: string =
-        data.slackRequest.viewValues["scheduledMaintenanceTitle"].toString();
+        data.slackRequest.viewValues["scheduledMaintenanceTitle"]!.toString();
       const description: string =
         data.slackRequest.viewValues[
           "scheduledMaintenanceDescription"
