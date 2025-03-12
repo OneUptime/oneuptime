@@ -564,7 +564,7 @@ ${createdItem.description || "No description provided."}
     }
 
     if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
-      feedInfoInMarkdown += `⏳ **ScheduledMaintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
+      feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
     }
 
     if (

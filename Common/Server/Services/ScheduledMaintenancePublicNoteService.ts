@@ -53,7 +53,7 @@ export class Service extends DatabaseService<Model> {
       userId: userId || undefined,
       feedInfoInMarkdown: `📄 posted **public note** for this [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId!, scheduledMaintenanceId!)).toString()}) on status page:
     
-    ${createdItem.note}
+${createdItem.note}
               `,
       workspaceNotification: {
         sendWorkspaceNotification: true,
