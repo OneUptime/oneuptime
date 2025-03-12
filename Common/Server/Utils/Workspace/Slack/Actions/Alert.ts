@@ -422,6 +422,7 @@ export default class SlackAlertActions {
       },
       props: {
         userId: data.slackRequest.userId!,
+        isRoot: true,
       },
     });
   }

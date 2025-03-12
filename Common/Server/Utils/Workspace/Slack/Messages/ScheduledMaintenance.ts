@@ -43,7 +43,7 @@ export default class SlackScheduledMaintenanceMessages {
     // view data.
     const viewScheduledMaintenanceButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "🔗 View ScheduledMaintenance",
+      title: "🔗 View Event",
       url: await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
         data.projectId!,
         data.scheduledMaintenanceId!,
@@ -79,7 +79,7 @@ export default class SlackScheduledMaintenanceMessages {
     const changeScheduledMaintenanceStateButton: WorkspaceMessagePayloadButton =
       {
         _type: "WorkspaceMessagePayloadButton",
-        title: "➡️ Change Scheduled Maintenance State",
+        title: "➡️ Change State",
         value: data.scheduledMaintenanceId?.toString() || "",
         actionId: SlackActionType.ViewChangeScheduledMaintenanceState,
       };

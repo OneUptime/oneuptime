@@ -667,7 +667,7 @@ export default class SlackScheduledMaintenanceActions {
 
     const modalBlock: WorkspaceModalBlock = {
       _type: "WorkspaceModalBlock",
-      title: "Change Scheduled Maintenance State",
+      title: "Change Event State",
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitChangeScheduledMaintenanceState,
@@ -732,6 +732,7 @@ export default class SlackScheduledMaintenanceActions {
       },
       props: {
         userId: data.slackRequest.userId!,
+        isRoot: true
       },
     });
   }
