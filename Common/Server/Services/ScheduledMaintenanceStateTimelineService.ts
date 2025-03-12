@@ -25,6 +25,7 @@ import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/Sche
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
@@ -45,21 +46,54 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       createBy.data.startsAt = OneUptimeDate.getCurrentDate();
     }
 
-    const lastScheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline | null =
+    const stateBeforeThis: ScheduledMaintenanceStateTimeline | null =
       await this.findOneBy({
         query: {
           scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
+          startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
         },
         sort: {
-          createdAt: SortOrder.Descending,
+          startsAt: SortOrder.Descending,
         },
         props: {
           isRoot: true,
         },
         select: {
-          _id: true,
+          scheduledMaintenanceStateId: true,
+          startsAt: true,
+          endsAt: true,
         },
       });
+
+    // If this is the first state, then do not notify the owner.
+    if (!stateBeforeThis) {
+      // since this is the first status, do not notify the owner.
+      createBy.data.isOwnerNotified = true;
+    }
+
+    const stateAfterThis: ScheduledMaintenanceStateTimeline | null =
+      await this.findOneBy({
+        query: {
+          scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
+          startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          scheduledMaintenanceStateId: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      });
+
+    // compute ends at. It's the start of the next status.
+    if (stateAfterThis && stateAfterThis.startsAt) {
+      createBy.data.endsAt = stateAfterThis.startsAt;
+    }
 
     const publicNote: string | undefined = (
       createBy.miscDataProps as JSONObject | undefined
@@ -93,8 +127,9 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     return {
       createBy,
       carryForward: {
-        lastScheduledMaintenanceStateTimelineId:
-          lastScheduledMaintenanceStateTimeline?.id || null,
+        statusTimelineBeforeThisStatus: stateBeforeThis || null,
+        statusTimelineAfterThisStatus: stateAfterThis || null,
+        publicNote: publicNote,
       },
     };
   }
@@ -113,30 +148,70 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
     // update the last status as ended.
 
-    if (onCreate.carryForward.lastScheduledMaintenanceStateTimelineId) {
+    logger.debug("Status Timeline Before this");
+    logger.debug(onCreate.carryForward.statusTimelineBeforeThisStatus);
+
+    logger.debug("Status Timeline After this");
+    logger.debug(onCreate.carryForward.statusTimelineAfterThisStatus);
+
+    logger.debug("Created Item");
+    logger.debug(createdItem);
+
+    // now there are three cases.
+    // 1. This is the first status OR there's no status after this.
+    if (!onCreate.carryForward.statusTimelineBeforeThisStatus) {
+      // This is the first status, no need to update previous status.
+      logger.debug("This is the first status.");
+    } else if (!onCreate.carryForward.statusTimelineAfterThisStatus) {
+      // 2. This is the last status.
+      // Update the previous status to end at the start of this status.
       await this.updateOneById({
-        id: onCreate.carryForward.lastScheduledMaintenanceStateTimelineId!,
+        id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
         data: {
-          endsAt: createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+          endsAt: createdItem.startsAt!,
         },
         props: {
           isRoot: true,
         },
       });
+      logger.debug("This is the last status.");
+    } else {
+      // 3. This is in the middle.
+      // Update the previous status to end at the start of this status.
+      await this.updateOneById({
+        id: onCreate.carryForward.statusTimelineBeforeThisStatus.id!,
+        data: {
+          endsAt: createdItem.startsAt!,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // Update the next status to start at the end of this status.
+      await this.updateOneById({
+        id: onCreate.carryForward.statusTimelineAfterThisStatus.id!,
+        data: {
+          startsAt: createdItem.endsAt!,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+      logger.debug("This status is in the middle.");
     }
 
-    await ScheduledMaintenanceService.updateOneBy({
-      query: {
-        _id: createdItem.scheduledMaintenanceId?.toString(),
-      },
-      data: {
-        currentScheduledMaintenanceStateId:
-          createdItem.scheduledMaintenanceStateId,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    if (!createdItem.endsAt) {
+      await ScheduledMaintenanceService.updateOneBy({
+        query: {
+          _id: createdItem.scheduledMaintenanceId?.toString(),
+        },
+        data: {
+          currentScheduledMaintenanceStateId: createdItem.scheduledMaintenanceStateId,
+        },
+        props: onCreate.createBy.props,
+      });
+    }
 
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
       await ScheduledMaintenanceStateService.findOneBy({
@@ -148,23 +223,18 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         },
         select: {
           _id: true,
-          color: true,
-          name: true,
           isResolvedState: true,
           isOngoingState: true,
           isScheduledState: true,
+          color: true,
+          name: true,
         },
       });
 
     const stateName: string = scheduledMaintenanceState?.name || "";
-
-    const scheduledMaintenanceNumber: number | null =
-      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
-        scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
-      });
+    let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
-    let stateEmoji: string = "➡️";
 
     if (scheduledMaintenanceState?.isResolvedState) {
       stateEmoji = "✅";
@@ -175,15 +245,18 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       stateEmoji = "🕒";
     }
 
+    const scheduledMaintenanceNumber: number | null =
+      await ScheduledMaintenanceService.getScheduledMaintenanceNumber({
+        scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+      });
+
     const projectId: ObjectID = createdItem.projectId!;
-    const scheduledMaintenanceId: ObjectID =
-      createdItem.scheduledMaintenanceId!;
+    const scheduledMaintenanceId: ObjectID = createdItem.scheduledMaintenanceId!;
 
     await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
       scheduledMaintenanceId: createdItem.scheduledMaintenanceId!,
       projectId: createdItem.projectId!,
-      scheduledMaintenanceFeedEventType:
-        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+      scheduledMaintenanceFeedEventType: ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
       displayColor: scheduledMaintenanceState?.color,
       feedInfoInMarkdown:
         stateEmoji +
@@ -198,92 +271,89 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       },
     });
 
-    // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.
-    // check if this is resolved state, and if it is then resolve all the monitors.
-
     const isResolvedState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceStateId.toString()!,
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
+    await ScheduledMaintenanceStateService.findOneBy({
+      query: {
+        _id: createdItem.scheduledMaintenanceStateId.toString()!,
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
 
-    const isEndedState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceStateId.toString()!,
-          isEndedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
+  const isEndedState: ScheduledMaintenanceState | null =
+    await ScheduledMaintenanceStateService.findOneBy({
+      query: {
+        _id: createdItem.scheduledMaintenanceStateId.toString()!,
+        isEndedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
 
-    const isOngoingState: ScheduledMaintenanceState | null =
-      await ScheduledMaintenanceStateService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceStateId.toString()!,
-          isOngoingState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
+  const isOngoingState: ScheduledMaintenanceState | null =
+    await ScheduledMaintenanceStateService.findOneBy({
+      query: {
+        _id: createdItem.scheduledMaintenanceStateId.toString()!,
+        isOngoingState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+      },
+    });
 
-    const scheduledMaintenanceEvent: ScheduledMaintenance | null =
-      await ScheduledMaintenanceService.findOneBy({
-        query: {
-          _id: createdItem.scheduledMaintenanceId?.toString(),
-        },
-        select: {
+  const scheduledMaintenanceEvent: ScheduledMaintenance | null =
+    await ScheduledMaintenanceService.findOneBy({
+      query: {
+        _id: createdItem.scheduledMaintenanceId?.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        monitors: {
           _id: true,
-          projectId: true,
-          monitors: {
-            _id: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (isOngoingState) {
+    if (
+      scheduledMaintenanceEvent &&
+      scheduledMaintenanceEvent.monitors &&
+      scheduledMaintenanceEvent.monitors.length > 0
+    ) {
+      for (const monitor of scheduledMaintenanceEvent.monitors) {
+        await MonitorService.updateOneById({
+          id: monitor.id!,
+          data: {
+            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
           },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (isOngoingState) {
-      if (
-        scheduledMaintenanceEvent &&
-        scheduledMaintenanceEvent.monitors &&
-        scheduledMaintenanceEvent.monitors.length > 0
-      ) {
-        for (const monitor of scheduledMaintenanceEvent.monitors) {
-          await MonitorService.updateOneById({
-            id: monitor.id!,
-            data: {
-              disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
+          props: {
+            isRoot: true,
+          },
+        });
       }
     }
+  }
 
-    if (isResolvedState || isEndedState) {
-      // resolve all the monitors.
-      await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
-    }
+  if (isResolvedState || isEndedState) {
+    // resolve all the monitors.
+    await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
+  }
 
     return createdItem;
   }
@@ -405,6 +475,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           select: {
             scheduledMaintenanceId: true,
             startsAt: true,
+            endsAt: true,
           },
           props: {
             isRoot: true,
@@ -425,80 +496,104 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             },
           });
 
+        if (!scheduledMaintenanceStateTimelineToBeDeleted) {
+          throw new BadDataException("Scheduled maintenance state timeline not found.");
+        }
+
         if (scheduledMaintenanceStateTimeline.isOne()) {
           throw new BadDataException(
             "Cannot delete the only state timeline. Scheduled Maintenance should have at least one state in its timeline.",
           );
         }
 
-        if (scheduledMaintenanceStateTimelineToBeDeleted?.startsAt) {
-          const beforeState: ScheduledMaintenanceStateTimeline | null =
-            await this.findOneBy({
-              query: {
-                scheduledMaintenanceId: scheduledMaintenanceId,
-                startsAt: QueryHelper.lessThan(
-                  scheduledMaintenanceStateTimelineToBeDeleted?.startsAt,
-                ),
-              },
-              sort: {
-                createdAt: SortOrder.Descending,
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-                startsAt: true,
-              },
-            });
+        // There are three cases.
+        // 1. This is the first state.
+        // 2. This is the last state.
+        // 3. This is in the middle.
 
-          if (beforeState) {
-            const afterState: ScheduledMaintenanceStateTimeline | null =
-              await this.findOneBy({
-                query: {
-                  scheduledMaintenanceId: scheduledMaintenanceId,
-                  startsAt: QueryHelper.greaterThan(
-                    scheduledMaintenanceStateTimelineToBeDeleted?.startsAt,
-                  ),
-                },
-                sort: {
-                  createdAt: SortOrder.Ascending,
-                },
-                props: {
-                  isRoot: true,
-                },
-                select: {
-                  _id: true,
-                  startsAt: true,
-                },
-              });
+        const stateBeforeThis: ScheduledMaintenanceStateTimeline | null =
+          await this.findOneBy({
+            query: {
+              _id: QueryHelper.notEquals(deleteBy.query._id as string),
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              startsAt: QueryHelper.lessThanEqualTo(
+                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!
+              ),
+            },
+            sort: {
+              startsAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              scheduledMaintenanceStateId: true,
+              startsAt: true,
+              endsAt: true,
+            },
+          });
 
-            if (!afterState) {
-              // if there's nothing after then end date of before state is null.
+        const stateAfterThis: ScheduledMaintenanceStateTimeline | null =
+          await this.findOneBy({
+            query: {
+              scheduledMaintenanceId: scheduledMaintenanceId,
+              startsAt: QueryHelper.greaterThan(
+                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!
+              ),
+            },
+            sort: {
+              startsAt: SortOrder.Ascending,
+            },
+            props: {
+              isRoot: true,
+            },
+            select: {
+              scheduledMaintenanceStateId: true,
+              startsAt: true,
+              endsAt: true,
+            },
+          });
 
-              await this.updateOneById({
-                id: beforeState.id!,
-                data: {
-                  endsAt: null as any,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            } else {
-              // if there's something after then end date of before state is start date of after state.
+        if (!stateBeforeThis) {
+          // This is the first state, no need to update previous state.
+          logger.debug("This is the first state.");
+        } else if (!stateAfterThis) {
+          // This is the last state.
+          // Update the previous state to end at the end of this state.
+          await this.updateOneById({
+            id: stateBeforeThis.id!,
+            data: {
+              endsAt: scheduledMaintenanceStateTimelineToBeDeleted.endsAt!,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          logger.debug("This is the last state.");
+        } else {
+          // This state is in the middle.
+          // Update the previous state to end at the start of the next state.
+          await this.updateOneById({
+            id: stateBeforeThis.id!,
+            data: {
+              endsAt: stateAfterThis.startsAt!,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-              await this.updateOneById({
-                id: beforeState.id!,
-                data: {
-                  endsAt: afterState.startsAt!,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            }
-          }
+          // Update the next state to start at the start of this state.
+          await this.updateOneById({
+            id: stateAfterThis.id!,
+            data: {
+              startsAt: scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          logger.debug("This state is in the middle.");
         }
       }
 
@@ -517,14 +612,14 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       const scheduledMaintenanceId: ObjectID =
         onDelete.carryForward as ObjectID;
 
-      // get last status of this monitor.
+      // get last status of this scheduled maintenance.
       const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline | null =
         await this.findOneBy({
           query: {
             scheduledMaintenanceId: scheduledMaintenanceId,
           },
           sort: {
-            createdAt: SortOrder.Descending,
+            startsAt: SortOrder.Descending,
           },
           props: {
             isRoot: true,
