@@ -423,6 +423,7 @@ export default class SlackAlertActions {
       props: {
         userId: data.slackRequest.userId!,
         isRoot: true,
+        tenantId: data.slackRequest.projectId!
       },
     });
   }

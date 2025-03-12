@@ -732,7 +732,8 @@ export default class SlackScheduledMaintenanceActions {
       },
       props: {
         userId: data.slackRequest.userId!,
-        isRoot: true
+        isRoot: true,
+        tenantId: data.slackRequest.projectId!
       },
     });
   }

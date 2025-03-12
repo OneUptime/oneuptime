@@ -789,6 +789,7 @@ export default class SlackIncidentActions {
       props: {
         userId: data.slackRequest.userId!,
         isRoot: true,
+        tenantId: data.slackRequest.projectId!
       },
     });
   }
