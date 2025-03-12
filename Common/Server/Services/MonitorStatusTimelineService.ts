@@ -74,7 +74,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
         monitorId: createBy.data.monitorId,
-        startsAt: QueryHelper.lessThan(createBy.data.startsAt),
+        startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
       },
       sort: {
         startsAt: SortOrder.Descending,
@@ -272,8 +272,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
         const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
           query: {
+            _id: QueryHelper.notEquals(deleteBy.query._id as string),
             monitorId: monitorId,
-            startsAt: QueryHelper.lessThan(
+            startsAt: QueryHelper.lessThanEqualTo(
               monitorStatusTimelineToBeDeleted.startsAt!
             ),
           },

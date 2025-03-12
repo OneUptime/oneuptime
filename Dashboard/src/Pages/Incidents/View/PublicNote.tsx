@@ -188,7 +188,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
               "This is the date and time this note was posted. This is in " +
               OneUptimeDate.getCurrentTimezoneString() +
               ".",
-            defaultValue: OneUptimeDate.getCurrentDate(),
+            getDefaultValue: ()=> OneUptimeDate.getCurrentDate(),
           },
         ]}
         showAs={ShowAs.List}

@@ -332,7 +332,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
                     "The date and time this note was posted. By default, it will be the current date and time.",
                   title: "Posted At",
                   required: true,
-                  defaultValue: OneUptimeDate.getCurrentDate(),
+                  getDefaultValue: ()=> OneUptimeDate.getCurrentDate(),
                 },
                 {
                   field: {
