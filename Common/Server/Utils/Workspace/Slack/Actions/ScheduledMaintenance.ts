@@ -102,14 +102,12 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
-      if (data.slackRequest.viewValues["scheduledMaintenanceTitle"]) {
-        // return slack error
-        return Response.sendJsonObjectResponse(req, res, {
-          response_action: "errors",
-          errors: {
-            scheduledMaintenanceTitle: "Title is required",
-          },
-        });
+      if (!data.slackRequest.viewValues["scheduledMaintenanceTitle"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Scheduled Maintenance Title")
+        );
       }
 
       if (!data.slackRequest.viewValues["scheduledMaintenanceDescription"]) {
@@ -394,6 +392,7 @@ export default class SlackScheduledMaintenanceActions {
       placeholder: "Select Labels",
       options: labelsDropdownOptions,
       multiSelect: true,
+      optional: true,
     };
 
     if (labelsForProject.length > 0) {
@@ -733,12 +732,13 @@ export default class SlackScheduledMaintenanceActions {
       data: {
         currentScheduledMaintenanceStateId: stateId,
       },
-      props: await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-        {
-          userId: data.slackRequest.userId!,
-          projectId: data.slackRequest.projectId!,
-        }
-      ),
+      props:
+        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+          {
+            userId: data.slackRequest.userId!,
+            projectId: data.slackRequest.projectId!,
+          }
+        ),
     });
   }
 

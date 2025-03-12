@@ -383,6 +383,7 @@ export default class SlackIncidentActions {
       placeholder: "Select Labels",
       options: labelsDropdownOptions,
       multiSelect: true,
+      optional: true,
     };
 
     if (labelsForProject.length > 0) {
