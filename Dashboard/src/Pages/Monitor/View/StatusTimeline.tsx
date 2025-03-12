@@ -24,6 +24,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const StatusTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -93,6 +94,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           monitorId: modelId,
           projectId: DashboardNavigation.getProjectId()!,
         }}
+        sortBy="startsAt"
+        sortOrder={SortOrder.Descending}
         onBeforeCreate={(
           item: MonitorStatusTimeline,
         ): Promise<MonitorStatusTimeline> => {
@@ -129,7 +132,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
             },
             title: "Starts At",
             fieldType: FormFieldSchemaType.DateTime,
-            required: false,
+            required: true,
             placeholder: "Starts At",
             defaultValue: OneUptimeDate.getCurrentDate(),
           },

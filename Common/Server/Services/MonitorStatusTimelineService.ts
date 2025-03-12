@@ -19,12 +19,12 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
     if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("createdAt", 120);
+      this.hardDeleteItemsOlderThanInDays("startsAt", 120);
     }
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<MonitorStatusTimeline>,
+    createBy: CreateBy<MonitorStatusTimeline>
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     if (!createBy.data.monitorId) {
       throw new BadDataException("monitorId is null");
@@ -66,36 +66,69 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           {
             userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
+          }
         )}`;
       }
     }
 
-    const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
-      await this.findOneBy({
-        query: {
-          monitorId: createBy.data.monitorId,
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-        },
-      });
+    const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: createBy.data.monitorId,
+        startsAt: QueryHelper.lessThan(createBy.data.startsAt),
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        monitorStatusId: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
 
-    if (!lastMonitorStatusTimeline) {
+    logger.debug("State Before this");
+    logger.debug(stateBeforeThis);
+
+    // If this is the first state, then do not notify the owner.
+    if (!stateBeforeThis) {
       // since this is the first status, do not notify the owner.
       createBy.data.isOwnerNotified = true;
     }
 
+    const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: createBy.data.monitorId,
+        startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+      },
+      sort: {
+        startsAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        monitorStatusId: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
+
+    // compute ends at.
+    if (!createBy.data.endsAt && stateAfterThis && stateAfterThis.startsAt) {
+      createBy.data.endsAt = stateAfterThis.startsAt;
+    }
+
+    logger.debug("State After this");
+    logger.debug(stateAfterThis);
+
     return {
       createBy,
       carryForward: {
-        lastMonitorStatusTimelineId: lastMonitorStatusTimeline?.id || null,
+        statusTimelineBeforeThisStatus: stateBeforeThis?.id || null,
+        statusTimelineAfterThisStatus: stateAfterThis?.id || null,
         mutex: mutex,
       },
     };
@@ -103,7 +136,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<MonitorStatusTimeline>,
-    createdItem: MonitorStatusTimeline,
+    createdItem: MonitorStatusTimeline
   ): Promise<MonitorStatusTimeline> {
     if (!createdItem.monitorId) {
       throw new BadDataException("monitorId is null");
@@ -115,11 +148,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
     // update the last status as ended.
 
-    if (onCreate.carryForward.lastMonitorStatusTimelineId) {
+    if (onCreate.carryForward.statusTimelineBeforeThisStatus) {
       await this.updateOneById({
-        id: onCreate.carryForward.lastMonitorStatusTimelineId!,
+        id: onCreate.carryForward.statusTimelineBeforeThisStatus!,
         data: {
-          endsAt: createdItem.createdAt || OneUptimeDate.getCurrentDate(),
+          endsAt: createdItem.startsAt || OneUptimeDate.getCurrentDate(),
         },
         props: {
           isRoot: true,
@@ -127,15 +160,34 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       });
     }
 
-    await MonitorService.updateOneBy({
-      query: {
-        _id: createdItem.monitorId?.toString(),
-      },
-      data: {
-        currentMonitorStatusId: createdItem.monitorStatusId,
-      },
-      props: onCreate.createBy.props,
-    });
+    if (
+      onCreate.carryForward.statusTimelineAfterThisStatus &&
+      createdItem.endsAt
+    ) {
+      await this.updateOneById({
+        id: onCreate.carryForward.statusTimelineAfterThisStatus!,
+        data: {
+          startsAt: createdItem.endsAt,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!createdItem.endsAt) {
+      // if this is the last status, then update the monitor status.
+
+      await MonitorService.updateOneBy({
+        query: {
+          _id: createdItem.monitorId?.toString(),
+        },
+        data: {
+          currentMonitorStatusId: createdItem.monitorStatusId,
+        },
+        props: onCreate.createBy.props,
+      });
+    }
 
     if (onCreate.carryForward.mutex) {
       const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
@@ -146,7 +198,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<MonitorStatusTimeline>,
+    deleteBy: DeleteBy<MonitorStatusTimeline>
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (deleteBy.query._id) {
       const monitorStatusTimelineToBeDeleted: MonitorStatusTimeline | null =
@@ -155,6 +207,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           select: {
             monitorId: true,
             startsAt: true,
+            endsAt: true,
           },
           props: {
             isRoot: true,
@@ -176,7 +229,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
         if (monitorStatusTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only status timeline. Monitor should have at least one status timeline.",
+            "Cannot delete the only status timeline. Monitor should have at least one status timeline."
           );
         }
 
@@ -188,11 +241,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
               query: {
                 monitorId: monitorId,
                 startsAt: QueryHelper.lessThan(
-                  monitorStatusTimelineToBeDeleted?.startsAt,
+                  monitorStatusTimelineToBeDeleted?.startsAt
                 ),
               },
               sort: {
-                createdAt: SortOrder.Descending,
+                startsAt: SortOrder.Descending,
               },
               props: {
                 isRoot: true,
@@ -209,11 +262,11 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                 query: {
                   monitorId: monitorId,
                   startsAt: QueryHelper.greaterThan(
-                    monitorStatusTimelineToBeDeleted?.startsAt,
+                    monitorStatusTimelineToBeDeleted?.startsAt
                   ),
                 },
                 sort: {
-                  createdAt: SortOrder.Ascending,
+                  startsAt: SortOrder.Ascending,
                 },
                 props: {
                   isRoot: true,
@@ -261,7 +314,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<MonitorStatusTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (onDelete.carryForward) {
       // this is monitorId.
@@ -274,7 +327,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             monitorId: monitorId,
           },
           sort: {
-            createdAt: SortOrder.Descending,
+            startsAt: SortOrder.Descending,
           },
           props: {
             isRoot: true,
