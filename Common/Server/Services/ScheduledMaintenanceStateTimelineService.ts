@@ -193,7 +193,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+        notifyUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
 

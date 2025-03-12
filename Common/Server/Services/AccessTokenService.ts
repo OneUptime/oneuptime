@@ -200,29 +200,23 @@ export class AccessTokenService extends BaseService {
   }
 
   public async getDatabaseCommonInteractionPropsByUserAndProject(data: {
-    userId: ObjectID,
-    projectId: ObjectID
-  }
-  ): Promise<DatabaseCommonInteractionProps> {
-
-
-    const {userId, projectId} = data; 
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<DatabaseCommonInteractionProps> {
+    const { userId, projectId } = data;
 
     return {
       userId: userId,
       userGlobalAccessPermission:
-        (await this.getUserGlobalAccessPermission(
-          userId
-        )) || undefined,
+        (await this.getUserGlobalAccessPermission(userId)) || undefined,
       userTenantAccessPermission: {
-        [projectId.toString()]:
-          (await this.getUserTenantAccessPermission(
-            userId,
-            projectId
-          ))!,
+        [projectId.toString()]: (await this.getUserTenantAccessPermission(
+          userId,
+          projectId,
+        ))!,
       },
       tenantId: projectId,
-    }
+    };
   }
 
   public async getUserTenantAccessPermission(

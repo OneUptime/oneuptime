@@ -83,7 +83,6 @@ export default class SlackUtil extends WorkspaceBase {
     return username;
   }
 
-
   public static override async showModalToUser(data: {
     authToken: string;
     triggerId: string;

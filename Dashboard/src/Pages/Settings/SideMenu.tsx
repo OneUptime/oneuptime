@@ -33,27 +33,32 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
 
-      {DashboardNavigation.getProjectId()?.toString() !== "6abae240-09de-4a94-949a-f2badeca84b3" ?  <SideMenuSection title="Workspace Connections">
-        <SideMenuItem
-          link={{
-            title: "Slack",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
-            ),
-          }}
-          icon={IconProp.Slack}
-        />
+      {DashboardNavigation.getProjectId()?.toString() !==
+      "6abae240-09de-4a94-949a-f2badeca84b3" ? (
+        <SideMenuSection title="Workspace Connections">
+          <SideMenuItem
+            link={{
+              title: "Slack",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
+              ),
+            }}
+            icon={IconProp.Slack}
+          />
 
-        <SideMenuItem
-          link={{
-            title: "Microsoft Teams",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route,
-            ),
-          }}
-          icon={IconProp.MicrosoftTeams}
-        />
-      </SideMenuSection> : <></>}
+          <SideMenuItem
+            link={{
+              title: "Microsoft Teams",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route,
+              ),
+            }}
+            icon={IconProp.MicrosoftTeams}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Monitors">
         <SideMenuItem

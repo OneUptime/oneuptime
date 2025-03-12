@@ -286,9 +286,8 @@ export default class SlackAPI {
         logger.debug("Slack Interactive Auth Result: ");
         logger.debug(authResult);
 
-        // if slack uninstall app then, 
-        if(authResult.payloadType === "app_uninstall") {
-
+        // if slack uninstall app then,
+        if (authResult.payloadType === "app_uninstall") {
           logger.debug("Slack App Uninstall Request: ");
 
           // remove the project auth and user auth.
@@ -303,7 +302,7 @@ export default class SlackAPI {
             skip: 0,
             props: {
               isRoot: true,
-            }
+            },
           });
 
           await WorkspaceProjectAuthTokenService.deleteBy({
@@ -315,14 +314,13 @@ export default class SlackAPI {
             skip: 0,
             props: {
               isRoot: true,
-            }
+            },
           });
 
           logger.debug("Slack App Uninstall Request: Deleted all auth tokens.");
           // return empty response.
 
           return Response.sendTextResponse(req, res, "");
-
         }
 
         if (authResult.isAuthorized === false) {

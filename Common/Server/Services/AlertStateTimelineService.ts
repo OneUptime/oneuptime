@@ -214,7 +214,8 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
-        notifyUserId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+        notifyUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
 

@@ -788,12 +788,13 @@ export default class SlackIncidentActions {
       data: {
         currentIncidentStateId: stateId,
       },
-       props: await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-              {
-                userId: data.slackRequest.userId!,
-                projectId: data.slackRequest.projectId!,
-              }
-            ),
+      props:
+        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+          {
+            userId: data.slackRequest.userId!,
+            projectId: data.slackRequest.projectId!,
+          },
+        ),
     });
   }
 
