@@ -50,7 +50,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
       </SideMenuSection>
-      {DashboardNavigation.getProjectId()?.toString() !==
+      {DashboardNavigation.getProjectId()?.toString() ===
       "6abae240-09de-4a94-949a-f2badeca84b3" ? (
         <SideMenuSection title="Workspace Connections">
           <SideMenuItem
