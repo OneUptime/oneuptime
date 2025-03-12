@@ -21,7 +21,7 @@ Usage:
   value: {{ $.Values.openTelemetryExporter.headers }}
 {{- end }}
 - name: SLACK_APP_CLIENT_ID
-  value: {{ $.Values.slackApp.clientId }}
+  value: {{ $.Values.slackApp.clientId | quote }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: STATUS_PAGE_CNAME_RECORD
