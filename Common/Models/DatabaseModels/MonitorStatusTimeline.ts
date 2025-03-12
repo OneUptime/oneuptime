@@ -510,7 +510,9 @@ export default class MonitorStatusTimeline extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadMonitorStatusTimeline,
     ],
-    update: [],
+    update: [
+      
+    ],
   })
   @TableColumn({
     type: TableColumnType.Date,
