@@ -70,6 +70,15 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "On Call",
+    links: [
+      {
+        title: "Phone Number Whitelist",
+        url: "/docs/on-call/phone-number-whitelist",
+      },
+    ],
+  },
+  {
     title: "Status Pages",
     links: [
       {
