@@ -88,6 +88,15 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Workspace Connections",
+    links: [
+      {
+        title: "Slack",
+        url: "/docs/workspace-connections/slack",
+      },
+    ],
+  },
+  {
     title: "Probe",
     links: [{ title: "Custom Probes", url: "/docs/probe/custom-probe" }],
   },
