@@ -353,7 +353,7 @@ ${createdItem.description || "No description provided."}
    
 ${createdItem.rootCause || "No root cause provided."}
    
-   `;
+`;
     }
 
     if (createdItem.remediationNotes) {

@@ -552,7 +552,7 @@ export class Service extends DatabaseService<Model> {
     
 ${createdItem.description || "No description provided."}
     
-    `;
+`;
 
     // add starts at and ends at.
     if (scheduledMaintenance.startsAt) {
