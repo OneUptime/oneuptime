@@ -31,6 +31,7 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "../../../../../Types/Date";
+import AccessTokenService from "../../../../Services/AccessTokenService";
 
 export default class SlackScheduledMaintenanceActions {
   public static isScheduledMaintenanceAction(data: {
@@ -67,7 +68,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -75,7 +76,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -83,7 +84,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -97,7 +98,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid View Values"),
+          new BadDataException("Invalid View Values")
         );
       }
 
@@ -105,7 +106,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid Scheduled Maintenance Title"),
+          new BadDataException("Invalid Scheduled Maintenance Title")
         );
       }
 
@@ -113,7 +114,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid Scheduled Maintenance Description"),
+          new BadDataException("Invalid Scheduled Maintenance Description")
         );
       }
 
@@ -123,7 +124,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid Start Date"),
+          new BadDataException("Invalid Start Date")
         );
       }
 
@@ -131,7 +132,7 @@ export default class SlackScheduledMaintenanceActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid End Date"),
+          new BadDataException("Invalid End Date")
         );
       }
 
@@ -158,12 +159,12 @@ export default class SlackScheduledMaintenanceActions {
       const scheduledMaintenanceMonitors: Array<ObjectID> = monitors.map(
         (monitor: string) => {
           return new ObjectID(monitor);
-        },
+        }
       );
       const scheduledMaintenanceLabels: Array<ObjectID> = labels.map(
         (label: string) => {
           return new ObjectID(label);
-        },
+        }
       );
 
       const monitorStatusId: ObjectID | undefined = monitorStatus
@@ -171,10 +172,10 @@ export default class SlackScheduledMaintenanceActions {
         : undefined;
 
       const startDate: Date = OneUptimeDate.fromString(
-        data.slackRequest.viewValues["startDate"].toString(),
+        data.slackRequest.viewValues["startDate"].toString()
       );
       const endDate: Date = OneUptimeDate.fromString(
-        data.slackRequest.viewValues["endDate"].toString(),
+        data.slackRequest.viewValues["endDate"].toString()
       );
 
       const scheduledMaintenance: ScheduledMaintenance =
@@ -192,7 +193,7 @@ export default class SlackScheduledMaintenanceActions {
             const monitor: Monitor = new Monitor();
             monitor.id = monitorId;
             return monitor;
-          },
+          }
         );
       }
 
@@ -206,7 +207,7 @@ export default class SlackScheduledMaintenanceActions {
             const label: Label = new Label();
             label.id = labelId;
             return label;
-          },
+          }
         );
       }
 
@@ -381,7 +382,7 @@ export default class SlackScheduledMaintenanceActions {
           label: label.name || "",
           value: label._id?.toString() || "",
         };
-      },
+      }
     );
 
     const labelsDropdown: WorkspaceDropdownBlock = {
@@ -429,7 +430,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Scheduled Maintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID")
       );
     }
 
@@ -437,7 +438,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -445,7 +446,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -453,7 +454,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -496,7 +497,7 @@ export default class SlackScheduledMaintenanceActions {
 
       await ScheduledMaintenanceService.markScheduledMaintenanceAsOngoing(
         scheduledMaintenanceId,
-        userId,
+        userId
       );
 
       // Scheduled Maintenance Feed will send a message to the channel that the scheduledMaintenance has been Ongoing.
@@ -507,7 +508,7 @@ export default class SlackScheduledMaintenanceActions {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 
@@ -526,7 +527,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Scheduled Maintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID")
       );
     }
 
@@ -534,7 +535,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -542,7 +543,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -550,7 +551,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -592,7 +593,7 @@ export default class SlackScheduledMaintenanceActions {
 
       await ScheduledMaintenanceService.markScheduledMaintenanceAsComplete(
         scheduledMaintenanceId,
-        userId,
+        userId
       );
 
       return;
@@ -602,7 +603,7 @@ export default class SlackScheduledMaintenanceActions {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 
@@ -619,7 +620,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Scheduled Maintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID")
       );
     }
 
@@ -695,7 +696,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Scheduled Maintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID")
       );
     }
 
@@ -715,7 +716,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid View Values"),
+        new BadDataException("Invalid View Values")
       );
     }
 
@@ -730,11 +731,12 @@ export default class SlackScheduledMaintenanceActions {
       data: {
         currentScheduledMaintenanceStateId: stateId,
       },
-      props: {
-        userId: data.slackRequest.userId!,
-        isRoot: true,
-        tenantId: data.slackRequest.projectId!
-      },
+      props: await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+        {
+          userId: data.slackRequest.userId!,
+          projectId: data.slackRequest.projectId!,
+        }
+      ),
     });
   }
 
@@ -751,7 +753,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Scheduled Maintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID")
       );
     }
 
@@ -765,7 +767,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid View Values"),
+        new BadDataException("Invalid View Values")
       );
     }
 
@@ -773,7 +775,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note Type"),
+        new BadDataException("Invalid Note Type")
       );
     }
 
@@ -782,7 +784,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note"),
+        new BadDataException("Invalid Note")
       );
     }
 
@@ -795,7 +797,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note Type"),
+        new BadDataException("Invalid Note Type")
       );
     }
 
@@ -838,7 +840,7 @@ export default class SlackScheduledMaintenanceActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Scheduled Maintenance ID"),
+        new BadDataException("Invalid Scheduled Maintenance ID")
       );
     }
 
@@ -946,7 +948,7 @@ export default class SlackScheduledMaintenanceActions {
     return Response.sendErrorResponse(
       data.req,
       data.res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 }

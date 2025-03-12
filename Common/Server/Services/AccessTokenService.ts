@@ -15,6 +15,7 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export class AccessTokenService extends BaseService {
   public constructor() {
@@ -196,6 +197,32 @@ export class AccessTokenService extends BaseService {
     );
 
     return permission;
+  }
+
+  public async getDatabaseCommonInteractionPropsByUserAndProject(data: {
+    userId: ObjectID,
+    projectId: ObjectID
+  }
+  ): Promise<DatabaseCommonInteractionProps> {
+
+
+    const {userId, projectId} = data; 
+
+    return {
+      userId: userId,
+      userGlobalAccessPermission:
+        (await this.getUserGlobalAccessPermission(
+          userId
+        )) || undefined,
+      userTenantAccessPermission: {
+        [projectId.toString()]:
+          (await this.getUserTenantAccessPermission(
+            userId,
+            projectId
+          ))!,
+      },
+      tenantId: projectId,
+    }
   }
 
   public async getUserTenantAccessPermission(

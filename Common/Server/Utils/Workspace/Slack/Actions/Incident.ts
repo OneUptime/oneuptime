@@ -34,6 +34,7 @@ import MonitorStatusService from "../../../../Services/MonitorStatusService";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
+import AccessTokenService from "../../../../Services/AccessTokenService";
 
 export default class SlackIncidentActions {
   public static isIncidentAction(data: {
@@ -786,11 +787,12 @@ export default class SlackIncidentActions {
       data: {
         currentIncidentStateId: stateId,
       },
-      props: {
-        userId: data.slackRequest.userId!,
-        isRoot: true,
-        tenantId: data.slackRequest.projectId!
-      },
+       props: await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+              {
+                userId: data.slackRequest.userId!,
+                projectId: data.slackRequest.projectId!,
+              }
+            ),
     });
   }
 

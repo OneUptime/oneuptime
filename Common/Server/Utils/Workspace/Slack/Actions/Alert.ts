@@ -21,6 +21,7 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import AlertStateService from "../../../../Services/AlertStateService";
 import logger from "../../../Logger";
+import AccessTokenService from "../../../../Services/AccessTokenService";
 
 export default class SlackAlertActions {
   public static isAlertAction(data: { actionType: SlackActionType }): boolean {
@@ -57,7 +58,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -65,7 +66,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -73,7 +74,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -81,7 +82,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -128,7 +129,7 @@ export default class SlackAlertActions {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 
@@ -147,7 +148,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -155,7 +156,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -163,7 +164,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -171,7 +172,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -215,7 +216,7 @@ export default class SlackAlertActions {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 
@@ -232,7 +233,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -309,7 +310,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -385,7 +386,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -405,7 +406,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid View Values"),
+        new BadDataException("Invalid View Values")
       );
     }
 
@@ -420,11 +421,13 @@ export default class SlackAlertActions {
       data: {
         currentAlertStateId: stateId,
       },
-      props: {
-        userId: data.slackRequest.userId!,
-        isRoot: true,
-        tenantId: data.slackRequest.projectId!
-      },
+      props:
+        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+          {
+            userId: data.slackRequest.userId!,
+            projectId: data.slackRequest.projectId!,
+          }
+        ),
     });
   }
 
@@ -443,7 +446,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -451,7 +454,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid User ID"),
+        new BadDataException("Invalid User ID")
       );
     }
 
@@ -459,7 +462,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Project Auth Token"),
+        new BadDataException("Invalid Project Auth Token")
       );
     }
 
@@ -467,7 +470,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Bot User ID"),
+        new BadDataException("Invalid Bot User ID")
       );
     }
 
@@ -511,7 +514,7 @@ export default class SlackAlertActions {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Invalid View Values"),
+          new BadDataException("Invalid View Values")
         );
       }
 
@@ -541,7 +544,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -555,7 +558,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid View Values"),
+        new BadDataException("Invalid View Values")
       );
     }
 
@@ -564,7 +567,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Note"),
+        new BadDataException("Invalid Note")
       );
     }
 
@@ -597,7 +600,7 @@ export default class SlackAlertActions {
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Invalid Alert ID"),
+        new BadDataException("Invalid Alert ID")
       );
     }
 
@@ -688,7 +691,7 @@ export default class SlackAlertActions {
     return Response.sendErrorResponse(
       data.req,
       data.res,
-      new BadDataException("Invalid Action Type"),
+      new BadDataException("Invalid Action Type")
     );
   }
 }
