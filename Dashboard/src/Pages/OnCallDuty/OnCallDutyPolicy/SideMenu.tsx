@@ -74,6 +74,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+      <SideMenuItem
+          link={{
+            title: "User Overrides",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.User}
+        />
         <SideMenuItem
           link={{
             title: "Custom Fields",

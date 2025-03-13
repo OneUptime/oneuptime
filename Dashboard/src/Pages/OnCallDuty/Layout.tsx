@@ -16,6 +16,8 @@ const PageTitleMap: Dictionary<string> = {
     "On-Call Duty Schedules",
   [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_EXECUTION_LOGS)]:
     "On-Call Duty Logs",
+    [RouteUtil.getLastPathForKey(PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES)]:
+    "On-Call Duty User Overrides",
 };
 
 const OnCallDutyLayout: FunctionComponent<

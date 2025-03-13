@@ -18,7 +18,7 @@ export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
 }
 
-const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
+const UserOverrideTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
 
@@ -177,4 +177,4 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default ExecutionLogsTable;
+export default UserOverrideTable;
