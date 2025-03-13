@@ -512,10 +512,10 @@ enum Permission {
   DeleteProjectOnCallDutyPolicyEscalationRule = "DeleteProjectOnCallDutyPolicyEscalationRule",
   ReadProjectOnCallDutyPolicyEscalationRule = "ReadProjectOnCallDutyPolicyEscalationRule",
 
-  CreateOnCallPolicyUserOverride = "CreateOnCallPolicyUserOverride",
-  EditOnCallPolicyUserOverride = "EditOnCallPolicyUserOverride",
-  DeleteOnCallPolicyUserOverride = "DeleteOnCallPolicyUserOverride",
-  ReadOnCallPolicyUserOverride = "ReadOnCallPolicyUserOverride",
+  CreateOnCallDutyPolicyUserOverride = "CreateOnCallDutyPolicyUserOverride",
+  EditOnCallDutyPolicyUserOverride = "EditOnCallDutyPolicyUserOverride",
+  DeleteOnCallDutyPolicyUserOverride = "DeleteOnCallDutyPolicyUserOverride",
+  ReadOnCallDutyPolicyUserOverride = "ReadOnCallDutyPolicyUserOverride",
 
   // Resource Permissions (Team Permission)
   CreateProjectOnCallDutyPolicyEscalationRuleUser = "CreateProjectOnCallDutyPolicyEscalationRuleUser",
@@ -2386,7 +2386,7 @@ export class PermissionHelper {
 
 
       {
-        permission: Permission.CreateOnCallPolicyUserOverride,
+        permission: Permission.CreateOnCallDutyPolicyUserOverride,
         title: "Create On-Call Duty Policy User Override",
         description:
           "This permission can create on-call duty policy user override this project.",
@@ -2394,7 +2394,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteOnCallPolicyUserOverride,
+        permission: Permission.DeleteOnCallDutyPolicyUserOverride,
         title:  "Delete On-Call Duty Policy User Override",
         description:
           "This permission can delete on-call duty policy user override of this project.",
@@ -2402,7 +2402,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.EditOnCallPolicyUserOverride,
+        permission: Permission.EditOnCallDutyPolicyUserOverride,
         title: "Edit On-Call Duty Policy User Override",
         description:
           "This permission can edit on-call duty policy user override of this project.",
@@ -2410,7 +2410,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.ReadOnCallPolicyUserOverride,
+        permission: Permission.ReadOnCallDutyPolicyUserOverride,
         title: "Read On-Call Duty Policy User Override",
         description:
           "This permission can read on-call duty policy user override of this project.",

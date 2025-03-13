@@ -166,6 +166,9 @@ import WorkspaceProjectAuthToken from "./WorkspaceProjectAuthToken";
 import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 import ProjectUser from "./ProjectUser";
+import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
+
+
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -192,6 +195,7 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyEscalationRuleUser,
   OnCallDutyPolicyExecutionLog,
   OnCallDutyPolicyExecutionLogTimeline,
+  OnCallDutyPolicyUserOverride,
 
   Monitor,
   MonitorSecret,
