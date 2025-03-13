@@ -615,7 +615,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     // user override
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<OnCallDutyPolicyUserOverride, OnCallDutyPolicyUserOverrideServiceType>(
+      new BaseAPI<
+        OnCallDutyPolicyUserOverride,
+        OnCallDutyPolicyUserOverrideServiceType
+      >(
         OnCallDutyPolicyUserOverride,
         OnCallDutyPolicyUserOverrideService,
       ).getRouter(),

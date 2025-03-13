@@ -35,7 +35,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Call}
         />
-       
       </SideMenuSection>
       <SideMenuSection title="Schedules">
         <SideMenuItem
@@ -49,7 +48,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
       <SideMenuSection title="Advanced">
-      <SideMenuItem
+        <SideMenuItem
           link={{
             title: "User Overrides",
             to: RouteUtil.populateRouteParams(

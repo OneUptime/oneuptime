@@ -14,7 +14,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<OnCallDutyPolicyUserOverride>
+    createBy: CreateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
     if (!createBy.data.startsAt || !createBy.data.endsAt) {
       throw new BadDataException("Start time and end time are required");
@@ -26,25 +26,29 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
     }
 
     // make sure overrideUser and routealertsToUser are not the same
-    const overrideUserId: ObjectID = createBy.data.overrideUserId || createBy.data.overrideUser?.id!;
+    const overrideUserId: ObjectID | undefined | null =
+      createBy.data.overrideUserId || createBy.data.overrideUser?.id;
 
-    if(!overrideUserId) {
+    if (!overrideUserId) {
       throw new BadDataException("Override user is required");
     }
 
-    const routeAlertsToUserId: ObjectID = createBy.data.routeAlertsToUserId || createBy.data.routeAlertsToUser?.id!;
+    const routeAlertsToUserId: ObjectID | undefined | null =
+      createBy.data.routeAlertsToUserId || createBy.data.routeAlertsToUser?.id;
 
-    if(!routeAlertsToUserId) {
+    if (!routeAlertsToUserId) {
       throw new BadDataException("Route alerts to user is required");
     }
 
     if (overrideUserId.toString() === routeAlertsToUserId.toString()) {
-      throw new BadDataException("Override user and route alerts to user cannot be the same");
+      throw new BadDataException(
+        "Override user and route alerts to user cannot be the same",
+      );
     }
 
     return {
       createBy,
-      carryForward: null
+      carryForward: null,
     };
   }
 
@@ -62,11 +66,11 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
     if (!onCallDutyPolicyId) {
       return URL.fromString(dashboardUrl.toString()).addRoute(
-        `/${projectId.toString()}/on-call-duty/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`
+        `/${projectId.toString()}/on-call-duty/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`,
       );
     }
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`,
     );
   }
 }
