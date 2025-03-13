@@ -156,6 +156,7 @@ import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 const services: Array<BaseService> = [
   AcmeCertificateService,
@@ -218,6 +219,7 @@ const services: Array<BaseService> = [
   OnCallDutyPolicyExecutionLogService,
   OnCallDutyPolicyExecutionLogTimelineService,
   OnCallDutyPolicyService,
+  OnCallDutyPolicyUserOverrideService,
 
   ProjectService,
   ProjectSmtpConfigService,
