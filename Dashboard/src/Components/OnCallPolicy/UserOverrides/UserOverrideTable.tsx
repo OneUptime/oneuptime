@@ -13,6 +13,8 @@ import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDut
 import React, { FunctionComponent, ReactElement } from "react";
 import User from "Common/Models/DatabaseModels/User";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ProjectUser from "../../../Utils/ProjectUser";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -145,10 +147,63 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
     },
   ]);
 
+  const formFields = [
+    {
+      field: {
+        overrideUser: true,
+      },
+      title: "Override User",
+      description: "Select the user who will override the on-call duty.",
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: true,
+      placeholder: "Select Override User",
+      fetchDropdownOptions: async () => {
+        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+          DashboardNavigation.getProjectId()!,
+        );
+      },
+    },
+    {
+      field: {
+        routeAlertsToUser: true,
+      },
+      title: "Route Alerts To User",
+      description: "Select the user to whom alerts will be routed.",
+      fieldType: FormFieldSchemaType.Dropdown,
+      required: true,
+      placeholder: "Select User to Route Alerts",
+      fetchDropdownOptions: async () => {
+        return await ProjectUser.fetchProjectUsersAsDropdownOptions(
+          DashboardNavigation.getProjectId()!,
+        );
+      },
+    },
+    {
+      field: {
+        startsAt: true,
+      },
+      title: "Starts At",
+      description: "Select the start date and time for the override.",
+      fieldType: FormFieldSchemaType.DateTime,
+      required: true,
+      placeholder: "Select Start Date and Time",
+    },
+    {
+      field: {
+        endsAt: true,
+      },
+      title: "Ends At",
+      description: "Select the end date and time for the override.",
+      fieldType: FormFieldSchemaType.DateTime,
+      required: true,
+      placeholder: "Select End Date and Time",
+    },
+  ];
+
   return (
     <>
       <ModelTable<OnCallDutyPolicyUserOverride>
-        modelType={OnCallDutyPolicyUserOverride} 
+        modelType={OnCallDutyPolicyUserOverride}
         query={query}
         id="on-call-user-override-table"
         name="On-Call Policy > User Overrides"
@@ -164,6 +219,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
             ? "Overrides are usually useful when the user is on vacation or sick leave and you want to temporarily assign the on-call duty to another user."
             : "Global overrides are useful for assigning on-call duties across all policies when a user is unavailable.",
         }}
+        formFields={formFields}
         noItemsMessage={
           props.onCallDutyPolicyId
             ? "No user overrides have been set for this policy."
