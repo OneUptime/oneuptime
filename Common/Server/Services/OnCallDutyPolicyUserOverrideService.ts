@@ -22,7 +22,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
     // make sure start time is before end time
     if (OneUptimeDate.isAfter(createBy.data.startsAt, createBy.data.endsAt)) {
-      throw new Error("Start time must be before end time");
+      throw new BadDataException("Start time must be before end time");
     }
 
     // make sure overrideUser and routealertsToUser are not the same
