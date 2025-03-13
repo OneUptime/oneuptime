@@ -100,7 +100,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         overrideUser: {
           name: true,
           email: true,
-          profilePicture: true,
+          profilePictureId: true,
         },
       },
       title: "Override User",
@@ -117,7 +117,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         routeAlertsToUser: {
           name: true,
           email: true,
-          profilePicture: true,
+          profilePictureId: true,
         },
       },
       title: "Route Alerts To User",
@@ -148,7 +148,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
   return (
     <>
       <ModelTable<OnCallDutyPolicyUserOverride>
-        modelType={OnCallDutyPolicyUserOverride}
+        modelType={OnCallDutyPolicyUserOverride} 
         query={query}
         id="on-call-user-override-table"
         name="On-Call Policy > User Overrides"
@@ -157,11 +157,18 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         isCreateable={true}
         isViewable={false}
         cardProps={{
-          title: "On-Call Policy User Overrides",
-          description:
-            "Overrides are usually useful when the user is on vacation or sick leave and you want to temporarily assign the on-call duty to another user.",
+          title: props.onCallDutyPolicyId
+            ? "On-Call Policy User Overrides"
+            : "Global User Overrides",
+          description: props.onCallDutyPolicyId
+            ? "Overrides are usually useful when the user is on vacation or sick leave and you want to temporarily assign the on-call duty to another user."
+            : "Global overrides are useful for assigning on-call duties across all policies when a user is unavailable.",
         }}
-        noItemsMessage={"No user overrides have been set for this policy."}
+        noItemsMessage={
+          props.onCallDutyPolicyId
+            ? "No user overrides have been set for this policy."
+            : "No global user overrides have been set."
+        }
         viewPageRoute={Navigation.getCurrentRoute()}
         showRefreshButton={true}
         showViewIdButton={true}
