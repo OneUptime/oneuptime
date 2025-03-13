@@ -5,7 +5,6 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
-import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
@@ -204,74 +203,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyPolicyId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateOnCallDutyPolicyUserOverride,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadOnCallDutyPolicyUserOverride,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditOnCallDutyPolicyUserOverride,
-    ],
-  })
-  @Index()
-  @TableColumn({
-    required: true,
-    type: TableColumnType.ShortText,
-    title: "Name",
-    description: "Any friendly name of this object",
-    canReadOnRelationQuery: true,
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  public name?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateOnCallDutyPolicyUserOverride,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadOnCallDutyPolicyUserOverride,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditOnCallDutyPolicyUserOverride,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.LongText,
-    title: "Description",
-    description: "Friendly description that will help you remember",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public description?: string = undefined;
 
   @ColumnAccessControl({
     create: [
