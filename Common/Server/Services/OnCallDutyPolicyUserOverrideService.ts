@@ -3,10 +3,49 @@ import ObjectID from "../../Types/ObjectID";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate } from "../Types/Database/Hooks";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
 
 export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   public constructor() {
     super(OnCallDutyPolicyUserOverride);
+  }
+
+  protected override async onBeforeCreate(
+    createBy: CreateBy<OnCallDutyPolicyUserOverride>
+  ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
+    if (!createBy.data.startsAt || !createBy.data.endsAt) {
+      throw new BadDataException("Start time and end time are required");
+    }
+
+    // make sure start time is before end time
+    if (OneUptimeDate.isAfter(createBy.data.startsAt, createBy.data.endsAt)) {
+      throw new Error("Start time must be before end time");
+    }
+
+    // make sure overrideUser and routealertsToUser are not the same
+    const overrideUserId: ObjectID = createBy.data.overrideUserId || createBy.data.overrideUser?.id!;
+
+    if(!overrideUserId) {
+      throw new BadDataException("Override user is required");
+    }
+
+    const routeAlertsToUserId: ObjectID = createBy.data.routeAlertsToUserId || createBy.data.routeAlertsToUser?.id!;
+
+    if(!routeAlertsToUserId) {
+      throw new BadDataException("Route alerts to user is required");
+    }
+
+    if (overrideUserId.toString() === routeAlertsToUserId.toString()) {
+      throw new BadDataException("Override user and route alerts to user cannot be the same");
+    }
+
+    return {
+      createBy,
+      carryForward: null
+    };
   }
 
   public async getOnCallDutyPolicyUserOverrideLinkInDashboard(data: {
@@ -23,11 +62,11 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
     if (!onCallDutyPolicyId) {
       return URL.fromString(dashboardUrl.toString()).addRoute(
-        `/${projectId.toString()}/on-call-duty/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`,
+        `/${projectId.toString()}/on-call-duty/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`
       );
     }
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`,
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`
     );
   }
 }
