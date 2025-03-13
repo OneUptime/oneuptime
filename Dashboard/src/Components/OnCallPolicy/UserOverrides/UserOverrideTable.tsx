@@ -211,6 +211,14 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={false}
+        onBeforeCreate={(item: OnCallDutyPolicyUserOverride) => {
+          item.projectId = DashboardNavigation.getProjectId()!;
+          if (props.onCallDutyPolicyId) {
+            item.onCallDutyPolicyId = props.onCallDutyPolicyId;
+          }
+
+          return Promise.resolve(item);
+        }}
         cardProps={{
           title: props.onCallDutyPolicyId
             ? "On-Call Policy User Overrides"
