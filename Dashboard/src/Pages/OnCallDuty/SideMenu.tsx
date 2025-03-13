@@ -35,15 +35,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Call}
         />
-        <SideMenuItem
-          link={{
-            title: "User Overrides",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route,
-            ),
-          }}
-          icon={IconProp.User}
-        />
+       
       </SideMenuSection>
       <SideMenuSection title="Schedules">
         <SideMenuItem
@@ -56,7 +48,16 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Calendar}
         />
       </SideMenuSection>
-      <SideMenuSection title="More">
+      <SideMenuSection title="Advanced">
+      <SideMenuItem
+          link={{
+            title: "User Overrides",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route,
+            ),
+          }}
+          icon={IconProp.User}
+        />
         <SideMenuItem
           link={{
             title: "Execution Logs",
