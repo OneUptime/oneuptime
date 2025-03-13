@@ -1121,7 +1121,7 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   [PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${  OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES]}`,
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES]}`,
   ),
 
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES]: new Route(

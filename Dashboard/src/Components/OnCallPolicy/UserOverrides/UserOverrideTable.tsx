@@ -21,14 +21,13 @@ export interface ComponentProps {
 const UserOverrideTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const query: Query<OnCallDutyPolicyUserOverride> = {
     projectId: DashboardNavigation.getProjectId()!,
   };
 
   if (props.onCallDutyPolicyId) {
     query.onCallDutyPolicyId = props.onCallDutyPolicyId.toString();
-  }else{
+  } else {
     query.onCallDutyPolicyId = new IsNull();
   }
 
@@ -87,67 +86,63 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
       },
     },
     {
-        title: "Ends At",
-        type: FieldType.Date,
-        field: {
-          endsAt: true,
-        },
+      title: "Ends At",
+      type: FieldType.Date,
+      field: {
+        endsAt: true,
       },
+    },
   ]);
 
   columns = columns.concat([
     {
-        field: {
-            overrideUser: {
-                name: true,
-                email: true,
-                profilePicture: true,
-            },
+      field: {
+        overrideUser: {
+          name: true,
+          email: true,
+          profilePicture: true,
         },
-        title: "Override User",
-        type: FieldType.Element,
-        getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
-            if (item["overrideUser"]) {
-                return (
-                    <UserElement user={item["overrideUser"] as User} />
-                );
-            }
-            return <p>No user.</p>;
-        },
+      },
+      title: "Override User",
+      type: FieldType.Element,
+      getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
+        if (item["overrideUser"]) {
+          return <UserElement user={item["overrideUser"] as User} />;
+        }
+        return <p>No user.</p>;
+      },
     },
     {
-        field: {
-            routeAlertsToUser: {
-                name: true,
-                email: true,
-                profilePicture: true,
-            },
+      field: {
+        routeAlertsToUser: {
+          name: true,
+          email: true,
+          profilePicture: true,
         },
-        title: "Route Alerts To User",
-        type: FieldType.Element,
-        getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
-            if (item["routeAlertsToUser"]) {
-                return (
-                    <UserElement user={item["routeAlertsToUser"] as User} />
-                );
-            }
-            return <p>No user.</p>;
-        },
+      },
+      title: "Route Alerts To User",
+      type: FieldType.Element,
+      getElement: (item: OnCallDutyPolicyUserOverride): ReactElement => {
+        if (item["routeAlertsToUser"]) {
+          return <UserElement user={item["routeAlertsToUser"] as User} />;
+        }
+        return <p>No user.</p>;
+      },
     },
     {
-        field: {
-            startsAt: true,
-        },
-        title: "Starts At",
-        type: FieldType.DateTime,
+      field: {
+        startsAt: true,
+      },
+      title: "Starts At",
+      type: FieldType.DateTime,
     },
     {
-        field: {
-            endsAt: true,
-        },
-        title: "Ends At",
-        type: FieldType.DateTime,
-    }
+      field: {
+        endsAt: true,
+      },
+      title: "Ends At",
+      type: FieldType.DateTime,
+    },
   ]);
 
   return (

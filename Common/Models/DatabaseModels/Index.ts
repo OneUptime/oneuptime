@@ -168,8 +168,6 @@ import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 import ProjectUser from "./ProjectUser";
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 
-
-
 const AllModelTypes: Array<{
   new (): BaseModel;
 }> = [

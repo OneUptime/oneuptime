@@ -2383,8 +2383,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
-
       {
         permission: Permission.CreateOnCallDutyPolicyUserOverride,
         title: "Create On-Call Duty Policy User Override",
@@ -2395,7 +2393,7 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteOnCallDutyPolicyUserOverride,
-        title:  "Delete On-Call Duty Policy User Override",
+        title: "Delete On-Call Duty Policy User Override",
         description:
           "This permission can delete on-call duty policy user override of this project.",
         isAssignableToTenant: true,
@@ -2417,7 +2415,6 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
-
 
       {
         permission: Permission.CreateProjectOnCallDutyPolicy,

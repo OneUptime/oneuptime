@@ -133,7 +133,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-
   // If this is null then it's a global override
   // If this is set then it's a policy specific override
   // Policy specifc override will take precedence over global override
@@ -339,7 +338,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   public createdByUserId?: ObjectID = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -361,7 +359,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: User,
     title: "Override User",
     description:
-        "Relation to User who is being overridden by this object (if this object was created by a User)",
+      "Relation to User who is being overridden by this object (if this object was created by a User)",
   })
   @ManyToOne(
     () => {
@@ -397,7 +395,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     required: true,
     title: "Override User ID",
     description:
-        "User ID who is being overridden by this object (if this object was created by a User)",
+      "User ID who is being overridden by this object (if this object was created by a User)",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -405,8 +403,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public overrideUserId?: ObjectID = undefined;
-
-
 
   @ColumnAccessControl({
     create: [
@@ -429,7 +425,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     modelType: User,
     title: "Route Alerts To User",
     description:
-        "Relation to User who is being overridden by this object (if this object was created by a User)",
+      "Relation to User who is being overridden by this object (if this object was created by a User)",
   })
   @ManyToOne(
     () => {
@@ -465,7 +461,7 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     required: true,
     title: "Route Alerts To User ID",
     description:
-        "User ID who is being overridden by this object (if this object was created by a User)",
+      "User ID who is being overridden by this object (if this object was created by a User)",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -473,7 +469,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public routeAlertsToUserId?: ObjectID = undefined;
-
 
   @TableColumn({
     title: "Start At",
@@ -502,7 +497,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
   })
   public startsAt?: Date = undefined;
 
-
   @TableColumn({
     title: "Ends At",
     type: TableColumnType.Date,
@@ -529,7 +523,6 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     type: ColumnType.Date,
   })
   public endsAt?: Date = undefined;
-
 
   @ColumnAccessControl({
     create: [],
@@ -575,5 +568,4 @@ export default class OnCallDutyPolicyUserOverride extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
-
 }

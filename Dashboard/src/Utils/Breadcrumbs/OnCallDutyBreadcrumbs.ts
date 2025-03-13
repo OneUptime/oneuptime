@@ -29,15 +29,17 @@ export function getOnCallDutyBreadcrumbs(
     ]),
 
     // user overrides
-    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES, [
-      "Project",
-      "On-Call Duty",
-      "User Overrides",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES,
+      ["Project", "On-Call Duty", "User Overrides"],
+    ),
 
     // policy view user override
 
-    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES,  ["Project", "On-Call Duty", "View On-Call Policy", "User Overrides"],),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES,
+      ["Project", "On-Call Duty", "View On-Call Policy", "User Overrides"],
+    ),
 
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE,

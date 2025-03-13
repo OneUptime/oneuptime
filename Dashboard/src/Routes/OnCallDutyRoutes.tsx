@@ -27,22 +27,17 @@ const OnCallDutyExecutionLogs: LazyExoticComponent<
   return import("../Pages/OnCallDuty/OnCallDutyExecutionLogs");
 });
 
-
 const OnCallDutyUserOverrides: LazyExoticComponent<
-
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/OnCallDuty/UserOverrides");
-}
-);
-
+});
 
 const OnCallDutyPolicyViewUserOverrides: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides");
-}
-);
+});
 const OnCallDutyPolicyExecutionLogTimeline: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -143,8 +138,11 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
-          path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] || ""}
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] ||
+            ""
+          }
           element={
             <Suspense fallback={Loader}>
               <OnCallDutyUserOverrides
@@ -237,7 +235,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES,
           )}
@@ -246,7 +244,9 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               <OnCallDutyPolicyViewUserOverrides
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES] as Route
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
+                  ] as Route
                 }
               />
             </Suspense>
