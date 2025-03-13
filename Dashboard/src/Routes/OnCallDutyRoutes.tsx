@@ -26,6 +26,18 @@ const OnCallDutyExecutionLogs: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutyExecutionLogs");
 });
+
+const OnCallDutyUserOverrides: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/UserOverrides");
+});
+
+const OnCallDutyPolicyViewUserOverrides: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/UserOverrides");
+});
 const OnCallDutyPolicyExecutionLogTimeline: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -128,6 +140,23 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
+            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] ||
+            ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyUserOverrides
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
             OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE] ||
             ""
           }
@@ -200,6 +229,24 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewUserOverrides
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
+                  ] as Route
                 }
               />
             </Suspense>

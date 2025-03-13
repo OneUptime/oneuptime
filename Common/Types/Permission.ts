@@ -512,6 +512,11 @@ enum Permission {
   DeleteProjectOnCallDutyPolicyEscalationRule = "DeleteProjectOnCallDutyPolicyEscalationRule",
   ReadProjectOnCallDutyPolicyEscalationRule = "ReadProjectOnCallDutyPolicyEscalationRule",
 
+  CreateOnCallDutyPolicyUserOverride = "CreateOnCallDutyPolicyUserOverride",
+  EditOnCallDutyPolicyUserOverride = "EditOnCallDutyPolicyUserOverride",
+  DeleteOnCallDutyPolicyUserOverride = "DeleteOnCallDutyPolicyUserOverride",
+  ReadOnCallDutyPolicyUserOverride = "ReadOnCallDutyPolicyUserOverride",
+
   // Resource Permissions (Team Permission)
   CreateProjectOnCallDutyPolicyEscalationRuleUser = "CreateProjectOnCallDutyPolicyEscalationRuleUser",
   EditProjectOnCallDutyPolicyEscalationRuleUser = "EditProjectOnCallDutyPolicyEscalationRuleUser",
@@ -2374,6 +2379,39 @@ export class PermissionHelper {
         title: "Read On-Call Duty Policy Escalation Rule",
         description:
           "This permission can read on-call duty escalation rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateOnCallDutyPolicyUserOverride,
+        title: "Create On-Call Duty Policy User Override",
+        description:
+          "This permission can create on-call duty policy user override this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyUserOverride,
+        title: "Delete On-Call Duty Policy User Override",
+        description:
+          "This permission can delete on-call duty policy user override of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyUserOverride,
+        title: "Edit On-Call Duty Policy User Override",
+        description:
+          "This permission can edit on-call duty policy user override of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyUserOverride,
+        title: "Read On-Call Duty Policy User Override",
+        description:
+          "This permission can read on-call duty policy user override of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
