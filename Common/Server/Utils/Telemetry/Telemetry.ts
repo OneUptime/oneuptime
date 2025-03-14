@@ -5,8 +5,10 @@ import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import ArrayUtil from "../../../Utils/Array";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import TelemetryAttributeService from "../../Services/TelemetryAttributeService";
+import CaptureSpan from "./CaptureSpan";
 
 export default class TelemetryUtil {
+  @CaptureSpan()
   public static async indexAttributes(data: {
     attributes: string[];
     projectId: ObjectID;
@@ -60,6 +62,7 @@ export default class TelemetryUtil {
     }
   }
 
+  @CaptureSpan()
   public static getAttributes(data: {
     items: JSONArray;
     telemetryServiceId?: ObjectID;

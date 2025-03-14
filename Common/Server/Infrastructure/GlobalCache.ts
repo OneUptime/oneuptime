@@ -5,8 +5,10 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default abstract class GlobalCache {
+  @CaptureSpan()
   public static async getJSONObject(
     namespace: string,
     key: string,
@@ -27,6 +29,7 @@ export default abstract class GlobalCache {
     return json;
   }
 
+  @CaptureSpan()
   public static async getStringArray(
     namespace: string,
     key: string,
@@ -48,6 +51,7 @@ export default abstract class GlobalCache {
     return stringArr;
   }
 
+  @CaptureSpan()
   public static async setStringArray(
     namespace: string,
     key: string,
