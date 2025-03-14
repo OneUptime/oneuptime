@@ -193,7 +193,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               {SpanUtil.getSpanEndsAtAsString({
                 timelineStartTimeUnixNano,
                 divisibilityFactor: divisibilityFactor,
-                spanEndTimeUnixNano: span.startTimeUnixNano!,
+                spanEndTimeUnixNano: span.endTimeUnixNano!,
               })}
             </div>
           </div>

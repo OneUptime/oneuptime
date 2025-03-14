@@ -104,6 +104,11 @@ class OpenTelemetryRequestMiddleware {
       }
 
       (req as TelemetryRequest).productType = productType;
+
+      logger.debug("Product Type: " + productType);
+      logger.debug("Is Protobuf: " + isProtobuf);
+      logger.debug("Request Body: " + JSON.stringify(req.body, null, 2));
+
       next();
     } catch (err) {
       return next(err);
@@ -210,9 +215,12 @@ router.post(
             dbSpan.attributes = {
               ...attributesObject,
               ...TelemetryUtil.getAttributes({
-                items: span["attributes"] as JSONArray,
+                items: [],
                 telemetryServiceName: serviceName,
                 telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
+              }),
+              "spanAttributes": TelemetryUtil.getAttributes({
+                items: span["attributes"] as JSONArray,
               }),
             };
 
@@ -517,10 +525,13 @@ router.post(
             ) {
               attributesObject = {
                 ...TelemetryUtil.getAttributes({
-                  items: metric["attributes"] as JSONArray,
+                  items: [],
                   telemetryServiceName: serviceName,
                   telemetryServiceId:
                     serviceDictionary[serviceName]!.serviceId!,
+                }),
+                metricAttributes: TelemetryUtil.getAttributes({
+                  items: metric["attributes"] as JSONArray,
                 }),
               };
             }
@@ -822,9 +833,12 @@ router.post(
             dbLog.attributes = {
               ...attributesObject,
               ...TelemetryUtil.getAttributes({
-                items: log["attributes"] as JSONArray,
+                items: [],
                 telemetryServiceName: serviceName,
                 telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
+              }),
+              logAttributes: TelemetryUtil.getAttributes({
+                items: log["attributes"] as JSONArray,
               }),
             };
 

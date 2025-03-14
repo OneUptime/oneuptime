@@ -43,7 +43,7 @@ export default class InfrastructureStatus {
     }
   }
 
-  @CaptureSpan("Check Infrastructure Status With Retry")
+  @CaptureSpan()
   public static async checkStatusWithRetry(data: {
     retryCount: number;
     checkRedisStatus: boolean;
