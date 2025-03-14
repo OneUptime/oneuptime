@@ -2,7 +2,7 @@ import {
   DisableTelemetry,
   OpenTelemetryExporterOtlpEndpoint,
   OpenTelemetryExporterOtlpHeaders,
-} from "../Config";
+} from "../../Config";
 import { ZoneContextManager } from "@opentelemetry/context-zone";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
