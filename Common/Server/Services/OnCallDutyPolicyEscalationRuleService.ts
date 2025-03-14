@@ -40,8 +40,9 @@ export class Service extends DatabaseService<Model> {
     onCallDutyPolicyId: ObjectID;
     projectId: ObjectID;
   }): Promise<ObjectID | null> {
-
-    logger.debug(`Getting route alert to user id for userId: ${data.userId.toString()}`);
+    logger.debug(
+      `Getting route alert to user id for userId: ${data.userId.toString()}`,
+    );
 
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
@@ -50,7 +51,7 @@ export class Service extends DatabaseService<Model> {
         query: {
           overrideUserId: data.userId,
           onCallDutyPolicyId: QueryHelper.equalToOrNull(
-            data.onCallDutyPolicyId
+            data.onCallDutyPolicyId,
           ), // find global overrides as well. If this is null, then it will find global overrides.
           projectId: data.projectId,
           startsAt: QueryHelper.lessThanEqualTo(currentDate),
@@ -79,18 +80,21 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (localOverride && localOverride.routeAlertsToUserId) {
-      logger.debug(`Route alert to user id found: ${localOverride.routeAlertsToUserId.toString()}`);
+      logger.debug(
+        `Route alert to user id found: ${localOverride.routeAlertsToUserId.toString()}`,
+      );
       return localOverride.routeAlertsToUserId;
     }
 
     const globalOverride: OnCallDutyPolicyUserOverride | undefined =
       alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
-       
         return !item.onCallDutyPolicyId;
       });
 
     if (globalOverride && globalOverride.routeAlertsToUserId) {
-      logger.debug(`Route alert to user id found: ${globalOverride.routeAlertsToUserId.toString()}`);
+      logger.debug(
+        `Route alert to user id found: ${globalOverride.routeAlertsToUserId.toString()}`,
+      );
       return globalOverride.routeAlertsToUserId;
     }
 
@@ -106,7 +110,7 @@ export class Service extends DatabaseService<Model> {
       userNotificationEventType: UserNotificationEventType;
       onCallPolicyExecutionLogId: ObjectID;
       onCallPolicyId: ObjectID;
-    }
+    },
   ): Promise<void> {
     logger.debug(`Starting rule execution for ruleId: ${ruleId.toString()}`);
 
@@ -124,7 +128,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!rule) {
       throw new BadDataException(
-        `On-Call Duty Policy Escalation Rule with id ${ruleId.toString()} not found`
+        `On-Call Duty Policy Escalation Rule with id ${ruleId.toString()} not found`,
       );
     }
 
@@ -175,7 +179,7 @@ export class Service extends DatabaseService<Model> {
       !options.triggeredByIncidentId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated"
+        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
       );
     }
 
@@ -185,7 +189,7 @@ export class Service extends DatabaseService<Model> {
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated"
+        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
       );
     }
 
@@ -243,14 +247,14 @@ export class Service extends DatabaseService<Model> {
     type StartUserNotificationRuleExecutionFunction = (
       userId: ObjectID,
       teamId: ObjectID | null,
-      scheduleId: ObjectID | null
+      scheduleId: ObjectID | null,
     ) => Promise<void>;
 
     const startUserNotificationRuleExecution: StartUserNotificationRuleExecutionFunction =
       async (
         userId: ObjectID,
         teamId: ObjectID | null,
-        scheduleId: ObjectID | null
+        scheduleId: ObjectID | null,
       ): Promise<void> => {
         // This is where user is notified.
 
@@ -265,18 +269,17 @@ export class Service extends DatabaseService<Model> {
           });
         }
 
-
         const alertSentToUserId: ObjectID = routeAlertToUserId || userId;
 
         logger.debug(
-          `Starting notification rule execution for userId: ${alertSentToUserId.toString()}`
+          `Starting notification rule execution for userId: ${alertSentToUserId.toString()}`,
         );
         let log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
         log.statusMessage = "Sending notification to user.";
         log.status = OnCallDutyExecutionLogTimelineStatus.Executing;
         log.alertSentToUserId = alertSentToUserId;
 
-        if(routeAlertToUserId){
+        if (routeAlertToUserId) {
           log.overridedByUserId = userId;
         }
 
@@ -309,7 +312,7 @@ export class Service extends DatabaseService<Model> {
             projectId: options.projectId,
             onCallScheduleId: scheduleId || undefined,
             overridedByUserId: routeAlertToUserId ? userId : undefined,
-          }
+          },
         );
       };
 
@@ -317,7 +320,7 @@ export class Service extends DatabaseService<Model> {
 
     for (const teamInRule of teamsInRule) {
       const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
-        teamInRule.teamId!
+        teamInRule.teamId!,
       );
 
       for (const user of usersInTeam) {
@@ -330,7 +333,7 @@ export class Service extends DatabaseService<Model> {
           await startUserNotificationRuleExecution(
             user.id!,
             teamInRule.teamId!,
-            null
+            null,
           );
         } else {
           const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -377,7 +380,7 @@ export class Service extends DatabaseService<Model> {
     for (const scheduleRule of schedulesInRule) {
       const userIdInSchedule: ObjectID | null =
         await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
-          scheduleRule.onCallDutyPolicyScheduleId!
+          scheduleRule.onCallDutyPolicyScheduleId!,
         );
 
       if (!userIdInSchedule) {
@@ -406,7 +409,7 @@ export class Service extends DatabaseService<Model> {
         await startUserNotificationRuleExecution(
           userIdInSchedule,
           null,
-          scheduleRule.onCallDutyPolicyScheduleId!
+          scheduleRule.onCallDutyPolicyScheduleId!,
         );
       } else {
         const log: OnCallDutyPolicyExecutionLogTimeline = getNewLog();
@@ -447,7 +450,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
@@ -474,7 +477,7 @@ export class Service extends DatabaseService<Model> {
         (onCreate.createBy.miscDataProps[
           "onCallSchedules"
         ] as Array<ObjectID>) || [],
-        onCreate.createBy.props
+        onCreate.createBy.props,
       );
     }
 
@@ -488,7 +491,7 @@ export class Service extends DatabaseService<Model> {
     usersIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     onCallScheduleIds: Array<ObjectID>,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     for (const userId of usersIds) {
       await this.addUser(
@@ -496,7 +499,7 @@ export class Service extends DatabaseService<Model> {
         escalationRuleId,
         onCallDutyPolicyId,
         userId,
-        props
+        props,
       );
     }
 
@@ -506,7 +509,7 @@ export class Service extends DatabaseService<Model> {
         escalationRuleId,
         onCallDutyPolicyId,
         teamId,
-        props
+        props,
       );
     }
 
@@ -516,7 +519,7 @@ export class Service extends DatabaseService<Model> {
         escalationRuleId,
         onCallDutyPolicyId,
         scheduleId,
-        props
+        props,
       );
     }
   }
@@ -526,7 +529,7 @@ export class Service extends DatabaseService<Model> {
     escalationRuleId: ObjectID,
     onCallDutyPolicyId: ObjectID,
     teamId: ObjectID,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     const teamInRule: OnCallDutyPolicyEscalationRuleTeam =
       new OnCallDutyPolicyEscalationRuleTeam();
@@ -546,7 +549,7 @@ export class Service extends DatabaseService<Model> {
     escalationRuleId: ObjectID,
     onCallDutyPolicyId: ObjectID,
     onCallScheduleId: ObjectID,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     const scheduleInRule: OnCallDutyPolicyEscalationRuleSchedule =
       new OnCallDutyPolicyEscalationRuleSchedule();
@@ -566,7 +569,7 @@ export class Service extends DatabaseService<Model> {
     escalationRuleId: ObjectID,
     onCallDutyPolicyId: ObjectID,
     userId: ObjectID,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     const userInRule: OnCallDutyPolicyEscalationRuleUser =
       new OnCallDutyPolicyEscalationRuleUser();
@@ -582,7 +585,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>
+    createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (IsBillingEnabled && createBy.props.currentPlan === PlanType.Free) {
       // then check no of policies and if it is more than one, return error
@@ -600,14 +603,14 @@ export class Service extends DatabaseService<Model> {
 
       if (count.toNumber() >= 1) {
         throw new BadDataException(
-          "You can only create one escalation rule in free plan."
+          "You can only create one escalation rule in free plan.",
         );
       }
     }
 
     if (!createBy.data.onCallDutyPolicyId) {
       throw new BadDataException(
-        "Status Page Resource onCallDutyPolicyId is required"
+        "Status Page Resource onCallDutyPolicyId is required",
       );
     }
 
@@ -629,7 +632,7 @@ export class Service extends DatabaseService<Model> {
     await this.rearrangeOrder(
       createBy.data.order,
       createBy.data.onCallDutyPolicyId,
-      true
+      true,
     );
 
     return {
@@ -639,11 +642,11 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
       throw new BadDataException(
-        "_id should be present when deleting status page resource. Please try the delete with objectId"
+        "_id should be present when deleting status page resource. Please try the delete with objectId",
       );
     }
 
@@ -670,7 +673,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[]
+    _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
@@ -681,7 +684,7 @@ export class Service extends DatabaseService<Model> {
           resource.order,
           resource.onCallDutyPolicyId,
 
-          false
+          false,
         );
       }
     }
@@ -693,7 +696,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>
+    updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: Model | null = await this.findOneBy({
@@ -781,7 +784,7 @@ export class Service extends DatabaseService<Model> {
   private async rearrangeOrder(
     currentOrder: number,
     onCallDutyPolicyId: ObjectID,
-    increaseOrder: boolean = true
+    increaseOrder: boolean = true,
   ): Promise<void> {
     // get status page resource with this order.
     const resources: Array<Model> = await this.findBy({

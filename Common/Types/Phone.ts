@@ -30,10 +30,11 @@ export default class Phone extends DatabaseProperty {
         return typeof phone === "string" ? phone : phone.toString();
       });
 
+    type NormalizePhoneNumberFunction = (phone: string) => string;
 
-      type NormalizePhoneNumberFunction = (phone: string) => string;
-
-    const normalizePhoneNumber: NormalizePhoneNumberFunction = (phone: string): string => {
+    const normalizePhoneNumber: NormalizePhoneNumberFunction = (
+      phone: string,
+    ): string => {
       phone = phone.trim();
       return phone.startsWith("+") ? phone.substring(1) : phone;
     };

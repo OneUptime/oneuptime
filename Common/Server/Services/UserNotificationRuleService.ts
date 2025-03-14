@@ -826,8 +826,6 @@ export class Service extends DatabaseService<Model> {
     return emailMessage;
   }
 
-
-
   public async startUserNotificationRulesExecution(
     userId: ObjectID,
     options: {
@@ -844,10 +842,6 @@ export class Service extends DatabaseService<Model> {
       overridedByUserId?: ObjectID | undefined;
     },
   ): Promise<void> {
-
-    
-    
-
     // add user notification log.
     const userOnCallLog: UserOnCallLog = new UserOnCallLog();
 

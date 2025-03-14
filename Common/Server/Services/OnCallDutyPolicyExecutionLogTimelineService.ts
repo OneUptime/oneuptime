@@ -22,7 +22,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public getColorBasedOnStatus(
-    status: OnCallDutyExecutionLogTimelineStatus
+    status: OnCallDutyExecutionLogTimelineStatus,
   ): Color {
     switch (status) {
       case OnCallDutyExecutionLogTimelineStatus.Started:
@@ -43,7 +43,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public getEmojiBasedOnStatus(
-    status: OnCallDutyExecutionLogTimelineStatus
+    status: OnCallDutyExecutionLogTimelineStatus,
   ): string {
     switch (status) {
       case OnCallDutyExecutionLogTimelineStatus.Started:
@@ -67,7 +67,7 @@ export class Service extends DatabaseService<Model> {
     onCallDutyPolicyExecutionLogTimelineId: ObjectID;
   }): Promise<void> {
     logger.debug(
-      "OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed"
+      "OnCallDutyPolicyExecutionLogTimelineService.addToIncidentFeed",
     );
 
     const onCallDutyPolicyExecutionLogTimeline: Model | null =
@@ -174,14 +174,14 @@ export class Service extends DatabaseService<Model> {
           {
             userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          }
+          },
         )}**
 
 The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.name}](${(await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(onCallDutyPolicyExecutionLogTimeline.projectId!, onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.id!)).toString()})** has been triggered. The escalation rule **${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicyEscalationRule?.name}** ${onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name ? String(" and schedule **" + onCallDutyPolicyExecutionLogTimeline.onCallDutySchedule?.name + "**") : ""} were applied. ${await UserService.getUserMarkdownString(
           {
             userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          }
+          },
         )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "**" : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "**" : ""}`;
 
         if (onCallDutyPolicyExecutionLogTimeline.overridedByUser) {
@@ -189,7 +189,7 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
             {
               userId: onCallDutyPolicyExecutionLogTimeline.overridedByUser.id!,
               projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-            }
+            },
           )}** but was routed to **${await UserService.getUserMarkdownString({
             userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
@@ -229,7 +229,7 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     logger.debug("OnCallDutyPolicyExecutionLogTimelineService.onCreateSuccess");
     logger.debug(createdItem);
@@ -243,7 +243,7 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
 
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: Array<ObjectID>
+    _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.query) {
       const updatedItems: Array<Model> = await this.findBy({
