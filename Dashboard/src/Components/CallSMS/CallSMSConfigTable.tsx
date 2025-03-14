@@ -266,14 +266,14 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             field: {
               twilioPrimaryPhoneNumber: true,
             },
-            title: "Twilio Phone Number",
+            title: "Primary Twilio Phone Number",
             type: FieldType.Phone,
           },
           {
             field: {
               twilioSecondaryPhoneNumbers: true,
             },
-            title: "Twilio Phone Number",
+            title: "Secondary Twilio Phone Number",
             type: FieldType.LongText,
           },
         ]}

@@ -416,8 +416,8 @@ export default class ProjectCallSMSConfig extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.Phone,
-    title: "Twilio Phone Number",
-    description: "Phone Number for your Twilio account",
+    title: "Twilio Primary Phone Number",
+    description: "Primary Phone Number for your Twilio account",
   })
   @Column({
     type: ColumnType.Phone,
