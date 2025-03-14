@@ -10,6 +10,7 @@ import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
+import Phone from "Common/Types/Phone";
 
 export const InternalSmtpPassword: string =
   process.env["INTERNAL_SMTP_PASSWORD"] || "";
@@ -196,7 +197,8 @@ export const getTwilioConfig: GetTwilioConfigFunction =
         select: {
           twilioAccountSID: true,
           twilioAuthToken: true,
-          twilioPhoneNumber: true,
+          twilioPrimaryPhoneNumber: true,
+          twilioSecondaryPhoneNumbers: true,
         },
       });
 
@@ -207,7 +209,7 @@ export const getTwilioConfig: GetTwilioConfigFunction =
     if (
       !globalConfig.twilioAccountSID ||
       !globalConfig.twilioAuthToken ||
-      !globalConfig.twilioPhoneNumber
+      !globalConfig.twilioPrimaryPhoneNumber
     ) {
       return null;
     }
@@ -215,7 +217,10 @@ export const getTwilioConfig: GetTwilioConfigFunction =
     return {
       accountSid: globalConfig.twilioAccountSID,
       authToken: globalConfig.twilioAuthToken,
-      phoneNumber: globalConfig.twilioPhoneNumber,
+      primaryPhoneNumber: globalConfig.twilioPrimaryPhoneNumber,
+      secondaryPhoneNumbers: globalConfig.twilioSecondaryPhoneNumbers && globalConfig.twilioSecondaryPhoneNumbers.length > 0 ? globalConfig.twilioSecondaryPhoneNumbers.split(",").map((phoneNumber: string)=>{
+        return new Phone(phoneNumber.trim());
+      }) : [],
     };
   };
 

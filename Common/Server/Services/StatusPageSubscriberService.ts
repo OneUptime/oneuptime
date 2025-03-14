@@ -262,7 +262,9 @@ export class Service extends DatabaseService<Model> {
             _id: true,
             twilioAccountSID: true,
             twilioAuthToken: true,
-            twilioPhoneNumber: true,
+            twilioPrimaryPhoneNumber: true,
+            twilioSecondaryPhoneNumbers: true,
+
           },
         },
         props: {
@@ -795,7 +797,8 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           twilioAccountSID: true,
           twilioAuthToken: true,
-          twilioPhoneNumber: true,
+          twilioPrimaryPhoneNumber: true,
+          twilioSecondaryPhoneNumbers: true,
         },
         subscriberTimezones: true,
         reportDataInDays: true,

@@ -53,7 +53,8 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
         _id: true,
         twilioAccountSID: true,
         twilioAuthToken: true,
-        twilioPhoneNumber: true,
+        twilioPrimaryPhoneNumber: true,
+        twilioSecondaryPhoneNumbers: true,
         projectId: true,
       },
     });
@@ -96,11 +97,11 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
     );
   }
 
-  if (!config.twilioPhoneNumber) {
+  if (!config.twilioPrimaryPhoneNumber) {
     return Response.sendErrorResponse(
       req,
       res,
-      new BadDataException("twilioPhoneNumber is required"),
+      new BadDataException("twilioPrimaryPhoneNumber is required"),
     );
   }
 

@@ -170,14 +170,31 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              twilioPhoneNumber: true,
+              twilioPrimaryPhoneNumber: true,
             },
-            title: "Twilio Phone Number",
+            title: "Twilio Primary Phone Number",
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Phone,
             required: true,
             description: "You can find this in your Twilio console.",
             placeholder: "",
+            validation: {
+              minLength: 2,
+            },
+          },
+
+          // add twilioSecondaryPhoneNumbers
+          {
+            field: {
+              twilioSecondaryPhoneNumbers: true,
+            },
+            title: "Twilio Secondary Phone Numbers",
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            description:
+              "If you have multiple phone numbers, add them here. These numbers will be used to send SMS and make calls if the country code matches instead of primary phone number. If the country code does not match, then primary phone number will be used.",
+            placeholder: "+441234567890, +461234567890",
             validation: {
               minLength: 2,
             },
@@ -208,10 +225,17 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
           },
           {
-            title: "Twilio Phone Number",
+            title: "Twilio Primary Phone Number",
             type: FieldType.Phone,
             field: {
-              twilioPhoneNumber: true,
+              twilioPrimaryPhoneNumber: true,
+            },
+          },
+          {
+            title: "Twilio Secondary Primary Phone Numbers",
+            type: FieldType.LongText,
+            field: {
+              twilioSecondaryPhoneNumbers: true,
             },
           },
         ]}
@@ -240,10 +264,17 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              twilioPhoneNumber: true,
+              twilioPrimaryPhoneNumber: true,
             },
             title: "Twilio Phone Number",
             type: FieldType.Phone,
+          },
+          {
+            field: {
+              twilioSecondaryPhoneNumbers: true,
+            },
+            title: "Twilio Phone Number",
+            type: FieldType.LongText,
           },
         ]}
       />
@@ -284,19 +315,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               const response:
                 | HTTPResponse<EmptyResponseData>
                 | HTTPErrorResponse = await API.post(
-                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                  `/sms/test`,
-                ),
+                  URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                    `/sms/test`,
+                  ),
 
-                {
-                  toPhone: values["toPhone"],
-                  callSMSConfigId: new ObjectID(
-                    currentCallSMSTestConfig["_id"]
-                      ? currentCallSMSTestConfig["_id"].toString()
-                      : "",
-                  ).toString(),
-                },
-              );
+                  {
+                    toPhone: values["toPhone"],
+                    callSMSConfigId: new ObjectID(
+                      currentCallSMSTestConfig["_id"]
+                        ? currentCallSMSTestConfig["_id"].toString()
+                        : "",
+                    ).toString(),
+                  },
+                );
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
                 setShowSMSTestModal(false);
@@ -321,7 +352,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           title={`SMS Sent`}
           error={
             error ===
-            "Error connecting to server. Please try again in few minutes."
+              "Error connecting to server. Please try again in few minutes."
               ? "Request timed out. Please check your twilio credentials and make sure they are correct."
               : error
           }
@@ -373,19 +404,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               const response:
                 | HTTPResponse<EmptyResponseData>
                 | HTTPErrorResponse = await API.post(
-                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                  `/call/test`,
-                ),
+                  URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                    `/call/test`,
+                  ),
 
-                {
-                  toPhone: values["toPhone"],
-                  callSMSConfigId: new ObjectID(
-                    currentCallSMSTestConfig["_id"]
-                      ? currentCallSMSTestConfig["_id"].toString()
-                      : "",
-                  ).toString(),
-                },
-              );
+                  {
+                    toPhone: values["toPhone"],
+                    callSMSConfigId: new ObjectID(
+                      currentCallSMSTestConfig["_id"]
+                        ? currentCallSMSTestConfig["_id"].toString()
+                        : "",
+                    ).toString(),
+                  },
+                );
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
                 setShowCallTestModal(false);
@@ -410,7 +441,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           title={`Call Sent`}
           error={
             error ===
-            "Error connecting to server. Please try again in few minutes."
+              "Error connecting to server. Please try again in few minutes."
               ? "Request timed out. Please check your twilio credentials and make sure they are correct."
               : error
           }

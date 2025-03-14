@@ -232,8 +232,8 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.Phone,
-    title: "Twilio Phone Number",
-    description: "Phone Number for your Twilio account",
+    title: "Twilio Primary Phone Number",
+    description: "Secondary Phone Number for your Twilio account",
   })
   @Column({
     type: ColumnType.Phone,
@@ -242,7 +242,26 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
     transformer: Phone.getDatabaseTransformer(),
   })
-  public twilioPhoneNumber?: Phone = undefined;
+  public twilioPrimaryPhoneNumber?: Phone = undefined;
+
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Twilio Secondary Phone Numbers",
+    description: "Secondary Phone Number for your Twilio account",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers seperated by comma
 
   @ColumnAccessControl({
     create: [],

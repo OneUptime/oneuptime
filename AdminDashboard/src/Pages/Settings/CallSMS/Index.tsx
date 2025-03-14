@@ -72,13 +72,26 @@ const Settings: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              twilioPhoneNumber: true,
+              twilioPrimaryPhoneNumber: true,
             },
-            title: "Twilio Phone Number",
+            title: "Primary Twilio Phone Number",
             fieldType: FormFieldSchemaType.Phone,
             required: true,
             description: "You can find this in your Twilio console.",
             placeholder: "",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              twilioSecondaryPhoneNumbers: true,
+            },
+            title: "Secondary Twilio Phone Number",
+            fieldType: FormFieldSchemaType.LongText,
+            required: true,
+            description: "If you have bought more phone numbers from Twilio for specific countries, you can add them here.",
+            placeholder: "+1234567890, +4444444444",
             validation: {
               minLength: 2,
             },
@@ -97,10 +110,18 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
-                twilioPhoneNumber: true,
+                twilioPrimaryPhoneNumber: true,
               },
-              title: "Twilio Phone Number",
+              title: "Primary Twilio Phone Number",
               fieldType: FieldType.Phone,
+              placeholder: "None",
+            },
+            {
+              field: {
+                twilioSecondaryPhoneNumbers: true,
+              },
+              title: "Secondary Twilio Phone Numbers",
+              fieldType: FieldType.LongText,
               placeholder: "None",
             },
           ],

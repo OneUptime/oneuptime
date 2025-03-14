@@ -426,5 +426,37 @@ export default class ProjectCallSMSConfig extends BaseModel {
     unique: true,
     transformer: Phone.getDatabaseTransformer(),
   })
-  public twilioPhoneNumber?: Phone = undefined;
+  public twilioPrimaryPhoneNumber?: Phone = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectCallSMSConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectCallSMSConfig,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Twilio Secondary Phone Numbers",
+    description: "Secondary Phone Number for your Twilio account",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers seperated by comma
 }
