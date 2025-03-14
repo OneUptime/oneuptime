@@ -1,5 +1,6 @@
 import Telemetry from "../Telemetry";
 import { Span } from "@opentelemetry/api";
+import logger from "../Logger"; // Make sure to import your logger
 
 function CaptureSpan(name: string) {
     return function (
@@ -15,6 +16,9 @@ function CaptureSpan(name: string) {
                 return acc;
             }, {});
 
+            logger.debug(`Starting span for ${name || propertyKey} with args:`);
+            logger.debug(attributes);
+
             return await Telemetry.startActiveSpan<Promise<void>>({
                 name: name || propertyKey,
                 options: {
@@ -28,9 +32,12 @@ function CaptureSpan(name: string) {
                             span,
                             exception: err,
                         });
+                        logger.debug(`Error in span for ${name || propertyKey}:`);
+                        logger.debug(err);
                         throw err;
                     } finally {
                         span.end();
+                        logger.debug(`Ended span for ${name || propertyKey}`);
                     }
                 },
             });

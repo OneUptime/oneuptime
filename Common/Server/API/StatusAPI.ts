@@ -7,7 +7,7 @@ import Express, {
 } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
-import Telemetry, { Span, TelemetryCounter } from "../Utils/Telemetry";
+import Telemetry, { TelemetryCounter } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 
@@ -71,33 +71,25 @@ export default class StatusAPI {
     router.get(
       "/status/ready",
       async (req: ExpressRequest, res: ExpressResponse) => {
-        return Telemetry.startActiveSpan({
-          name: "/status/ready",
-          fn: async (span: Span) => {
-            try {
-              logger.debug("Ready check");
-              await options.readyCheck();
-              logger.info("Ready check: ok");
-              stausReadySuccess.add(1);
+        try {
+          logger.debug("Ready check");
+          await options.readyCheck();
+          logger.info("Ready check: ok");
+          stausReadySuccess.add(1);
 
-              Response.sendJsonObjectResponse(req, res, {
-                status: "ok",
-              });
-              span.end();
-            } catch (e) {
-              span.recordException(e as Exception);
-              stausReadyFailed.add(1);
-              Response.sendErrorResponse(
-                req,
-                res,
-                e instanceof Exception
-                  ? e
-                  : new ServerException("Server is not ready"),
-              );
-              span.end();
-            }
-          },
-        });
+          Response.sendJsonObjectResponse(req, res, {
+            status: "ok",
+          });
+        } catch (e) {
+          stausReadyFailed.add(1);
+          Response.sendErrorResponse(
+            req,
+            res,
+            e instanceof Exception
+              ? e
+              : new ServerException("Server is not ready"),
+          );
+        }
       },
     );
 
