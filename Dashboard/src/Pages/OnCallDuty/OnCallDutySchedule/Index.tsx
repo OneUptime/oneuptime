@@ -116,7 +116,6 @@ const OnCallDutyScheduleView: FunctionComponent<
           modelId: modelId,
         }}
       />
-
     </Fragment>
   );
 };

@@ -64,12 +64,12 @@ export default class OtelIngestService {
   public static async ingestLogs(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId  not found in request."
+          "Invalid request - projectId  not found in request.",
         );
       }
 
@@ -89,7 +89,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceLog["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || []
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -190,7 +190,7 @@ export default class OtelIngestService {
 
             dbLog.timeUnixNano = log["timeUnixNano"] as number;
             dbLog.time = OneUptimeDate.fromUnixNano(
-              log["timeUnixNano"] as number
+              log["timeUnixNano"] as number,
             );
 
             let logSeverityNumber: number =
@@ -287,17 +287,16 @@ export default class OtelIngestService {
     }
   }
 
-  
   @CaptureSpan()
   public static async ingestMetrics(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request."
+          "Invalid request - projectId not found in request.",
         );
       }
 
@@ -319,7 +318,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceMetric["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || []
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -457,7 +456,7 @@ export default class OtelIngestService {
                 sumMetric.metricPointType = MetricPointType.Sum;
 
                 sumMetric.attributes = JSONFunctions.flattenObject(
-                  sumMetric.attributes || {}
+                  sumMetric.attributes || {},
                 );
 
                 dbMetrics.push(sumMetric);
@@ -489,7 +488,7 @@ export default class OtelIngestService {
                 guageMetric.metricPointType = MetricPointType.Gauge;
 
                 guageMetric.attributes = JSONFunctions.flattenObject(
-                  guageMetric.attributes || {}
+                  guageMetric.attributes || {},
                 );
 
                 dbMetrics.push(guageMetric);
@@ -521,7 +520,7 @@ export default class OtelIngestService {
                 histogramMetric.metricPointType = MetricPointType.Histogram;
 
                 histogramMetric.attributes = JSONFunctions.flattenObject(
-                  histogramMetric.attributes || {}
+                  histogramMetric.attributes || {},
                 );
 
                 attributes = [
@@ -569,17 +568,16 @@ export default class OtelIngestService {
     }
   }
 
-
   @CaptureSpan()
   public static async ingestTraces(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request."
+          "Invalid request - projectId not found in request.",
         );
       }
 
@@ -601,7 +599,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceSpan["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || []
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -681,7 +679,7 @@ export default class OtelIngestService {
             dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
             dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
             dbSpan.parentSpanId = Text.convertBase64ToHex(
-              span["parentSpanId"] as string
+              span["parentSpanId"] as string,
             );
             dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
             dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
@@ -725,11 +723,11 @@ export default class OtelIngestService {
             ] as string;
 
             dbSpan.startTime = OneUptimeDate.fromUnixNano(
-              span["startTimeUnixNano"] as number
+              span["startTimeUnixNano"] as number,
             );
 
             dbSpan.endTime = OneUptimeDate.fromUnixNano(
-              span["endTimeUnixNano"] as number
+              span["endTimeUnixNano"] as number,
             );
 
             dbSpan.durationUnixNano =
@@ -757,7 +755,7 @@ export default class OtelIngestService {
                     telemetryServiceName: serviceName,
                     telemetryServiceId:
                       serviceDictionary[serviceName]!.serviceId!,
-                  }
+                  },
                 );
 
                 dbSpan.events.push({
