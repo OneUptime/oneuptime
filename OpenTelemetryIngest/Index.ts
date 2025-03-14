@@ -19,6 +19,7 @@ app.use([`/${APP_NAME}`, "/"], OTelIngestAPI);
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,

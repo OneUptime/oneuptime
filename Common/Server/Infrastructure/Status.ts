@@ -5,6 +5,7 @@ import { ClickhouseAppInstance } from "./ClickhouseDatabase";
 import PostgresAppInstance from "./PostgresDatabase";
 import Redis from "./Redis";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class InfrastructureStatus {
   public static async checkStatus(data: {
@@ -42,6 +43,7 @@ export default class InfrastructureStatus {
     }
   }
 
+  @CaptureSpan("Check Infrastructure Status With Retry")
   public static async checkStatusWithRetry(data: {
     retryCount: number;
     checkRedisStatus: boolean;
