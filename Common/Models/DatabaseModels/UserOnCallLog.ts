@@ -744,4 +744,48 @@ export default class UserOnCallLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public onCallDutyScheduleId?: ObjectID = undefined;
+
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "overridedByUserId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "Overridden by User",
+    description: "Relation to User who overrode this alert",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "overridedByUserId" })
+  public overridedByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Overridden by User ID",
+    description: "User ID who overrode this alert",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public overridedByUserId?: ObjectID = undefined;
 }
