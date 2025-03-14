@@ -48,9 +48,6 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import logger from "../Utils/Logger";
-import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
-import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
-import QueryHelper from "../Types/Database/QueryHelper";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -829,58 +826,7 @@ export class Service extends DatabaseService<Model> {
     return emailMessage;
   }
 
-  public async getRouteAlertToUserId(data: {
-    userId: ObjectID;
-    onCallDutyPolicyId: ObjectID;
-    projectId: ObjectID;
-  }): Promise<ObjectID | null> {
-    const currentDate: Date = OneUptimeDate.getCurrentDate();
 
-    const alertRoutedTo: Array<OnCallDutyPolicyUserOverride> =
-      await OnCallDutyPolicyUserOverrideService.findBy({
-        query: {
-          overrideUserId: data.userId,
-          onCallDutyPolicyId: QueryHelper.equalToOrNull(
-            data.onCallDutyPolicyId,
-          ), // find global overrides as well. If this is null, then it will find global overrides.
-          projectId: data.projectId,
-          startsAt: QueryHelper.greaterThanEqualTo(currentDate),
-          endsAt: QueryHelper.lessThanEqualTo(currentDate),
-        },
-        props: {
-          isRoot: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          routeAlertsToUserId: true,
-        },
-      });
-
-    // local override takes precedence over global override.
-    const localOverride: OnCallDutyPolicyUserOverride | undefined =
-      alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
-        return (
-          item.onCallDutyPolicyId?.toString() ===
-          data.onCallDutyPolicyId.toString()
-        );
-      });
-
-    if (localOverride && localOverride.routeAlertsToUserId) {
-      return localOverride.routeAlertsToUserId;
-    }
-
-    const globalOverride: OnCallDutyPolicyUserOverride | undefined =
-      alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
-        return !item.onCallDutyPolicyId;
-      });
-
-    if (globalOverride && globalOverride.routeAlertsToUserId) {
-      return globalOverride.routeAlertsToUserId;
-    }
-
-    return null;
-  }
 
   public async startUserNotificationRulesExecution(
     userId: ObjectID,
@@ -895,23 +841,17 @@ export class Service extends DatabaseService<Model> {
       userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
+      overridedByUserId?: ObjectID | undefined;
     },
   ): Promise<void> {
-    // get route alert to user id.
-    let routeAlertToUserId: ObjectID | null = null;
 
-    if (options.onCallPolicyId) {
-      routeAlertToUserId = await this.getRouteAlertToUserId({
-        userId,
-        onCallDutyPolicyId: options.onCallPolicyId,
-        projectId: options.projectId,
-      });
-    }
+    
+    
 
     // add user notification log.
     const userOnCallLog: UserOnCallLog = new UserOnCallLog();
 
-    userOnCallLog.userId = routeAlertToUserId || userId;
+    userOnCallLog.userId = userId;
     userOnCallLog.projectId = options.projectId;
 
     if (options.triggeredByIncidentId) {
@@ -954,8 +894,8 @@ export class Service extends DatabaseService<Model> {
     userOnCallLog.status = UserNotificationExecutionStatus.Scheduled;
     userOnCallLog.statusMessage = "Scheduled";
 
-    if (routeAlertToUserId) {
-      userOnCallLog.overridedByUserId = userId;
+    if (options.overridedByUserId) {
+      userOnCallLog.overridedByUserId = options.overridedByUserId;
     }
 
     await UserOnCallLogService.create({
