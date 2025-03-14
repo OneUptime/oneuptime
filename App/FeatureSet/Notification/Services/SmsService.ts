@@ -83,7 +83,13 @@ export default class SmsService {
         twilioConfig.authToken,
       );
 
-      smsLog.fromNumber = twilioConfig.phoneNumber;
+       const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+              to: to,
+              primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber, 
+              seocndaryPhoneNumbersToPickFrom: twilioConfig.secondaryPhoneNumbers || [],
+            });
+
+      smsLog.fromNumber = fromNumber;
 
       let project: Project | null = null;
 
@@ -230,7 +236,7 @@ export default class SmsService {
       const twillioMessage: MessageInstance = await client.messages.create({
         body: message,
         to: to.toString(),
-        from: twilioConfig.phoneNumber.toString(), // From a valid Twilio number
+        from: fromNumber.toString(), // From a valid Twilio number
       });
 
       smsLog.status = SmsStatus.Success;

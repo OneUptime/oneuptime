@@ -26,6 +26,7 @@ import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
+import Phone from "Common/Types/Phone";
 
 export default class CallService {
   public static async makeCall(
@@ -71,7 +72,13 @@ export default class CallService {
       );
 
       callLog.toNumber = callRequest.to;
-      callLog.fromNumber = twilioConfig.phoneNumber;
+
+      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+        to: callRequest.to,
+        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber, 
+        seocndaryPhoneNumbersToPickFrom: twilioConfig.secondaryPhoneNumbers || [],
+      });
+      callLog.fromNumber = fromNumber; 
       callLog.callData =
         options && options.isSensitive
           ? { message: "This call is sensitive and is not logged" }
@@ -232,7 +239,7 @@ export default class CallService {
       const twillioCall: CallInstance = await client.calls.create({
         twiml: this.generateTwimlForCall(callRequest),
         to: callRequest.to.toString(),
-        from: twilioConfig.phoneNumber.toString(), // From a valid Twilio number
+        from: fromNumber.toString(), // From a valid Twilio number
       });
 
       logger.debug("Call Request sent successfully.");
