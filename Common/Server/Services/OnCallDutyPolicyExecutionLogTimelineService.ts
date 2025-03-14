@@ -193,7 +193,7 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
           )}** but was routed to **${await UserService.getUserMarkdownString({
             userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
-          })}** instead because of an override rule.`;
+          })}** instead, because of an override rule.`;
         }
 
         logger.debug("Feed Info in Markdown: " + feedInfoInMarkdown);
