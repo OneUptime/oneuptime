@@ -34,7 +34,7 @@ export default class Phone extends DatabaseProperty {
       return phone.startsWith('+') ? phone.substring(1) : phone;
     };
 
-    const toCountryCode: string = normalizePhoneNumber(to).substring(0, 3);
+    const toCountryCode: string = normalizePhoneNumber(to).substring(0, 2);
 
     const primaryPhoneNumberToPickFromCountryCode: string = normalizePhoneNumber(primaryPhoneNumberToPickFrom).substring(
       0,
@@ -46,7 +46,7 @@ export default class Phone extends DatabaseProperty {
     }
 
     for (const secondaryPhoneNumber of seocndaryPhoneNumbersToPickFrom) {
-      const secondaryPhoneNumberCountryCode: string = normalizePhoneNumber(secondaryPhoneNumber).substring(0, 3);
+      const secondaryPhoneNumberCountryCode: string = normalizePhoneNumber(secondaryPhoneNumber).substring(0, 2);
       if (toCountryCode === secondaryPhoneNumberCountryCode) {
       return new Phone(secondaryPhoneNumber);
       }
