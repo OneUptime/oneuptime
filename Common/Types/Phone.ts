@@ -65,6 +65,9 @@ export default class Phone extends DatabaseProperty {
      *     throw new BadDataException('Phone is not in valid format.');
      * }
      */
+
+    v = v.trim();
+
     const re: RegExp = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,7}$/; // regex for international phone numbers format based on (ITU-T E.123)
     const isValid: boolean = re.test(v);
     if (!isValid) {
@@ -73,8 +76,13 @@ export default class Phone extends DatabaseProperty {
     this._phone = v;
   }
 
-  public constructor(phone: string) {
+  public constructor(phone: string | Phone) {
     super();
+
+    if (phone instanceof Phone) {
+      phone = phone.phone;
+    }
+
     this.phone = phone;
   }
 
