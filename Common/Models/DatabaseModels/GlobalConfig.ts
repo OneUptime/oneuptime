@@ -239,7 +239,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: ColumnType.Phone,
     length: ColumnLength.Phone,
     nullable: true,
-    unique: true,
+    unique: false,
     transformer: Phone.getDatabaseTransformer(),
   })
   public twilioPrimaryPhoneNumber?: Phone = undefined;
