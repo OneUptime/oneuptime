@@ -40,6 +40,9 @@ export class Service extends DatabaseService<Model> {
     onCallDutyPolicyId: ObjectID;
     projectId: ObjectID;
   }): Promise<ObjectID | null> {
+
+    logger.debug(`Getting route alert to user id for userId: ${data.userId.toString()}`);
+
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
     const alertRoutedTo: Array<OnCallDutyPolicyUserOverride> =
@@ -50,8 +53,8 @@ export class Service extends DatabaseService<Model> {
             data.onCallDutyPolicyId
           ), // find global overrides as well. If this is null, then it will find global overrides.
           projectId: data.projectId,
-          startsAt: QueryHelper.greaterThanEqualTo(currentDate),
-          endsAt: QueryHelper.lessThanEqualTo(currentDate),
+          startsAt: QueryHelper.lessThanEqualTo(currentDate),
+          endsAt: QueryHelper.greaterThanEqualTo(currentDate),
         },
         props: {
           isRoot: true,
@@ -60,8 +63,11 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         select: {
           routeAlertsToUserId: true,
+          onCallDutyPolicyId: true,
         },
       });
+
+    logger.debug(`Found alert routed to: ${JSON.stringify(alertRoutedTo)}`);
 
     // local override takes precedence over global override.
     const localOverride: OnCallDutyPolicyUserOverride | undefined =
@@ -73,15 +79,18 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (localOverride && localOverride.routeAlertsToUserId) {
+      logger.debug(`Route alert to user id found: ${localOverride.routeAlertsToUserId.toString()}`);
       return localOverride.routeAlertsToUserId;
     }
 
     const globalOverride: OnCallDutyPolicyUserOverride | undefined =
       alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
+       
         return !item.onCallDutyPolicyId;
       });
 
     if (globalOverride && globalOverride.routeAlertsToUserId) {
+      logger.debug(`Route alert to user id found: ${globalOverride.routeAlertsToUserId.toString()}`);
       return globalOverride.routeAlertsToUserId;
     }
 
