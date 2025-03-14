@@ -75,10 +75,11 @@ export default class CallService {
 
       const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
         to: callRequest.to,
-        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber, 
-        seocndaryPhoneNumbersToPickFrom: twilioConfig.secondaryPhoneNumbers || [],
+        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
+        seocndaryPhoneNumbersToPickFrom:
+          twilioConfig.secondaryPhoneNumbers || [],
       });
-      callLog.fromNumber = fromNumber; 
+      callLog.fromNumber = fromNumber;
       callLog.callData =
         options && options.isSensitive
           ? { message: "This call is sensitive and is not logged" }

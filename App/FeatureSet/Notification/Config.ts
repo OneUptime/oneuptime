@@ -218,9 +218,15 @@ export const getTwilioConfig: GetTwilioConfigFunction =
       accountSid: globalConfig.twilioAccountSID,
       authToken: globalConfig.twilioAuthToken,
       primaryPhoneNumber: globalConfig.twilioPrimaryPhoneNumber,
-      secondaryPhoneNumbers: globalConfig.twilioSecondaryPhoneNumbers && globalConfig.twilioSecondaryPhoneNumbers.length > 0 ? globalConfig.twilioSecondaryPhoneNumbers.split(",").map((phoneNumber: string)=>{
-        return new Phone(phoneNumber.trim());
-      }) : [],
+      secondaryPhoneNumbers:
+        globalConfig.twilioSecondaryPhoneNumbers &&
+        globalConfig.twilioSecondaryPhoneNumbers.length > 0
+          ? globalConfig.twilioSecondaryPhoneNumbers
+              .split(",")
+              .map((phoneNumber: string) => {
+                return new Phone(phoneNumber.trim());
+              })
+          : [],
     };
   };
 

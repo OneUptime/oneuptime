@@ -14,41 +14,45 @@ export default class Phone extends DatabaseProperty {
     primaryPhoneNumberToPickFrom: Phone | string;
     seocndaryPhoneNumbersToPickFrom: Phone[] | string[];
   }): Phone {
-   // convert all to string, so that we can compare them
-   // if the country code matches in secondary phone numbers, then pick that number
-   // if no country code matches, then pick the primary phone number and return it. 
+    // convert all to string, so that we can compare them
+    // if the country code matches in secondary phone numbers, then pick that number
+    // if no country code matches, then pick the primary phone number and return it.
 
-    const to: string = typeof data.to === "string" ? data.to : data.to.toString();
+    const to: string =
+      typeof data.to === "string" ? data.to : data.to.toString();
     const primaryPhoneNumberToPickFrom: string =
       typeof data.primaryPhoneNumberToPickFrom === "string"
         ? data.primaryPhoneNumberToPickFrom
         : data.primaryPhoneNumberToPickFrom.toString();
 
-    const seocndaryPhoneNumbersToPickFrom: string[] = data.seocndaryPhoneNumbersToPickFrom.map(
-      (phone: Phone | string) => {
+    const seocndaryPhoneNumbersToPickFrom: string[] =
+      data.seocndaryPhoneNumbersToPickFrom.map((phone: Phone | string) => {
         return typeof phone === "string" ? phone : phone.toString();
-      },
-    );
+      });
 
-    const normalizePhoneNumber = (phone: string): string => {
-      return phone.startsWith('+') ? phone.substring(1) : phone;
+
+      type NormalizePhoneNumberFunction = (phone: string) => string;
+
+    const normalizePhoneNumber: NormalizePhoneNumberFunction = (phone: string): string => {
+      phone = phone.trim();
+      return phone.startsWith("+") ? phone.substring(1) : phone;
     };
 
     const toCountryCode: string = normalizePhoneNumber(to).substring(0, 2);
 
-    const primaryPhoneNumberToPickFromCountryCode: string = normalizePhoneNumber(primaryPhoneNumberToPickFrom).substring(
-      0,
-      3,
-    );
+    const primaryPhoneNumberToPickFromCountryCode: string =
+      normalizePhoneNumber(primaryPhoneNumberToPickFrom).substring(0, 2);
 
     if (toCountryCode === primaryPhoneNumberToPickFromCountryCode) {
       return new Phone(primaryPhoneNumberToPickFrom);
     }
 
     for (const secondaryPhoneNumber of seocndaryPhoneNumbersToPickFrom) {
-      const secondaryPhoneNumberCountryCode: string = normalizePhoneNumber(secondaryPhoneNumber).substring(0, 2);
+      const secondaryPhoneNumberCountryCode: string = normalizePhoneNumber(
+        secondaryPhoneNumber,
+      ).substring(0, 2);
       if (toCountryCode === secondaryPhoneNumberCountryCode) {
-      return new Phone(secondaryPhoneNumber);
+        return new Phone(secondaryPhoneNumber);
       }
     }
 

@@ -244,7 +244,6 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   public twilioPrimaryPhoneNumber?: Phone = undefined;
 
-
   @ColumnAccessControl({
     create: [],
     read: [],

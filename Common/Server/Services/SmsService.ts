@@ -36,8 +36,10 @@ export class SmsService extends BaseService {
         ? {
             accountSid: options.customTwilioConfig.accountSid!,
             authToken: options.customTwilioConfig.authToken!,
-            primaryPhoneNumber: options.customTwilioConfig.primaryPhoneNumber.toString(),
-            secondaryPhoneNumbers: options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
+            primaryPhoneNumber:
+              options.customTwilioConfig.primaryPhoneNumber.toString(),
+            secondaryPhoneNumbers:
+              options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
           }
         : undefined,
     };

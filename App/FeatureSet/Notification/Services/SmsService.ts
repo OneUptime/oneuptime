@@ -83,11 +83,12 @@ export default class SmsService {
         twilioConfig.authToken,
       );
 
-       const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
-              to: to,
-              primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber, 
-              seocndaryPhoneNumbersToPickFrom: twilioConfig.secondaryPhoneNumbers || [],
-            });
+      const fromNumber: Phone = Phone.pickPhoneNumberToSendSMSOrCallFrom({
+        to: to,
+        primaryPhoneNumberToPickFrom: twilioConfig.primaryPhoneNumber,
+        seocndaryPhoneNumbersToPickFrom:
+          twilioConfig.secondaryPhoneNumbers || [],
+      });
 
       smsLog.fromNumber = fromNumber;
 

@@ -42,9 +42,15 @@ export class Service extends DatabaseService<Model> {
       accountSid: projectCallSmsConfig.twilioAccountSID.toString(),
       authToken: projectCallSmsConfig.twilioAuthToken.toString(),
       primaryPhoneNumber: projectCallSmsConfig.twilioPrimaryPhoneNumber,
-      secondaryPhoneNumbers: projectCallSmsConfig.twilioSecondaryPhoneNumbers && projectCallSmsConfig.twilioSecondaryPhoneNumbers.length > 0 ? projectCallSmsConfig.twilioSecondaryPhoneNumbers.split(",").map((phone: string)=>{
-        return new Phone(phone);
-      }) : [],
+      secondaryPhoneNumbers:
+        projectCallSmsConfig.twilioSecondaryPhoneNumbers &&
+        projectCallSmsConfig.twilioSecondaryPhoneNumbers.length > 0
+          ? projectCallSmsConfig.twilioSecondaryPhoneNumbers
+              .split(",")
+              .map((phone: string) => {
+                return new Phone(phone);
+              })
+          : [],
     };
   }
 }

@@ -70,7 +70,7 @@ export class Service extends DatabaseService<Model> {
       userNotificationLogId: ObjectID;
       userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
-    }
+    },
   ): Promise<void> {
     // get user notification log and see if this rule has already been executed. If so then skip.
 
@@ -92,7 +92,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       Object.keys(userOnCallLog.executedNotificationRules || {}).includes(
-        userNotificationRuleId.toString()
+        userNotificationRuleId.toString(),
       )
     ) {
       // already executed.
@@ -280,7 +280,7 @@ export class Service extends DatabaseService<Model> {
           await this.generateEmailTemplateForAlertCreated(
             notificationRuleItem.userEmail?.email,
             alert,
-            updatedLog.id!
+            updatedLog.id!,
           );
 
         // send email.
@@ -325,7 +325,7 @@ export class Service extends DatabaseService<Model> {
           await this.generateEmailTemplateForIncidentCreated(
             notificationRuleItem.userEmail?.email,
             incident,
-            updatedLog.id!
+            updatedLog.id!,
           );
 
         // send email.
@@ -392,7 +392,7 @@ export class Service extends DatabaseService<Model> {
         const smsMessage: SMS = await this.generateSmsTemplateForAlertCreated(
           notificationRuleItem.userSms.phone,
           alert,
-          updatedLog.id!
+          updatedLog.id!,
         );
 
         // send email.
@@ -437,7 +437,7 @@ export class Service extends DatabaseService<Model> {
           await this.generateSmsTemplateForIncidentCreated(
             notificationRuleItem.userSms.phone,
             incident,
-            updatedLog.id!
+            updatedLog.id!,
           );
 
         // send email.
@@ -504,7 +504,7 @@ export class Service extends DatabaseService<Model> {
           await this.generateCallTemplateForAlertCreated(
             notificationRuleItem.userCall?.phone,
             alert,
-            updatedLog.id!
+            updatedLog.id!,
           );
 
         // send email.
@@ -548,7 +548,7 @@ export class Service extends DatabaseService<Model> {
           await this.generateCallTemplateForIncidentCreated(
             notificationRuleItem.userCall?.phone,
             incident,
-            updatedLog.id!
+            updatedLog.id!,
           );
 
         // send email.
@@ -591,7 +591,7 @@ export class Service extends DatabaseService<Model> {
   public async generateCallTemplateForAlertCreated(
     to: Phone,
     alert: Alert,
-    userOnCallLogTimelineId: ObjectID
+    userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
     const host: Hostname = await DatabaseConfig.getHost();
 
@@ -628,8 +628,8 @@ export class Service extends DatabaseService<Model> {
             new Route(AppApiRoute.toString())
               .addRoute(new UserOnCallLogTimeline().crudApiPath!)
               .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString()
-              )
+                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
+              ),
           ),
         },
       ],
@@ -641,7 +641,7 @@ export class Service extends DatabaseService<Model> {
   public async generateCallTemplateForIncidentCreated(
     to: Phone,
     incident: Incident,
-    userOnCallLogTimelineId: ObjectID
+    userOnCallLogTimelineId: ObjectID,
   ): Promise<CallRequest> {
     const host: Hostname = await DatabaseConfig.getHost();
 
@@ -678,8 +678,8 @@ export class Service extends DatabaseService<Model> {
             new Route(AppApiRoute.toString())
               .addRoute(new UserOnCallLogTimeline().crudApiPath!)
               .addRoute(
-                "/call/gather-input/" + userOnCallLogTimelineId.toString()
-              )
+                "/call/gather-input/" + userOnCallLogTimelineId.toString(),
+              ),
           ),
         },
       ],
@@ -691,7 +691,7 @@ export class Service extends DatabaseService<Model> {
   public async generateSmsTemplateForAlertCreated(
     to: Phone,
     alert: Alert,
-    userOnCallLogTimelineId: ObjectID
+    userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -702,8 +702,8 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString())
-      )
+          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+      ),
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
@@ -720,7 +720,7 @@ export class Service extends DatabaseService<Model> {
   public async generateSmsTemplateForIncidentCreated(
     to: Phone,
     incident: Incident,
-    userOnCallLogTimelineId: ObjectID
+    userOnCallLogTimelineId: ObjectID,
   ): Promise<SMS> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -731,8 +731,8 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString())
-      )
+          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+      ),
     );
     const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
 
@@ -749,7 +749,7 @@ export class Service extends DatabaseService<Model> {
   public async generateEmailTemplateForAlertCreated(
     to: Email,
     alert: Alert,
-    userOnCallLogTimelineId: ObjectID
+    userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -760,7 +760,7 @@ export class Service extends DatabaseService<Model> {
       currentState: alert.currentAlertState!.name!,
       alertDescription: await Markdown.convertToHTML(
         alert.description! || "",
-        MarkdownContentType.Email
+        MarkdownContentType.Email,
       ),
       alertSeverity: alert.alertSeverity!.name!,
       alertViewLink: (
@@ -771,7 +771,7 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString())
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
       ).toString(),
     };
 
@@ -788,7 +788,7 @@ export class Service extends DatabaseService<Model> {
   public async generateEmailTemplateForIncidentCreated(
     to: Email,
     incident: Incident,
-    userOnCallLogTimelineId: ObjectID
+    userOnCallLogTimelineId: ObjectID,
   ): Promise<EmailMessage> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -799,7 +799,7 @@ export class Service extends DatabaseService<Model> {
       currentState: incident.currentIncidentState!.name!,
       incidentDescription: await Markdown.convertToHTML(
         incident.description! || "",
-        MarkdownContentType.Email
+        MarkdownContentType.Email,
       ),
       incidentSeverity: incident.incidentSeverity!.name!,
       rootCause:
@@ -807,7 +807,7 @@ export class Service extends DatabaseService<Model> {
       incidentViewLink: (
         await IncidentService.getIncidentLinkInDashboard(
           incident.projectId!,
-          incident.id!
+          incident.id!,
         )
       ).toString(),
       acknowledgeIncidentLink: new URL(
@@ -815,7 +815,7 @@ export class Service extends DatabaseService<Model> {
         host,
         new Route(AppApiRoute.toString())
           .addRoute(new UserOnCallLogTimeline().crudApiPath!)
-          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString())
+          .addRoute("/acknowledge-page/" + userOnCallLogTimelineId.toString()),
       ).toString(),
     };
 
@@ -841,7 +841,7 @@ export class Service extends DatabaseService<Model> {
         query: {
           overrideUserId: data.userId,
           onCallDutyPolicyId: QueryHelper.equalToOrNull(
-            data.onCallDutyPolicyId
+            data.onCallDutyPolicyId,
           ), // find global overrides as well. If this is null, then it will find global overrides.
           projectId: data.projectId,
           startsAt: QueryHelper.greaterThanEqualTo(currentDate),
@@ -859,20 +859,21 @@ export class Service extends DatabaseService<Model> {
 
     // local override takes precedence over global override.
     const localOverride: OnCallDutyPolicyUserOverride | undefined =
-      alertRoutedTo.find(
-        (item: OnCallDutyPolicyUserOverride) =>
+      alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
+        return (
           item.onCallDutyPolicyId?.toString() ===
           data.onCallDutyPolicyId.toString()
-      );
+        );
+      });
 
     if (localOverride && localOverride.routeAlertsToUserId) {
       return localOverride.routeAlertsToUserId;
     }
 
     const globalOverride: OnCallDutyPolicyUserOverride | undefined =
-      alertRoutedTo.find(
-        (item: OnCallDutyPolicyUserOverride) => !item.onCallDutyPolicyId
-      );
+      alertRoutedTo.find((item: OnCallDutyPolicyUserOverride) => {
+        return !item.onCallDutyPolicyId;
+      });
 
     if (globalOverride && globalOverride.routeAlertsToUserId) {
       return globalOverride.routeAlertsToUserId;
@@ -894,7 +895,7 @@ export class Service extends DatabaseService<Model> {
       userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
-    }
+    },
   ): Promise<void> {
     // get route alert to user id.
     let routeAlertToUserId: ObjectID | null = null;
@@ -953,7 +954,7 @@ export class Service extends DatabaseService<Model> {
     userOnCallLog.status = UserNotificationExecutionStatus.Scheduled;
     userOnCallLog.statusMessage = "Scheduled";
 
-    if(routeAlertToUserId) {
+    if (routeAlertToUserId) {
       userOnCallLog.overridedByUserId = userId;
     }
 
@@ -1005,7 +1006,7 @@ export class Service extends DatabaseService<Model> {
           notificationRuleEventType: data.incidentId
             ? NotificationRuleEventType.Incident
             : NotificationRuleEventType.Alert,
-        }
+        },
       );
 
     let workspaceChannels: Array<NotificationRuleWorkspaceChannel> = [];
@@ -1028,14 +1029,14 @@ export class Service extends DatabaseService<Model> {
         projectId: data.projectId!,
         workspaceChannels: workspaceChannels,
         userIds: [data.userId],
-      }
+      },
     ).catch((error: Error) => {
       logger.error(error);
     });
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>
+    createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (
       !createBy.data.userCallId &&
@@ -1177,7 +1178,7 @@ export class Service extends DatabaseService<Model> {
   public async addDefaultNotificationRuleForUser(
     projectId: ObjectID,
     userId: ObjectID,
-    email: Email
+    email: Email,
   ): Promise<void> {
     let userEmail: UserEmail | null = await UserEmailService.findOneBy({
       query: {

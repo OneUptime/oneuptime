@@ -90,7 +90,8 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Secondary Twilio Phone Number",
             fieldType: FormFieldSchemaType.LongText,
             required: true,
-            description: "If you have bought more phone numbers from Twilio for specific countries, you can add them here.",
+            description:
+              "If you have bought more phone numbers from Twilio for specific countries, you can add them here.",
             placeholder: "+1234567890, +4444444444",
             validation: {
               minLength: 2,

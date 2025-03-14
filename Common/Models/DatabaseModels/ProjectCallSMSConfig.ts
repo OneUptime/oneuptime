@@ -428,7 +428,6 @@ export default class ProjectCallSMSConfig extends BaseModel {
   })
   public twilioPrimaryPhoneNumber?: Phone = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -745,7 +745,6 @@ export default class UserOnCallLog extends BaseModel {
   })
   public onCallDutyScheduleId?: ObjectID = undefined;
 
-
   @ColumnAccessControl({
     create: [],
     read: [Permission.CurrentUser],

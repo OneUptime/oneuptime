@@ -315,19 +315,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               const response:
                 | HTTPResponse<EmptyResponseData>
                 | HTTPErrorResponse = await API.post(
-                  URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                    `/sms/test`,
-                  ),
+                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                  `/sms/test`,
+                ),
 
-                  {
-                    toPhone: values["toPhone"],
-                    callSMSConfigId: new ObjectID(
-                      currentCallSMSTestConfig["_id"]
-                        ? currentCallSMSTestConfig["_id"].toString()
-                        : "",
-                    ).toString(),
-                  },
-                );
+                {
+                  toPhone: values["toPhone"],
+                  callSMSConfigId: new ObjectID(
+                    currentCallSMSTestConfig["_id"]
+                      ? currentCallSMSTestConfig["_id"].toString()
+                      : "",
+                  ).toString(),
+                },
+              );
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
                 setShowSMSTestModal(false);
@@ -352,7 +352,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           title={`SMS Sent`}
           error={
             error ===
-              "Error connecting to server. Please try again in few minutes."
+            "Error connecting to server. Please try again in few minutes."
               ? "Request timed out. Please check your twilio credentials and make sure they are correct."
               : error
           }
@@ -404,19 +404,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               const response:
                 | HTTPResponse<EmptyResponseData>
                 | HTTPErrorResponse = await API.post(
-                  URL.fromString(NOTIFICATION_URL.toString()).addRoute(
-                    `/call/test`,
-                  ),
+                URL.fromString(NOTIFICATION_URL.toString()).addRoute(
+                  `/call/test`,
+                ),
 
-                  {
-                    toPhone: values["toPhone"],
-                    callSMSConfigId: new ObjectID(
-                      currentCallSMSTestConfig["_id"]
-                        ? currentCallSMSTestConfig["_id"].toString()
-                        : "",
-                    ).toString(),
-                  },
-                );
+                {
+                  toPhone: values["toPhone"],
+                  callSMSConfigId: new ObjectID(
+                    currentCallSMSTestConfig["_id"]
+                      ? currentCallSMSTestConfig["_id"].toString()
+                      : "",
+                  ).toString(),
+                },
+              );
               if (response.isSuccess()) {
                 setIsCallSMSTestLoading(false);
                 setShowCallTestModal(false);
@@ -441,7 +441,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           title={`Call Sent`}
           error={
             error ===
-              "Error connecting to server. Please try again in few minutes."
+            "Error connecting to server. Please try again in few minutes."
               ? "Request timed out. Please check your twilio credentials and make sure they are correct."
               : error
           }

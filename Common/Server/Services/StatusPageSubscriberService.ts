@@ -264,7 +264,6 @@ export class Service extends DatabaseService<Model> {
             twilioAuthToken: true,
             twilioPrimaryPhoneNumber: true,
             twilioSecondaryPhoneNumbers: true,
-
           },
         },
         props: {
