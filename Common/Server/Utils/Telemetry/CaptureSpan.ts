@@ -48,10 +48,11 @@ function CaptureSpan(data?: {
       logger.debug(`Starting span for ${name} with args:`);
       logger.debug(functionArguments);
 
-      const spanAttributes: { [key: string]: any } = JSONFunctions.flattenObject({
-        ...functionArguments,
-        ...data?.attributes,
-      }) as { [key: string]: any };
+      const spanAttributes: { [key: string]: any } =
+        JSONFunctions.flattenObject({
+          ...functionArguments,
+          ...data?.attributes,
+        }) as { [key: string]: any };
 
       logger.debug(`Span attributes for ${name}:`);
       logger.debug(spanAttributes);
