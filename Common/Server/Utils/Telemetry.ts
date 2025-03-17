@@ -32,7 +32,6 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
-import CaptureSpan from "./Telemetry/CaptureSpan";
 
 // Enable this line to see debug logs
 // diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
@@ -66,7 +65,6 @@ export default class Telemetry {
 
   public static serviceName: string | null = null;
 
-  @CaptureSpan()
   public static getHeaders(): Dictionary<string> {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
       return {};
@@ -87,7 +85,7 @@ export default class Telemetry {
     return headers;
   }
 
-  @CaptureSpan()
+  
   public static getOtlpEndpoint(): URL | null {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT"]) {
       return null;
@@ -98,7 +96,7 @@ export default class Telemetry {
     );
   }
 
-  @CaptureSpan()
+  
   public static getOltpLogsEndpoint(): URL | null {
     const oltpEndpoint: URL | null = this.getOtlpEndpoint();
 
@@ -109,7 +107,7 @@ export default class Telemetry {
     return URL.fromString(oltpEndpoint.toString() + "/v1/logs");
   }
 
-  @CaptureSpan()
+  
   public static getOltpMetricsEndpoint(): URL | null {
     const oltpEndpoint: URL | null = this.getOtlpEndpoint();
 
@@ -120,7 +118,7 @@ export default class Telemetry {
     return URL.fromString(oltpEndpoint.toString() + "/v1/metrics");
   }
 
-  @CaptureSpan()
+  
   public static getOltpTracesEndpoint(): URL | null {
     const oltpEndpoint: URL | null = this.getOtlpEndpoint();
 
@@ -131,14 +129,14 @@ export default class Telemetry {
     return URL.fromString(oltpEndpoint.toString() + "/v1/traces");
   }
 
-  @CaptureSpan()
+  
   public static getResource(data: { serviceName: string }): Resource {
     return new Resource({
       [ATTR_SERVICE_NAME]: data.serviceName,
     });
   }
 
-  @CaptureSpan()
+  
   public static init(data: {
     serviceName: string;
   }): opentelemetry.NodeSDK | null {
@@ -241,7 +239,7 @@ export default class Telemetry {
     return this.sdk;
   }
 
-  @CaptureSpan()
+  
   public static getLogger(): Logger | null {
     if (!this.loggerProvider) {
       return null;
@@ -250,7 +248,7 @@ export default class Telemetry {
     return this.loggerProvider.getLogger("default");
   }
 
-  @CaptureSpan()
+  
   public static getMeterProvider(): MeterProvider {
     if (!this.meterProvider) {
       this.meterProvider = new MeterProvider({
@@ -266,7 +264,7 @@ export default class Telemetry {
     return this.meterProvider;
   }
 
-  @CaptureSpan()
+  
   public static getMeter(): Meter {
     if (!this.meter) {
       this.meter = OpenTelemetryAPI.metrics.getMeter("default");
@@ -275,7 +273,7 @@ export default class Telemetry {
     return this.meter;
   }
 
-  @CaptureSpan()
+  
   public static getCounter(data: {
     name: string;
     description: string;
@@ -299,7 +297,7 @@ export default class Telemetry {
 
   // guage
 
-  @CaptureSpan()
+  
   public static getGauge(data: {
     name: string;
     description: string;
@@ -323,7 +321,7 @@ export default class Telemetry {
 
   // histogram
 
-  @CaptureSpan()
+  
   public static getHistogram(data: {
     name: string;
     description: string;
@@ -345,14 +343,14 @@ export default class Telemetry {
     return histogram;
   }
 
-  @CaptureSpan()
+  
   public static getTracer(): opentelemetry.api.Tracer {
     const tracer: opentelemetry.api.Tracer =
       OpenTelemetryAPI.trace.getTracer("default");
     return tracer;
   }
 
-  @CaptureSpan()
+  
   public static startActiveSpan<T>(data: {
     name: string;
     options?: SpanOptions | undefined;
@@ -363,7 +361,7 @@ export default class Telemetry {
     return this.getTracer().startActiveSpan(name, data.options || {}, data.fn);
   }
 
-  @CaptureSpan()
+  
   public static recordExceptionMarkSpanAsErrorAndEndSpan(data: {
     span: Span;
     exception: unknown;
@@ -381,7 +379,7 @@ export default class Telemetry {
     this.endSpan(span);
   }
 
-  @CaptureSpan()
+  
   public static endSpan(span: Span): void {
     span.end();
   }
