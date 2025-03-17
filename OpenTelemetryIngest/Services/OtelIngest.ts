@@ -67,6 +67,9 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
+
+      Response.sendEmptySuccessResponse(req, res);
+
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
           "Invalid request - projectId  not found in request.",
@@ -284,7 +287,7 @@ export default class OtelIngestService {
         logger.error(err);
       });
 
-      return Response.sendEmptySuccessResponse(req, res);
+
     } catch (err) {
       return next(err);
     }
@@ -297,6 +300,11 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
+
+      // return success and continue processing
+      Response.sendEmptySuccessResponse(req, res);
+
+
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
           "Invalid request - projectId not found in request.",
@@ -564,8 +572,6 @@ export default class OtelIngestService {
       }).catch((err: Error) => {
         logger.error(err);
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -578,6 +584,11 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
+
+
+      // return success and continue processing
+      Response.sendEmptySuccessResponse(req, res);
+
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
           "Invalid request - projectId not found in request.",
@@ -877,6 +888,5 @@ export default class OtelIngestService {
       return next(err);
     }
 
-    return Response.sendEmptySuccessResponse(req, res);
   }
 }
