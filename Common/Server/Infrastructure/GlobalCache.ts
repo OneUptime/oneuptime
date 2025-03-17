@@ -8,7 +8,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default abstract class GlobalCache {
-  @CaptureSpan()
+
   @CaptureSpan()
   public static async getJSONObject(
     namespace: string,
@@ -30,7 +30,7 @@ export default abstract class GlobalCache {
     return json;
   }
 
-  @CaptureSpan()
+
   @CaptureSpan()
   public static async getStringArray(
     namespace: string,
@@ -53,7 +53,7 @@ export default abstract class GlobalCache {
     return stringArr;
   }
 
-  @CaptureSpan()
+
   @CaptureSpan()
   public static async setStringArray(
     namespace: string,

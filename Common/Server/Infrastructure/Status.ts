@@ -44,7 +44,7 @@ export default class InfrastructureStatus {
     }
   }
 
-  @CaptureSpan()
+
   @CaptureSpan()
   public static async checkStatusWithRetry(data: {
     retryCount: number;
