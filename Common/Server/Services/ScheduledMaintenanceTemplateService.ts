@@ -15,6 +15,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

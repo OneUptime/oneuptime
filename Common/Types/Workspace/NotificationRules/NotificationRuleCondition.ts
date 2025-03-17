@@ -286,7 +286,7 @@ export class NotificationRuleConditionUtil {
 
           NotificationRuleConditionCheckOn.Monitors,
         ];
-      case NotificationRuleEventType.MonitorStatus:
+      case NotificationRuleEventType.Monitor:
         return [
           NotificationRuleConditionCheckOn.MonitorName,
           NotificationRuleConditionCheckOn.MonitorStatus,

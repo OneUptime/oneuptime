@@ -52,19 +52,19 @@ export enum SpanStatusCode {
 }
 
 export default class Telemetry {
-  @CaptureSpan()
+
   public static sdk: opentelemetry.NodeSDK | null = null;
-  @CaptureSpan()
+
   public static logger: Logger | null = null;
-  @CaptureSpan()
+
   public static meter: Meter | null = null;
-  @CaptureSpan()
+
   public static meterProvider: MeterProvider | null = null;
-  @CaptureSpan()
+
   public static loggerProvider: LoggerProvider | null = null;
-  @CaptureSpan()
+
   public static metricReader: PeriodicExportingMetricReader | undefined;
-  @CaptureSpan()
+
   public static serviceName: string | null = null;
 
   @CaptureSpan()

@@ -7,7 +7,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CaptureSpan from "./Utils/Telemetry/CaptureSpan";
 
 export default class DatabaseConfig {
   @CaptureSpan()

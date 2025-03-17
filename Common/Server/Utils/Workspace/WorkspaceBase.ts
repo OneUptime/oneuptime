@@ -21,7 +21,7 @@ import WorkspaceMessagePayload, {
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
 import URL from "Common/Types/API/URL";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export interface WorkspaceThread {
   channel: WorkspaceChannel;

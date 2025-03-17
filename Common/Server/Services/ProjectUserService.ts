@@ -4,6 +4,7 @@ import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/ProjectUser";
 import TeamMemberService from "./TeamMemberService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

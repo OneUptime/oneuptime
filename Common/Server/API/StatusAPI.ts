@@ -10,7 +10,7 @@ import Response from "../Utils/Response";
 import Telemetry, { TelemetryCounter } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface StatusAPIOptions {
   readyCheck: () => Promise<void>;
@@ -72,142 +72,184 @@ export default class StatusAPI {
     //Healthy probe
     router.get(
       "/status/ready",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          logger.debug("Ready check");
-          await options.readyCheck();
-          logger.info("Ready check: ok");
-          stausReadySuccess.add(1);
-
-          Response.sendJsonObjectResponse(req, res, {
-            status: "ok",
-          });
-        } catch (e) {
-          stausReadyFailed.add(1);
-          Response.sendErrorResponse(
-            req,
-            res,
-            e instanceof Exception
-              ? e
-              : new ServerException("Server is not ready"),
-          );
-        }
-      },
+      (req: ExpressRequest, res: ExpressResponse) => this.handleReadyCheck(options, stausReadySuccess, stausReadyFailed, req, res),
     );
 
     //Liveness probe
     router.get(
       "/status/live",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          logger.debug("Live check");
-          await options.liveCheck();
-          logger.info("Live check: ok");
-          stausLiveSuccess.add(1);
-
-          Response.sendJsonObjectResponse(req, res, {
-            status: "ok",
-          });
-        } catch (e) {
-          stausLiveFailed.add(1);
-          Response.sendErrorResponse(
-            req,
-            res,
-            e instanceof Exception
-              ? e
-              : new ServerException("Server is not ready"),
-          );
-        }
-      },
+      (req: ExpressRequest, res: ExpressResponse) => this.handleLiveCheck(options, stausLiveSuccess, stausLiveFailed, req, res),
     );
 
     // Global cache check
     router.get(
       "/status/global-cache",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          logger.debug("Global cache check");
-          if (options.globalCacheCheck) {
-            await options.globalCacheCheck();
-          } else {
-            throw new BadRequestException("Global cache check not implemented");
-          }
-          logger.info("Global cache check: ok");
-
-          Response.sendJsonObjectResponse(req, res, {
-            status: "ok",
-          });
-        } catch (e) {
-          Response.sendErrorResponse(
-            req,
-            res,
-            e instanceof Exception
-              ? e
-              : new ServerException("Global cache is not ready"),
-          );
-        }
-      },
+      (req: ExpressRequest, res: ExpressResponse) => this.handleGlobalCacheCheck(options, req, res),
     );
 
     // Analytics database check
     router.get(
       "/status/analytics-database",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          logger.debug("Analytics database check");
-          if (options.analyticsDatabaseCheck) {
-            await options.analyticsDatabaseCheck();
-          } else {
-            throw new BadRequestException(
-              "Analytics database check not implemented",
-            );
-          }
-          logger.info("Analytics database check: ok");
-
-          Response.sendJsonObjectResponse(req, res, {
-            status: "ok",
-          });
-        } catch (e) {
-          Response.sendErrorResponse(
-            req,
-            res,
-            e instanceof Exception
-              ? e
-              : new ServerException("Analytics database is not ready"),
-          );
-        }
-      },
+      (req: ExpressRequest, res: ExpressResponse) => this.handleAnalyticsDatabaseCheck(options, req, res),
     );
 
     // Database check
     router.get(
       "/status/database",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          logger.debug("Database check");
-
-          if (options.databaseCheck) {
-            await options.databaseCheck();
-          } else {
-            throw new BadRequestException("Database check not implemented");
-          }
-
-          logger.info("Database check: ok");
-
-          Response.sendJsonObjectResponse(req, res, {
-            status: "ok",
-          });
-        } catch (e) {
-          Response.sendErrorResponse(
-            req,
-            res,
-            e instanceof Exception
-              ? e
-              : new ServerException("Database is not ready"),
-          );
-        }
-      },
+      (req: ExpressRequest, res: ExpressResponse) => this.handleDatabaseCheck(options, req, res),
     );
+
+    return router;
+  }
+
+    @CaptureSpan()
+    private static async handleReadyCheck(
+    options: StatusAPIOptions,
+    stausReadySuccess: TelemetryCounter,
+    stausReadyFailed: TelemetryCounter,
+    req: ExpressRequest,
+    res: ExpressResponse
+    ) {
+    try {
+      logger.debug("Ready check");
+      await options.readyCheck();
+      logger.info("Ready check: ok");
+      stausReadySuccess.add(1);
+
+      Response.sendJsonObjectResponse(req, res, {
+      status: "ok",
+      });
+    } catch (e) {
+      stausReadyFailed.add(1);
+      Response.sendErrorResponse(
+      req,
+      res,
+      e instanceof Exception
+        ? e
+        : new ServerException("Server is not ready"),
+      );
+    }
+    }
+
+    @CaptureSpan()
+    private static async handleLiveCheck(
+    options: StatusAPIOptions,
+    stausLiveSuccess: TelemetryCounter,
+    stausLiveFailed: TelemetryCounter,
+    req: ExpressRequest,
+    res: ExpressResponse
+    ) {
+    try {
+      logger.debug("Live check");
+      await options.liveCheck();
+      logger.info("Live check: ok");
+      stausLiveSuccess.add(1);
+
+      Response.sendJsonObjectResponse(req, res, {
+      status: "ok",
+      });
+    } catch (e) {
+      stausLiveFailed.add(1);
+      Response.sendErrorResponse(
+      req,
+      res,
+      e instanceof Exception
+        ? e
+        : new ServerException("Server is not ready"),
+      );
+    }
+    }
+
+    @CaptureSpan()
+    private static async handleGlobalCacheCheck(
+    options: StatusAPIOptions,
+    req: ExpressRequest,
+    res: ExpressResponse
+    ) {
+    try {
+      logger.debug("Global cache check");
+      if (options.globalCacheCheck) {
+      await options.globalCacheCheck();
+      } else {
+      throw new BadRequestException("Global cache check not implemented");
+      }
+      logger.info("Global cache check: ok");
+
+      Response.sendJsonObjectResponse(req, res, {
+      status: "ok",
+      });
+    } catch (e) {
+      Response.sendErrorResponse(
+      req,
+      res,
+      e instanceof Exception
+        ? e
+        : new ServerException("Global cache is not ready"),
+      );
+    }
+    }
+
+    @CaptureSpan()
+    private static async handleAnalyticsDatabaseCheck(
+    options: StatusAPIOptions,
+    req: ExpressRequest,
+    res: ExpressResponse
+    ) {
+    try {
+      logger.debug("Analytics database check");
+      if (options.analyticsDatabaseCheck) {
+      await options.analyticsDatabaseCheck();
+      } else {
+      throw new BadRequestException(
+        "Analytics database check not implemented",
+      );
+      }
+      logger.info("Analytics database check: ok");
+
+      Response.sendJsonObjectResponse(req, res, {
+      status: "ok",
+      });
+    } catch (e) {
+      Response.sendErrorResponse(
+      req,
+      res,
+      e instanceof Exception
+        ? e
+        : new ServerException("Analytics database is not ready"),
+      );
+    }
+    }
+
+    @CaptureSpan()
+    private static async handleDatabaseCheck(
+    options: StatusAPIOptions,
+    req: ExpressRequest,
+    res: ExpressResponse
+    ) {
+    try {
+      logger.debug("Database check");
+
+      if (options.databaseCheck) {
+      await options.databaseCheck();
+      } else {
+      throw new BadRequestException("Database check not implemented");
+      }
+
+      logger.info("Database check: ok");
+
+      Response.sendJsonObjectResponse(req, res, {
+      status: "ok",
+      });
+    } catch (e) {
+      Response.sendErrorResponse(
+      req,
+      res,
+      e instanceof Exception
+        ? e
+        : new ServerException("Database is not ready"),
+      );
+    }
+    }
 
     return router;
   }

@@ -7,7 +7,6 @@ import {
   VoidFunction,
 } from "Common/Types/FunctionTypes";
 import { Worker } from "bullmq";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class QueueWorker {

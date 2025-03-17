@@ -2,6 +2,7 @@ import logger from "../Utils/Logger";
 import DomainCommon from "Common/Types/Domain";
 import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import dns from "dns";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class Domain extends DomainCommon {
   @CaptureSpan()
