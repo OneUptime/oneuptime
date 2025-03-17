@@ -9,7 +9,7 @@ import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
-import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class GitHubUtil extends HostedCodeRepository {
   private getPullRequestFromJSONObject(data: {
