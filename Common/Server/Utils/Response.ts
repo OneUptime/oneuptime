@@ -23,6 +23,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ListData from "Common/Types/ListData";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Route from "../../Types/API/Route";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class Response {
   @CaptureSpan()

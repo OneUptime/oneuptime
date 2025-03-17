@@ -9,6 +9,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class APIRequestCriteria {
   @CaptureSpan()

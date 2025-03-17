@@ -8,6 +8,7 @@ import URL from "Common/Types/API/URL";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import API from "Common/Utils/API";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class VMUtil {
   @CaptureSpan()

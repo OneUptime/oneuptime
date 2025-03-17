@@ -6,6 +6,7 @@ import Text from "Common/Types/Text";
 import Typeof from "Common/Types/Typeof";
 import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export default class QueryHelper {
   @CaptureSpan()

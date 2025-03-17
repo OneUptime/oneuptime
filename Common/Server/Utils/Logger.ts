@@ -3,6 +3,7 @@ import OneUptimeTelemetry, { TelemetryLogger } from "./Telemetry";
 import { SeverityNumber } from "@opentelemetry/api-logs";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 

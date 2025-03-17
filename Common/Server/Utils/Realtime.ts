@@ -22,6 +22,7 @@ import EventName from "../../Types/Realtime/EventName";
 import CookieUtil from "./Cookie";
 import Dictionary from "../../Types/Dictionary";
 import UserPermissionUtil from "./UserPermission/UserPermission";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;

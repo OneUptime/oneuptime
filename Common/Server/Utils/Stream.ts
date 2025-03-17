@@ -1,5 +1,6 @@
 import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import { Stream } from "stream";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class StreamUtil {
   @CaptureSpan()

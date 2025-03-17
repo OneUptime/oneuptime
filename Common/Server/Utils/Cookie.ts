@@ -7,6 +7,7 @@ import User from "Common/Models/DatabaseModels/User";
 import OneUptimeDate from "Common/Types/Date";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import CookieName from "Common/Types/CookieName";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CookieUtil {
   // set cookie with express response

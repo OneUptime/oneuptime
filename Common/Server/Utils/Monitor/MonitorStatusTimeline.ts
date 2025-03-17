@@ -7,6 +7,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
 import logger from "../Logger";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 
 export default class MonitorStatusTimelineUtil {

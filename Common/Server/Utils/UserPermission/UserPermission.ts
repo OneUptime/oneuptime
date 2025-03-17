@@ -7,6 +7,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class UserPermissionUtil {
   @CaptureSpan()

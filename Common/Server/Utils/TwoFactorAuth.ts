@@ -1,5 +1,6 @@
 import Email from "Common/Types/Email";
 import * as OTPAuth from "otpauth";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 /**
  * Utility class for handling two-factor authentication.

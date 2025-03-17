@@ -54,6 +54,7 @@ import TelemetryUtil from "../Telemetry/Telemetry";
 import MetricMonitorCriteria from "./Criteria/MetricMonitorCriteria";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class MonitorResourceUtil {
   @CaptureSpan()
