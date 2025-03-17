@@ -12,6 +12,7 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import logger from "../../../Logger";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import { Dictionary } from "lodash";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export interface SlackAction {
   actionValue?: string | undefined;

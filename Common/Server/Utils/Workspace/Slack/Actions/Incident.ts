@@ -35,6 +35,7 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AccessTokenService from "../../../../Services/AccessTokenService";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class SlackIncidentActions {
   @CaptureSpan()

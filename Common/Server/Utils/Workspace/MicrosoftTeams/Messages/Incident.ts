@@ -8,6 +8,7 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import IncidentService from "../../../../Services/IncidentService";
 import MicrosoftTeamsActionType from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class MicrosoftTeamsIncidentMessages {
   @CaptureSpan()

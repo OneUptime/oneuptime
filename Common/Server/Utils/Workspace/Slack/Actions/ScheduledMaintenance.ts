@@ -32,6 +32,7 @@ import LabelService from "../../../../Services/LabelService";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "../../../../../Types/Date";
 import AccessTokenService from "../../../../Services/AccessTokenService";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()

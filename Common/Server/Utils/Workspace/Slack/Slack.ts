@@ -29,6 +29,7 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import OneUptimeDate from "../../../../Types/Date";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class SlackUtil extends WorkspaceBase {
   @CaptureSpan()

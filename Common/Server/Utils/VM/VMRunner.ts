@@ -6,6 +6,7 @@ import axios from "axios";
 import http from "http";
 import https from "https";
 import vm, { Context } from "node:vm";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class VMRunner {
   @CaptureSpan()

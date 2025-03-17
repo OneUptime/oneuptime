@@ -4,7 +4,7 @@ import { ExpressRequest, OneUptimeRequest } from "../Utils/Express";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import UserType from "Common/Types/UserType";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class CommonAPI {
   @CaptureSpan()

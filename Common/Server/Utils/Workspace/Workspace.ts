@@ -16,6 +16,7 @@ import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificati
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
 import UserService from "../../Services/UserService";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class WorkspaceUtil {
   @CaptureSpan()

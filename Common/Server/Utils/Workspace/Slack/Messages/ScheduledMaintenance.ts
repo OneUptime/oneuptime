@@ -8,6 +8,7 @@ import {
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
 import SlackActionType from "../../../../Utils/Workspace/Slack/Actions/ActionTypes";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class SlackScheduledMaintenanceMessages {
   @CaptureSpan()

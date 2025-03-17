@@ -22,6 +22,7 @@ import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import AlertStateService from "../../../../Services/AlertStateService";
 import logger from "../../../Logger";
 import AccessTokenService from "../../../../Services/AccessTokenService";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class SlackAlertActions {
   @CaptureSpan()
