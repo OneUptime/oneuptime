@@ -17,10 +17,13 @@ import TableColumnType from "Common/Types/Database/TableColumnType";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+
 import Permission, {
   PermissionHelper,
   UserPermission,
 } from "Common/Types/Permission";
+
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class ColumnPermissions {
   @CaptureSpan()

@@ -14,6 +14,7 @@ import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, {
   PermissionHelper,

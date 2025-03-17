@@ -7,6 +7,7 @@ import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
 import UpdatePermission from "./UpdatePermission";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class ModelPermission {
   @CaptureSpan()

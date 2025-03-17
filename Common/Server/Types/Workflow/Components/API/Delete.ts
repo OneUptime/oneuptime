@@ -10,6 +10,7 @@ import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import APIComponents from "Common/Types/Workflow/Components/API";
 import API from "Common/Utils/API";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class ApiDelete extends ComponentCode {
   public constructor() {

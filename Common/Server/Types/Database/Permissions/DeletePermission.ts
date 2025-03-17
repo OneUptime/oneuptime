@@ -6,6 +6,7 @@ import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class DeletePermission {
   @CaptureSpan()

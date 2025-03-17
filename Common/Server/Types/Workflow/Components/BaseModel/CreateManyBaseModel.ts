@@ -7,6 +7,8 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import Text from "Common/Types/Text";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+
 
 export default class CreateManyBaseModel<
   TBaseModel extends BaseModel,

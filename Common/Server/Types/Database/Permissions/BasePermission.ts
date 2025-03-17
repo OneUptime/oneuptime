@@ -15,6 +15,7 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import ObjectID from "Common/Types/ObjectID";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;

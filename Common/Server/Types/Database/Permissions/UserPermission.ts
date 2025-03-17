@@ -3,6 +3,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import UserModel from "Common/Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UserPermissions {
   @CaptureSpan()

@@ -8,6 +8,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import ApiKeyPermissionService from "../../Services/ApiKeyPermissionService";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 import UserPermissionUtil from "../UserPermission/UserPermission";
 
 export default class APIKeyAccessPermission {

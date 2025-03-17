@@ -11,6 +11,7 @@ import ComponentID from "Common/Types/Workflow/ComponentID";
 import APIComponents from "Common/Types/Workflow/Components/API";
 import API from "Common/Utils/API";
 import logger from "../../../../Utils/Logger";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class ApiPost extends ComponentCode {
   public constructor() {

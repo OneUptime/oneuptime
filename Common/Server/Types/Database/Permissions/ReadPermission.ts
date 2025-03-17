@@ -13,6 +13,7 @@ import DatabaseCommonInteractionPropsUtil, {
 } from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, { UserPermission } from "Common/Types/Permission";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>
   extends CheckPermissionBaseInterface<TBaseModel> {

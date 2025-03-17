@@ -10,6 +10,7 @@ import Timezone from "Common/Types/Timezone";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import User from "Common/Models/DatabaseModels/User";
 import jwt from "jsonwebtoken";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 class JSONWebToken {
   @CaptureSpan()

@@ -5,6 +5,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import JSONComponents from "Common/Types/Workflow/Components/JSON";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class MergeJSON extends ComponentCode {
   public constructor() {

@@ -2,6 +2,7 @@ import PullRequest from "Common/Types/CodeRepository/PullRequest";
 import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class HostedCodeRepository {
   public constructor(data: { authToken: string; username: string }) {

@@ -3,6 +3,7 @@ import TablePermission from "./TablePermission";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import Permission from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
 

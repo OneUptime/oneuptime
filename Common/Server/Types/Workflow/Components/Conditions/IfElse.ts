@@ -8,6 +8,7 @@ import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components, {
   ConditionOperator,
 } from "Common/Types/Workflow/Components/Condition";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class IfElse extends ComponentCode {
   public constructor() {

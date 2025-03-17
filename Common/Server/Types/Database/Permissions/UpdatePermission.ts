@@ -7,6 +7,7 @@ import TablePermission from "./TablePermission";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UpdatePermission {
   @CaptureSpan()

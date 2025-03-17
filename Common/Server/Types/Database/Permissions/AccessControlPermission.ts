@@ -19,6 +19,8 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "Common/Types/Permission";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+
 
 export default class AccessControlPermission {
   @CaptureSpan()

@@ -1,5 +1,6 @@
 import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import fs from "fs";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class LocalFile {
   @CaptureSpan()

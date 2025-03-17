@@ -9,6 +9,7 @@ import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import Permission, {
   PermissionHelper,
   UserPermission,
