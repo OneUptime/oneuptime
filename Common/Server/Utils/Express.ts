@@ -13,6 +13,7 @@ import UserType from "Common/Types/UserType";
 import "ejs";
 import express from "express";
 import { Server, createServer } from "http";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;

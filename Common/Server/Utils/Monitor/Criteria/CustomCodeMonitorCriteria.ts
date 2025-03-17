@@ -1,6 +1,7 @@
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class CustomCodeMonitoringCriteria {
   @CaptureSpan()

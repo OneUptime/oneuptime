@@ -9,6 +9,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ScreenSizeType from "../../Types/ScreenSizeType";
 import BrowserType from "../../Types/BrowserType";
 import logger from "./Logger";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export type Page = PlaywrightPage;
 export type Browser = PlaywrightBrowser;

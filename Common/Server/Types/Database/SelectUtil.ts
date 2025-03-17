@@ -5,6 +5,7 @@ import BaseModel, {
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "Common/Types/JSON";
 import Typeof from "Common/Types/Typeof";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export default class SelectUtil {
   @CaptureSpan()

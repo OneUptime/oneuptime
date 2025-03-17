@@ -1,5 +1,6 @@
 import { EncryptionSecret } from "../EnvironmentConfig";
 import CryptoJS from "crypto-js";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class Encryption {
   @CaptureSpan()

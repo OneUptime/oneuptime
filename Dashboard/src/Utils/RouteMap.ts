@@ -12,6 +12,9 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_DISABLED]: "disabled",
   [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
   [PageMap.MONITORS_PROBE_DISABLED]: "probe-disabled",
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
+    "workspace-connection-microsoft-teams",
 
   [PageMap.MONITOR_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
@@ -324,6 +327,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_INOPERATIONAL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_INOPERATIONAL]
+    }`,
+  ),
+
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK]
+    }`,
+  ),
+
+  [PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
     }`,
   ),
 

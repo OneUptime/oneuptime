@@ -19,6 +19,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Typeof from "Common/Types/Typeof";
 import { FindOperator } from "typeorm/find-options/FindOperator";
 import { CompareType } from "../../../Types/Database/CompareBase";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export default class QueryUtil {
   @CaptureSpan()

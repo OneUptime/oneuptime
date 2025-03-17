@@ -1,5 +1,6 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import CronParser, { CronExpression } from "cron-parser";
+import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CronTab {
   @CaptureSpan()

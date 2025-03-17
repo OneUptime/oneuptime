@@ -21,7 +21,6 @@ import Permission, {
 } from "Common/Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
-
 export default class AccessControlPermission {
   @CaptureSpan()
   public static async checkAccessControlBlockPermissionByModel<

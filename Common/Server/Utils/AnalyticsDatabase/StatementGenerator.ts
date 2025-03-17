@@ -30,6 +30,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import AggregateBy, {
   AggregateUtil,
 } from "../../Types/AnalyticsDatabase/AggregateBy";
+import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;

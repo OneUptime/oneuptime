@@ -7,6 +7,7 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {
   private _productType!: ProductType;

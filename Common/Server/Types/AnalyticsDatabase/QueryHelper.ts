@@ -4,6 +4,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import ObjectID from "Common/Types/ObjectID";
 import { CompareType } from "../../../Types/Database/CompareBase";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export default class QueryHelper {
   @CaptureSpan()
