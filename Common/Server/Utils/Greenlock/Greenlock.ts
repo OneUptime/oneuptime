@@ -64,9 +64,7 @@ export default class GreenlockUtil {
           continue;
         }
 
-        logger.debug(
-          `Renewing certificate for domain: ${certificate.domain}`,
-        );
+        logger.debug(`Renewing certificate for domain: ${certificate.domain}`);
 
         try {
           //validate cname
@@ -87,9 +85,7 @@ export default class GreenlockUtil {
               `Cname is not valid for domain: ${certificate.domain}`,
             );
           } else {
-            logger.debug(
-              `CNAME is valid for domain: ${certificate.domain}`,
-            );
+            logger.debug(`CNAME is valid for domain: ${certificate.domain}`);
 
             await GreenlockUtil.orderCert({
               domain: certificate.domain,
@@ -176,9 +172,7 @@ export default class GreenlockUtil {
 
         await GreenlockUtil.removeDomain(domain);
         logger.error(`Cname is not valid for domain: ${domain}`);
-        throw new BadDataException(
-          "Cname is not valid for domain " + domain,
-        );
+        throw new BadDataException("Cname is not valid for domain " + domain);
       }
 
       logger.debug(`Cname is valid for domain: ${domain}`);
@@ -188,10 +182,9 @@ export default class GreenlockUtil {
         accountKey: acmeAccountKey,
       });
 
-      const [certificateKey, certificateRequest] =
-        await acme.crypto.createCsr({
-          commonName: domain,
-        });
+      const [certificateKey, certificateRequest] = await acme.crypto.createCsr({
+        commonName: domain,
+      });
 
       logger.debug(`Ordering certificate for domain: ${domain}`);
 

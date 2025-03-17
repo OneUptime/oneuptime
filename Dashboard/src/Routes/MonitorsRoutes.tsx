@@ -21,16 +21,17 @@ const MonitorPage: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Monitor/Monitors");
   });
 
-  const WorkspaceConnectionSlack: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Monitor/WorkspaceConnectionSlack");
-  }); 
+const WorkspaceConnectionSlack: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/WorkspaceConnectionSlack");
+});
 
-  const WorkspaceConnectionTeams: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Monitor/WorkspaceConnectionMicrosoftTeams");
-  });
-
+const WorkspaceConnectionTeams: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Monitor/WorkspaceConnectionMicrosoftTeams");
+});
 
 const MonitorViewMetrics: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -200,30 +201,41 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-<PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] || ""}
+        <PageRoute
+          path={
+            MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] || ""
+          }
           element={
             <Suspense fallback={Loader}>
               <WorkspaceConnectionSlack
                 {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route}
+                pageRoute={
+                  RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route
+                }
               />
             </Suspense>
           }
         />
 
-<PageRoute
-          path={MonitorsRoutePath[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] || ""}
+        <PageRoute
+          path={
+            MonitorsRoutePath[
+              PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+            ] || ""
+          }
           element={
             <Suspense fallback={Loader}>
               <WorkspaceConnectionTeams
                 {...props}
-                pageRoute={RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS] as Route}
+                pageRoute={
+                  RouteMap[
+                    PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                  ] as Route
+                }
               />
             </Suspense>
           }
         />
-
 
         <PageRoute
           path={MonitorsRoutePath[PageMap.MONITOR_CREATE] || ""}

@@ -12,17 +12,15 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Inoperational",
     ]),
     //slack connection
-    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK, [
-      "Project",
-      "Monitors",
-      "Slack",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK,
+      ["Project", "Monitors", "Slack"],
+    ),
     // ms teams connection
-    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS, [
-      "Project",
-      "Monitors",
-      "Microsoft Teams",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ["Project", "Monitors", "Microsoft Teams"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_DISABLED, [
       "Project",
       "Monitors",
