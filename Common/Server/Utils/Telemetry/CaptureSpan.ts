@@ -10,18 +10,23 @@ function CaptureSpan(data?: {
   attributes?: JSONObject;
   captureArguments?: boolean;
 }): (
-  _target: any,
+  target: any,
   propertyKey: string,
   descriptor: PropertyDescriptor,
 ) => PropertyDescriptor {
   return function (
-    _target: any,
+    target: any,
     propertyKey: string,
     descriptor: PropertyDescriptor,
   ) {
+
     const originalMethod: any = descriptor.value;
 
-    const name: string | undefined = data?.name || propertyKey;
+    const className = target.constructor.prototype?.constructor?.name || target.constructor.name;
+
+    logger.debug(JSON.stringify(target.constructor.prototype?.constructor, null, 2));
+
+    const name: string | undefined = data?.name || `${className}.${propertyKey}`;
 
     logger.debug(`Capturing span for ${name}`);
 
