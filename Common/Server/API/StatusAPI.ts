@@ -70,40 +70,49 @@ export default class StatusAPI {
     });
 
     //Healthy probe
-    router.get("/status/ready", (req: ExpressRequest, res: ExpressResponse) =>
-      this.handleReadyCheck(
+    router.get("/status/ready", (req: ExpressRequest, res: ExpressResponse) => {
+      return this.handleReadyCheck(
         options,
         stausReadySuccess,
         stausReadyFailed,
         req,
-        res
-      )
-    );
+        res,
+      );
+    });
 
     //Liveness probe
-    router.get("/status/live", (req: ExpressRequest, res: ExpressResponse) =>
-      this.handleLiveCheck(options, stausLiveSuccess, stausLiveFailed, req, res)
-    );
+    router.get("/status/live", (req: ExpressRequest, res: ExpressResponse) => {
+      return this.handleLiveCheck(
+        options,
+        stausLiveSuccess,
+        stausLiveFailed,
+        req,
+        res,
+      );
+    });
 
     // Global cache check
     router.get(
       "/status/global-cache",
-      (req: ExpressRequest, res: ExpressResponse) =>
-        this.handleGlobalCacheCheck(options, req, res)
+      (req: ExpressRequest, res: ExpressResponse) => {
+        return this.handleGlobalCacheCheck(options, req, res);
+      },
     );
 
     // Analytics database check
     router.get(
       "/status/analytics-database",
-      (req: ExpressRequest, res: ExpressResponse) =>
-        this.handleAnalyticsDatabaseCheck(options, req, res)
+      (req: ExpressRequest, res: ExpressResponse) => {
+        return this.handleAnalyticsDatabaseCheck(options, req, res);
+      },
     );
 
     // Database check
     router.get(
       "/status/database",
-      (req: ExpressRequest, res: ExpressResponse) =>
-        this.handleDatabaseCheck(options, req, res)
+      (req: ExpressRequest, res: ExpressResponse) => {
+        return this.handleDatabaseCheck(options, req, res);
+      },
     );
 
     return router;
@@ -115,8 +124,8 @@ export default class StatusAPI {
     stausReadySuccess: TelemetryCounter,
     stausReadyFailed: TelemetryCounter,
     req: ExpressRequest,
-    res: ExpressResponse
-  ) {
+    res: ExpressResponse,
+  ): Promise<void> {
     try {
       logger.debug("Ready check");
       await options.readyCheck();
@@ -131,7 +140,7 @@ export default class StatusAPI {
       Response.sendErrorResponse(
         req,
         res,
-        e instanceof Exception ? e : new ServerException("Server is not ready")
+        e instanceof Exception ? e : new ServerException("Server is not ready"),
       );
     }
   }
@@ -142,8 +151,8 @@ export default class StatusAPI {
     stausLiveSuccess: TelemetryCounter,
     stausLiveFailed: TelemetryCounter,
     req: ExpressRequest,
-    res: ExpressResponse
-  ) {
+    res: ExpressResponse,
+  ): Promise<void> {
     try {
       logger.debug("Live check");
       await options.liveCheck();
@@ -158,7 +167,7 @@ export default class StatusAPI {
       Response.sendErrorResponse(
         req,
         res,
-        e instanceof Exception ? e : new ServerException("Server is not ready")
+        e instanceof Exception ? e : new ServerException("Server is not ready"),
       );
     }
   }
@@ -167,8 +176,8 @@ export default class StatusAPI {
   private static async handleGlobalCacheCheck(
     options: StatusAPIOptions,
     req: ExpressRequest,
-    res: ExpressResponse
-  ) {
+    res: ExpressResponse,
+  ): Promise<void> {
     try {
       logger.debug("Global cache check");
       if (options.globalCacheCheck) {
@@ -187,7 +196,7 @@ export default class StatusAPI {
         res,
         e instanceof Exception
           ? e
-          : new ServerException("Global cache is not ready")
+          : new ServerException("Global cache is not ready"),
       );
     }
   }
@@ -196,15 +205,15 @@ export default class StatusAPI {
   private static async handleAnalyticsDatabaseCheck(
     options: StatusAPIOptions,
     req: ExpressRequest,
-    res: ExpressResponse
-  ) {
+    res: ExpressResponse,
+  ): Promise<void> {
     try {
       logger.debug("Analytics database check");
       if (options.analyticsDatabaseCheck) {
         await options.analyticsDatabaseCheck();
       } else {
         throw new BadRequestException(
-          "Analytics database check not implemented"
+          "Analytics database check not implemented",
         );
       }
       logger.info("Analytics database check: ok");
@@ -218,7 +227,7 @@ export default class StatusAPI {
         res,
         e instanceof Exception
           ? e
-          : new ServerException("Analytics database is not ready")
+          : new ServerException("Analytics database is not ready"),
       );
     }
   }
@@ -227,8 +236,8 @@ export default class StatusAPI {
   private static async handleDatabaseCheck(
     options: StatusAPIOptions,
     req: ExpressRequest,
-    res: ExpressResponse
-  ) {
+    res: ExpressResponse,
+  ): Promise<void> {
     try {
       logger.debug("Database check");
 
@@ -249,7 +258,7 @@ export default class StatusAPI {
         res,
         e instanceof Exception
           ? e
-          : new ServerException("Database is not ready")
+          : new ServerException("Database is not ready"),
       );
     }
   }

@@ -52,7 +52,6 @@ export enum SpanStatusCode {
 }
 
 export default class Telemetry {
-
   public static sdk: opentelemetry.NodeSDK | null = null;
 
   public static logger: Logger | null = null;
