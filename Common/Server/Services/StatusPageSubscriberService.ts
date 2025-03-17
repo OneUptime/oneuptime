@@ -6,6 +6,7 @@ import {
 } from "../EnvironmentConfig";
 import ProjectSMTPConfigService from "../Services/ProjectSmtpConfigService";
 import CreateBy from "../Types/Database/CreateBy";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";

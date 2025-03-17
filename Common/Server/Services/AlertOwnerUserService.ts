@@ -13,6 +13,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import logger from "../Utils/Logger";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

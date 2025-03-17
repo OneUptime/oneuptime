@@ -1,4 +1,5 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export class MigrationName1724078044172 implements MigrationInterface {
   public name = "MigrationName1724078044172";

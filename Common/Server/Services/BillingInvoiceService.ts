@@ -15,6 +15,7 @@ import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger from "../Utils/Logger";
 import OneUptimeDate from "../../Types/Date";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

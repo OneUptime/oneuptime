@@ -4,6 +4,7 @@ import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class TelemetryAttributeService extends AnalyticsDatabaseService<TelemetryAttribute> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

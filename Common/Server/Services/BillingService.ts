@@ -15,6 +15,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import Stripe from "stripe";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type SubscriptionItem = Stripe.SubscriptionItem;
 

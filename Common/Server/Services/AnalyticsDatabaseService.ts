@@ -11,6 +11,7 @@ import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import FindOneBy from "../Types/AnalyticsDatabase/FindOneBy";
 import FindOneByID from "../Types/AnalyticsDatabase/FindOneByID";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
   DatabaseTriggerType,
   OnCreate,

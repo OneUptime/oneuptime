@@ -51,6 +51,7 @@ import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorService from "./MonitorService";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

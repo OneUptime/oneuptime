@@ -33,6 +33,7 @@ import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Name from "../../Types/Name";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

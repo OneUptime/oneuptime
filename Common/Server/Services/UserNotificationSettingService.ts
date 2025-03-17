@@ -21,6 +21,7 @@ import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
   public constructor() {

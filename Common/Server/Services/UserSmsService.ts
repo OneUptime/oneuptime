@@ -13,6 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
 import Project from "Common/Models/DatabaseModels/Project";
 import Model from "Common/Models/DatabaseModels/UserSMS";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

@@ -18,6 +18,7 @@ import Domain from "Common/Models/DatabaseModels/Domain";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
 import Telemetry, { Span } from "../Utils/Telemetry";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<StatusPageDomain> {
   public constructor() {

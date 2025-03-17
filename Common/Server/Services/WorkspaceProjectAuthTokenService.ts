@@ -5,6 +5,7 @@ import Model, {
   SlackMiscData,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

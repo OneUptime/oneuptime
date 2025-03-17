@@ -11,6 +11,7 @@ import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

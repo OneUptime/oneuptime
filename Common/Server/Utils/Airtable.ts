@@ -2,6 +2,7 @@ import { AirtableApiKey, AirtableBaseId } from "../EnvironmentConfig";
 import Dictionary from "Common/Types/Dictionary";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import AirtableLib, { FieldSet, Records } from "airtable";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type AirtableRecords = Records<FieldSet>;
 

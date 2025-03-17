@@ -6,6 +6,7 @@ import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";

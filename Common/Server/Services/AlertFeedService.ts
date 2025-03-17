@@ -18,6 +18,7 @@ import WorkspaceNotificationRuleService, {
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

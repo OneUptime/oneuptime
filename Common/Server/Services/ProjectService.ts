@@ -70,6 +70,7 @@ import AlertStateService from "./AlertStateService";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface CurrentPlan {
   plan: PlanType | null;

@@ -16,6 +16,7 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class AccessTokenService extends BaseService {
   public constructor() {

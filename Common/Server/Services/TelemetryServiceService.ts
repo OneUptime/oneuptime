@@ -6,6 +6,7 @@ import { BrightColors } from "../../Types/BrandColors";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/TelemetryService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

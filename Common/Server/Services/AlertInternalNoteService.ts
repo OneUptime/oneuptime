@@ -8,6 +8,7 @@ import { Blue500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

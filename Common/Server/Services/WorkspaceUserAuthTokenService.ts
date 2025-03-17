@@ -4,6 +4,7 @@ import DatabaseService from "./DatabaseService";
 import Model, {
   SlackMiscData,
 } from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

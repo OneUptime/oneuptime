@@ -38,6 +38,7 @@ import logger from "../Utils/Logger";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import UserService from "./UserService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
