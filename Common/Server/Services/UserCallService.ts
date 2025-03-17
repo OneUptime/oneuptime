@@ -108,6 +108,7 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async resendVerificationCode(itemId: ObjectID): Promise<void> {
     const item: Model | null = await this.findOneById({
       id: itemId,

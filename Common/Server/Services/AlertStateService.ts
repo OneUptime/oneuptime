@@ -152,6 +152,7 @@ export class Service extends DatabaseService<AlertState> {
     }
   }
 
+  @CaptureSpan()
   public async getAllAlertStates(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -178,6 +179,7 @@ export class Service extends DatabaseService<AlertState> {
     return alertStates;
   }
 
+  @CaptureSpan()
   public async getUnresolvedAlertStates(
     projectId: ObjectID,
     props: DatabaseCommonInteractionProps,
@@ -200,6 +202,7 @@ export class Service extends DatabaseService<AlertState> {
     return unresolvedAlertStates;
   }
 
+  @CaptureSpan()
   public async getResolvedAlertState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -224,6 +227,7 @@ export class Service extends DatabaseService<AlertState> {
     return resolvedAlertState;
   }
 
+  @CaptureSpan()
   public async getAcknowledgedAlertState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;

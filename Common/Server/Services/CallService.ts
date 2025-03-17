@@ -17,6 +17,7 @@ export class CallService extends BaseService {
     super();
   }
 
+  @CaptureSpan()
   public async makeCall(
     callRequest: CallRequest,
     options: {

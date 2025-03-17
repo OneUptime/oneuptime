@@ -11,6 +11,7 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
 } from "Common/Types/Monitor/CriteriaFilter";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class MetricMonitorCriteria {
   @CaptureSpan()

@@ -6,6 +6,7 @@ import {
   FilterType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import Typeof from "Common/Types/Typeof";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class CompareCriteria {
   @CaptureSpan()

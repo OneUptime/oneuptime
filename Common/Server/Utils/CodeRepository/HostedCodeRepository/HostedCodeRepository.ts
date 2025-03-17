@@ -21,6 +21,7 @@ export default class HostedCodeRepository {
   public authToken: string = "";
   public username: string = "";
 
+  @CaptureSpan()
   public async getPullRequests(_data: {
     pullRequestState: PullRequestState;
     baseBranchName?: string | undefined;
@@ -30,6 +31,7 @@ export default class HostedCodeRepository {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public async createPullRequest(_data: {
     baseBranchName: string;
     headBranchName: string;
@@ -41,6 +43,7 @@ export default class HostedCodeRepository {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public async pushChanges(_data: {
     branchName: string;
     organizationName: string;
@@ -49,6 +52,7 @@ export default class HostedCodeRepository {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public async addRemote(_data: {
     remoteName: string;
     organizationName: string;

@@ -48,6 +48,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     };
   }
 
+  @CaptureSpan()
   public async getPullRequestByNumber(data: {
     organizationName: string;
     repositoryName: string;

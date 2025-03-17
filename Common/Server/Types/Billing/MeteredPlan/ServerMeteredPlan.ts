@@ -16,6 +16,7 @@ export default class ServerMeteredPlan {
     return meteredPlan.getPricePerUnit() * quantity;
   }
 
+  @CaptureSpan()
   public async reportQuantityToBillingProvider(
     _projectId: ObjectID,
     _options: {

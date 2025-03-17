@@ -14,6 +14,7 @@ export class StatusPageCertificateService extends BaseService {
     super();
   }
 
+  @CaptureSpan()
   public async add(domain: string): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
       domain: domain,
@@ -27,6 +28,7 @@ export class StatusPageCertificateService extends BaseService {
     );
   }
 
+  @CaptureSpan()
   public async remove(
     domain: string,
   ): Promise<HTTPResponse<EmptyResponseData>> {
@@ -42,6 +44,7 @@ export class StatusPageCertificateService extends BaseService {
     );
   }
 
+  @CaptureSpan()
   public async get(domain: string): Promise<HTTPResponse<JSONObject>> {
     const body: JSONObject = {
       domain: domain,

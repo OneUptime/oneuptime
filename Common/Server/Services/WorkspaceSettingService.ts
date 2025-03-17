@@ -10,6 +10,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async doesExist(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
@@ -31,6 +32,7 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  @CaptureSpan()
   public async refreshSetting(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;

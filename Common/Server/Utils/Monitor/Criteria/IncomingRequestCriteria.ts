@@ -12,6 +12,7 @@ import Typeof from "Common/Types/Typeof";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CompareCriteria from "./CompareCriteria";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class IncomingRequestCriteria {
   @CaptureSpan()

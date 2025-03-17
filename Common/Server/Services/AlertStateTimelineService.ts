@@ -29,6 +29,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     }
   }
 
+  @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {

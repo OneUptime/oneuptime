@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1737141420441 implements MigrationInterface {
   public name = "MigrationName1737141420441";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyExecutionLogTimeline" ADD "triggeredByAlertId" uuid`,
@@ -66,6 +67,7 @@ export class MigrationName1737141420441 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "UserOnCallLogTimeline" DROP CONSTRAINT "FK_42d9916277fcbefa0cdd3904c63"`,

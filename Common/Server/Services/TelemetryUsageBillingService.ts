@@ -20,6 +20,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async getUnreportedUsageBilling(data: {
     projectId: ObjectID;
     productType: ProductType;
@@ -45,6 +46,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async updateUsageBilling(data: {
     projectId: ObjectID;
     productType: ProductType;

@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1741908200702 implements MigrationInterface {
   public name = "MigrationName1741908200702";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_b0bdac6c10d7ed30e696aded2c"`,
@@ -15,6 +16,7 @@ export class MigrationName1741908200702 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyUserOverride" ADD "description" character varying(500)`,

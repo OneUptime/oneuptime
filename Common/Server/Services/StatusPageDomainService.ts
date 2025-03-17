@@ -93,10 +93,12 @@ export class Service extends DatabaseService<StatusPageDomain> {
     return onDelete;
   }
 
+  @CaptureSpan()
   public async removeDomainFromGreenlock(domain: string): Promise<void> {
     await GreenlockUtil.removeDomain(domain);
   }
 
+  @CaptureSpan()
   public async orderCert(statusPageDomain: StatusPageDomain): Promise<void> {
     return Telemetry.startActiveSpan<Promise<void>>({
       name: "StatusPageDomainService.orderCert",
@@ -175,6 +177,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
   }
 
+  @CaptureSpan()
   public async updateSslProvisioningStatusForAllDomains(): Promise<void> {
     const domains: Array<StatusPageDomain> = await this.findBy({
       query: {
@@ -221,6 +224,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  @CaptureSpan()
   public async updateCnameStatusForStatusPageDomain(data: {
     domain: string;
     cnameStatus: boolean;
@@ -254,6 +258,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  @CaptureSpan()
   public async isCnameValid(fullDomain: string): Promise<boolean> {
     try {
       // get the token from the domain.
@@ -346,6 +351,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  @CaptureSpan()
   public async updateSslProvisioningStatus(
     domain: StatusPageDomain,
   ): Promise<void> {
@@ -422,6 +428,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  @CaptureSpan()
   public async orderSSLForDomainsWhichAreNotOrderedYet(): Promise<void> {
     return Telemetry.startActiveSpan<Promise<void>>({
       name: "StatusPageDomainService.orderSSLForDomainsWhichAreNotOrderedYet",
@@ -466,6 +473,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
   }
 
+  @CaptureSpan()
   public async verifyCnameWhoseCnameisNotVerified(): Promise<void> {
     const domains: Array<StatusPageDomain> = await this.findBy({
       query: {
@@ -491,6 +499,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     }
   }
 
+  @CaptureSpan()
   public async renewCertsWhichAreExpiringSoon(): Promise<void> {
     await GreenlockUtil.renewAllCertsWhichAreExpiringSoon({
       validateCname: async (fullDomain: string) => {
@@ -516,6 +525,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
   }
 
+  @CaptureSpan()
   public async checkOrderStatus(): Promise<void> {
     const domains: Array<StatusPageDomain> = await this.findBy({
       query: {

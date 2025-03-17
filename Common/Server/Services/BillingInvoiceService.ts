@@ -22,6 +22,7 @@ export class Service extends DatabaseService<Model> {
     this.setDoNotAllowDelete(true);
   }
 
+  @CaptureSpan()
   public async refreshSubscriptionStatus(data: {
     projectId: ObjectID;
   }): Promise<void> {

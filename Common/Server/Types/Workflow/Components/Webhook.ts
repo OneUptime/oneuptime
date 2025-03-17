@@ -75,6 +75,7 @@ export default class WebhookTrigger extends TriggerCode {
     );
   }
 
+  @CaptureSpan()
   public async initTrigger(
     req: ExpressRequest,
     res: ExpressResponse,

@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1728472625805 implements MigrationInterface {
   public name = "MigrationName1728472625805";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "StatusPageDomain" ADD "customCertificate" text`,
@@ -15,6 +16,7 @@ export class MigrationName1728472625805 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "StatusPageDomain" DROP COLUMN "isCustomCertificate"`,

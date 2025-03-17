@@ -14,6 +14,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async addNote(data: {
     userId: ObjectID;
     scheduledMaintenanceId: ObjectID;

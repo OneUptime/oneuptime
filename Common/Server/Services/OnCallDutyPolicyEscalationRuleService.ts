@@ -35,6 +35,7 @@ import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDuty
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 export class Service extends DatabaseService<Model> {
+  @CaptureSpan()
   public async getRouteAlertToUserId(data: {
     userId: ObjectID;
     onCallDutyPolicyId: ObjectID;
@@ -101,6 +102,7 @@ export class Service extends DatabaseService<Model> {
     return null;
   }
 
+  @CaptureSpan()
   public async startRuleExecution(
     ruleId: ObjectID,
     options: {
@@ -484,6 +486,7 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async addUsersTeamsAndSchedules(
     projectId: ObjectID,
     escalationRuleId: ObjectID,
@@ -524,6 +527,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async addTeam(
     projectId: ObjectID,
     escalationRuleId: ObjectID,
@@ -544,6 +548,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async addOnCallSchedules(
     projectId: ObjectID,
     escalationRuleId: ObjectID,
@@ -564,6 +569,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async addUser(
     projectId: ObjectID,
     escalationRuleId: ObjectID,

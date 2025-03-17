@@ -63,6 +63,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async addToIncidentOrAlertFeed(data: {
     onCallDutyPolicyExecutionLogTimelineId: ObjectID;
   }): Promise<void> {

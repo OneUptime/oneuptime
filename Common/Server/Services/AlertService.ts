@@ -60,6 +60,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async isAlertAcknowledged(data: {
     alertId: ObjectID;
   }): Promise<boolean> {
@@ -104,6 +105,7 @@ export class Service extends DatabaseService<Model> {
     return false;
   }
 
+  @CaptureSpan()
   public async getExistingAlertNumberForProject(data: {
     projectId: ObjectID;
   }): Promise<number> {
@@ -130,6 +132,7 @@ export class Service extends DatabaseService<Model> {
     return lastAlert.alertNumber || 0;
   }
 
+  @CaptureSpan()
   public async acknowledgeAlert(
     alertId: ObjectID,
     acknowledgedByUserId: ObjectID,
@@ -434,6 +437,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     return createdItem;
   }
 
+  @CaptureSpan()
   public async getWorkspaceChannelForAlert(data: {
     alertId: ObjectID;
     workspaceType?: WorkspaceType | null;
@@ -463,6 +467,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     );
   }
 
+  @CaptureSpan()
   public async getAlertIdentifiedDate(alertId: ObjectID): Promise<Date> {
     const timeline: AlertStateTimeline | null =
       await AlertStateTimelineService.findOneBy({
@@ -487,6 +492,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     return timeline.startsAt;
   }
 
+  @CaptureSpan()
   public async findOwners(alertId: ObjectID): Promise<Array<User>> {
     if (!alertId) {
       throw new BadDataException("alertId is required");
@@ -560,6 +566,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     return users;
   }
 
+  @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     alertId: ObjectID,
@@ -601,6 +608,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  @CaptureSpan()
   public async getAlertLinkInDashboard(
     projectId: ObjectID,
     alertId: ObjectID,
@@ -790,6 +798,7 @@ ${alertSeverity.name}
     return onUpdate;
   }
 
+  @CaptureSpan()
   public async doesMonitorHasMoreActiveManualAlerts(
     monitorId: ObjectID,
     proojectId: ObjectID,
@@ -850,6 +859,7 @@ ${alertSeverity.name}
     };
   }
 
+  @CaptureSpan()
   public async changeAlertState(data: {
     projectId: ObjectID;
     alertId: ObjectID;
@@ -917,6 +927,7 @@ ${alertSeverity.name}
     });
   }
 
+  @CaptureSpan()
   public async refreshAlertMetrics(data: { alertId: ObjectID }): Promise<void> {
     const alert: Model | null = await this.findOneById({
       id: data.alertId,
@@ -1177,6 +1188,7 @@ ${alertSeverity.name}
     });
   }
 
+  @CaptureSpan()
   public async isAlertResolved(data: { alertId: ObjectID }): Promise<boolean> {
     const alert: Model | null = await this.findOneBy({
       query: {
@@ -1219,6 +1231,7 @@ ${alertSeverity.name}
     return false;
   }
 
+  @CaptureSpan()
   public async getAlertNumber(data: {
     alertId: ObjectID;
   }): Promise<number | null> {
@@ -1239,6 +1252,7 @@ ${alertSeverity.name}
     return alert.alertNumber || null;
   }
 
+  @CaptureSpan()
   public async resolveAlert(
     alertId: ObjectID,
     resolvedByUserId: ObjectID,

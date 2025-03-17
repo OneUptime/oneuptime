@@ -17,6 +17,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
   ): Promise<ObjectID | null> {

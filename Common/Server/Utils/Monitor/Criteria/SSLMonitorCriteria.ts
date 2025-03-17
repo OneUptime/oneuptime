@@ -9,6 +9,7 @@ import {
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class ServerMonitorCriteria {
   @CaptureSpan()

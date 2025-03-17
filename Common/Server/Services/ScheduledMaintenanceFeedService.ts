@@ -28,6 +28,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async createScheduledMaintenanceFeedItem(data: {
     scheduledMaintenanceId: ObjectID;
     feedInfoInMarkdown: string;

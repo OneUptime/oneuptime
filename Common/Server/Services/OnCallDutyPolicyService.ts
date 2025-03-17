@@ -14,6 +14,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     super(OnCallDutyPolicy);
   }
 
+  @CaptureSpan()
   public async getOnCallPolicyLinkInDashboard(
     projectId: ObjectID,
     onCallDutyPolicyId: ObjectID,
@@ -25,6 +26,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     );
   }
 
+  @CaptureSpan()
   public async executePolicy(
     policyId: ObjectID,
     options: {

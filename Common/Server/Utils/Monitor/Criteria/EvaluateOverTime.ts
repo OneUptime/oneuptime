@@ -12,6 +12,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MetricService from "../../../Services/MetricService";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class EvaluateOverTime {
   @CaptureSpan()

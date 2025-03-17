@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1736787495707 implements MigrationInterface {
   public name = "MigrationName1736787495707";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "IncidentFeed" ALTER COLUMN "moreInformationInMarkdown" DROP NOT NULL`,
@@ -15,6 +16,7 @@ export class MigrationName1736787495707 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenanceFeed" ALTER COLUMN "moreInformationInMarkdown" SET NOT NULL`,

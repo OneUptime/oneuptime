@@ -26,6 +26,7 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  @CaptureSpan()
   public async getTelemetryDataRetentionInDays(
     telemetryServiceId: ObjectID,
   ): Promise<number> {

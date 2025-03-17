@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1720532068612 implements MigrationInterface {
   public name = "MigrationName1720532068612";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     // delete all records from CopilotAction
     await queryRunner.query(`DELETE FROM "CopilotAction"`);
@@ -82,6 +83,7 @@ export class MigrationName1720532068612 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "CopilotCodeRepositoryLabel" DROP CONSTRAINT "FK_d3bb0fc11b6e3b7fd3ca0464c15"`,

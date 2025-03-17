@@ -52,6 +52,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
     };
   }
 
+  @CaptureSpan()
   public async getOnCallDutyPolicyUserOverrideLinkInDashboard(data: {
     projectId: ObjectID;
     onCallDutyPolicyId?: ObjectID | undefined; // if this is null then this is a global override

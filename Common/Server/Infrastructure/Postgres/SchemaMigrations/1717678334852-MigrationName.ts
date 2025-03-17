@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner, Table, TableColumn } from "typeorm";
 export class MigrationName1717678334852 implements MigrationInterface {
   public name: string = "MigrationName1717678334852";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     // check if the column exists
 
@@ -41,6 +42,7 @@ export class MigrationName1717678334852 implements MigrationInterface {
     }
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "TeamPermission" DROP COLUMN "isBlockPermission"`,

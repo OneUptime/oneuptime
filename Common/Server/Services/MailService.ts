@@ -13,6 +13,7 @@ import ObjectID from "../../Types/ObjectID";
 import API from "Common/Utils/API";
 
 export class MailService extends BaseService {
+  @CaptureSpan()
   public async sendMail(
     mail: Email,
     options?: {

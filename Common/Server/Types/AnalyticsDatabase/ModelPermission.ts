@@ -26,6 +26,7 @@ import Permission, {
   UserPermission,
 } from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;

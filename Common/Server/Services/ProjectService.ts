@@ -732,6 +732,7 @@ export class ProjectService extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async addDefaultAlertState(createdItem: Model): Promise<Model> {
     let createdAlertState: AlertState = new AlertState();
     createdAlertState.name = "Identified";
@@ -784,6 +785,7 @@ export class ProjectService extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async addDefaultAlertSeverity(createdItem: Model): Promise<Model> {
     let highSeverity: AlertSeverity = new AlertSeverity();
     highSeverity.name = "High";
@@ -1057,6 +1059,7 @@ export class ProjectService extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async updateLastActive(projectId: ObjectID): Promise<void> {
     await this.updateOneById({
       id: projectId,
@@ -1069,6 +1072,7 @@ export class ProjectService extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async getOwners(projectId: ObjectID): Promise<Array<User>> {
     if (!projectId) {
       throw new BadDataException("Project ID is required");
@@ -1208,6 +1212,7 @@ export class ProjectService extends DatabaseService<Model> {
     return onDelete;
   }
 
+  @CaptureSpan()
   public async getCurrentPlan(projectId: ObjectID): Promise<CurrentPlan> {
     if (!IsBillingEnabled) {
       return { plan: null, isSubscriptionUnpaid: false };
@@ -1251,6 +1256,7 @@ export class ProjectService extends DatabaseService<Model> {
     };
   }
 
+  @CaptureSpan()
   public async sendEmailToProjectOwners(
     projectId: ObjectID,
     subject: string,
@@ -1286,6 +1292,7 @@ export class ProjectService extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async reactiveSubscription(projectId: ObjectID): Promise<void> {
     logger.debug("Reactivating subscription for project " + projectId);
 
@@ -1401,6 +1408,7 @@ export class ProjectService extends DatabaseService<Model> {
     };
   }
 
+  @CaptureSpan()
   public async isSMSNotificationsEnabled(
     projectId: ObjectID,
   ): Promise<boolean> {

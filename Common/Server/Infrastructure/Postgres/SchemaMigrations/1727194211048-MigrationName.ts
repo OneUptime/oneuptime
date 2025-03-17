@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1727194211048 implements MigrationInterface {
   public name = "MigrationName1727194211048";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "User" ALTER COLUMN "updatedAt" TYPE TIMESTAMP WITH TIME ZONE`,
@@ -728,5 +729,6 @@ export class MigrationName1727194211048 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(_queryRunner: QueryRunner): Promise<void> {}
 }

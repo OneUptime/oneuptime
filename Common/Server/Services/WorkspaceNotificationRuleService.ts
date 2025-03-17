@@ -86,6 +86,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     throw new BadDataException("Workspace type not supported");
   }
 
+  @CaptureSpan()
   public async getExistingChannelNamesBasedOnEventType(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
@@ -119,6 +120,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return existingChannelNames;
   }
 
+  @CaptureSpan()
   public async createChannelsAndInviteUsersToChannelsBasedOnRules(data: {
     projectId: ObjectID;
     notificationRuleEventType: NotificationRuleEventType;
@@ -233,6 +235,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     };
   }
 
+  @CaptureSpan()
   public async getNotificationRulesWhereOnCallIsTrue(data: {
     projectId: ObjectID;
     notificationFor: NotificationFor;
@@ -264,6 +267,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return result;
   }
 
+  @CaptureSpan()
   public async getNotificationRulesWhereInviteOwnersIsTrue(data: {
     projectId: ObjectID;
     notificationFor: NotificationFor;
@@ -295,6 +299,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return result;
   }
 
+  @CaptureSpan()
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
     projectId: ObjectID;
     projectAuth: WorkspaceProjectAuthToken;
@@ -403,6 +408,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug("Users invited to channels successfully");
   }
 
+  @CaptureSpan()
   public async inviteUsersBasedOnRulesAndWorkspaceChannels(data: {
     workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
     projectId: ObjectID;
@@ -556,6 +562,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
   }
 
+  @CaptureSpan()
   public async inviteTeamsBasedOnRulesAndWorkspaceChannels(data: {
     workspaceChannels: Array<NotificationRuleWorkspaceChannel>;
     projectId: ObjectID;
@@ -585,6 +592,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     });
   }
 
+  @CaptureSpan()
   public async getWorkspaceUserIdFromOneUptimeUserId(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
@@ -619,6 +627,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return userAuth.workspaceUserId?.toString() || null;
   }
 
+  @CaptureSpan()
   public async createChannelsBasedOnRules(data: {
     projectOrUserAuthTokenForWorkspace: string;
     workspaceType: WorkspaceType;
@@ -691,6 +700,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     return createdWorkspaceChannels;
   }
 
+  @CaptureSpan()
   public async getUsersIdsToInviteToChannel(data: {
     notificationRules: Array<WorkspaceNotificationRule>;
   }): Promise<
@@ -1225,6 +1235,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     throw new BadDataException("NotificationFor is not supported");
   }
 
+  @CaptureSpan()
   public async getMatchingNotificationRules(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;

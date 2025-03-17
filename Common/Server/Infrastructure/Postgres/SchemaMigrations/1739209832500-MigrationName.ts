@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1739209832500 implements MigrationInterface {
   public name = "MigrationName1739209832500";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "WorkspaceUserAuthToken" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "authToken" text NOT NULL, "workspaceUserId" character varying(500) NOT NULL, "workspaceType" character varying(500) NOT NULL, "miscData" jsonb NOT NULL, "userId" uuid, "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_ae2f1b46b7e26f58a1f4a56b6ea" PRIMARY KEY ("_id"))`,
@@ -78,6 +79,7 @@ export class MigrationName1739209832500 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "WorkspaceNotificationRule" DROP CONSTRAINT "FK_65ac673d16286be2dcd5229fe24"`,

@@ -28,6 +28,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async createAlertFeedItem(data: {
     alertId: ObjectID;
     feedInfoInMarkdown: string;

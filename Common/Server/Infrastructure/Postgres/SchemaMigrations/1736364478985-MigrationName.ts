@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1736364478985 implements MigrationInterface {
   public name = "MigrationName1736364478985";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "IncidentLog" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "incidentId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "logInMarkdown" text NOT NULL, "moreInformationInMarkdown" text NOT NULL, "incidentLogEvent" character varying NOT NULL, CONSTRAINT "PK_947cb9f32cf204561d10d64adeb" PRIMARY KEY ("_id"))`,
@@ -27,6 +28,7 @@ export class MigrationName1736364478985 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "IncidentLog" DROP CONSTRAINT "FK_bb1b8b83ffdfc702088b74f2e16"`,

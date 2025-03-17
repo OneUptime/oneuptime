@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1724610006927 implements MigrationInterface {
   public name = "MigrationName1724610006927";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "TelemetryException" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "version" integer NOT NULL, "projectId" uuid NOT NULL, "telemetryServiceId" uuid NOT NULL, "message" character varying, "stackTrace" character varying, "exceptionType" character varying, "fingerprint" character varying(100), "createdByUserId" uuid, "deletedByUserId" uuid, "markedAsResolvedAt" TIMESTAMP WITH TIME ZONE, "markedAsMutedAt" TIMESTAMP WITH TIME ZONE, "firstSeenAt" TIMESTAMP WITH TIME ZONE, "lastSeenAt" TIMESTAMP WITH TIME ZONE, "assignToUserId" uuid, "assignToTeamId" uuid, "markedAsResolvedByUserId" uuid, "markedAsMutedByUserId" uuid, CONSTRAINT "PK_53717afe73c3e72c11713e5e25f" PRIMARY KEY ("_id"))`,
@@ -48,6 +49,7 @@ export class MigrationName1724610006927 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" DROP CONSTRAINT "FK_199e3572d19b75e59f2082251f8"`,

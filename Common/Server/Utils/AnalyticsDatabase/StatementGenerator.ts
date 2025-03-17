@@ -579,6 +579,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }' AND name = '${columnName}'`;
   }
 
+  @CaptureSpan()
   public async toRenameColumnStatement(
     oldColumnName: string,
     newColumnName: string,

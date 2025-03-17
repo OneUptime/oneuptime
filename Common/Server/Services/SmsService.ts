@@ -17,6 +17,7 @@ export class SmsService extends BaseService {
     super();
   }
 
+  @CaptureSpan()
   public async sendSms(
     sms: SMS,
     options: {

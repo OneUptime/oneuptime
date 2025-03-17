@@ -39,6 +39,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async getUserMarkdownString(data: {
     userId: ObjectID;
     projectId: ObjectID;
@@ -63,6 +64,7 @@ export class Service extends DatabaseService<Model> {
     return `[${user.name?.toString() || user.email?.toString() || "User"}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
 
+  @CaptureSpan()
   public async getUserLinkInDashboard(
     projectId: ObjectID,
     userId: ObjectID,
@@ -96,6 +98,7 @@ export class Service extends DatabaseService<Model> {
     return Promise.resolve(createdItem);
   }
 
+  @CaptureSpan()
   public async findByEmail(
     email: Email,
     props: DatabaseCommonInteractionProps,
@@ -326,6 +329,7 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
+  @CaptureSpan()
   public async createByEmail(data: {
     email: Email;
     name: Name | undefined;

@@ -165,6 +165,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return { createBy, carryForward: null };
   }
 
+  @CaptureSpan()
   public async refreshTokens(
     userId: ObjectID,
     projectId: ObjectID,
@@ -329,6 +330,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return onDelete;
   }
 
+  @CaptureSpan()
   public async getUniqueTeamMemberCountInProject(
     projectId: ObjectID,
   ): Promise<number> {
@@ -357,6 +359,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return [...new Set(memberIds)].length; //get unique member ids.
   }
 
+  @CaptureSpan()
   public async getUsersInTeams(teamIds: Array<ObjectID>): Promise<Array<User>> {
     const members: Array<TeamMember> = await this.findBy({
       query: {
@@ -394,6 +397,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     });
   }
 
+  @CaptureSpan()
   public async getUsersInTeam(teamId: ObjectID): Promise<Array<User>> {
     const members: Array<TeamMember> = await this.findBy({
       query: {
@@ -420,6 +424,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     });
   }
 
+  @CaptureSpan()
   public async updateSubscriptionSeatsByUniqueTeamMembersInProject(
     projectId: ObjectID,
   ): Promise<void> {

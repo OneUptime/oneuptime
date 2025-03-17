@@ -120,6 +120,7 @@ ${updatedItem.note}
     return onUpdate;
   }
 
+  @CaptureSpan()
   public async addNote(data: {
     userId: ObjectID;
     scheduledMaintenanceId: ObjectID;

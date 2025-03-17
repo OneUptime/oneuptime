@@ -313,6 +313,7 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async getMonitorLinkInDashboard(
     projectId: ObjectID,
     monitorId: ObjectID,
@@ -324,6 +325,7 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  @CaptureSpan()
   public async findOwners(monitorId: ObjectID): Promise<Array<User>> {
     if (!monitorId) {
       throw new BadDataException("monitorId is required");
@@ -397,6 +399,7 @@ export class Service extends DatabaseService<Model> {
     return users;
   }
 
+  @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     monitorId: ObjectID,
@@ -438,6 +441,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async addDefaultProbesToMonitor(
     projectId: ObjectID,
     monitorId: ObjectID,
@@ -492,6 +496,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async refreshMonitorProbeStatus(monitorId: ObjectID): Promise<void> {
     const monitor: Model | null = await this.findOneById({
       id: monitorId,
@@ -644,6 +649,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async getLabelsForMonitors(data: {
     monitorIds: Array<ObjectID>;
   }): Promise<Array<Label>> {
@@ -686,6 +692,7 @@ export class Service extends DatabaseService<Model> {
     return labels;
   }
 
+  @CaptureSpan()
   public async notifyOwnersWhenNoProbeIsEnabled(data: {
     monitorId: ObjectID;
     isNoProbesEnabled: boolean;
@@ -788,6 +795,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async notifyOwnersProbesDisconnected(data: {
     monitorId: ObjectID;
     isProbeDisconnected: boolean;
@@ -886,6 +894,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async refreshProbeStatus(probeId: ObjectID): Promise<void> {
     // get all the monitors for this probe.
 
@@ -920,6 +929,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async changeMonitorStatus(
     projectId: ObjectID,
     monitorIds: Array<ObjectID>,

@@ -42,6 +42,7 @@ export class Service extends DatabaseService<MonitorGroup> {
     return { deleteBy, carryForward: null };
   }
 
+  @CaptureSpan()
   public async getStatusTimeline(
     monitorGroupId: ObjectID,
     startDate: Date,
@@ -117,6 +118,7 @@ export class Service extends DatabaseService<MonitorGroup> {
     return monitorStatusTimelines;
   }
 
+  @CaptureSpan()
   public async getCurrentStatus(
     monitorGroupId: ObjectID,
     props: DatabaseCommonInteractionProps,

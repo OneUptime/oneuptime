@@ -115,9 +115,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
 
-
-
-
         <SideMenuSection title="Workspace Connections">
           <SideMenuItem
             link={{
@@ -134,14 +131,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               title: "Microsoft Teams",
               to: RouteUtil.populateRouteParams(
                 RouteMap[
-                PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                  PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                 ] as Route,
               ),
             }}
             icon={IconProp.MicrosoftTeams}
           />
         </SideMenuSection>
-
       </SideMenuSection>
     </SideMenu>
   );

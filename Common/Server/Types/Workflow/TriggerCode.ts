@@ -68,6 +68,7 @@ export default class TriggerCode extends ComponentCode {
     };
   }
 
+  @CaptureSpan()
   public async setupComponent(props: InitProps): Promise<void> {
     this.executeWorkflow = props.executeWorkflow;
     this.scheduleWorkflow = props.scheduleWorkflow;
@@ -76,10 +77,12 @@ export default class TriggerCode extends ComponentCode {
     return await this.init(props);
   }
 
+  @CaptureSpan()
   public async init(_props: InitProps): Promise<void> {
     return await Promise.resolve();
   }
 
+  @CaptureSpan()
   public async update(_props: UpdateProps): Promise<void> {
     return await Promise.resolve();
   }

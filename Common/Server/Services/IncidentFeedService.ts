@@ -28,6 +28,7 @@ export class Service extends DatabaseService<IncidentFeed> {
     }
   }
 
+  @CaptureSpan()
   public async createIncidentFeedItem(data: {
     incidentId: ObjectID;
     feedInfoInMarkdown: string;

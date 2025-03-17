@@ -30,6 +30,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     }
   }
 
+  @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {

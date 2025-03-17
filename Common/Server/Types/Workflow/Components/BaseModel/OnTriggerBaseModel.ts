@@ -153,6 +153,7 @@ export default class OnTriggerBaseModel<
     };
   }
 
+  @CaptureSpan()
   public async initTrigger(
     req: ExpressRequest,
     res: ExpressResponse,

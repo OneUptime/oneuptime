@@ -54,6 +54,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async executeNotificationRuleItem(
     userNotificationRuleId: ObjectID,
     options: {
@@ -585,6 +586,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async generateCallTemplateForAlertCreated(
     to: Phone,
     alert: Alert,
@@ -635,6 +637,7 @@ export class Service extends DatabaseService<Model> {
     return callRequest;
   }
 
+  @CaptureSpan()
   public async generateCallTemplateForIncidentCreated(
     to: Phone,
     incident: Incident,
@@ -685,6 +688,7 @@ export class Service extends DatabaseService<Model> {
     return callRequest;
   }
 
+  @CaptureSpan()
   public async generateSmsTemplateForAlertCreated(
     to: Phone,
     alert: Alert,
@@ -714,6 +718,7 @@ export class Service extends DatabaseService<Model> {
     return sms;
   }
 
+  @CaptureSpan()
   public async generateSmsTemplateForIncidentCreated(
     to: Phone,
     incident: Incident,
@@ -743,6 +748,7 @@ export class Service extends DatabaseService<Model> {
     return sms;
   }
 
+  @CaptureSpan()
   public async generateEmailTemplateForAlertCreated(
     to: Email,
     alert: Alert,
@@ -782,6 +788,7 @@ export class Service extends DatabaseService<Model> {
     return emailMessage;
   }
 
+  @CaptureSpan()
   public async generateEmailTemplateForIncidentCreated(
     to: Email,
     incident: Incident,
@@ -826,6 +833,7 @@ export class Service extends DatabaseService<Model> {
     return emailMessage;
   }
 
+  @CaptureSpan()
   public async startUserNotificationRulesExecution(
     userId: ObjectID,
     options: {
@@ -911,6 +919,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async runWorkspaceRulesForOnCallNotification(data: {
     projectId: ObjectID;
     incidentId?: ObjectID | undefined;
@@ -989,6 +998,7 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  @CaptureSpan()
   public async addDefaultIncidentNotificationRuleForUser(data: {
     projectId: ObjectID;
     userId: ObjectID;
@@ -1049,6 +1059,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async addDefaultAlertNotificationRulesForUser(data: {
     projectId: ObjectID;
     userId: ObjectID;
@@ -1109,6 +1120,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async addDefaultNotificationRuleForUser(
     projectId: ObjectID,
     userId: ObjectID,

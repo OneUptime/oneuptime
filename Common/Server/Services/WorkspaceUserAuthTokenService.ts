@@ -10,6 +10,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async getUserAuth(data: {
     projectId: ObjectID;
     userId: ObjectID;
@@ -33,6 +34,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async doesExist(data: {
     projectId: ObjectID;
     userId: ObjectID;
@@ -56,6 +58,7 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  @CaptureSpan()
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     userId: ObjectID;

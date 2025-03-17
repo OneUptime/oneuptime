@@ -65,6 +65,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async getExistingScheduledMaintenanceNumberForProject(data: {
     projectId: ObjectID;
   }): Promise<number> {
@@ -91,6 +92,7 @@ export class Service extends DatabaseService<Model> {
     return lastScheduledMaintenance.scheduledMaintenanceNumber || 0;
   }
 
+  @CaptureSpan()
   public async notififySubscribersOnEventScheduled(
     scheduledEvents: Array<Model>,
   ): Promise<void> {
@@ -645,6 +647,7 @@ ${createdItem.description || "No description provided."}
     return createdItem;
   }
 
+  @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     scheduledMaintenanceId: ObjectID,
@@ -688,6 +691,7 @@ ${createdItem.description || "No description provided."}
     }
   }
 
+  @CaptureSpan()
   public async getScheduledMaintenanceLinkInDashboard(
     projectId: ObjectID,
     scheduledMaintenanceId: ObjectID,
@@ -699,6 +703,7 @@ ${createdItem.description || "No description provided."}
     );
   }
 
+  @CaptureSpan()
   public async findOwners(
     scheduledMaintenanceId: ObjectID,
   ): Promise<Array<User>> {
@@ -775,6 +780,7 @@ ${createdItem.description || "No description provided."}
     return users;
   }
 
+  @CaptureSpan()
   public async changeAttachedMonitorStates(
     item: Model,
     props: DatabaseCommonInteractionProps,
@@ -1053,6 +1059,7 @@ ${labels
     return onUpdate;
   }
 
+  @CaptureSpan()
   public async changeScheduledMaintenanceState(data: {
     projectId: ObjectID;
     scheduledMaintenanceId: ObjectID;
@@ -1143,6 +1150,7 @@ ${labels
     });
   }
 
+  @CaptureSpan()
   public async isScheduledMaintenanceCompleted(data: {
     scheduledMaintenanceId: ObjectID;
   }): Promise<boolean> {
@@ -1194,6 +1202,7 @@ ${labels
     return false;
   }
 
+  @CaptureSpan()
   public async getScheduledMaintenanceNumber(data: {
     scheduledMaintenanceId: ObjectID;
   }): Promise<number | null> {
@@ -1214,6 +1223,7 @@ ${labels
     return scheduledMaintenance.scheduledMaintenanceNumber || null;
   }
 
+  @CaptureSpan()
   public async isScheduledMaintenanceOngoing(data: {
     scheduledMaintenanceId: ObjectID;
   }): Promise<boolean> {
@@ -1264,6 +1274,7 @@ ${labels
     return false;
   }
 
+  @CaptureSpan()
   public async markScheduledMaintenanceAsComplete(
     scheduledMaintenanceId: ObjectID,
     resolvedByUserId: ObjectID,
@@ -1325,6 +1336,7 @@ ${labels
     return scheduledMaintenance;
   }
 
+  @CaptureSpan()
   public async markScheduledMaintenanceAsOngoing(
     scheduledMaintenanceId: ObjectID,
     markedByUserId: ObjectID,
@@ -1386,6 +1398,7 @@ ${labels
     return scheduledMaintenance;
   }
 
+  @CaptureSpan()
   public async getWorkspaceChannelForScheduledMaintenance(data: {
     scheduledMaintenanceId: ObjectID;
     workspaceType?: WorkspaceType | null;

@@ -526,6 +526,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
+  @CaptureSpan()
   public async onTriggerRealtime(
     modelId: ObjectID,
     projectId: ObjectID,
@@ -577,6 +578,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  @CaptureSpan()
   public async onTriggerWorkflow(
     id: ObjectID,
     projectId: ObjectID,
@@ -609,6 +611,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
@@ -829,6 +832,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve(createBy);
   }
 
+  @CaptureSpan()
   public async countBy({
     query,
     skip,
@@ -905,6 +909,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  @CaptureSpan()
   public async deleteOneById(deleteById: DeleteById): Promise<number> {
     await ModelPermission.checkDeletePermissionByModel({
       modelType: this.modelType,
@@ -940,16 +945,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
   }
 
+  @CaptureSpan()
   public async deleteOneBy(
     deleteOneBy: DeleteOneBy<TBaseModel>,
   ): Promise<number> {
     return await this._deleteBy({ ...deleteOneBy, limit: 1, skip: 0 });
   }
 
+  @CaptureSpan()
   public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     return await this._deleteBy(deleteBy);
   }
 
+  @CaptureSpan()
   public async hardDeleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
     try {
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
@@ -1125,6 +1133,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
   }
 
+  @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
   }
@@ -1293,6 +1302,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return items;
   }
 
+  @CaptureSpan()
   public async findOneBy(
     findOneBy: FindOneBy<TBaseModel>,
   ): Promise<TBaseModel | null> {
@@ -1308,6 +1318,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return null;
   }
 
+  @CaptureSpan()
   public async findOneById(
     findOneById: FindOneByID<TBaseModel>,
   ): Promise<TBaseModel | null> {
@@ -1468,16 +1479,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return true;
   }
 
+  @CaptureSpan()
   public async updateOneBy(
     updateOneBy: UpdateOneBy<TBaseModel>,
   ): Promise<number> {
     return await this._updateBy({ ...updateOneBy, limit: 1, skip: 0 });
   }
 
+  @CaptureSpan()
   public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     return await this._updateBy(updateBy);
   }
 
+  @CaptureSpan()
   public async updateOneById(
     updateById: UpdateByID<TBaseModel>,
   ): Promise<void> {
@@ -1519,6 +1533,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
   }
 
+  @CaptureSpan()
   public async updateOneByIdAndFetch(
     updateById: UpdateByIDAndFetch<TBaseModel>,
   ): Promise<TBaseModel | null> {
@@ -1530,6 +1545,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
   }
 
+  @CaptureSpan()
   public async searchBy({
     skip,
     limit,

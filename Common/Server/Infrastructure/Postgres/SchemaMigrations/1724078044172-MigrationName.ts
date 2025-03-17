@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1724078044172 implements MigrationInterface {
   public name = "MigrationName1724078044172";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "Monitor" ADD "incomingRequestMonitorHeartbeatCheckedAt" TIMESTAMP WITH TIME ZONE`,
@@ -12,6 +13,7 @@ export class MigrationName1724078044172 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_62cf90e5fbcd9f3742ed35a2bb"`,

@@ -162,6 +162,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     }
   }
 
+  @CaptureSpan()
   public async getCompletedScheduledMaintenanceState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -189,6 +190,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     return resolvedScheduledMaintenanceState;
   }
 
+  @CaptureSpan()
   public async getAllScheduledMaintenanceStates(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -217,6 +219,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     return scheduledMaintenanceStates;
   }
 
+  @CaptureSpan()
   public async getOngoingScheduledMaintenanceState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;

@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1739217257089 implements MigrationInterface {
   public name = "MigrationName1739217257089";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenance" ADD "scheduledMaintenanceNumber" integer`,
@@ -12,6 +13,7 @@ export class MigrationName1739217257089 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_207fe82fd8bdc67bbe1aa0ebf8"`,

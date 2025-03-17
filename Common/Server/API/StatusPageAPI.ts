@@ -1505,6 +1505,7 @@ export default class StatusPageAPI extends BaseAPI<
     );
   }
 
+  @CaptureSpan()
   public async getScheduledMaintenanceEvents(
     statusPageId: ObjectID,
     scheduledMaintenanceId: ObjectID | null,
@@ -1822,6 +1823,7 @@ export default class StatusPageAPI extends BaseAPI<
     return response;
   }
 
+  @CaptureSpan()
   public async getAnnouncements(
     statusPageId: ObjectID,
     announcementId: ObjectID | null,
@@ -1937,6 +1939,7 @@ export default class StatusPageAPI extends BaseAPI<
     return response;
   }
 
+  @CaptureSpan()
   public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
     const objectId: ObjectID = new ObjectID(
       req.params["statusPageId"] as string,
@@ -2163,6 +2166,7 @@ export default class StatusPageAPI extends BaseAPI<
     );
   }
 
+  @CaptureSpan()
   public async getSubscriber(
     req: ExpressRequest,
   ): Promise<StatusPageSubscriber> {
@@ -2229,6 +2233,7 @@ export default class StatusPageAPI extends BaseAPI<
     return statusPageSubscriber;
   }
 
+  @CaptureSpan()
   public async getIncidents(
     statusPageId: ObjectID,
     incidentId: ObjectID | null,
@@ -2539,6 +2544,7 @@ export default class StatusPageAPI extends BaseAPI<
     return currentStatus;
   }
 
+  @CaptureSpan()
   public async getStatusPageResourcesAndTimelines(data: {
     statusPageId: ObjectID;
     startDateForMonitorTimeline: Date;

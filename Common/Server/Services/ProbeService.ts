@@ -48,6 +48,7 @@ export class Service extends DatabaseService<Model> {
     return { createBy: createBy, carryForward: [] };
   }
 
+  @CaptureSpan()
   public async getOwners(probeId: ObjectID): Promise<Array<User>> {
     if (!probeId) {
       throw new BadDataException("probeId is required");
@@ -177,6 +178,7 @@ export class Service extends DatabaseService<Model> {
     return Promise.resolve(onUpdate);
   }
 
+  @CaptureSpan()
   public async notifyOwnersOnStatusChange(data: {
     probeId: ObjectID;
   }): Promise<void> {
@@ -282,6 +284,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async getLinkInDashboard(
     projectId: ObjectID,
     probeId: ObjectID,

@@ -10,6 +10,7 @@ export class TelemetryAttributeService extends AnalyticsDatabaseService<Telemetr
     super({ modelType: TelemetryAttribute, database: clickhouseDatabase });
   }
 
+  @CaptureSpan()
   public async fetchAttributes(data: {
     projectId: ObjectID;
     telemetryType: TelemetryType;
@@ -40,6 +41,7 @@ export class TelemetryAttributeService extends AnalyticsDatabaseService<Telemetr
     return dbAttributes.sort();
   }
 
+  @CaptureSpan()
   public async refreshAttributes(data: {
     projectId: ObjectID;
     telemetryType: TelemetryType;

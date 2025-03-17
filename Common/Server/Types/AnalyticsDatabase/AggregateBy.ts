@@ -3,6 +3,7 @@ import CommonAggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export default interface AggregateBy<TBaseModel extends AnalyticsBaseModel>
   extends CommonAggregateBy<TBaseModel> {

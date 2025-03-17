@@ -27,6 +27,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     super(UserNotificationSetting);
   }
 
+  @CaptureSpan()
   public async sendUserNotification(data: {
     userId: ObjectID;
     projectId: ObjectID;
@@ -158,6 +159,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     }
   }
 
+  @CaptureSpan()
   public async removeDefaultNotificationSettingsForUser(
     userId: ObjectID,
     projectId: ObjectID,
@@ -189,6 +191,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     }
   }
 
+  @CaptureSpan()
   public async addDefaultNotificationSettingsForUser(
     userId: ObjectID,
     projectId: ObjectID,

@@ -361,6 +361,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     return createdItem;
   }
 
+  @CaptureSpan()
   public async enableActiveMonitoringForMonitors(
     scheduledMaintenanceEvent: ScheduledMaintenance,
   ): Promise<void> {
@@ -446,6 +447,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     }
   }
 
+  @CaptureSpan()
   public async hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
     id: ObjectID,
   ): Promise<boolean> {

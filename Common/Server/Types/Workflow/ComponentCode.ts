@@ -36,6 +36,7 @@ export default class ComponentCode {
     return this.metadata;
   }
 
+  @CaptureSpan()
   public async run(
     _args: JSONObject,
     _options: RunOptions,

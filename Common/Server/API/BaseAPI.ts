@@ -196,6 +196,7 @@ export default class BaseAPI<
     this.service = service;
   }
 
+  @CaptureSpan()
   public async getPermissionsForTenant(
     req: ExpressRequest,
   ): Promise<Array<UserPermission>> {
@@ -226,6 +227,7 @@ export default class BaseAPI<
     return null;
   }
 
+  @CaptureSpan()
   public async getList(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -302,6 +304,7 @@ export default class BaseAPI<
     );
   }
 
+  @CaptureSpan()
   public async count(req: ExpressRequest, res: ExpressResponse): Promise<void> {
     let query: Query<BaseModel> = {};
 
@@ -324,6 +327,7 @@ export default class BaseAPI<
     });
   }
 
+  @CaptureSpan()
   public async getItem(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -347,6 +351,7 @@ export default class BaseAPI<
     return Response.sendEntityResponse(req, res, item, this.entityType);
   }
 
+  @CaptureSpan()
   public async deleteItem(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -362,6 +367,7 @@ export default class BaseAPI<
     return Response.sendEmptySuccessResponse(req, res);
   }
 
+  @CaptureSpan()
   public async updateItem(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -388,6 +394,7 @@ export default class BaseAPI<
     return Response.sendEmptySuccessResponse(req, res);
   }
 
+  @CaptureSpan()
   public async createItem(
     req: ExpressRequest,
     res: ExpressResponse,

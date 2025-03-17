@@ -22,6 +22,7 @@ export class AccessTokenService extends BaseService {
     super();
   }
 
+  @CaptureSpan()
   public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
     await this.refreshUserGlobalAccessPermission(userId);
 
@@ -60,6 +61,7 @@ export class AccessTokenService extends BaseService {
     }
   }
 
+  @CaptureSpan()
   public async refreshUserGlobalAccessPermission(
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission> {
@@ -104,6 +106,7 @@ export class AccessTokenService extends BaseService {
     return permissionToStore;
   }
 
+  @CaptureSpan()
   public async getUserGlobalAccessPermission(
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission | null> {
@@ -117,6 +120,7 @@ export class AccessTokenService extends BaseService {
     return json;
   }
 
+  @CaptureSpan()
   public async refreshUserTenantAccessPermission(
     userId: ObjectID,
     projectId: ObjectID,
@@ -199,6 +203,7 @@ export class AccessTokenService extends BaseService {
     return permission;
   }
 
+  @CaptureSpan()
   public async getDatabaseCommonInteractionPropsByUserAndProject(data: {
     userId: ObjectID;
     projectId: ObjectID;
@@ -219,6 +224,7 @@ export class AccessTokenService extends BaseService {
     };
   }
 
+  @CaptureSpan()
   public async getUserTenantAccessPermission(
     userId: ObjectID,
     projectId: ObjectID,

@@ -27,12 +27,14 @@ export class Service extends DatabaseService<Model> {
     return { createBy: createBy, carryForward: [] };
   }
 
+  @CaptureSpan()
   public async saveShortLinkFor(url: URL): Promise<Model> {
     const model: Model = new Model();
     model.link = url;
     return await this.create({ data: model, props: { isRoot: true } });
   }
 
+  @CaptureSpan()
   public async getShortenedUrl(model: Model): Promise<URL> {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
@@ -45,6 +47,7 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  @CaptureSpan()
   public async getShortLinkFor(shortLinkId: string): Promise<Model | null> {
     return await this.findOneBy({
       query: {

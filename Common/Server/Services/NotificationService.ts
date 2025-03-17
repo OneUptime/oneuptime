@@ -12,6 +12,7 @@ export class NotificationService extends BaseService {
     super();
   }
 
+  @CaptureSpan()
   public async rechargeBalance(
     projectId: ObjectID,
     amountInUSD: number,
@@ -129,6 +130,7 @@ export class NotificationService extends BaseService {
     }
   }
 
+  @CaptureSpan()
   public async rechargeIfBalanceIsLow(
     projectId: ObjectID,
     options?: {

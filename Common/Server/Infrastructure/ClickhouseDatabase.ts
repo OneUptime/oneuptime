@@ -34,6 +34,7 @@ export default class ClickhouseDatabase {
     return Boolean(this.dataSource);
   }
 
+  @CaptureSpan()
   public async connect(
     dataSourceOptions: ClickHouseClientConfigOptions,
   ): Promise<ClickhouseClient> {
@@ -95,6 +96,7 @@ export default class ClickhouseDatabase {
     }
   }
 
+  @CaptureSpan()
   public async disconnect(): Promise<void> {
     if (this.dataSource) {
       await this.dataSource.close();
@@ -102,6 +104,7 @@ export default class ClickhouseDatabase {
     }
   }
 
+  @CaptureSpan()
   public async checkConnnectionStatus(): Promise<boolean> {
     // Ping clickhouse to check if the connection is still alive
     try {

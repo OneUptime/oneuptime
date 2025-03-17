@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1725880508430 implements MigrationInterface {
   public name = "MigrationName1725880508430";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "ScheduledMaintenanceTemplate" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "version" integer NOT NULL, "projectId" uuid NOT NULL, "title" character varying(100) NOT NULL, "description" text, "slug" character varying(100) NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "currentScheduledMaintenanceStateId" uuid NOT NULL, "changeMonitorStatusToId" uuid, "startsAt" TIMESTAMP WITH TIME ZONE NOT NULL, "endsAt" TIMESTAMP WITH TIME ZONE NOT NULL, "shouldStatusPageSubscribersBeNotifiedOnEventCreated" boolean NOT NULL DEFAULT true, "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing" boolean NOT NULL DEFAULT true, "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded" boolean NOT NULL DEFAULT true, "customFields" jsonb, CONSTRAINT "UQ_389395798bdc01f66af7f579a93" UNIQUE ("slug"), CONSTRAINT "PK_92912fb2ee31a1d2912e0077b65" PRIMARY KEY ("_id"))`,
@@ -138,6 +139,7 @@ export class MigrationName1725880508430 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "ScheduledMaintenanceTemplateLabel" DROP CONSTRAINT "FK_ac1b6389a147d1556e38de4bff2"`,

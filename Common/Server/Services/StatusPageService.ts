@@ -188,6 +188,7 @@ export class Service extends DatabaseService<StatusPage> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async findOwners(statusPageId: ObjectID): Promise<Array<User>> {
     if (!statusPageId) {
       throw new BadDataException("statusPageId is required");
@@ -260,6 +261,7 @@ export class Service extends DatabaseService<StatusPage> {
     return users;
   }
 
+  @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     statusPageId: ObjectID,
@@ -301,6 +303,7 @@ export class Service extends DatabaseService<StatusPage> {
     }
   }
 
+  @CaptureSpan()
   public async getStatusPageLinkInDashboard(
     projectId: ObjectID,
     statusPageId: ObjectID,
@@ -312,6 +315,7 @@ export class Service extends DatabaseService<StatusPage> {
     );
   }
 
+  @CaptureSpan()
   public async hasReadAccess(
     statusPageId: ObjectID,
     props: DatabaseCommonInteractionProps,
@@ -378,6 +382,7 @@ export class Service extends DatabaseService<StatusPage> {
     return false;
   }
 
+  @CaptureSpan()
   public async getMonitorStatusTimelineForStatusPage(data: {
     monitorIds: Array<ObjectID>;
     startDate: Date;
@@ -458,6 +463,7 @@ export class Service extends DatabaseService<StatusPage> {
     return monitorStatusTimelines;
   }
 
+  @CaptureSpan()
   public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
     const domain: StatusPageDomain | null =
       await StatusPageDomainService.findOneBy({
@@ -492,6 +498,7 @@ export class Service extends DatabaseService<StatusPage> {
     return statusPageURL;
   }
 
+  @CaptureSpan()
   public async getStatusPageFirstURL(statusPageId: ObjectID): Promise<string> {
     const domains: Array<StatusPageDomain> =
       await StatusPageDomainService.findBy({
@@ -604,6 +611,7 @@ export class Service extends DatabaseService<StatusPage> {
     };
   }
 
+  @CaptureSpan()
   public async sendEmailReport(data: {
     statusPageId: ObjectID;
     email?: Email | undefined;
@@ -730,6 +738,7 @@ export class Service extends DatabaseService<StatusPage> {
     }
   }
 
+  @CaptureSpan()
   public async getReportByStatusPage(data: {
     statusPageId: ObjectID;
     historyDays: number;
@@ -872,6 +881,7 @@ export class Service extends DatabaseService<StatusPage> {
     };
   }
 
+  @CaptureSpan()
   public async getIncidentCountByMonitorIds(data: {
     monitorIds: Array<ObjectID>;
     historyDays: number;
@@ -895,6 +905,7 @@ export class Service extends DatabaseService<StatusPage> {
     return incidentCount.toNumber();
   }
 
+  @CaptureSpan()
   public async getIncidentCountOnStatusPage(data: {
     statusPageId: ObjectID;
     historyDays: number;
@@ -912,6 +923,7 @@ export class Service extends DatabaseService<StatusPage> {
     });
   }
 
+  @CaptureSpan()
   public async getMonitorIdsOnStatusPage(data: {
     statusPageId: ObjectID;
   }): Promise<{
@@ -987,6 +999,7 @@ export class Service extends DatabaseService<StatusPage> {
     };
   }
 
+  @CaptureSpan()
   public async getStatusPageResources(data: {
     statusPageId: ObjectID;
   }): Promise<Array<StatusPageResource>> {

@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1724613666632 implements MigrationInterface {
   public name = "MigrationName1724613666632";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" DROP CONSTRAINT "FK_199e3572d19b75e59f2082251f8"`,
@@ -31,6 +32,7 @@ export class MigrationName1724613666632 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" DROP CONSTRAINT "FK_3def22373f0cb84e16cb355b5e5"`,

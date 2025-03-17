@@ -332,6 +332,7 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async sendConfirmSubscriptionEmail(data: {
     subscriberId: ObjectID;
   }): Promise<void> {
@@ -465,6 +466,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async sendYouHaveSubscribedEmail(data: {
     subscriberId: ObjectID;
   }): Promise<void> {
@@ -611,6 +613,7 @@ export class Service extends DatabaseService<Model> {
     return confirmSubscriptionLink;
   }
 
+  @CaptureSpan()
   public async getSubscribersByStatusPage(
     statusPageId: ObjectID,
     props: DatabaseCommonInteractionProps,
@@ -756,6 +759,7 @@ export class Service extends DatabaseService<Model> {
     return shouldSendNotification;
   }
 
+  @CaptureSpan()
   public async getStatusPagesToSendNotification(
     statusPageIds: Array<ObjectID>,
   ): Promise<Array<StatusPage>> {

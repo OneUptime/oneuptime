@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1718285877004 implements MigrationInterface {
   public name = "MigrationName1718285877004";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "CopilotEvent" ADD "pullRequestId" character varying`,
@@ -12,6 +13,7 @@ export class MigrationName1718285877004 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "CopilotEvent" DROP COLUMN "copilotEventStatus"`,

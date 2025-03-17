@@ -11,6 +11,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async getProjectAuth(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
@@ -32,6 +33,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async getProjectAuths(data: {
     projectId: ObjectID;
   }): Promise<Array<Model>> {
@@ -53,6 +55,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  @CaptureSpan()
   public async doesExist(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
@@ -60,6 +63,7 @@ export class Service extends DatabaseService<Model> {
     return Boolean(await this.getProjectAuth(data));
   }
 
+  @CaptureSpan()
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;

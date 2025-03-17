@@ -84,6 +84,7 @@ export default class AnalyticsDatabaseService<
     });
   }
 
+  @CaptureSpan()
   public async doesColumnExistInDatabase(columnName: string): Promise<boolean> {
     const statement: string =
       this.statementGenerator.toDoesColumnExistStatement(columnName);
@@ -97,6 +98,7 @@ export default class AnalyticsDatabaseService<
     return strResult.trim().length > 0;
   }
 
+  @CaptureSpan()
   public async getColumnTypeInDatabase(
     column: AnalyticsTableColumn,
   ): Promise<TableColumnType | null> {
@@ -134,6 +136,7 @@ export default class AnalyticsDatabaseService<
     );
   }
 
+  @CaptureSpan()
   public async countBy(countBy: CountBy<TBaseModel>): Promise<PositiveNumber> {
     try {
       const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
@@ -179,6 +182,7 @@ export default class AnalyticsDatabaseService<
     }
   }
 
+  @CaptureSpan()
   public async addColumnInDatabase(
     column: AnalyticsTableColumn,
   ): Promise<void> {
@@ -187,16 +191,19 @@ export default class AnalyticsDatabaseService<
     await this.execute(statement);
   }
 
+  @CaptureSpan()
   public async dropColumnInDatabase(columnName: string): Promise<void> {
     await this.execute(
       this.statementGenerator.toDropColumnStatement(columnName),
     );
   }
 
+  @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
   }
 
+  @CaptureSpan()
   public async aggregateBy(
     aggregateBy: AggregateBy<TBaseModel>,
   ): Promise<AggregatedResult> {
@@ -660,6 +667,7 @@ export default class AnalyticsDatabaseService<
     return statement;
   }
 
+  @CaptureSpan()
   public async findOneBy(
     findOneBy: FindOneBy<TBaseModel>,
   ): Promise<TBaseModel | null> {
@@ -675,6 +683,7 @@ export default class AnalyticsDatabaseService<
     return null;
   }
 
+  @CaptureSpan()
   public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<void> {
     return await this._deleteBy(deleteBy);
   }
@@ -715,6 +724,7 @@ export default class AnalyticsDatabaseService<
     }
   }
 
+  @CaptureSpan()
   public async findOneById(
     findOneById: FindOneByID<TBaseModel>,
   ): Promise<TBaseModel | null> {
@@ -731,6 +741,7 @@ export default class AnalyticsDatabaseService<
     });
   }
 
+  @CaptureSpan()
   public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<void> {
     await this._updateBy(updateBy);
   }
@@ -793,6 +804,7 @@ export default class AnalyticsDatabaseService<
     this.databaseClient = this.database.getDataSource() as ClickhouseClient;
   }
 
+  @CaptureSpan()
   public async execute(
     statement: Statement | string,
   ): Promise<ExecResult<Stream>> {
@@ -810,6 +822,7 @@ export default class AnalyticsDatabaseService<
   }
 
 
+  @CaptureSpan()
   public async executeQuery(
     statement: Statement | string,
   ): Promise<ResultSet<"JSON">> {
@@ -910,6 +923,7 @@ export default class AnalyticsDatabaseService<
     return await this.onBeforeCreate(createBy);
   }
 
+  @CaptureSpan()
   public async createMany(
     createBy: CreateManyBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
@@ -1053,6 +1067,7 @@ export default class AnalyticsDatabaseService<
     }
   }
 
+  @CaptureSpan()
   public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
     const items: Array<TBaseModel> = await this.createMany({
       props: createBy.props,
@@ -1098,6 +1113,7 @@ export default class AnalyticsDatabaseService<
     return true;
   }
 
+  @CaptureSpan()
   public async onTrigger(
     id: ObjectID,
     projectId: ObjectID,

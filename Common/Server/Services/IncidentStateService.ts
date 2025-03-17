@@ -152,6 +152,7 @@ export class Service extends DatabaseService<IncidentState> {
     }
   }
 
+  @CaptureSpan()
   public async getAllIncidentStates(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -179,6 +180,7 @@ export class Service extends DatabaseService<IncidentState> {
     return incidentStates;
   }
 
+  @CaptureSpan()
   public async getUnresolvedIncidentStates(
     projectId: ObjectID,
     props: DatabaseCommonInteractionProps,
@@ -202,6 +204,7 @@ export class Service extends DatabaseService<IncidentState> {
     return unresolvedIncidentStates;
   }
 
+  @CaptureSpan()
   public async getResolvedIncidentState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
@@ -226,6 +229,7 @@ export class Service extends DatabaseService<IncidentState> {
     return resolvedIncidentState;
   }
 
+  @CaptureSpan()
   public async getAcknowledgedIncidentState(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;

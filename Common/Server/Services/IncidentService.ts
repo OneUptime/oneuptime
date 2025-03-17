@@ -67,6 +67,7 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  @CaptureSpan()
   public async isIncidentResolved(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
@@ -112,6 +113,7 @@ export class Service extends DatabaseService<Model> {
     return false;
   }
 
+  @CaptureSpan()
   public async isIncidentAcknowledged(data: {
     incidentId: ObjectID;
   }): Promise<boolean> {
@@ -157,6 +159,7 @@ export class Service extends DatabaseService<Model> {
     return false;
   }
 
+  @CaptureSpan()
   public async resolveIncident(
     incidentId: ObjectID,
     resolvedByUserId: ObjectID,
@@ -215,6 +218,7 @@ export class Service extends DatabaseService<Model> {
     return incident;
   }
 
+  @CaptureSpan()
   public async acknowledgeIncident(
     incidentId: ObjectID,
     acknowledgedByUserId: ObjectID,
@@ -273,6 +277,7 @@ export class Service extends DatabaseService<Model> {
     return incident;
   }
 
+  @CaptureSpan()
   public async getExistingIncidentNumberForProject(data: {
     projectId: ObjectID;
   }): Promise<number> {
@@ -649,6 +654,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     return createdItem;
   }
 
+  @CaptureSpan()
   public async getIncidentIdentifiedDate(incidentId: ObjectID): Promise<Date> {
     const timeline: IncidentStateTimeline | null =
       await IncidentStateTimelineService.findOneBy({
@@ -673,6 +679,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     return timeline.startsAt;
   }
 
+  @CaptureSpan()
   public async findOwners(incidentId: ObjectID): Promise<Array<User>> {
     if (!incidentId) {
       throw new BadDataException("incidentId is required");
@@ -746,6 +753,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     return users;
   }
 
+  @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     incidentId: ObjectID,
@@ -787,6 +795,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  @CaptureSpan()
   public async getIncidentLinkInDashboard(
     projectId: ObjectID,
     incidentId: ObjectID,
@@ -980,6 +989,7 @@ ${incidentSeverity.name}
     return onUpdate;
   }
 
+  @CaptureSpan()
   public async doesMonitorHasMoreActiveManualIncidents(
     monitorId: ObjectID,
     proojectId: ObjectID,
@@ -1015,6 +1025,7 @@ ${incidentSeverity.name}
     return incidentCount.toNumber() > 0;
   }
 
+  @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
     monitors: Array<Monitor>,
@@ -1149,6 +1160,7 @@ ${incidentSeverity.name}
     return onDelete;
   }
 
+  @CaptureSpan()
   public async changeIncidentState(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
@@ -1224,6 +1236,7 @@ ${incidentSeverity.name}
     });
   }
 
+  @CaptureSpan()
   public async refreshIncidentMetrics(data: {
     incidentId: ObjectID;
   }): Promise<void> {
@@ -1510,6 +1523,7 @@ ${incidentSeverity.name}
     });
   }
 
+  @CaptureSpan()
   public async getWorkspaceChannelForIncident(data: {
     incidentId: ObjectID;
     workspaceType?: WorkspaceType | null;
@@ -1539,6 +1553,7 @@ ${incidentSeverity.name}
     );
   }
 
+  @CaptureSpan()
   public async getIncidentNumber(data: {
     incidentId: ObjectID;
   }): Promise<number | null> {

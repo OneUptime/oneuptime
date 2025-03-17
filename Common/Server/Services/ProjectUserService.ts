@@ -10,6 +10,7 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  @CaptureSpan()
   public async refreshProjectUsersByProject(data: {
     projectId: ObjectID;
   }): Promise<void> {

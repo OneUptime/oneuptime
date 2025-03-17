@@ -42,6 +42,7 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  @CaptureSpan()
   public async addOwners(
     projectId: ObjectID,
     incidentTemplateId: ObjectID,

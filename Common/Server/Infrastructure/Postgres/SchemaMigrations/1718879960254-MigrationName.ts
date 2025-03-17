@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1718879960254 implements MigrationInterface {
   public name = "MigrationName1718879960254";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `CREATE TABLE "CopilotAction" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP, "version" integer NOT NULL, "projectId" uuid NOT NULL, "codeRepositoryId" uuid NOT NULL, "createdByUserId" uuid, "deletedByUserId" uuid, "filePath" character varying NOT NULL, "commitHash" character varying NOT NULL, "copilotActionType" character varying NOT NULL, "serviceCatalogId" uuid NOT NULL, "serviceRepositoryId" uuid NOT NULL, "pullRequestId" character varying, "copilotActionStatus" character varying NOT NULL, CONSTRAINT "PK_1a2ad3762ca1616c1f31c04ef1e" PRIMARY KEY ("_id"))`,
@@ -39,6 +40,7 @@ export class MigrationName1718879960254 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "CopilotAction" DROP CONSTRAINT "FK_786400c4dce05f85bbbd5244249"`,

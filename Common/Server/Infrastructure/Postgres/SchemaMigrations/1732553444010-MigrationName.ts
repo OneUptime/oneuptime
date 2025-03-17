@@ -3,6 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class MigrationName1732553444010 implements MigrationInterface {
   public name = "MigrationName1732553444010";
 
+  @CaptureSpan()
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "TelemetryException" ALTER COLUMN "message" TYPE text`,
@@ -15,6 +16,7 @@ export class MigrationName1732553444010 implements MigrationInterface {
     );
   }
 
+  @CaptureSpan()
   public async down(queryRunner: QueryRunner): Promise<void> {
     // revert changes made in up method - text to varchar
     await queryRunner.query(
