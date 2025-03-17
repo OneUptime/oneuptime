@@ -85,7 +85,6 @@ export default class Telemetry {
     return headers;
   }
 
-  
   public static getOtlpEndpoint(): URL | null {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT"]) {
       return null;
@@ -96,7 +95,6 @@ export default class Telemetry {
     );
   }
 
-  
   public static getOltpLogsEndpoint(): URL | null {
     const oltpEndpoint: URL | null = this.getOtlpEndpoint();
 
@@ -107,7 +105,6 @@ export default class Telemetry {
     return URL.fromString(oltpEndpoint.toString() + "/v1/logs");
   }
 
-  
   public static getOltpMetricsEndpoint(): URL | null {
     const oltpEndpoint: URL | null = this.getOtlpEndpoint();
 
@@ -118,7 +115,6 @@ export default class Telemetry {
     return URL.fromString(oltpEndpoint.toString() + "/v1/metrics");
   }
 
-  
   public static getOltpTracesEndpoint(): URL | null {
     const oltpEndpoint: URL | null = this.getOtlpEndpoint();
 
@@ -129,14 +125,12 @@ export default class Telemetry {
     return URL.fromString(oltpEndpoint.toString() + "/v1/traces");
   }
 
-  
   public static getResource(data: { serviceName: string }): Resource {
     return new Resource({
       [ATTR_SERVICE_NAME]: data.serviceName,
     });
   }
 
-  
   public static init(data: {
     serviceName: string;
   }): opentelemetry.NodeSDK | null {
@@ -239,7 +233,6 @@ export default class Telemetry {
     return this.sdk;
   }
 
-  
   public static getLogger(): Logger | null {
     if (!this.loggerProvider) {
       return null;
@@ -248,7 +241,6 @@ export default class Telemetry {
     return this.loggerProvider.getLogger("default");
   }
 
-  
   public static getMeterProvider(): MeterProvider {
     if (!this.meterProvider) {
       this.meterProvider = new MeterProvider({
@@ -264,7 +256,6 @@ export default class Telemetry {
     return this.meterProvider;
   }
 
-  
   public static getMeter(): Meter {
     if (!this.meter) {
       this.meter = OpenTelemetryAPI.metrics.getMeter("default");
@@ -273,7 +264,6 @@ export default class Telemetry {
     return this.meter;
   }
 
-  
   public static getCounter(data: {
     name: string;
     description: string;
@@ -297,7 +287,6 @@ export default class Telemetry {
 
   // guage
 
-  
   public static getGauge(data: {
     name: string;
     description: string;
@@ -321,7 +310,6 @@ export default class Telemetry {
 
   // histogram
 
-  
   public static getHistogram(data: {
     name: string;
     description: string;
@@ -343,14 +331,12 @@ export default class Telemetry {
     return histogram;
   }
 
-  
   public static getTracer(): opentelemetry.api.Tracer {
     const tracer: opentelemetry.api.Tracer =
       OpenTelemetryAPI.trace.getTracer("default");
     return tracer;
   }
 
-  
   public static startActiveSpan<T>(data: {
     name: string;
     options?: SpanOptions | undefined;
@@ -361,7 +347,6 @@ export default class Telemetry {
     return this.getTracer().startActiveSpan(name, data.options || {}, data.fn);
   }
 
-  
   public static recordExceptionMarkSpanAsErrorAndEndSpan(data: {
     span: Span;
     exception: unknown;
@@ -379,7 +364,6 @@ export default class Telemetry {
     this.endSpan(span);
   }
 
-  
   public static endSpan(span: Span): void {
     span.end();
   }

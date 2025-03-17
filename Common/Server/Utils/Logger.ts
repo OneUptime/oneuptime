@@ -7,7 +7,6 @@ import { JSONObject } from "Common/Types/JSON";
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
 export default class logger {
-  
   public static getLogLevel(): ConfigLogLevel {
     if (!LogLevel) {
       return ConfigLogLevel.INFO;
@@ -16,7 +15,6 @@ export default class logger {
     return LogLevel;
   }
 
-  
   public static serializeLogBody(body: LogBody): string {
     if (typeof body === "string") {
       return body;
@@ -26,7 +24,6 @@ export default class logger {
     return JSON.stringify(body);
   }
 
-  
   public static info(message: LogBody): void {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
@@ -41,7 +38,6 @@ export default class logger {
     }
   }
 
-  
   public static error(message: LogBody): void {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
@@ -61,7 +57,6 @@ export default class logger {
     }
   }
 
-  
   public static warn(message: LogBody): void {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
@@ -80,7 +75,6 @@ export default class logger {
     }
   }
 
-  
   public static debug(message: LogBody): void {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
@@ -95,7 +89,6 @@ export default class logger {
     }
   }
 
-  
   public static emit(data: {
     body: LogBody;
     severityNumber: SeverityNumber;
@@ -112,7 +105,6 @@ export default class logger {
     });
   }
 
-  
   public static trace(message: LogBody): void {
     const logLevel: ConfigLogLevel = this.getLogLevel();
 
