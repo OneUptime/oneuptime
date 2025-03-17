@@ -22,9 +22,15 @@ function CaptureSpan(data?: {
 
     const originalMethod: any = descriptor.value;
 
-    const className = target.constructor.prototype?.constructor?.name || target.constructor.name;
+    let className = target.constructor.name; 
 
-    logger.debug(JSON.stringify(target.constructor.prototype?.constructor, null, 2));
+    if(className === "" || className === "Function"){
+      const staticClassName = target.name;
+
+      if(staticClassName){
+        className = staticClassName;
+      }
+    }
 
     const name: string | undefined = data?.name || `${className}.${propertyKey}`;
 
