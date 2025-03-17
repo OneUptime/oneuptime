@@ -40,6 +40,7 @@ export default class DeleteOneBaseModel<
     this.modelService = modelService;
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

@@ -4,6 +4,7 @@ import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 
 export default class TraceMonitorCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;

@@ -26,6 +26,7 @@ import UserPermissionUtil from "./UserPermission/UserPermission";
 export default abstract class Realtime {
   private static socketServer: SocketServer | null = null;
 
+  @CaptureSpan()
   public static isInitialized(): boolean {
     logger.debug("Checking if socket server is initialized");
     const isInitialized: boolean = this.socketServer !== null;
@@ -33,6 +34,7 @@ export default abstract class Realtime {
     return isInitialized;
   }
 
+  @CaptureSpan()
   public static async init(): Promise<SocketServer | null> {
     if (!this.socketServer) {
       logger.debug("Initializing socket server");
@@ -76,6 +78,7 @@ export default abstract class Realtime {
     return this.socketServer;
   }
 
+  @CaptureSpan()
   public static async listenToModelEvent(
     socket: Socket,
     data: ListenToModelEventJSON,
@@ -204,6 +207,7 @@ export default abstract class Realtime {
     }
   }
 
+  @CaptureSpan()
   public static async stopListeningToModelEvent(
     socket: Socket,
     data: ListenToModelEventJSON,
@@ -228,6 +232,7 @@ export default abstract class Realtime {
     await socket.leave(roomId);
   }
 
+  @CaptureSpan()
   public static async emitModelEvent(data: {
     tenantId: string | ObjectID;
     eventType: ModelEventType;
@@ -275,6 +280,7 @@ export default abstract class Realtime {
     this.socketServer!.to(modelRoomId).emit(modelRoomId, jsonObject);
   }
 
+  @CaptureSpan()
   public static hasPermissionsByModelName(
     userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
     modelName: string,
@@ -303,6 +309,7 @@ export default abstract class Realtime {
     );
   }
 
+  @CaptureSpan()
   public static getAccessTokenFromSocket(socket: Socket): string | undefined {
     let accessToken: string | undefined = undefined;
 

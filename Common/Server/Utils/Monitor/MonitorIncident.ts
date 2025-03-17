@@ -20,6 +20,7 @@ import logger from "../Logger";
 import DataToProcess from "./DataToProcess";
 
 export default class MonitorIncident {
+  @CaptureSpan()
   public static async checkOpenIncidentsAndCloseIfResolved(input: {
     monitorId: ObjectID;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
@@ -73,6 +74,7 @@ export default class MonitorIncident {
     return openIncidents;
   }
 
+  @CaptureSpan()
   public static async criteriaMetCreateIncidentsAndUpdateMonitorStatus(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;

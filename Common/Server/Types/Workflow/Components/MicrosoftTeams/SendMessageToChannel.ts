@@ -26,6 +26,7 @@ export default class SendMessageToChannel extends ComponentCode {
     this.setMetadata(Component);
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

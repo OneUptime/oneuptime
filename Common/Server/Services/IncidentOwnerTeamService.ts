@@ -94,6 +94,7 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
+  @CaptureSpan()
   public override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,

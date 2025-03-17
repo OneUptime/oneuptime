@@ -2,6 +2,7 @@ import { EncryptionSecret } from "../EnvironmentConfig";
 import CryptoJS from "crypto-js";
 
 export default class Encryption {
+  @CaptureSpan()
   public static async encrypt(text: string): Promise<string> {
     if (!text) {
       return "";
@@ -12,6 +13,7 @@ export default class Encryption {
     return encryptedText;
   }
 
+  @CaptureSpan()
   public static async decrypt(encryptedText: string): Promise<string> {
     if (!encryptedText) {
       return "";

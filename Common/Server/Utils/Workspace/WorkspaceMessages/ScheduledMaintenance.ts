@@ -8,8 +8,10 @@ import WorkspaceNotificationRuleService, {
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackScheduledMaintenanceMessages from "../Slack/Messages/ScheduledMaintenance";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class ScheduledMaintenanceWorkspaceMessages {
+  @CaptureSpan()
   public static async createChannelsAndInviteUsersToChannels(data: {
     projectId: ObjectID;
     scheduledMaintenanceId: ObjectID;
@@ -37,6 +39,7 @@ export default class ScheduledMaintenanceWorkspaceMessages {
     }
   }
 
+  @CaptureSpan()
   public static async getScheduledMaintenanceCreateMessageBlocks(data: {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;

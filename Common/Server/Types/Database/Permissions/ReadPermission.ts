@@ -21,6 +21,7 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel>
 }
 
 export default class ReadPermission {
+  @CaptureSpan()
   public static async checkReadPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
@@ -56,6 +57,7 @@ export default class ReadPermission {
     return { query, select, relationSelect };
   }
 
+  @CaptureSpan()
   public static async checkReadBlockPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

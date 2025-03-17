@@ -14,6 +14,7 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { PermissionHelper, UserPermission } from "Common/Types/Permission";
 
 export default class SelectPermission {
+  @CaptureSpan()
   public static checkSelectPermission<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     select: Select<TBaseModel>,

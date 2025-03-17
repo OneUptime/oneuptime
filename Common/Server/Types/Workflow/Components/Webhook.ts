@@ -27,6 +27,7 @@ export default class WebhookTrigger extends TriggerCode {
     this.setMetadata(WebhookComponent);
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,
@@ -49,6 +50,7 @@ export default class WebhookTrigger extends TriggerCode {
     };
   }
 
+  @CaptureSpan()
   public override async init(props: InitProps): Promise<void> {
     props.router.get(
       `/trigger/:workflowId`,

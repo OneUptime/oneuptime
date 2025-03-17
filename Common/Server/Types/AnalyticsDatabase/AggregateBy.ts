@@ -10,6 +10,7 @@ export default interface AggregateBy<TBaseModel extends AnalyticsBaseModel>
 }
 
 export class AggregateUtil {
+  @CaptureSpan()
   public static getAggregationInterval(data: {
     startDate: Date;
     endDate: Date;

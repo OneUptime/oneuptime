@@ -5,6 +5,7 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 
 export default class UserPermissions {
+  @CaptureSpan()
   public static async addUserScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

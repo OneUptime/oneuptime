@@ -11,6 +11,7 @@ import CookieName from "Common/Types/CookieName";
 export default class CookieUtil {
   // set cookie with express response
 
+  @CaptureSpan()
   public static getCookiesFromCookieString(
     cookieString: string,
   ): Dictionary<string> {
@@ -25,6 +26,7 @@ export default class CookieUtil {
     return cookies;
   }
 
+  @CaptureSpan()
   public static setSSOCookie(data: {
     user: User;
     projectId: ObjectID;
@@ -50,6 +52,7 @@ export default class CookieUtil {
     });
   }
 
+  @CaptureSpan()
   public static setUserCookie(data: {
     expressResponse: ExpressResponse;
     user: User;
@@ -144,6 +147,7 @@ export default class CookieUtil {
     }
   }
 
+  @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
     name: string | CookieName,
@@ -155,6 +159,7 @@ export default class CookieUtil {
 
   // get cookie with express request
 
+  @CaptureSpan()
   public static getCookieFromExpressRequest(
     req: ExpressRequest,
     name: string,
@@ -164,15 +169,18 @@ export default class CookieUtil {
 
   // delete cookie with express response
 
+  @CaptureSpan()
   public static removeCookie(res: ExpressResponse, name: string): void {
     res.clearCookie(name);
   }
 
   // get all cookies with express request
+  @CaptureSpan()
   public static getAllCookies(req: ExpressRequest): Dictionary<string> {
     return req.cookies || {};
   }
 
+  @CaptureSpan()
   public static getUserTokenKey(id?: ObjectID): string {
     if (!id) {
       return CookieName.Token;
@@ -181,15 +189,18 @@ export default class CookieUtil {
     return `${CookieName.Token}-${id.toString()}`;
   }
 
+  @CaptureSpan()
   public static getUserSSOKey(id: ObjectID): string {
     return `${this.getSSOKey()}${id.toString()}`;
   }
 
+  @CaptureSpan()
   public static getSSOKey(): string {
     return `sso-`;
   }
 
   // delete all cookies.
+  @CaptureSpan()
   public static removeAllCookies(
     req: ExpressRequest,
     res: ExpressResponse,

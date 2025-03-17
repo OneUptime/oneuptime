@@ -9,6 +9,7 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import ObjectID from "Common/Types/ObjectID";
 
 export default class TenantPermission {
+  @CaptureSpan()
   public static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

@@ -4,6 +4,7 @@ import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 
 export default class SyntheticMonitoringCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     monitorResponse: Array<SyntheticMonitorResponse>;
     criteriaFilter: CriteriaFilter;

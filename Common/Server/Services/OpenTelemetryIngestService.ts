@@ -28,6 +28,7 @@ export interface TelemetryServiceDataIngested {
 }
 
 export default class OTelIngestService {
+  @CaptureSpan()
   public static async telemetryServiceFromName(data: {
     serviceName: string;
     projectId: ObjectID;
@@ -80,6 +81,7 @@ export default class OTelIngestService {
     };
   }
 
+  @CaptureSpan()
   public static async recordDataIngestedUsgaeBilling(data: {
     services: Dictionary<TelemetryServiceDataIngested>;
     projectId: ObjectID;
@@ -110,6 +112,7 @@ export default class OTelIngestService {
     }
   }
 
+  @CaptureSpan()
   public static getMetricFromDatapoint(data: {
     dbMetric: Metric;
     datapoint: JSONObject;

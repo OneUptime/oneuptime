@@ -21,6 +21,7 @@ import WorkspaceMessagePayload, {
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
 import URL from "Common/Types/API/URL";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export interface WorkspaceThread {
   channel: WorkspaceChannel;
@@ -39,6 +40,7 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
+  @CaptureSpan()
   public static async isUserInDirectMessageChannel(_data: {
     authToken: string;
     userId: string;
@@ -46,6 +48,7 @@ export default class WorkspaceBase {
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
+  @CaptureSpan()
   public static async getUsernameFromUserId(_data: {
     authToken: string;
     userId: string;
@@ -53,6 +56,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async showModalToUser(_data: {
     authToken: string;
     triggerId: string;
@@ -61,12 +65,14 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getCheckboxBlock(_data: {
     payloadCheckboxBlock: WorkspaceCheckboxBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static sendDirectMessageToUser(_data: {
     authToken: string;
     workspaceUserId: string;
@@ -75,6 +81,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async joinChannel(_data: {
     authToken: string;
     channelId: string;
@@ -82,6 +89,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async sendPayloadBlocksToChannel(_data: {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
@@ -90,6 +98,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async inviteUsersToChannels(data: {
     authToken: string;
     workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
@@ -105,6 +114,7 @@ export default class WorkspaceBase {
     }
   }
 
+  @CaptureSpan()
   public static async inviteUsersToChannel(data: {
     authToken: string;
     channelName: string;
@@ -119,6 +129,7 @@ export default class WorkspaceBase {
     }
   }
 
+  @CaptureSpan()
   public static async inviteUserToChannelByChannelName(_data: {
     authToken: string;
     channelName: string;
@@ -127,18 +138,21 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getDateTimePickerBlock(_data: {
     payloadDateTimePickerBlock: WorkspaceDateTimePickerBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async inviteUserToChannelByChannelId(_data: {
     authToken: string;
     channelId: string;
     workspaceUserId: string;
   }): Promise<void> {}
 
+  @CaptureSpan()
   public static async createChannelsIfDoesNotExist(_data: {
     authToken: string;
     channelNames: Array<string>;
@@ -146,6 +160,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async getWorkspaceChannelFromChannelId(_data: {
     authToken: string;
     channelId: string;
@@ -153,6 +168,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async sendMessage(_data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
@@ -161,12 +177,14 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async getAllWorkspaceChannels(_data: {
     authToken: string;
   }): Promise<Dictionary<WorkspaceChannel>> {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async getWorkspaceChannelFromChannelName(_data: {
     authToken: string;
     channelName: string;
@@ -174,6 +192,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async createChannel(_data: {
     authToken: string;
     channelName: string;
@@ -181,28 +200,33 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getHeaderBlock(_data: {
     payloadHeaderBlock: WorkspacePayloadHeader;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getDividerBlock(): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getMarkdownBlock(_data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getButtonBlock(_data: {
     payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getBlocksFromWorkspaceMessagePayload(data: {
     messageBlocks: Array<WorkspaceMessageBlock>;
   }): Array<JSONObject> {
@@ -285,42 +309,49 @@ export default class WorkspaceBase {
     return blocks;
   }
 
+  @CaptureSpan()
   public static getTextAreaBlock(_data: {
     payloadTextAreaBlock: WorkspaceTextAreaBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getTextBoxBlock(_data: {
     payloadTextBoxBlock: WorkspaceTextBoxBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getImageBlock(_data: {
     payloadImageBlock: WorkspacePayloadImage;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getDropdownBlock(_data: {
     payloadDropdownBlock: WorkspaceDropdownBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getModalBlock(_data: {
     payloadModalBlock: WorkspaceModalBlock;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static getButtonsBlock(_data: {
     payloadButtonsBlock: WorkspacePayloadButtons;
   }): JSONObject {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async sendMessageToChannelViaIncomingWebhook(_data: {
     url: URL;
     text: string;
@@ -328,6 +359,7 @@ export default class WorkspaceBase {
     throw new NotImplementedException();
   }
 
+  @CaptureSpan()
   public static async isUserInChannel(_data: {
     authToken: string;
     channelId: string;

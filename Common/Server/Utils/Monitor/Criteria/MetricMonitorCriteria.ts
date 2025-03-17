@@ -13,6 +13,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 
 export default class MetricMonitorCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;

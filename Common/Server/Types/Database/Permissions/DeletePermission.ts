@@ -8,6 +8,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class DeletePermission {
+  @CaptureSpan()
   public static async checkDeletePermissionByModel<
     TBaseModel extends BaseModel,
   >(data: {
@@ -26,6 +27,7 @@ export default class DeletePermission {
     });
   }
 
+  @CaptureSpan()
   public static async checkDeletePermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

@@ -34,6 +34,7 @@ import OneUptimeDate from "../../../../../Types/Date";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 
 export default class SlackScheduledMaintenanceActions {
+  @CaptureSpan()
   public static isScheduledMaintenanceAction(data: {
     actionType: SlackActionType;
   }): boolean {
@@ -55,6 +56,7 @@ export default class SlackScheduledMaintenanceActions {
     }
   }
 
+  @CaptureSpan()
   public static async submitNewScheduledMaintenance(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -220,6 +222,7 @@ export default class SlackScheduledMaintenanceActions {
     }
   }
 
+  @CaptureSpan()
   public static async viewNewScheduledMaintenanceModal(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -416,6 +419,7 @@ export default class SlackScheduledMaintenanceActions {
     });
   }
 
+  @CaptureSpan()
   public static async markScheduledMaintenanceAsOngoing(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -513,6 +517,7 @@ export default class SlackScheduledMaintenanceActions {
     );
   }
 
+  @CaptureSpan()
   public static async resolveScheduledMaintenance(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -608,6 +613,7 @@ export default class SlackScheduledMaintenanceActions {
     );
   }
 
+  @CaptureSpan()
   public static async viewChangeScheduledMaintenanceState(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -684,6 +690,7 @@ export default class SlackScheduledMaintenanceActions {
     });
   }
 
+  @CaptureSpan()
   public static async submitChangeScheduledMaintenanceState(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -742,6 +749,7 @@ export default class SlackScheduledMaintenanceActions {
     });
   }
 
+  @CaptureSpan()
   public static async submitScheduledMaintenanceNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -829,6 +837,7 @@ export default class SlackScheduledMaintenanceActions {
     }
   }
 
+  @CaptureSpan()
   public static async viewAddScheduledMaintenanceNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -897,6 +906,7 @@ export default class SlackScheduledMaintenanceActions {
     });
   }
 
+  @CaptureSpan()
   public static async handleScheduledMaintenanceAction(data: {
     slackRequest: SlackRequest;
     action: SlackAction;

@@ -11,6 +11,7 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 
 export default class BillingPermissions {
+  @CaptureSpan()
   public static checkBillingPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,

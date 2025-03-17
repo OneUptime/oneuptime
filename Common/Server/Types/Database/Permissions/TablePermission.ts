@@ -15,6 +15,7 @@ import Permission, {
 } from "Common/Types/Permission";
 
 export default class TablePermission {
+  @CaptureSpan()
   public static getTablePermission(
     modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
@@ -41,6 +42,7 @@ export default class TablePermission {
     return modelPermissions;
   }
 
+  @CaptureSpan()
   public static checkTableLevelPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
@@ -80,6 +82,7 @@ export default class TablePermission {
     }
   }
 
+  @CaptureSpan()
   public static checkTableLevelBlockPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,

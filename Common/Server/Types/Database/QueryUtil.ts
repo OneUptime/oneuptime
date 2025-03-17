@@ -21,6 +21,7 @@ import { FindOperator } from "typeorm/find-options/FindOperator";
 import { CompareType } from "../../../Types/Database/CompareBase";
 
 export default class QueryUtil {
+  @CaptureSpan()
   public static serializeQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

@@ -20,6 +20,7 @@ import logger from "../Logger";
 import DataToProcess from "./DataToProcess";
 
 export default class MonitorAlert {
+  @CaptureSpan()
   public static async checkOpenAlertsAndCloseIfResolved(input: {
     monitorId: ObjectID;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
@@ -70,6 +71,7 @@ export default class MonitorAlert {
     return openAlerts;
   }
 
+  @CaptureSpan()
   public static async criteriaMetCreateAlertsAndUpdateMonitorStatus(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;

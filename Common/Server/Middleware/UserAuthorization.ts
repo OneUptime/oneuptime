@@ -41,6 +41,7 @@ export default class UserMiddleware {
    * Returns: 401: User is unauthorized since unauthorized token was present.
    */
 
+  @CaptureSpan()
   public static getAccessTokenFromCookie(
     req: ExpressRequest,
   ): string | undefined {
@@ -58,6 +59,7 @@ export default class UserMiddleware {
     return accessToken;
   }
 
+  @CaptureSpan()
   public static getAccessTokenFromExpressRequest(
     req: ExpressRequest,
   ): string | undefined {
@@ -75,6 +77,7 @@ export default class UserMiddleware {
     return accessToken;
   }
 
+  @CaptureSpan()
   public static getSsoTokens(req: ExpressRequest): Dictionary<string> {
     const ssoTokens: Dictionary<string> = {};
 
@@ -110,6 +113,7 @@ export default class UserMiddleware {
     return ssoTokens;
   }
 
+  @CaptureSpan()
   public static doesSsoTokenForProjectExist(
     req: ExpressRequest,
     projectId: ObjectID,
@@ -132,6 +136,7 @@ export default class UserMiddleware {
     return false;
   }
 
+  @CaptureSpan()
   public static async getUserMiddleware(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -283,6 +288,7 @@ export default class UserMiddleware {
     return next();
   }
 
+  @CaptureSpan()
   public static async getUserTenantAccessPermissionWithTenantId(data: {
     req: ExpressRequest;
     tenantId: ObjectID;
@@ -327,6 +333,7 @@ export default class UserMiddleware {
     );
   }
 
+  @CaptureSpan()
   public static async getUserTenantAccessPermissionForMultiTenant(
     req: ExpressRequest,
     userId: ObjectID,

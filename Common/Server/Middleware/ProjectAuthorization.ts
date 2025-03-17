@@ -20,6 +20,7 @@ import User from "Common/Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
 
 export default class ProjectMiddleware {
+  @CaptureSpan()
   public static getProjectId(req: ExpressRequest): ObjectID | null {
     let projectId: ObjectID | null = null;
     if (req.params && req.params["tenantid"]) {
@@ -39,6 +40,7 @@ export default class ProjectMiddleware {
     return projectId;
   }
 
+  @CaptureSpan()
   public static getApiKey(req: ExpressRequest): ObjectID | null {
     if (req.headers && req.headers["apikey"]) {
       return new ObjectID(req.headers["apikey"] as string);
@@ -47,14 +49,17 @@ export default class ProjectMiddleware {
     return null;
   }
 
+  @CaptureSpan()
   public static hasApiKey(req: ExpressRequest): boolean {
     return Boolean(this.getApiKey(req));
   }
 
+  @CaptureSpan()
   public static hasProjectID(req: ExpressRequest): boolean {
     return Boolean(this.getProjectId(req));
   }
 
+  @CaptureSpan()
   public static async isValidProjectIdAndApiKeyMiddleware(
     req: ExpressRequest,
     _res: ExpressResponse,

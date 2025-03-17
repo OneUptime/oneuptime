@@ -21,6 +21,7 @@ export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {
 }
 
 export default class BasePermission {
+  @CaptureSpan()
   public static async checkPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

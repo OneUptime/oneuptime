@@ -10,6 +10,7 @@ import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenan
 import SlackActionType from "../../../../Utils/Workspace/Slack/Actions/ActionTypes";
 
 export default class SlackScheduledMaintenanceMessages {
+  @CaptureSpan()
   public static async getScheduledMaintenanceCreateMessageBlocks(data: {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;

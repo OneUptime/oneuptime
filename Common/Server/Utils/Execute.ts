@@ -3,6 +3,7 @@ import { ExecException, exec } from "node:child_process";
 import logger from "./Logger";
 
 export default class Execute {
+  @CaptureSpan()
   public static executeCommand(command: string): Promise<string> {
     return new Promise(
       (

@@ -24,6 +24,7 @@ import logger from "../../../Logger";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 
 export default class SlackAlertActions {
+  @CaptureSpan()
   public static isAlertAction(data: { actionType: SlackActionType }): boolean {
     const { actionType } = data;
 
@@ -43,6 +44,7 @@ export default class SlackAlertActions {
     }
   }
 
+  @CaptureSpan()
   public static async acknowledgeAlert(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -133,6 +135,7 @@ export default class SlackAlertActions {
     );
   }
 
+  @CaptureSpan()
   public static async resolveAlert(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -220,6 +223,7 @@ export default class SlackAlertActions {
     );
   }
 
+  @CaptureSpan()
   public static async viewExecuteOnCallPolicy(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -297,6 +301,7 @@ export default class SlackAlertActions {
     });
   }
 
+  @CaptureSpan()
   public static async viewChangeAlertState(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -373,6 +378,7 @@ export default class SlackAlertActions {
     });
   }
 
+  @CaptureSpan()
   public static async submitChangeAlertState(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -431,6 +437,7 @@ export default class SlackAlertActions {
     });
   }
 
+  @CaptureSpan()
   public static async executeOnCallPolicy(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -531,6 +538,7 @@ export default class SlackAlertActions {
     }
   }
 
+  @CaptureSpan()
   public static async submitAlertNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -587,6 +595,7 @@ export default class SlackAlertActions {
     });
   }
 
+  @CaptureSpan()
   public static async viewAddAlertNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -638,6 +647,7 @@ export default class SlackAlertActions {
     });
   }
 
+  @CaptureSpan()
   public static async handleAlertAction(data: {
     slackRequest: SlackRequest;
     action: SlackAction;

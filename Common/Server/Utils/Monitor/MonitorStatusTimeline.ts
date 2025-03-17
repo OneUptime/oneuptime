@@ -10,6 +10,7 @@ import logger from "../Logger";
 import DataToProcess from "./DataToProcess";
 
 export default class MonitorStatusTimelineUtil {
+  @CaptureSpan()
   public static async updateMonitorStatusTimeline(input: {
     criteriaInstance: MonitorCriteriaInstance;
     monitor: Monitor;

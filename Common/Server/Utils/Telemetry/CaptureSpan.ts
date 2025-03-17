@@ -19,24 +19,24 @@ function CaptureSpan(data?: {
     propertyKey: string,
     descriptor: PropertyDescriptor,
   ) {
-
     const originalMethod: any = descriptor.value;
 
-    let className = target?.constructor?.name; 
+    let className = target?.constructor?.name;
 
-    if(className === "" || className === "Function"){
+    if (className === "" || className === "Function") {
       const staticClassName = target?.name;
 
-      if(staticClassName){
+      if (staticClassName) {
         className = staticClassName;
       }
     }
 
-    if(!className){
+    if (!className) {
       className = "UnknownClass";
     }
 
-    const name: string | undefined = data?.name || `${className}.${propertyKey}`;
+    const name: string | undefined =
+      data?.name || `${className}.${propertyKey}`;
 
     logger.debug(`Capturing span for ${name}`);
 
@@ -78,7 +78,7 @@ function CaptureSpan(data?: {
           attributes: spanAttributes,
         },
         fn: (span: Span) => {
-          let result = null; 
+          let result = null;
           try {
             result = originalMethod.apply(this, args);
             if (result instanceof Promise) {
@@ -102,12 +102,11 @@ function CaptureSpan(data?: {
                   span.end();
                   logger.debug(`Ended span for ${name}`);
                 });
-            } else {
-              span.setStatus({
-                code: SpanStatusCode.OK,
-              });
-              return result;
             }
+            span.setStatus({
+              code: SpanStatusCode.OK,
+            });
+            return result;
           } catch (err) {
             Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
               span,

@@ -120,6 +120,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     return pullRequests;
   }
 
+  @CaptureSpan()
   public override async getPullRequests(data: {
     pullRequestState: PullRequestState;
     baseBranchName: string;
@@ -155,6 +156,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     return allPullRequests;
   }
 
+  @CaptureSpan()
   public override async addRemote(data: {
     remoteName: string;
     organizationName: string;
@@ -175,6 +177,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     logger.debug(result);
   }
 
+  @CaptureSpan()
   public override async pushChanges(data: {
     branchName: string;
     organizationName: string;
@@ -198,6 +201,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     logger.debug(result);
   }
 
+  @CaptureSpan()
   public override async createPullRequest(data: {
     baseBranchName: string;
     headBranchName: string;

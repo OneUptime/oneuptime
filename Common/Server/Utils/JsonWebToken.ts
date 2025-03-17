@@ -12,6 +12,7 @@ import User from "Common/Models/DatabaseModels/User";
 import jwt from "jsonwebtoken";
 
 class JSONWebToken {
+  @CaptureSpan()
   public static signUserLoginToken(data: {
     tokenData: {
       userId: ObjectID;
@@ -30,6 +31,7 @@ class JSONWebToken {
     });
   }
 
+  @CaptureSpan()
   public static sign(props: {
     data: JSONWebTokenData | User | StatusPagePrivateUser | string | JSONObject;
     expiresInSeconds: number;
@@ -69,6 +71,7 @@ class JSONWebToken {
     return JSONWebToken.signJsonPayload(jsonObj, expiresInSeconds);
   }
 
+  @CaptureSpan()
   public static signJsonPayload(
     payload: JSONObject,
     expiresInSeconds: number,
@@ -78,6 +81,7 @@ class JSONWebToken {
     });
   }
 
+  @CaptureSpan()
   public static decodeJsonPayload(token: string): JSONObject {
     const decodedToken: string = JSON.stringify(
       jwt.verify(token, EncryptionSecret.toString()) as string,
@@ -87,6 +91,7 @@ class JSONWebToken {
     return decoded;
   }
 
+  @CaptureSpan()
   public static decode(token: string): JSONWebTokenData {
     try {
       const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token);

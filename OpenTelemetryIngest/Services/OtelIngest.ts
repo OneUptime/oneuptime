@@ -41,7 +41,6 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 
 export default class OtelIngestService {
-  
   @CaptureSpan()
   public static getServiceNameFromAttributes(attributes: JSONArray): string {
     for (const attribute of attributes) {

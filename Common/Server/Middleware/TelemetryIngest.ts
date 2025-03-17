@@ -17,6 +17,7 @@ export interface TelemetryRequest extends ExpressRequest {
 }
 
 export default class TelemetryIngest {
+  @CaptureSpan()
   public static async isAuthorizedServiceMiddleware(
     req: ExpressRequest,
     res: ExpressResponse,

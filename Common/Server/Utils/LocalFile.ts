@@ -2,6 +2,7 @@ import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import fs from "fs";
 
 export default class LocalFile {
+  @CaptureSpan()
   public static async copyDirectory(data: {
     source: string;
     destination: string;
@@ -22,6 +23,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async copyFile(data: {
     source: string;
     destination: string;
@@ -38,16 +40,19 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static sanitizeFilePath(filePath: string): string {
     // remove double slashes
     return filePath.replace(/\/\//g, "/");
   }
 
+  @CaptureSpan()
   public static getFileExtension(filePath: string): string {
     const fileExtention: Array<string> = filePath.split(".");
     return fileExtention[fileExtention.length - 1]?.toLowerCase() || "";
   }
 
+  @CaptureSpan()
   public static async deleteFile(filePath: string): Promise<void> {
     if ((await this.doesFileExist(filePath)) === false) {
       return;
@@ -65,6 +70,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async getListOfDirectories(path: string): Promise<string[]> {
     return new Promise(
       (
@@ -94,6 +100,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async doesFileExist(path: string): Promise<boolean> {
     return new Promise(
       (
@@ -116,6 +123,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async doesDirectoryExist(path: string): Promise<boolean> {
     return new Promise(
       (
@@ -138,6 +146,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async deleteAllDataInDirectory(path: string): Promise<void> {
     if ((await this.doesDirectoryExist(path)) === false) {
       return;
@@ -163,6 +172,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async makeDirectory(path: string): Promise<void> {
     return new Promise(
       (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
@@ -176,6 +186,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async write(path: string, data: string): Promise<void> {
     return new Promise(
       (resolve: VoidFunction, reject: PromiseRejectErrorFunction) => {
@@ -189,6 +200,7 @@ export default class LocalFile {
     );
   }
 
+  @CaptureSpan()
   public static async read(path: string): Promise<string> {
     return new Promise(
       (resolve: (data: string) => void, reject: PromiseRejectErrorFunction) => {

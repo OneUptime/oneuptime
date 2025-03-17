@@ -10,6 +10,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 
 export default class VMUtil {
+  @CaptureSpan()
   public static async runCodeInSandbox(data: {
     code: string;
     options: {
@@ -42,6 +43,7 @@ export default class VMUtil {
     return returnResult;
   }
 
+  @CaptureSpan()
   public static replaceValueInPlace(
     storageMap: JSONObject,
     valueToReplaceInPlace: string,
@@ -108,6 +110,7 @@ export default class VMUtil {
     return valueToReplaceInPlace;
   }
 
+  @CaptureSpan()
   public static serializeValueForJSON(value: string): string {
     if (!value) {
       return value;
@@ -134,6 +137,7 @@ export default class VMUtil {
     return value;
   }
 
+  @CaptureSpan()
   public static deepFind(obj: JSONObject, path: string): JSONValue {
     const paths: Array<string> = path.split(".");
     let current: any = JSON.parse(JSON.stringify(obj));

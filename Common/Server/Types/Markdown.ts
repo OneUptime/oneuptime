@@ -13,6 +13,7 @@ export default class Markdown {
   private static docsRenderer: Renderer | null = null;
   private static emailRenderer: Renderer | null = null;
 
+  @CaptureSpan()
   public static async convertToHTML(
     markdown: string,
     contentType: MarkdownContentType,

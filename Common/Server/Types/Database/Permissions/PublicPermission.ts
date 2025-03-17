@@ -7,6 +7,7 @@ import Permission from "Common/Types/Permission";
 import UserType from "Common/Types/UserType";
 
 export default class PublicPermission {
+  @CaptureSpan()
   public static isPublicPermissionAllowed(
     modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
@@ -19,6 +20,7 @@ export default class PublicPermission {
     return isPublicAllowed;
   }
 
+  @CaptureSpan()
   public static checkIfUserIsLoggedIn(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,

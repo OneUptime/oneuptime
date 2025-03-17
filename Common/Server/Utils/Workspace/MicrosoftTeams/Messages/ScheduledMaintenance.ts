@@ -10,6 +10,7 @@ import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenan
 import MicrosoftTeamsActionType from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 
 export default class MicrosoftTeamsScheduledMaintenanceMessages {
+  @CaptureSpan()
   public static async getScheduledMaintenanceCreateMessageBlocks(data: {
     scheduledMaintenanceId: ObjectID;
     projectId: ObjectID;

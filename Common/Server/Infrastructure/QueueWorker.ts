@@ -7,8 +7,10 @@ import {
   VoidFunction,
 } from "Common/Types/FunctionTypes";
 import { Worker } from "bullmq";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class QueueWorker {
+  @CaptureSpan()
   public static getWorker(
     queueName: QueueName,
     onJobInQueue: (job: QueueJob) => Promise<void>,
@@ -30,6 +32,7 @@ export default class QueueWorker {
     return worker;
   }
 
+  @CaptureSpan()
   public static async runJobWithTimeout(
     timeoutInMS: number,
     jobCallback: PromiseVoidFunction,

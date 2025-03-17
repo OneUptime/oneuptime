@@ -15,6 +15,7 @@ import ServerMonitorResponse, {
 import logger from "../../Logger";
 
 export default class ServerMonitorCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;

@@ -52,6 +52,7 @@ export default class OnTriggerBaseModel<
     this.setMetadata(BaseModelComponent);
   }
 
+  @CaptureSpan()
   public override async init(props: InitProps): Promise<void> {
     props.router.get(
       `/model/:projectId/${this.modelId}/${this.type}`,
@@ -70,6 +71,7 @@ export default class OnTriggerBaseModel<
     );
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

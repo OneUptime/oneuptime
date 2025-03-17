@@ -9,6 +9,7 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 
 export default class UpdatePermission {
+  @CaptureSpan()
   public static async checkUpdatePermissionByModel<
     TBaseModel extends BaseModel,
   >(data: {
@@ -26,6 +27,7 @@ export default class UpdatePermission {
     });
   }
 
+  @CaptureSpan()
   public static async checkUpdatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,

@@ -29,6 +29,7 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  @CaptureSpan()
   public override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
@@ -64,6 +65,7 @@ ${createdItem.note}
     return createdItem;
   }
 
+  @CaptureSpan()
   public override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,

@@ -56,6 +56,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     super(WorkspaceNotificationRule);
   }
 
+  @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
     return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
   }

@@ -41,10 +41,12 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;
   }
 
+  @CaptureSpan()
   public override getProductType(): ProductType {
     return this.productType;
   }
 
+  @CaptureSpan()
   public override async reportQuantityToBillingProvider(
     projectId: ObjectID,
     options?: {

@@ -23,6 +23,7 @@ import Permission, {
 } from "Common/Types/Permission";
 
 export default class ColumnPermissions {
+  @CaptureSpan()
   public static getExcludedColumnNames(): string[] {
     const returnArr: Array<string> = [
       "_id",
@@ -35,6 +36,7 @@ export default class ColumnPermissions {
     return returnArr;
   }
 
+  @CaptureSpan()
   public static getModelColumnsByPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     userPermissions: Array<UserPermission>,
@@ -85,6 +87,7 @@ export default class ColumnPermissions {
     return new Columns(columns);
   }
 
+  @CaptureSpan()
   public static checkDataColumnPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,

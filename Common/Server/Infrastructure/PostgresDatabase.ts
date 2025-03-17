@@ -3,6 +3,7 @@ import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
 import Sleep from "Common/Types/Sleep";
 import { DataSource, DataSourceOptions } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;
@@ -11,19 +12,23 @@ export default class Database {
   protected static dataSourceOptions: DataSourceOptions | null = null;
   protected static dataSource: DataSource | null = null;
 
+  @CaptureSpan()
   public static getDatasourceOptions(): DataSourceOptions {
     this.dataSourceOptions = DatabaseDataSourceOptions;
     return this.dataSourceOptions;
   }
 
+  @CaptureSpan()
   public static getDataSource(): DataSource | null {
     return this.dataSource;
   }
 
+  @CaptureSpan()
   public static isConnected(): boolean {
     return Boolean(this.dataSource);
   }
 
+  @CaptureSpan()
   public static async connect(): Promise<DataSource> {
     let retry: number = 0;
 
@@ -67,6 +72,7 @@ export default class Database {
     }
   }
 
+  @CaptureSpan()
   public static async disconnect(): Promise<void> {
     if (this.dataSource) {
       await this.dataSource.destroy();
@@ -74,6 +80,7 @@ export default class Database {
     }
   }
 
+  @CaptureSpan()
   public static async checkConnnectionStatus(): Promise<boolean> {
     // check popstgres connection to see if it is still alive
 
@@ -94,6 +101,7 @@ export default class Database {
     }
   }
 
+  @CaptureSpan()
   public static async dropDatabase(): Promise<void> {
     await dropDatabase({
       options: this.getDatasourceOptions(),
@@ -102,6 +110,7 @@ export default class Database {
     this.dataSourceOptions = null;
   }
 
+  @CaptureSpan()
   public static async createDatabase(): Promise<void> {
     await createDatabase({
       options: this.getDatasourceOptions(),
@@ -109,11 +118,13 @@ export default class Database {
     });
   }
 
+  @CaptureSpan()
   public static async createAndConnect(): Promise<void> {
     await this.createDatabase();
     await this.connect();
   }
 
+  @CaptureSpan()
   public static async disconnectAndDropDatabase(): Promise<void> {
     // Drop the database. Since this is the in-mem db, it will be destroyed.
     await this.disconnect();

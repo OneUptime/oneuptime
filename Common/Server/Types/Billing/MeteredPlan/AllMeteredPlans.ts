@@ -33,6 +33,7 @@ const AllMeteredPlans: Array<ServerMeteredPlan> = [
 ];
 
 export class MeteredPlanUtil {
+  @CaptureSpan()
   public static getMeteredPlanByProductType(
     productType: ProductType,
   ): ServerMeteredPlan {

@@ -11,6 +11,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import Typeof from "Common/Types/Typeof";
 
 export default class APIRequestCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;

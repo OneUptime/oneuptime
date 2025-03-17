@@ -20,6 +20,7 @@ import { Challenge } from "acme-client/types/rfc8555";
 import Telemetry, { Span } from "../Telemetry";
 
 export default class GreenlockUtil {
+  @CaptureSpan()
   public static async renewAllCertsWhichAreExpiringSoon(data: {
     validateCname: (domain: string) => Promise<boolean>;
     notifyDomainRemoved: (domain: string) => Promise<void>;
@@ -127,6 +128,7 @@ export default class GreenlockUtil {
     });
   }
 
+  @CaptureSpan()
   public static async removeDomain(domain: string): Promise<void> {
     return await Telemetry.startActiveSpan<Promise<void>>({
       name: "GreenlockUtil.orderCert",
@@ -164,6 +166,7 @@ export default class GreenlockUtil {
     });
   }
 
+  @CaptureSpan()
   public static async orderCert(data: {
     domain: string;
     validateCname: (domain: string) => Promise<boolean>;

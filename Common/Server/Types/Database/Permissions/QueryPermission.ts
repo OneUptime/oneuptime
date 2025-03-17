@@ -22,6 +22,7 @@ import Permission, {
 import Typeof from "Common/Types/Typeof";
 
 export default class QueryPermission {
+  @CaptureSpan()
   public static checkRelationQueryPermission<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     select: Select<TBaseModel>,
@@ -121,6 +122,7 @@ export default class QueryPermission {
     }
   }
 
+  @CaptureSpan()
   public static checkQueryPermission<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     query: Query<TBaseModel>,

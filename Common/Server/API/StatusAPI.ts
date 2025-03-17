@@ -10,6 +10,7 @@ import Response from "../Utils/Response";
 import Telemetry, { TelemetryCounter } from "../Utils/Telemetry";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export interface StatusAPIOptions {
   readyCheck: () => Promise<void>;
@@ -20,6 +21,7 @@ export interface StatusAPIOptions {
 }
 
 export default class StatusAPI {
+  @CaptureSpan()
   public static init(options: StatusAPIOptions): ExpressRouter {
     const statusCheckSuccessCounter: TelemetryCounter = Telemetry.getCounter({
       name: "status.check.success",

@@ -9,6 +9,7 @@ import GlobalCache from "../../Infrastructure/GlobalCache";
 import PermissionNamespace from "../../Types/Permission/PermissionNamespace";
 
 export default class UserPermissionUtil {
+  @CaptureSpan()
   public static async getUserTenantAccessPermissionFromCache(
     userId: ObjectID,
     projectId: ObjectID,
@@ -30,6 +31,7 @@ export default class UserPermissionUtil {
     return json;
   }
 
+  @CaptureSpan()
   public static async getUserGlobalAccessPermissionFromCache(
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission | null> {
@@ -50,6 +52,7 @@ export default class UserPermissionUtil {
     return accessPermission;
   }
 
+  @CaptureSpan()
   public static getDefaultUserTenantAccessPermission(
     projectId: ObjectID,
   ): UserTenantAccessPermission {

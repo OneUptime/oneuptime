@@ -8,6 +8,7 @@ import https from "https";
 import vm, { Context } from "node:vm";
 
 export default class VMRunner {
+  @CaptureSpan()
   public static async runCodeInSandbox(data: {
     code: string;
     options: {

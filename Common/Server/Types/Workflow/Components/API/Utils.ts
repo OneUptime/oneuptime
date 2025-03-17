@@ -8,6 +8,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 
 export class ApiComponentUtils {
+  @CaptureSpan()
   public static getReturnValues(
     response: HTTPResponse<JSONObject> | HTTPErrorResponse,
   ): JSONObject {
@@ -28,6 +29,7 @@ export class ApiComponentUtils {
     };
   }
 
+  @CaptureSpan()
   public static sanitizeArgs(
     metadata: ComponentMetadata,
     args: JSONObject,

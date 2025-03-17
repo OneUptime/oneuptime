@@ -10,6 +10,7 @@ import IncidentService from "../../../../Services/IncidentService";
 import MicrosoftTeamsActionType from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 
 export default class MicrosoftTeamsIncidentMessages {
+  @CaptureSpan()
   public static async getIncidentCreateMessageBlocks(data: {
     incidentId: ObjectID;
     projectId: ObjectID;

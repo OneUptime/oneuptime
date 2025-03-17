@@ -21,6 +21,7 @@ export type RedisOptionsType = RedisOptions;
 export default abstract class Redis {
   private static client: RedisClient | null = null;
 
+  @CaptureSpan()
   public static isConnected(): boolean {
     if (!this.client) {
       return false;
@@ -29,10 +30,12 @@ export default abstract class Redis {
     return this.client.status === "ready";
   }
 
+  @CaptureSpan()
   public static getClient(): RedisClient | null {
     return this.client;
   }
 
+  @CaptureSpan()
   public static getRedisOptions(): RedisOptions {
     const redisOptions: RedisOptions = {
       host: RedisHostname,
@@ -56,6 +59,7 @@ export default abstract class Redis {
     return redisOptions;
   }
 
+  @CaptureSpan()
   public static async connect(): Promise<RedisClient> {
     let retry: number = 0;
 
@@ -125,6 +129,7 @@ export default abstract class Redis {
     }
   }
 
+  @CaptureSpan()
   public static disconnect(): Promise<void> {
     if (this.isConnected()) {
       this.client?.disconnect();
@@ -134,6 +139,7 @@ export default abstract class Redis {
     return Promise.resolve();
   }
 
+  @CaptureSpan()
   public static async checkConnnectionStatus(): Promise<boolean> {
     // Ping redis to check if the connection is still alive
     try {

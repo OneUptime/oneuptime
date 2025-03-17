@@ -37,6 +37,7 @@ import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 
 export default class SlackIncidentActions {
+  @CaptureSpan()
   public static isIncidentAction(data: {
     actionType: SlackActionType;
   }): boolean {
@@ -60,6 +61,7 @@ export default class SlackIncidentActions {
     }
   }
 
+  @CaptureSpan()
   public static async submitNewIncident(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -198,6 +200,7 @@ export default class SlackIncidentActions {
     }
   }
 
+  @CaptureSpan()
   public static async viewNewIncidentModal(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -407,6 +410,7 @@ export default class SlackIncidentActions {
     });
   }
 
+  @CaptureSpan()
   public static async acknowledgeIncident(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -498,6 +502,7 @@ export default class SlackIncidentActions {
     );
   }
 
+  @CaptureSpan()
   public static async resolveIncident(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -587,6 +592,7 @@ export default class SlackIncidentActions {
     );
   }
 
+  @CaptureSpan()
   public static async viewExecuteOnCallPolicy(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -664,6 +670,7 @@ export default class SlackIncidentActions {
     });
   }
 
+  @CaptureSpan()
   public static async viewChangeIncidentState(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -740,6 +747,7 @@ export default class SlackIncidentActions {
     });
   }
 
+  @CaptureSpan()
   public static async submitChangeIncidentState(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -798,6 +806,7 @@ export default class SlackIncidentActions {
     });
   }
 
+  @CaptureSpan()
   public static async executeOnCallPolicy(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -901,6 +910,7 @@ export default class SlackIncidentActions {
     }
   }
 
+  @CaptureSpan()
   public static async submitIncidentNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -988,6 +998,7 @@ export default class SlackIncidentActions {
     }
   }
 
+  @CaptureSpan()
   public static async viewAddIncidentNote(data: {
     slackRequest: SlackRequest;
     action: SlackAction;
@@ -1056,6 +1067,7 @@ export default class SlackIncidentActions {
     });
   }
 
+  @CaptureSpan()
   public static async handleIncidentAction(data: {
     slackRequest: SlackRequest;
     action: SlackAction;

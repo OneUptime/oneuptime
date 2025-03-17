@@ -45,6 +45,7 @@ export default class TriggerCode extends ComponentCode {
     super();
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

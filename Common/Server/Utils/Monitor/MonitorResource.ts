@@ -56,6 +56,7 @@ import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMo
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 
 export default class MonitorResourceUtil {
+  @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
@@ -595,6 +596,7 @@ export default class MonitorResourceUtil {
     return response;
   }
 
+  @CaptureSpan()
   public static async saveMonitorMetrics(data: {
     monitorId: ObjectID;
     projectId: ObjectID;

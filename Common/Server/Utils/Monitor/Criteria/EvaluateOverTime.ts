@@ -14,6 +14,7 @@ import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MetricService from "../../../Services/MetricService";
 
 export default class EvaluateOverTime {
+  @CaptureSpan()
   public static async getValueOverTime(data: {
     monitorId: ObjectID;
     evaluateOverTimeOptions: EvaluateOverTimeOptions;

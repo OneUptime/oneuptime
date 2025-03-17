@@ -9,6 +9,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default abstract class GlobalCache {
   @CaptureSpan()
+  @CaptureSpan()
   public static async getJSONObject(
     namespace: string,
     key: string,
@@ -29,6 +30,7 @@ export default abstract class GlobalCache {
     return json;
   }
 
+  @CaptureSpan()
   @CaptureSpan()
   public static async getStringArray(
     namespace: string,
@@ -52,6 +54,7 @@ export default abstract class GlobalCache {
   }
 
   @CaptureSpan()
+  @CaptureSpan()
   public static async setStringArray(
     namespace: string,
     key: string,
@@ -60,6 +63,7 @@ export default abstract class GlobalCache {
     await this.setString(namespace, key, JSON.stringify(value));
   }
 
+  @CaptureSpan()
   public static async getJSONArray(
     namespace: string,
     key: string,
@@ -110,6 +114,7 @@ export default abstract class GlobalCache {
     }
   }
 
+  @CaptureSpan()
   public static async getString(
     namespace: string,
     key: string,
@@ -129,6 +134,7 @@ export default abstract class GlobalCache {
     return value;
   }
 
+  @CaptureSpan()
   public static async setJSON(
     namespace: string,
     key: string,
@@ -141,6 +147,7 @@ export default abstract class GlobalCache {
     );
   }
 
+  @CaptureSpan()
   public static async setString(
     namespace: string,
     key: string,

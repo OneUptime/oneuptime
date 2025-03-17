@@ -10,6 +10,7 @@ import AlertService from "../../../../Services/AlertService";
 import MicrosoftTeamsActionType from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 
 export default class MicrosoftTeamsAlertMessages {
+  @CaptureSpan()
   public static async getAlertCreateMessageBlocks(data: {
     alertId: ObjectID;
     projectId: ObjectID;

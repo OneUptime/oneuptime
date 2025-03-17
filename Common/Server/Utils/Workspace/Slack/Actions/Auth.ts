@@ -40,6 +40,7 @@ export interface SlackRequest {
 }
 
 export default class SlackAuthAction {
+  @CaptureSpan()
   public static async isAuthorized(data: {
     req: ExpressRequest;
   }): Promise<SlackRequest> {

@@ -8,6 +8,7 @@ import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotCon
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class InfrastructureStatus {
+  @CaptureSpan()
   public static async checkStatus(data: {
     checkRedisStatus: boolean;
     checkPostgresStatus: boolean;
@@ -43,6 +44,7 @@ export default class InfrastructureStatus {
     }
   }
 
+  @CaptureSpan()
   @CaptureSpan()
   public static async checkStatusWithRetry(data: {
     retryCount: number;

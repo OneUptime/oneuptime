@@ -10,6 +10,7 @@ import AlertService from "../../../../Services/AlertService";
 import SlackActionType from "../../../../Utils/Workspace/Slack/Actions/ActionTypes";
 
 export default class SlackAlertMessages {
+  @CaptureSpan()
   public static async getAlertCreateMessageBlocks(data: {
     alertId: ObjectID;
     projectId: ObjectID;

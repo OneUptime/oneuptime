@@ -24,6 +24,7 @@ export default class JavaScriptCode extends ComponentCode {
     this.setMetadata(JavaScriptComponent);
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

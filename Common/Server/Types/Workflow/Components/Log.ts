@@ -22,6 +22,7 @@ export default class Log extends ComponentCode {
     this.setMetadata(LogComponent);
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

@@ -7,6 +7,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Typeof from "Common/Types/Typeof";
 
 export default class SelectUtil {
+  @CaptureSpan()
   public static sanitizeSelect<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     select: Select<TBaseModel>,

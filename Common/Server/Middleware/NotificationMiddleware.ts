@@ -12,6 +12,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 
 export default class NotificationMiddleware {
+  @CaptureSpan()
   public static async sendResponse(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -28,6 +29,7 @@ export default class NotificationMiddleware {
     return Response.sendXmlResponse(req, res, response.toString());
   }
 
+  @CaptureSpan()
   public static async isValidCallNotificationRequest(
     req: ExpressRequest,
     res: ExpressResponse,

@@ -5,6 +5,7 @@ import CodeRepositoryFile from "./CodeRepositoryFile";
 import Dictionary from "Common/Types/Dictionary";
 
 export default class CodeRepositoryUtil {
+  @CaptureSpan()
   public static getCurrentCommitHash(data: {
     repoPath: string;
   }): Promise<string> {
@@ -15,6 +16,7 @@ export default class CodeRepositoryUtil {
     return Execute.executeCommand(command);
   }
 
+  @CaptureSpan()
   public static async addAllChangedFilesToGit(data: {
     repoPath: string;
   }): Promise<void> {
@@ -27,6 +29,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async setAuthorIdentity(data: {
     repoPath: string;
     authorName: string;
@@ -41,6 +44,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async discardAllChangesOnCurrentBranch(data: {
     repoPath: string;
   }): Promise<void> {
@@ -54,6 +58,7 @@ export default class CodeRepositoryUtil {
   }
 
   // returns the folder name of the cloned repository
+  @CaptureSpan()
   public static async cloneRepository(data: {
     repoPath: string;
     repoUrl: string;
@@ -76,6 +81,7 @@ export default class CodeRepositoryUtil {
     return folderName.trim();
   }
 
+  @CaptureSpan()
   public static async pullChanges(data: { repoPath: string }): Promise<void> {
     const command: string = `cd ${data.repoPath} && git pull`;
 
@@ -86,6 +92,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async createOrCheckoutBranch(data: {
     repoPath: string;
     branchName: string;
@@ -99,6 +106,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static getFileContent(data: {
     repoPath: string;
     filePath: string;
@@ -115,6 +123,7 @@ export default class CodeRepositoryUtil {
   }
 
   // discard all changes in the working directory
+  @CaptureSpan()
   public static async discardChanges(data: {
     repoPath: string;
   }): Promise<void> {
@@ -127,6 +136,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async writeToFile(data: {
     filePath: string;
     repoPath: string;
@@ -139,6 +149,7 @@ export default class CodeRepositoryUtil {
     await LocalFile.write(totalPath, data.content);
   }
 
+  @CaptureSpan()
   public static async createDirectory(data: {
     repoPath: string;
     directoryPath: string;
@@ -150,6 +161,7 @@ export default class CodeRepositoryUtil {
     await LocalFile.makeDirectory(totalPath);
   }
 
+  @CaptureSpan()
   public static async deleteFile(data: {
     repoPath: string;
     filePath: string;
@@ -161,6 +173,7 @@ export default class CodeRepositoryUtil {
     await LocalFile.deleteFile(totalPath);
   }
 
+  @CaptureSpan()
   public static async deleteDirectory(data: {
     repoPath: string;
     directoryPath: string;
@@ -178,6 +191,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async createBranch(data: {
     repoPath: string;
     branchName: string;
@@ -191,6 +205,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async checkoutBranch(data: {
     repoPath: string;
     branchName: string;
@@ -204,6 +219,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async addFilesToGit(data: {
     repoPath: string;
     filePaths: Array<string>;
@@ -228,6 +244,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async setUsername(data: {
     repoPath: string;
     username: string;
@@ -241,6 +258,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async commitChanges(data: {
     repoPath: string;
     message: string;
@@ -254,6 +272,7 @@ export default class CodeRepositoryUtil {
     logger.debug(stdout);
   }
 
+  @CaptureSpan()
   public static async getGitCommitHashForFile(data: {
     repoPath: string;
     filePath: string;
@@ -279,6 +298,7 @@ export default class CodeRepositoryUtil {
     return hash;
   }
 
+  @CaptureSpan()
   public static async listFilesInDirectory(data: {
     directoryPath: string;
     repoPath: string;
@@ -304,6 +324,7 @@ export default class CodeRepositoryUtil {
     return fileNames;
   }
 
+  @CaptureSpan()
   public static async getFilesInDirectory(data: {
     directoryPath: string;
     repoPath: string;
@@ -391,6 +412,7 @@ export default class CodeRepositoryUtil {
     };
   }
 
+  @CaptureSpan()
   public static async getFilesInDirectoryRecursive(data: {
     repoPath: string;
     directoryPath: string;

@@ -9,6 +9,7 @@ import CaptureSpan from "./CaptureSpan";
 
 export default class TelemetryUtil {
   @CaptureSpan()
+  @CaptureSpan()
   public static async indexAttributes(data: {
     attributes: string[];
     projectId: ObjectID;
@@ -62,6 +63,7 @@ export default class TelemetryUtil {
     }
   }
 
+  @CaptureSpan()
   @CaptureSpan()
   public static getAttributes(data: {
     items: JSONArray;

@@ -8,8 +8,10 @@ import WorkspaceNotificationRuleService, {
 } from "../../../Services/WorkspaceNotificationRuleService";
 import logger from "../../Logger";
 import SlackAlertMessages from "../Slack/Messages/Alert";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class AlertWorkspaceMessages {
+  @CaptureSpan()
   public static async createChannelsAndInviteUsersToChannels(data: {
     projectId: ObjectID;
     alertId: ObjectID;
@@ -37,6 +39,7 @@ export default class AlertWorkspaceMessages {
     }
   }
 
+  @CaptureSpan()
   public static async getAlertCreateMessageBlocks(data: {
     alertId: ObjectID;
     projectId: ObjectID;

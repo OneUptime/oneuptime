@@ -33,6 +33,7 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
 }
 
 export default class ModelPermission {
+  @CaptureSpan()
   public static async checkDeletePermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
@@ -54,6 +55,7 @@ export default class ModelPermission {
     return query;
   }
 
+  @CaptureSpan()
   public static async checkUpdatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
@@ -85,6 +87,7 @@ export default class ModelPermission {
     return query;
   }
 
+  @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
@@ -220,6 +223,7 @@ export default class ModelPermission {
     }
   }
 
+  @CaptureSpan()
   public static async checkReadPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
@@ -581,6 +585,7 @@ export default class ModelPermission {
     return isPublicAllowed;
   }
 
+  @CaptureSpan()
   public static checkIfUserIsLoggedIn(
     modelType: AnalyticsBaseModelType,
     props: DatabaseCommonInteractionProps,

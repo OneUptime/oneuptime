@@ -10,6 +10,7 @@ import crypto from "crypto";
 import logger from "../Utils/Logger";
 
 export default class SlackAuthorization {
+  @CaptureSpan()
   public static async isAuthorizedSlackRequest(
     req: OneUptimeRequest,
     res: ExpressResponse,

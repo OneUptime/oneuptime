@@ -21,6 +21,7 @@ import Permission, {
 } from "Common/Types/Permission";
 
 export default class AccessControlPermission {
+  @CaptureSpan()
   public static async checkAccessControlBlockPermissionByModel<
     TBaseModel extends BaseModel,
   >(data: {
@@ -123,6 +124,7 @@ export default class AccessControlPermission {
     }
   }
 
+  @CaptureSpan()
   public static async checkAccessControlPermissionByModel<
     TBaseModel extends BaseModel,
   >(data: {
@@ -213,6 +215,7 @@ export default class AccessControlPermission {
     }
   }
 
+  @CaptureSpan()
   public static async addAccessControlIdsToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
@@ -236,6 +239,7 @@ export default class AccessControlPermission {
     return query;
   }
 
+  @CaptureSpan()
   public static getAccessControlIdsForModel(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
@@ -260,6 +264,7 @@ export default class AccessControlPermission {
     return distinctLabelIds;
   }
 
+  @CaptureSpan()
   public static getAccessControlIdsForQuery<TBaseModel extends BaseModel>(
     modelType: DatabaseBaseModelType,
     query: Query<TBaseModel>,

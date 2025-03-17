@@ -11,6 +11,7 @@ import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export enum QueueName {
   Workflow = "Workflow",
@@ -22,6 +23,7 @@ export type QueueJob = Job;
 export default class Queue {
   private static queueDict: Dictionary<BullQueue> = {};
 
+  @CaptureSpan()
   public static getQueue(queueName: QueueName): BullQueue {
     // check if the queue is already created
     if (this.queueDict[queueName]) {
@@ -42,6 +44,7 @@ export default class Queue {
     return queue;
   }
 
+  @CaptureSpan()
   public static async removeJob(
     queueName: QueueName,
     jobId: string,
@@ -60,10 +63,12 @@ export default class Queue {
     await this.getQueue(queueName).removeRepeatableByKey(jobId);
   }
 
+  @CaptureSpan()
   public static getInspectorRoute(): string {
     return "/worker/inspect/queue/:clusterKey";
   }
 
+  @CaptureSpan()
   public static getQueueInspectorRouter(): ExpressRouter {
     const serverAdapter: ExpressAdapter = new ExpressAdapter();
 
@@ -86,6 +91,7 @@ export default class Queue {
     return serverAdapter.getRouter();
   }
 
+  @CaptureSpan()
   public static async addJob(
     queueName: QueueName,
     jobId: string,

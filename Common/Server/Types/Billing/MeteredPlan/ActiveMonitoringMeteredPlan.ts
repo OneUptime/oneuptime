@@ -10,10 +10,12 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import Project from "Common/Models/DatabaseModels/Project";
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
+  @CaptureSpan()
   public override getProductType(): ProductType {
     return ProductType.ActiveMonitoring;
   }
 
+  @CaptureSpan()
   public override async reportQuantityToBillingProvider(
     projectId: ObjectID,
     options?: {

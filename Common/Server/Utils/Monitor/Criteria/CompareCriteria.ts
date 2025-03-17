@@ -8,6 +8,7 @@ import {
 import Typeof from "Common/Types/Typeof";
 
 export default class CompareCriteria {
+  @CaptureSpan()
   public static greaterThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -27,6 +28,7 @@ export default class CompareCriteria {
     return data.value > data.threshold;
   }
 
+  @CaptureSpan()
   public static isTrue(data: {
     value: boolean | Array<boolean>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -47,6 +49,7 @@ export default class CompareCriteria {
     return data.value === true;
   }
 
+  @CaptureSpan()
   public static isFalse(data: {
     value: boolean | Array<boolean>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -67,6 +70,7 @@ export default class CompareCriteria {
     return data.value === false;
   }
 
+  @CaptureSpan()
   public static lessThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -86,6 +90,7 @@ export default class CompareCriteria {
     return data.value < data.threshold;
   }
 
+  @CaptureSpan()
   public static greaterThanOrEqual(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -105,6 +110,7 @@ export default class CompareCriteria {
     return data.value >= data.threshold;
   }
 
+  @CaptureSpan()
   public static lessThanOrEqual(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -124,6 +130,7 @@ export default class CompareCriteria {
     return data.value <= data.threshold;
   }
 
+  @CaptureSpan()
   public static equalTo(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -143,6 +150,7 @@ export default class CompareCriteria {
     return data.value === data.threshold;
   }
 
+  @CaptureSpan()
   public static notEqualTo(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -162,6 +170,7 @@ export default class CompareCriteria {
     return data.value !== data.threshold;
   }
 
+  @CaptureSpan()
   public static convertToNumber(
     threshold: string | number | undefined,
   ): number | null {
@@ -185,6 +194,7 @@ export default class CompareCriteria {
     return threshold as number;
   }
 
+  @CaptureSpan()
   public static checkEqualToOrNotEqualTo(data: {
     value: string | number;
     threshold: string | number;
@@ -209,6 +219,7 @@ export default class CompareCriteria {
     return null;
   }
 
+  @CaptureSpan()
   public static compareEmptyAndNotEmpty(data: {
     value: any;
     criteriaFilter: CriteriaFilter;
@@ -232,6 +243,7 @@ export default class CompareCriteria {
     return null;
   }
 
+  @CaptureSpan()
   public static compareCriteriaStrings(data: {
     value: string;
     threshold: string;
@@ -304,6 +316,7 @@ export default class CompareCriteria {
     return null;
   }
 
+  @CaptureSpan()
   public static compareCriteriaBoolean(data: {
     value: Array<boolean> | boolean;
     criteriaFilter: CriteriaFilter;
@@ -355,6 +368,7 @@ export default class CompareCriteria {
     return null;
   }
 
+  @CaptureSpan()
   public static compareCriteriaNumbers(data: {
     value: Array<number> | number;
     threshold: number;
@@ -491,6 +505,7 @@ export default class CompareCriteria {
     return null;
   }
 
+  @CaptureSpan()
   public static getCompareMessage(data: {
     values: Array<number | boolean> | number | boolean | string;
     threshold: number | string | boolean;

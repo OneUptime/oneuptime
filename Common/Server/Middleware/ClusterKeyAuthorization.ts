@@ -9,17 +9,20 @@ import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 
 export default class ClusterKeyAuthorization {
+  @CaptureSpan()
   public static getClusterKeyHeaders(): Dictionary<string> {
     return {
       clusterkey: ClusterKeyAuthorization.getClusterKey(),
     };
   }
 
+  @CaptureSpan()
   public static getClusterKey(): string {
     // we encode uri component because a lot of people use special characters in their cluster key secret
     return encodeURIComponent(ONEUPTIME_SECRET.toString());
   }
 
+  @CaptureSpan()
   public static async isAuthorizedServiceMiddleware(
     req: ExpressRequest,
     res: ExpressResponse,

@@ -26,6 +26,7 @@ export default class IfElse extends ComponentCode {
     this.setMetadata(Component);
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

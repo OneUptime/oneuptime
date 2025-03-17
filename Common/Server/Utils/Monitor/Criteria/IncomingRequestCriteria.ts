@@ -14,6 +14,7 @@ import CompareCriteria from "./CompareCriteria";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 
 export default class IncomingRequestCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;

@@ -9,6 +9,7 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { JSONObject } from "Common/Types/JSON";
 
 export default class BearerTokenAuthorization {
+  @CaptureSpan()
   public static async isAuthorizedBearerToken(
     req: ExpressRequest,
     _res: ExpressResponse,

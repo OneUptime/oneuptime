@@ -10,6 +10,7 @@ import IncidentService from "../../../../Services/IncidentService";
 import SlackActionType from "../../../../Utils/Workspace/Slack/Actions/ActionTypes";
 
 export default class SlackIncidentMessages {
+  @CaptureSpan()
   public static async getIncidentCreateMessageBlocks(data: {
     incidentId: ObjectID;
     projectId: ObjectID;

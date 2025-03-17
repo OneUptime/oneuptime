@@ -8,6 +8,7 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 
 export default class QueryHelper {
+  @CaptureSpan()
   public static modulo(
     moduloBy: number,
     reminder: number,
@@ -25,6 +26,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static findWithSameText(
     text: string | number,
   ): FindWhereProperty<any> {
@@ -47,18 +49,21 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static isNull(): any {
     return Raw((alias: string) => {
       return `(${alias} IS NULL)`;
     });
   }
 
+  @CaptureSpan()
   public static notNull(): any {
     return Raw((alias: string) => {
       return `(${alias} IS NOT NULL)`;
     });
   }
 
+  @CaptureSpan()
   public static equalToOrNull(
     value: string | ObjectID | Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -105,6 +110,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static notEquals(value: string | ObjectID): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -117,6 +123,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static search(name: string): FindWhereProperty<any> {
     name = name.toLowerCase().trim();
     const rid: string = Text.generateRandomText(10);
@@ -130,6 +137,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static all(values: Array<string | ObjectID>): FindWhereProperty<any> {
     values = values.map((value: string | ObjectID) => {
       return value.toString();
@@ -152,6 +160,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static any(
     values: Array<string | ObjectID | number>,
   ): FindWhereProperty<any> {
@@ -182,6 +191,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static notIn(
     values: Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -206,6 +216,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static notInOrNull(
     values: Array<string | ObjectID>,
   ): FindWhereProperty<any> {
@@ -230,6 +241,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static inRelationArray(
     values: Array<BaseModel | ObjectID>,
   ): Array<any> {
@@ -242,6 +254,7 @@ export default class QueryHelper {
     });
   }
 
+  @CaptureSpan()
   public static equalTo(value: string): FindWhereProperty<any> {
     const rid: string = Text.generateRandomText(10);
     return Raw(
@@ -254,6 +267,7 @@ export default class QueryHelper {
     );
   }
 
+  @CaptureSpan()
   public static greaterThanEqualTo<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {
@@ -268,6 +282,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static greaterThanEqualToOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {
@@ -282,6 +297,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static lessThanEqualTo<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {
@@ -296,6 +312,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static lessThanEqualToOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {
@@ -310,6 +327,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static greaterThan<T extends number | Date>(
     value: T,
   ): FindWhereProperty<number | Date> {
@@ -324,6 +342,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static greaterThanOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {
@@ -338,6 +357,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static inBetween<T extends number | Date>(
     startValue: T,
     endValue: T,
@@ -355,6 +375,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static inBetweenOrNull<T extends number | Date>(
     startValue: T,
     endValue: T,
@@ -372,6 +393,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static notInBetween<T extends number | Date>(
     startValue: T,
     endValue: T,
@@ -389,6 +411,7 @@ export default class QueryHelper {
     ) as FindWhereProperty<T>;
   }
 
+  @CaptureSpan()
   public static queryJson(value: JSONObject): FindWhereProperty<any> {
     // seed random text
     const values: JSONObject = {};
@@ -439,6 +462,7 @@ export default class QueryHelper {
     }, values);
   }
 
+  @CaptureSpan()
   public static lessThan<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {

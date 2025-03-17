@@ -2,6 +2,7 @@ import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import { Stream } from "stream";
 
 export default class StreamUtil {
+  @CaptureSpan()
   public static convertStreamToText(stream: Stream): Promise<string> {
     return new Promise<string>(
       (
@@ -27,6 +28,7 @@ export default class StreamUtil {
     );
   }
 
+  @CaptureSpan()
   public static async toStringArray(stream: Stream): Promise<Array<string>> {
     const text: string = await StreamUtil.convertStreamToText(stream);
     return text.split("\n");

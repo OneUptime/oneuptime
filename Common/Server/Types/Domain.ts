@@ -4,6 +4,7 @@ import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import dns from "dns";
 
 export default class Domain extends DomainCommon {
+  @CaptureSpan()
   public static verifyTxtRecord(
     domain: Domain | string,
     verificationText: string,

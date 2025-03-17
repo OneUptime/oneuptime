@@ -5,6 +5,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class CreatePermission {
+  @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     data: TBaseModel,
@@ -32,6 +33,7 @@ export default class CreatePermission {
     );
   }
 
+  @CaptureSpan()
   public static checkCreateBlockPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,

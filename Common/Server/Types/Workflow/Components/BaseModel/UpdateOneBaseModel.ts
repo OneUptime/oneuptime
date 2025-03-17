@@ -41,6 +41,7 @@ export default class UpdateOneBaseModel<
     this.modelService = modelService;
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,

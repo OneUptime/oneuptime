@@ -49,18 +49,22 @@ class Express {
   private static app: express.Application;
   private static httpServer: Server;
 
+  @CaptureSpan()
   public static getRouter(): express.Router {
     return express.Router();
   }
 
+  @CaptureSpan()
   public static setupExpress(): void {
     this.app = express();
   }
 
+  @CaptureSpan()
   public static getHttpServer(): Server {
     return this.httpServer;
   }
 
+  @CaptureSpan()
   public static getExpressApp(): express.Application {
     if (!this.app) {
       this.setupExpress();
@@ -69,6 +73,7 @@ class Express {
     return this.app;
   }
 
+  @CaptureSpan()
   public static async launchApplication(
     appName: string,
     port?: Port,

@@ -31,6 +31,7 @@ import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import OneUptimeDate from "../../../../Types/Date";
 
 export default class SlackUtil extends WorkspaceBase {
+  @CaptureSpan()
   public static override async getUsernameFromUserId(data: {
     authToken: string;
     userId: string;
@@ -83,6 +84,7 @@ export default class SlackUtil extends WorkspaceBase {
     return username;
   }
 
+  @CaptureSpan()
   public static override async showModalToUser(data: {
     authToken: string;
     triggerId: string;
@@ -126,6 +128,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Modal shown to user successfully.");
   }
 
+  @CaptureSpan()
   public static override async sendDirectMessageToUser(data: {
     authToken: string;
     workspaceUserId: string;
@@ -150,6 +153,7 @@ export default class SlackUtil extends WorkspaceBase {
     });
   }
 
+  @CaptureSpan()
   public static override async joinChannel(data: {
     authToken: string;
     channelId: string;
@@ -189,6 +193,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
   }
 
+  @CaptureSpan()
   public static override async inviteUserToChannelByChannelId(data: {
     authToken: string;
     channelId: string;
@@ -240,6 +245,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("User invited to channel successfully.");
   }
 
+  @CaptureSpan()
   public static override async inviteUserToChannelByChannelName(data: {
     authToken: string;
     channelName: string;
@@ -267,6 +273,7 @@ export default class SlackUtil extends WorkspaceBase {
     });
   }
 
+  @CaptureSpan()
   public static override async createChannelsIfDoesNotExist(data: {
     authToken: string;
     channelNames: Array<string>;
@@ -312,6 +319,7 @@ export default class SlackUtil extends WorkspaceBase {
     return workspaceChannels;
   }
 
+  @CaptureSpan()
   public static override async getWorkspaceChannelFromChannelName(data: {
     authToken: string;
     channelName: string;
@@ -338,6 +346,7 @@ export default class SlackUtil extends WorkspaceBase {
     return channels[data.channelName]!;
   }
 
+  @CaptureSpan()
   public static override async getWorkspaceChannelFromChannelId(data: {
     authToken: string;
     channelId: string;
@@ -394,6 +403,7 @@ export default class SlackUtil extends WorkspaceBase {
     return channel;
   }
 
+  @CaptureSpan()
   public static override async getAllWorkspaceChannels(data: {
     authToken: string;
   }): Promise<Dictionary<WorkspaceChannel>> {
@@ -447,12 +457,14 @@ export default class SlackUtil extends WorkspaceBase {
     return channels;
   }
 
+  @CaptureSpan()
   public static override getDividerBlock(): JSONObject {
     return {
       type: "divider",
     };
   }
 
+  @CaptureSpan()
   public static getValuesFromView(data: {
     view: JSONObject;
   }): Dictionary<string | number | Array<string | number> | Date> {
@@ -508,6 +520,7 @@ export default class SlackUtil extends WorkspaceBase {
     return values;
   }
 
+  @CaptureSpan()
   public static override async sendMessage(data: {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
@@ -609,6 +622,7 @@ export default class SlackUtil extends WorkspaceBase {
     return workspaspaceMessageResponse;
   }
 
+  @CaptureSpan()
   public static override async sendPayloadBlocksToChannel(data: {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
@@ -654,6 +668,7 @@ export default class SlackUtil extends WorkspaceBase {
     };
   }
 
+  @CaptureSpan()
   public static override getButtonsBlock(data: {
     payloadButtonsBlock: WorkspacePayloadButtons;
   }): JSONObject {
@@ -674,6 +689,7 @@ export default class SlackUtil extends WorkspaceBase {
     return buttonsBlock;
   }
 
+  @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
     channelName: string;
@@ -740,6 +756,7 @@ export default class SlackUtil extends WorkspaceBase {
     return channel;
   }
 
+  @CaptureSpan()
   public static override getHeaderBlock(data: {
     payloadHeaderBlock: WorkspacePayloadHeader;
   }): JSONObject {
@@ -759,6 +776,7 @@ export default class SlackUtil extends WorkspaceBase {
     return headerBlock;
   }
 
+  @CaptureSpan()
   public static override getCheckboxBlock(data: {
     payloadCheckboxBlock: WorkspaceCheckboxBlock;
   }): JSONObject {
@@ -811,6 +829,7 @@ export default class SlackUtil extends WorkspaceBase {
     return checkboxBlock;
   }
 
+  @CaptureSpan()
   public static override getDateTimePickerBlock(data: {
     payloadDateTimePickerBlock: WorkspaceDateTimePickerBlock;
   }): JSONObject {
@@ -835,6 +854,7 @@ export default class SlackUtil extends WorkspaceBase {
     return dateTimePickerBlock;
   }
 
+  @CaptureSpan()
   public static override getTextAreaBlock(data: {
     payloadTextAreaBlock: WorkspaceTextAreaBlock;
   }): JSONObject {
@@ -876,6 +896,7 @@ export default class SlackUtil extends WorkspaceBase {
     return textAreaBlock;
   }
 
+  @CaptureSpan()
   public static override getTextBoxBlock(data: {
     payloadTextBoxBlock: WorkspaceTextBoxBlock;
   }): JSONObject {
@@ -916,6 +937,7 @@ export default class SlackUtil extends WorkspaceBase {
     return textBoxBlock;
   }
 
+  @CaptureSpan()
   public static override getImageBlock(data: {
     payloadImageBlock: WorkspacePayloadImage;
   }): JSONObject {
@@ -933,6 +955,7 @@ export default class SlackUtil extends WorkspaceBase {
     return imageBlock;
   }
 
+  @CaptureSpan()
   public static override getDropdownBlock(data: {
     payloadDropdownBlock: WorkspaceDropdownBlock;
   }): JSONObject {
@@ -996,6 +1019,7 @@ export default class SlackUtil extends WorkspaceBase {
     return dropdownBlock;
   }
 
+  @CaptureSpan()
   public static override getModalBlock(data: {
     payloadModalBlock: WorkspaceModalBlock;
   }): JSONObject {
@@ -1028,6 +1052,7 @@ export default class SlackUtil extends WorkspaceBase {
     return modalBlock;
   }
 
+  @CaptureSpan()
   public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
@@ -1049,6 +1074,7 @@ export default class SlackUtil extends WorkspaceBase {
     return markdownBlock;
   }
 
+  @CaptureSpan()
   public static override async isUserInDirectMessageChannel(data: {
     authToken: string;
     userId: string;
@@ -1093,6 +1119,7 @@ export default class SlackUtil extends WorkspaceBase {
     return false;
   }
 
+  @CaptureSpan()
   public static override async isUserInChannel(data: {
     authToken: string;
     channelId: string;
@@ -1163,6 +1190,7 @@ export default class SlackUtil extends WorkspaceBase {
     return false;
   }
 
+  @CaptureSpan()
   public static override getButtonBlock(data: {
     payloadButtonBlock: WorkspaceMessagePayloadButton;
   }): JSONObject {
@@ -1188,6 +1216,7 @@ export default class SlackUtil extends WorkspaceBase {
     return buttonBlock;
   }
 
+  @CaptureSpan()
   public static override async sendMessageToChannelViaIncomingWebhook(data: {
     url: URL;
     text: string;

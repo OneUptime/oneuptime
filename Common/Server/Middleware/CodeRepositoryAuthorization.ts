@@ -9,6 +9,7 @@ import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryServi
 import ObjectID from "Common/Types/ObjectID";
 
 export default class CopilotCodeRepositoryAuthorization {
+  @CaptureSpan()
   public static async isAuthorizedRepository(
     req: ExpressRequest,
     _res: ExpressResponse,

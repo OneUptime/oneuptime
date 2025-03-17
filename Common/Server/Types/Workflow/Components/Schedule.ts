@@ -30,6 +30,7 @@ export default class WebhookTrigger extends TriggerCode {
     this.setMetadata(component);
   }
 
+  @CaptureSpan()
   public override async init(props: InitProps): Promise<void> {
     const workflows: Array<Workflow> = await WorkflowService.findBy({
       query: {
@@ -72,6 +73,7 @@ export default class WebhookTrigger extends TriggerCode {
     }
   }
 
+  @CaptureSpan()
   public override async run(
     args: JSONObject,
     options: RunOptions,
@@ -94,6 +96,7 @@ export default class WebhookTrigger extends TriggerCode {
     };
   }
 
+  @CaptureSpan()
   public override async update(props: UpdateProps): Promise<void> {
     const workflow: Workflow | null = await WorkflowService.findOneBy({
       query: {

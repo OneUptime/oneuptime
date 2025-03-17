@@ -11,6 +11,7 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 
 export default class ServerMonitorCriteria {
+  @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;

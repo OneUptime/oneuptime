@@ -11,6 +11,7 @@ export type SocketServer = SocketIO.Server;
 export default abstract class IO {
   private static socketServer: SocketIO.Server | null = null;
 
+  @CaptureSpan()
   public static init(): void {
     const server: http.Server = Express.getHttpServer();
 
@@ -30,6 +31,7 @@ export default abstract class IO {
     // this.socketServer.adapter(createAdapter(pubClient, subClient));
   }
 
+  @CaptureSpan()
   public static getSocketServer(): SocketIO.Server | null {
     if (!this.socketServer) {
       this.init();

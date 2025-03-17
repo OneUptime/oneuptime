@@ -18,6 +18,7 @@ import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthToken
 import UserService from "../../Services/UserService";
 
 export default class WorkspaceUtil {
+  @CaptureSpan()
   public static async getMessageBlocksByMarkdown(data: {
     projectId: ObjectID;
     // this is oneuptime user id.
@@ -83,6 +84,7 @@ export default class WorkspaceUtil {
     return messageBlocksByWorkspaceType;
   }
 
+  @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
     const workspaceTypes: Array<WorkspaceType> = [];
 
@@ -93,6 +95,7 @@ export default class WorkspaceUtil {
     return workspaceTypes;
   }
 
+  @CaptureSpan()
   public static getWorkspaceTypeUtil(
     workspaceType: WorkspaceType,
   ): typeof WorkspaceBase {
@@ -109,6 +112,7 @@ export default class WorkspaceUtil {
     );
   }
 
+  @CaptureSpan()
   public static async getUserNameFromWorkspace(data: {
     userId: string;
     workspaceType: WorkspaceType;
@@ -124,6 +128,7 @@ export default class WorkspaceUtil {
     return userName;
   }
 
+  @CaptureSpan()
   public static async postMessageToAllWorkspaceChannelsAsBot(data: {
     projectId: ObjectID;
     messagePayloadsByWorkspace: Array<WorkspaceMessagePayload>;
@@ -191,6 +196,7 @@ export default class WorkspaceUtil {
     return responses;
   }
 
+  @CaptureSpan()
   public static async postToWorkspaceChannels(data: {
     workspaceUserId: string;
     projectOrUserAuthTokenForWorkspace: string;

@@ -9,14 +9,17 @@ export default class TwoFactorAuth {
    * Generates a random secret key for two-factor authentication.
    * @returns The generated secret key.
    */
+  @CaptureSpan()
   public static generateSecret(): string {
     return new OTPAuth.Secret().base32;
   }
 
+  @CaptureSpan()
   public static getLabel(data: { email: Email }): string {
     return data.email.toString();
   }
 
+  @CaptureSpan()
   public static getTotp(data: { secret: string; email: Email }): OTPAuth.TOTP {
     const totp: OTPAuth.TOTP = new OTPAuth.TOTP({
       // Provider or service the account is associated with.
@@ -43,6 +46,7 @@ export default class TwoFactorAuth {
    * @param data - The data object containing the secret key and token.
    * @returns A boolean indicating whether the token is valid or not.
    */
+  @CaptureSpan()
   public static verifyToken(data: {
     secret: string;
     token: string;
@@ -62,6 +66,7 @@ export default class TwoFactorAuth {
    * @param data - The data object containing the secret key and user email.
    * @returns The generated URI for setting up two-factor authentication.
    */
+  @CaptureSpan()
   public static generateUri(data: {
     secret: string;
     userEmail: Email;
