@@ -40,12 +40,12 @@ function CaptureSpan(data?: {
 
     logger.debug(`Capturing span for ${name}`);
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = function (...args: any[]) {
       if (DisableTelemetry) {
         logger.debug(
           `Telemetry is disabled. Running function ${name} without capturing span.`,
         );
-        return await originalMethod.apply(this, args);
+        return originalMethod.apply(this, args);
       }
 
       let functionArguments: JSONObject = {};
@@ -72,33 +72,55 @@ function CaptureSpan(data?: {
       logger.debug(`Span attributes for ${name}:`);
       logger.debug(spanAttributes);
 
-      return await Telemetry.startActiveSpan<Promise<void>>({
+      return Telemetry.startActiveSpan({
         name: name,
         options: {
           attributes: spanAttributes,
         },
-        fn: async (span: Span): Promise<void> => {
+        fn: (span: Span) => {
+          let result = null; 
           try {
-            await originalMethod.apply(this, args);
-            // mark span as success
-            span.setStatus({
-              code: SpanStatusCode.OK,
-            });
+            result = originalMethod.apply(this, args);
+            if (result instanceof Promise) {
+              return result
+                .then((res) => {
+                  span.setStatus({
+                    code: SpanStatusCode.OK,
+                  });
+                  return res;
+                })
+                .catch((err) => {
+                  Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+                    span,
+                    exception: err,
+                  });
+                  logger.debug(`Error in span for ${name}:`);
+                  logger.debug(err);
+                  throw err;
+                })
+                .finally(() => {
+                  span.end();
+                  logger.debug(`Ended span for ${name}`);
+                });
+            } else {
+              span.setStatus({
+                code: SpanStatusCode.OK,
+              });
+              return result;
+            }
           } catch (err) {
             Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
               span,
               exception: err,
             });
-            // mark span as error
-            span.setStatus({
-              code: SpanStatusCode.ERROR,
-            });
             logger.debug(`Error in span for ${name}:`);
             logger.debug(err);
             throw err;
           } finally {
-            span.end();
-            logger.debug(`Ended span for ${name}`);
+            if (!(result instanceof Promise)) {
+              span.end();
+              logger.debug(`Ended span for ${name}`);
+            }
           }
         },
       });

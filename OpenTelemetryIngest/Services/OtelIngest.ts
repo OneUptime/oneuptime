@@ -41,6 +41,7 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 
 export default class OtelIngestService {
+  
   @CaptureSpan()
   public static getServiceNameFromAttributes(attributes: JSONArray): string {
     for (const attribute of attributes) {
@@ -91,6 +92,9 @@ export default class OtelIngestService {
             "attributes"
           ] as JSONArray) || [],
         );
+
+        logger.debug(`Attributes: ${JSON.stringify(resourceLog, null, 2)}`);
+        logger.debug(`Service Name: ${serviceName}`);
 
         if (!serviceDictionary[serviceName]) {
           const service: {
