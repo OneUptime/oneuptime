@@ -6,6 +6,8 @@ import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components from "Common/Types/Workflow/Components/Email";
 import nodemailer, { Transporter } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+
 
 export default class Email extends ComponentCode {
   public constructor() {

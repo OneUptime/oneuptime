@@ -14,6 +14,7 @@ import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryServiceService from "Common/Server/Services/TelemetryServiceService";
 import { DEFAULT_RETENTION_IN_DAYS } from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export enum OtelAggregationTemporality {
   Cumulative = "AGGREGATION_TEMPORALITY_CUMULATIVE",

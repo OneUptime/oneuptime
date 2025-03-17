@@ -21,6 +21,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {

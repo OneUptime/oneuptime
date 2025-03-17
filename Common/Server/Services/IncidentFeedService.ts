@@ -18,6 +18,7 @@ import IncidentService from "./IncidentService";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<IncidentFeed> {
   public constructor() {

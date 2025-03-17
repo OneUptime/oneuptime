@@ -4,6 +4,8 @@ import { JSONObject } from "Common/Types/JSON";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import LogComponents from "Common/Types/Workflow/Components/Log";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+
 
 export default class Log extends ComponentCode {
   public constructor() {

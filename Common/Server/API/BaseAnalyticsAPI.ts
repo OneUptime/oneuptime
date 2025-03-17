@@ -28,6 +28,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { UserPermission } from "Common/Types/Permission";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class BaseAnalyticsAPI<
   TAnalyticsDataModel extends AnalyticsDataModel,

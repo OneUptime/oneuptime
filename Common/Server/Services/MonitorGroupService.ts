@@ -15,6 +15,7 @@ import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTim
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import StatusPageResourceService from "./StatusPageResourceService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<MonitorGroup> {
   public constructor() {

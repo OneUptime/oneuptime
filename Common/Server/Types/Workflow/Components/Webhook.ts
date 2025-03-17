@@ -12,6 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import WebhookComponents from "Common/Types/Workflow/Components/Webhook";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+
 
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {

@@ -6,6 +6,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { Port } from "Common/Types/Workflow/Component";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export interface ExecuteWorkflowType {
   workflowId: ObjectID;

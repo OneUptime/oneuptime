@@ -7,6 +7,7 @@ import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import JavaScriptComponents from "Common/Types/Workflow/Components/JavaScript";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class JavaScriptCode extends ComponentCode {
   public constructor() {

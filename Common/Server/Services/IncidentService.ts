@@ -58,6 +58,7 @@ import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Inci
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

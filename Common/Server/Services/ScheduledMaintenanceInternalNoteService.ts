@@ -8,6 +8,7 @@ import { Blue500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

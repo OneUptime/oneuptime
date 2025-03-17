@@ -62,6 +62,7 @@ import { DataSource, Repository, SelectQueryBuilder } from "typeorm";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import Realtime from "../Utils/Realtime";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };

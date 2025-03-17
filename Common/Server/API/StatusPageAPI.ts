@@ -78,6 +78,7 @@ import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime"
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { Green } from "../../Types/BrandColors";
 import UptimeUtil from "../../Utils/Uptime/UptimeUtil";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,

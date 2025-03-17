@@ -13,6 +13,7 @@ import Express, {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CommonAPI from "./CommonAPI";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";

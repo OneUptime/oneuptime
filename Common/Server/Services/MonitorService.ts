@@ -53,6 +53,7 @@ import Query from "../Types/Database/Query";
 import DeleteBy from "../Types/Database/DeleteBy";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Label from "../../Models/DatabaseModels/Label";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

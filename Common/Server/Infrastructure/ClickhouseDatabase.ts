@@ -12,6 +12,7 @@ import URL from "../../Types/API/URL";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type ClickhouseClient = ClickHouseClient;
 

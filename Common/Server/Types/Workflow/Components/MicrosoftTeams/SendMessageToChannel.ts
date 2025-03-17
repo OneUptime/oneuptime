@@ -9,6 +9,8 @@ import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import MicrosoftTeamComponents from "Common/Types/Workflow/Components/MicrosoftTeams";
 import API from "Common/Utils/API";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+
 
 export default class SendMessageToChannel extends ComponentCode {
   public constructor() {

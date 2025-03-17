@@ -10,6 +10,7 @@ import URL from "../../Types/API/URL";
 import Text from "../../Types/Text";
 import Model from "Common/Models/DatabaseModels/ShortLink";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

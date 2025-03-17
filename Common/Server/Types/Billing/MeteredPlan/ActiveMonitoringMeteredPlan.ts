@@ -8,6 +8,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Project from "Common/Models/DatabaseModels/Project";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class ActiveMonitoringMeteredPlan extends ServerMeteredPlan {
   @CaptureSpan()
