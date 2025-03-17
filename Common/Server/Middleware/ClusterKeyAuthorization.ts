@@ -7,6 +7,7 @@ import {
 import Response from "../Utils/Response";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class ClusterKeyAuthorization {
   @CaptureSpan()

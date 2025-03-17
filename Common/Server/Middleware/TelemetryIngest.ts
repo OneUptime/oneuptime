@@ -10,6 +10,7 @@ import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngesti
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import Response from "../Utils/Response";
 import logger from "../Utils/Logger";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID

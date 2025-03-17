@@ -9,6 +9,7 @@ import {
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";

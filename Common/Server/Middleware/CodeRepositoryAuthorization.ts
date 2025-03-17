@@ -7,6 +7,7 @@ import {
 import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import ObjectID from "Common/Types/ObjectID";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class CopilotCodeRepositoryAuthorization {
   @CaptureSpan()

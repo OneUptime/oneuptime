@@ -10,6 +10,7 @@ import { OnCallInputRequest } from "Common/Types/Call/CallRequest";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class NotificationMiddleware {
   @CaptureSpan()

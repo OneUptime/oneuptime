@@ -11,7 +11,7 @@ import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export enum QueueName {
   Workflow = "Workflow",

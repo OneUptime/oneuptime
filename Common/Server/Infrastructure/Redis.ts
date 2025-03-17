@@ -14,6 +14,7 @@ import {
 import logger from "../Utils/Logger";
 import Sleep from "Common/Types/Sleep";
 import { Redis as RedisClient, RedisOptions } from "ioredis";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type ClientType = RedisClient;
 export type RedisOptionsType = RedisOptions;

@@ -8,6 +8,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { SlackAppSigningSecret } from "../EnvironmentConfig";
 import crypto from "crypto";
 import logger from "../Utils/Logger";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class SlackAuthorization {
   @CaptureSpan()

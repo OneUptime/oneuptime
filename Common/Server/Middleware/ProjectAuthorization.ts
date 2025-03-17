@@ -18,6 +18,7 @@ import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import User from "Common/Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class ProjectMiddleware {
   @CaptureSpan()

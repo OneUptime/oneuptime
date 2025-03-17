@@ -3,7 +3,7 @@ import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
 import Sleep from "Common/Types/Sleep";
 import { DataSource, DataSourceOptions } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type DatabaseSourceOptions = DataSourceOptions;
 export type DatabaseSource = DataSource;

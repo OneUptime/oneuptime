@@ -1,5 +1,6 @@
 import Redis, { ClientType } from "./Redis";
 import { Mutex, LockOptions } from "redis-semaphore";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type SemaphoreMutex = Mutex;
 

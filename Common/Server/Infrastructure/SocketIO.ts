@@ -4,6 +4,7 @@ import { RealtimeRoute } from "Common/ServiceRoute";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import http from "http";
 import SocketIO from "socket.io";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type Socket = SocketIO.Socket;
 export type SocketServer = SocketIO.Server;
