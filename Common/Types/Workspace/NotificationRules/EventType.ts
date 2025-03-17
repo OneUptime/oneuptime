@@ -1,6 +1,6 @@
 enum NotificationRuleEventType {
   Incident = "Incident",
-  MonitorStatus = "Monitor Status",
+  Monitor = "Monitor",
   Alert = "Alert",
   ScheduledMaintenance = "Scheduled Maintenance",
 }

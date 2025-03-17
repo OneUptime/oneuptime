@@ -11,27 +11,23 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ComingSoon from "Common/UI/Components/ComingSoon/ComingSoon";
 
-const IncidentsPage: FunctionComponent<
+const MonitorsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [isMicrosoftTeamsConnected, setIsMicrosoftTeamsConnected] =
+  const [isSlackConnected, setIsSlackConnected] =
     React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [showComingSoon, setShowComingSoon] = React.useState<boolean>(false);
-
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
-    setShowComingSoon(true);
     try {
       setError(null);
       setIsLoading(true);
-      const isMicrosoftTeamsConnected: boolean =
-        await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.MicrosoftTeams);
+      const isSlackConnected: boolean =
+        await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.Slack);
 
-      setIsMicrosoftTeamsConnected(isMicrosoftTeamsConnected);
+      setIsSlackConnected(isSlackConnected);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -53,30 +49,21 @@ const IncidentsPage: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (showComingSoon) {
-    return (
-      <ComingSoon
-        title="Microsoft Teams Integration is coming soon, but you can still integrate Teams with Workflows!"
-        description="We are working hard to bring you the Microsoft Teams integration. In the meantime, you can still integrate with Workflows to receive incidents in Microsoft Teams. Please click on Workflows in the top navigation to get started."
-      />
-    );
-  }
-
   return (
     <div>
-      {isMicrosoftTeamsConnected && (
+      {isSlackConnected && (
         <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.Incident}
+          workspaceType={WorkspaceType.Slack}
+          eventType={NotificationRuleEventType.Monitor}
         />
       )}
-      {!isMicrosoftTeamsConnected && (
+      {!isSlackConnected && (
         <div>
           <EmptyState
-            id="MicrosoftTeams-connection"
-            icon={IconProp.MicrosoftTeams}
-            title="MicrosoftTeams is not connected yet!"
-            description="Connect your Microsoft Teams workspace to receive alert notifications. Please go to Project Settings > Workspace Connections > Microsoft Teams to connect your workspace."
+            id="slack-connection"
+            icon={IconProp.Slack}
+            title="Slack is not connected yet!"
+            description="Connect your slack workspace to receive monitor notifications. Please go to Project Settings > Workspace Connections > Slack to connect your workspace."
           />
         </div>
       )}
@@ -84,4 +71,4 @@ const IncidentsPage: FunctionComponent<
   );
 };
 
-export default IncidentsPage;
+export default MonitorsPage;
