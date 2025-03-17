@@ -17,6 +17,7 @@ import Text from "Common/Types/Text";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
 import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
+import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,

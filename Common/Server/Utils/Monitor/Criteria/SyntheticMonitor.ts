@@ -1,3 +1,4 @@
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CompareCriteria from "./CompareCriteria";
 import CustomCodeMonitoringCriteria from "./CustomCodeMonitorCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";

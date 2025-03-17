@@ -13,6 +13,7 @@ import ServerMonitorResponse, {
   ServerProcess,
 } from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import logger from "../../Logger";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class ServerMonitorCriteria {
   @CaptureSpan()

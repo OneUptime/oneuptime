@@ -21,10 +21,10 @@ function CaptureSpan(data?: {
   ) {
     const originalMethod: any = descriptor.value;
 
-    let className = target?.constructor?.name;
+    let className: string | undefined = target?.constructor?.name;
 
     if (className === "" || className === "Function") {
-      const staticClassName = target?.name;
+      const staticClassName: string | undefined = target?.name;
 
       if (staticClassName) {
         className = staticClassName;
@@ -78,18 +78,18 @@ function CaptureSpan(data?: {
           attributes: spanAttributes,
         },
         fn: (span: Span) => {
-          let result = null;
+          let result: any = null;
           try {
             result = originalMethod.apply(this, args);
             if (result instanceof Promise) {
               return result
-                .then((res) => {
+                .then((res: any) => {
                   span.setStatus({
                     code: SpanStatusCode.OK,
                   });
                   return res;
                 })
-                .catch((err) => {
+                .catch((err: Error) => {
                   Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
                     span,
                     exception: err,

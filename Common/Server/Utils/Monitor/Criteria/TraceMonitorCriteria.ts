@@ -1,4 +1,5 @@
 import TraceMonitorResponse from "../../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
