@@ -18,6 +18,7 @@ import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
 import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePayload";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

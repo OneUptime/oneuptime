@@ -5,6 +5,7 @@ import Exception from "Common/Types/Exception/Exception";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
+import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export interface RunOptions {
   log: (item: string | JSONObject | Error | JSONArray | JSONValue) => void;

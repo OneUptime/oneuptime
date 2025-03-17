@@ -1,4 +1,5 @@
 import { Renderer, marked } from "marked";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export type MarkdownRenderer = Renderer;
 

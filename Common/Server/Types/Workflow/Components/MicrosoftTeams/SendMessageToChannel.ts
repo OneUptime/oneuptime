@@ -11,7 +11,6 @@ import MicrosoftTeamComponents from "Common/Types/Workflow/Components/MicrosoftT
 import API from "Common/Utils/API";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
-
 export default class SendMessageToChannel extends ComponentCode {
   public constructor() {
     super();

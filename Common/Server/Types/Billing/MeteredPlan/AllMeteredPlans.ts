@@ -1,3 +1,4 @@
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import ActiveMonitoringMeteredPlanType from "./ActiveMonitoringMeteredPlan";
 import ServerMeteredPlan from "./ServerMeteredPlan";
 import TelemetryMeteredPlanType from "./TelemetryMeteredPlan";

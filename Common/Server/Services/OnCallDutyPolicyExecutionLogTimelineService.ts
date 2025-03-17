@@ -15,6 +15,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import AlertService from "./AlertService";
 import IncidentService from "./IncidentService";
 import UserService from "./UserService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

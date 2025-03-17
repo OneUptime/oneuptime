@@ -26,6 +26,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import logger from "../Utils/Logger";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor() {

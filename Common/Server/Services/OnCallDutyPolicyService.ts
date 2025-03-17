@@ -8,6 +8,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
   public constructor() {

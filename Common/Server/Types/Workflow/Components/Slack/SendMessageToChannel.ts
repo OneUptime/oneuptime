@@ -11,7 +11,6 @@ import SlackComponents from "Common/Types/Workflow/Components/Slack";
 import SlackUtil from "../../../../Utils/Workspace/Slack/Slack";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
-
 export default class SendMessageToChannel extends ComponentCode {
   public constructor() {
     super();

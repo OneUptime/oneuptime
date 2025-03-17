@@ -3,6 +3,7 @@ import MeteredPlan from "Common/Types/Billing/MeteredPlan";
 import NotImplementedException from "Common/Types/Exception/NotImplementedException";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
+import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class ServerMeteredPlan {
   public getProductType(): ProductType {

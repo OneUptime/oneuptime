@@ -8,7 +8,6 @@ import nodemailer, { Transporter } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
-
 export default class Email extends ComponentCode {
   public constructor() {
     super();
