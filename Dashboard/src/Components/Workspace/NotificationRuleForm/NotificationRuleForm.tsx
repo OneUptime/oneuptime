@@ -22,7 +22,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import BaseNotificationRule from "Common/Types/Workspace/NotificationRules/BaseNotificationRule";
 import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
-import MonitorStatusNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorStatusNotificationRule";
+import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 
 export interface ComponentProps {
   value?: undefined | IncidentNotificationRule;
@@ -49,7 +49,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     | IncidentNotificationRule
     | AlertNotificationRule
     | ScheduledMaintenanceNotificationRule
-    | MonitorStatusNotificationRule;
+    | MonitorNotificationRule;
   type CreateNewSlackChannelNotificationRuleType =
     | IncidentNotificationRule
     | AlertNotificationRule

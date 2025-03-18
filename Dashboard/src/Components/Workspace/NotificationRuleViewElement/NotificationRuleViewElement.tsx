@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
-import MonitorStatusNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorStatusNotificationRule";
+import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -28,7 +28,7 @@ export interface ComponentProps {
     | IncidentNotificationRule
     | AlertNotificationRule
     | ScheduledMaintenanceNotificationRule
-    | MonitorStatusNotificationRule;
+    | MonitorNotificationRule;
   eventType: NotificationRuleEventType;
   monitors: Array<Monitor>;
   labels: Array<Label>;
@@ -51,7 +51,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       | IncidentNotificationRule
       | AlertNotificationRule
       | ScheduledMaintenanceNotificationRule
-      | MonitorStatusNotificationRule
+      | MonitorNotificationRule
     >
   > = [
     {
@@ -104,7 +104,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
           | IncidentNotificationRule
           | AlertNotificationRule
           | ScheduledMaintenanceNotificationRule
-          | MonitorStatusNotificationRule,
+          | MonitorNotificationRule,
       ) => {
         return Boolean(formValue.shouldPostToExistingChannel) || false;
       },
@@ -221,7 +221,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         | IncidentNotificationRule
         | AlertNotificationRule
         | ScheduledMaintenanceNotificationRule
-        | MonitorStatusNotificationRule
+        | MonitorNotificationRule
       >[],
     );
   }
@@ -251,7 +251,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         | IncidentNotificationRule
         | AlertNotificationRule
         | ScheduledMaintenanceNotificationRule
-        | MonitorStatusNotificationRule
+        | MonitorNotificationRule
       >[],
     );
   }
@@ -261,7 +261,7 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
       | IncidentNotificationRule
       | AlertNotificationRule
       | ScheduledMaintenanceNotificationRule
-      | MonitorStatusNotificationRule
+      | MonitorNotificationRule
     >
       item={props.value}
       fields={detailFields}
