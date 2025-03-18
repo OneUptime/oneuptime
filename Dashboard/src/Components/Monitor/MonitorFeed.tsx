@@ -146,6 +146,9 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         limit: 50,
       });
 
+      // reverse the order of the items
+      monitorFeeds.data.reverse();
+
       setFeedItems(getFeedItemsFromMonitorFeeds(monitorFeeds.data));
     } catch (err: unknown) {
       setError(API.getFriendlyMessage(err as Exception));

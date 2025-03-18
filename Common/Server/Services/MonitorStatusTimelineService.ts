@@ -278,7 +278,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId:
-          createdItem.createdByUserId || onCreate.createBy.props.userId,
+          createdItem.createdByUserId || onCreate.createBy.props.userId || undefined,
       },
     });
 

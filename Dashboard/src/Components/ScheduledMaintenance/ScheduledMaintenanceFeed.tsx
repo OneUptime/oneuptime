@@ -212,7 +212,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
           },
           skip: 0,
           sort: {
-            postedAt: SortOrder.Descending,
+            postedAt: SortOrder.Ascending,
           },
           limit: LIMIT_PER_PROJECT,
         });

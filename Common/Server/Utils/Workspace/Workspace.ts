@@ -52,12 +52,21 @@ export default class WorkspaceUtil {
           if (!projectAuthToken || !projectAuthToken.authToken) {
             userStringToAppend = "";
           } else {
-            const workspaceUsername: string =
+            const workspaceUsername: string | null =
               await this.getUserNameFromWorkspace({
                 userId: workspaceUserToken.workspaceUserId,
                 workspaceType: workspaceType,
                 authToken: projectAuthToken.authToken,
               });
+
+              if(!workspaceUsername) {
+                const userstring: string = await UserService.getUserMarkdownString({
+                  userId: data.userId,
+                  projectId: data.projectId,
+                });
+      
+                userStringToAppend = `${userstring} `;
+              }
 
             userStringToAppend = `@${workspaceUsername} `;
           }
@@ -118,8 +127,8 @@ export default class WorkspaceUtil {
     userId: string;
     workspaceType: WorkspaceType;
     authToken: string;
-  }): Promise<string> {
-    const userName: string = await WorkspaceUtil.getWorkspaceTypeUtil(
+  }): Promise<string | null> {
+    const userName: string | null = await WorkspaceUtil.getWorkspaceTypeUtil(
       data.workspaceType,
     ).getUsernameFromUserId({
       userId: data.userId,

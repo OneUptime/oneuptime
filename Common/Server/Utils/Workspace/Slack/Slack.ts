@@ -36,7 +36,7 @@ export default class SlackUtil extends WorkspaceBase {
   public static override async getUsernameFromUserId(data: {
     authToken: string;
     userId: string;
-  }): Promise<string> {
+  }): Promise<string | null> {
     logger.debug("Getting username from user ID with data:");
     logger.debug(data);
 
@@ -65,7 +65,7 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      return null;
     }
 
     if (
@@ -73,7 +73,7 @@ export default class SlackUtil extends WorkspaceBase {
     ) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new Error("Invalid response");
+      return null;
     }
 
     const username: string = (
