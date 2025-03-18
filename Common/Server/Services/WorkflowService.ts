@@ -8,6 +8,7 @@ import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
   ComponentType,
   NodeDataProp,

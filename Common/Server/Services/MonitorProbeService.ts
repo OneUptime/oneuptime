@@ -8,14 +8,14 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
   }
 
-  @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<MonitorProbe>,
   ): Promise<OnCreate<MonitorProbe>> {
     if (
@@ -51,8 +51,7 @@ protected override async onBeforeCreate(
     return { createBy, carryForward: null };
   }
 
-  @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     _onCreate: OnCreate<MonitorProbe>,
     createdItem: MonitorProbe,
   ): Promise<MonitorProbe> {
@@ -63,8 +62,7 @@ protected override async onCreateSuccess(
     return Promise.resolve(createdItem);
   }
 
-  @CaptureSpan()
-protected override async onUpdateSuccess(
+  protected override async onUpdateSuccess(
     onUpdate: OnUpdate<MonitorProbe>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<MonitorProbe>> {

@@ -5,7 +5,7 @@ import DatabaseService from "./DatabaseService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "Common/Models/DatabaseModels/ApiKeyPermission";
-
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);

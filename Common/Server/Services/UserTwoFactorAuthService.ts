@@ -8,6 +8,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import User from "Common/Models/DatabaseModels/User";
 import DeleteBy from "../Types/Database/DeleteBy";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

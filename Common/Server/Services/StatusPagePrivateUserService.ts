@@ -6,6 +6,7 @@ import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import StatusPageService from "./StatusPageService";
 import { FileRoute } from "Common/ServiceRoute";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";

@@ -3,7 +3,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "../../Types/ObjectID";
 import Model from "Common/Models/DatabaseModels/ApiKey";
-
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);

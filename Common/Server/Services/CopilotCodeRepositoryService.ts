@@ -9,7 +9,7 @@ import {
 } from "../../Types/Copilot/CopilotActionType";
 import CopilotActionTypePriority from "../../Models/DatabaseModels/CopilotActionTypePriority";
 import CopilotActionTypePriorityService from "./CopilotActionTypePriorityService";
-
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);

@@ -7,6 +7,7 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
 import UserService from "./UserService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";

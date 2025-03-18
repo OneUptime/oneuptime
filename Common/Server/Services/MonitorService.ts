@@ -56,7 +56,6 @@ import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
-import logger from "../Utils/Logger";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
@@ -153,7 +152,7 @@ protected override async onUpdateSuccess(
               // add monitor feed.
     
               feedInfoInMarkdown += `\n\n**Name**: 
-    ${onUpdate.updateBy.data.titlnamee || "No title provided."}
+    ${onUpdate.updateBy.data.name || "No name provided."}
     `;
               shouldAddMonitorFeed = true;
             }

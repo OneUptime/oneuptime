@@ -6,6 +6,7 @@ import AccessTokenService from "./AccessTokenService";
 import DatabaseService from "./DatabaseService";
 import TeamMemberService from "./TeamMemberService";
 import TeamService from "./TeamService";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";

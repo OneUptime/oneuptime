@@ -3,11 +3,8 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePayload";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
-import AlertService from "./AlertService";
 import DatabaseService from "./DatabaseService";
 import Model, {
   AlertFeedEventType,
@@ -15,9 +12,6 @@ import Model, {
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
-import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceUtil from "../Utils/Workspace/Workspace";
-import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {

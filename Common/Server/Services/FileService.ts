@@ -5,7 +5,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import File from "Common/Models/DatabaseModels/File";
-
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export class Service extends DatabaseService<File> {
   public constructor() {
     super(File);
