@@ -156,11 +156,11 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         );
       },
       required: true,
-      description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} number in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
+      description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType === NotificationRuleEventType.Monitor ? 'monitor name' : `${props.eventType} number`} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-${props.eventType === NotificationRuleEventType.Monitor ? 'monitor-name' : 'X'}".`,
       fieldType: FormFieldSchemaType.Text,
       placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
-    },
-    {
+        },
+        {
       field: {
         shouldInviteOwnersToNewChannel: true,
       },
