@@ -90,7 +90,7 @@ export class Service extends DatabaseService<Model> {
       return 0;
     }
 
-    return lastScheduledMaintenance.scheduledMaintenanceNumber || 0;
+    return Number(lastScheduledMaintenance.scheduledMaintenanceNumber) || 0;
   }
 
   @CaptureSpan()
