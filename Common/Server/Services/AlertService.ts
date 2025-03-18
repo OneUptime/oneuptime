@@ -130,7 +130,7 @@ export class Service extends DatabaseService<Model> {
       return 0;
     }
 
-    return lastAlert.alertNumber || 0;
+    return lastAlert.alertNumber ? Number(lastAlert.alertNumber) : 0;
   }
 
   @CaptureSpan()
@@ -1250,7 +1250,7 @@ ${alertSeverity.name}
       throw new BadDataException("Alert not found.");
     }
 
-    return alert.alertNumber || null;
+    return alert.alertNumber ? Number(alert.alertNumber) : null;
   }
 
   @CaptureSpan()

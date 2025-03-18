@@ -1572,7 +1572,7 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident not found.");
     }
 
-    return incident.incidentNumber || null;
+    return incident.incidentNumber ? Number(incident.incidentNumber) : null;
   }
 }
 

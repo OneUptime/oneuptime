@@ -12,13 +12,16 @@ import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAut
 import WorkspaceProjectAuthToken, {
   SlackMiscData,
 } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
+import  {
+  MessageBlocksByWorkspaceType,
+} from "../../Services/WorkspaceNotificationRuleService";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
 import UserService from "../../Services/UserService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class WorkspaceUtil {
+
   @CaptureSpan()
   public static async getMessageBlocksByMarkdown(data: {
     projectId: ObjectID;
@@ -98,7 +101,7 @@ export default class WorkspaceUtil {
 
   @CaptureSpan()
   public static getWorkspaceTypeUtil(
-    workspaceType: WorkspaceType,
+    workspaceType: WorkspaceType
   ): typeof WorkspaceBase {
     if (workspaceType === WorkspaceType.Slack) {
       return SlackWorkspace;
@@ -109,7 +112,7 @@ export default class WorkspaceUtil {
     }
 
     throw new BadDataException(
-      `Workspace type ${workspaceType} is not supported`,
+      `Workspace type ${workspaceType} is not supported`
     );
   }
 
@@ -120,7 +123,7 @@ export default class WorkspaceUtil {
     authToken: string;
   }): Promise<string> {
     const userName: string = await WorkspaceUtil.getWorkspaceTypeUtil(
-      data.workspaceType,
+      data.workspaceType
     ).getUsernameFromUserId({
       userId: data.userId,
       authToken: data.authToken,

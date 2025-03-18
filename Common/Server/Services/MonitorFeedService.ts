@@ -7,22 +7,22 @@ import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePaylo
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
-import IncidentFeed, {
-  IncidentFeedEventType,
-} from "Common/Models/DatabaseModels/IncidentFeed";
+import MonitorFeed, {
+  MonitorFeedEventType,
+} from "Common/Models/DatabaseModels/MonitorFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import IncidentService from "./IncidentService";
+import MonitorService from "./MonitorService";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<IncidentFeed> {
+export class Service extends DatabaseService<MonitorFeed> {
   public constructor() {
-    super(IncidentFeed);
+    super(MonitorFeed);
 
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 120);
@@ -30,10 +30,10 @@ export class Service extends DatabaseService<IncidentFeed> {
   }
 
   @CaptureSpan()
-  public async createIncidentFeedItem(data: {
-    incidentId: ObjectID;
+  public async createMonitorFeedItem(data: {
+    monitorId: ObjectID;
     feedInfoInMarkdown: string;
-    incidentFeedEventType: IncidentFeedEventType;
+    monitorFeedEventType: MonitorFeedEventType;
     projectId: ObjectID;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
@@ -49,21 +49,21 @@ export class Service extends DatabaseService<IncidentFeed> {
       | undefined;
   }): Promise<void> {
     try {
-      logger.debug("IncidentFeedService.createIncidentFeedItem");
+      logger.debug("MonitorFeedService.createMonitorFeedItem");
       logger.debug(data);
 
-      const incidentFeed: IncidentFeed = new IncidentFeed();
+      const monitorFeed: MonitorFeed = new MonitorFeed();
 
-      if (!data.incidentId) {
-        throw new BadDataException("Incident ID is required");
+      if (!data.monitorId) {
+        throw new BadDataException("Monitor ID is required");
       }
 
       if (!data.feedInfoInMarkdown) {
         throw new BadDataException("Log in markdown is required");
       }
 
-      if (!data.incidentFeedEventType) {
-        throw new BadDataException("Incident log event is required");
+      if (!data.monitorFeedEventType) {
+        throw new BadDataException("Monitor log event is required");
       }
 
       if (!data.projectId) {
@@ -74,40 +74,40 @@ export class Service extends DatabaseService<IncidentFeed> {
         data.displayColor = Blue500;
       }
 
-      incidentFeed.displayColor = data.displayColor;
-      incidentFeed.incidentId = data.incidentId;
-      incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
-      incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
-      incidentFeed.projectId = data.projectId;
+      monitorFeed.displayColor = data.displayColor;
+      monitorFeed.monitorId = data.monitorId;
+      monitorFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
+      monitorFeed.monitorFeedEventType = data.monitorFeedEventType;
+      monitorFeed.projectId = data.projectId;
 
       if (!data.postedAt) {
-        incidentFeed.postedAt = OneUptimeDate.getCurrentDate();
+        monitorFeed.postedAt = OneUptimeDate.getCurrentDate();
       }
 
       if (data.userId) {
-        incidentFeed.userId = data.userId;
+        monitorFeed.userId = data.userId;
       }
 
       if (data.moreInformationInMarkdown) {
-        incidentFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
+        monitorFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
       }
 
-      const createdIncidentFeed: IncidentFeed = await this.create({
-        data: incidentFeed,
+      const createdMonitorFeed: MonitorFeed = await this.create({
+        data: monitorFeed,
         props: {
           isRoot: true,
         },
       });
 
-      logger.debug("Incident Feed created");
-      logger.debug(createdIncidentFeed);
+      logger.debug("Monitor Feed created");
+      logger.debug(createdMonitorFeed);
 
       try {
         // send notification to slack and teams
         if (data.workspaceNotification && data.workspaceNotification?.sendWorkspaceNotification) {
           await Service.sendWorkspaceNotification({
             projectId: data.projectId,
-            incidentId: data.incidentId,
+            monitorId: data.monitorId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
           });
@@ -119,7 +119,7 @@ export class Service extends DatabaseService<IncidentFeed> {
         // we dont throw this error as it is not a critical error
       }
     } catch (e) {
-      logger.error("Error in creating incident feed");
+      logger.error("Error in creating monitor feed");
       logger.error(e);
 
       // we dont throw this error as it is not a critical error
@@ -128,7 +128,7 @@ export class Service extends DatabaseService<IncidentFeed> {
 
   public static async sendWorkspaceNotification(data: {
     projectId: ObjectID;
-    incidentId: ObjectID;
+    monitorId: ObjectID;
     feedInfoInMarkdown: string;
     workspaceNotification: {
       notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
@@ -171,14 +171,14 @@ export class Service extends DatabaseService<IncidentFeed> {
         await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
           {
             projectId: data.projectId,
-            notificationRuleEventType: NotificationRuleEventType.Incident,
+            notificationRuleEventType: NotificationRuleEventType.Monitor,
             workspaceType: messageBlocksByWorkspaceType.workspaceType,
           }
         );
 
-      const incidentChannels: Array<WorkspaceChannel> =
-        await IncidentService.getWorkspaceChannelForIncident({
-          incidentId: data.incidentId,
+      const monitorChannels: Array<WorkspaceChannel> =
+        await MonitorService.getWorkspaceChannelForMonitor({
+          monitorId: data.monitorId,
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
         });
 
@@ -188,7 +188,7 @@ export class Service extends DatabaseService<IncidentFeed> {
         messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
         channelNames: existingChannels,
         channelIds:
-          incidentChannels.map((channel: WorkspaceChannel) => {
+          monitorChannels.map((channel: WorkspaceChannel) => {
             return channel.id;
           }) || [],
       };

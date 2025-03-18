@@ -14,8 +14,6 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
-import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
@@ -25,7 +23,7 @@ import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
-import {
+import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
@@ -39,6 +37,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Monitor from "../../Models/DatabaseModels/Monitor";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -49,12 +48,116 @@ export interface NotificationFor {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
-  monitorStatusTimelineId?: ObjectID | undefined;
+  monitorId?: ObjectID | undefined;
 }
 
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
     super(WorkspaceNotificationRule);
+  }
+
+  @CaptureSpan()
+  public async sendWorkspaceMarkdownNotification(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    feedInfoInMarkdown: string;
+    workspaceNotification: {
+      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
+      sendWorkspaceNotification: boolean;
+      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+    };
+  }) {
+    let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = [];
+
+    // use markdown to create blocks
+    messageBlocksByWorkspaceTypes =
+      await WorkspaceUtil.getMessageBlocksByMarkdown({
+        userId: data.workspaceNotification.notifyUserId,
+        markdown: data.feedInfoInMarkdown,
+        projectId: data.projectId,
+      });
+
+    if (data.workspaceNotification.appendMessageBlocks) {
+      for (const messageBlocksByWorkspaceType of data.workspaceNotification
+        .appendMessageBlocks) {
+        const workspaceType: WorkspaceType =
+          messageBlocksByWorkspaceType.workspaceType;
+
+        messageBlocksByWorkspaceTypes
+          .find(
+            (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+              return (
+                messageBlocksByWorkspaceType.workspaceType === workspaceType
+              );
+            }
+          )
+          ?.messageBlocks.push(...messageBlocksByWorkspaceType.messageBlocks);
+      }
+    }
+
+    const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
+
+    for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
+      const existingChannels: Array<string> =
+        await this.getExistingChannelNamesBasedOnEventType({
+          projectId: data.projectId,
+          notificationRuleEventType: NotificationRuleEventType.Monitor,
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        });
+
+      let monitorChannels: Array<WorkspaceChannel> = [];
+
+      if (data.notificationFor.monitorId) {
+        monitorChannels = await MonitorService.getWorkspaceChannelForMonitor({
+          monitorId: data.notificationFor.monitorId,
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        });
+      }
+
+      // incidents
+      if (data.notificationFor.incidentId) {
+        monitorChannels = await IncidentService.getWorkspaceChannelForIncident({
+          incidentId: data.notificationFor.incidentId,
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        });
+      }
+      
+      // alerts
+      if (data.notificationFor.alertId) {
+        monitorChannels = await AlertService.getWorkspaceChannelForAlert({
+          alertId: data.notificationFor.alertId,
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        });
+      }
+
+      // scheduled maintenance
+      
+      if (data.notificationFor.scheduledMaintenanceId) {
+        monitorChannels = await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance({
+          scheduledMaintenanceId: data.notificationFor.scheduledMaintenanceId,
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        });
+      }
+
+
+      const workspaceMessagePayload: WorkspaceMessagePayload = {
+        _type: "WorkspaceMessagePayload",
+        workspaceType: messageBlocksByWorkspaceType.workspaceType,
+        messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+        channelNames: existingChannels,
+        channelIds:
+          monitorChannels.map((channel: WorkspaceChannel) => {
+            return channel.id;
+          }) || [],
+      };
+
+      workspaceNotificationPaylaods.push(workspaceMessagePayload);
+    }
+
+    await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+      projectId: data.projectId,
+      messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+    });
   }
 
   @CaptureSpan()
@@ -77,7 +180,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (!userId) {
         throw new BadDataException(
-          "Bot user ID not found in project auth token",
+          "Bot user ID not found in project auth token"
         );
       }
 
@@ -111,7 +214,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationRules: notificationRules.map(
           (rule: WorkspaceNotificationRule) => {
             return rule.notificationRule as BaseNotificationRule;
-          },
+          }
         ),
       }) || [];
 
@@ -131,7 +234,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     channelsCreated: Array<NotificationRuleWorkspaceChannel>;
   } | null> {
     logger.debug(
-      "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
+      "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules"
     );
     logger.debug(data);
 
@@ -205,7 +308,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationRules: notificationRules.map(
             (rule: WorkspaceNotificationRule) => {
               return rule.notificationRule as BaseNotificationRule;
-            },
+            }
           ),
         }) || [];
 
@@ -355,7 +458,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             logger.debug(channelIds);
 
             await WorkspaceUtil.getWorkspaceTypeUtil(
-              data.workspaceType,
+              data.workspaceType
             ).sendMessage({
               userId: data.projectAuth.workspaceProjectId!,
               authToken: data.projectAuth.authToken!,
@@ -386,7 +489,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.debug(workspaceUserIds);
 
         await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
+          data.workspaceType
         ).inviteUsersToChannels({
           authToken: data.projectAuth.authToken!,
           workspaceChannelInvitationPayload: {
@@ -423,7 +526,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     logger.debug(
-      "inviteUsersBasedOnRulesAndWorkspaceChannels called with data:",
+      "inviteUsersBasedOnRulesAndWorkspaceChannels called with data:"
     );
     logger.debug(data);
     const userIds: Array<ObjectID> = data.userIds;
@@ -451,7 +554,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             return notificationRules.find((rule: WorkspaceNotificationRule) => {
               return rule.id?.toString() === channel.notificationRuleId;
             });
-          },
+          }
         );
 
       logger.debug("Channels to invite to based on rule:");
@@ -504,7 +607,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             const channelIds: Array<string> = channelsToInviteToBasedOnRule.map(
               (channel: NotificationRuleWorkspaceChannel) => {
                 return channel.id as string;
-              },
+              }
             );
 
             logger.debug("Channel IDs to send message to:");
@@ -530,7 +633,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     } as WorkspacePayloadMarkdown,
                   ],
                 },
-              },
+              }
             );
           } catch (e) {
             logger.error("Error in sending message to channel");
@@ -545,14 +648,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       const channelNames: Array<string> = channelsToInviteToBasedOnRule.map(
         (channel: NotificationRuleWorkspaceChannel) => {
           return channel.name;
-        },
+        }
       );
 
       logger.debug("Channel names to invite to:");
       logger.debug(channelNames);
 
       await WorkspaceUtil.getWorkspaceTypeUtil(
-        workspaceType,
+        workspaceType
       ).inviteUsersToChannels({
         authToken: projectAuth.authToken!,
         workspaceChannelInvitationPayload: {
@@ -577,7 +680,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeams(
-      data.teamIds,
+      data.teamIds
     );
 
     logger.debug("Users in teams:");
@@ -667,17 +770,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }).length > 0
       ) {
         logger.debug(
-          `Channel name ${notificationChannel.channelName} already created. Skipping.`,
+          `Channel name ${notificationChannel.channelName} already created. Skipping.`
         );
         continue;
       }
 
       logger.debug(
-        `Creating new channel with name: ${notificationChannel.channelName}`,
+        `Creating new channel with name: ${notificationChannel.channelName}`
       );
       const channel: WorkspaceChannel =
         await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
+          data.workspaceType
         ).createChannel({
           authToken: data.projectOrUserAuthTokenForWorkspace,
           channelName: notificationChannel.channelName,
@@ -798,7 +901,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
     logger.debug(
-      "getExistingChannelNamesFromNotificationRules called with data:",
+      "getExistingChannelNamesFromNotificationRules called with data:"
     );
     logger.debug(data);
 
@@ -842,7 +945,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRuleId: string;
   }> {
     logger.debug(
-      "getnotificationChannelssFromNotificationRules called with data:",
+      "getnotificationChannelssFromNotificationRules called with data:"
     );
     logger.debug(data);
 
@@ -877,7 +980,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channels.filter(
             (name: { channelName: string; notificationRuleId: string }) => {
               return name.channelName === channelName;
-            },
+            }
           ).length === 0
         ) {
           // if channel name is not already added then add it.
@@ -888,7 +991,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug(`Channel name ${channelName} added to the list.`);
         } else {
           logger.debug(
-            `Channel name ${channelName} already exists in the list. Skipping.`,
+            `Channel name ${channelName} already exists in the list. Skipping.`
           );
         }
       }
@@ -1126,7 +1229,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             scheduledMaintenance.monitors?.map(
               (monitor: ScheduledMaintenance) => {
                 return monitor.id!;
-              },
+              }
             ) || [],
         });
 
@@ -1166,51 +1269,49 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           scheduledMaintenance.monitors?.map(
             (monitor: ScheduledMaintenance) => {
               return monitor._id?.toString() || "";
-            },
+            }
           ) || [],
       };
     }
 
-    if (data.notificationFor.monitorStatusTimelineId) {
+    if (data.notificationFor.monitorId) {
       logger.debug("Fetching monitor status timeline details for ID:");
-      logger.debug(data.notificationFor.monitorStatusTimelineId);
+      logger.debug(data.notificationFor.monitorId);
 
-      const monitorStatusTimeline: MonitorStatusTimeline | null =
-        await MonitorStatusTimelineService.findOneById({
-          id: data.notificationFor.monitorStatusTimelineId,
+      const monitor: Monitor | null =
+        await MonitorService.findOneById({
+          id: data.notificationFor.monitorId,
           select: {
-            monitor: {
-              name: true,
-              labels: true,
-              monitorType: true,
-            },
-            monitorStatus: true,
+            name: true,
+            labels: true,
+            monitorType: true,
+            currentMonitorStatusId: true,
           },
           props: {
             isRoot: true,
           },
         });
 
-      if (!monitorStatusTimeline) {
-        logger.debug("Monitor status timeline not found for ID:");
-        logger.debug(data.notificationFor.monitorStatusTimelineId);
-        throw new BadDataException("Monitor Status Timeline ID not found");
+      if (!monitor) {
+        logger.debug("Monitor not found for ID:");
+        logger.debug(data.notificationFor.monitorId);
+        throw new BadDataException("Monitor ID not found");
       }
 
       const monitorLabels: Array<Label> =
-        monitorStatusTimeline.monitor?.labels || [];
+        monitor?.labels || [];
 
       return {
         [NotificationRuleConditionCheckOn.MonitorName]:
-          monitorStatusTimeline.monitor?.name || "",
+          monitor?.name || "",
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
         [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentState]: undefined,
         [NotificationRuleConditionCheckOn.MonitorType]:
-          monitorStatusTimeline.monitor?.monitorType || undefined,
+          monitor?.monitorType || undefined,
         [NotificationRuleConditionCheckOn.MonitorStatus]:
-          monitorStatusTimeline.monitorStatus?._id?.toString() || "",
+          monitor?.currentMonitorStatusId?.toString() || "",
         [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
         [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
         [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
@@ -1228,7 +1329,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
           undefined,
         [NotificationRuleConditionCheckOn.Monitors]: [
-          monitorStatusTimeline.monitor?._id?.toString() || "",
+          monitor?._id?.toString() || "",
         ],
       };
     }

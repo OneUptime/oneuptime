@@ -90,7 +90,7 @@ export class Service extends DatabaseService<Model> {
       return 0;
     }
 
-    return Number(lastScheduledMaintenance.scheduledMaintenanceNumber) || 0;
+    return lastScheduledMaintenance.scheduledMaintenanceNumber ? Number(lastScheduledMaintenance.scheduledMaintenanceNumber) : 0;
   }
 
   @CaptureSpan()
@@ -1221,7 +1221,7 @@ ${labels
       throw new BadDataException("ScheduledMaintenance not found.");
     }
 
-    return scheduledMaintenance.scheduledMaintenanceNumber || null;
+    return scheduledMaintenance.scheduledMaintenanceNumber ? Number(scheduledMaintenance.scheduledMaintenanceNumber) : null;
   }
 
   @CaptureSpan()

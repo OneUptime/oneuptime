@@ -54,6 +54,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -990,5 +993,18 @@ export class Service extends DatabaseService<Model> {
       });
     }
   }
+
+    @CaptureSpan()
+    public async getWorkspaceChannelForMonitor(data: {
+      monitorId: ObjectID;
+      workspaceType?: WorkspaceType | null;
+    }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+      logger.debug("Getting workspace channel for monitor");
+      logger.debug(data);
+
+      // currently monitors dont create any workspace channel. This could be used for future use.
+      return []; 
+      
+    }
 }
 export default new Service();

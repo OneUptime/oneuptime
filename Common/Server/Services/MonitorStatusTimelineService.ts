@@ -14,7 +14,6 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
