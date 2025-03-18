@@ -5,6 +5,7 @@ import RecurringViewElement from "./RecurringViewElement";
 export interface ComponentProps {
   value?: Array<Recurring> | undefined;
   postfix?: string | undefined;
+  noItemsMessage?: string | undefined;
 }
 
 const RecurringArrayViewElement: FunctionComponent<ComponentProps> = (
@@ -29,7 +30,7 @@ const RecurringArrayViewElement: FunctionComponent<ComponentProps> = (
             />
           );
         })}
-      {(!items || items.length === 0) && <p>-</p>}
+      {(!items || items.length === 0) && <p>{props.noItemsMessage || "-"}</p>}
     </div>
   );
 };

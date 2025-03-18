@@ -388,7 +388,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         )}
                       </div>
                     ) : (
-                      <></>
+                      <div> No reminders scheduled </div>
                     )}
                   </div>
                 );
