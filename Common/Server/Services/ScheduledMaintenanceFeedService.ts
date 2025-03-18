@@ -9,15 +9,9 @@ import DatabaseService from "./DatabaseService";
 import Model, {
   ScheduledMaintenanceFeedEventType,
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
-import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
-import WorkspaceUtil from "../Utils/Workspace/Workspace";
-import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
-import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePayload";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -135,15 +129,17 @@ export class Service extends DatabaseService<Model> {
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     };
-  }) {
-    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
-      projectId: data.projectId,
-      notificationFor: {
-        scheduledMaintenanceId: data.scheduledMaintenanceId,
+  }): Promise<void> {
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      {
+        projectId: data.projectId,
+        notificationFor: {
+          scheduledMaintenanceId: data.scheduledMaintenanceId,
+        },
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        workspaceNotification: data.workspaceNotification,
       },
-      feedInfoInMarkdown: data.feedInfoInMarkdown,
-      workspaceNotification: data.workspaceNotification,
-    })
+    );
   }
 }
 

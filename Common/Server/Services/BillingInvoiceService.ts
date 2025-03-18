@@ -185,7 +185,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeFind(
+  protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     if (!findBy.props.tenantId) {

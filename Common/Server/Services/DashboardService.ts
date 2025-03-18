@@ -13,7 +13,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (IsBillingEnabled) {

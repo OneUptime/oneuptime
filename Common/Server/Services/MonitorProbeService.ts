@@ -8,7 +8,6 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
-import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {

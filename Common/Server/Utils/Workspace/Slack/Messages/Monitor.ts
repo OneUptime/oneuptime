@@ -55,7 +55,6 @@ export default class SlackMonitorMessages {
 
     buttons.push(viewMonitorButton);
 
-
     return blockSlack;
   }
 }

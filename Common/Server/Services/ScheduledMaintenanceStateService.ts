@@ -18,7 +18,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<ScheduledMaintenanceState>,
   ): Promise<OnCreate<ScheduledMaintenanceState>> {
     if (!createBy.data.order) {
@@ -46,7 +46,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<ScheduledMaintenanceState>,
   ): Promise<OnDelete<ScheduledMaintenanceState>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
@@ -77,7 +77,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<ScheduledMaintenanceState>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<ScheduledMaintenanceState>> {
@@ -106,7 +106,7 @@ protected override async onDeleteSuccess(
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceState>,
   ): Promise<OnUpdate<ScheduledMaintenanceState>> {
     if (updateBy.data.order && !updateBy.props.isRoot) {

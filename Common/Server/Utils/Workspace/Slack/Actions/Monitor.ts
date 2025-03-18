@@ -20,7 +20,6 @@ export default class SlackMonitorActions {
     }
   }
 
-
   @CaptureSpan()
   public static async handleMonitorAction(data: {
     slackRequest: SlackRequest;

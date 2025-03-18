@@ -3,7 +3,6 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePayload";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -13,11 +12,6 @@ import IncidentFeed, {
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
-import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import IncidentService from "./IncidentService";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
-import WorkspaceUtil from "../Utils/Workspace/Workspace";
-import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<IncidentFeed> {
@@ -104,7 +98,10 @@ export class Service extends DatabaseService<IncidentFeed> {
 
       try {
         // send notification to slack and teams
-        if (data.workspaceNotification && data.workspaceNotification?.sendWorkspaceNotification) {
+        if (
+          data.workspaceNotification &&
+          data.workspaceNotification?.sendWorkspaceNotification
+        ) {
           await this.sendWorkspaceNotification({
             projectId: data.projectId,
             incidentId: data.incidentId,
@@ -136,15 +133,17 @@ export class Service extends DatabaseService<IncidentFeed> {
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     };
-  }) {
-    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
-      projectId: data.projectId,
-      notificationFor: {
-        incidentId: data.incidentId,
+  }): Promise<void> {
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      {
+        projectId: data.projectId,
+        notificationFor: {
+          incidentId: data.incidentId,
+        },
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        workspaceNotification: data.workspaceNotification,
       },
-      feedInfoInMarkdown: data.feedInfoInMarkdown,
-      workspaceNotification: data.workspaceNotification,
-    })
+    );
   }
 }
 

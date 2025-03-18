@@ -91,7 +91,7 @@ export class ProjectService extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!data.data.name) {
@@ -269,7 +269,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (IsBillingEnabled) {
@@ -556,7 +556,7 @@ protected override async onBeforeUpdate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -1113,7 +1113,7 @@ protected override async onCreateSuccess(
   }
 
   @CaptureSpan()
-protected override async onBeforeFind(
+  protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     // if user has no project id, then he should not be able to access any project.
@@ -1130,7 +1130,7 @@ protected override async onBeforeFind(
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const projects: Array<Model> = await this.findBy({
@@ -1156,7 +1156,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {

@@ -12,7 +12,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.apiKeyId) {
@@ -89,7 +89,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.labels && updateBy.data.labels.length > 0) {

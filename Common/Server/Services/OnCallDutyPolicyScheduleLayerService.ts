@@ -9,6 +9,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -16,7 +17,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.onCallDutyPolicyScheduleId) {
@@ -51,7 +52,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {

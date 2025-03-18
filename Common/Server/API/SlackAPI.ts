@@ -364,7 +364,6 @@ export default class SlackAPI {
             });
           }
 
-
           if (
             SlackMonitorActions.isMonitorAction({
               actionType: action.actionType,

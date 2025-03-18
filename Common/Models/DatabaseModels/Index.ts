@@ -360,7 +360,7 @@ const AllModelTypes: Array<{
 
   ProjectUser,
 
-  MonitorFeed
+  MonitorFeed,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

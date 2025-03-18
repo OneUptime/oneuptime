@@ -36,7 +36,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.key) {
@@ -125,7 +125,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     const carryForward: any = {
@@ -162,7 +162,7 @@ protected override async onBeforeUpdate(
   }
 
   @CaptureSpan()
-protected override async onUpdateSuccess(
+  protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {

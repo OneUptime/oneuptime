@@ -19,7 +19,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Array<Model> = await this.findBy({
@@ -56,7 +56,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.isRoot && createBy.data.isVerified) {
@@ -70,7 +70,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {

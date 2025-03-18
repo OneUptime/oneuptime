@@ -20,7 +20,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.teamId) {
@@ -119,7 +119,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -154,7 +154,7 @@ protected override async onCreateSuccess(
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     const teamPermissions: Array<Model> = await this.findBy({
@@ -245,7 +245,7 @@ protected override async onBeforeUpdate(
   }
 
   @CaptureSpan()
-protected override async onUpdateSuccess(
+  protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
@@ -289,7 +289,7 @@ protected override async onUpdateSuccess(
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const teamPermissions: Array<Model> = await this.findBy({
@@ -342,7 +342,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {

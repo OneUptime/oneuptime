@@ -425,7 +425,6 @@ enum Permission {
   ReadIncidentFeed = "ReadIncidentFeed",
   DeleteIncidentFeed = "DeleteIncidentFeed",
 
-
   CreateMonitorFeed = "CreateMonitorFeed",
   EditMonitorFeed = "EditMonitorFeed",
   ReadMonitorFeed = "ReadMonitorFeed",
@@ -1117,7 +1116,6 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
-
 
       {
         permission: Permission.CreateMonitorFeed,

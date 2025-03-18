@@ -186,7 +186,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
@@ -254,7 +254,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -627,7 +627,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
   }
 
   @CaptureSpan()
-protected override async onUpdateSuccess(
+  protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
@@ -841,7 +841,7 @@ ${alertSeverity.name}
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const alerts: Array<Model> = await this.findBy({

@@ -21,7 +21,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = await this.findBy({
@@ -47,7 +47,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
@@ -73,10 +73,9 @@ protected override async onDeleteSuccess(
           },
         });
 
-        const monitorName: string =
-                  await MonitorService.getMonitorName({
-                    monitorId: monitorId,
-                  });
+        const monitorName: string = await MonitorService.getMonitorName({
+          monitorId: monitorId,
+        });
 
         if (user && user.name) {
           await MonitorFeedService.createMonitorFeedItem({
@@ -112,10 +111,9 @@ protected override async onDeleteSuccess(
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (monitorId && userId && projectId) {
-      const monitorName: string =
-                  await MonitorService.getMonitorName({
-                    monitorId: monitorId,
-                  });
+      const monitorName: string = await MonitorService.getMonitorName({
+        monitorId: monitorId,
+      });
 
       if (userId) {
         await MonitorFeedService.createMonitorFeedItem({
@@ -154,11 +152,9 @@ protected override async onDeleteSuccess(
       {
         notificationRules: notificationRules,
         projectId: projectId!,
-        workspaceChannels: await MonitorService.getWorkspaceChannelForMonitor(
-          {
-            monitorId: monitorId!,
-          },
-        ),
+        workspaceChannels: await MonitorService.getWorkspaceChannelForMonitor({
+          monitorId: monitorId!,
+        }),
         userIds: [userId!],
       },
     ).catch((error: Error) => {

@@ -22,7 +22,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = await this.findBy({
       query: deleteBy.query,
@@ -49,7 +49,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deleteByUserId: ObjectID | undefined =
       onDelete.deleteBy.deletedByUser?.id || onDelete.deleteBy.props.userId;
@@ -72,10 +72,9 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const monitorName: string =
-          await MonitorService.getMonitorName({
-            monitorId: monitorId,
-          });
+        const monitorName: string = await MonitorService.getMonitorName({
+          monitorId: monitorId,
+        });
 
         if (team && team.name) {
           await MonitorFeedService.createMonitorFeedItem({
@@ -100,7 +99,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     // add monitor feed.
 
@@ -122,10 +121,9 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        const monitorName: string =
-          await MonitorService.getMonitorName({
-            monitorId: monitorId,
-          });
+        const monitorName: string = await MonitorService.getMonitorName({
+          monitorId: monitorId,
+        });
 
         await MonitorFeedService.createMonitorFeedItem({
           monitorId: monitorId,
@@ -151,7 +149,7 @@ export class Service extends DatabaseService<Model> {
             monitorId: monitorId,
           },
           notificationRuleEventType: NotificationRuleEventType.Monitor,
-        }
+        },
       );
 
     logger.debug(`Notification Rules for Monitor Owner Teams`);
@@ -165,7 +163,7 @@ export class Service extends DatabaseService<Model> {
           monitorId: monitorId!,
         }),
         teamIds: [teamId!],
-      }
+      },
     ).catch((error: Error) => {
       logger.error(error);
     });

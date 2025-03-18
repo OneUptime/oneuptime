@@ -116,7 +116,7 @@ export default class Monitor extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
@@ -282,7 +282,7 @@ export default class Monitor extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
@@ -337,7 +337,7 @@ export default class Monitor extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
@@ -392,7 +392,7 @@ export default class Monitor extends BaseModel {
     () => {
       return Label;
     },
-    { eager: false }
+    { eager: false },
   )
   @JoinTable({
     name: "MonitorLabel",
@@ -470,7 +470,7 @@ export default class Monitor extends BaseModel {
       eager: false,
       nullable: true,
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "currentMonitorStatusId" })
   public currentMonitorStatus?: MonitorStatus = undefined;

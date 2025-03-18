@@ -123,15 +123,17 @@ export class Service extends DatabaseService<Model> {
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     };
-  }) {
-    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
-      projectId: data.projectId,
-      notificationFor: {
-        alertId: data.alertId,
+  }): Promise<void> {
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      {
+        projectId: data.projectId,
+        notificationFor: {
+          alertId: data.alertId,
+        },
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        workspaceNotification: data.workspaceNotification,
       },
-      feedInfoInMarkdown: data.feedInfoInMarkdown,
-      workspaceNotification: data.workspaceNotification,
-    })
+    );
   }
 }
 

@@ -12,7 +12,7 @@ export class Service extends DatabaseService<File> {
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
+  protected override async onBeforeUpdate(
     updateBy: UpdateBy<File>,
   ): Promise<OnUpdate<File>> {
     if (!updateBy.props.isRoot) {
@@ -23,7 +23,7 @@ protected override async onBeforeUpdate(
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<File>,
   ): Promise<OnDelete<File>> {
     if (!deleteBy.props.isRoot) {
@@ -34,7 +34,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onBeforeFind(
+  protected override async onBeforeFind(
     findBy: FindBy<File>,
   ): Promise<OnFind<File>> {
     if (!findBy.props.isRoot) {

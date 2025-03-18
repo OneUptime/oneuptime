@@ -46,7 +46,6 @@ import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
 
-
 // Monitors
 import MonitorService from "./MonitorService";
 import MonitorFeedService from "./MonitorFeedService";
@@ -160,7 +159,6 @@ import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
-
 
 const services: Array<BaseService> = [
   AcmeCertificateService,

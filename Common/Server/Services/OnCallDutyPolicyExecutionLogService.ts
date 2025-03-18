@@ -7,6 +7,7 @@ import UserNotificationEventType from "../../Types/UserNotification/UserNotifica
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
@@ -29,7 +30,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.status) {
@@ -50,7 +51,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -236,7 +237,7 @@ protected override async onCreateSuccess(
   }
 
   @CaptureSpan()
-protected override async onUpdateSuccess(
+  protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {

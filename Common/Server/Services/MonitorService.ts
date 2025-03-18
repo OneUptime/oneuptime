@@ -69,8 +69,8 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     if (deleteBy.query._id) {
       // delete all the status page resource for this monitor.
@@ -91,13 +91,13 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[]
+    _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
       await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        onDelete.deleteBy.props.tenantId
+        onDelete.deleteBy.props.tenantId,
       );
     }
 
@@ -105,9 +105,9 @@ protected override async onDeleteSuccess(
   }
 
   @CaptureSpan()
-protected override async onUpdateSuccess(
+  protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[]
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentMonitorStatusId &&
@@ -122,88 +122,85 @@ protected override async onUpdateSuccess(
         undefined,
         {
           isRoot: true,
-        }
+        },
       );
     }
 
-     if (updatedItemIds.length > 0) {
-          for (const monitorId of updatedItemIds) {
-            const monitor: Model | null = await this.findOneById({
-              id: monitorId,
-              select: {
-                projectId: true,
-                name: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-    
-            const projectId: ObjectID = monitor!.projectId!;
-            const monitorName: string = monitor!.name!;
-    
-            let shouldAddMonitorFeed: boolean = false;
-            let feedInfoInMarkdown: string = `**[Monitor ${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
-    
-            const createdByUserId: ObjectID | undefined | null =
-              onUpdate.updateBy.props.userId;
-    
-            if (onUpdate.updateBy.data.name) {
-              // add monitor feed.
-    
-              feedInfoInMarkdown += `\n\n**Name**: 
+    if (updatedItemIds.length > 0) {
+      for (const monitorId of updatedItemIds) {
+        const monitor: Model | null = await this.findOneById({
+          id: monitorId,
+          select: {
+            projectId: true,
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const projectId: ObjectID = monitor!.projectId!;
+        const monitorName: string = monitor!.name!;
+
+        let shouldAddMonitorFeed: boolean = false;
+        let feedInfoInMarkdown: string = `**[Monitor ${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
+
+        const createdByUserId: ObjectID | undefined | null =
+          onUpdate.updateBy.props.userId;
+
+        if (onUpdate.updateBy.data.name) {
+          // add monitor feed.
+
+          feedInfoInMarkdown += `\n\n**Name**: 
     ${onUpdate.updateBy.data.name || "No name provided."}
     `;
-              shouldAddMonitorFeed = true;
-            }
-    
-        
-            if (onUpdate.updateBy.data.description) {
-              // add monitor feed.
-    
-              feedInfoInMarkdown += `\n\n**Monitor Description**: 
+          shouldAddMonitorFeed = true;
+        }
+
+        if (onUpdate.updateBy.data.description) {
+          // add monitor feed.
+
+          feedInfoInMarkdown += `\n\n**Monitor Description**: 
               ${onUpdate.updateBy.data.description || "No description provided."}
               `;
-              shouldAddMonitorFeed = true;
-            }
-    
-    
-    
-            if (
-              onUpdate.updateBy.data.labels &&
-              onUpdate.updateBy.data.labels.length > 0 &&
-              Array.isArray(onUpdate.updateBy.data.labels)
-            ) {
-              const labelIds: Array<ObjectID> = (
-                onUpdate.updateBy.data.labels as any
-              )
-                .map((label: Label) => {
-                  if (label._id) {
-                    return new ObjectID(label._id?.toString());
-                  }
-    
-                  return null;
-                })
-                .filter((labelId: ObjectID | null) => {
-                  return labelId !== null;
-                });
-    
-              const labels: Array<Label> = await LabelService.findBy({
-                query: {
-                  _id: QueryHelper.any(labelIds),
-                },
-                select: {
-                  name: true,
-                },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                props: {
-                  isRoot: true,
-                },
-              });
-    
-              if (labels.length > 0) {
-                feedInfoInMarkdown += `\n\n**🏷️ Labels**:
+          shouldAddMonitorFeed = true;
+        }
+
+        if (
+          onUpdate.updateBy.data.labels &&
+          onUpdate.updateBy.data.labels.length > 0 &&
+          Array.isArray(onUpdate.updateBy.data.labels)
+        ) {
+          const labelIds: Array<ObjectID> = (
+            onUpdate.updateBy.data.labels as any
+          )
+            .map((label: Label) => {
+              if (label._id) {
+                return new ObjectID(label._id?.toString());
+              }
+
+              return null;
+            })
+            .filter((labelId: ObjectID | null) => {
+              return labelId !== null;
+            });
+
+          const labels: Array<Label> = await LabelService.findBy({
+            query: {
+              _id: QueryHelper.any(labelIds),
+            },
+            select: {
+              name: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (labels.length > 0) {
+            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
     
     ${labels
       .map((label: Label) => {
@@ -211,34 +208,33 @@ protected override async onUpdateSuccess(
       })
       .join("\n")}
     `;
-    
-                shouldAddMonitorFeed = true;
-              }
-            }
-    
-    
-            if (shouldAddMonitorFeed) {
-              await MonitorFeedService.createMonitorFeedItem({
-                monitorId: monitorId,
-                projectId: onUpdate.updateBy.props.tenantId as ObjectID,
-                monitorFeedEventType: MonitorFeedEventType.MonitorUpdated,
-                displayColor: Gray500,
-                feedInfoInMarkdown: feedInfoInMarkdown,
-                userId: createdByUserId || undefined,
-                workspaceNotification: {
-                  sendWorkspaceNotification: true,
-                },
-              });
-            }
+
+            shouldAddMonitorFeed = true;
           }
         }
+
+        if (shouldAddMonitorFeed) {
+          await MonitorFeedService.createMonitorFeedItem({
+            monitorId: monitorId,
+            projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            monitorFeedEventType: MonitorFeedEventType.MonitorUpdated,
+            displayColor: Gray500,
+            feedInfoInMarkdown: feedInfoInMarkdown,
+            userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          });
+        }
+      }
+    }
 
     return onUpdate;
   }
 
   @CaptureSpan()
-protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.disableActiveMonitoring !== undefined) {
       const items: Array<Model> = await this.findBy({
@@ -257,11 +253,11 @@ protected override async onBeforeUpdate(
         if (item.monitorType && item.monitorType === MonitorType.Manual) {
           if (updateBy.data.disableActiveMonitoring === true) {
             throw new BadDataException(
-              "You can only disable monitoring for active monitors. Disabling monitoring for manual monitors is not allowed."
+              "You can only disable monitoring for active monitors. Disabling monitoring for manual monitors is not allowed.",
             );
           } else {
             throw new BadDataException(
-              "You can only enable monitoring for active monitors. Enabling monitoring for manual monitors is not allowed."
+              "You can only enable monitoring for active monitors. Enabling monitoring for manual monitors is not allowed.",
             );
           }
         }
@@ -280,8 +276,8 @@ protected override async onBeforeUpdate(
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
-    createBy: CreateBy<Model>
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
@@ -291,18 +287,18 @@ protected override async onBeforeCreate(
       throw new BadDataException(
         `Invalid monitor type "${
           createBy.data.monitorType
-        }". Valid monitor types are ${Object.values(MonitorType).join(", ")}.`
+        }". Valid monitor types are ${Object.values(MonitorType).join(", ")}.`,
       );
     }
 
     if (IsBillingEnabled && createBy.props.tenantId) {
       const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
-        createBy.props.tenantId
+        createBy.props.tenantId,
       );
 
       if (currentPlan.isSubscriptionUnpaid) {
         throw new BadDataException(
-          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors."
+          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors.",
         );
       }
 
@@ -314,7 +310,7 @@ protected override async onBeforeCreate(
           query: {
             projectId: createBy.props.tenantId,
             monitorType: QueryHelper.any(
-              MonitorTypeHelper.getActiveMonitorTypes()
+              MonitorTypeHelper.getActiveMonitorTypes(),
             ),
           },
           props: {
@@ -324,7 +320,7 @@ protected override async onBeforeCreate(
 
         if (monitorCount.toNumber() >= AllowedActiveMonitorCountInFreePlan) {
           throw new BadDataException(
-            `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`
+            `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`,
           );
         }
       }
@@ -358,7 +354,7 @@ protected override async onBeforeCreate(
 
     if (!monitorStatus || !monitorStatus.id) {
       throw new BadDataException(
-        "Operational status not found for this project. Please add an operational status"
+        "Operational status not found for this project. Please add an operational status",
       );
     }
 
@@ -368,9 +364,9 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
@@ -458,7 +454,7 @@ protected override async onCreateSuccess(
       false, // notifyOwners = false
       "This status was created when the monitor was created.",
       undefined,
-      onCreate.createBy.props
+      onCreate.createBy.props,
     );
 
     if (
@@ -467,13 +463,13 @@ protected override async onCreateSuccess(
     ) {
       await this.addDefaultProbesToMonitor(
         createdItem.projectId,
-        createdItem.id
+        createdItem.id,
       );
     }
 
     if (IsBillingEnabled) {
       await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        createdItem.projectId
+        createdItem.projectId,
       );
     }
 
@@ -492,7 +488,7 @@ protected override async onCreateSuccess(
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
-        onCreate.createBy.props
+        onCreate.createBy.props,
       );
     }
 
@@ -505,12 +501,12 @@ protected override async onCreateSuccess(
   @CaptureSpan()
   public async getMonitorLinkInDashboard(
     projectId: ObjectID,
-    monitorId: ObjectID
+    monitorId: ObjectID,
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/monitors/${monitorId.toString()}`
+      `/${projectId.toString()}/monitors/${monitorId.toString()}`,
     );
   }
 
@@ -576,7 +572,7 @@ protected override async onCreateSuccess(
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          }
+          },
         );
 
         if (!isUserAlreadyAdded) {
@@ -595,7 +591,7 @@ protected override async onCreateSuccess(
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -633,7 +629,7 @@ protected override async onCreateSuccess(
   @CaptureSpan()
   public async addDefaultProbesToMonitor(
     projectId: ObjectID,
-    monitorId: ObjectID
+    monitorId: ObjectID,
   ): Promise<void> {
     const globalProbes: Array<Probe> = await ProbeService.findBy({
       query: {
@@ -748,7 +744,7 @@ protected override async onCreateSuccess(
     const enabledProbes: Array<MonitorProbe> = probesForMonitor.filter(
       (probe: MonitorProbe) => {
         return probe.isEnabled;
-      }
+      },
     );
 
     if (probesForMonitor.length === 0 || enabledProbes.length === 0) {
@@ -796,7 +792,7 @@ protected override async onCreateSuccess(
           monitorProbe.probe?.connectionStatus ===
             ProbeConnectionStatus.Disconnected && monitorProbe.isEnabled
         );
-      }
+      },
     );
 
     if (
@@ -940,7 +936,7 @@ protected override async onCreateSuccess(
       projectName: monitor.project!.name!,
       monitorDescription: await Markdown.convertToHTML(
         monitor.description! || "",
-        MarkdownContentType.Email
+        MarkdownContentType.Email,
       ),
       monitorViewLink: (
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
@@ -1039,7 +1035,7 @@ protected override async onCreateSuccess(
       projectName: monitor.project!.name!,
       monitorDescription: await Markdown.convertToHTML(
         monitor.description! || "",
-        MarkdownContentType.Email
+        MarkdownContentType.Email,
       ),
       monitorViewLink: (
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
@@ -1106,7 +1102,7 @@ protected override async onCreateSuccess(
         props: {
           isRoot: true,
         },
-      }
+      },
     );
 
     if (monitorProbes.length === 0) {
@@ -1126,7 +1122,7 @@ protected override async onCreateSuccess(
     notifyOwners: boolean,
     rootCause: string | undefined,
     statusChangeLog: JSONObject | undefined,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     for (const monitorId of monitorIds) {
       // get last monitor status timeline.
@@ -1205,18 +1201,15 @@ protected override async onCreateSuccess(
         }
 
         return channel.workspaceType === data.workspaceType;
-      }
+      },
     );
   }
 
   // get monitor name
   @CaptureSpan()
-  public async getMonitorName(data:{
-    monitorId: ObjectID;
-  }): Promise<string> {
-
+  public async getMonitorName(data: { monitorId: ObjectID }): Promise<string> {
     const { monitorId } = data;
-    
+
     const monitor: Model | null = await this.findOneById({
       id: monitorId,
       select: {
@@ -1233,6 +1226,5 @@ protected override async onCreateSuccess(
 
     return monitor.name || "";
   }
-  
 }
 export default new Service();

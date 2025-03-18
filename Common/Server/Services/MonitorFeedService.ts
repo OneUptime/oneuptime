@@ -3,7 +3,6 @@ import Color from "../../Types/Color";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import WorkspaceMessagePayload from "../../Types/Workspace/WorkspaceMessagePayload";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
@@ -13,11 +12,6 @@ import MonitorFeed, {
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
-import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import MonitorService from "./MonitorService";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
-import WorkspaceUtil from "../Utils/Workspace/Workspace";
-import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<MonitorFeed> {
@@ -104,7 +98,10 @@ export class Service extends DatabaseService<MonitorFeed> {
 
       try {
         // send notification to slack and teams
-        if (data.workspaceNotification && data.workspaceNotification?.sendWorkspaceNotification) {
+        if (
+          data.workspaceNotification &&
+          data.workspaceNotification?.sendWorkspaceNotification
+        ) {
           await this.sendWorkspaceNotification({
             projectId: data.projectId,
             monitorId: data.monitorId,
@@ -126,7 +123,6 @@ export class Service extends DatabaseService<MonitorFeed> {
     }
   }
 
-
   @CaptureSpan()
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
@@ -138,14 +134,16 @@ export class Service extends DatabaseService<MonitorFeed> {
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     };
   }) {
-    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
-      projectId: data.projectId,
-      notificationFor: {
-        monitorId: data.monitorId,
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      {
+        projectId: data.projectId,
+        notificationFor: {
+          monitorId: data.monitorId,
+        },
+        feedInfoInMarkdown: data.feedInfoInMarkdown,
+        workspaceNotification: data.workspaceNotification,
       },
-      feedInfoInMarkdown: data.feedInfoInMarkdown,
-      workspaceNotification: data.workspaceNotification,
-    })
+    );
   }
 }
 

@@ -23,7 +23,7 @@ export class Service extends DatabaseService<MonitorGroup> {
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<MonitorGroup>,
   ): Promise<OnDelete<MonitorGroup>> {
     if (deleteBy.query._id) {

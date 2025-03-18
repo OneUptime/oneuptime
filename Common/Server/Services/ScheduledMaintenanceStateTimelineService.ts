@@ -37,7 +37,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   }
 
   @CaptureSpan()
-protected override async onBeforeCreate(
+  protected override async onBeforeCreate(
     createBy: CreateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
     if (!createBy.data.scheduledMaintenanceId) {
@@ -137,7 +137,7 @@ protected override async onBeforeCreate(
   }
 
   @CaptureSpan()
-protected override async onCreateSuccess(
+  protected override async onCreateSuccess(
     onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
     createdItem: ScheduledMaintenanceStateTimeline,
   ): Promise<ScheduledMaintenanceStateTimeline> {
@@ -474,7 +474,7 @@ protected override async onCreateSuccess(
   }
 
   @CaptureSpan()
-protected override async onBeforeDelete(
+  protected override async onBeforeDelete(
     deleteBy: DeleteBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnDelete<ScheduledMaintenanceStateTimeline>> {
     if (deleteBy.query._id) {
@@ -615,7 +615,7 @@ protected override async onBeforeDelete(
   }
 
   @CaptureSpan()
-protected override async onDeleteSuccess(
+  protected override async onDeleteSuccess(
     onDelete: OnDelete<ScheduledMaintenanceStateTimeline>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<ScheduledMaintenanceStateTimeline>> {

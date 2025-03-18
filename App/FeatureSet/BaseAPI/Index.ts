@@ -397,7 +397,6 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 
-
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
@@ -584,7 +583,6 @@ const BaseAPIFeatureSet: FeatureSet = {
         WorkspaceNotificationRuleService,
       ).getRouter(),
     );
-
 
     // monitor feed
     app.use(

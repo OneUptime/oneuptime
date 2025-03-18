@@ -260,7 +260,7 @@ export class NotificationRuleConditionUtil {
     }
 
     // if monitor type
-    if(data.checkOn === NotificationRuleConditionCheckOn.MonitorType) {
+    if (data.checkOn === NotificationRuleConditionCheckOn.MonitorType) {
       return DropdownUtil.getDropdownOptionsFromEnum(MonitorType);
     }
 
