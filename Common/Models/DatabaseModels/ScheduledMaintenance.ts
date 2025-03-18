@@ -117,7 +117,7 @@ export default class ScheduledMaintenance extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
@@ -283,7 +283,7 @@ export default class ScheduledMaintenance extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
@@ -338,7 +338,7 @@ export default class ScheduledMaintenance extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
@@ -392,7 +392,7 @@ export default class ScheduledMaintenance extends BaseModel {
     () => {
       return Monitor;
     },
-    { eager: false }
+    { eager: false },
   )
   @JoinTable({
     name: "ScheduledMaintenanceMonitor",
@@ -438,7 +438,7 @@ export default class ScheduledMaintenance extends BaseModel {
     () => {
       return StatusPage;
     },
-    { eager: false }
+    { eager: false },
   )
   @JoinTable({
     name: "ScheduledMaintenanceStatusPage",
@@ -485,7 +485,7 @@ export default class ScheduledMaintenance extends BaseModel {
     () => {
       return Label;
     },
-    { eager: false }
+    { eager: false },
   )
   @JoinTable({
     name: "ScheduledMaintenanceLabel",
@@ -536,7 +536,7 @@ export default class ScheduledMaintenance extends BaseModel {
       eager: false,
       nullable: true,
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "currentScheduledMaintenanceStateId" })
   public currentScheduledMaintenanceState?: ScheduledMaintenanceState =
@@ -608,7 +608,7 @@ export default class ScheduledMaintenance extends BaseModel {
       eager: false,
       nullable: true,
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "changeMonitorStatusToId" })
   public changeMonitorStatusTo?: MonitorStatus = undefined;
