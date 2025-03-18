@@ -141,9 +141,9 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Ascending,
+          postedAt: SortOrder.Descending,
         },
-        limit: LIMIT_PER_PROJECT,
+        limit: 50,
       });
 
       setFeedItems(getFeedItemsFromMonitorFeeds(monitorFeeds.data));
