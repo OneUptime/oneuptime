@@ -30,6 +30,7 @@ export enum MonitorFeedEventType {
   MonitorUpdated = "MonitorUpdated",
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerUserRemoved = "OwnerUserRemoved",
+  SubscriberNotificationSent = "SubscriberNotificationSent",
 }
 
 @EnableDocumentation()

@@ -54,6 +54,7 @@ import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitor
 import TraceTable from "../../../Components/Traces/TraceTable";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MetricMonitorPreview from "../../../Components/Monitor/MetricMonitor/MetricMonitorPreview";
+import MonitorFeedElement from "../../../Components/Monitor/MonitorFeed";
 
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -498,16 +499,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       {/* Heartbeat URL */}
       {monitorType === MonitorType.IncomingRequest &&
-      monitor?.incomingRequestSecretKey &&
-      !monitor.incomingRequestReceivedAt ? (
+        monitor?.incomingRequestSecretKey &&
+        !monitor.incomingRequestReceivedAt ? (
         <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
       ) : (
         <></>
       )}
 
       {monitorType === MonitorType.Server &&
-      monitor?.serverMonitorSecretKey &&
-      !monitor.serverMonitorRequestReceivedAt ? (
+        monitor?.serverMonitorSecretKey &&
+        !monitor.serverMonitorRequestReceivedAt ? (
         <ServerMonitorDocumentation
           secretKey={monitor?.serverMonitorSecretKey}
         />
@@ -596,6 +597,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             )}
           />
         )}
+
+      <MonitorFeedElement monitorId={modelId} />
     </Fragment>
   );
 };
