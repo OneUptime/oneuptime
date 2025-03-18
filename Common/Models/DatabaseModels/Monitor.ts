@@ -34,6 +34,7 @@ import {
   ManyToMany,
   ManyToOne,
 } from "typeorm";
+import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 
 @EnableDocumentation()
 @AccessControlColumn("labels")
@@ -115,7 +116,7 @@ export default class Monitor extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
@@ -281,7 +282,7 @@ export default class Monitor extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
@@ -336,7 +337,7 @@ export default class Monitor extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
@@ -391,7 +392,7 @@ export default class Monitor extends BaseModel {
     () => {
       return Label;
     },
-    { eager: false },
+    { eager: false }
   )
   @JoinTable({
     name: "MonitorLabel",
@@ -469,7 +470,7 @@ export default class Monitor extends BaseModel {
       eager: false,
       nullable: true,
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "currentMonitorStatusId" })
   public currentMonitorStatus?: MonitorStatus = undefined;
@@ -1078,4 +1079,23 @@ export default class Monitor extends BaseModel {
     default: false,
   })
   public isNoProbeEnabledOnThisMonitor?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Post Updates To Workspace Channel Name",
+    description: "Post Updates To Workspace Channel Name",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
+    undefined;
 }

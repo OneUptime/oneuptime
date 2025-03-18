@@ -283,6 +283,9 @@ export class Service extends DatabaseService<Model> {
         currentAlertState: {
           name: true,
         },
+        labels: {
+          name: true,
+        },
         monitor: {
           name: true,
           _id: true,

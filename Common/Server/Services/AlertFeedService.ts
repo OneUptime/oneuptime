@@ -99,76 +99,11 @@ export class Service extends DatabaseService<Model> {
       try {
         // send notification to slack and teams
         if (data.workspaceNotification?.sendWorkspaceNotification) {
-          let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> =
-            [];
-
-          // use markdown to create blocks
-          messageBlocksByWorkspaceTypes =
-            await WorkspaceUtil.getMessageBlocksByMarkdown({
-              userId: data.workspaceNotification.notifyUserId,
-              markdown: data.feedInfoInMarkdown,
-              projectId: data.projectId,
-            });
-
-          if (data.workspaceNotification.appendMessageBlocks) {
-            for (const messageBlocksByWorkspaceType of data
-              .workspaceNotification.appendMessageBlocks) {
-              const workspaceType: WorkspaceType =
-                messageBlocksByWorkspaceType.workspaceType;
-
-              messageBlocksByWorkspaceTypes
-                .find(
-                  (
-                    messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
-                  ) => {
-                    return (
-                      messageBlocksByWorkspaceType.workspaceType ===
-                      workspaceType
-                    );
-                  },
-                )
-                ?.messageBlocks.push(
-                  ...messageBlocksByWorkspaceType.messageBlocks,
-                );
-            }
-          }
-
-          const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> =
-            [];
-
-          for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
-            const existingChannels: Array<string> =
-              await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
-                {
-                  projectId: data.projectId,
-                  notificationRuleEventType: NotificationRuleEventType.Alert,
-                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                },
-              );
-
-            const alertChannels: Array<WorkspaceChannel> =
-              await AlertService.getWorkspaceChannelForAlert({
-                alertId: data.alertId,
-                workspaceType: messageBlocksByWorkspaceType.workspaceType,
-              });
-
-            const workspaceMessagePayload: WorkspaceMessagePayload = {
-              _type: "WorkspaceMessagePayload",
-              workspaceType: messageBlocksByWorkspaceType.workspaceType,
-              messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-              channelNames: existingChannels,
-              channelIds:
-                alertChannels.map((channel: WorkspaceChannel) => {
-                  return channel.id;
-                }) || [],
-            };
-
-            workspaceNotificationPaylaods.push(workspaceMessagePayload);
-          }
-
-          await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+          await this.sendWorkspaceNotification({
             projectId: data.projectId,
-            messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+            alertId: data.alertId,
+            feedInfoInMarkdown: data.feedInfoInMarkdown,
+            workspaceNotification: data.workspaceNotification,
           });
         }
       } catch (e) {
@@ -182,6 +117,27 @@ export class Service extends DatabaseService<Model> {
       logger.error(error);
       // we dont want to throw the error here, as this is a non-critical operation
     }
+  }
+
+  @CaptureSpan()
+  public async sendWorkspaceNotification(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    feedInfoInMarkdown: string;
+    workspaceNotification: {
+      notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
+      sendWorkspaceNotification: boolean;
+      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+    };
+  }) {
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: data.projectId,
+      notificationFor: {
+        alertId: data.alertId,
+      },
+      feedInfoInMarkdown: data.feedInfoInMarkdown,
+      workspaceNotification: data.workspaceNotification,
+    })
   }
 }
 

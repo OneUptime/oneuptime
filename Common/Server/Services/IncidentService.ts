@@ -431,6 +431,9 @@ export class Service extends DatabaseService<Model> {
         currentIncidentState: {
           name: true,
         },
+        labels: {
+          name: true,
+        },
         monitors: {
           name: true,
           _id: true,

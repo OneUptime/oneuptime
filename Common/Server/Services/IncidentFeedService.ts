@@ -105,7 +105,7 @@ export class Service extends DatabaseService<IncidentFeed> {
       try {
         // send notification to slack and teams
         if (data.workspaceNotification && data.workspaceNotification?.sendWorkspaceNotification) {
-          await Service.sendWorkspaceNotification({
+          await this.sendWorkspaceNotification({
             projectId: data.projectId,
             incidentId: data.incidentId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
@@ -126,7 +126,8 @@ export class Service extends DatabaseService<IncidentFeed> {
     }
   }
 
-  public static async sendWorkspaceNotification(data: {
+  @CaptureSpan()
+  public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     incidentId: ObjectID;
     feedInfoInMarkdown: string;
@@ -136,70 +137,14 @@ export class Service extends DatabaseService<IncidentFeed> {
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     };
   }) {
-    let messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> = [];
-
-    // use markdown to create blocks
-    messageBlocksByWorkspaceTypes =
-      await WorkspaceUtil.getMessageBlocksByMarkdown({
-        userId: data.workspaceNotification.notifyUserId,
-        markdown: data.feedInfoInMarkdown,
-        projectId: data.projectId,
-      });
-
-    if (data.workspaceNotification.appendMessageBlocks) {
-      for (const messageBlocksByWorkspaceType of data.workspaceNotification
-        .appendMessageBlocks) {
-        const workspaceType: WorkspaceType =
-          messageBlocksByWorkspaceType.workspaceType;
-
-        messageBlocksByWorkspaceTypes
-          .find(
-            (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-              return (
-                messageBlocksByWorkspaceType.workspaceType === workspaceType
-              );
-            }
-          )
-          ?.messageBlocks.push(...messageBlocksByWorkspaceType.messageBlocks);
-      }
-    }
-
-    const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
-
-    for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
-      const existingChannels: Array<string> =
-        await WorkspaceNotificationRuleService.getExistingChannelNamesBasedOnEventType(
-          {
-            projectId: data.projectId,
-            notificationRuleEventType: NotificationRuleEventType.Incident,
-            workspaceType: messageBlocksByWorkspaceType.workspaceType,
-          }
-        );
-
-      const incidentChannels: Array<WorkspaceChannel> =
-        await IncidentService.getWorkspaceChannelForIncident({
-          incidentId: data.incidentId,
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-        });
-
-      const workspaceMessagePayload: WorkspaceMessagePayload = {
-        _type: "WorkspaceMessagePayload",
-        workspaceType: messageBlocksByWorkspaceType.workspaceType,
-        messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-        channelNames: existingChannels,
-        channelIds:
-          incidentChannels.map((channel: WorkspaceChannel) => {
-            return channel.id;
-          }) || [],
-      };
-
-      workspaceNotificationPaylaods.push(workspaceMessagePayload);
-    }
-
-    await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+    return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
       projectId: data.projectId,
-      messagePayloadsByWorkspace: workspaceNotificationPaylaods,
-    });
+      notificationFor: {
+        incidentId: data.incidentId,
+      },
+      feedInfoInMarkdown: data.feedInfoInMarkdown,
+      workspaceNotification: data.workspaceNotification,
+    })
   }
 }
 

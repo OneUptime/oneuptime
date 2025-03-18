@@ -12,10 +12,10 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 export default class SlackMonitorMessages {
   @CaptureSpan()
   public static async getMonitorCreateMessageBlocks(data: {
-    MonitorId: ObjectID;
+    monitorId: ObjectID;
     projectId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
-    if (!data.MonitorId) {
+    if (!data.monitorId) {
       throw new BadDataException("Monitor ID is required");
     }
 
@@ -47,9 +47,9 @@ export default class SlackMonitorMessages {
       title: "🔗 View Monitor",
       url: await MonitorService.getMonitorLinkInDashboard(
         data.projectId!,
-        data.MonitorId!,
+        data.monitorId!,
       ),
-      value: data.MonitorId?.toString() || "",
+      value: data.monitorId?.toString() || "",
       actionId: SlackActionType.ViewMonitor,
     };
 

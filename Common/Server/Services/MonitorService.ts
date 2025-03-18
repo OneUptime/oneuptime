@@ -57,6 +57,11 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import logger from "../Utils/Logger";
+import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
+import MonitorFeedService from "./MonitorFeedService";
+import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
+import { Green500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -64,7 +69,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>,
+    deleteBy: DeleteBy<Model>
   ): Promise<OnDelete<Model>> {
     if (deleteBy.query._id) {
       // delete all the status page resource for this monitor.
@@ -86,11 +91,11 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<Model>> {
     if (onDelete.deleteBy.props.tenantId && IsBillingEnabled) {
       await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        onDelete.deleteBy.props.tenantId,
+        onDelete.deleteBy.props.tenantId
       );
     }
 
@@ -99,7 +104,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[]
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentMonitorStatusId &&
@@ -114,7 +119,7 @@ export class Service extends DatabaseService<Model> {
         undefined,
         {
           isRoot: true,
-        },
+        }
       );
     }
 
@@ -122,7 +127,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
+    updateBy: UpdateBy<Model>
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.disableActiveMonitoring !== undefined) {
       const items: Array<Model> = await this.findBy({
@@ -141,11 +146,11 @@ export class Service extends DatabaseService<Model> {
         if (item.monitorType && item.monitorType === MonitorType.Manual) {
           if (updateBy.data.disableActiveMonitoring === true) {
             throw new BadDataException(
-              "You can only disable monitoring for active monitors. Disabling monitoring for manual monitors is not allowed.",
+              "You can only disable monitoring for active monitors. Disabling monitoring for manual monitors is not allowed."
             );
           } else {
             throw new BadDataException(
-              "You can only enable monitoring for active monitors. Enabling monitoring for manual monitors is not allowed.",
+              "You can only enable monitoring for active monitors. Enabling monitoring for manual monitors is not allowed."
             );
           }
         }
@@ -164,7 +169,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
+    createBy: CreateBy<Model>
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.monitorType) {
       throw new BadDataException("Monitor type required to create monitor.");
@@ -174,18 +179,18 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(
         `Invalid monitor type "${
           createBy.data.monitorType
-        }". Valid monitor types are ${Object.values(MonitorType).join(", ")}.`,
+        }". Valid monitor types are ${Object.values(MonitorType).join(", ")}.`
       );
     }
 
     if (IsBillingEnabled && createBy.props.tenantId) {
       const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
-        createBy.props.tenantId,
+        createBy.props.tenantId
       );
 
       if (currentPlan.isSubscriptionUnpaid) {
         throw new BadDataException(
-          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors.",
+          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more monitors."
         );
       }
 
@@ -197,7 +202,7 @@ export class Service extends DatabaseService<Model> {
           query: {
             projectId: createBy.props.tenantId,
             monitorType: QueryHelper.any(
-              MonitorTypeHelper.getActiveMonitorTypes(),
+              MonitorTypeHelper.getActiveMonitorTypes()
             ),
           },
           props: {
@@ -207,7 +212,7 @@ export class Service extends DatabaseService<Model> {
 
         if (monitorCount.toNumber() >= AllowedActiveMonitorCountInFreePlan) {
           throw new BadDataException(
-            `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`,
+            `You have reached the maximum allowed monitor limit for the free plan. Please upgrade your plan to add more monitors.`
           );
         }
       }
@@ -241,7 +246,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!monitorStatus || !monitorStatus.id) {
       throw new BadDataException(
-        "Operational status not found for this project. Please add an operational status",
+        "Operational status not found for this project. Please add an operational status"
       );
     }
 
@@ -252,7 +257,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model,
+    createdItem: Model
   ): Promise<Model> {
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
@@ -266,6 +271,73 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentMonitorStatusId is required");
     }
 
+    const monitor: Model | null = await this.findOneById({
+      id: createdItem.id,
+      select: {
+        projectId: true,
+        name: true,
+        description: true,
+        monitorType: true,
+        currentMonitorStatus: {
+          name: true,
+        },
+        labels: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const createdByUserId: ObjectID | undefined | null =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
+          
+    **${createdItem.name || "No name provided."}**:
+    
+    ${createdItem.description || "No description provided."}
+    
+    `;
+
+    if (monitor?.currentMonitorStatus?.name) {
+      feedInfoInMarkdown += `➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;
+    }
+
+    if (monitor?.monitorType) {
+      feedInfoInMarkdown += `⚙️ **Monitor Type**: ${monitor.monitorType} \n\n`;
+    }
+
+    if (monitor?.labels && monitor.labels.length > 0) {
+      feedInfoInMarkdown += `🏷️ **Labels**:\n`;
+
+      for (const label of monitor.labels) {
+        feedInfoInMarkdown += `- ${label.name}\n`;
+      }
+
+      feedInfoInMarkdown += `\n\n`;
+    }
+
+    const monitorCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await MonitorWorkspaceMessages.getMonitorCreateMessageBlocks({
+        monitorId: createdItem.id!,
+        projectId: createdItem.projectId!,
+      });
+
+    await MonitorFeedService.createMonitorFeedItem({
+      monitorId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      monitorFeedEventType: MonitorFeedEventType.MonitorCreated,
+      displayColor: Green500,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+      userId: createdByUserId || undefined,
+      workspaceNotification: {
+        appendMessageBlocks: monitorCreateMessageBlocks,
+        sendWorkspaceNotification: true,
+      },
+    });
+
     await this.changeMonitorStatus(
       createdItem.projectId,
       [createdItem.id],
@@ -273,7 +345,7 @@ export class Service extends DatabaseService<Model> {
       false, // notifyOwners = false
       "This status was created when the monitor was created.",
       undefined,
-      onCreate.createBy.props,
+      onCreate.createBy.props
     );
 
     if (
@@ -282,13 +354,13 @@ export class Service extends DatabaseService<Model> {
     ) {
       await this.addDefaultProbesToMonitor(
         createdItem.projectId,
-        createdItem.id,
+        createdItem.id
       );
     }
 
     if (IsBillingEnabled) {
       await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        createdItem.projectId,
+        createdItem.projectId
       );
     }
 
@@ -307,7 +379,7 @@ export class Service extends DatabaseService<Model> {
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
-        onCreate.createBy.props,
+        onCreate.createBy.props
       );
     }
 
@@ -320,12 +392,12 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async getMonitorLinkInDashboard(
     projectId: ObjectID,
-    monitorId: ObjectID,
+    monitorId: ObjectID
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/monitors/${monitorId.toString()}`,
+      `/${projectId.toString()}/monitors/${monitorId.toString()}`
     );
   }
 
@@ -391,7 +463,7 @@ export class Service extends DatabaseService<Model> {
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          },
+          }
         );
 
         if (!isUserAlreadyAdded) {
@@ -410,7 +482,7 @@ export class Service extends DatabaseService<Model> {
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -448,7 +520,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async addDefaultProbesToMonitor(
     projectId: ObjectID,
-    monitorId: ObjectID,
+    monitorId: ObjectID
   ): Promise<void> {
     const globalProbes: Array<Probe> = await ProbeService.findBy({
       query: {
@@ -563,7 +635,7 @@ export class Service extends DatabaseService<Model> {
     const enabledProbes: Array<MonitorProbe> = probesForMonitor.filter(
       (probe: MonitorProbe) => {
         return probe.isEnabled;
-      },
+      }
     );
 
     if (probesForMonitor.length === 0 || enabledProbes.length === 0) {
@@ -611,7 +683,7 @@ export class Service extends DatabaseService<Model> {
           monitorProbe.probe?.connectionStatus ===
             ProbeConnectionStatus.Disconnected && monitorProbe.isEnabled
         );
-      },
+      }
     );
 
     if (
@@ -755,7 +827,7 @@ export class Service extends DatabaseService<Model> {
       projectName: monitor.project!.name!,
       monitorDescription: await Markdown.convertToHTML(
         monitor.description! || "",
-        MarkdownContentType.Email,
+        MarkdownContentType.Email
       ),
       monitorViewLink: (
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
@@ -854,7 +926,7 @@ export class Service extends DatabaseService<Model> {
       projectName: monitor.project!.name!,
       monitorDescription: await Markdown.convertToHTML(
         monitor.description! || "",
-        MarkdownContentType.Email,
+        MarkdownContentType.Email
       ),
       monitorViewLink: (
         await this.getMonitorLinkInDashboard(monitor.projectId!, monitor.id!)
@@ -921,7 +993,7 @@ export class Service extends DatabaseService<Model> {
         props: {
           isRoot: true,
         },
-      },
+      }
     );
 
     if (monitorProbes.length === 0) {
@@ -941,7 +1013,7 @@ export class Service extends DatabaseService<Model> {
     notifyOwners: boolean,
     rootCause: string | undefined,
     statusChangeLog: JSONObject | undefined,
-    props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps
   ): Promise<void> {
     for (const monitorId of monitorIds) {
       // get last monitor status timeline.
@@ -994,17 +1066,34 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-    @CaptureSpan()
-    public async getWorkspaceChannelForMonitor(data: {
-      monitorId: ObjectID;
-      workspaceType?: WorkspaceType | null;
-    }): Promise<Array<NotificationRuleWorkspaceChannel>> {
-      logger.debug("Getting workspace channel for monitor");
-      logger.debug(data);
+  @CaptureSpan()
+  public async getWorkspaceChannelForMonitor(data: {
+    monitorId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const monitor: Model | null = await this.findOneById({
+      id: data.monitorId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-      // currently monitors dont create any workspace channel. This could be used for future use.
-      return []; 
-      
+    if (!monitor) {
+      throw new BadDataException("Monitor not found.");
     }
+
+    return (monitor.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+
+        return channel.workspaceType === data.workspaceType;
+      }
+    );
+  }
 }
 export default new Service();
