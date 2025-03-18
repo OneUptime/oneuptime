@@ -133,97 +133,93 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  if (
-    props.eventType === NotificationRuleEventType.Incident ||
-    props.eventType === NotificationRuleEventType.Alert ||
-    props.eventType === NotificationRuleEventType.ScheduledMaintenance
-  ) {
-    formFields = formFields.concat([
-      {
-        field: {
-          shouldCreateNewChannel: true,
-        },
-        title: `Create ${props.workspaceType} Channel`,
-        description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
-        fieldType: FormFieldSchemaType.Toggle,
-        showHorizontalRuleAbove: true,
-        required: false,
+
+  formFields = formFields.concat([
+    {
+      field: {
+        shouldCreateNewChannel: true,
       },
-      {
-        field: {
-          newChannelTemplateName: true,
-        },
-        title: `New ${props.workspaceType} Channel Name`,
-        showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (
-            (formValue as CreateNewSlackChannelNotificationRuleType)
-              .shouldCreateNewChannel || false
-          );
-        },
-        required: true,
-        description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} number in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
-        fieldType: FormFieldSchemaType.Text,
-        placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
+      title: `Create ${props.workspaceType} Channel`,
+      description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
+      fieldType: FormFieldSchemaType.Toggle,
+      showHorizontalRuleAbove: true,
+      required: false,
+    },
+    {
+      field: {
+        newChannelTemplateName: true,
       },
-      {
-        field: {
-          shouldInviteOwnersToNewChannel: true,
-        },
-        showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (
-            (formValue as CreateNewSlackChannelNotificationRuleType)
-              .shouldCreateNewChannel || false
-          );
-        },
-        title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
-        description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
+      title: `New ${props.workspaceType} Channel Name`,
+      showIf: (formValue: FormValues<NotificationRulesType>) => {
+        return (
+          (formValue as CreateNewSlackChannelNotificationRuleType)
+            .shouldCreateNewChannel || false
+        );
       },
-      {
-        field: {
-          inviteTeamsToNewChannel: true,
-        },
-        title: `Invite Teams to New ${props.workspaceType} Channel`,
-        description: `When new ${props.workspaceType} channel is created, invite these teams.`,
-        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-        required: false,
-        showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (
-            (formValue as CreateNewSlackChannelNotificationRuleType)
-              .shouldCreateNewChannel || false
-          );
-        },
-        dropdownOptions: props.teams.map((i: Team) => {
-          return {
-            label: i.name?.toString() || "",
-            value: i._id!.toString()!,
-          };
-        }),
+      required: true,
+      description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} number in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
+      fieldType: FormFieldSchemaType.Text,
+      placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
+    },
+    {
+      field: {
+        shouldInviteOwnersToNewChannel: true,
       },
-      {
-        field: {
-          inviteUsersToNewChannel: true,
-        },
-        title: `Invite Users to New ${props.workspaceType} Channel`,
-        description: `When new ${props.workspaceType} channel is created, invite these users.`,
-        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-        required: false,
-        showIf: (formValue: FormValues<NotificationRulesType>) => {
-          return (
-            (formValue as CreateNewSlackChannelNotificationRuleType)
-              .shouldCreateNewChannel || false
-          );
-        },
-        dropdownOptions: props.users.map((i: User) => {
-          return {
-            label: i.name?.toString() || "",
-            value: i._id!.toString()!,
-          };
-        }),
+      showIf: (formValue: FormValues<NotificationRulesType>) => {
+        return (
+          (formValue as CreateNewSlackChannelNotificationRuleType)
+            .shouldCreateNewChannel || false
+        );
       },
-    ]);
-  }
+      title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
+      description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+    },
+    {
+      field: {
+        inviteTeamsToNewChannel: true,
+      },
+      title: `Invite Teams to New ${props.workspaceType} Channel`,
+      description: `When new ${props.workspaceType} channel is created, invite these teams.`,
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      required: false,
+      showIf: (formValue: FormValues<NotificationRulesType>) => {
+        return (
+          (formValue as CreateNewSlackChannelNotificationRuleType)
+            .shouldCreateNewChannel || false
+        );
+      },
+      dropdownOptions: props.teams.map((i: Team) => {
+        return {
+          label: i.name?.toString() || "",
+          value: i._id!.toString()!,
+        };
+      }),
+    },
+    {
+      field: {
+        inviteUsersToNewChannel: true,
+      },
+      title: `Invite Users to New ${props.workspaceType} Channel`,
+      description: `When new ${props.workspaceType} channel is created, invite these users.`,
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      required: false,
+      showIf: (formValue: FormValues<NotificationRulesType>) => {
+        return (
+          (formValue as CreateNewSlackChannelNotificationRuleType)
+            .shouldCreateNewChannel || false
+        );
+      },
+      dropdownOptions: props.users.map((i: User) => {
+        return {
+          label: i.name?.toString() || "",
+          value: i._id!.toString()!,
+        };
+      }),
+    },
+  ]);
+
 
   // if alerts or incidents
 
