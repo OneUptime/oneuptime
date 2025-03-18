@@ -404,11 +404,11 @@ export class Service extends DatabaseService<Model> {
 
     let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
           
-    **${createdItem.name || "No name provided."}**:
+**${createdItem.name || "No name provided."}**:
+
+${createdItem.description || "No description provided."}
     
-    ${createdItem.description || "No description provided."}
-    
-    `;
+`;
 
     if (monitor?.currentMonitorStatus?.name) {
       feedInfoInMarkdown += `➡️ **Monitor Status**: ${monitor.currentMonitorStatus.name} \n\n`;

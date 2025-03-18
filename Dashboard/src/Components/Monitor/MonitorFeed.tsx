@@ -52,7 +52,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     if (
       monitorFeed.monitorFeedEventType === MonitorFeedEventType.MonitorCreated
     ) {
-      icon = IconProp.Alert;
+      icon = IconProp.AltGlobe;
     }
 
     if (
