@@ -229,7 +229,8 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
     }
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -243,7 +244,8 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
     return createdItem;
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {

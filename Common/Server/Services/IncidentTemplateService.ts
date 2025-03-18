@@ -15,7 +15,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {

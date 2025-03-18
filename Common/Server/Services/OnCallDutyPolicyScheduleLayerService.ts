@@ -15,7 +15,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.onCallDutyPolicyScheduleId) {
@@ -49,7 +50,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {

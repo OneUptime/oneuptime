@@ -23,7 +23,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     }
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     if (!createBy.data.monitorId) {
@@ -134,7 +135,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<MonitorStatusTimeline>,
     createdItem: MonitorStatusTimeline,
   ): Promise<MonitorStatusTimeline> {
@@ -223,7 +225,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     return createdItem;
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<MonitorStatusTimeline>,
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (deleteBy.query._id) {
@@ -360,7 +363,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     return { deleteBy, carryForward: null };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<MonitorStatusTimeline>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<MonitorStatusTimeline>> {

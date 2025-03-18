@@ -56,7 +56,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     return resolvedState.id!;
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
     if (!createBy.data.incidentId) {
@@ -167,7 +168,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<IncidentStateTimeline>,
     createdItem: IncidentStateTimeline,
   ): Promise<IncidentStateTimeline> {
@@ -360,7 +362,8 @@ ${createdItem.rootCause}`,
     return createdItem;
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<IncidentStateTimeline>,
   ): Promise<OnDelete<IncidentStateTimeline>> {
     if (deleteBy.query._id) {
@@ -497,7 +500,8 @@ ${createdItem.rootCause}`,
     return { deleteBy, carryForward: null };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<IncidentStateTimeline>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<IncidentStateTimeline>> {

@@ -16,7 +16,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.statusPageId) {
@@ -48,7 +49,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
@@ -78,7 +80,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
@@ -97,7 +100,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {

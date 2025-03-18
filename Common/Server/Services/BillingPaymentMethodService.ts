@@ -14,7 +14,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeFind(
+  @CaptureSpan()
+protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     if (!findBy.props.tenantId) {
@@ -80,7 +81,8 @@ export class Service extends DatabaseService<Model> {
     return { findBy, carryForward: paymentMethods };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const items: Array<Model> = await this.findBy({

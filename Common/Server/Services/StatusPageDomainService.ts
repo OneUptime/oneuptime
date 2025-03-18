@@ -25,7 +25,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
     super(StatusPageDomain);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<StatusPageDomain>,
   ): Promise<OnCreate<StatusPageDomain>> {
     const domain: Domain | null = await DomainService.findOneBy({
@@ -65,7 +66,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
     return { createBy, carryForward: null };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<StatusPageDomain>,
   ): Promise<OnDelete<StatusPageDomain>> {
     const domains: Array<StatusPageDomain> = await this.findBy({
@@ -83,7 +85,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
     return { deleteBy, carryForward: domains };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<StatusPageDomain>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<StatusPageDomain>> {

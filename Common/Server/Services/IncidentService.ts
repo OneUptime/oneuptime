@@ -163,7 +163,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async resolveIncident(
     incidentId: ObjectID,
-    resolvedByUserId: ObjectID,
+    resolvedByUserId: ObjectID
   ): Promise<Model> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
@@ -196,7 +196,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!incidentState || !incidentState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
       );
     }
 
@@ -222,7 +222,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async acknowledgeIncident(
     incidentId: ObjectID,
-    acknowledgedByUserId: ObjectID,
+    acknowledgedByUserId: ObjectID
   ): Promise<Model> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
@@ -255,7 +255,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!incidentState || !incidentState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
       );
     }
 
@@ -305,8 +305,9 @@ export class Service extends DatabaseService<Model> {
     return lastIncident.incidentNumber || 0;
   }
 
+  @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
+    createBy: CreateBy<Model>
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
@@ -331,7 +332,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!incidentState || !incidentState.id) {
       throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
+        "Created incident state not found for this project. Please add created incident state from settings."
       );
     }
 
@@ -349,14 +350,14 @@ export class Service extends DatabaseService<Model> {
         "Mutex acquired - IncidentService.incident-create " +
           projectId.toString() +
           " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+          OneUptimeDate.getCurrentDateAsFormattedString()
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
           projectId.toString() +
           " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+          OneUptimeDate.getCurrentDateAsFormattedString()
       );
       logger.error(err);
     }
@@ -390,7 +391,7 @@ export class Service extends DatabaseService<Model> {
           {
             userId: userId!,
             projectId: projectId,
-          },
+          }
         )}`;
       }
     }
@@ -403,9 +404,10 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model,
+    createdItem: Model
   ): Promise<Model> {
     // these should never be null.
     if (!createdItem.projectId) {
@@ -459,14 +461,14 @@ export class Service extends DatabaseService<Model> {
           "Mutex released - IncidentService.incident-create " +
             projectId.toString() +
             " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+            OneUptimeDate.getCurrentDateAsFormattedString()
         );
       } catch (err) {
         logger.debug(
           "Mutex release failed -  IncidentService.incident-create " +
             projectId.toString() +
             " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+            OneUptimeDate.getCurrentDateAsFormattedString()
         );
         logger.error(err);
       }
@@ -580,7 +582,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
             createdItem.id.toString() +
             " was created.",
         createdItem.createdStateLog,
-        onCreate.createBy.props,
+        onCreate.createBy.props
       );
     }
 
@@ -589,10 +591,10 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
       incidentId: createdItem.id,
       incidentStateId: createdItem.currentIncidentStateId,
       shouldNotifyStatusPageSubscribers: Boolean(
-        createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
       ),
       isSubscribersNotified: Boolean(
-        createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+        createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
       ), // we dont want to notify subscribers when incident state changes because they are already notified when the incident is created.
       notifyOwners: false,
       rootCause: createdItem.rootCause,
@@ -617,7 +619,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
-        onCreate.createBy.props,
+        onCreate.createBy.props
       );
     }
 
@@ -632,7 +634,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
             triggeredByIncidentId: createdItem.id!,
             userNotificationEventType:
               UserNotificationEventType.IncidentCreated,
-          },
+          }
         );
       }
     }
@@ -745,7 +747,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          },
+          }
         );
 
         if (!isUserAlreadyAdded) {
@@ -764,7 +766,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -802,18 +804,19 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
   @CaptureSpan()
   public async getIncidentLinkInDashboard(
     projectId: ObjectID,
-    incidentId: ObjectID,
+    incidentId: ObjectID
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/incidents/${incidentId.toString()}`,
+      `/${projectId.toString()}/incidents/${incidentId.toString()}`
     );
   }
 
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[]
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentIncidentStateId &&
@@ -954,7 +957,7 @@ ${labels
                 _id: new ObjectID(
                   (
                     onUpdate.updateBy.data.incidentSeverity as any
-                  )?._id.toString(),
+                  )?._id.toString()
                 ),
               },
               select: {
@@ -996,7 +999,7 @@ ${incidentSeverity.name}
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualIncidents(
     monitorId: ObjectID,
-    proojectId: ObjectID,
+    proojectId: ObjectID
   ): Promise<boolean> {
     const resolvedState: IncidentState | null =
       await IncidentStateService.findOneBy({
@@ -1032,7 +1035,7 @@ ${incidentSeverity.name}
   @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
-    monitors: Array<Monitor>,
+    monitors: Array<Monitor>
   ): Promise<void> {
     // resolve all the monitors.
 
@@ -1059,7 +1062,7 @@ ${incidentSeverity.name}
           const doesMonitorHasMoreActiveManualIncidents: boolean =
             await this.doesMonitorHasMoreActiveManualIncidents(
               monitor.id!,
-              projectId!,
+              projectId!
             );
 
           if (doesMonitorHasMoreActiveManualIncidents) {
@@ -1120,8 +1123,9 @@ ${incidentSeverity.name}
     }
   }
 
+  @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>,
+    deleteBy: DeleteBy<Model>
   ): Promise<OnDelete<Model>> {
     const incidents: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -1146,16 +1150,17 @@ ${incidentSeverity.name}
     };
   }
 
+  @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
       for (const incident of onDelete.carryForward.incidents) {
         if (incident.monitors && incident.monitors.length > 0) {
           await this.markMonitorsActiveForMonitoring(
             incident.projectId!,
-            incident.monitors,
+            incident.monitors
           );
         }
       }
@@ -1346,7 +1351,7 @@ ${incidentSeverity.name}
 
     incidentCountMetric.time = incidentStartsAt;
     incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      incidentCountMetric.time,
+      incidentCountMetric.time
     );
     incidentCountMetric.metricPointType = MetricPointType.Sum;
 
@@ -1356,7 +1361,7 @@ ${incidentSeverity.name}
     const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
       (timeline: IncidentStateTimeline) => {
         return timeline.incidentState?.isAcknowledgedState;
-      },
+      }
     );
 
     if (isIncidentAcknowledged) {
@@ -1376,7 +1381,7 @@ ${incidentSeverity.name}
           "Time taken to acknowledge the incident";
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
-          incidentStartsAt,
+          incidentStartsAt
         );
         timeToAcknowledgeMetric.unit = "seconds";
         timeToAcknowledgeMetric.attributes = {
@@ -1399,7 +1404,7 @@ ${incidentSeverity.name}
           incident.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToAcknowledgeMetric.time,
+          timeToAcknowledgeMetric.time
         );
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
 
@@ -1411,7 +1416,7 @@ ${incidentSeverity.name}
     const isIncidentResolved: boolean = incidentStateTimelines.some(
       (timeline: IncidentStateTimeline) => {
         return timeline.incidentState?.isResolvedState;
-      },
+      }
     );
 
     if (isIncidentResolved) {
@@ -1431,7 +1436,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
-          incidentStartsAt,
+          incidentStartsAt
         );
         timeToResolveMetric.unit = "seconds";
         timeToResolveMetric.attributes = {
@@ -1454,7 +1459,7 @@ ${incidentSeverity.name}
           incident.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToResolveMetric.time,
+          timeToResolveMetric.time
         );
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
 
@@ -1482,7 +1487,7 @@ ${incidentSeverity.name}
       incidentDurationMetric.description = "Duration of the incident";
       incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         incidentEndsAt,
-        incidentStartsAt,
+        incidentStartsAt
       );
       incidentDurationMetric.unit = "seconds";
       incidentDurationMetric.attributes = {
@@ -1505,7 +1510,7 @@ ${incidentSeverity.name}
         incident.createdAt ||
         OneUptimeDate.getCurrentDate();
       incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-        incidentDurationMetric.time,
+        incidentDurationMetric.time
       );
       incidentDurationMetric.metricPointType = MetricPointType.Sum;
     }
@@ -1553,7 +1558,7 @@ ${incidentSeverity.name}
         }
 
         return channel.workspaceType === data.workspaceType;
-      },
+      }
     );
   }
 

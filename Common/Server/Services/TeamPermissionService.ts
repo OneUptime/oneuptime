@@ -18,7 +18,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.teamId) {
@@ -116,7 +117,8 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -150,7 +152,8 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     const teamPermissions: Array<Model> = await this.findBy({
@@ -240,7 +243,8 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: teamPermissions };
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
@@ -283,7 +287,8 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const teamPermissions: Array<Model> = await this.findBy({
@@ -335,7 +340,8 @@ export class Service extends DatabaseService<Model> {
     return { deleteBy, carryForward: teamMembers };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {

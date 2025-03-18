@@ -77,7 +77,8 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -115,7 +116,8 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     let carryForward: Array<Model> = [];
@@ -179,7 +181,8 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: carryForward };
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {

@@ -40,7 +40,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     super(TeamMember);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
     // check if this project can have more members.
@@ -180,7 +181,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     );
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<TeamMember>,
     createdItem: TeamMember,
   ): Promise<TeamMember> {
@@ -202,7 +204,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return createdItem;
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<TeamMember>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<TeamMember>> {
@@ -252,7 +255,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return { updateBy, carryForward: onUpdate.carryForward };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<TeamMember>,
   ): Promise<OnDelete<TeamMember>> {
     const members: Array<TeamMember> = await this.findBy({
@@ -307,7 +311,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<TeamMember>,
   ): Promise<OnDelete<TeamMember>> {
     for (const item of onDelete.carryForward as Array<TeamMember>) {

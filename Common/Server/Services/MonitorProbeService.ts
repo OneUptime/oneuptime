@@ -14,7 +14,8 @@ export class Service extends DatabaseService<MonitorProbe> {
     super(MonitorProbe);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<MonitorProbe>,
   ): Promise<OnCreate<MonitorProbe>> {
     if (
@@ -50,7 +51,8 @@ export class Service extends DatabaseService<MonitorProbe> {
     return { createBy, carryForward: null };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     _onCreate: OnCreate<MonitorProbe>,
     createdItem: MonitorProbe,
   ): Promise<MonitorProbe> {
@@ -61,7 +63,8 @@ export class Service extends DatabaseService<MonitorProbe> {
     return Promise.resolve(createdItem);
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<MonitorProbe>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<MonitorProbe>> {

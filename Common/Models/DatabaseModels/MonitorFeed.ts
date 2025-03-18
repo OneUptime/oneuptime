@@ -28,6 +28,8 @@ export enum MonitorFeedEventType {
   MonitorCreated = "MonitorCreated",
   MonitorStatusChanged = "MonitorStatusChanged",
   MonitorUpdated = "MonitorUpdated",
+  OwnerTeamRemoved = "OwnerTeamRemoved",
+  OwnerUserRemoved = "OwnerUserRemoved",
 }
 
 @EnableDocumentation()

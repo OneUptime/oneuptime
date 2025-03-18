@@ -54,7 +54,8 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     return resolvedState.id!;
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<AlertStateTimeline>,
   ): Promise<OnCreate<AlertStateTimeline>> {
     if (!createBy.data.alertId) {
@@ -175,7 +176,8 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<AlertStateTimeline>,
     createdItem: AlertStateTimeline,
   ): Promise<AlertStateTimeline> {
@@ -337,7 +339,8 @@ ${createdItem.rootCause}`,
     return createdItem;
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<AlertStateTimeline>,
   ): Promise<OnDelete<AlertStateTimeline>> {
     if (deleteBy.query._id) {
@@ -474,7 +477,8 @@ ${createdItem.rootCause}`,
     return { deleteBy, carryForward: null };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<AlertStateTimeline>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<AlertStateTimeline>> {

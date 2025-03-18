@@ -22,7 +22,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {

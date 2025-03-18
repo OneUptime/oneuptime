@@ -13,7 +13,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     createBy.data.telemetryServiceToken = ObjectID.generate();

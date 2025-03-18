@@ -12,7 +12,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     createBy.data.domainVerificationText =
@@ -20,7 +21,8 @@ export class Service extends DatabaseService<Model> {
     return Promise.resolve({ createBy, carryForward: null });
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (

@@ -20,7 +20,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Model[] = await this.findBy({
@@ -45,7 +46,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {

@@ -27,7 +27,8 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     createBy.data.status = UserNotificationExecutionStatus.Scheduled;
@@ -38,7 +39,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
@@ -95,7 +97,8 @@ export class Service extends DatabaseService<Model> {
     return onUpdate;
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {

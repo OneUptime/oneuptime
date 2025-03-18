@@ -80,7 +80,8 @@ export class Service extends DatabaseService<StatusPage> {
     super(StatusPage);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<StatusPage>,
   ): Promise<OnCreate<StatusPage>> {
     if (!createBy.data.projectId) {
@@ -161,7 +162,8 @@ export class Service extends DatabaseService<StatusPage> {
     };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<StatusPage>,
     createdItem: StatusPage,
   ): Promise<StatusPage> {
@@ -536,7 +538,8 @@ export class Service extends DatabaseService<StatusPage> {
     return statusPageURL;
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
     // is enabling SMS subscribers.

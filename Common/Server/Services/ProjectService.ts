@@ -90,7 +90,8 @@ export class ProjectService extends DatabaseService<Model> {
     return SubscriptionPlan.getPlanType(planId);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!data.data.name) {
@@ -267,7 +268,8 @@ export class ProjectService extends DatabaseService<Model> {
     return Promise.resolve({ createBy: data, carryForward: null });
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (IsBillingEnabled) {
@@ -553,7 +555,8 @@ export class ProjectService extends DatabaseService<Model> {
     return createdItem;
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -1109,7 +1112,8 @@ export class ProjectService extends DatabaseService<Model> {
     return TeamMemberService.getUsersInTeams(teamIds);
   }
 
-  protected override async onBeforeFind(
+  @CaptureSpan()
+protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
     // if user has no project id, then he should not be able to access any project.
@@ -1125,7 +1129,8 @@ export class ProjectService extends DatabaseService<Model> {
     return { findBy, carryForward: null };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const projects: Array<Model> = await this.findBy({
@@ -1150,7 +1155,8 @@ export class ProjectService extends DatabaseService<Model> {
     return { deleteBy, carryForward: projects };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {

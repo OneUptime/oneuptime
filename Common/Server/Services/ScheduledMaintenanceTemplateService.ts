@@ -107,7 +107,8 @@ export class Service extends DatabaseService<Model> {
     return Recurring.getNextDate(data.dateAndTime, data.recurringInterval);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     this.validateEventTemplate(createBy.data);
@@ -126,7 +127,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     const newTemplate: QueryDeepPartialEntity<Model> = updateBy.data;
@@ -249,7 +251,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {

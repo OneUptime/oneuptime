@@ -20,7 +20,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToDelete: Array<Model> = await this.findBy({
@@ -56,7 +57,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     // check if this project has SMS and Call mEnabled.
@@ -98,7 +100,8 @@ export class Service extends DatabaseService<Model> {
     return { carryForward: null, createBy };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {

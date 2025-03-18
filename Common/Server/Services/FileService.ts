@@ -11,7 +11,8 @@ export class Service extends DatabaseService<File> {
     super(File);
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<File>,
   ): Promise<OnUpdate<File>> {
     if (!updateBy.props.isRoot) {
@@ -21,7 +22,8 @@ export class Service extends DatabaseService<File> {
     return { updateBy, carryForward: null };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<File>,
   ): Promise<OnDelete<File>> {
     if (!deleteBy.props.isRoot) {
@@ -31,7 +33,8 @@ export class Service extends DatabaseService<File> {
     return { deleteBy, carryForward: null };
   }
 
-  protected override async onBeforeFind(
+  @CaptureSpan()
+protected override async onBeforeFind(
     findBy: FindBy<File>,
   ): Promise<OnFind<File>> {
     if (!findBy.props.isRoot) {

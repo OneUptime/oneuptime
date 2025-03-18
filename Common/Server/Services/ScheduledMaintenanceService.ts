@@ -309,7 +309,8 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (
@@ -351,7 +352,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
@@ -378,7 +380,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _deletedItemIds: ObjectID[],
   ): Promise<OnDelete<Model>> {
@@ -424,7 +427,8 @@ export class Service extends DatabaseService<Model> {
     return recurringDate;
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.data.projectId) {
@@ -489,7 +493,8 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
@@ -813,7 +818,8 @@ ${createdItem.description || "No description provided."}
     }
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {

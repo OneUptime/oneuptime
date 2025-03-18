@@ -61,14 +61,16 @@ import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
-import { Green500 } from "../../Types/BrandColors";
+import { Gray500, Green500 } from "../../Types/BrandColors";
+import LabelService from "./LabelService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>
   ): Promise<OnDelete<Model>> {
     if (deleteBy.query._id) {
@@ -89,7 +91,8 @@ export class Service extends DatabaseService<Model> {
     return { deleteBy, carryForward: null };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<Model>> {
@@ -102,7 +105,8 @@ export class Service extends DatabaseService<Model> {
     return onDelete;
   }
 
-  protected override async onUpdateSuccess(
+  @CaptureSpan()
+protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[]
   ): Promise<OnUpdate<Model>> {
@@ -123,10 +127,118 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+     if (updatedItemIds.length > 0) {
+          for (const monitorId of updatedItemIds) {
+            const monitor: Model | null = await this.findOneById({
+              id: monitorId,
+              select: {
+                projectId: true,
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+    
+            const projectId: ObjectID = monitor!.projectId!;
+            const monitorName: string = monitor!.name!;
+    
+            let shouldAddMonitorFeed: boolean = false;
+            let feedInfoInMarkdown: string = `**[Monitor ${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
+    
+            const createdByUserId: ObjectID | undefined | null =
+              onUpdate.updateBy.props.userId;
+    
+            if (onUpdate.updateBy.data.name) {
+              // add monitor feed.
+    
+              feedInfoInMarkdown += `\n\n**Name**: 
+    ${onUpdate.updateBy.data.titlnamee || "No title provided."}
+    `;
+              shouldAddMonitorFeed = true;
+            }
+    
+        
+            if (onUpdate.updateBy.data.description) {
+              // add monitor feed.
+    
+              feedInfoInMarkdown += `\n\n**Monitor Description**: 
+              ${onUpdate.updateBy.data.description || "No description provided."}
+              `;
+              shouldAddMonitorFeed = true;
+            }
+    
+    
+    
+            if (
+              onUpdate.updateBy.data.labels &&
+              onUpdate.updateBy.data.labels.length > 0 &&
+              Array.isArray(onUpdate.updateBy.data.labels)
+            ) {
+              const labelIds: Array<ObjectID> = (
+                onUpdate.updateBy.data.labels as any
+              )
+                .map((label: Label) => {
+                  if (label._id) {
+                    return new ObjectID(label._id?.toString());
+                  }
+    
+                  return null;
+                })
+                .filter((labelId: ObjectID | null) => {
+                  return labelId !== null;
+                });
+    
+              const labels: Array<Label> = await LabelService.findBy({
+                query: {
+                  _id: QueryHelper.any(labelIds),
+                },
+                select: {
+                  name: true,
+                },
+                limit: LIMIT_PER_PROJECT,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
+    
+              if (labels.length > 0) {
+                feedInfoInMarkdown += `\n\n**🏷️ Labels**:
+    
+    ${labels
+      .map((label: Label) => {
+        return `- ${label.name}`;
+      })
+      .join("\n")}
+    `;
+    
+                shouldAddMonitorFeed = true;
+              }
+            }
+    
+    
+            if (shouldAddMonitorFeed) {
+              await MonitorFeedService.createMonitorFeedItem({
+                monitorId: monitorId,
+                projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+                monitorFeedEventType: MonitorFeedEventType.MonitorUpdated,
+                displayColor: Gray500,
+                feedInfoInMarkdown: feedInfoInMarkdown,
+                userId: createdByUserId || undefined,
+                workspaceNotification: {
+                  sendWorkspaceNotification: true,
+                },
+              });
+            }
+          }
+        }
+
     return onUpdate;
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>
   ): Promise<OnUpdate<Model>> {
     if (updateBy.data.disableActiveMonitoring !== undefined) {
@@ -168,7 +280,8 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<Model>
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.monitorType) {
@@ -255,7 +368,8 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model
   ): Promise<Model> {
@@ -1095,5 +1209,31 @@ export class Service extends DatabaseService<Model> {
       }
     );
   }
+
+  // get monitor name
+  @CaptureSpan()
+  public async getMonitorName(data:{
+    monitorId: ObjectID;
+  }): Promise<string> {
+
+    const { monitorId } = data;
+    
+    const monitor: Model | null = await this.findOneById({
+      id: monitorId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!monitor) {
+      throw new BadDataException("Monitor not found.");
+    }
+
+    return monitor.name || "";
+  }
+  
 }
 export default new Service();

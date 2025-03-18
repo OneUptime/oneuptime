@@ -468,7 +468,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     }
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<UserNotificationSetting>,
   ): Promise<OnCreate<UserNotificationSetting>> {
     // check if the same event for same user is added.

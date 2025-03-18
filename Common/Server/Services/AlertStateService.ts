@@ -17,7 +17,8 @@ export class Service extends DatabaseService<AlertState> {
     super(AlertState);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<AlertState>,
   ): Promise<OnCreate<AlertState>> {
     if (!createBy.data.order) {
@@ -40,7 +41,8 @@ export class Service extends DatabaseService<AlertState> {
     };
   }
 
-  protected override async onBeforeDelete(
+  @CaptureSpan()
+protected override async onBeforeDelete(
     deleteBy: DeleteBy<AlertState>,
   ): Promise<OnDelete<AlertState>> {
     if (!deleteBy.query._id && !deleteBy.props.isRoot) {
@@ -70,7 +72,8 @@ export class Service extends DatabaseService<AlertState> {
     };
   }
 
-  protected override async onDeleteSuccess(
+  @CaptureSpan()
+protected override async onDeleteSuccess(
     onDelete: OnDelete<AlertState>,
     _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<AlertState>> {
@@ -93,7 +96,8 @@ export class Service extends DatabaseService<AlertState> {
     };
   }
 
-  protected override async onBeforeUpdate(
+  @CaptureSpan()
+protected override async onBeforeUpdate(
     updateBy: UpdateBy<AlertState>,
   ): Promise<OnUpdate<AlertState>> {
     if (updateBy.data.order && !updateBy.props.isRoot) {

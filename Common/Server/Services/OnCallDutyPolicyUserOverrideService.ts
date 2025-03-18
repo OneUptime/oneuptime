@@ -14,7 +14,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
     super(OnCallDutyPolicyUserOverride);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     createBy: CreateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
     if (!createBy.data.startsAt || !createBy.data.endsAt) {

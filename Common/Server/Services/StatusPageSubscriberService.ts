@@ -37,7 +37,8 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  protected override async onBeforeCreate(
+  @CaptureSpan()
+protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     logger.debug("onBeforeCreate called with data:");
@@ -216,7 +217,8 @@ export class Service extends DatabaseService<Model> {
     return { createBy: data, carryForward: statuspage };
   }
 
-  protected override async onCreateSuccess(
+  @CaptureSpan()
+protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
