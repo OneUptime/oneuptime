@@ -30,7 +30,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<MonitorStatusTimeline>
+    createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     if (!createBy.data.monitorId) {
       throw new BadDataException("monitorId is null");
@@ -72,7 +72,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           {
             userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
-          }
+          },
         )}`;
       }
     }
@@ -143,7 +143,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<MonitorStatusTimeline>,
-    createdItem: MonitorStatusTimeline
+    createdItem: MonitorStatusTimeline,
   ): Promise<MonitorStatusTimeline> {
     if (!createdItem.monitorId) {
       throw new BadDataException("monitorId is null");
@@ -287,7 +287,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<MonitorStatusTimeline>
+    deleteBy: DeleteBy<MonitorStatusTimeline>,
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (deleteBy.query._id) {
       const monitorStatusTimelineToBeDeleted: MonitorStatusTimeline | null =
@@ -322,7 +322,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
         if (monitorStatusTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only status timeline. Monitor should have at least one status timeline."
+            "Cannot delete the only status timeline. Monitor should have at least one status timeline.",
           );
         }
 
@@ -337,7 +337,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               monitorId: monitorId,
               startsAt: QueryHelper.lessThanEqualTo(
-                monitorStatusTimelineToBeDeleted.startsAt!
+                monitorStatusTimelineToBeDeleted.startsAt!,
               ),
             },
             sort: {
@@ -358,7 +358,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             query: {
               monitorId: monitorId,
               startsAt: QueryHelper.greaterThan(
-                monitorStatusTimelineToBeDeleted.startsAt!
+                monitorStatusTimelineToBeDeleted.startsAt!,
               ),
             },
             sort: {
@@ -426,7 +426,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<MonitorStatusTimeline>,
-    _itemIdsBeforeDelete: ObjectID[]
+    _itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (onDelete.carryForward) {
       // this is monitorId.

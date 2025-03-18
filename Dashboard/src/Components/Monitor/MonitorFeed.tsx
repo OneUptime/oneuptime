@@ -42,9 +42,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     });
   };
 
-  type GetFeedItemFromMonitorFeed = (
-    monitorFeed: MonitorFeed,
-  ) => FeedItemProps;
+  type GetFeedItemFromMonitorFeed = (monitorFeed: MonitorFeed) => FeedItemProps;
 
   const getFeedItemFromMonitorFeed: GetFeedItemFromMonitorFeed = (
     monitorFeed: MonitorFeed,
@@ -52,8 +50,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     let icon: IconProp = IconProp.Circle;
 
     if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.MonitorCreated
+      monitorFeed.monitorFeedEventType === MonitorFeedEventType.MonitorCreated
     ) {
       icon = IconProp.Alert;
     }
@@ -66,8 +63,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.MonitorUpdated
+      monitorFeed.monitorFeedEventType === MonitorFeedEventType.MonitorUpdated
     ) {
       icon = IconProp.Edit;
     }
@@ -87,29 +83,25 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     }
 
     if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.OwnerUserAdded
+      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerUserAdded
     ) {
       icon = IconProp.User;
     }
 
     if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.OwnerTeamAdded
+      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerTeamAdded
     ) {
       icon = IconProp.Team;
     }
 
     if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.OwnerUserRemoved
+      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerUserRemoved
     ) {
       icon = IconProp.Close;
     }
 
     if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.OwnerTeamRemoved
+      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerTeamRemoved
     ) {
       icon = IconProp.Close;
     }
@@ -198,7 +190,6 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
             noItemsMessage="Looks like there are no items in this feed for this monitor."
           />
         )}
-
       </div>
     </Card>
   );
