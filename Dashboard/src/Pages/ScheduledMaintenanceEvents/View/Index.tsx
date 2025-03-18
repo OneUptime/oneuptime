@@ -378,7 +378,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       value={item.sendSubscriberNotificationsOnBeforeTheEvent}
                       postfix=" before the event is begins"
                     />
-                    {item.nextSubscriberNotificationBeforeTheEventAt ? <div className="mt-2"><span className="font-semibold">Next reminder will be sent at:</span> {OneUptimeDate.getDateAsLocalFormattedString(item.nextSubscriberNotificationBeforeTheEventAt)}</div> : <></>}
+                    {item.nextSubscriberNotificationBeforeTheEventAt ? <div className="mt-2"><span className="font-semibold">Next reminder will be sent at:</span> {OneUptimeDate.getDateAsLocalFormattedString(item.nextSubscriberNotificationBeforeTheEventAt)}</div> : <p>No further reminders will be sent.</p>}
                   </div>
                 );
               },
