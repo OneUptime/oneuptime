@@ -150,9 +150,9 @@ const Layers: FunctionComponent<ComponentProps> = (
 
       {layers.length > 0 && (
         <Card
-          title={`Final Schedule Preview`}
+          title={`Final Schedule`}
           description={
-            "Here is the final preview of who is on call and when. This is based on your local timezone - " +
+            "Here is the final schedule of who is on call and when. This is based on your local timezone - " +
             OneUptimeDate.getCurrentTimezoneString()
           }
         >
