@@ -33,6 +33,9 @@ enum SlackActionType {
   ViewScheduledMaintenance = "ViewScheduledMaintenance",
   NewScheduledMaintenance = "/maintenance", // new scheduled maintenance slash command
   SubmitNewScheduledMaintenance = "SubmitNewScheduledMaintenance",
+
+  // Monitor Actions
+  ViewMonitor = "ViewMonitor",
 }
 
 export default SlackActionType;

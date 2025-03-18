@@ -45,8 +45,11 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
+
+
 // Monitors
 import MonitorService from "./MonitorService";
+import MonitorFeedService from "./MonitorFeedService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import NotificationService from "./NotificationService";
@@ -158,6 +161,7 @@ import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
+
 const services: Array<BaseService> = [
   AcmeCertificateService,
   PromoCodeService,
@@ -209,6 +213,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  MonitorFeedService,
 
   NotificationService,
 

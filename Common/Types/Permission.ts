@@ -425,6 +425,12 @@ enum Permission {
   ReadIncidentFeed = "ReadIncidentFeed",
   DeleteIncidentFeed = "DeleteIncidentFeed",
 
+
+  CreateMonitorFeed = "CreateMonitorFeed",
+  EditMonitorFeed = "EditMonitorFeed",
+  ReadMonitorFeed = "ReadMonitorFeed",
+  DeleteMonitorFeed = "DeleteMonitorFeed",
+
   CreateScheduledMaintenanceFeed = "CreateScheduledMaintenanceFeed",
   EditScheduledMaintenanceFeed = "EditScheduledMaintenanceFeed",
   ReadScheduledMaintenanceFeed = "ReadScheduledMaintenanceFeed",
@@ -1108,6 +1114,40 @@ export class PermissionHelper {
         title: "Read Incident State Timeline",
         description:
           "This permission can read incident state history of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+
+      {
+        permission: Permission.CreateMonitorFeed,
+        title: "Create Monitor Feed",
+        description:
+          "This permission can create log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteMonitorFeed,
+        title: "Delete Monitor Feed",
+        description:
+          "This permission can delete log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditMonitorFeed,
+        title: "Edit Monitor Feed",
+        description:
+          "This permission can edit log of an incident in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadMonitorFeed,
+        title: "Read Monitor Feed",
+        description:
+          "This permission can read log of an incident in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

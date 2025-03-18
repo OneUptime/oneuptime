@@ -7,6 +7,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "../../../UI/Utils/Dropdown";
+import MonitorType from "../../Monitor/MonitorType";
 import WorkspaceType from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
@@ -255,6 +257,11 @@ export class NotificationRuleConditionUtil {
           label: state.name || "",
         };
       });
+    }
+
+    // if monitor type
+    if(data.checkOn === NotificationRuleConditionCheckOn.MonitorType) {
+      return DropdownUtil.getDropdownOptionsFromEnum(MonitorType);
     }
 
     return [];

@@ -167,6 +167,7 @@ import WorkspaceSetting from "./WorkspaceSetting";
 import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 import ProjectUser from "./ProjectUser";
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
+import MonitorFeed from "./MonitorFeed";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -358,6 +359,8 @@ const AllModelTypes: Array<{
   WorkspaceNotificationRule,
 
   ProjectUser,
+
+  MonitorFeed
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

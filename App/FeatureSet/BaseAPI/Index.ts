@@ -397,6 +397,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 
+
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
@@ -544,6 +545,11 @@ import ProjectUserService, {
   Service as ProjectUserServiceType,
 } from "Common/Server/Services/ProjectUserService";
 
+import MonitorFeed from "Common/Models/DatabaseModels/MonitorFeed";
+import MonitorFeedService, {
+  Service as MonitorFeedServiceType,
+} from "Common/Server/Services/MonitorFeedService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -576,6 +582,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         WorkspaceNotificationRule,
         WorkspaceNotificationRuleService,
+      ).getRouter(),
+    );
+
+
+    // monitor feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MonitorFeed, MonitorFeedServiceType>(
+        MonitorFeed,
+        MonitorFeedService,
       ).getRouter(),
     );
 
