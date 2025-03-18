@@ -19,7 +19,9 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
-import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
+import TelemetryUtil, {
+  AttributeType,
+} from "Common/Server/Utils/Telemetry/Telemetry";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span, {
@@ -64,12 +66,12 @@ export default class OtelIngestService {
   public static async ingestLogs(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void> {
     try {
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId  not found in request.",
+          "Invalid request - projectId not found in request."
         );
       }
 
@@ -79,7 +81,7 @@ export default class OtelIngestService {
 
       const dbLogs: Array<Log> = [];
 
-      let attributes: string[] = [];
+      let attributeKeySet: Set<string> = new Set<string>();
 
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
@@ -89,7 +91,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceLog["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || [],
+          ] as JSONArray) || []
         );
 
         logger.debug(`Service Name: ${serviceName}`);
@@ -108,6 +110,29 @@ export default class OtelIngestService {
             serviceId: service.serviceId,
             dataRententionInDays: service.dataRententionInDays,
             dataIngestedInGB: 0,
+          };
+        }
+
+        let resourceAttributes: Dictionary<
+          AttributeType | Array<AttributeType>
+        > = TelemetryUtil.getAttributesForServiceIdAndServiceName({
+          serviceId: serviceDictionary[serviceName]!.serviceId!,
+          serviceName: serviceName,
+        });
+
+        if (
+          resourceLog["resource"] &&
+          (resourceLog["resource"] as JSONObject)["attributes"] &&
+          ((resourceLog["resource"] as JSONObject)["attributes"] as JSONArray)
+            .length > 0
+        ) {
+          resourceAttributes = {
+            ...TelemetryUtil.getAttributes({
+              items: (resourceLog["resource"] as JSONObject)[
+                "attributes"
+              ] as JSONArray,
+              prefixKeysWithString: "resource",
+            }),
           };
         }
 
@@ -141,29 +166,11 @@ export default class OtelIngestService {
 
             //attributes
 
-            let attributesObject: JSONObject = {};
-
-            if (
-              resourceLog["resource"] &&
-              (resourceLog["resource"] as JSONObject)["attributes"] &&
-              (
-                (resourceLog["resource"] as JSONObject)[
-                  "attributes"
-                ] as JSONArray
-              ).length > 0
-            ) {
-              attributesObject = {
-                ...attributesObject,
-                resource: TelemetryUtil.getAttributes({
-                  items: (resourceLog["resource"] as JSONObject)[
-                    "attributes"
-                  ] as JSONArray,
-                  telemetryServiceName: serviceName,
-                  telemetryServiceId:
-                    serviceDictionary[serviceName]!.serviceId!,
-                }),
-              };
-            }
+            let attributesObject: Dictionary<
+              AttributeType | Array<AttributeType>
+            > = {
+              ...resourceAttributes,
+            };
 
             if (
               scopeLog["scope"] &&
@@ -179,20 +186,21 @@ export default class OtelIngestService {
               ...attributesObject,
               ...TelemetryUtil.getAttributes({
                 items: [],
-                telemetryServiceName: serviceName,
-                telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
-              }),
-              logAttributes: TelemetryUtil.getAttributes({
-                items: log["attributes"] as JSONArray,
+                prefixKeysWithString: "log",
               }),
             };
+
+            attributeKeySet = new Set<string>([
+              ...attributeKeySet,
+              ...Object.keys(dbLog.attributes),
+            ]);
 
             dbLog.projectId = (req as TelemetryRequest).projectId;
             dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
             dbLog.timeUnixNano = log["timeUnixNano"] as number;
             dbLog.time = OneUptimeDate.fromUnixNano(
-              log["timeUnixNano"] as number,
+              log["timeUnixNano"] as number
             );
 
             let logSeverityNumber: number =
@@ -247,14 +255,6 @@ export default class OtelIngestService {
             dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
             dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
 
-            dbLog.attributes = JSONFunctions.flattenObject(dbLog.attributes);
-
-            attributes = [
-              "serviceName",
-              ...attributes,
-              ...Object.keys(dbLog.attributes || {}),
-            ];
-
             dbLogs.push(dbLog);
           }
         }
@@ -268,7 +268,7 @@ export default class OtelIngestService {
       });
 
       TelemetryUtil.indexAttributes({
-        attributes: ArrayUtil.removeDuplicates(attributes),
+        attributes: Object.keys(attributeKeySet),
         projectId: (req as TelemetryRequest).projectId,
         telemetryType: TelemetryType.Log,
       }).catch((err: Error) => {
@@ -293,12 +293,12 @@ export default class OtelIngestService {
   public static async ingestMetrics(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void> {
     try {
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request.",
+          "Invalid request - projectId not found in request."
         );
       }
 
@@ -320,7 +320,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceMetric["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || [],
+          ] as JSONArray) || []
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -458,7 +458,7 @@ export default class OtelIngestService {
                 sumMetric.metricPointType = MetricPointType.Sum;
 
                 sumMetric.attributes = JSONFunctions.flattenObject(
-                  sumMetric.attributes || {},
+                  sumMetric.attributes || {}
                 );
 
                 dbMetrics.push(sumMetric);
@@ -490,7 +490,7 @@ export default class OtelIngestService {
                 guageMetric.metricPointType = MetricPointType.Gauge;
 
                 guageMetric.attributes = JSONFunctions.flattenObject(
-                  guageMetric.attributes || {},
+                  guageMetric.attributes || {}
                 );
 
                 dbMetrics.push(guageMetric);
@@ -522,7 +522,7 @@ export default class OtelIngestService {
                 histogramMetric.metricPointType = MetricPointType.Histogram;
 
                 histogramMetric.attributes = JSONFunctions.flattenObject(
-                  histogramMetric.attributes || {},
+                  histogramMetric.attributes || {}
                 );
 
                 attributes = [
@@ -574,12 +574,12 @@ export default class OtelIngestService {
   public static async ingestTraces(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void> {
     try {
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request.",
+          "Invalid request - projectId not found in request."
         );
       }
 
@@ -601,7 +601,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceSpan["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || [],
+          ] as JSONArray) || []
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -681,7 +681,7 @@ export default class OtelIngestService {
             dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
             dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
             dbSpan.parentSpanId = Text.convertBase64ToHex(
-              span["parentSpanId"] as string,
+              span["parentSpanId"] as string
             );
             dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
             dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
@@ -725,11 +725,11 @@ export default class OtelIngestService {
             ] as string;
 
             dbSpan.startTime = OneUptimeDate.fromUnixNano(
-              span["startTimeUnixNano"] as number,
+              span["startTimeUnixNano"] as number
             );
 
             dbSpan.endTime = OneUptimeDate.fromUnixNano(
-              span["endTimeUnixNano"] as number,
+              span["endTimeUnixNano"] as number
             );
 
             dbSpan.durationUnixNano =
@@ -757,7 +757,7 @@ export default class OtelIngestService {
                     telemetryServiceName: serviceName,
                     telemetryServiceId:
                       serviceDictionary[serviceName]!.serviceId!,
-                  },
+                  }
                 );
 
                 dbSpan.events.push({
