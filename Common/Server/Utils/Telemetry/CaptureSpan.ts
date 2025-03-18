@@ -37,11 +37,8 @@ function CaptureSpan(data?: {
     const name: string | undefined =
       data?.name || `${className}.${propertyKey}`;
 
-   
-
     descriptor.value = function (...args: any[]) {
       if (DisableTelemetry) {
-       
         return originalMethod.apply(this, args);
       }
 
@@ -57,13 +54,11 @@ function CaptureSpan(data?: {
         );
       }
 
-
       const spanAttributes: { [key: string]: any } =
         JSONFunctions.flattenObject({
           ...functionArguments,
           ...data?.attributes,
         }) as { [key: string]: any };
-
 
       return Telemetry.startActiveSpan({
         name: name,
@@ -87,12 +82,11 @@ function CaptureSpan(data?: {
                     span,
                     exception: err,
                   });
-                  
+
                   throw err;
                 })
                 .finally(() => {
                   span.end();
-                  
                 });
             }
             span.setStatus({
@@ -104,12 +98,11 @@ function CaptureSpan(data?: {
               span,
               exception: err,
             });
-            
+
             throw err;
           } finally {
             if (!(result instanceof Promise)) {
               span.end();
-              
             }
           }
         },

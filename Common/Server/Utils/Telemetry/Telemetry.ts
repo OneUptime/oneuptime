@@ -8,7 +8,6 @@ import TelemetryAttributeService from "../../Services/TelemetryAttributeService"
 import CaptureSpan from "./CaptureSpan";
 
 export default class TelemetryUtil {
-
   @CaptureSpan()
   public static async indexAttributes(data: {
     attributes: string[];
@@ -62,7 +61,6 @@ export default class TelemetryUtil {
       });
     }
   }
-
 
   @CaptureSpan()
   public static getAttributes(data: {
