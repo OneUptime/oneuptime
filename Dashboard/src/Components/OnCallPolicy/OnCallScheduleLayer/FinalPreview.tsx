@@ -39,9 +39,6 @@ const Layers: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string>("");
 
 
-  const [showCannotDeleteOnlyLayerError, setShowCannotDeleteOnlyLayerError] =
-    React.useState<boolean>(false);
-
   useEffect(() => {
     //fetch layers.
     fetchLayers().catch((err: Error) => {
