@@ -92,7 +92,6 @@ export default class OtelIngestService {
           ] as JSONArray) || [],
         );
 
-        logger.debug(`Attributes: ${JSON.stringify(resourceLog, null, 2)}`);
         logger.debug(`Service Name: ${serviceName}`);
 
         if (!serviceDictionary[serviceName]) {

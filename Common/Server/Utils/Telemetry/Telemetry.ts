@@ -118,38 +118,12 @@ export default class TelemetryUtil {
     }
 
     // add oneuptime specific attributes
-    if (!finalObj["oneuptime"]) {
-      finalObj["oneuptime"] = {};
-    }
-
-    if (!(finalObj["oneuptime"] as JSONObject)["telemetry"]) {
-      (finalObj["oneuptime"] as JSONObject)["telemetry"] = {};
-    }
-
-    if (
-      !((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
-        "service"
-      ]
-    ) {
-      ((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
-        "service"
-      ] = {};
-    }
-
     if (data.telemetryServiceId) {
-      (
-        ((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
-          "service"
-        ] as JSONObject
-      )["id"] = data.telemetryServiceId.toString();
+      finalObj["oneuptime.telemetry.service.id"] = data.telemetryServiceId.toString();
     }
 
     if (data.telemetryServiceName) {
-      (
-        ((finalObj["oneuptime"] as JSONObject)["telemetry"] as JSONObject)[
-          "service"
-        ] as JSONObject
-      )["name"] = data.telemetryServiceName;
+      finalObj["oneuptime.telemetry.service.name"] = data.telemetryServiceName;
     }
 
     return JSONFunctions.flattenObject(finalObj);
