@@ -133,7 +133,7 @@ export class Service extends DatabaseService<MonitorFeed> {
       sendWorkspaceNotification: boolean;
       appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
     };
-  }) {
+  }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
         projectId: data.projectId,
