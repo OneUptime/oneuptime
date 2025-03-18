@@ -15,6 +15,10 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import MonitorFeedService from "./MonitorFeedService";
+import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusService from "./MonitorStatusService";
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
@@ -26,7 +30,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<MonitorStatusTimeline>,
+    createBy: CreateBy<MonitorStatusTimeline>
   ): Promise<OnCreate<MonitorStatusTimeline>> {
     if (!createBy.data.monitorId) {
       throw new BadDataException("monitorId is null");
@@ -68,7 +72,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
           {
             userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
+          }
         )}`;
       }
     }
@@ -139,7 +143,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<MonitorStatusTimeline>,
-    createdItem: MonitorStatusTimeline,
+    createdItem: MonitorStatusTimeline
   ): Promise<MonitorStatusTimeline> {
     if (!createdItem.monitorId) {
       throw new BadDataException("monitorId is null");
@@ -223,12 +227,67 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       await Semaphore.release(mutex);
     }
 
+    const monitorStatus: MonitorStatus | null =
+      await MonitorStatusService.findOneBy({
+        query: {
+          _id: createdItem.monitorStatusId.toString()!,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+          isOfflineState: true,
+          isOperationalState: true,
+          color: true,
+          name: true,
+        },
+      });
+
+    const stateName: string = monitorStatus?.name || "";
+    let stateEmoji: string = "➡️";
+
+    // if resolved state then change emoji to 🟢.
+
+    if (monitorStatus?.isOperationalState) {
+      stateEmoji = "🟢";
+    } else if (monitorStatus?.isOfflineState) {
+      stateEmoji = "🔴";
+    }
+
+    const monitorName: string | null = await MonitorService.getMonitorName({
+      monitorId: createdItem.monitorId,
+    });
+
+    const projectId: ObjectID = createdItem.projectId!;
+    const monitorId: ObjectID = createdItem.monitorId!;
+
+    await MonitorFeedService.createMonitorFeedItem({
+      monitorId: createdItem.monitorId!,
+      projectId: createdItem.projectId!,
+      monitorFeedEventType: MonitorFeedEventType.MonitorStatusChanged,
+      displayColor: monitorStatus?.color,
+      feedInfoInMarkdown:
+        stateEmoji +
+        ` Changed **[Monitor ${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **` +
+        stateName +
+        "**",
+      moreInformationInMarkdown: `**Cause:** 
+    ${createdItem.rootCause}`,
+      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId:
+          createdItem.createdByUserId || onCreate.createBy.props.userId,
+      },
+    });
+
     return createdItem;
   }
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<MonitorStatusTimeline>,
+    deleteBy: DeleteBy<MonitorStatusTimeline>
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (deleteBy.query._id) {
       const monitorStatusTimelineToBeDeleted: MonitorStatusTimeline | null =
@@ -263,7 +322,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
 
         if (monitorStatusTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only status timeline. Monitor should have at least one status timeline.",
+            "Cannot delete the only status timeline. Monitor should have at least one status timeline."
           );
         }
 
@@ -278,7 +337,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               monitorId: monitorId,
               startsAt: QueryHelper.lessThanEqualTo(
-                monitorStatusTimelineToBeDeleted.startsAt!,
+                monitorStatusTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -299,7 +358,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
             query: {
               monitorId: monitorId,
               startsAt: QueryHelper.greaterThan(
-                monitorStatusTimelineToBeDeleted.startsAt!,
+                monitorStatusTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -367,7 +426,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<MonitorStatusTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<MonitorStatusTimeline>> {
     if (onDelete.carryForward) {
       // this is monitorId.
