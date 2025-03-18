@@ -101,7 +101,7 @@ RunCron(
       const projectId: ObjectID = event.projectId!;
       const scheduledMaintenanceId: ObjectID = event.id!;
 
-      const scheduledMaintenanceFeedText: string = `🗓️ **Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})****:
+      const scheduledMaintenanceFeedText: string = `🗓️ **Reminder Notification Sent to Subscribers for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
             
 Reminder notification sent to status page subscribers for this scheduled maintenance event.`;
 
