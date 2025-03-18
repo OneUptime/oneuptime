@@ -133,7 +133,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
   ];
 
-
   formFields = formFields.concat([
     {
       field: {
@@ -219,7 +218,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       }),
     },
   ]);
-
 
   // if alerts or incidents
 

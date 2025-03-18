@@ -59,14 +59,15 @@ export default class WorkspaceUtil {
                 authToken: projectAuthToken.authToken,
               });
 
-              if(!workspaceUsername) {
-                const userstring: string = await UserService.getUserMarkdownString({
+            if (!workspaceUsername) {
+              const userstring: string =
+                await UserService.getUserMarkdownString({
                   userId: data.userId,
                   projectId: data.projectId,
                 });
-      
-                userStringToAppend = `${userstring} `;
-              }
+
+              userStringToAppend = `${userstring} `;
+            }
 
             userStringToAppend = `@${workspaceUsername} `;
           }

@@ -11,7 +11,6 @@ import MonitorFeed, {
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
