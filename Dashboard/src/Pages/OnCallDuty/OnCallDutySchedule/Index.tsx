@@ -8,6 +8,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
+import DashboardNavigation from "../../../Utils/Navigation";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
@@ -116,6 +118,11 @@ const OnCallDutyScheduleView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      <FinalPreview onCallDutyPolicyScheduleId={modelId} projectId={
+        DashboardNavigation.getProjectId() as ObjectID
+      } />
+
     </Fragment>
   );
 };
