@@ -99,6 +99,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             },
             onCallDutyPolicyScheduleId: true,
             projectId: true,
+            order: true,
           },
           sort: {
             order: SortOrder.Ascending,
