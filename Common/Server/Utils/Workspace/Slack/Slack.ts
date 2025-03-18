@@ -301,7 +301,7 @@ export default class SlackUtil extends WorkspaceBase {
       channelName = channelName.toLowerCase();
 
       // replace spaces with hyphens
-      channelName = channelName.replace(/\s+/g, '-');
+      channelName = channelName.replace(/\s+/g, "-");
 
       if (existingWorkspaceChannels[channelName]) {
         logger.debug(`Channel ${channelName} already exists.`);

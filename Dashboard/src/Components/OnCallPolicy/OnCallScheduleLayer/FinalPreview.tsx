@@ -34,10 +34,7 @@ const Layers: FunctionComponent<ComponentProps> = (
     Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>
   >({});
 
-
-
   const [error, setError] = React.useState<string>("");
-
 
   useEffect(() => {
     //fetch layers.
@@ -46,7 +43,6 @@ const Layers: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  
   const fetchLayers: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
 
@@ -78,10 +74,11 @@ const Layers: FunctionComponent<ComponentProps> = (
 
       setLayers(layers.data);
 
-      // get layer users. 
-      const layerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> = {};
+      // get layer users.
+      const layerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> =
+        {};
 
-      const onCallDutyPolicyScheduleLayerUser: ListResult<OnCallDutyPolicyScheduleLayerUser> = 
+      const onCallDutyPolicyScheduleLayerUser: ListResult<OnCallDutyPolicyScheduleLayerUser> =
         await ModelAPI.getList<OnCallDutyPolicyScheduleLayerUser>({
           modelType: OnCallDutyPolicyScheduleLayerUser,
           query: {
@@ -94,8 +91,8 @@ const Layers: FunctionComponent<ComponentProps> = (
             onCallDutyPolicyScheduleLayerId: true,
             userId: true,
             user: {
-                name: true,
-                email: true,
+              name: true,
+              email: true,
             },
             onCallDutyPolicyScheduleId: true,
             projectId: true,
@@ -106,20 +103,20 @@ const Layers: FunctionComponent<ComponentProps> = (
           },
         });
 
-        // map layer users to layer id.
-        onCallDutyPolicyScheduleLayerUser.data.forEach((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-            const layerId: string = layerUser.onCallDutyPolicyScheduleLayerId?.toString() || "";
-            if (!layerUsers[layerId]) {
-                layerUsers[layerId] = [];
-            }
-    
-            layerUsers[layerId].push(layerUser);
-            }
-        );
+      // map layer users to layer id.
+      onCallDutyPolicyScheduleLayerUser.data.forEach(
+        (layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+          const layerId: string =
+            layerUser.onCallDutyPolicyScheduleLayerId?.toString() || "";
+          if (!layerUsers[layerId]) {
+            layerUsers[layerId] = [];
+          }
 
-        setLayerUsers(layerUsers);
+          layerUsers[layerId].push(layerUser);
+        },
+      );
 
-
+      setLayerUsers(layerUsers);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -137,13 +134,16 @@ const Layers: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-
       {layers.length === 0 && (
         <EmptyState
           showSolidBackground={false}
           id="no-layers"
-          title={"No Layers in this On Call Schedule. Please go to layers tab to add one."}
-          description={"No layers in this on-call schedule. Please add a layer to start on-call rotations and scheduling."}
+          title={
+            "No Layers in this On Call Schedule. Please go to layers tab to add one."
+          }
+          description={
+            "No layers in this on-call schedule. Please add a layer to start on-call rotations and scheduling."
+          }
           icon={IconProp.SquareStack}
         />
       )}

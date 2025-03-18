@@ -119,10 +119,10 @@ const OnCallDutyScheduleView: FunctionComponent<
         }}
       />
 
-      <FinalPreview onCallDutyPolicyScheduleId={modelId} projectId={
-        DashboardNavigation.getProjectId() as ObjectID
-      } />
-
+      <FinalPreview
+        onCallDutyPolicyScheduleId={modelId}
+        projectId={DashboardNavigation.getProjectId() as ObjectID}
+      />
     </Fragment>
   );
 };

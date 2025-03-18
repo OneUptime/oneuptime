@@ -408,7 +408,9 @@ export class Service extends DatabaseService<Model> {
     logger.debug(`getNextTimeToNotify: `);
     logger.debug(data);
 
-    logger.debug(`Calculating next time to notify for event scheduled date: ${data.eventScheduledDate}`);
+    logger.debug(
+      `Calculating next time to notify for event scheduled date: ${data.eventScheduledDate}`,
+    );
 
     for (const recurringItem of data.sendSubscriberNotifiationsOn) {
       const notificationDate: Date = Recurring.getNextDateInterval(
@@ -417,23 +419,34 @@ export class Service extends DatabaseService<Model> {
         true,
       );
 
-      logger.debug(`Notification date calculated: ${notificationDate} for recurring item: ${recurringItem}`);
+      logger.debug(
+        `Notification date calculated: ${notificationDate} for recurring item: ${recurringItem}`,
+      );
 
       // if this date is in the future. set it to recurring date.
       if (!recurringDate && OneUptimeDate.isInTheFuture(notificationDate)) {
         recurringDate = notificationDate;
-        logger.debug(`Notification date is in the future. Setting recurring date to: ${recurringDate}`);
-      }else{
+        logger.debug(
+          `Notification date is in the future. Setting recurring date to: ${recurringDate}`,
+        );
+      } else {
         logger.debug(`Notification date is in the past. Skipping.`);
       }
 
       // if this new date is less than the recurring date then set it to recuring date. We need to get the least date.
       if (recurringDate) {
-        if (OneUptimeDate.isBefore(notificationDate, recurringDate) && OneUptimeDate.isInTheFuture(notificationDate)) {
+        if (
+          OneUptimeDate.isBefore(notificationDate, recurringDate) &&
+          OneUptimeDate.isInTheFuture(notificationDate)
+        ) {
           recurringDate = notificationDate;
-          logger.debug(`Found an earlier notification date. Updating recurring date to: ${recurringDate}`);
-        }else{
-          logger.debug(`Notification date is not earlier than recurring date. Skipping.`);
+          logger.debug(
+            `Found an earlier notification date. Updating recurring date to: ${recurringDate}`,
+          );
+        } else {
+          logger.debug(
+            `Notification date is not earlier than recurring date. Skipping.`,
+          );
         }
       }
     }

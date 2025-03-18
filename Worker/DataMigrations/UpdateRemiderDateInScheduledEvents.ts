@@ -55,7 +55,7 @@ export default class UpdateRemiderDateInScheduledEvent extends DataMigrationBase
         });
       } catch (error) {
         logger.error(
-          "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Error while sending notification for event: "
+          "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled: Error while sending notification for event: ",
         );
         logger.error(error);
       }
