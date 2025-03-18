@@ -11,12 +11,12 @@ function CaptureSpan(data?: {
 }): (
   target: any,
   propertyKey: string,
-  descriptor: PropertyDescriptor,
-) => PropertyDescriptor {
+  descriptor: TypedPropertyDescriptor<any>,
+) => TypedPropertyDescriptor<any> {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor,
+    descriptor: TypedPropertyDescriptor<any>,
   ) {
     const originalMethod: any = descriptor.value;
 
