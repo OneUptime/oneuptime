@@ -189,7 +189,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <RecurringArrayViewElement
                     value={item.sendSubscriberNotificationsOnBeforeTheEvent}
-                    postfix=" before the event is scheduled"
+                    postfix=" before the event is begins"
                   />
                 );
               },

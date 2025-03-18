@@ -24,7 +24,6 @@ RunCron(
           nextSubscriberNotificationBeforeTheEventAt: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
           ),
-          createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
         props: {
           isRoot: true,

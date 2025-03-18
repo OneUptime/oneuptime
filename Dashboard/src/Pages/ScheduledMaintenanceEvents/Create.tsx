@@ -609,7 +609,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         value={
                           item.sendSubscriberNotificationsOnBeforeTheEvent as Recurring[]
                         }
-                        postfix=" before the event is scheduled"
+                        postfix=" before the event is begins"
                       />
                     );
                   },

@@ -27,6 +27,7 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
+import OneUptimeDate from "Common/Types/Date";
 
 const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
@@ -258,6 +259,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
               true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
+            nextSubscriberNotificationBeforeTheEventAt: true,
           },
           fields: [
             {
@@ -371,10 +373,13 @@ const ScheduledMaintenanceView: FunctionComponent<
               fieldType: FieldType.Boolean,
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 return (
-                  <RecurringArrayViewElement
-                    value={item.sendSubscriberNotificationsOnBeforeTheEvent}
-                    postfix=" before the event is scheduled"
-                  />
+                  <div>
+                    <RecurringArrayViewElement
+                      value={item.sendSubscriberNotificationsOnBeforeTheEvent}
+                      postfix=" before the event is begins"
+                    />
+                    {item.nextSubscriberNotificationBeforeTheEventAt ? <div className="mt-2"><span className="font-semibold">Next reminder will be sent at:</span> {OneUptimeDate.getDateAsLocalFormattedString(item.nextSubscriberNotificationBeforeTheEventAt)}</div> : <></>}
+                  </div>
                 );
               },
             },
@@ -391,7 +396,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
+                          "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
                           ] as boolean
                         }
                         text={
@@ -407,7 +412,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
+                          "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
                           ] as boolean
                         }
                         text={
@@ -423,7 +428,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                       <CheckboxViewer
                         isChecked={
                           item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
+                          "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
                           ] as boolean
                         }
                         text={
