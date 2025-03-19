@@ -112,7 +112,7 @@ const Layers: FunctionComponent<ComponentProps> = (
             layerUsers[layerId] = [];
           }
 
-          layerUsers[layerId].push(layerUser);
+          layerUsers[layerId]!.push(layerUser);
         },
       );
 
