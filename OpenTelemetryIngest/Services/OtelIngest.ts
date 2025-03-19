@@ -580,7 +580,7 @@ export default class OtelIngestService {
       const dbSpans: Array<Span> = [];
       const dbExceptions: Array<ExceptionInstance> = [];
 
-      let attributeKeySet: Set<string> = new Set<string>();
+      const attributeKeySet: Set<string> = new Set<string>();
 
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
@@ -610,28 +610,20 @@ export default class OtelIngestService {
           };
         }
 
-        let resourceAttributes: Dictionary<
+        const resourceAttributes: Dictionary<
           AttributeType | Array<AttributeType>
-        > = TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        });
-
-        if (
-          resourceSpan["resource"] &&
-          (resourceSpan["resource"] as JSONObject)["attributes"] &&
-          ((resourceSpan["resource"] as JSONObject)["attributes"] as JSONArray)
-            .length > 0
-        ) {
-          resourceAttributes = {
-            ...TelemetryUtil.getAttributes({
-              items: (resourceSpan["resource"] as JSONObject)[
-                "attributes"
-              ] as JSONArray,
-              prefixKeysWithString: "resource",
-            }),
-          };
-        }
+        > = {
+          ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+            serviceId: serviceDictionary[serviceName]!.serviceId!,
+            serviceName: serviceName,
+          }),
+          ...TelemetryUtil.getAttributes({
+            items: (resourceSpan["resource"] as JSONObject)?.[
+              "attributes"
+            ] as JSONArray || [],
+            prefixKeysWithString: "resource",
+          }),
+        };
 
         // size of req.body in bytes.
         const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceSpan);
@@ -649,6 +641,10 @@ export default class OtelIngestService {
               AttributeType | Array<AttributeType>
             > = {
               ...resourceAttributes,
+              ...TelemetryUtil.getAttributes({
+                items: span["attributes"] as JSONArray,
+                prefixKeysWithString: "spanAttributes",
+              }),
             };
 
             if (
@@ -666,18 +662,9 @@ export default class OtelIngestService {
               }
             }
 
-            dbSpan.attributes = {
-              ...attributesObject,
-              ...TelemetryUtil.getAttributes({
-                items: span["attributes"] as JSONArray,
-                prefixKeysWithString: "spanAttributes",
-              }),
-            };
+            dbSpan.attributes = attributesObject;
 
-            attributeKeySet = new Set<string>([
-              ...attributeKeySet,
-              ...Object.keys(dbSpan.attributes),
-            ]);
+            attributeKeySet.add(...Object.keys(dbSpan.attributes));
 
             dbSpan.projectId = (req as TelemetryRequest).projectId;
             dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
@@ -690,40 +677,7 @@ export default class OtelIngestService {
             dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
             dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
 
-            let spanStatusCode: SpanStatus = SpanStatus.Unset;
-
-            if (
-              span["status"] &&
-              (span["status"] as JSONObject)?.["code"] &&
-              typeof (span["status"] as JSONObject)?.["code"] === "number"
-            ) {
-              spanStatusCode = (span["status"] as JSONObject)?.[
-                "code"
-              ] as number;
-            }
-
-            if (
-              span["status"] &&
-              (span["status"] as JSONObject)?.["code"] &&
-              typeof (span["status"] as JSONObject)?.["code"] === "string"
-            ) {
-              if (
-                (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_UNSET"
-              ) {
-                spanStatusCode = SpanStatus.Unset;
-              } else if (
-                (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_OK"
-              ) {
-                spanStatusCode = SpanStatus.Ok;
-              } else if (
-                (span["status"] as JSONObject)?.["code"] === "STATUS_CODE_ERROR"
-              ) {
-                spanStatusCode = SpanStatus.Error;
-              }
-            }
-
-            dbSpan.statusCode = spanStatusCode;
-
+            dbSpan.statusCode = this.getSpanStatusCode(span["status"] as JSONObject);
             dbSpan.statusMessage = (span["status"] as JSONObject)?.[
               "message"
             ] as string;
@@ -744,129 +698,141 @@ export default class OtelIngestService {
             dbSpan.kind = (span["kind"] as SpanKind) || SpanKind.Internal;
 
             // add events
-
-            if (span["events"] && span["events"] instanceof Array) {
-              dbSpan.events = [];
-
-              for (const event of span["events"] as JSONArray) {
-                const eventTimeUnixNano: number = event[
-                  "timeUnixNano"
-                ] as number;
-                const eventTime: Date =
-                  OneUptimeDate.fromUnixNano(eventTimeUnixNano);
-
-                const eventAttributes: JSONObject = TelemetryUtil.getAttributes(
-                  {
-                    items: event["attributes"] as JSONArray,
-                    prefixKeysWithString: "",
-                  },
-                );
-
-                dbSpan.events.push({
-                  time: eventTime,
-                  timeUnixNano: eventTimeUnixNano,
-                  name: event["name"] as string,
-                  attributes: eventAttributes,
-                });
-
-                if (event["name"] === SpanEventType.Exception) {
-                  // add exception object.
-                  const exception: ExceptionInstance = new ExceptionInstance();
-                  exception.projectId = dbSpan.projectId;
-                  exception.serviceId = dbSpan.serviceId;
-                  exception.spanId = dbSpan.spanId;
-                  exception.traceId = dbSpan.traceId;
-                  exception.time = eventTime;
-                  exception.timeUnixNano = eventTimeUnixNano;
-                  exception.spanStatusCode = dbSpan.statusCode;
-                  exception.spanName = dbSpan.name;
-                  exception.message =
-                    (eventAttributes["exception.message"] as string) || "";
-                  exception.stackTrace =
-                    (eventAttributes["exception.stacktrace"] as string) || "";
-                  exception.exceptionType =
-                    (eventAttributes["exception.type"] as string) || "";
-                  exception.escaped =
-                    (eventAttributes["exception.escaped"] as boolean) || false;
-                  const exceptionAttributes: JSONObject = {
-                    ...eventAttributes,
-                  };
-
-                  for (const keys of Object.keys(exceptionAttributes)) {
-                    // delete all keys that start with exception to avoid duplicate keys because we already saved it.
-                    if (keys.startsWith("exception.")) {
-                      delete exceptionAttributes[keys];
-                    }
-                  }
-
-                  exception.attributes = exceptionAttributes;
-                  exception.fingerprint =
-                    ExceptionUtil.getFingerprint(exception);
-
-                  // add exception to dbExceptions
-                  dbExceptions.push(exception);
-
-                  // save exception status
-                  // maybe this can be improved instead of doing a lot of db calls.
-                  await ExceptionUtil.saveOrUpdateTelemetryException(exception);
-                }
-              }
-            }
+            dbSpan.events = this.getSpanEvents(span["events"] as JSONArray, dbSpan, dbExceptions);
 
             // add links
+            dbSpan.links = this.getSpanLinks(span["links"] as JSONArray);
 
-            if (span["links"] && span["links"] instanceof Array) {
-              dbSpan.links = [];
-
-              for (const link of span["links"] as JSONArray) {
-                dbSpan.links.push({
-                  traceId: Text.convertBase64ToHex(link["traceId"] as string),
-                  spanId: Text.convertBase64ToHex(link["spanId"] as string),
-                  attributes: TelemetryUtil.getAttributes({
-                    items: link["attributes"] as JSONArray,
-                    prefixKeysWithString: "",
-                  }),
-                });
-              }
-            }
-
-            attributeKeySet = new Set<string>([
-              ...attributeKeySet,
-              ...Object.keys(dbSpan.attributes || {}),
-            ]);
+            attributeKeySet.add(...Object.keys(dbSpan.attributes || {}));
 
             dbSpans.push(dbSpan);
           }
         }
       }
 
-      await SpanService.createMany({
-        items: dbSpans,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      await ExceptionInstanceService.createMany({
-        items: dbExceptions,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      await TelemetryUtil.indexAttributes({
-        attributes: Object.keys(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Trace,
-      });
-
-      await OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Traces,
-      });
+      await Promise.all([
+        SpanService.createMany({
+          items: dbSpans,
+          props: {
+            isRoot: true,
+          },
+        }),
+        ExceptionInstanceService.createMany({
+          items: dbExceptions,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Trace,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Traces,
+        }),
+      ]);
     } catch (err) {
       return next(err);
     }
+  }
+
+  private static getSpanStatusCode(status: JSONObject): SpanStatus {
+    let spanStatusCode: SpanStatus = SpanStatus.Unset;
+
+    if (status?.["code"] && typeof status["code"] === "number") {
+      spanStatusCode = status["code"] as number;
+    } else if (status?.["code"] && typeof status["code"] === "string") {
+      if (status["code"] === "STATUS_CODE_UNSET") {
+        spanStatusCode = SpanStatus.Unset;
+      } else if (status["code"] === "STATUS_CODE_OK") {
+        spanStatusCode = SpanStatus.Ok;
+      } else if (status["code"] === "STATUS_CODE_ERROR") {
+        spanStatusCode = SpanStatus.Error;
+      }
+    }
+
+    return spanStatusCode;
+  }
+
+  private static getSpanEvents(events: JSONArray, dbSpan: Span, dbExceptions: Array<ExceptionInstance>): Array<any> {
+    const spanEvents: Array<any> = [];
+
+    if (events && events instanceof Array) {
+      for (const event of events) {
+        const eventTimeUnixNano: number = event["timeUnixNano"] as number;
+        const eventTime: Date = OneUptimeDate.fromUnixNano(eventTimeUnixNano);
+
+        const eventAttributes: JSONObject = TelemetryUtil.getAttributes({
+          items: event["attributes"] as JSONArray,
+          prefixKeysWithString: "",
+        });
+
+        spanEvents.push({
+          time: eventTime,
+          timeUnixNano: eventTimeUnixNano,
+          name: event["name"] as string,
+          attributes: eventAttributes,
+        });
+
+        if (event["name"] === SpanEventType.Exception) {
+          // add exception object.
+          const exception: ExceptionInstance = new ExceptionInstance();
+          exception.projectId = dbSpan.projectId;
+          exception.serviceId = dbSpan.serviceId;
+          exception.spanId = dbSpan.spanId;
+          exception.traceId = dbSpan.traceId;
+          exception.time = eventTime;
+          exception.timeUnixNano = eventTimeUnixNano;
+          exception.spanStatusCode = dbSpan.statusCode;
+          exception.spanName = dbSpan.name;
+          exception.message = (eventAttributes["exception.message"] as string) || "";
+          exception.stackTrace = (eventAttributes["exception.stacktrace"] as string) || "";
+          exception.exceptionType = (eventAttributes["exception.type"] as string) || "";
+          exception.escaped = (eventAttributes["exception.escaped"] as boolean) || false;
+          const exceptionAttributes: JSONObject = { ...eventAttributes };
+
+          for (const keys of Object.keys(exceptionAttributes)) {
+            // delete all keys that start with exception to avoid duplicate keys because we already saved it.
+            if (keys.startsWith("exception.")) {
+              delete exceptionAttributes[keys];
+            }
+          }
+
+          exception.attributes = exceptionAttributes;
+          exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+
+          // add exception to dbExceptions
+          dbExceptions.push(exception);
+
+          // save exception status
+          // maybe this can be improved instead of doing a lot of db calls.
+          ExceptionUtil.saveOrUpdateTelemetryException(exception);
+        }
+      }
+    }
+
+    return spanEvents;
+  }
+
+  private static getSpanLinks(links: JSONArray): Array<any> {
+    const spanLinks: Array<any> = [];
+
+    if (links && links instanceof Array) {
+      for (const link of links) {
+        spanLinks.push({
+          traceId: Text.convertBase64ToHex(link["traceId"] as string),
+          spanId: Text.convertBase64ToHex(link["spanId"] as string),
+          attributes: TelemetryUtil.getAttributes({
+            items: link["attributes"] as JSONArray,
+            prefixKeysWithString: "",
+          }),
+        });
+      }
+    }
+
+    return spanLinks;
   }
 }
