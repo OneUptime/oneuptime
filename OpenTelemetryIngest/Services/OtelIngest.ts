@@ -95,7 +95,7 @@ export default class OtelIngestService {
           const service: {
             serviceId: ObjectID;
             dataRententionInDays: number;
-        } = await OTelIngestService.telemetryServiceFromName({
+          } = await OTelIngestService.telemetryServiceFromName({
             serviceName: serviceName,
             projectId: (req as TelemetryRequest).projectId,
           });
@@ -108,7 +108,9 @@ export default class OtelIngestService {
           };
         }
 
-        const resourceAttributes: Dictionary<AttributeType | Array<AttributeType>> = {
+        const resourceAttributes: Dictionary<
+          AttributeType | Array<AttributeType>
+        > = {
           ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
             serviceId: serviceDictionary[serviceName]!.serviceId!,
             serviceName: serviceName,
@@ -133,7 +135,9 @@ export default class OtelIngestService {
           for (const log of logRecords) {
             const dbLog: Log = new Log();
 
-            const attributesObject: Dictionary<AttributeType | Array<AttributeType>> = {
+            const attributesObject: Dictionary<
+              AttributeType | Array<AttributeType>
+            > = {
               ...resourceAttributes,
               ...TelemetryUtil.getAttributes({
                 items: [],
@@ -281,7 +285,10 @@ export default class OtelIngestService {
         );
 
         if (!serviceDictionary[serviceName]) {
-          const service = await OTelIngestService.telemetryServiceFromName({
+          const service: {
+            serviceId: ObjectID;
+            dataRententionInDays: number;
+          } = await OTelIngestService.telemetryServiceFromName({
             serviceName: serviceName,
             projectId: (req as TelemetryRequest).projectId,
           });
@@ -294,7 +301,9 @@ export default class OtelIngestService {
           };
         }
 
-        const resourceAttributes = {
+        const resourceAttributes: Dictionary<
+          AttributeType | Array<AttributeType>
+        > = {
           ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
             serviceId: serviceDictionary[serviceName]!.serviceId!,
             serviceName: serviceName,
@@ -328,7 +337,9 @@ export default class OtelIngestService {
             dbMetric.description = metric["description"] as string;
             dbMetric.unit = metric["unit"] as string;
 
-            const attributesObject: Dictionary<AttributeType | Array<AttributeType>> = {
+            const attributesObject: Dictionary<
+              AttributeType | Array<AttributeType>
+            > = {
               ...resourceAttributes,
               ...TelemetryUtil.getAttributes({
                 items: [],
@@ -356,7 +367,9 @@ export default class OtelIngestService {
               return attributeKeySet.add(key);
             });
 
-            const dataPoints: JSONArray = ((metric["sum"] as JSONObject)?.["dataPoints"] ||
+            const dataPoints: JSONArray = ((metric["sum"] as JSONObject)?.[
+              "dataPoints"
+            ] ||
               (metric["gauge"] as JSONObject)?.["dataPoints"] ||
               (metric["histogram"] as JSONObject)?.["dataPoints"]) as JSONArray;
 
@@ -367,30 +380,31 @@ export default class OtelIngestService {
                   : metric["gauge"]
                     ? MetricPointType.Gauge
                     : MetricPointType.Histogram;
-                const dbMetricPoint = OTelIngestService.getMetricFromDatapoint({
-                  dbMetric: dbMetric,
-                  datapoint: datapoint,
-                  aggregationTemporality:
-                    ((metric["sum"] as JSONObject)?.[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality) ||
-                    ((metric["gauge"] as JSONObject)?.[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality) ||
-                    ((metric["histogram"] as JSONObject)?.[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality),
-                  isMonotonic: ((metric["sum"] as JSONObject)?.[
-                    "isMonotonic"
-                  ] ||
-                    (metric["gauge"] as JSONObject)?.["isMonotonic"] ||
-                    (metric["histogram"] as JSONObject)?.[
+                const dbMetricPoint: Metric =
+                  OTelIngestService.getMetricFromDatapoint({
+                    dbMetric: dbMetric,
+                    datapoint: datapoint,
+                    aggregationTemporality:
+                      ((metric["sum"] as JSONObject)?.[
+                        "aggregationTemporality"
+                      ] as OtelAggregationTemporality) ||
+                      ((metric["gauge"] as JSONObject)?.[
+                        "aggregationTemporality"
+                      ] as OtelAggregationTemporality) ||
+                      ((metric["histogram"] as JSONObject)?.[
+                        "aggregationTemporality"
+                      ] as OtelAggregationTemporality),
+                    isMonotonic: ((metric["sum"] as JSONObject)?.[
                       "isMonotonic"
-                    ]) as boolean,
-                  telemetryServiceId:
-                    serviceDictionary[serviceName]!.serviceId!,
-                  telemetryServiceName: serviceName,
-                });
+                    ] ||
+                      (metric["gauge"] as JSONObject)?.["isMonotonic"] ||
+                      (metric["histogram"] as JSONObject)?.[
+                        "isMonotonic"
+                      ]) as boolean,
+                    telemetryServiceId:
+                      serviceDictionary[serviceName]!.serviceId!,
+                    telemetryServiceName: serviceName,
+                  });
 
                 dbMetricPoint.metricPointType = metricPointType;
                 dbMetrics.push(dbMetricPoint);
