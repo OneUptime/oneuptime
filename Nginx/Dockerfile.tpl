@@ -1,4 +1,4 @@
-FROM nginx:1.26.1-alpine 
+FROM nginx:1.26.2-alpine 
 
 
 ARG GIT_SHA
