@@ -46,6 +46,7 @@ import AddAlertNumber from "./AddAlertNumber";
 import AddScheduledMaintenanceNumber from "./AddScheduledMaintenanceNumber";
 import RefreshProjectUsers from "./RefreshProjectUsers";
 import UpdateRemiderDateInScheduledEvents from "./UpdateRemiderDateInScheduledEvents";
+import AddAttributesColumnToTelemetryAttribute from "./AddAttributesColumnToTelemetryAttribute";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -97,6 +98,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddScheduledMaintenanceNumber(),
   new RefreshProjectUsers(),
   new UpdateRemiderDateInScheduledEvents(),
+  new AddAttributesColumnToTelemetryAttribute(),
 ];
 
 export default DataMigrations;

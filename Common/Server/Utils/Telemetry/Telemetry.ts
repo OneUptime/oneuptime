@@ -1,12 +1,11 @@
 import { Dictionary } from "lodash";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
-import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
-import ArrayUtil from "../../../Utils/Array";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import TelemetryAttributeService from "../../Services/TelemetryAttributeService";
 import CaptureSpan from "./CaptureSpan";
+import logger from "../Logger";
 
 
 export type AttributeType = string | number | boolean | null; 
@@ -14,11 +13,14 @@ export type AttributeType = string | number | boolean | null;
 export default class TelemetryUtil {
   @CaptureSpan()
   public static async indexAttributes(data: {
-    attributes: string[];
+    attributes: Array<string>;
     projectId: ObjectID;
     telemetryType: TelemetryType;
   }): Promise<void> {
     // index attributes
+
+    logger.debug("Indexing attributes"); 
+    logger.debug("data: "+ JSON.stringify(data, null, 2));
 
     const cacheKey: string =
       data.projectId.toString() + "_" + data.telemetryType;
@@ -32,7 +34,9 @@ export default class TelemetryUtil {
 
     // check if keys are missing in cache
 
-    for (const key of data.attributes) {
+    const attributeKeys: string[] = data.attributes;
+
+    for (const key of attributeKeys) {
       if (!cacheKeys.includes(key)) {
         isKeysMissingInCache = true;
         break;
@@ -46,11 +50,11 @@ export default class TelemetryUtil {
         telemetryType: data.telemetryType,
       });
 
-      const mergedKeys: Array<string> = ArrayUtil.removeDuplicates([
+      const mergedKeys: Array<string> = Array.from(new Set([
         ...dbKeys,
-        ...data.attributes,
+        ...attributeKeys,
         ...cacheKeys,
-      ]);
+      ]));
 
       await GlobalCache.setStringArray(
         "telemetryAttributesKeys",

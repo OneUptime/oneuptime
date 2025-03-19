@@ -2,7 +2,6 @@ import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -16,30 +15,24 @@ export class TelemetryAttributeService extends AnalyticsDatabaseService<Telemetr
     projectId: ObjectID;
     telemetryType: TelemetryType;
   }): Promise<string[]> {
-    const attributes: TelemetryAttribute[] = await this.findBy({
+    const telemetryAttribute: TelemetryAttribute | null = await this.findOneBy({
       query: {
         projectId: data.projectId,
         telemetryType: data.telemetryType,
       },
       select: {
-        attribute: true,
+        attributes: true,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
       props: {
         isRoot: true,
       },
     });
 
-    const dbAttributes: string[] = attributes
-      .map((attribute: TelemetryAttribute) => {
-        return attribute.attribute;
-      })
-      .filter((attribute: string | undefined) => {
-        return Boolean(attribute);
-      }) as string[];
-
-    return dbAttributes.sort();
+    return telemetryAttribute &&
+      telemetryAttribute.attributes &&
+      telemetryAttribute
+      ? telemetryAttribute.attributes
+      : [];
   }
 
   @CaptureSpan()
@@ -61,21 +54,14 @@ export class TelemetryAttributeService extends AnalyticsDatabaseService<Telemetr
       },
     });
 
-    const telemetryAttributes: TelemetryAttribute[] = [];
+    const telemetryAttribute: TelemetryAttribute = new TelemetryAttribute();
 
-    // insert new attributes
-    for (const attribute of attributes) {
-      const telemetryAttribute: TelemetryAttribute = new TelemetryAttribute();
+    telemetryAttribute.projectId = projectId;
+    telemetryAttribute.telemetryType = telemetryType;
+    telemetryAttribute.attributes = attributes;
 
-      telemetryAttribute.projectId = projectId;
-      telemetryAttribute.telemetryType = telemetryType;
-      telemetryAttribute.attribute = attribute;
-
-      telemetryAttributes.push(telemetryAttribute);
-    }
-
-    await this.createMany({
-      items: telemetryAttributes,
+    await this.create({
+      data: telemetryAttribute,
       props: {
         isRoot: true,
       },

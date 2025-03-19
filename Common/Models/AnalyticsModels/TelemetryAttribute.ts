@@ -106,11 +106,11 @@ export default class TelemetryAttribute extends AnalyticsBaseModel {
         }),
 
         new AnalyticsTableColumn({
-          key: "attribute",
-          title: "Attribute",
-          description: "Attribute",
+          key: "attributes",
+          title: "Attributes",
+          description: "Attributes",
           required: true,
-          type: TableColumnType.Text,
+          type: TableColumnType.JSONArray,
           accessControl: {
             read: [
               Permission.ProjectOwner,
@@ -153,11 +153,11 @@ export default class TelemetryAttribute extends AnalyticsBaseModel {
     this.setColumnValue("telemetryType", v);
   }
 
-  public get attribute(): string | undefined {
-    return this.getColumnValue("attribute") as string | undefined;
+  public get attributes(): Array<string> | undefined {
+    return this.getColumnValue("attributes") as Array<string>  | undefined;
   }
 
-  public set attribute(v: string | undefined) {
-    this.setColumnValue("attribute", v);
+  public set attributes(v: Array<string>  | undefined) {
+    this.setColumnValue("attributes", v);
   }
 }

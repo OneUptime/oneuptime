@@ -1,6 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Metric, {
   AggregationTemporality,
@@ -166,19 +165,15 @@ export default class OTelIngestService {
       }
 
       newDbMetric.attributes = {
-        ...(newDbMetric.attributes || {}),
+        ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+          serviceId: data.telemetryServiceId,
+          serviceName: data.telemetryServiceName,
+        }),
         ...TelemetryUtil.getAttributes({
           items: datapoint["attributes"] as JSONArray,
-          telemetryServiceId: data.telemetryServiceId,
-          telemetryServiceName: data.telemetryServiceName,
+          prefixKeysWithString: "metricAttributes",
         }),
       };
-    }
-
-    if (newDbMetric.attributes) {
-      newDbMetric.attributes = JSONFunctions.flattenObject(
-        newDbMetric.attributes,
-      );
     }
 
     // aggregationTemporality
