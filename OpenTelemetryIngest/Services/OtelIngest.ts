@@ -141,7 +141,7 @@ export default class OtelIngestService {
             }
 
             dbLog.attributes = attributesObject;
-            attributeKeySet.add(...Object.keys(dbLog.attributes));
+            Object.keys(dbLog.attributes).forEach(key => attributeKeySet.add(key));
 
             dbLog.projectId = (req as TelemetryRequest).projectId;
             dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
@@ -315,17 +315,19 @@ export default class OtelIngestService {
             }
 
             dbMetric.attributes = attributesObject;
-            attributeKeySet.add(...Object.keys(dbMetric.attributes));
 
-            const dataPoints = metric["sum"]?.["dataPoints"] || metric["gauge"]?.["dataPoints"] || metric["histogram"]?.["dataPoints"];
+            Object.keys(dbMetric.attributes).forEach(key => attributeKeySet.add(key));
+
+            const dataPoints = ((metric["sum"] as JSONObject)?.["dataPoints"] || (metric["gauge"] as JSONObject)?.["dataPoints"] || (metric["histogram"] as JSONObject)?.["dataPoints"]) as JSONArray;
+
             if (dataPoints) {
-              for (const datapoint of dataPoints as JSONArray) {
+              for (const datapoint of dataPoints) {
                 const metricPointType = metric["sum"] ? MetricPointType.Sum : metric["gauge"] ? MetricPointType.Gauge : MetricPointType.Histogram;
                 const dbMetricPoint = OTelIngestService.getMetricFromDatapoint({
                   dbMetric: dbMetric,
                   datapoint: datapoint,
-                  aggregationTemporality: metric["sum"]?.["aggregationTemporality"] || metric["gauge"]?.["aggregationTemporality"] || metric["histogram"]?.["aggregationTemporality"],
-                  isMonotonic: metric["sum"]?.["isMonotonic"] || metric["gauge"]?.["isMonotonic"] || metric["histogram"]?.["isMonotonic"],
+                  aggregationTemporality: (metric["sum"] as JSONObject)?.["aggregationTemporality"] as OtelAggregationTemporality || (metric["gauge"] as JSONObject)?.["aggregationTemporality"] as OtelAggregationTemporality || (metric["histogram"] as JSONObject)?.["aggregationTemporality"] as OtelAggregationTemporality,
+                  isMonotonic: ((metric["sum"] as JSONObject)?.["isMonotonic"]  || (metric["gauge"] as JSONObject)?.["isMonotonic"] || (metric["histogram"] as JSONObject)?.["isMonotonic"]) as boolean,
                   telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
                   telemetryServiceName: serviceName,
                 });
@@ -470,7 +472,7 @@ export default class OtelIngestService {
 
             dbSpan.attributes = attributesObject;
 
-            attributeKeySet.add(...Object.keys(dbSpan.attributes));
+            Object.keys(dbSpan.attributes).forEach(key => attributeKeySet.add(key));
 
             dbSpan.projectId = (req as TelemetryRequest).projectId;
             dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
@@ -509,7 +511,7 @@ export default class OtelIngestService {
             // add links
             dbSpan.links = this.getSpanLinks(span["links"] as JSONArray);
 
-            attributeKeySet.add(...Object.keys(dbSpan.attributes || {}));
+            Object.keys(dbSpan.attributes || {}).forEach(key => attributeKeySet.add(key));
 
             dbSpans.push(dbSpan);
           }
