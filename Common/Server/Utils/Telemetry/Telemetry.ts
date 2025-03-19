@@ -153,7 +153,9 @@ export default class TelemetryUtil {
       value["mapValue"] &&
       (value["mapValue"] as JSONObject)["fields"]
     ) {
-      const fields: JSONObject = (value["mapValue"] as JSONObject)["fields"] as JSONObject;
+      const fields: JSONObject = (value["mapValue"] as JSONObject)[
+        "fields"
+      ] as JSONObject;
       const flattenedFields: Dictionary<AttributeType> = {};
       for (const key in fields) {
         const prefixKey: string = `${prefixKeysWithString}.${key}`;

@@ -81,27 +81,16 @@ export default class OtelIngestService {
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
       const dbLogs: Array<Log> = [];
-
-      let attributeKeySet: Set<string> = new Set<string>();
-
+      const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
       for (const resourceLog of resourceLogs) {
-        // get service name from resourceLog attributes
-
         const serviceName: string = this.getServiceNameFromAttributes(
-          ((resourceLog["resource"] as JSONObject)?.[
-            "attributes"
-          ] as JSONArray) || [],
+          ((resourceLog["resource"] as JSONObject)?.["attributes"] as JSONArray) || [],
         );
 
-        logger.debug(`Service Name: ${serviceName}`);
-
         if (!serviceDictionary[serviceName]) {
-          const service: {
-            serviceId: ObjectID;
-            dataRententionInDays: number;
-          } = await OTelIngestService.telemetryServiceFromName({
+          const service = await OTelIngestService.telemetryServiceFromName({
             serviceName: serviceName,
             projectId: (req as TelemetryRequest).projectId,
           });
@@ -114,30 +103,17 @@ export default class OtelIngestService {
           };
         }
 
-        let resourceAttributes: Dictionary<
-          AttributeType | Array<AttributeType>
-        > = TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        });
+        const resourceAttributes = {
+          ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+            serviceId: serviceDictionary[serviceName]!.serviceId!,
+            serviceName: serviceName,
+          }),
+          ...TelemetryUtil.getAttributes({
+            items: (resourceLog["resource"] as JSONObject)?.["attributes"] as JSONArray || [],
+            prefixKeysWithString: "resource",
+          }),
+        };
 
-        if (
-          resourceLog["resource"] &&
-          (resourceLog["resource"] as JSONObject)["attributes"] &&
-          ((resourceLog["resource"] as JSONObject)["attributes"] as JSONArray)
-            .length > 0
-        ) {
-          resourceAttributes = {
-            ...TelemetryUtil.getAttributes({
-              items: (resourceLog["resource"] as JSONObject)[
-                "attributes"
-              ] as JSONArray,
-              prefixKeysWithString: "resource",
-            }),
-          };
-        }
-
-        // size of req.body in bytes.
         const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
         serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
@@ -149,149 +125,107 @@ export default class OtelIngestService {
           for (const log of logRecords) {
             const dbLog: Log = new Log();
 
-            /*
-                              Example:
-      
-                              {
-                                  "timeUnixNano":"1698069643739368000",
-                                  "severityNumber":"SEVERITY_NUMBER_INFO",
-                                  "severityText":"Information",
-                                  "body":{
-                                      "stringValue":"Application is shutting down..."
-                                  },
-                                  "traceId":"",
-                                  "spanId":"",
-                                  "observedTimeUnixNano":"1698069643739368000"
-                              }
-                              */
-
-            //attributes
-
-            const attributesObject: Dictionary<
-              AttributeType | Array<AttributeType>
-            > = {
+            const attributesObject = {
               ...resourceAttributes,
-            };
-
-            if (
-              scopeLog["scope"] &&
-              Object.keys(scopeLog["scope"]).length > 0
-            ) {
-              // flatten the scope attributes
-              const scopeAttributes: JSONObject = scopeLog[
-                "scope"
-              ] as JSONObject;
-              for (const key of Object.keys(scopeAttributes)) {
-                attributesObject[`scope.${key}`] = scopeAttributes[
-                  key
-                ] as AttributeType;
-              }
-            }
-
-            dbLog.attributes = {
-              ...attributesObject,
               ...TelemetryUtil.getAttributes({
                 items: [],
                 prefixKeysWithString: "logAttributes",
               }),
             };
 
-            attributeKeySet = new Set<string>([
-              ...attributeKeySet,
-              ...Object.keys(dbLog.attributes),
-            ]);
+            if (scopeLog["scope"] && Object.keys(scopeLog["scope"]).length > 0) {
+              const scopeAttributes: JSONObject = scopeLog["scope"] as JSONObject;
+              for (const key of Object.keys(scopeAttributes)) {
+                attributesObject[`scope.${key}`] = scopeAttributes[key] as AttributeType;
+              }
+            }
+
+            dbLog.attributes = attributesObject;
+            attributeKeySet.add(...Object.keys(dbLog.attributes));
 
             dbLog.projectId = (req as TelemetryRequest).projectId;
             dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
             dbLog.timeUnixNano = log["timeUnixNano"] as number;
-            dbLog.time = OneUptimeDate.fromUnixNano(
-              log["timeUnixNano"] as number,
-            );
+            dbLog.time = OneUptimeDate.fromUnixNano(log["timeUnixNano"] as number);
 
-            let logSeverityNumber: number =
-              (log["severityNumber"] as number) || 0; // 0 is Unspecified by default.
+            let logSeverityNumber: number = (log["severityNumber"] as number) || 0;
 
             if (typeof logSeverityNumber === "string") {
-              if (logSeverityNumber === "SEVERITY_NUMBER_TRACE") {
-                logSeverityNumber = 1;
-              } else if (logSeverityNumber === "SEVERITY_NUMBER_DEBUG") {
-                logSeverityNumber = 5;
-              } else if (logSeverityNumber === "SEVERITY_NUMBER_INFO") {
-                logSeverityNumber = 9;
-              } else if (logSeverityNumber === "SEVERITY_NUMBER_WARN") {
-                logSeverityNumber = 13;
-              } else if (logSeverityNumber === "SEVERITY_NUMBER_ERROR") {
-                logSeverityNumber = 17;
-              } else if (logSeverityNumber === "SEVERITY_NUMBER_FATAL") {
-                logSeverityNumber = 21;
-              } else {
-                logSeverityNumber = parseInt(logSeverityNumber);
-              }
+              logSeverityNumber = this.convertSeverityNumber(logSeverityNumber);
             }
 
             dbLog.severityNumber = logSeverityNumber;
-
-            let logSeverity: LogSeverity = LogSeverity.Unspecified;
-
-            // these numbers are from the opentelemetry/api-logs package
-            if (logSeverityNumber < 0 || logSeverityNumber > 24) {
-              logSeverity = LogSeverity.Unspecified;
-              logSeverityNumber = 0;
-            } else if (logSeverityNumber >= 1 && logSeverityNumber <= 4) {
-              logSeverity = LogSeverity.Trace;
-            } else if (logSeverityNumber >= 5 && logSeverityNumber <= 8) {
-              logSeverity = LogSeverity.Debug;
-            } else if (logSeverityNumber >= 9 && logSeverityNumber <= 12) {
-              logSeverity = LogSeverity.Information;
-            } else if (logSeverityNumber >= 13 && logSeverityNumber <= 16) {
-              logSeverity = LogSeverity.Warning;
-            } else if (logSeverityNumber >= 17 && logSeverityNumber <= 20) {
-              logSeverity = LogSeverity.Error;
-            } else if (logSeverityNumber >= 21 && logSeverityNumber <= 24) {
-              logSeverity = LogSeverity.Fatal;
-            }
-
-            dbLog.severityText = logSeverity;
+            dbLog.severityText = this.getSeverityText(logSeverityNumber);
 
             const logBody: JSONObject = log["body"] as JSONObject;
-
             dbLog.body = logBody["stringValue"] as string;
 
             dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
             dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
-
-            logger.debug(`Log: ${JSON.stringify(dbLog, null, 2)}`);
 
             dbLogs.push(dbLog);
           }
         }
       }
 
-      await LogService.createMany({
-        items: dbLogs,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      logger.debug(
-        `Attribute Key Set: ${JSON.stringify(attributeKeySet, null, 2)}`,
-      );
-
-      await TelemetryUtil.indexAttributes({
-        attributes: Object.keys(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Log,
-      });
-
-      await OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Logs,
-      });
+      await Promise.all([
+        LogService.createMany({
+          items: dbLogs,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Log,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Logs,
+        }),
+      ]);
     } catch (err) {
       return next(err);
+    }
+  }
+
+  private static convertSeverityNumber(severityNumber: string): number {
+    switch (severityNumber) {
+      case "SEVERITY_NUMBER_TRACE":
+        return 1;
+      case "SEVERITY_NUMBER_DEBUG":
+        return 5;
+      case "SEVERITY_NUMBER_INFO":
+        return 9;
+      case "SEVERITY_NUMBER_WARN":
+        return 13;
+      case "SEVERITY_NUMBER_ERROR":
+        return 17;
+      case "SEVERITY_NUMBER_FATAL":
+        return 21;
+      default:
+        return parseInt(severityNumber);
+    }
+  }
+
+  private static getSeverityText(severityNumber: number): LogSeverity {
+    if (severityNumber >= 1 && severityNumber <= 4) {
+      return LogSeverity.Trace;
+    } else if (severityNumber >= 5 && severityNumber <= 8) {
+      return LogSeverity.Debug;
+    } else if (severityNumber >= 9 && severityNumber <= 12) {
+      return LogSeverity.Information;
+    } else if (severityNumber >= 13 && severityNumber <= 16) {
+      return LogSeverity.Warning;
+    } else if (severityNumber >= 17 && severityNumber <= 20) {
+      return LogSeverity.Error;
+    } else if (severityNumber >= 21 && severityNumber <= 24) {
+      return LogSeverity.Fatal;
+    } else {
+      return LogSeverity.Unspecified;
     }
   }
 
@@ -312,32 +246,19 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      const resourceMetrics: JSONArray = req.body[
-        "resourceMetrics"
-      ] as JSONArray;
+      const resourceMetrics: JSONArray = req.body["resourceMetrics"] as JSONArray;
 
-      const dbMetrics: Array<Metric> = new Array<Metric>();
-
-      let attributeKeySet: Set<string> = new Set<string>();
-
+      const dbMetrics: Array<Metric> = [];
+      const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
       for (const resourceMetric of resourceMetrics) {
-        // get service name from resourceMetric attributes
-
         const serviceName: string = this.getServiceNameFromAttributes(
-          ((resourceMetric["resource"] as JSONObject)?.[
-            "attributes"
-          ] as JSONArray) || [],
+          ((resourceMetric["resource"] as JSONObject)?.["attributes"] as JSONArray) || [],
         );
 
-        logger.debug(`Service Name: ${serviceName}`);
-
         if (!serviceDictionary[serviceName]) {
-          const service: {
-            serviceId: ObjectID;
-            dataRententionInDays: number;
-          } = await OTelIngestService.telemetryServiceFromName({
+          const service = await OTelIngestService.telemetryServiceFromName({
             serviceName: serviceName,
             projectId: (req as TelemetryRequest).projectId,
           });
@@ -350,182 +271,67 @@ export default class OtelIngestService {
           };
         }
 
-        let resourceAttributes: Dictionary<
-          AttributeType | Array<AttributeType>
-        > = TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        });
+        const resourceAttributes = {
+          ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+            serviceId: serviceDictionary[serviceName]!.serviceId!,
+            serviceName: serviceName,
+          }),
+          ...TelemetryUtil.getAttributes({
+            items: (resourceMetric["resource"] as JSONObject)?.["attributes"] as JSONArray || [],
+            prefixKeysWithString: "resource",
+          }),
+        };
 
-        if (
-          resourceMetric["resource"] &&
-          (resourceMetric["resource"] as JSONObject)["attributes"] &&
-          (
-            (resourceMetric["resource"] as JSONObject)[
-              "attributes"
-            ] as JSONArray
-          ).length > 0
-        ) {
-          resourceAttributes = {
-            ...TelemetryUtil.getAttributes({
-              items: (resourceMetric["resource"] as JSONObject)[
-                "attributes"
-              ] as JSONArray,
-              prefixKeysWithString: "resource",
-            }),
-          };
-        }
-
-        // size of req.body in bytes.
-        const sizeInGb: number =
-          JSONFunctions.getSizeOfJSONinGB(resourceMetric);
-
+        const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceMetric);
         serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
-        const scopeMetrics: JSONArray = resourceMetric[
-          "scopeMetrics"
-        ] as JSONArray;
+        const scopeMetrics: JSONArray = resourceMetric["scopeMetrics"] as JSONArray;
 
         for (const scopeMetric of scopeMetrics) {
           const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
 
           for (const metric of metrics) {
-            const metricName: string = metric["name"] as string;
-            const metricDescription: string = metric["description"] as string;
-
-            const metricUnit: string = metric["unit"] as string;
-
             const dbMetric: Metric = new Metric();
-
             dbMetric.projectId = (req as TelemetryRequest).projectId;
             dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
+            dbMetric.serviceType = ServiceType.OpenTelemetry;
+            dbMetric.name = metric["name"] as string;
+            dbMetric.description = metric["description"] as string;
+            dbMetric.unit = metric["unit"] as string;
 
-            dbMetric.serviceType = ServiceType.OpenTelemetry; // OpenTelemetry
-
-            dbMetric.name = metricName;
-            dbMetric.description = metricDescription;
-
-            if (metricUnit) {
-              dbMetric.unit = metricUnit;
-            }
-
-            const attributesObject: Dictionary<
-              AttributeType | Array<AttributeType>
-            > = {
+            const attributesObject = {
               ...resourceAttributes,
-            };
-
-            if (
-              scopeMetric["scope"] &&
-              Object.keys(scopeMetric["scope"]).length > 0
-            ) {
-              // flatten the scope attributes
-              const scopeAttributes: JSONObject = scopeMetric[
-                "scope"
-              ] as JSONObject;
-              for (const key of Object.keys(scopeAttributes)) {
-                attributesObject[`scope.${key}`] = scopeAttributes[
-                  key
-                ] as AttributeType;
-              }
-            }
-
-            dbMetric.attributes = {
-              ...attributesObject,
               ...TelemetryUtil.getAttributes({
                 items: [],
                 prefixKeysWithString: "metricAttributes",
               }),
             };
 
-            attributeKeySet = new Set<string>([
-              ...attributeKeySet,
-              ...Object.keys(dbMetric.attributes),
-            ]);
-
-            if (
-              metric["sum"] &&
-              (metric["sum"] as JSONObject)["dataPoints"] &&
-              ((metric["sum"] as JSONObject)["dataPoints"] as JSONArray)
-                .length > 0
-            ) {
-              for (const datapoint of (metric["sum"] as JSONObject)[
-                "dataPoints"
-              ] as JSONArray) {
-                const sumMetric: Metric =
-                  OTelIngestService.getMetricFromDatapoint({
-                    dbMetric: dbMetric,
-                    datapoint: datapoint,
-                    aggregationTemporality: (metric["sum"] as JSONObject)[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality,
-                    isMonotonic: (metric["sum"] as JSONObject)[
-                      "isMonotonic"
-                    ] as boolean | undefined,
-                    telemetryServiceId:
-                      serviceDictionary[serviceName]!.serviceId!,
-                    telemetryServiceName: serviceName,
-                  });
-
-                sumMetric.metricPointType = MetricPointType.Sum;
-
-                dbMetrics.push(sumMetric);
+            if (scopeMetric["scope"] && Object.keys(scopeMetric["scope"]).length > 0) {
+              const scopeAttributes: JSONObject = scopeMetric["scope"] as JSONObject;
+              for (const key of Object.keys(scopeAttributes)) {
+                attributesObject[`scope.${key}`] = scopeAttributes[key] as AttributeType;
               }
-            } else if (
-              metric["gauge"] &&
-              (metric["gauge"] as JSONObject)["dataPoints"] &&
-              ((metric["gauge"] as JSONObject)["dataPoints"] as JSONArray)
-                .length > 0
-            ) {
-              for (const datapoint of (metric["gauge"] as JSONObject)[
-                "dataPoints"
-              ] as JSONArray) {
-                const guageMetric: Metric =
-                  OTelIngestService.getMetricFromDatapoint({
-                    dbMetric: dbMetric,
-                    datapoint: datapoint,
-                    aggregationTemporality: (metric["gauge"] as JSONObject)[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality,
-                    isMonotonic: (metric["gauge"] as JSONObject)[
-                      "isMonotonic"
-                    ] as boolean | undefined,
-                    telemetryServiceId:
-                      serviceDictionary[serviceName]!.serviceId!,
-                    telemetryServiceName: serviceName,
-                  });
+            }
 
-                guageMetric.metricPointType = MetricPointType.Gauge;
+            dbMetric.attributes = attributesObject;
+            attributeKeySet.add(...Object.keys(dbMetric.attributes));
 
-                dbMetrics.push(guageMetric);
-              }
-            } else if (
-              metric["histogram"] &&
-              (metric["histogram"] as JSONObject)["dataPoints"] &&
-              ((metric["histogram"] as JSONObject)["dataPoints"] as JSONArray)
-                .length > 0
-            ) {
-              for (const datapoint of (metric["histogram"] as JSONObject)[
-                "dataPoints"
-              ] as JSONArray) {
-                const histogramMetric: Metric =
-                  OTelIngestService.getMetricFromDatapoint({
-                    dbMetric: dbMetric,
-                    datapoint: datapoint,
-                    aggregationTemporality: (metric["histogram"] as JSONObject)[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality,
-                    isMonotonic: (metric["histogram"] as JSONObject)[
-                      "isMonotonic"
-                    ] as boolean | undefined,
-                    telemetryServiceId:
-                      serviceDictionary[serviceName]!.serviceId!,
-                    telemetryServiceName: serviceName,
-                  });
+            const dataPoints = metric["sum"]?.["dataPoints"] || metric["gauge"]?.["dataPoints"] || metric["histogram"]?.["dataPoints"];
+            if (dataPoints) {
+              for (const datapoint of dataPoints as JSONArray) {
+                const metricPointType = metric["sum"] ? MetricPointType.Sum : metric["gauge"] ? MetricPointType.Gauge : MetricPointType.Histogram;
+                const dbMetricPoint = OTelIngestService.getMetricFromDatapoint({
+                  dbMetric: dbMetric,
+                  datapoint: datapoint,
+                  aggregationTemporality: metric["sum"]?.["aggregationTemporality"] || metric["gauge"]?.["aggregationTemporality"] || metric["histogram"]?.["aggregationTemporality"],
+                  isMonotonic: metric["sum"]?.["isMonotonic"] || metric["gauge"]?.["isMonotonic"] || metric["histogram"]?.["isMonotonic"],
+                  telemetryServiceId: serviceDictionary[serviceName]!.serviceId!,
+                  telemetryServiceName: serviceName,
+                });
 
-                histogramMetric.metricPointType = MetricPointType.Histogram;
-
-                dbMetrics.push(histogramMetric);
+                dbMetricPoint.metricPointType = metricPointType;
+                dbMetrics.push(dbMetricPoint);
               }
             } else {
               logger.warn("Unknown metric type");
@@ -535,24 +341,24 @@ export default class OtelIngestService {
         }
       }
 
-      await MetricService.createMany({
-        items: dbMetrics,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      await TelemetryUtil.indexAttributes({
-        attributes: Object.keys(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Metric,
-      });
-
-      await OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Metrics,
-      });
+      await Promise.all([
+        MetricService.createMany({
+          items: dbMetrics,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Metric,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Metrics,
+        }),
+      ]);
     } catch (err) {
       return next(err);
     }
