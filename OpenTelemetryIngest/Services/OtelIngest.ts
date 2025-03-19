@@ -65,12 +65,14 @@ export default class OtelIngestService {
   public static async ingestLogs(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
+      Response.sendEmptySuccessResponse(req, res);
+
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request."
+          "Invalid request - projectId not found in request.",
         );
       }
 
@@ -90,7 +92,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceLog["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || []
+          ] as JSONArray) || [],
         );
 
         logger.debug(`Service Name: ${serviceName}`);
@@ -165,7 +167,7 @@ export default class OtelIngestService {
 
             //attributes
 
-            let attributesObject: Dictionary<
+            const attributesObject: Dictionary<
               AttributeType | Array<AttributeType>
             > = {
               ...resourceAttributes,
@@ -204,7 +206,7 @@ export default class OtelIngestService {
 
             dbLog.timeUnixNano = log["timeUnixNano"] as number;
             dbLog.time = OneUptimeDate.fromUnixNano(
-              log["timeUnixNano"] as number
+              log["timeUnixNano"] as number,
             );
 
             let logSeverityNumber: number =
@@ -273,7 +275,9 @@ export default class OtelIngestService {
         },
       });
 
-      logger.debug(`Attribute Key Set: ${JSON.stringify(attributeKeySet, null, 2)}`);
+      logger.debug(
+        `Attribute Key Set: ${JSON.stringify(attributeKeySet, null, 2)}`,
+      );
 
       await TelemetryUtil.indexAttributes({
         attributes: Object.keys(attributeKeySet),
@@ -286,8 +290,6 @@ export default class OtelIngestService {
         projectId: (req as TelemetryRequest).projectId,
         productType: ProductType.Logs,
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -297,12 +299,14 @@ export default class OtelIngestService {
   public static async ingestMetrics(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
+      Response.sendEmptySuccessResponse(req, res);
+
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request."
+          "Invalid request - projectId not found in request.",
         );
       }
 
@@ -324,7 +328,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceMetric["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || []
+          ] as JSONArray) || [],
         );
 
         logger.debug(`Service Name: ${serviceName}`);
@@ -356,8 +360,11 @@ export default class OtelIngestService {
         if (
           resourceMetric["resource"] &&
           (resourceMetric["resource"] as JSONObject)["attributes"] &&
-          ((resourceMetric["resource"] as JSONObject)["attributes"] as JSONArray)
-            .length > 0
+          (
+            (resourceMetric["resource"] as JSONObject)[
+              "attributes"
+            ] as JSONArray
+          ).length > 0
         ) {
           resourceAttributes = {
             ...TelemetryUtil.getAttributes({
@@ -402,7 +409,7 @@ export default class OtelIngestService {
               dbMetric.unit = metricUnit;
             }
 
-            let attributesObject: Dictionary<
+            const attributesObject: Dictionary<
               AttributeType | Array<AttributeType>
             > = {
               ...resourceAttributes,
@@ -461,7 +468,6 @@ export default class OtelIngestService {
                   });
 
                 sumMetric.metricPointType = MetricPointType.Sum;
-
 
                 dbMetrics.push(sumMetric);
               }
@@ -547,8 +553,6 @@ export default class OtelIngestService {
         projectId: (req as TelemetryRequest).projectId,
         productType: ProductType.Metrics,
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -558,12 +562,14 @@ export default class OtelIngestService {
   public static async ingestTraces(
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
+      Response.sendEmptySuccessResponse(req, res);
+
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
-          "Invalid request - projectId not found in request."
+          "Invalid request - projectId not found in request.",
         );
       }
 
@@ -584,7 +590,7 @@ export default class OtelIngestService {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceSpan["resource"] as JSONObject)?.[
             "attributes"
-          ] as JSONArray) || []
+          ] as JSONArray) || [],
         );
 
         if (!serviceDictionary[serviceName]) {
@@ -639,7 +645,7 @@ export default class OtelIngestService {
           for (const span of spans) {
             const dbSpan: Span = new Span();
 
-            let attributesObject: Dictionary<
+            const attributesObject: Dictionary<
               AttributeType | Array<AttributeType>
             > = {
               ...resourceAttributes,
@@ -679,7 +685,7 @@ export default class OtelIngestService {
             dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
             dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
             dbSpan.parentSpanId = Text.convertBase64ToHex(
-              span["parentSpanId"] as string
+              span["parentSpanId"] as string,
             );
             dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
             dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
@@ -723,11 +729,11 @@ export default class OtelIngestService {
             ] as string;
 
             dbSpan.startTime = OneUptimeDate.fromUnixNano(
-              span["startTimeUnixNano"] as number
+              span["startTimeUnixNano"] as number,
             );
 
             dbSpan.endTime = OneUptimeDate.fromUnixNano(
-              span["endTimeUnixNano"] as number
+              span["endTimeUnixNano"] as number,
             );
 
             dbSpan.durationUnixNano =
@@ -753,7 +759,7 @@ export default class OtelIngestService {
                   {
                     items: event["attributes"] as JSONArray,
                     prefixKeysWithString: "",
-                  }
+                  },
                 );
 
                 dbSpan.events.push({
@@ -818,13 +824,11 @@ export default class OtelIngestService {
                   spanId: Text.convertBase64ToHex(link["spanId"] as string),
                   attributes: TelemetryUtil.getAttributes({
                     items: link["attributes"] as JSONArray,
-                    prefixKeysWithString
-                      : "",
+                    prefixKeysWithString: "",
                   }),
                 });
               }
             }
-
 
             attributeKeySet = new Set<string>([
               ...attributeKeySet,
@@ -861,8 +865,6 @@ export default class OtelIngestService {
         projectId: (req as TelemetryRequest).projectId,
         productType: ProductType.Traces,
       });
-
-      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }

@@ -7,8 +7,7 @@ import TelemetryAttributeService from "../../Services/TelemetryAttributeService"
 import CaptureSpan from "./CaptureSpan";
 import logger from "../Logger";
 
-
-export type AttributeType = string | number | boolean | null; 
+export type AttributeType = string | number | boolean | null;
 
 export default class TelemetryUtil {
   @CaptureSpan()
@@ -19,8 +18,8 @@ export default class TelemetryUtil {
   }): Promise<void> {
     // index attributes
 
-    logger.debug("Indexing attributes"); 
-    logger.debug("data: "+ JSON.stringify(data, null, 2));
+    logger.debug("Indexing attributes");
+    logger.debug("data: " + JSON.stringify(data, null, 2));
 
     const cacheKey: string =
       data.projectId.toString() + "_" + data.telemetryType;
@@ -50,16 +49,14 @@ export default class TelemetryUtil {
         telemetryType: data.telemetryType,
       });
 
-      const mergedKeys: Array<string> = Array.from(new Set([
-        ...dbKeys,
-        ...attributeKeys,
-        ...cacheKeys,
-      ]));
+      const mergedKeys: Array<string> = Array.from(
+        new Set([...dbKeys, ...attributeKeys, ...cacheKeys]),
+      );
 
       await GlobalCache.setStringArray(
         "telemetryAttributesKeys",
         cacheKey,
-        mergedKeys
+        mergedKeys,
       );
 
       await TelemetryAttributeService.refreshAttributes({
@@ -86,7 +83,8 @@ export default class TelemetryUtil {
     prefixKeysWithString: string;
     items: JSONArray;
   }): Dictionary<AttributeType | Array<AttributeType>> {
-    let { items, prefixKeysWithString } = data;
+    const { items } = data;
+    let { prefixKeysWithString } = data;
 
     if (prefixKeysWithString) {
       prefixKeysWithString = prefixKeysWithString + ".";
@@ -101,10 +99,16 @@ export default class TelemetryUtil {
 
     for (const attribute of attributes) {
       if (attribute["key"] && typeof attribute["key"] === "string") {
-        const value:  AttributeType | Dictionary<AttributeType> | Array<AttributeType> = this.getAttributeValues(prefixKeysWithString, attribute["value"]);
-        const keyWithPrefix = `${prefixKeysWithString}${attribute["key"]}`;
+        const value:
+          | AttributeType
+          | Dictionary<AttributeType>
+          | Array<AttributeType> = this.getAttributeValues(
+          prefixKeysWithString,
+          attribute["value"],
+        );
+        const keyWithPrefix: string = `${prefixKeysWithString}${attribute["key"]}`;
         if (typeof value === "object" && value !== null) {
-          finalObj = { ...finalObj, ...value as Dictionary<AttributeType> };
+          finalObj = { ...finalObj, ...(value as Dictionary<AttributeType>) };
         } else {
           finalObj[keyWithPrefix] = value;
         }
@@ -116,10 +120,12 @@ export default class TelemetryUtil {
 
   public static getAttributeValues(
     prefixKeysWithString: string,
-    value: JSONValue
-  ): AttributeType | Dictionary<AttributeType> | Array<AttributeType> { 
-
-    let finalObj: Dictionary<AttributeType> | AttributeType | Array<AttributeType> = null;
+    value: JSONValue,
+  ): AttributeType | Dictionary<AttributeType> | Array<AttributeType> {
+    let finalObj:
+      | Dictionary<AttributeType>
+      | AttributeType
+      | Array<AttributeType> = null;
     value = value as JSONObject;
 
     if (value["stringValue"]) {
@@ -134,25 +140,31 @@ export default class TelemetryUtil {
       value["arrayValue"] &&
       (value["arrayValue"] as JSONObject)["values"]
     ) {
-      let values: JSONArray = (value["arrayValue"] as JSONObject)["values"] as JSONArray;
-      finalObj = values.map((v) =>
-        this.getAttributeValues(prefixKeysWithString, v) as AttributeType
-      ) as Array<AttributeType>;
+      const values: JSONArray = (value["arrayValue"] as JSONObject)[
+        "values"
+      ] as JSONArray;
+      finalObj = values.map((v: JSONObject, index: number) => {
+        return this.getAttributeValues(
+          prefixKeysWithString + "." + index,
+          v,
+        ) as AttributeType;
+      }) as Array<AttributeType>;
     } else if (
       value["mapValue"] &&
       (value["mapValue"] as JSONObject)["fields"]
     ) {
-      const fields = (value["mapValue"] as JSONObject)["fields"] as JSONObject;
+      const fields: JSONObject = (value["mapValue"] as JSONObject)["fields"] as JSONObject;
       const flattenedFields: Dictionary<AttributeType> = {};
       for (const key in fields) {
-        const prefixKey = `${prefixKeysWithString}.${key}`;
-        const nestedValue: AttributeType | Dictionary<AttributeType> = this.getAttributeValues(prefixKey, fields[key]) as AttributeType;
+        const prefixKey: string = `${prefixKeysWithString}.${key}`;
+        const nestedValue: AttributeType | Dictionary<AttributeType> =
+          this.getAttributeValues(prefixKey, fields[key]) as AttributeType;
         if (typeof nestedValue === "object" && nestedValue !== null) {
-
           for (const nestedKey in nestedValue as Dictionary<AttributeType>) {
-            flattenedFields[`${prefixKey}.${nestedKey}`] = (nestedValue as Dictionary<AttributeType>)[nestedKey] as AttributeType;
+            flattenedFields[`${prefixKey}.${nestedKey}`] = (
+              nestedValue as Dictionary<AttributeType>
+            )[nestedKey] as AttributeType;
           }
-
         } else {
           flattenedFields[prefixKey] = nestedValue;
         }

@@ -11,9 +11,11 @@ export default class AddAttributesColumnToTelemetryAttribute extends DataMigrati
 
   public override async migrate(): Promise<void> {
     const column: AnalyticsTableColumn | undefined =
-      new TelemetryAttribute().tableColumns.find((column: AnalyticsTableColumn) => {
-        return column.key === "attributes";
-      });
+      new TelemetryAttribute().tableColumns.find(
+        (column: AnalyticsTableColumn) => {
+          return column.key === "attributes";
+        },
+      );
 
     if (!column) {
       return;

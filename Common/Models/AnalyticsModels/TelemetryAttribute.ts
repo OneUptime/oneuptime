@@ -154,10 +154,10 @@ export default class TelemetryAttribute extends AnalyticsBaseModel {
   }
 
   public get attributes(): Array<string> | undefined {
-    return this.getColumnValue("attributes") as Array<string>  | undefined;
+    return this.getColumnValue("attributes") as Array<string> | undefined;
   }
 
-  public set attributes(v: Array<string>  | undefined) {
+  public set attributes(v: Array<string> | undefined) {
     this.setColumnValue("attributes", v);
   }
 }
