@@ -102,28 +102,6 @@ export default class logger {
     logger.emit({
       body: this.serializeLogBody(data.body),
       severityNumber: data.severityNumber,
-      attributes: {
-        "hey": "one",
-        "thisisArry": ["one", "two", "three"],
-        "thisisObj": {
-          "one": "one",
-          "two": "two",
-          "three": "three",
-        },
-        "thisisDeepObj": {
-          "one": "one",
-          "two": {
-            "one": "one",
-            "two": "two",
-            "three": {
-              "one": "one",
-              "two": "two",
-              "three": "three",
-            },
-          },
-          "three": "three",
-        },
-      }
     });
   }
 
