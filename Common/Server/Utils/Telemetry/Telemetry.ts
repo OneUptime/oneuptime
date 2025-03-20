@@ -50,13 +50,13 @@ export default class TelemetryUtil {
       });
 
       const mergedKeys: Array<string> = Array.from(
-        new Set([...dbKeys, ...attributeKeys, ...cacheKeys])
+        new Set([...dbKeys, ...attributeKeys, ...cacheKeys]),
       );
 
       await GlobalCache.setStringArray(
         "telemetryAttributesKeys",
         cacheKey,
-        mergedKeys
+        mergedKeys,
       );
 
       await TelemetryAttributeService.refreshAttributes({
@@ -106,7 +106,7 @@ export default class TelemetryUtil {
           | Dictionary<AttributeType>
           | Array<AttributeType> = this.getAttributeValues(
           keyWithPrefix,
-          attribute["value"]
+          attribute["value"],
         );
 
         if (Array.isArray(value)) {
@@ -124,7 +124,7 @@ export default class TelemetryUtil {
 
   public static getAttributeValues(
     prefixKeysWithString: string,
-    value: JSONValue
+    value: JSONValue,
   ): AttributeType | Dictionary<AttributeType> | Array<AttributeType> {
     let finalObj:
       | Dictionary<AttributeType>
@@ -150,7 +150,7 @@ export default class TelemetryUtil {
       finalObj = values.map((v: JSONObject) => {
         return this.getAttributeValues(
           prefixKeysWithString,
-          v
+          v,
         ) as AttributeType;
       }) as Array<AttributeType>;
     } else if (

@@ -63,7 +63,13 @@ function CaptureSpan(data?: {
       return Telemetry.startActiveSpan({
         name: name,
         options: {
-          attributes: spanAttributes,
+          attributes: {
+            ...spanAttributes,
+            hey: "there",
+            thisIsNumber: 123,
+            thisIsBoolean: true,
+            thisIsArray: [1, 2, 3],
+          },
         },
         fn: (span: Span) => {
           let result: any = null;

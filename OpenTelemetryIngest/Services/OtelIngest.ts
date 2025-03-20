@@ -68,7 +68,7 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
-      Response.sendEmptySuccessResponse(req, res);
+      
 
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
@@ -140,7 +140,7 @@ export default class OtelIngestService {
             > = {
               ...resourceAttributes,
               ...TelemetryUtil.getAttributes({
-                items: log["attributes"] as JSONArray || [],
+                items: (log["attributes"] as JSONArray) || [],
                 prefixKeysWithString: "logAttributes",
               }),
             };
@@ -211,6 +211,8 @@ export default class OtelIngestService {
           productType: ProductType.Logs,
         }),
       ]);
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -259,7 +261,7 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
-      Response.sendEmptySuccessResponse(req, res);
+     
 
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
@@ -342,7 +344,7 @@ export default class OtelIngestService {
             > = {
               ...resourceAttributes,
               ...TelemetryUtil.getAttributes({
-                items: metric["attributes"] as JSONArray || [],
+                items: (metric["attributes"] as JSONArray) || [],
                 prefixKeysWithString: "metricAttributes",
               }),
             };
@@ -435,6 +437,8 @@ export default class OtelIngestService {
           productType: ProductType.Metrics,
         }),
       ]);
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -447,7 +451,7 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
-      Response.sendEmptySuccessResponse(req, res);
+      
 
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
@@ -519,7 +523,6 @@ export default class OtelIngestService {
 
           for (const span of spans) {
             const dbSpan: Span = new Span();
-            
 
             const attributesObject: Dictionary<
               AttributeType | Array<AttributeType>
@@ -628,6 +631,8 @@ export default class OtelIngestService {
           productType: ProductType.Traces,
         }),
       ]);
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
