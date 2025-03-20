@@ -302,7 +302,9 @@ export class Service extends DatabaseService<Model> {
       return 0;
     }
 
-    return lastIncident.incidentNumber ? Number(lastIncident.incidentNumber) : 0;
+    return lastIncident.incidentNumber
+      ? Number(lastIncident.incidentNumber)
+      : 0;
   }
 
   @CaptureSpan()
