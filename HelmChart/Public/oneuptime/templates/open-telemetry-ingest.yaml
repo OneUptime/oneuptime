@@ -97,6 +97,10 @@ spec:
             - containerPort: {{ $.Values.port.openTelemetryIngest }}
               protocol: TCP
               name: http
+          {{- if $.Values.openTelemetryIngest.resources }}
+          resources:
+            {{- toYaml $.Values.openTelemetryIngest.resources | nindent 12 }}
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---

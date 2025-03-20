@@ -86,6 +86,11 @@ spec:
             - containerPort: {{ $.Values.port.workflow }}
               protocol: TCP
               name: http
+          {{- if $.Values.workflow.resources }}
+          resources:
+            {{- toYaml $.Values.workflow.resources | nindent 12 }}
+          {{- end }}
+
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---

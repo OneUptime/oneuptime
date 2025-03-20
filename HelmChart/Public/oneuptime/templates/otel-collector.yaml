@@ -105,6 +105,10 @@ spec:
             - containerPort: {{ $.Values.port.otelCollectorGrpc }}
               protocol: TCP
               name: grpc
+          {{- if $.Values.openTelemetryCollector.resources }}
+          resources:
+            {{- toYaml $.Values.openTelemetryCollector.resources | nindent 12 }}
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
