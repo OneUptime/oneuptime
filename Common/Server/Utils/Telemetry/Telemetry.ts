@@ -50,13 +50,13 @@ export default class TelemetryUtil {
       });
 
       const mergedKeys: Array<string> = Array.from(
-        new Set([...dbKeys, ...attributeKeys, ...cacheKeys]),
+        new Set([...dbKeys, ...attributeKeys, ...cacheKeys])
       );
 
       await GlobalCache.setStringArray(
         "telemetryAttributesKeys",
         cacheKey,
-        mergedKeys,
+        mergedKeys
       );
 
       await TelemetryAttributeService.refreshAttributes({
@@ -99,15 +99,19 @@ export default class TelemetryUtil {
 
     for (const attribute of attributes) {
       if (attribute["key"] && typeof attribute["key"] === "string") {
+        const keyWithPrefix: string = `${prefixKeysWithString}${attribute["key"]}`;
+
         const value:
           | AttributeType
           | Dictionary<AttributeType>
           | Array<AttributeType> = this.getAttributeValues(
-          prefixKeysWithString,
-          attribute["value"],
+          keyWithPrefix,
+          attribute["value"]
         );
-        const keyWithPrefix: string = `${prefixKeysWithString}${attribute["key"]}`;
-        if (typeof value === "object" && value !== null) {
+
+        if (Array.isArray(value)) {
+          finalObj = { ...finalObj, [keyWithPrefix]: value };
+        } else if (typeof value === "object" && value !== null) {
           finalObj = { ...finalObj, ...(value as Dictionary<AttributeType>) };
         } else {
           finalObj[keyWithPrefix] = value;
@@ -120,7 +124,7 @@ export default class TelemetryUtil {
 
   public static getAttributeValues(
     prefixKeysWithString: string,
-    value: JSONValue,
+    value: JSONValue
   ): AttributeType | Dictionary<AttributeType> | Array<AttributeType> {
     let finalObj:
       | Dictionary<AttributeType>
@@ -143,19 +147,20 @@ export default class TelemetryUtil {
       const values: JSONArray = (value["arrayValue"] as JSONObject)[
         "values"
       ] as JSONArray;
-      finalObj = values.map((v: JSONObject, index: number) => {
+      finalObj = values.map((v: JSONObject) => {
         return this.getAttributeValues(
-          prefixKeysWithString + "." + index,
-          v,
+          prefixKeysWithString,
+          v
         ) as AttributeType;
       }) as Array<AttributeType>;
     } else if (
       value["mapValue"] &&
       (value["mapValue"] as JSONObject)["fields"]
     ) {
-      const fields: JSONObject = (value["mapValue"] as JSONObject)[
+      const fields: JSONObject = (value["mapValue"] as JSONObject)?.[
         "fields"
       ] as JSONObject;
+
       const flattenedFields: Dictionary<AttributeType> = {};
       for (const key in fields) {
         const prefixKey: string = `${prefixKeysWithString}.${key}`;
@@ -172,6 +177,19 @@ export default class TelemetryUtil {
         }
       }
       finalObj = flattenedFields;
+    }
+    // kvlistValue
+    else if (
+      value["kvlistValue"] &&
+      (value["kvlistValue"] as JSONObject)["values"]
+    ) {
+      const values: JSONArray = (value["kvlistValue"] as JSONObject)[
+        "values"
+      ] as JSONArray;
+      finalObj = this.getAttributes({
+        prefixKeysWithString,
+        items: values,
+      }) as Dictionary<AttributeType>;
     } else if (value["nullValue"]) {
       finalObj = null;
     }

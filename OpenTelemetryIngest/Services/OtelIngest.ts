@@ -140,7 +140,7 @@ export default class OtelIngestService {
             > = {
               ...resourceAttributes,
               ...TelemetryUtil.getAttributes({
-                items: [],
+                items: log["attributes"] as JSONArray || [],
                 prefixKeysWithString: "logAttributes",
               }),
             };
@@ -342,7 +342,7 @@ export default class OtelIngestService {
             > = {
               ...resourceAttributes,
               ...TelemetryUtil.getAttributes({
-                items: [],
+                items: metric["attributes"] as JSONArray || [],
                 prefixKeysWithString: "metricAttributes",
               }),
             };
@@ -519,6 +519,7 @@ export default class OtelIngestService {
 
           for (const span of spans) {
             const dbSpan: Span = new Span();
+            
 
             const attributesObject: Dictionary<
               AttributeType | Array<AttributeType>
