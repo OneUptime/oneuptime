@@ -100,7 +100,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new RefreshProjectUsers(),
   new UpdateRemiderDateInScheduledEvents(),
   new AddAttributesColumnToTelemetryAttribute(),
-  new DeleteAllTelemetryAttributes()
+  new DeleteAllTelemetryAttributes(),
 ];
 
 export default DataMigrations;

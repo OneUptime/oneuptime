@@ -68,8 +68,6 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
-      
-
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
           "Invalid request - projectId not found in request.",
@@ -261,8 +259,6 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
-     
-
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
           "Invalid request - projectId not found in request.",
@@ -451,8 +447,6 @@ export default class OtelIngestService {
     next: NextFunction,
   ): Promise<void> {
     try {
-      
-
       if (!(req as TelemetryRequest).projectId) {
         throw new BadRequestException(
           "Invalid request - projectId not found in request.",
