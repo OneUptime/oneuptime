@@ -3,7 +3,7 @@
 # OneUptime testServer Deployment
 {{- $testServerPorts := dict "port" $.Values.port.testServer -}}
 {{- $testServerEnv := dict "PORT"  $.Values.port.testServer  "DISABLE_TELEMETRY" $.Values.testServer.disableTelemetryCollection -}}
-{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv -}}
+{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv "Resources" $.Values.testServer.resources -}}
 {{- include "oneuptime.deployment" $testServerDeploymentArgs }}
 ---
 

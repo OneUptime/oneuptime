@@ -121,6 +121,10 @@ spec:
             - containerPort: 7850
               protocol: TCP
               name: statuspage-ssl
+          {{- if $.Values.nginx.resources }}
+          resources:
+            {{- toYaml $.Values.nginx.resources | nindent 12 }}
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---

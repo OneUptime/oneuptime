@@ -60,6 +60,10 @@ spec:
             - containerPort: {{ $.Values.port.isolatedVM }}
               protocol: TCP
               name: http
+          {{- if $.Values.isolatedVM.resources }}
+          resources:
+            {{- toYaml $.Values.isolatedVM.resources | nindent 12 }}
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---

@@ -625,6 +625,10 @@ spec:
               name: {{ $key }}
             {{- end }}
           {{- end }}
+          {{- if $.Resources }}
+          resources:
+            {{- toYaml $.Resources | nindent 12 }}
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 {{- end }}
 
