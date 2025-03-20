@@ -5,7 +5,7 @@
 {{- $harakaVolumes := dict "haraka-queue" $harakaQueue -}}
 {{- $harakaPorts := dict "port" $.Values.port.haraka -}}
 {{- $harakaEnv := dict "SMTP_EMAIL" $.Values.internalSmtp.email "SMTP_PASSWORD" "internal_smtp_password" "DKIM_SELECTOR" "oneuptime" "DOMAIN" $.Values.internalSmtp.sendingDomain "INCOMING_EMAIL_DOMAIN" $.Values.internalSmtp.incomingEmailDomain "DKIM_PRIVATE_KEY" $.Values.internalSmtp.dkimPrivateKey "DKIM_PUBLIC_KEY" $.Values.internalSmtp.dkimPublicKey -}}
-{{- $harakaDeploymentArgs :=dict "ServiceName" "haraka" "Ports" $harakaPorts "Release" $.Release "Values" $.Values "Env" $harakaEnv "Volumes" $harakaVolumes -}}
+{{- $harakaDeploymentArgs :=dict "ServiceName" "haraka" "Ports" $harakaPorts "Release" $.Release "Values" $.Values "Env" $harakaEnv "Volumes" $harakaVolumes "Resources" $.Values.haraka.resources -}}
 {{- include "oneuptime.deployment" $harakaDeploymentArgs }}
 ---
 

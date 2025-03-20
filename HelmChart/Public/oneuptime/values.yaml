@@ -210,6 +210,8 @@ probes:
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
+    resources:
+    additionalContainers:
   # two:
   #   name: "Probe 2"
   #   description: "Probe 2"
@@ -434,49 +436,67 @@ openTelemetryCollector:
 
 accounts: 
   disableTelemetryCollection: false
+  resources:
 
 home: 
   disableTelemetryCollection: false
+  resources:
 
 dashboard:
   disableTelemetryCollection: false
+  resources:
 
 adminDashboard:
   disableTelemetryCollection: false
+  resources:
+
+haraka:
+  resources:
 
 worker:
   disableTelemetryCollection: false
+  resources:
 
 workflow:
   disableTelemetryCollection: false
   workflowTimeoutInMs: 5000
+  resources:
 
 apiReference:
   disableTelemetryCollection: false
+  resources:
 
 docs:
   disableTelemetryCollection: false
+  resources:
 
 app: 
   disableTelemetryCollection: false
+  resources:
 
 probeIngest:
   disableTelemetryCollection: false
+  resources:
 
 openTelemetryIngest:
   disableTelemetryCollection: false
+  resources:
 
 fluentIngest:
   disableTelemetryCollection: false
+  resources:
 
 incomingRequestIngest:
   disableTelemetryCollection: false
+  resources:
 
 isolatedVM:
   disableTelemetryCollection: false
+  resources:
 
 serverMonitorIngest:
   disableTelemetryCollection: false
+  resources:
 
 
 slackApp: 

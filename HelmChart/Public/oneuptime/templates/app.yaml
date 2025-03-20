@@ -106,6 +106,10 @@ spec:
             - containerPort: {{ $.Values.port.app }}
               protocol: TCP
               name: http
+          {{- if $.Values.app.resources }}
+          resources:
+            {{- toYaml $.Values.app.resources | nindent 12 }}
+          {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
 ---
