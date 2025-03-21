@@ -5,7 +5,7 @@ import {
 } from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
-import FetchMonitorTest from "./Jobs/Monitor/FetchMonitorTest";
+import  "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Sleep from "Common/Types/Sleep";
@@ -54,16 +54,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       throw err;
     }
 
-    // add test job
-
-    try {
-      new FetchMonitorTest("Monitor Test Fetcher").run();
-    } catch (err) {
-      logger.error("Monitor Test Fetcher failed");
-      logger.error(err);
-      throw err;
-    }
-
+    
     try {
       let workers: number = 0;
 

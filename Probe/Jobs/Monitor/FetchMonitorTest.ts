@@ -10,41 +10,48 @@ import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import APIException from "Common/Types/Exception/ApiException";
 import { JSONArray } from "Common/Types/JSON";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import BasicCron from "Common/Server/Utils/BasicCron";
+import { EVERY_TEN_SECONDS } from "Common/Utils/CronTime";
 
-export default class FetchMonitorTestAndProbe {
-  private workerName: string = "";
-
-  public constructor(workerName: string) {
-    this.workerName = workerName;
-  }
-
-  public async run(): Promise<void> {
-    logger.debug(`Running worker ${this.workerName}`);
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      try {
-        logger.debug(`Probing monitors ${this.workerName}`);
-
-        await this.fetchListAndProbe();
-
-        logger.debug(`Probing monitors ${this.workerName} complete`);
-
-        // sleep for 15 seconds
-
-        await Sleep.sleep(15000);
-      } catch (err) {
-        logger.error(`Error in worker ${this.workerName}`);
-        logger.error(err);
-        await Sleep.sleep(2000);
-      }
+BasicCron({
+  jobName: "Probe:MonitorTest",
+  options: {
+    schedule: EVERY_TEN_SECONDS,
+    runOnStartup: true,
+  },
+  runFunction: async () => {
+    try {
+      await FetchMonitorTestAndProbe.run();
+    } catch (err) {
+      logger.error("Error in worker");
+      logger.error(err);
     }
   }
+});
 
-  private async fetchListAndProbe(): Promise<void> {
+export default class FetchMonitorTestAndProbe {
+
+
+  public static async run(): Promise<void> {
+
+    try {
+      logger.debug(`MONITOR TEST: Probing monitors `);
+
+      await this.fetchListAndProbe();
+
+      logger.debug(`MONITOR TEST: Probing monitors  complete`);
+
+    } catch (err) {
+      logger.error(`Error in worker `);
+      logger.error(err);
+    }
+
+   
+  }
+
+  private static async fetchListAndProbe(): Promise<void> {
     try {
       logger.debug("Fetching monitor list");
 
