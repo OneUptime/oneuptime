@@ -199,7 +199,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
-    notificationFor: NotificationFor
+    notificationFor: NotificationFor;
   }): Promise<Array<string>> {
     logger.debug("getExistingChannelNamesBasedOnEventType called with data:");
     logger.debug(data);

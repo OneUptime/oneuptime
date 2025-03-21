@@ -114,33 +114,31 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             isNoProbeEnabledOnThisMonitor: true,
           }}
         />
-
-
       </SideMenuSection>
 
       <SideMenuSection title="Workspace Connections">
-          <SideMenuItem
-            link={{
-              title: "Slack",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route,
-              ),
-            }}
-            icon={IconProp.Slack}
-          />
+        <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
+        />
 
-          <SideMenuItem
-            link={{
-              title: "Microsoft Teams",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[
-                  PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
-                ] as Route,
-              ),
-            }}
-            icon={IconProp.MicrosoftTeams}
-          />
-        </SideMenuSection>
+        <SideMenuItem
+          link={{
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              ] as Route,
+            ),
+          }}
+          icon={IconProp.MicrosoftTeams}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };
