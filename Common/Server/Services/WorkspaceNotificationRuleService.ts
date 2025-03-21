@@ -208,7 +208,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           }
         } catch (err) {
           throw new BadDataException(
-            "Cannot check if channel exists. " + (err as Error)?.message,
+             (err as Error)?.message,
           );
         }
       }
