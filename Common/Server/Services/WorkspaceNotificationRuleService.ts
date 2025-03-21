@@ -63,7 +63,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     ruleId: ObjectID;
     projectId: ObjectID;
     testByUserId: ObjectID; // this can be useful to invite user to channels if the channels was created.
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const rule: WorkspaceNotificationRule | null = await this.findOneById({
       id: data.ruleId,
@@ -105,7 +105,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     let createdChannels: NotificationRuleWorkspaceChannel[] = [];
 
     if ((notificationRule as IncidentNotificationRule).shouldCreateNewChannel) {
-      const generateRandomString = Text.generateRandomText(5);
+      const generateRandomString: string = Text.generateRandomText(5);
 
       // create channel
       createdChannels = await this.createChannelsBasedOnRules({
@@ -141,7 +141,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             workspaceType: messageBlocksByWorkspaceType.workspaceType,
             messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
             channelNames: existingChannelNames,
-            channelIds: createdChannels.map((channel) => {
+            channelIds: createdChannels.map((channel: NotificationRuleWorkspaceChannel) => {
               return channel.id;
             }),
           };

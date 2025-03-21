@@ -31,7 +31,7 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
 
           await this.service.testRule({
             ruleId: new ObjectID(
-              req.params["workspaceNotifcationRuleId"] as string
+              req.params["workspaceNotifcationRuleId"] as string,
             ),
             props: databaseProps,
             projectId: databaseProps.tenantId!,
@@ -42,7 +42,7 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
         } catch (e) {
           next(e);
         }
-      }
+      },
     );
   }
 }

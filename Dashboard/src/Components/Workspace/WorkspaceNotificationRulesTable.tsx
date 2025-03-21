@@ -23,7 +23,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import API from "Common/Utils/API";
 import Exception from "Common/Types/Exception/Exception";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { ErrorFunction, PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -42,6 +42,15 @@ import FilterCondition from "Common/Types/Filter/FilterCondition";
 import NotificationRuleCondition, {
   NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import ObjectID from "Common/Types/ObjectID";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import EmptyResponseData from "Common/Types/API/EmptyResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -73,6 +82,51 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
+
+  const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
+  const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
+  const [testError, setTestError] = React.useState<string | undefined>(undefined);
+  const [testNotificationRule, setTestNotificationRule] = React.useState<
+    WorkspaceNotificationRule | undefined
+  >(undefined);
+
+  const [showTestSuccessModal, setShowTestSuccessModal] = React.useState<boolean>(false);
+
+
+  const testRule = async (ruleId: ObjectID): Promise<void> => {
+    try {
+      setIsTestLoading(true);
+      setTestError(undefined);
+
+      // test rule
+      const response:
+        | HTTPResponse<EmptyResponseData>
+        | HTTPErrorResponse = await API.get(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            `/workspace-notification-rule/test/${ruleId.toString()}`,
+          ),
+
+          {
+
+          },
+        );
+      if (response.isSuccess()) {
+        setIsTestLoading(false);
+        setShowTestModal(false);
+        setShowTestSuccessModal(true);
+      }
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setIsTestLoading(false);
+    } catch (err) {
+      setTestError(API.getFriendlyErrorMessage(err as Exception));
+      setIsTestLoading(false);
+    }
+  }
+
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -350,6 +404,28 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           projectId: DashboardNavigation.getProjectId()!,
           eventType: props.eventType,
         }}
+        actionButtons={[
+          {
+            title: "Send Rule",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Play,
+            onClick: async (
+              item: WorkspaceNotificationRule,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                setTestNotificationRule(item);
+                setShowTestModal(true);
+
+                onCompleteAction();
+              } catch (err) {
+                onCompleteAction();
+                onError(err as Error);
+              }
+            },
+          },
+        ]}
         singularName={`${props.eventType} Notification Rule`}
         pluralName={`${props.eventType} Notification Rules`}
         id="servie-provider-table"
@@ -523,6 +599,51 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
+
+      {showTestModal && testNotificationRule ? (
+        <ConfirmModal
+          title={`Test Rule`}
+          description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${props.workspaceType}.`}
+
+          submitButtonText={"Test"}
+          onClose={() => {
+            setShowTestModal(false);
+            setTestNotificationRule(undefined);
+            setTestError(undefined);
+            setError("");
+          }}
+          isLoading={isTestLoading}
+          onSubmit={async () => {
+            if (!testNotificationRule.id) {
+              return;
+            }
+            await testRule(testNotificationRule.id!);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+
+      {showTestSuccessModal ? (
+        <ConfirmModal
+          title={testError ? `Test Failed` : `Test Executed Successfully`}
+          error={
+            testError
+          }
+          description={`Test executed successfully. You should now see a notification in ${props.workspaceType}.`}
+          submitButtonType={ButtonStyleType.NORMAL}
+          submitButtonText={"Close"}
+          onSubmit={async () => {
+            setShowTestModal(false);
+            setTestError("");
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+
     </Fragment>
   );
 };

@@ -536,7 +536,6 @@ import WorkspaceSettingService, {
   Service as WorkspaceSettingServiceType,
 } from "Common/Server/Services/WorkspaceSettingService";
 
-
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import ProjectUserService, {
   Service as ProjectUserServiceType,
@@ -568,7 +567,6 @@ const BaseAPIFeatureSet: FeatureSet = {
         AlertStateService,
       ).getRouter(),
     );
-
 
     // monitor feed
     app.use(
