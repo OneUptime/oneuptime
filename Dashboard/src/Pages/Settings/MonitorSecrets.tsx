@@ -83,7 +83,8 @@ const MonitorSecrets: FunctionComponent<
             },
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
-            description: "Name of the secret. This is a unique identifier and cannot have spaces or special characters. You can then use this name to access the secret in your monitors.",
+            description:
+              "Name of the secret. This is a unique identifier and cannot have spaces or special characters. You can then use this name to access the secret in your monitors.",
             required: true,
             placeholder: "Secret Name",
             validation: {
