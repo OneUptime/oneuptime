@@ -3,6 +3,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ProjectService from "Common/Server/Services/ProjectService";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectUserService from "Common/Server/Services/ProjectUserService";
+import logger from "Common/Server/Utils/Logger";
 
 export default class RefreshProjectUsers extends DataMigrationBase {
   public constructor() {
@@ -25,9 +26,13 @@ export default class RefreshProjectUsers extends DataMigrationBase {
     });
 
     for (const project of projects) {
-      await ProjectUserService.refreshProjectUsersByProject({
-        projectId: project.id!,
-      });
+      try {
+        await ProjectUserService.refreshProjectUsersByProject({
+          projectId: project.id!,
+        });
+      } catch (err) {
+        logger.error(`Error refreshing project users for project: ${project.id}`);
+      }
     }
   }
 
