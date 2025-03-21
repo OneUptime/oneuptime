@@ -583,6 +583,12 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
+
+      // if channel not found, return false
+      if (messageFromSlack === "channel_not_found") {
+        return false;
+      }
+
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
