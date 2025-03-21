@@ -406,7 +406,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         }}
         actionButtons={[
           {
-            title: "Send Rule",
+            title: "Test Rule",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Play,
             onClick: async (
@@ -631,6 +631,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {
+            setShowTestSuccessModal(false);
+            setTestNotificationRule(undefined);
             setShowTestModal(false);
             setTestError("");
           }}
