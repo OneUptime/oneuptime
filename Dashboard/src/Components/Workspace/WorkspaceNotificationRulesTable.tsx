@@ -127,6 +127,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
+      
     }
   };
 
@@ -605,6 +606,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       {showTestModal && testNotificationRule ? (
         <ConfirmModal
           title={`Test Rule`}
+          error={testError}
           description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${props.workspaceType}.`}
           submitButtonText={"Test"}
           onClose={() => {
