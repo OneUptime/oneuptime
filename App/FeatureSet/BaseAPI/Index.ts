@@ -18,6 +18,7 @@ import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
+import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
 import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
@@ -535,10 +536,7 @@ import WorkspaceSettingService, {
   Service as WorkspaceSettingServiceType,
 } from "Common/Server/Services/WorkspaceSettingService";
 
-import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
-import WorkspaceNotificationRuleService, {
-  Service as WorkspaceNotificationRuleServiceType,
-} from "Common/Server/Services/WorkspaceNotificationRuleService";
+
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import ProjectUserService, {
   Service as ProjectUserServiceType,
@@ -571,18 +569,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // notification rule
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        WorkspaceNotificationRule,
-        WorkspaceNotificationRuleServiceType
-      >(
-        WorkspaceNotificationRule,
-        WorkspaceNotificationRuleService,
-      ).getRouter(),
-    );
 
     // monitor feed
     app.use(
@@ -1456,6 +1442,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new WorkspaceNotificationRuleAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().getRouter());
     app.use(

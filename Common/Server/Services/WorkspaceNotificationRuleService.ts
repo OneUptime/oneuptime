@@ -38,6 +38,8 @@ import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNot
 import UserService from "./UserService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import Text from "../../Types/Text";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -54,6 +56,98 @@ export interface NotificationFor {
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
     super(WorkspaceNotificationRule);
+  }
+
+  @CaptureSpan()
+  public async testRule(data: {
+    ruleId: ObjectID;
+    projectId: ObjectID;
+    testByUserId: ObjectID; // this can be useful to invite user to channels if the channels was created.
+    props: DatabaseCommonInteractionProps
+  }): Promise<void> {
+    const rule: WorkspaceNotificationRule | null = await this.findOneById({
+      id: data.ruleId,
+      select: {
+        notificationRule: true,
+        workspaceType: true,
+        eventType: true,
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!rule) {
+      throw new BadDataException("Rule not found");
+    }
+
+    const notificationRule: BaseNotificationRule =
+      rule.notificationRule as BaseNotificationRule;
+
+    // now send test message to these channels.
+    const messageBlocksByWorkspaceTypes: Array<MessageBlocksByWorkspaceType> =
+      [];
+
+    // use markdown to create blocks
+    messageBlocksByWorkspaceTypes.push({
+      workspaceType: rule.workspaceType!,
+      messageBlocks: [
+        {
+          _type: "WorkspacePayloadMarkdown",
+          text: `This is a test message for rule **${rule.name}**`,
+        } as WorkspacePayloadMarkdown,
+      ],
+    });
+
+    let existingChannelNames: Array<string> = [];
+
+    let createdChannels: NotificationRuleWorkspaceChannel[] = [];
+
+    if ((notificationRule as IncidentNotificationRule).shouldCreateNewChannel) {
+      const generateRandomString = Text.generateRandomText(5);
+
+      // create channel
+      createdChannels = await this.createChannelsBasedOnRules({
+        projectOrUserAuthTokenForWorkspace: "",
+        workspaceType: rule.workspaceType!,
+        notificationRules: [rule],
+        channelNameSiffix: generateRandomString,
+        notificationEventType: rule.eventType!,
+      });
+
+      await this.inviteUsersBasedOnRulesAndWorkspaceChannels({
+        workspaceChannels: createdChannels,
+        projectId: data.projectId,
+        notificationRules: [rule],
+        userIds: [data.testByUserId],
+      });
+    }
+
+    if (notificationRule.shouldPostToExistingChannel) {
+      existingChannelNames = this.getExistingChannelNamesFromNotificationRules({
+        notificationRules: [notificationRule],
+      });
+    }
+
+    // post message
+
+    await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+      projectId: data.projectId,
+      messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
+        (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+          return {
+            _type: "WorkspaceMessagePayload",
+            workspaceType: messageBlocksByWorkspaceType.workspaceType,
+            messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+            channelNames: existingChannelNames,
+            channelIds: createdChannels.map((channel) => {
+              return channel.id;
+            }),
+          };
+        },
+      ),
+    });
   }
 
   @CaptureSpan()
