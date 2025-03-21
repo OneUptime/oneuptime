@@ -95,9 +95,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [showTestSuccessModal, setShowTestSuccessModal] =
     React.useState<boolean>(false);
 
-    type TestRuleFunction = (ruleId: ObjectID) => Promise<void>;
+  type TestRuleFunction = (ruleId: ObjectID) => Promise<void>;
 
-  const testRule: TestRuleFunction = async (ruleId: ObjectID): Promise<void> => {
+  const testRule: TestRuleFunction = async (
+    ruleId: ObjectID,
+  ): Promise<void> => {
     try {
       setIsTestLoading(true);
       setTestError(undefined);

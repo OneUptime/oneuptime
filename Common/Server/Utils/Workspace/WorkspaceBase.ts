@@ -248,14 +248,14 @@ export default class WorkspaceBase {
           blocks.push(
             this.getHeaderBlock({
               payloadHeaderBlock: block as WorkspacePayloadHeader,
-            })
+            }),
           );
           break;
         case "WorkspacePayloadMarkdown":
           blocks.push(
             this.getMarkdownBlock({
               payloadMarkdownBlock: block as WorkspacePayloadMarkdown,
-            })
+            }),
           );
           break;
         case "WorkspacePayloadDivider":
@@ -265,49 +265,49 @@ export default class WorkspaceBase {
           blocks.push(
             this.getButtonsBlock({
               payloadButtonsBlock: block as WorkspacePayloadButtons,
-            })
+            }),
           );
           break;
         case "WorkspaceTextAreaBlock":
           blocks.push(
             this.getTextAreaBlock({
               payloadTextAreaBlock: block as WorkspaceTextAreaBlock,
-            })
+            }),
           );
           break;
         case "WorkspaceTextBoxBlock":
           blocks.push(
             this.getTextBoxBlock({
               payloadTextBoxBlock: block as WorkspaceTextBoxBlock,
-            })
+            }),
           );
           break;
         case "WorkspacePayloadImage":
           blocks.push(
             this.getImageBlock({
               payloadImageBlock: block as WorkspacePayloadImage,
-            })
+            }),
           );
           break;
         case "WorkspaceDropdownBlock":
           blocks.push(
             this.getDropdownBlock({
               payloadDropdownBlock: block as WorkspaceDropdownBlock,
-            })
+            }),
           );
           break;
         case "WorkspaceModalBlock":
           blocks.push(
             this.getModalBlock({
               payloadModalBlock: block as WorkspaceModalBlock,
-            })
+            }),
           );
           break;
         case "WorkspaceDateTimePickerBlock":
           blocks.push(
             this.getDateTimePickerBlock({
               payloadDateTimePickerBlock: block as WorkspaceDateTimePickerBlock,
-            })
+            }),
           );
           break;
         default:

@@ -126,7 +126,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (result.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     logger.debug("Modal shown to user successfully.");
@@ -193,7 +193,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     logger.debug("Channel joined successfully with data:");
@@ -249,7 +249,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     logger.debug("User invited to channel successfully.");
@@ -398,7 +398,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     if (
@@ -455,7 +455,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     const channels: Dictionary<WorkspaceChannel> = {};
@@ -543,7 +543,7 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static override  async doesChannelExist(data: {
+  public static override async doesChannelExist(data: {
     authToken: string;
     channelName: string;
   }): Promise<boolean> {
@@ -583,7 +583,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     logger.debug("Channel exists.");
@@ -730,7 +730,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     logger.debug("Payload blocks sent to channel successfully.");
@@ -805,7 +805,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     if (
@@ -1183,7 +1183,7 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+      throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 
     // check if the user is in the channel
@@ -1248,9 +1248,9 @@ export default class SlackUtil extends WorkspaceBase {
         logger.error("Invalid response from Slack API:");
         logger.error(response.jsonData);
         const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack "+messageFromSlack);
+          "error"
+        ] as string;
+        throw new BadRequestException("Error from Slack " + messageFromSlack);
       }
 
       // check if the user is in the channel
