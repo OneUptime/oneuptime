@@ -41,6 +41,7 @@ RunCron(
           _id: true,
           monitorSteps: true,
           incomingRequestReceivedAt: true,
+          incomingMonitorRequest: true,
           incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
         },
