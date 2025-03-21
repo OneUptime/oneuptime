@@ -5,7 +5,7 @@ import {
 } from "./Config";
 import "./Jobs/Alive";
 import FetchListAndProbe from "./Jobs/Monitor/FetchList";
-import  "./Jobs/Monitor/FetchMonitorTest";
+import "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Sleep from "Common/Types/Sleep";
@@ -54,7 +54,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       throw err;
     }
 
-    
     try {
       let workers: number = 0;
 

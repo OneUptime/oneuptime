@@ -28,27 +28,21 @@ BasicCron({
       logger.error("Error in worker");
       logger.error(err);
     }
-  }
+  },
 });
 
 export default class FetchMonitorTestAndProbe {
-
-
   public static async run(): Promise<void> {
-
     try {
       logger.debug(`MONITOR TEST: Probing monitors `);
 
       await this.fetchListAndProbe();
 
       logger.debug(`MONITOR TEST: Probing monitors  complete`);
-
     } catch (err) {
       logger.error(`Error in worker `);
       logger.error(err);
     }
-
-   
   }
 
   private static async fetchListAndProbe(): Promise<void> {
