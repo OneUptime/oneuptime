@@ -31,7 +31,9 @@ export default class RefreshProjectUsers extends DataMigrationBase {
           projectId: project.id!,
         });
       } catch (err) {
-        logger.error(`Error refreshing project users for project: ${project.id}`);
+        logger.error(
+          `Error refreshing project users for project: ${project.id}`,
+        );
       }
     }
   }
