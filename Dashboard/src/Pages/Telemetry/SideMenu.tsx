@@ -64,7 +64,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
         />
       </SideMenuSection>
       <SideMenuSection title="Exceptions">
-
         <CountModelSideMenuItem<TelemetryException>
           link={{
             title: "Unresolved",

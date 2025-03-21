@@ -76,7 +76,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
       <SideMenuSection title="Exceptions">
-      <CountModelSideMenuItem<TelemetryException>
+        <CountModelSideMenuItem<TelemetryException>
           link={{
             title: "Unresolved",
             to: RouteUtil.populateRouteParams(
