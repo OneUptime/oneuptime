@@ -47,7 +47,7 @@ export default class FetchMonitorTestAndProbe {
 
   private static async fetchListAndProbe(): Promise<void> {
     try {
-      logger.debug("Fetching monitor list");
+      logger.debug("MONITOR TEST: Fetching monitor  list");
 
       const monitorListUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),
@@ -65,7 +65,7 @@ export default class FetchMonitorTestAndProbe {
           {},
         );
 
-      logger.debug("Fetched monitor test list");
+      logger.debug("MONITOR TEST: Fetched monitor test list");
       logger.debug(result);
 
       const monitorTests: Array<MonitorTest> = BaseModel.fromJSONArray(
