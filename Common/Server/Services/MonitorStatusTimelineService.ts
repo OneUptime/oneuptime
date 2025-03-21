@@ -269,7 +269,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       displayColor: monitorStatus?.color,
       feedInfoInMarkdown:
         stateEmoji +
-        ` Changed **[Monitor ${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **` +
+        ` Changed Monitor **[${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **` +
         stateName +
         "**",
       moreInformationInMarkdown: `**Cause:** 

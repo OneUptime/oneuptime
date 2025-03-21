@@ -143,7 +143,7 @@ export class Service extends DatabaseService<Model> {
         const monitorName: string = monitor!.name!;
 
         let shouldAddMonitorFeed: boolean = false;
-        let feedInfoInMarkdown: string = `**[Monitor ${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
+        let feedInfoInMarkdown: string = `Monitor **[${monitorName}](${(await this.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) was updated.**`;
 
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
