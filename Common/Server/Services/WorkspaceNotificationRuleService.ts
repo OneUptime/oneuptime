@@ -103,6 +103,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           projectId: data.projectId,
           notificationRuleEventType: NotificationRuleEventType.Monitor,
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
+          notificationFor: data.notificationFor,
         });
 
       let monitorChannels: Array<WorkspaceChannel> = [];
@@ -198,15 +199,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     notificationRuleEventType: NotificationRuleEventType;
+    notificationFor: NotificationFor
   }): Promise<Array<string>> {
     logger.debug("getExistingChannelNamesBasedOnEventType called with data:");
     logger.debug(data);
 
     const notificationRules: Array<WorkspaceNotificationRule> =
-      await this.getNotificationRules({
+      await this.getMatchingNotificationRules({
         projectId: data.projectId,
         workspaceType: data.workspaceType,
         notificationRuleEventType: data.notificationRuleEventType,
+        notificationFor: data.notificationFor,
       });
 
     logger.debug("Notification rules retrieved:");
