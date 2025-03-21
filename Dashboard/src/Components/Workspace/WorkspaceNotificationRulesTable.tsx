@@ -85,30 +85,31 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
   const [isTestLoading, setIsTestLoading] = React.useState<boolean>(false);
-  const [testError, setTestError] = React.useState<string | undefined>(undefined);
+  const [testError, setTestError] = React.useState<string | undefined>(
+    undefined,
+  );
   const [testNotificationRule, setTestNotificationRule] = React.useState<
     WorkspaceNotificationRule | undefined
   >(undefined);
 
-  const [showTestSuccessModal, setShowTestSuccessModal] = React.useState<boolean>(false);
+  const [showTestSuccessModal, setShowTestSuccessModal] =
+    React.useState<boolean>(false);
 
+    type TestRuleFunction = (ruleId: ObjectID) => Promise<void>;
 
-  const testRule = async (ruleId: ObjectID): Promise<void> => {
+  const testRule: TestRuleFunction = async (ruleId: ObjectID): Promise<void> => {
     try {
       setIsTestLoading(true);
       setTestError(undefined);
 
       // test rule
-      const response:
-        | HTTPResponse<EmptyResponseData>
-        | HTTPErrorResponse = await API.get(
+      const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
+        await API.get(
           URL.fromString(APP_API_URL.toString()).addRoute(
             `/workspace-notification-rule/test/${ruleId.toString()}`,
           ),
 
-          {
-
-          },
+          {},
         );
       if (response.isSuccess()) {
         setIsTestLoading(false);
@@ -125,8 +126,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
     }
-  }
-
+  };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -604,7 +604,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Test Rule`}
           description={`Test the rule ${testNotificationRule.name} by sending a test notification to ${props.workspaceType}.`}
-
           submitButtonText={"Test"}
           onClose={() => {
             setShowTestModal(false);
@@ -624,13 +623,10 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-
       {showTestSuccessModal ? (
         <ConfirmModal
           title={testError ? `Test Failed` : `Test Executed Successfully`}
-          error={
-            testError
-          }
+          error={testError}
           description={`Test executed successfully. You should now see a notification in ${props.workspaceType}.`}
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
@@ -642,8 +638,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-
-
     </Fragment>
   );
 };

@@ -141,9 +141,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             workspaceType: messageBlocksByWorkspaceType.workspaceType,
             messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
             channelNames: existingChannelNames,
-            channelIds: createdChannels.map((channel: NotificationRuleWorkspaceChannel) => {
-              return channel.id;
-            }),
+            channelIds: createdChannels.map(
+              (channel: NotificationRuleWorkspaceChannel) => {
+                return channel.id;
+              },
+            ),
           };
         },
       ),
