@@ -207,9 +207,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             );
           }
         } catch (err) {
-          throw new BadDataException(
-             (err as Error)?.message,
-          );
+          throw new BadDataException((err as Error)?.message);
         }
       }
 

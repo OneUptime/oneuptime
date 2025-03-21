@@ -127,7 +127,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
-      
     }
   };
 

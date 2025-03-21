@@ -30,6 +30,7 @@ import SlackifyMarkdown from "slackify-markdown";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import OneUptimeDate from "../../../../Types/Date";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 
 export default class SlackUtil extends WorkspaceBase {
   @CaptureSpan()
@@ -353,7 +354,7 @@ export default class SlackUtil extends WorkspaceBase {
 
     if (!channels[data.channelName]) {
       logger.error("Channel not found.");
-      throw new Error("Channel not found.");
+      throw new BadDataException("Channel not found.");
     }
 
     logger.debug("Workspace channel ID obtained:");
@@ -547,53 +548,26 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
   }): Promise<boolean> {
+    // if channel name starts with #, remove it
     if (data.channelName && data.channelName.startsWith("#")) {
       data.channelName = data.channelName.substring(1);
     }
 
-    logger.debug("Checking if channel exists with data:");
-    logger.debug(data);
+    // convert channel name to lowercase
+    data.channelName = data.channelName.toLowerCase();
 
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString("https://slack.com/api/conversations.info"),
-        {
-          channel: data.channelName,
-        },
-        {
-          Authorization: `Bearer ${data.authToken}`,
-          ["Content-Type"]: "application/x-www-form-urlencoded",
-        },
-      );
+    // get channel id from channel name
+    const channels: Dictionary<WorkspaceChannel> =
+      await this.getAllWorkspaceChannels({
+        authToken: data.authToken,
+      });
 
-    logger.debug("Response from Slack API for checking if channel exists:");
-    logger.debug(response);
-
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
-      throw response;
+    // if this channel exists
+    if (channels[data.channelName]) {
+      return true;
     }
 
-    // check for ok response
-
-    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-
-      // if channel not found, return false
-      if (messageFromSlack === "channel_not_found") {
-        return false;
-      }
-
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
-    }
-
-    logger.debug("Channel exists.");
-    return true;
+    return false;
   }
 
   @CaptureSpan()
