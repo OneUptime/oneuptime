@@ -12,6 +12,7 @@ import GlobalConfig, {
 } from "Common/Models/DatabaseModels/GlobalConfig";
 import Phone from "Common/Types/Phone";
 
+// Load SMTP configuration from environment variables or use default values
 export const InternalSmtpPassword: string =
   process.env["INTERNAL_SMTP_PASSWORD"] || "";
 
@@ -23,6 +24,7 @@ export const InternalSmtpPort: Port = new Port(2525);
 
 export const InternalSmtpSecure: boolean = false;
 
+// Define default internal SMTP email address and sender name
 export const InternalSmtpEmail: Email = new Email(
   process.env["INTERNAL_SMTP_EMAIL"] || "noreply@oneuptime.com",
 );
@@ -30,17 +32,19 @@ export const InternalSmtpEmail: Email = new Email(
 export const InternalSmtpFromName: string =
   process.env["INTERNAL_SMTP_FROM_NAME"] || "OneUptime";
 
+// Function type that returns a promise with an EmailServer object or null
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
+// Fetch global SMTP configuration from the database
 export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
   async (): Promise<EmailServer | null> => {
     const globalConfig: GlobalConfig | null =
       await GlobalConfigService.findOneBy({
         query: {
-          _id: ObjectID.getZeroObjectID().toString(),
+          _id: ObjectID.getZeroObjectID().toString(), // Use a predefined zero object ID as the query
         },
         props: {
-          isRoot: true,
+          isRoot: true, // Indicate the operation is privileged
         },
         select: {
           smtpFromEmail: true,
@@ -53,10 +57,12 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
         },
       });
 
+    // Throw an exception if no global configuration is found
     if (!globalConfig) {
       throw new BadDataException("Global Config not found");
     }
 
+    // Return null if essential SMTP configuration is absent
     if (
       !globalConfig.smtpFromEmail &&
       !globalConfig.smtpHost &&
@@ -68,14 +74,8 @@ export const getGlobalSMTPConfig: GetGlobalSMTPConfig =
       return null;
     }
 
+    // Check that 'smtpFromEmail' is defined, else throw an exception
     if (!globalConfig.smtpFromEmail) {
-      throw new BadDataException(
-        "Global SMTP From Email not found. Please set this in the Admin Dashboard: " +
-          AdminDashboardClientURL.toString(),
-      );
-    }
-
-    if (!globalConfig.smtpHost) {
       throw new BadDataException(
         "SMTP Host not found. Please set this in the Admin Dashboard: " +
           AdminDashboardClientURL.toString(),
