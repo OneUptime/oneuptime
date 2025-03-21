@@ -115,7 +115,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
         />
 
-        <SideMenuSection title="Workspace Connections">
+
+      </SideMenuSection>
+
+      <SideMenuSection title="Workspace Connections">
           <SideMenuItem
             link={{
               title: "Slack",
@@ -138,7 +141,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             icon={IconProp.MicrosoftTeams}
           />
         </SideMenuSection>
-      </SideMenuSection>
     </SideMenu>
   );
 };
