@@ -3,10 +3,14 @@ import RouteMap, { RouteUtil } from "../../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import DashboardNavigation from "../../../../Utils/Navigation";
+import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -72,7 +76,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
       <SideMenuSection title="Exceptions">
-        <SideMenuItem
+      <CountModelSideMenuItem<TelemetryException>
           link={{
             title: "Unresolved",
             to: RouteUtil.populateRouteParams(
@@ -82,7 +86,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
+          badgeType={BadgeType.DANGER}
           icon={IconProp.Alert}
+          countQuery={{
+            projectId: DashboardNavigation.getProjectId()!,
+            isResolved: false,
+            isArchived: false,
+            telemetryServiceId: props.modelId,
+          }}
+          modelType={TelemetryException}
         />
         <SideMenuItem
           link={{
