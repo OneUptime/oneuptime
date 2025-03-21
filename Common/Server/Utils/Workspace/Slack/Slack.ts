@@ -123,7 +123,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((result.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(result.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (result.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     logger.debug("Modal shown to user successfully.");
@@ -187,7 +190,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     logger.debug("Channel joined successfully with data:");
@@ -240,7 +246,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     logger.debug("User invited to channel successfully.");
@@ -386,7 +395,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     if (
@@ -440,7 +452,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     const channels: Dictionary<WorkspaceChannel> = {};
@@ -525,6 +540,54 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(values);
 
     return values;
+  }
+
+  @CaptureSpan()
+  public static override  async doesChannelExist(data: {
+    authToken: string;
+    channelName: string;
+  }): Promise<boolean> {
+    if (data.channelName && data.channelName.startsWith("#")) {
+      data.channelName = data.channelName.substring(1);
+    }
+
+    logger.debug("Checking if channel exists with data:");
+    logger.debug(data);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post(
+        URL.fromString("https://slack.com/api/conversations.info"),
+        {
+          channel: data.channelName,
+        },
+        {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+      );
+
+    logger.debug("Response from Slack API for checking if channel exists:");
+    logger.debug(response);
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error response from Slack API:");
+      logger.error(response);
+      throw response;
+    }
+
+    // check for ok response
+
+    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+      logger.error("Invalid response from Slack API:");
+      logger.error(response.jsonData);
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
+    }
+
+    logger.debug("Channel exists.");
+    return true;
   }
 
   @CaptureSpan()
@@ -664,7 +727,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     logger.debug("Payload blocks sent to channel successfully.");
@@ -736,7 +802,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     if (
@@ -1111,7 +1180,10 @@ export default class SlackUtil extends WorkspaceBase {
     if ((response.jsonData as JSONObject)?.["ok"] !== true) {
       logger.error("Invalid response from Slack API:");
       logger.error(response.jsonData);
-      throw new BadRequestException("Invalid response");
+      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
     }
 
     // check if the user is in the channel
@@ -1175,7 +1247,10 @@ export default class SlackUtil extends WorkspaceBase {
       if ((response.jsonData as JSONObject)?.["ok"] !== true) {
         logger.error("Invalid response from Slack API:");
         logger.error(response.jsonData);
-        throw new BadRequestException("Invalid response");
+        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+        "error"
+      ] as string;
+      throw new BadRequestException("Error from Slack "+messageFromSlack);
       }
 
       // check if the user is in the channel
