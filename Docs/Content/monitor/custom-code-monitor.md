@@ -51,7 +51,7 @@ console.log(stringSecret);
 
 ### Things to consider
 
-- You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor.
+- You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor (Probes > View Logs).
 - You can return the data from the script using the `return` statement. 
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
 - You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.
