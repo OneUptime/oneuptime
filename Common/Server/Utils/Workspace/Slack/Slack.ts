@@ -430,50 +430,65 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting all workspace channels with data:");
     logger.debug(data);
 
-    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>(
-        URL.fromString("https://slack.com/api/conversations.list"),
-        {},
-        {
-          Authorization: `Bearer ${data.authToken}`,
-          ["Content-Type"]: "application/x-www-form-urlencoded",
-        },
-      );
-
-    logger.debug("Response from Slack API for getting all channels:");
-    logger.debug(response);
-
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Slack API:");
-      logger.error(response);
-      throw response;
-    }
-
-    // check for ok response
-    if ((response.jsonData as JSONObject)?.["ok"] !== true) {
-      logger.error("Invalid response from Slack API:");
-      logger.error(response.jsonData);
-      const messageFromSlack: string = (response.jsonData as JSONObject)?.[
-        "error"
-      ] as string;
-      throw new BadRequestException("Error from Slack " + messageFromSlack);
-    }
-
     const channels: Dictionary<WorkspaceChannel> = {};
+    let cursor: string | undefined = undefined;
 
-    for (const channel of (response.jsonData as JSONObject)[
-      "channels"
-    ] as Array<JSONObject>) {
-      if (!channel["id"] || !channel["name"]) {
-        continue;
+    do {
+      const requestBody: JSONObject = {
+        limit: 1000,
+      };
+
+      if (cursor) {
+        requestBody["cursor"] = cursor;
       }
 
-      channels[channel["name"].toString()] = {
-        id: channel["id"] as string,
-        name: channel["name"] as string,
-        workspaceType: WorkspaceType.Slack,
-      };
-    }
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>(
+          URL.fromString("https://slack.com/api/conversations.list"),
+          requestBody,
+          {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+        );
+
+      logger.debug("Response from Slack API for getting all channels:");
+      logger.debug(response);
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error response from Slack API:");
+        logger.error(response);
+        throw response;
+      }
+
+      // check for ok response
+      if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+        logger.error("Invalid response from Slack API:");
+        logger.error(response.jsonData);
+        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+          "error"
+        ] as string;
+        throw new BadRequestException("Error from Slack " + messageFromSlack);
+      }
+
+      for (const channel of (response.jsonData as JSONObject)[
+        "channels"
+      ] as Array<JSONObject>) {
+        if (!channel["id"] || !channel["name"]) {
+          continue;
+        }
+
+        channels[channel["name"].toString()] = {
+          id: channel["id"] as string,
+          name: channel["name"] as string,
+          workspaceType: WorkspaceType.Slack,
+        };
+      }
+
+      cursor = (
+        (response.jsonData as JSONObject)["response_metadata"] as JSONObject
+      )?.["next_cursor"] as string;
+    } while (cursor);
 
     logger.debug("All workspace channels obtained:");
     logger.debug(channels);
