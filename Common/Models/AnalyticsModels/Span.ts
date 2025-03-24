@@ -42,7 +42,7 @@ export interface SpanLink {
 export default class Span extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "SpanTelemetry",
+      tableName: "SpanItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Span",
       pluralName: "Spans",
@@ -492,8 +492,8 @@ export default class Span extends AnalyticsBaseModel {
           },
         }),
       ],
-      sortKeys: ["projectId", "serviceId", "traceId", "startTime"],
-      primaryKeys: ["projectId", "serviceId", "traceId"],
+      sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
+      primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
     });
   }
 

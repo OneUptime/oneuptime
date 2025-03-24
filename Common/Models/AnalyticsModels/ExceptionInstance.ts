@@ -10,7 +10,7 @@ import { SpanStatus } from "./Span";
 export default class ExceptionInstance extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "ExceptionInstanceTelemetry",
+      tableName: "ExceptionItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Exception",
       pluralName: "Exceptions",
@@ -369,8 +369,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           },
         }),
       ],
-      sortKeys: ["projectId", "serviceId", "fingerprint", "time"],
-      primaryKeys: ["projectId", "serviceId", "fingerprint"],
+      sortKeys: ["projectId", "time", "serviceId", "fingerprint", ],
+      primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
     });
   }
 

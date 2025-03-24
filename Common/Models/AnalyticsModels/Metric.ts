@@ -29,7 +29,7 @@ export enum ServiceType {
 export default class Metric extends AnalyticsBaseModel {
   public constructor() {
     super({
-      tableName: "MetricTelemetry",
+      tableName: "MetricItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Metric",
       pluralName: "Metrics",
@@ -554,8 +554,8 @@ export default class Metric extends AnalyticsBaseModel {
           },
         }),
       ],
-      sortKeys: ["projectId", "serviceId", "time"],
-      primaryKeys: ["projectId", "serviceId"],
+      sortKeys: ["projectId", "time", "serviceId"],
+      primaryKeys: ["projectId", "time", "serviceId"],
     });
   }
 
