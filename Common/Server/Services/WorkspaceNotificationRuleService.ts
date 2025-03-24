@@ -206,7 +206,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
           if (!channelExists) {
             throw new BadDataException(
-              `Channel ${channelName} does not exist.`,
+              `Channel ${channelName} does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.`,
             );
           }
         } catch (err) {
