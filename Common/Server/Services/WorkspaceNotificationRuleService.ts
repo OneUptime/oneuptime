@@ -306,10 +306,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
 
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
+
       const existingChannels: Array<string> =
         await this.getExistingChannelNamesBasedOnEventType({
           projectId: data.projectId,
-          notificationRuleEventType: NotificationRuleEventType.Monitor,
+          notificationRuleEventType: this.getNotificationRuleEventType(data.notificationFor),
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
           notificationFor: data.notificationFor,
         });
@@ -370,6 +371,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId,
       messagePayloadsByWorkspace: workspaceNotificationPaylaods,
     });
+  }
+
+  private getNotificationRuleEventType(notificationFor: NotificationFor): NotificationRuleEventType {
+    if(notificationFor.alertId) {
+      return NotificationRuleEventType.Alert;
+    }
+
+    if(notificationFor.incidentId) {
+      return NotificationRuleEventType.Incident;
+    }
+
+    if(notificationFor.monitorId) {
+      return NotificationRuleEventType.Monitor;
+    }
+
+    if(notificationFor.scheduledMaintenanceId) {
+      return NotificationRuleEventType.ScheduledMaintenance;
+    }
+
+    throw new BadDataException("Notification for not found");
   }
 
   @CaptureSpan()
