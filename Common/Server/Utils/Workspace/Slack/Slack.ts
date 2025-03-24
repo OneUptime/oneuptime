@@ -435,7 +435,7 @@ export default class SlackUtil extends WorkspaceBase {
 
     do {
       const requestBody: JSONObject = {
-        limit: 1000,
+        limit: 999,
       };
 
       if (cursor) {
@@ -1211,7 +1211,7 @@ export default class SlackUtil extends WorkspaceBase {
 
       const requestBody: JSONObject = {
         channel: data.channelId,
-        limit: 1000,
+        limit: 999,
       };
 
       if (cursor) {
