@@ -453,7 +453,7 @@ export default class SlackUtil extends WorkspaceBase {
         );
 
       logger.debug("Response from Slack API for getting all channels:");
-      logger.debug(response);
+      logger.debug(JSON.stringify(response, null, 2));
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Slack API:");
