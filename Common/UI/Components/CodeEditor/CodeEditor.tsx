@@ -114,6 +114,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
       <Editor
         defaultLanguage={props.type}
+        
         height="30vh"
         value={value}
         onChange={(code: string | undefined) => {
@@ -128,8 +129,8 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         defaultValue={value || placeholder || ""}
         className={className}
         options={{
-          acceptSuggestionOnCommitCharacter: true,
-          acceptSuggestionOnEnter: "on",
+          acceptSuggestionOnCommitCharacter: false,
+          acceptSuggestionOnEnter: "off",
           accessibilitySupport: "auto",
           fontSize: 14,
           automaticLayout: true,
@@ -157,7 +158,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           multiCursorModifier: "alt",
           overviewRulerBorder: true,
           overviewRulerLanes: 2,
-          quickSuggestions: true,
+          quickSuggestions: false,
           quickSuggestionsDelay: 100,
           readOnly: props.readOnly || false,
           renderControlCharacters: false,
@@ -165,6 +166,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             horizontal: "hidden",
           },
           renderLineHighlight: "all",
+          suggestOnTriggerCharacters: false,
           renderWhitespace: "none",
           revealHorizontalRightPadding: 30,
           roundedSelection: true,
@@ -177,9 +179,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           selectionHighlight: true,
           showFoldingControls: "mouseover",
           smoothScrolling: false,
-          suggestOnTriggerCharacters: true,
           wordBasedSuggestions: "off",
           wordWrap: props.type === CodeType.Markdown ? "on" : "off",
+          tabCompletion: "off",
         }}
       />
       {props.error && (
