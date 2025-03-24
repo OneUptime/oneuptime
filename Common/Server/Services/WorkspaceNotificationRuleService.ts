@@ -71,6 +71,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationRule: true,
         workspaceType: true,
         eventType: true,
+        projectId: true,
         name: true,
       },
       props: {
@@ -81,6 +82,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     if (!rule) {
       throw new BadDataException("Rule not found");
     }
+
+    data.projectId = rule.projectId!;
 
     // check fi the testUser account is connected to workspace or not.
     const userWOrkspaceAuth: WorkspaceUserAuthToken | null =
