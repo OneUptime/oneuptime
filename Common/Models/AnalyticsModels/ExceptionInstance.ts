@@ -369,7 +369,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
           },
         }),
       ],
-      sortKeys: ["projectId", "time", "serviceId", "fingerprint", ],
+      sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
     });
   }

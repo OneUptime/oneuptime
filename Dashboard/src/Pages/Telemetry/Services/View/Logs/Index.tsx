@@ -15,7 +15,7 @@ const ServiceDelete: FunctionComponent<
         showFilters={true}
         telemetryServiceIds={[modelId]}
         enableRealtime={true}
-        limit={50}
+        limit={250}
         id="logs"
       />
     </Fragment>
