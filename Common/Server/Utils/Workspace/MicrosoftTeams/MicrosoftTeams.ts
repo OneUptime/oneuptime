@@ -30,7 +30,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
         {
           Authorization: `Bearer ${data.authToken}`,
-        }
+        },
       );
 
     logger.debug("Response from Microsoft Graph API for getting all channels:");
@@ -112,7 +112,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         // if date picker
         if (value["selected_date_time"]) {
           values[blockId] = OneUptimeDate.fromUnixTimestamp(
-            value["selected_date_time"] as number
+            value["selected_date_time"] as number,
           );
         }
       }
@@ -123,7 +123,6 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     return values;
   }
-
 
   @CaptureSpan()
   public static override async inviteUserToChannelByChannelName(data: {
@@ -238,11 +237,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get<JSONObject>(
         URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${data.channelId}`
+          `https://graph.microsoft.com/v1.0/teams/${data.channelId}`,
         ),
         {
           Authorization: `Bearer ${data.authToken}`,
-        }
+        },
       );
 
     logger.debug("Response from Microsoft Graph API for getting channel info:");
@@ -308,7 +307,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
-      data.workspaceMessagePayload
+      data.workspaceMessagePayload,
     );
 
     logger.debug("Blocks generated from workspace message payload:");
