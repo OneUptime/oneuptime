@@ -160,7 +160,6 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         })}
       </div>
 
-
       <div>
         {getModelTable({
           eventOptions: [

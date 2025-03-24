@@ -114,7 +114,6 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
       <Editor
         defaultLanguage={props.type}
-        
         height="30vh"
         value={value}
         onChange={(code: string | undefined) => {
