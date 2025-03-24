@@ -147,7 +147,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       messageBlocks: [
         {
           _type: "WorkspacePayloadMarkdown",
-          text: `This is a test message for rule **${rule.name}**`,
+          text: `This is a test message for rule **${rule.name?.trim()}**`,
         } as WorkspacePayloadMarkdown,
       ],
     });

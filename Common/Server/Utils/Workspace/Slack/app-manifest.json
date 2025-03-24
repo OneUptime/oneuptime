@@ -63,7 +63,13 @@
                 "channels:write.invites",
                 "channels:write.topic",
                 "chat:write",
-                "users:read"
+                "users:read",
+                "groups:read",
+                "groups:write",
+                "im:read",
+                "im:write",
+                "mpim:read",
+                "mpim:write"
             ]
         }
     },

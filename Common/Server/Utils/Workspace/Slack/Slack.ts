@@ -436,6 +436,7 @@ export default class SlackUtil extends WorkspaceBase {
     do {
       const requestBody: JSONObject = {
         limit: 999,
+        types: "public_channel,private_channel",
       };
 
       if (cursor) {
