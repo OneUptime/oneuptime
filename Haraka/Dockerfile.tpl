@@ -6,7 +6,7 @@ RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 100000
 RUN npm config set fetch-retry-maxtimeout 600000
 
-
+ENV HARAKA_VERSION=3.0.5
 
 ARG GIT_SHA
 ARG APP_VERSION
@@ -33,7 +33,7 @@ RUN apk upgrade --update && \
     addgroup -g 88 -S smtp && \
     adduser -u 88 -D -S -G smtp -h /harakaapp smtp && \
     # Install haraka and toobusy package
-    npm install -g --unsafe-perm Haraka toobusy-js && \
+    npm install -g --unsafe-perm Haraka@$HARAKA_VERSION toobusy-js && \
     #  # Cleaning up
     apk del --purge -r .fetch-deps && \
     apk add --no-cache tzdata openssl execline ca-certificates && \
