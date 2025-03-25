@@ -184,7 +184,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   const getMenuContents: GetReactElementArrayFunction =
     (): Array<ReactElement> => {
       if (isLoading) {
-        return [<BarLoader />];
+        return [<BarLoader key={-1} />];
       }
 
       const elements: Array<ReactElement> = [];
