@@ -12,7 +12,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import Link from "Common/UI/Components/Link/Link";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -32,6 +31,7 @@ import React, {
   useState,
 } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import Link from "Common/UI/Components/Link/Link";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

@@ -4,7 +4,7 @@ import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import ColorSquareCube from "Common/UI/Components/ColorSquareCube/ColorSquareCube";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -36,7 +36,7 @@ const ServiceCatalogElement: FunctionComponent<ComponentProps> = (
 
   if (props.serviceCatalog._id) {
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
@@ -47,7 +47,7 @@ const ServiceCatalogElement: FunctionComponent<ComponentProps> = (
         )}
       >
         {getServiceElement()}
-      </Link>
+      </AppLink>
     );
   }
 

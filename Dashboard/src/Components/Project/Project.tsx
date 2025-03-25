@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,13 +14,13 @@ const ProjectElement: FunctionComponent<ComponentProps> = (
   if (props.project && props.project._id) {
     const _id: string = props.project._id ? props.project._id.toString() : "";
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={new Route(`/dashboard/${_id}`)}
       >
         <span>{props.project.name}</span>
-      </Link>
+      </AppLink>
     );
   }
 

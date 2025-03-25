@@ -32,7 +32,6 @@ import Dropdown, {
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Input from "Common/UI/Components/Input/Input";
-import Link from "Common/UI/Components/Link/Link";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
@@ -66,6 +65,7 @@ import MetricMonitorStepForm from "./MetricMonitor/MetricMonitorStepForm";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import Link from "Common/UI/Components/Link/Link";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;

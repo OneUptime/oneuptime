@@ -1,7 +1,7 @@
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -89,11 +89,13 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
         <div className="mt-0.5 ml-2 font-mono">{props.message || "-"}</div>
       )}
       {props.fingerprint && (
-        <Link to={new Route(viewRoute.toString()).addRoute(props.fingerprint)}>
+        <AppLink
+          to={new Route(viewRoute.toString()).addRoute(props.fingerprint)}
+        >
           <div className="mt-0.5 ml-2 font-mono">
             {props.message || props.fingerprint || "-"}
           </div>
-        </Link>
+        </AppLink>
       )}
     </div>
   );

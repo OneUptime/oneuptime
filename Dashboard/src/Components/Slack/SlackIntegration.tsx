@@ -11,7 +11,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL, HOME_URL, SlackAppClientId } from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -32,6 +31,7 @@ import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAu
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
+import Link from "Common/UI/Components/Link/Link";
 
 export interface ComponentProps {
   onConnected: VoidFunction;

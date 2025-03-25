@@ -8,7 +8,6 @@ import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -30,6 +29,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import Link from "Common/UI/Components/Link/Link";
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

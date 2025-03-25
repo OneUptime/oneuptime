@@ -1,7 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -19,7 +19,7 @@ const CustomSMTPElement: FunctionComponent<ComponentProps> = (
 
   if (props.smtp._id) {
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
@@ -27,7 +27,7 @@ const CustomSMTPElement: FunctionComponent<ComponentProps> = (
         )}
       >
         <span>{props.smtp.name}</span>
-      </Link>
+      </AppLink>
     );
   }
 

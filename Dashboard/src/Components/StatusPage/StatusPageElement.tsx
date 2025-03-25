@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -16,7 +16,7 @@ const StatusPageElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (props.statusPage._id) {
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
@@ -27,7 +27,7 @@ const StatusPageElement: FunctionComponent<ComponentProps> = (
         )}
       >
         <span>{props.statusPage.name}</span>
-      </Link>
+      </AppLink>
     );
   }
 

@@ -2,7 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -16,7 +16,7 @@ const AlertElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (props.alert._id) {
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
@@ -27,7 +27,7 @@ const AlertElement: FunctionComponent<ComponentProps> = (
         )}
       >
         <span>{props.alert.title}</span>
-      </Link>
+      </AppLink>
     );
   }
 

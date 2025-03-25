@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -22,7 +22,7 @@ const OnCallDutyScheduleElement: FunctionComponent<ComponentProps> = (
         ? props.schedule.project._id
         : "";
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={
@@ -32,7 +32,7 @@ const OnCallDutyScheduleElement: FunctionComponent<ComponentProps> = (
         }
       >
         <span>{props.schedule.name}</span>
-      </Link>
+      </AppLink>
     );
   }
 

@@ -1,9 +1,9 @@
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import Link from "Common/UI/Components/Link/Link";
 import { STATUS_PAGE_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
+import Link from "Common/UI/Components/Link/Link";
 
 export interface ComponentProps {
   modelId: ObjectID;

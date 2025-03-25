@@ -1,6 +1,6 @@
 import { Green, Red } from "Common/Types/BrandColors";
 import ColorCircle from "Common/UI/Components/ColorCircle/ColorCircle";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -40,7 +40,7 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
       </div>
       {props.title ? (
         <div className={`${props.titleClassName} hover:underline`}>
-          <Link
+          <AppLink
             to={RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
               {
@@ -49,7 +49,7 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
             )}
           >
             <p>{props.title}</p>
-          </Link>
+          </AppLink>
         </div>
       ) : (
         <></>

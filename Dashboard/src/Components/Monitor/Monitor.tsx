@@ -4,9 +4,9 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement } from "react";
+import AppLink from "../AppLink/AppLink";
 
 export interface ComponentProps {
   monitor: Monitor;
@@ -19,8 +19,7 @@ const MonitorElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (props.monitor?._id) {
     return (
-      <Link
-        onNavigateComplete={props.onNavigateComplete}
+      <AppLink
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
           RouteMap[PageMap.MONITOR_VIEW] as Route,
@@ -28,6 +27,7 @@ const MonitorElement: FunctionComponent<ComponentProps> = (
             modelId: new ObjectID(props.monitor._id as string),
           },
         )}
+        onNavigateComplete={props.onNavigateComplete}
       >
         <span className="flex">
           {props.showIcon ? (
@@ -37,7 +37,7 @@ const MonitorElement: FunctionComponent<ComponentProps> = (
           )}{" "}
           {props.monitor.name}
         </span>
-      </Link>
+      </AppLink>
     );
   }
 

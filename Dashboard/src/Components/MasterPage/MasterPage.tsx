@@ -6,7 +6,7 @@ import NavBar from "../NavBar/NavBar";
 import Route from "Common/Types/API/Route";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import SSOAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import TopAlert, { TopAlertType } from "Common/UI/Components/TopAlert/TopAlert";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -69,14 +69,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           alertType={TopAlertType.DANGER}
           title="Your project is not active because some invoices are unpaid."
           description={
-            <Link
+            <AppLink
               className="underline"
               to={RouteUtil.populateRouteParams(
                 RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
               )}
             >
               Click here to pay your unpaid invoices.
-            </Link>
+            </AppLink>
           }
         />
       )}

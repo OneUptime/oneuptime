@@ -4,7 +4,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -19,7 +19,7 @@ const MonitorGroupElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (props.monitorGroup._id) {
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
@@ -37,7 +37,7 @@ const MonitorGroupElement: FunctionComponent<ComponentProps> = (
           )}{" "}
           {props.monitorGroup.name}
         </span>
-      </Link>
+      </AppLink>
     );
   }
 

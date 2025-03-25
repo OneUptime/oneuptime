@@ -2,7 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -16,7 +16,7 @@ const OnCallPolicyView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (props.onCallPolicy._id) {
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
@@ -27,7 +27,7 @@ const OnCallPolicyView: FunctionComponent<ComponentProps> = (
         )}
       >
         <span>{props.onCallPolicy.name}</span>
-      </Link>
+      </AppLink>
     );
   }
 

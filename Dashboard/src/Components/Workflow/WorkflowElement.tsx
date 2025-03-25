@@ -1,5 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -22,7 +22,7 @@ const WorkflowElement: FunctionComponent<ComponentProps> = (
         ? props.workflow.project._id
         : "";
     return (
-      <Link
+      <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={
@@ -30,7 +30,7 @@ const WorkflowElement: FunctionComponent<ComponentProps> = (
         }
       >
         <span>{props.workflow.name}</span>
-      </Link>
+      </AppLink>
     );
   }
 

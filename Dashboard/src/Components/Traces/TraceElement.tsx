@@ -1,4 +1,4 @@
-import Link from "Common/UI/Components/Link/Link";
+import AppLink from "../AppLink/AppLink";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -14,7 +14,7 @@ const TraceElement: FunctionComponent<ComponentProps> = (
     <div className="flex space-x-2">
       {props.traceId ? (
         <div className={`hover:underline`}>
-          <Link
+          <AppLink
             to={RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_TRACE_VIEW]!,
               {
@@ -23,7 +23,7 @@ const TraceElement: FunctionComponent<ComponentProps> = (
             )}
           >
             <p>{props.traceId}</p>
-          </Link>
+          </AppLink>
         </div>
       ) : (
         <></>
