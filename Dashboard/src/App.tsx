@@ -58,7 +58,6 @@ import {
 import useAsyncEffect from "use-async-effect";
 import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
 import AlertsRoutes from "./Routes/AlertRoutes";
-import ObjectID from "Common/Types/ObjectID";
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -79,36 +78,6 @@ const App: () => JSX.Element = () => {
   >(undefined);
 
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
-
-  const checkIfOnTheSameProjectWhenTabBecomesActive: () => void = () => {
-    if (document.visibilityState === "visible") {
-      // check if ProjectUtil.getCurrentProject() is the same as selectedProject
-      if (ProjectUtil.getCurrentProject()) {
-        const projectIdFromUrl: ObjectID | null =
-          ProjectUtil.getCurrentProjectId();
-        if (
-          ProjectUtil.getCurrentProjectId()?.toString() !==
-          projectIdFromUrl?.toString()
-        ) {
-          return Navigation.reload();
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener(
-      "visibilitychange",
-      checkIfOnTheSameProjectWhenTabBecomesActive,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "visibilitychange",
-        checkIfOnTheSameProjectWhenTabBecomesActive,
-      );
-    };
-  }, []);
 
   useAsyncEffect(async () => {
     try {
