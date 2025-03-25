@@ -2,9 +2,9 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import AppLink from "../AppLink/AppLink";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import React, { FunctionComponent, ReactElement } from "react";
+import AppLink from "../../AppLink/AppLink";
 
 export interface ComponentProps {
   escalationRule: OnCallDutyPolicyEscalationRule;
