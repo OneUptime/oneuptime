@@ -72,7 +72,7 @@ export interface ComponentProps {
   incidentSeverityDropdownOptions: Array<DropdownOption>;
   alertSeverityDropdownOptions: Array<DropdownOption>;
   onCallPolicyDropdownOptions: Array<DropdownOption>;
-  initialValue?: undefined | MonitorStep;
+  value?: undefined | MonitorStep;
   onChange?: undefined | ((value: MonitorStep) => void);
   // onDelete?: undefined | (() => void);
   monitorType: MonitorType;
@@ -91,10 +91,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [showDoNotFollowRedirects, setShowDoNotFollowRedirects] =
     useState<boolean>(false);
 
-  const [monitorStep, setMonitorStep] = useState<MonitorStep>(
-    props.initialValue || new MonitorStep(),
-  );
-
   const [telemetryServices, setTelemetryServices] = useState<
     Array<TelemetryService>
   >([]);
@@ -102,11 +98,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    if (props.onChange && monitorStep) {
-      props.onChange(monitorStep);
-    }
-  }, [monitorStep]);
 
   const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -219,7 +210,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     DropdownUtil.getDropdownOptionsFromEnum(HTTPMethod);
 
   const [destinationInputValue, setDestinationInputValue] = useState<string>(
-    props.initialValue?.data?.monitorDestination?.toString() || "",
+    props.value?.data?.monitorDestination?.toString() || "",
   );
 
   let codeEditorPlaceholder: string = "";
@@ -319,6 +310,8 @@ return {
     return <ErrorMessage message={error} />;
   }
 
+  const monitorStep: MonitorStep = props.value || new MonitorStep();
+
   return (
     <div className="mt-5">
       {hasMonitorDestination && (
@@ -406,7 +399,7 @@ return {
                 }
 
                 setDestinationInputValue(value);
-                setMonitorStep(MonitorStep.clone(monitorStep));
+                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
               }}
             />
           </div>
@@ -422,7 +415,7 @@ return {
                 onChange={(value: string) => {
                   const port: Port = new Port(value);
                   monitorStep.setPort(port);
-                  setMonitorStep(MonitorStep.clone(monitorStep));
+                  props.onChange && props.onChange(MonitorStep.clone(monitorStep));
                 }}
               />
             </div>
@@ -451,7 +444,7 @@ return {
                   monitorStep.setRequestType(
                     (value?.toString() as HTTPMethod) || HTTPMethod.GET,
                   );
-                  setMonitorStep(MonitorStep.clone(monitorStep));
+                  props.onChange && props.onChange(MonitorStep.clone(monitorStep));
                 }}
               />
             </div>
@@ -511,7 +504,7 @@ return {
                   initialValue={monitorStep.data?.requestHeaders || {}}
                   onChange={(value: Dictionary<string>) => {
                     monitorStep.setRequestHeaders(value);
-                    setMonitorStep(MonitorStep.clone(monitorStep));
+                    props.onChange && props.onChange(MonitorStep.clone(monitorStep));
                   }}
                 />
               </div>
@@ -567,7 +560,7 @@ return {
                     }
 
                     monitorStep.setRequestBody(value);
-                    setMonitorStep(MonitorStep.clone(monitorStep));
+                    props.onChange && props.onChange(MonitorStep.clone(monitorStep));
                   }}
                 />
               </div>
@@ -584,7 +577,7 @@ return {
                   description="Please check this if you do not want to follow redirects."
                   onChange={(value: boolean) => {
                     monitorStep.setDoNotFollowRedirects(value);
-                    setMonitorStep(MonitorStep.clone(monitorStep));
+                    props.onChange && props.onChange(MonitorStep.clone(monitorStep));
                   }}
                 />
               </div>
@@ -601,7 +594,7 @@ return {
             }
             onMonitorStepLogMonitorChanged={(value: MonitorStepLogMonitor) => {
               monitorStep.setLogMonitor(value);
-              setMonitorStep(MonitorStep.clone(monitorStep));
+              props.onChange && props.onChange(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
@@ -618,7 +611,7 @@ return {
             }
             onChange={(value: MonitorStepMetricMonitor) => {
               monitorStep.setMetricMonitor(value);
-              setMonitorStep(MonitorStep.clone(monitorStep));
+              props.onChange && props.onChange(MonitorStep.clone(monitorStep));
             }}
           />
         </div>
@@ -635,7 +628,7 @@ return {
               value: MonitorStepTraceMonitor,
             ) => {
               monitorStep.setTraceMonitor(value);
-              setMonitorStep(MonitorStep.clone(monitorStep));
+              props.onChange && props.onChange(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
@@ -690,7 +683,7 @@ return {
               type={CodeType.JavaScript}
               onChange={(value: string) => {
                 monitorStep.setCustomCode(value);
-                setMonitorStep(MonitorStep.clone(monitorStep));
+                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
               }}
               placeholder={codeEditorPlaceholder}
             />
@@ -708,10 +701,10 @@ return {
           <div className="mt-1">
             <CheckBoxList
               options={enumToCategoryCheckboxOption(BrowserType)}
-              initialValue={props.initialValue?.data?.browserTypes || []}
+              initialValue={props.value?.data?.browserTypes || []}
               onChange={(values: Array<CategoryCheckboxValue>) => {
                 monitorStep.setBrowserTypes(values as Array<BrowserType>);
-                setMonitorStep(MonitorStep.clone(monitorStep));
+                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
               }}
             />
           </div>
@@ -728,10 +721,10 @@ return {
           <div className="mt-1">
             <CheckBoxList
               options={enumToCategoryCheckboxOption(ScreenSizeType)}
-              initialValue={props.initialValue?.data?.screenSizeTypes || []}
+              initialValue={props.value?.data?.screenSizeTypes || []}
               onChange={(values: Array<CategoryCheckboxValue>) => {
                 monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
-                setMonitorStep(MonitorStep.clone(monitorStep));
+                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
               }}
             />
           </div>
@@ -776,7 +769,7 @@ return {
           value={monitorStep?.data?.monitorCriteria}
           onChange={(value: MonitorCriteria) => {
             monitorStep.setMonitorCriteria(value);
-            setMonitorStep(MonitorStep.clone(monitorStep));
+            props.onChange && props.onChange(MonitorStep.clone(monitorStep));
           }}
         />
       </div>
