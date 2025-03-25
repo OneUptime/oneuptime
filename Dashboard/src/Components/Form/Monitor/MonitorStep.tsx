@@ -98,7 +98,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-
   const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post(
@@ -399,7 +398,8 @@ return {
                 }
 
                 setDestinationInputValue(value);
-                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                props.onChange &&
+                  props.onChange(MonitorStep.clone(monitorStep));
               }}
             />
           </div>
@@ -415,7 +415,8 @@ return {
                 onChange={(value: string) => {
                   const port: Port = new Port(value);
                   monitorStep.setPort(port);
-                  props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                  props.onChange &&
+                    props.onChange(MonitorStep.clone(monitorStep));
                 }}
               />
             </div>
@@ -444,7 +445,8 @@ return {
                   monitorStep.setRequestType(
                     (value?.toString() as HTTPMethod) || HTTPMethod.GET,
                   );
-                  props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                  props.onChange &&
+                    props.onChange(MonitorStep.clone(monitorStep));
                 }}
               />
             </div>
@@ -504,7 +506,8 @@ return {
                   initialValue={monitorStep.data?.requestHeaders || {}}
                   onChange={(value: Dictionary<string>) => {
                     monitorStep.setRequestHeaders(value);
-                    props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                    props.onChange &&
+                      props.onChange(MonitorStep.clone(monitorStep));
                   }}
                 />
               </div>
@@ -560,7 +563,8 @@ return {
                     }
 
                     monitorStep.setRequestBody(value);
-                    props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                    props.onChange &&
+                      props.onChange(MonitorStep.clone(monitorStep));
                   }}
                 />
               </div>
@@ -577,7 +581,8 @@ return {
                   description="Please check this if you do not want to follow redirects."
                   onChange={(value: boolean) => {
                     monitorStep.setDoNotFollowRedirects(value);
-                    props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                    props.onChange &&
+                      props.onChange(MonitorStep.clone(monitorStep));
                   }}
                 />
               </div>
@@ -683,7 +688,8 @@ return {
               type={CodeType.JavaScript}
               onChange={(value: string) => {
                 monitorStep.setCustomCode(value);
-                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                props.onChange &&
+                  props.onChange(MonitorStep.clone(monitorStep));
               }}
               placeholder={codeEditorPlaceholder}
             />
@@ -704,7 +710,8 @@ return {
               initialValue={props.value?.data?.browserTypes || []}
               onChange={(values: Array<CategoryCheckboxValue>) => {
                 monitorStep.setBrowserTypes(values as Array<BrowserType>);
-                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                props.onChange &&
+                  props.onChange(MonitorStep.clone(monitorStep));
               }}
             />
           </div>
@@ -724,7 +731,8 @@ return {
               initialValue={props.value?.data?.screenSizeTypes || []}
               onChange={(values: Array<CategoryCheckboxValue>) => {
                 monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
-                props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+                props.onChange &&
+                  props.onChange(MonitorStep.clone(monitorStep));
               }}
             />
           </div>

@@ -24,11 +24,10 @@ export interface ComponentProps {
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-
   const [showCantDeleteModal, setShowCantDeleteModal] =
     React.useState<boolean>(false);
-  
-    const criteriaFilters: Array<CriteriaFilter> = props.value || [];
+
+  const criteriaFilters: Array<CriteriaFilter> = props.value || [];
 
   return (
     <div>
@@ -37,7 +36,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
           <CriteriaFilterElement
             monitorType={props.monitorType}
             key={index}
-            initialValue={i}
+            value={i}
             monitorStep={props.monitorStep}
             onDelete={() => {
               if (criteriaFilters.length === 1) {
@@ -46,14 +45,13 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               }
 
               // remove the criteria filter
-             
+
               const newCriteriaFilters: Array<CriteriaFilter> = [
                 ...criteriaFilters,
               ];
 
               // remove the criteria filter
               newCriteriaFilters.splice(index, 1);
-
 
               props.onChange && props.onChange(newCriteriaFilters);
             }}

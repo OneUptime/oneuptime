@@ -234,7 +234,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
               onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
-              initialValue={i}
+              value={i}
               probes={probes}
               // onDelete={() => {
               //     // remove the criteria filter

@@ -29,8 +29,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   const [showCantDeleteModal, setShowCantDeleteModal] =
     React.useState<boolean>(false);
 
-    const monitorCriteria: MonitorCriteria = props.value || new MonitorCriteria();
-
+  const monitorCriteria: MonitorCriteria = props.value || new MonitorCriteria();
 
   return (
     <div className="mt-4">
