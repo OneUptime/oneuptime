@@ -771,7 +771,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
           }
           alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
           onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-          initialValue={monitorStep?.data?.monitorCriteria}
+          value={monitorStep?.data?.monitorCriteria}
           onChange={(value: MonitorCriteria) => {
             monitorStep.setMonitorCriteria(value);
             setMonitorStep(MonitorStep.clone(monitorStep));

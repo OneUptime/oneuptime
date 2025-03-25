@@ -13,7 +13,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
-  initialValue: MonitorCriteria | undefined;
+  value: MonitorCriteria | undefined;
   onChange?: undefined | ((value: MonitorCriteria) => void);
   monitorStatusDropdownOptions: Array<DropdownOption>;
   incidentSeverityDropdownOptions: Array<DropdownOption>;
@@ -29,15 +29,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   const [showCantDeleteModal, setShowCantDeleteModal] =
     React.useState<boolean>(false);
 
-  const [monitorCriteria, setMonitorCriteria] = React.useState<MonitorCriteria>(
-    props.initialValue || new MonitorCriteria(),
-  );
+    const monitorCriteria: MonitorCriteria = props.value || new MonitorCriteria();
 
-  useEffect(() => {
-    if (monitorCriteria && props.onChange) {
-      props.onChange(monitorCriteria);
-    }
-  }, [monitorCriteria]);
 
   return (
     <div className="mt-4">
@@ -58,7 +51,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                   props.alertSeverityDropdownOptions
                 }
                 onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
-                initialValue={i}
+                value={i}
                 onDelete={() => {
                   if (
                     monitorCriteria.data?.monitorCriteriaInstanceArray
@@ -85,7 +78,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       []),
                   ];
                   newMonitorCriterias.splice(index, 1);
-                  setMonitorCriteria(
+                  props.onChange?.(
                     MonitorCriteria.fromJSON({
                       _type: "MonitorCriteria",
                       value: {
@@ -110,7 +103,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                       []),
                   ];
                   newMonitorCriterias[index] = value;
-                  setMonitorCriteria(
+                  props.onChange?.(
                     MonitorCriteria.fromJSON({
                       _type: "MonitorCriteria",
                       value: {
@@ -134,7 +127,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
               ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
             ];
             newMonitorCriterias.push(new MonitorCriteriaInstance());
-            setMonitorCriteria(
+            props.onChange?.(
               MonitorCriteria.fromJSON({
                 _type: "MonitorCriteria",
                 value: {

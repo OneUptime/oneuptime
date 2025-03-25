@@ -12,10 +12,10 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  initialValue: Array<CriteriaFilter> | undefined;
+  value: Array<CriteriaFilter> | undefined;
   onChange?: undefined | ((value: Array<CriteriaFilter>) => void);
   monitorType: MonitorType;
   monitorStep: MonitorStep;
@@ -24,18 +24,11 @@ export interface ComponentProps {
 const CriteriaFilters: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [criteriaFilters, setCriteriaFilters] = React.useState<
-    Array<CriteriaFilter>
-  >(props.initialValue || []);
 
   const [showCantDeleteModal, setShowCantDeleteModal] =
     React.useState<boolean>(false);
-
-  useEffect(() => {
-    if (criteriaFilters && props.onChange) {
-      props.onChange(criteriaFilters);
-    }
-  }, [criteriaFilters]);
+  
+    const criteriaFilters: Array<CriteriaFilter> = props.value || [];
 
   return (
     <div>
@@ -53,12 +46,16 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               }
 
               // remove the criteria filter
-              const index: number = criteriaFilters.indexOf(i);
+             
               const newCriteriaFilters: Array<CriteriaFilter> = [
                 ...criteriaFilters,
               ];
+
+              // remove the criteria filter
               newCriteriaFilters.splice(index, 1);
-              setCriteriaFilters(newCriteriaFilters);
+
+
+              props.onChange && props.onChange(newCriteriaFilters);
             }}
             onChange={(value: CriteriaFilter) => {
               const index: number = criteriaFilters.indexOf(i);
@@ -66,7 +63,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                 ...criteriaFilters,
               ];
               newCriteriaFilters[index] = value;
-              setCriteriaFilters(newCriteriaFilters);
+              props.onChange && props.onChange(newCriteriaFilters);
             }}
           />
         );
@@ -86,7 +83,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               value: "",
             });
 
-            setCriteriaFilters(newCriteriaFilters);
+            props.onChange && props.onChange(newCriteriaFilters);
           }}
         />
       </div>
