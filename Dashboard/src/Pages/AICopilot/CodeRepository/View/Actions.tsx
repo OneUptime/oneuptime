@@ -6,11 +6,11 @@ import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActio
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import PageComponentProps from "../../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import DashboardNavigation from "../../../../Utils/Navigation";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import CopilotActionType from "Common/Types/Copilot/CopilotActionType";
 import CopilotActionTypeElement from "../../../../Components/Copilot/CopilotAction/CopilotActionTypeElement";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const CopilotPriorities: FunctionComponent<
   PageComponentProps
@@ -22,7 +22,7 @@ const CopilotPriorities: FunctionComponent<
       <ModelTable<CopilotActionTypePriority>
         modelType={CopilotActionTypePriority}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           codeRepositoryId: modelId,
         }}
         sortBy={"priority"}

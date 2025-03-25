@@ -1,5 +1,5 @@
 import TelemetryServiceElement from "../../Components/TelemetryService/TelemetryServiceElement";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Currency from "Common/Types/Currency";
 import Decimal from "Common/Types/Decimal";
@@ -37,7 +37,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           "No usage history found. Maybe you have not used Telemetry features yet?"
         }
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showRefreshButton={true}
         filters={[
@@ -68,7 +68,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: TelemetryService,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

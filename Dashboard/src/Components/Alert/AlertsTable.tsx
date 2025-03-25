@@ -1,5 +1,5 @@
 import LabelsElement from "../Label/Labels";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
 import { Black } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
@@ -105,7 +105,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: AlertSeverity,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -124,7 +124,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: AlertState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -144,7 +144,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -169,7 +169,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

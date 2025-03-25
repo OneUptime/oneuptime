@@ -9,7 +9,7 @@ import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
   return (
@@ -74,7 +74,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           badgeType={BadgeType.DANGER}
           icon={IconProp.Alert}
           countQuery={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
             isResolved: false,
             isArchived: false,
           }}

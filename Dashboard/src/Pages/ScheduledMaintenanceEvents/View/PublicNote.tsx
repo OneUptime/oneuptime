@@ -1,5 +1,4 @@
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -26,6 +25,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import User from "Common/Models/DatabaseModels/User";
+import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   Fragment,
   FunctionComponent,
@@ -135,7 +135,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: ScheduledMaintenancePublicNote,
@@ -218,7 +218,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

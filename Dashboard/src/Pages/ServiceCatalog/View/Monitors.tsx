@@ -23,9 +23,9 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import DashboardNavigation from "../../../Utils/Navigation";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const ServiceCatalogMonitors: FunctionComponent<
   PageComponentProps
@@ -205,7 +205,7 @@ const ServiceCatalogMonitors: FunctionComponent<
           onBeforeCreate={(serviceCatalogMonitor: ServiceCatalogMonitor) => {
             serviceCatalogMonitor.serviceCatalogId = modelId;
             serviceCatalogMonitor.projectId =
-              DashboardNavigation.getProjectId()!;
+              ProjectUtil.getCurrentProjectId()!;
             return Promise.resolve(serviceCatalogMonitor);
           }}
           formProps={{

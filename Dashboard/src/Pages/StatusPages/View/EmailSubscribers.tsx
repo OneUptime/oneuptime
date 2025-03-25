@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -28,6 +27,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -249,7 +249,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             }}
             query={{
               statusPageId: modelId,
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
               subscriberEmail: new NotNull(),
             }}
             onBeforeCreate={(

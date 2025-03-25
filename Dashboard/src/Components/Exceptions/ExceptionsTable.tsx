@@ -5,7 +5,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Query from "Common/Types/BaseDatabase/Query";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceElement from "../TelemetryService/TelemetryServiceElement";
 import TelemetryExceptionElement from "./ExceptionElement";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -67,7 +67,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           description: props.description,
         }}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           telemetryServiceId: props.telemetryServiceId
             ? props.telemetryServiceId
             : undefined,
@@ -406,7 +406,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: User,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -435,7 +435,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: User,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

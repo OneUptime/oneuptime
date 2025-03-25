@@ -8,9 +8,9 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
-import DashboardNavigation from "../../../../Utils/Navigation";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -89,7 +89,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           badgeType={BadgeType.DANGER}
           icon={IconProp.Alert}
           countQuery={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
             isResolved: false,
             isArchived: false,
             telemetryServiceId: props.modelId,

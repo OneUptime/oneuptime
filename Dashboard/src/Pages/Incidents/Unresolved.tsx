@@ -1,5 +1,5 @@
 import IncidentsTable from "../../Components/Incident/IncidentsTable";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -9,7 +9,7 @@ const IncidentsPage: FunctionComponent<
   return (
     <IncidentsTable
       query={{
-        projectId: DashboardNavigation.getProjectId()!,
+        projectId: ProjectUtil.getCurrentProjectId()!,
         currentIncidentState: {
           isResolvedState: false,
         },

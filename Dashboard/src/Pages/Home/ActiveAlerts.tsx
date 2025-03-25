@@ -1,6 +1,6 @@
 import AlertsTable from "../../Components/Alert/AlertsTable";
 import AlertStateUtil from "../../Utils/AlertState";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -35,7 +35,7 @@ const Home: FunctionComponent<PageComponentProps> = (
     try {
       setUnresolvedAlertStates(
         await AlertStateUtil.getUnresolvedAlertStates(
-          DashboardNavigation.getProjectId()!,
+          ProjectUtil.getCurrentProjectId()!,
         ),
       );
       setError("");
@@ -76,7 +76,7 @@ const Home: FunctionComponent<PageComponentProps> = (
         {!isLoading && !error && unresolvedAlertStates.length > 0 && (
           <AlertsTable
             query={{
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
               currentAlertStateId: new Includes(
                 unresolvedAlertStates.map((state: AlertState) => {
                   return state.id!;

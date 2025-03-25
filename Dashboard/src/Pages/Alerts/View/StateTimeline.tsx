@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
@@ -16,6 +15,7 @@ import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewe
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import ProjectUtil from "Common/UI/Utils/Project";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import React, {
   Fragment,
@@ -48,7 +48,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         query={{
           alertId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         selectMoreFields={{
           stateChangeLog: true,
@@ -150,7 +150,7 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: AlertState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

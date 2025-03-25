@@ -1,5 +1,4 @@
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import OnCallPolicyView from "../OnCallPolicy";
 import ObjectID from "Common/Types/ObjectID";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -16,6 +15,7 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ProjectUser from "../../../Utils/ProjectUser";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -25,7 +25,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const query: Query<OnCallDutyPolicyUserOverride> = {
-    projectId: DashboardNavigation.getProjectId()!,
+    projectId: ProjectUtil.getCurrentProjectId()!,
   };
 
   if (props.onCallDutyPolicyId) {
@@ -70,7 +70,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         },
         filterEntityType: OnCallDutyPolicy,
         filterQuery: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         filterDropdownField: {
           label: "name",
@@ -160,7 +160,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
       placeholder: "Select Override User",
       fetchDropdownOptions: async () => {
         return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-          DashboardNavigation.getProjectId()!,
+          ProjectUtil.getCurrentProjectId()!,
         );
       },
     },
@@ -175,7 +175,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
       placeholder: "Select User to Route Alerts",
       fetchDropdownOptions: async () => {
         return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-          DashboardNavigation.getProjectId()!,
+          ProjectUtil.getCurrentProjectId()!,
         );
       },
     },
@@ -213,7 +213,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         isCreateable={true}
         isViewable={false}
         onBeforeCreate={(item: OnCallDutyPolicyUserOverride) => {
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           if (props.onCallDutyPolicyId) {
             item.onCallDutyPolicyId = props.onCallDutyPolicyId;
           }

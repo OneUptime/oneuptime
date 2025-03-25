@@ -1,5 +1,4 @@
 import AlertsTable from "../../../Components/Alert/AlertsTable";
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -16,6 +15,7 @@ import React, {
   ReactElement,
   useEffect,
 } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const MonitorAlerts: FunctionComponent<
   PageComponentProps
@@ -76,7 +76,7 @@ const MonitorAlerts: FunctionComponent<
     <Fragment>
       <AlertsTable
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           monitorId: monitorIds,
         }}
       />

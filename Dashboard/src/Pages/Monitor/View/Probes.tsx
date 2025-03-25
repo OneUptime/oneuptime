@@ -1,6 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -25,6 +24,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   Fragment,
   FunctionComponent,
@@ -114,12 +114,12 @@ const MonitorProbes: FunctionComponent<
       <ModelTable<MonitorProbe>
         modelType={MonitorProbe}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           monitorId: modelId.toString(),
         }}
         onBeforeCreate={(item: MonitorProbe): Promise<MonitorProbe> => {
           item.monitorId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
 
           return Promise.resolve(item);
         }}

@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -85,7 +85,7 @@ const Settings: FunctionComponent<ComponentProps> = (
     try {
       const project: Project | null = await ModelAPI.getItem<Project>({
         modelType: Project,
-        id: DashboardNavigation.getProjectId()!,
+        id: ProjectUtil.getCurrentProjectId()!,
         select: {
           reseller: {
             name: true,
@@ -315,7 +315,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     },
                   },
                 ],
-                modelId: DashboardNavigation.getProjectId()!,
+                modelId: ProjectUtil.getCurrentProjectId()!,
               }}
             />
           )}
@@ -425,7 +425,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
             noItemsMessage={"No payment methods found."}
             query={{
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             }}
             showRefreshButton={true}
             filters={[

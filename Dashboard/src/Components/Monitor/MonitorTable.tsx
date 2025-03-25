@@ -1,6 +1,6 @@
 import LabelsElement from "../../Components/Label/Labels";
 import MonitorTypeUtil from "../../Utils/MonitorType";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 import { Black, Gray500, Red500 } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -250,7 +250,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: MonitorStatus,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           filterDropdownField: {
             label: "name",
@@ -268,7 +268,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           filterEntityType: Label,
           filterQuery: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           filterDropdownField: {
             label: "name",

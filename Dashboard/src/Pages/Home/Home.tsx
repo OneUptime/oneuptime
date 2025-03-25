@@ -1,6 +1,6 @@
 import IncidentsTable from "../../Components/Incident/IncidentsTable";
 import IncidentStateUtil from "../../Utils/IncidentState";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -43,7 +43,7 @@ const Home: FunctionComponent<ComponentProps> = (
     try {
       setUnresolvedIncidentStates(
         await IncidentStateUtil.getUnresolvedIncidentStates(
-          DashboardNavigation.getProjectId()!,
+          ProjectUtil.getCurrentProjectId()!,
         ),
       );
       setError("");
@@ -60,7 +60,7 @@ const Home: FunctionComponent<ComponentProps> = (
       return;
     }
     UiAnalytics.capture("dashboard/home", {
-      projectId: DashboardNavigation.getProjectId()!,
+      projectId: ProjectUtil.getCurrentProjectId()!,
     });
 
     fetchIncidentStates().catch((err: Error) => {
@@ -92,7 +92,7 @@ const Home: FunctionComponent<ComponentProps> = (
         {!isLoading && !error && unresolvedIncidentStates.length > 0 && (
           <IncidentsTable
             query={{
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
               currentIncidentStateId: new Includes(
                 unresolvedIncidentStates.map((state: IncidentState) => {
                   return state.id!;

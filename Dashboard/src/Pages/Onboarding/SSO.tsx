@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -30,7 +30,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     id="sso-list"
                     overrideFetchApiUrl={URL.fromString(APP_API_URL.toString())
                       .addRoute("/project-sso")
-                      .addRoute(`/${DashboardNavigation.getProjectId()}`)
+                      .addRoute(`/${ProjectUtil.getCurrentProjectId()}`)
                       .addRoute("/sso-list")}
                     modelType={ProjectSSO}
                     titleField="name"
@@ -47,7 +47,7 @@ const SSO: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         Navigation.navigate(
                           URL.fromURL(IDENTITY_URL).addRoute(
                             new Route(
-                              `/sso/${DashboardNavigation.getProjectId()}/${
+                              `/sso/${ProjectUtil.getCurrentProjectId()}/${
                                 list[0]?._id
                               }`,
                             ),

@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -13,6 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -237,7 +237,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             }}
             query={{
               statusPageId: modelId,
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
               subscriberPhone: new NotNull(),
             }}
             onBeforeCreate={(

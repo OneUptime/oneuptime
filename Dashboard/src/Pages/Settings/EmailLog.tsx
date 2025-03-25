@@ -1,5 +1,5 @@
 import CustomSMTPElement from "../../Components/CustomSMTP/CustomSMTPView";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -142,7 +142,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showViewIdButton={true}
           name="Email Logs"
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           selectMoreFields={{
             subject: true,

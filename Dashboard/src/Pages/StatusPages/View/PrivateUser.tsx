@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
@@ -9,6 +8,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
@@ -27,13 +27,13 @@ const StatusPageDelete: FunctionComponent<
         isViewable={false}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: StatusPagePrivateUser,
         ): Promise<StatusPagePrivateUser> => {
           item.statusPageId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
         cardProps={{

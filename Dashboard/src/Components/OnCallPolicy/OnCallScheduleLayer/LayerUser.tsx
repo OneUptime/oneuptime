@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import UserElement from "../../User/User";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -12,6 +11,7 @@ import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDu
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -111,7 +111,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                 fieldType: FormFieldSchemaType.Dropdown,
                 fetchDropdownOptions: async () => {
                   return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                    DashboardNavigation.getProjectId()!,
+                    ProjectUtil.getCurrentProjectId()!,
                   );
                 },
                 required: true,

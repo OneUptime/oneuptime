@@ -1,6 +1,6 @@
 import LabelsElement from "../../Components/Label/Labels";
 import UserElement from "../../Components/User/User";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import ProjectUser from "../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -84,7 +84,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         createEditFromRef={formRef}
         query={{
           teamId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           isBlockPermission: permissionType === PermissionType.BlockPermissions,
         }}
         onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
@@ -170,7 +170,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             title: "Restrict to Labels",
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -305,7 +305,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           teamId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
           if (!props.currentProject || !props.currentProject._id) {
@@ -347,7 +347,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

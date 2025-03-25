@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -142,7 +142,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={false}
           name="SMS Logs"
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           selectMoreFields={{
             smsText: true,

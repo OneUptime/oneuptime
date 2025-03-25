@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -27,6 +26,7 @@ import React, {
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -56,7 +56,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         <ModelTable<StatusPageDomain>
           modelType={StatusPageDomain}
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
             statusPageId: modelId,
           }}
           name="Status Page > Domains"

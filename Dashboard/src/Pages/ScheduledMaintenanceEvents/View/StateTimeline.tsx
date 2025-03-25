@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import { Black } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
@@ -13,6 +12,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -31,7 +31,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: ScheduledMaintenanceStateTimeline,

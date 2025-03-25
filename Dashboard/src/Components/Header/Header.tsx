@@ -33,7 +33,7 @@ import React, {
   useState,
 } from "react";
 import Realtime from "Common/UI/Utils/Realtime";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Alert from "Common/Models/DatabaseModels/Alert";
 
@@ -69,7 +69,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         {
           eventType: ModelEventType.Create,
           modelType: Incident,
-          tenantId: DashboardNavigation.getProjectId()!,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
         },
         () => {
           refreshIncidentCount();
@@ -81,7 +81,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         {
           eventType: ModelEventType.Update,
           modelType: Incident,
-          tenantId: DashboardNavigation.getProjectId()!,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
         },
         () => {
           refreshIncidentCount();
@@ -93,7 +93,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         {
           eventType: ModelEventType.Delete,
           modelType: Incident,
-          tenantId: DashboardNavigation.getProjectId()!,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
         },
         () => {
           refreshIncidentCount();
@@ -116,7 +116,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         {
           eventType: ModelEventType.Create,
           modelType: Alert,
-          tenantId: DashboardNavigation.getProjectId()!,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
         },
         () => {
           refreshAlertCount();
@@ -128,7 +128,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         {
           eventType: ModelEventType.Update,
           modelType: Alert,
-          tenantId: DashboardNavigation.getProjectId()!,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
         },
         () => {
           refreshAlertCount();
@@ -140,7 +140,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         {
           eventType: ModelEventType.Delete,
           modelType: Alert,
-          tenantId: DashboardNavigation.getProjectId()!,
+          tenantId: ProjectUtil.getCurrentProjectId()!,
         },
         () => {
           refreshAlertCount();

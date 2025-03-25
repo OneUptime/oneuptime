@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -50,7 +50,7 @@ const Upgrade: () => JSX.Element = (): ReactElement => {
           modelType={Project}
           title="Change Plan"
           name="Change Plan"
-          modelIdToEdit={DashboardNavigation.getProjectId()!}
+          modelIdToEdit={ProjectUtil.getCurrentProjectId()!}
           onClose={() => {
             setShowModal(false);
           }}

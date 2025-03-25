@@ -9,7 +9,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
-import DashboardNavigation from "../../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
@@ -121,7 +121,7 @@ const OnCallDutyScheduleView: FunctionComponent<
 
       <FinalPreview
         onCallDutyPolicyScheduleId={modelId}
-        projectId={DashboardNavigation.getProjectId() as ObjectID}
+        projectId={ProjectUtil.getCurrentProjectId() as ObjectID}
       />
     </Fragment>
   );

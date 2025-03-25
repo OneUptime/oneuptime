@@ -1,5 +1,5 @@
 import SpanStatusElement from "../Span/SpanStatusElement";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -93,7 +93,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
         await ModelAPI.getList({
           modelType: TelemetryService,
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           select: {
             serviceColor: true,
@@ -170,7 +170,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 }
           }
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
             serviceId: modelId ? modelId : undefined,
             ...spanQuery,
           }}

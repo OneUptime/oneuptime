@@ -1,6 +1,5 @@
 import IncidentView from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import OnCallPolicyView from "../OnCallPolicy";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -14,6 +13,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
+import ProjectUtil from "Common/UI/Utils/Project";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -37,7 +37,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   const query: Query<OnCallDutyPolicyExecutionLog> = {
-    projectId: DashboardNavigation.getProjectId()!,
+    projectId: ProjectUtil.getCurrentProjectId()!,
   };
 
   if (props.onCallDutyPolicyId) {
@@ -88,7 +88,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         },
         filterEntityType: OnCallDutyPolicy,
         filterQuery: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         filterDropdownField: {
           label: "name",

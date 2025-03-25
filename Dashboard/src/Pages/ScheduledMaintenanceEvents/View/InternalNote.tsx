@@ -1,5 +1,4 @@
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -30,6 +29,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -129,7 +129,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         query={{
           scheduledMaintenanceId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showCreateForm={
           Object.keys(initialValuesForScheduledMaintenance).length > 0
@@ -188,7 +188,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

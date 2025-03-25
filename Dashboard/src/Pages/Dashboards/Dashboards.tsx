@@ -1,5 +1,5 @@
 import LabelsElement from "../../Components/Label/Labels";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -99,7 +99,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

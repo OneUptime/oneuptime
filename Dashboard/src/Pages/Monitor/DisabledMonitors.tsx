@@ -1,12 +1,12 @@
 import MonitorTable from "../../Components/Monitor/MonitorTable";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const DisabledMonitors: FunctionComponent = (): ReactElement => {
   return (
     <MonitorTable
       query={{
-        projectId: DashboardNavigation.getProjectId()!,
+        projectId: ProjectUtil.getCurrentProjectId()!,
         disableActiveMonitoring: true,
       }}
       disableCreate={true}

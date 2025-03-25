@@ -1,6 +1,5 @@
 import TeamElement from "../../../Components/Team/Team";
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -14,6 +13,7 @@ import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwne
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const MonitorGroupOwners: FunctionComponent<
   PageComponentProps
@@ -34,13 +34,13 @@ const MonitorGroupOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           monitorGroupId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: MonitorGroupOwnerTeam,
         ): Promise<MonitorGroupOwnerTeam> => {
           item.monitorGroupId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
         cardProps={{
@@ -75,7 +75,7 @@ const MonitorGroupOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -130,13 +130,13 @@ const MonitorGroupOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           monitorGroupId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: MonitorGroupOwnerUser,
         ): Promise<MonitorGroupOwnerUser> => {
           item.monitorGroupId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
         cardProps={{
@@ -155,7 +155,7 @@ const MonitorGroupOwners: FunctionComponent<
             placeholder: "Select User",
             fetchDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
           },
@@ -172,7 +172,7 @@ const MonitorGroupOwners: FunctionComponent<
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

@@ -1,5 +1,4 @@
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -14,6 +13,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ProjectUtil from "Common/UI/Utils/Project";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import AlignItem from "Common/UI/Types/AlignItem";
@@ -123,7 +123,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         query={{
           alertId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: AlertInternalNote,
@@ -176,7 +176,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

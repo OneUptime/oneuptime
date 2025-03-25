@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -10,6 +9,7 @@ import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ServiceCatalogElement from "../../../Components/ServiceCatalog/ServiceElement";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const ServiceCatalogDelete: FunctionComponent<
   PageComponentProps
@@ -30,13 +30,13 @@ const ServiceCatalogDelete: FunctionComponent<
         showViewIdButton={true}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogDependency,
         ): Promise<ServiceCatalogDependency> => {
           item.serviceCatalogId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
         cardProps={{
@@ -71,7 +71,7 @@ const ServiceCatalogDelete: FunctionComponent<
             title: "Dependency Service",
             filterEntityType: ServiceCatalog,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

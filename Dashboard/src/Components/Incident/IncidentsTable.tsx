@@ -1,6 +1,6 @@
 import LabelsElement from "../../Components/Label/Labels";
 import MonitorsElement from "../../Components/Monitor/Monitors";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -174,7 +174,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: IncidentSeverity,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -193,7 +193,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: IncidentState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -213,7 +213,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -238,7 +238,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

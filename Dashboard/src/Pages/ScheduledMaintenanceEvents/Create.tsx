@@ -17,7 +17,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Team from "Common/Models/DatabaseModels/Team";
 import ProjectUser from "../../Utils/ProjectUser";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { JSONObject } from "Common/Types/JSON";
@@ -480,7 +480,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   fetchDropdownOptions: async () => {
                     return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                      DashboardNavigation.getProjectId()!,
+                      ProjectUtil.getCurrentProjectId()!,
                     );
                   },
                   required: false,

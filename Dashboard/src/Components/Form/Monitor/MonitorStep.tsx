@@ -15,6 +15,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import Port from "Common/Types/Port";
 import ScreenSizeType from "Common/Types/ScreenSizeType";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -44,7 +45,6 @@ import LogMonitorStepForm from "./LogMonitor/LogMonitorStepFrom";
 import TraceMonitorStepForm from "./TraceMonitor/TraceMonitorStepForm";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import DashboardNavigation from "../../../Utils/Navigation";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -148,7 +148,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         await ModelAPI.getList<TelemetryService>({
           modelType: TelemetryService,
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

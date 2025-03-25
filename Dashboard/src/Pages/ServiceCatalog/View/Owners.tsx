@@ -1,6 +1,5 @@
 import TeamElement from "../../../Components/Team/Team";
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -12,6 +11,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ServiceCatalogOwnerTeam from "Common/Models/DatabaseModels/ServiceCatalogOwnerTeam";
 import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalogOwnerUser";
 import Team from "Common/Models/DatabaseModels/Team";
+import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -34,13 +34,13 @@ const ServiceCatalogOwners: FunctionComponent<
         showViewIdButton={true}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogOwnerTeam,
         ): Promise<ServiceCatalogOwnerTeam> => {
           item.serviceCatalogId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
         cardProps={{
@@ -76,7 +76,7 @@ const ServiceCatalogOwners: FunctionComponent<
             title: "Team",
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -131,13 +131,13 @@ const ServiceCatalogOwners: FunctionComponent<
         createVerb={"Add"}
         query={{
           serviceCatalogId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: ServiceCatalogOwnerUser,
         ): Promise<ServiceCatalogOwnerUser> => {
           item.serviceCatalogId = modelId;
-          item.projectId = DashboardNavigation.getProjectId()!;
+          item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
         cardProps={{
@@ -157,7 +157,7 @@ const ServiceCatalogOwners: FunctionComponent<
             placeholder: "Select User",
             fetchDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
           },
@@ -174,7 +174,7 @@ const ServiceCatalogOwners: FunctionComponent<
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

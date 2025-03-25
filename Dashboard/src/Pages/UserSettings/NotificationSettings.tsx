@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -28,14 +28,14 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationSetting>
         modelType={UserNotificationSetting}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId().toString(),
           eventType: new Includes(options.eventOptions),
         }}
         onBeforeCreate={(
           model: UserNotificationSetting,
         ): Promise<UserNotificationSetting> => {
-          model.projectId = DashboardNavigation.getProjectId()!;
+          model.projectId = ProjectUtil.getCurrentProjectId()!;
           model.userId = User.getUserId();
           return Promise.resolve(model);
         }}

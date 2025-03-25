@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
@@ -139,7 +139,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           );
         }}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           serviceId: props.telemetryServiceId
             ? props.telemetryServiceId
             : undefined,

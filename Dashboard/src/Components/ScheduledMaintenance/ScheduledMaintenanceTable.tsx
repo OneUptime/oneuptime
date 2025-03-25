@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import LabelsElement from "../Label/Labels";
 import MonitorsElement from "../Monitor/Monitors";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
@@ -169,7 +169,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: ScheduledMaintenanceState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -188,7 +188,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -207,7 +207,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: StatusPage,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -246,7 +246,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: Label,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

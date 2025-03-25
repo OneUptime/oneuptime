@@ -58,7 +58,6 @@ import {
 import useAsyncEffect from "use-async-effect";
 import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
 import AlertsRoutes from "./Routes/AlertRoutes";
-import DashboardNavigation from "./Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 
 const App: () => JSX.Element = () => {
@@ -86,7 +85,7 @@ const App: () => JSX.Element = () => {
       // check if ProjectUtil.getCurrentProject() is the same as selectedProject
       if (ProjectUtil.getCurrentProject()) {
         const projectIdFromUrl: ObjectID | null =
-          DashboardNavigation.getProjectId();
+          ProjectUtil.getCurrentProjectId();
         if (
           ProjectUtil.getCurrentProjectId()?.toString() !==
           projectIdFromUrl?.toString()

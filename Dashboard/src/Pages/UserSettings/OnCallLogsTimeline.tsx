@@ -1,5 +1,5 @@
 import NotificationMethodView from "../../Components/NotificationMethods/NotificationMethod";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -34,7 +34,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserOnCallLogTimeline>
         modelType={UserOnCallLogTimeline}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           userNotificationLogId: modelId.toString(),
           userId: User.getUserId()?.toString(),
         }}

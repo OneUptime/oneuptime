@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
@@ -24,6 +23,7 @@ import React, {
   useState,
 } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -48,7 +48,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         showViewIdButton={true}
         query={{
           incidentId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         selectMoreFields={{
           stateChangeLog: true,
@@ -161,7 +161,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: IncidentState,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

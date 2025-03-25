@@ -1,5 +1,5 @@
 import ProbeStatusElement from "../../Components/Probe/ProbeStatus";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -109,7 +109,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ModelTable<Probe>
           modelType={Probe}
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           id="probes-table"
           name="Settings > Probes"
@@ -251,7 +251,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               filterEntityType: Label,
               filterQuery: {
-                projectId: DashboardNavigation.getProjectId()!,
+                projectId: ProjectUtil.getCurrentProjectId()!,
               },
               filterDropdownField: {
                 label: "name",

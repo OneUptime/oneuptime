@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -7,6 +6,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import AnnouncementTable from "../../../Components/Announcement/AnnouncementsTable";
 import Query from "Common/Types/BaseDatabase/Query";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -18,7 +18,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   const query: Query<StatusPageAnnouncement> = {
     statusPages: [statusPage],
-    projectId: DashboardNavigation.getProjectId()!,
+    projectId: ProjectUtil.getCurrentProjectId()!,
   };
 
   return (

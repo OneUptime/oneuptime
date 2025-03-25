@@ -1,5 +1,5 @@
 import TeamsElement from "../../Components/Team/TeamsElement";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import DigestMethod from "Common/Types/SSO/DigestMethod";
@@ -49,7 +49,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         <ModelTable<ProjectSSO>
           modelType={ProjectSSO}
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           id="sso-table"
           name="Settings > Project SSO"
@@ -285,10 +285,10 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
               <Link
                 openInNewTab={true}
                 to={URL.fromString(
-                  `${DASHBOARD_URL.toString()}/${DashboardNavigation.getProjectId()?.toString()}/sso`,
+                  `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`,
                 )}
               >
-                <span>{`${DASHBOARD_URL.toString()}/${DashboardNavigation.getProjectId()?.toString()}/sso`}</span>
+                <span>{`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`}</span>
               </Link>
             </span>
           }
@@ -328,7 +328,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
                   "Please test SSO before you enable this feature. If SSO is not tested properly then you will be locked out of the project.",
               },
             ],
-            modelId: DashboardNavigation.getProjectId()!,
+            modelId: ProjectUtil.getCurrentProjectId()!,
           }}
         />
 

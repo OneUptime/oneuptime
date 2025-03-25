@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -31,6 +30,7 @@ import React, {
   useState,
 } from "react";
 import Link from "Common/UI/Components/Link/Link";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -52,7 +52,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         <ModelTable<StatusPageSSO>
           modelType={StatusPageSSO}
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
             statusPageId: modelId.toString(),
           }}
           onBeforeCreate={(item: StatusPageSSO): Promise<StatusPageSSO> => {

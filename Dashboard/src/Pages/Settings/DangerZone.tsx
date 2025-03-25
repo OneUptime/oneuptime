@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -9,7 +9,6 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Page from "Common/UI/Components/Page/Page";
 import PermissionUtil from "Common/UI/Utils/Permission";
-import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -52,7 +51,7 @@ const Settings: FunctionComponent<ComponentProps> = (
       <ModelDelete
         modelType={Project}
         modelId={
-          new ObjectID(DashboardNavigation.getProjectId()?.toString() || "")
+          new ObjectID(ProjectUtil.getCurrentProjectId()?.toString() || "")
         }
         onDeleteSuccess={() => {
           ProjectUtil.clearCurrentProject();

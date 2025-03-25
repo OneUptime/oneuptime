@@ -1,6 +1,6 @@
 import CustomCallSMSTable from "../../Components/CallSMS/CallSMSConfigTable";
 import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -69,7 +69,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "0 USD",
               },
             ],
-            modelId: DashboardNavigation.getProjectId()!,
+            modelId: ProjectUtil.getCurrentProjectId()!,
           }}
         />
       ) : (
@@ -131,7 +131,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 "Enable SMS notifications for this project. This will be used for alerting users by SMS.",
             },
           ],
-          modelId: DashboardNavigation.getProjectId()!,
+          modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
 
@@ -292,7 +292,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "0 USD",
               },
             ],
-            modelId: DashboardNavigation.getProjectId()!,
+            modelId: ProjectUtil.getCurrentProjectId()!,
           }}
         />
       ) : (
@@ -317,7 +317,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   ),
                   {
                     amount: item["amount"],
-                    projectId: DashboardNavigation.getProjectId()!,
+                    projectId: ProjectUtil.getCurrentProjectId()!,
                   },
                 );
 

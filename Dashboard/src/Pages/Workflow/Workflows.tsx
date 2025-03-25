@@ -1,5 +1,5 @@
 import LabelsElement from "../../Components/Label/Labels";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -12,7 +12,6 @@ import ModelProgress from "Common/UI/Components/ModelProgress/ModelProgress";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
@@ -162,7 +161,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               filterEntityType: Label,
               filterQuery: {
-                projectId: DashboardNavigation.getProjectId()!,
+                projectId: ProjectUtil.getCurrentProjectId()!,
               },
               filterDropdownField: {
                 label: "name",

@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -12,6 +11,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import WorkflowStatusElement from "Common/UI/Components/Workflow/WorkflowStatus";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import WorkflowLogs from "Common/Models/DatabaseModels/WorkflowLog";
 import React, {
   Fragment,
@@ -38,7 +38,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           name="Workflow Logs"
           query={{
             workflowId: modelId,
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           selectMoreFields={{
             logs: true,

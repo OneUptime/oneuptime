@@ -1,5 +1,5 @@
 import MonitorsElement from "../../Components/Monitor/Monitors";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -41,7 +41,7 @@ const MonitorSecrets: FunctionComponent<
       <ModelTable<MonitorSecret>
         modelType={MonitorSecret}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="monitor-secret-table"
         name="Settings > Monitor Secret"
@@ -149,7 +149,7 @@ const MonitorSecrets: FunctionComponent<
 
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import ProjectUser from "../../Utils/ProjectUser";
 import { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -34,7 +34,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         }}
         noItemsMessage={"No incident templates found."}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showViewIdButton={true}
         formSteps={[
@@ -209,7 +209,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             fetchDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             required: false,

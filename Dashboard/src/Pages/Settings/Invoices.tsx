@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../Utils/Navigation";
 import PageComponentProps from "../PageComponentProps";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -94,7 +93,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           }}
           noItemsMessage={"No invoices so far."}
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           showRefreshButton={true}
           selectMoreFields={{
@@ -107,7 +106,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               // fetch project and check subscription again.
               const project: Project | null = await ModelAPI.getItem({
                 modelType: Project,
-                id: DashboardNavigation.getProjectId()!,
+                id: ProjectUtil.getCurrentProjectId()!,
                 select: {
                   paymentProviderMeteredSubscriptionStatus: true,
                   paymentProviderSubscriptionStatus: true,

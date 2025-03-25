@@ -1,5 +1,4 @@
 import UserElement from "../../../Components/User/User";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -8,7 +7,9 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+
 import ObjectID from "Common/Types/ObjectID";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -125,7 +126,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           incidentId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: IncidentPublicNote,
@@ -206,7 +207,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             filterEntityType: User,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {

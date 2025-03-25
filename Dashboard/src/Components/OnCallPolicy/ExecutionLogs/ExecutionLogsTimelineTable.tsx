@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import UserElement from "../../User/User";
 import EscalationRule from "../EscalationRule/EscalationRule";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -17,6 +16,7 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import User from "Common/Models/DatabaseModels/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
@@ -34,7 +34,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
       <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
         modelType={OnCallDutyPolicyExecutionLogTimeline}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           onCallDutyPolicyExecutionLogId:
             props.onCallPolicyExecutionLogId.toString(),
         }}
@@ -84,7 +84,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             title: "Escalation Rule",
             filterEntityType: OnCallDutyPolicyEscalationRule,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

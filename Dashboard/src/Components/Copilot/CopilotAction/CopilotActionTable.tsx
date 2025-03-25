@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, {
@@ -20,6 +19,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ServiceCatalogElement from "../../ServiceCatalog/ServiceElement";
 import CopilotActionPropViewer from "./CopilotActionPropViewer";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   query: Query<CopilotAction>;
@@ -188,7 +188,7 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
         isViewable={false}
         showViewIdButton={false}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           ...props.query,
         }}
         actionButtons={[

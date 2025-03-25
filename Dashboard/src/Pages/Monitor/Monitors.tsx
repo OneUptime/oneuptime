@@ -1,5 +1,5 @@
 import MonitorTable from "../../Components/Monitor/MonitorTable";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import Banner from "Common/UI/Components/Banner/Banner";
@@ -16,7 +16,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
       <MonitorTable
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         saveFilterProps={{
           tableId: "all-monitors-table",

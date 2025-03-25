@@ -1,6 +1,6 @@
 import NotificationMethodView from "../../Components/NotificationMethods/NotificationMethod";
 import NotifyAfterDropdownOptions from "../../Components/NotificationRule/NotifyAfterMinutesDropdownOptions";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -60,7 +60,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<UserNotificationRule>
         modelType={UserNotificationRule}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId()!,
           ruleType: options.ruleType,
           alertSeverityId: options.alertSeverity?.id || undefined,
@@ -69,7 +69,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           model: UserNotificationRule,
           miscDataProps: JSONObject,
         ): Promise<UserNotificationRule> => {
-          model.projectId = DashboardNavigation.getProjectId()!;
+          model.projectId = ProjectUtil.getCurrentProjectId()!;
           model.userId = User.getUserId();
           model.ruleType = options.ruleType;
           if (options.alertSeverity?.id) {
@@ -221,7 +221,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {
           modelType: AlertSeverity,
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -235,7 +235,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const userEmails: ListResult<UserEmail> = await ModelAPI.getList({
         modelType: UserEmail,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId(),
           isVerified: true,
         },
@@ -252,7 +252,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const userSMSes: ListResult<UserSMS> = await ModelAPI.getList({
         modelType: UserSMS,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId(),
           isVerified: true,
         },
@@ -269,7 +269,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       const userCalls: ListResult<UserCall> = await ModelAPI.getList({
         modelType: UserCall,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId(),
           isVerified: true,
         },

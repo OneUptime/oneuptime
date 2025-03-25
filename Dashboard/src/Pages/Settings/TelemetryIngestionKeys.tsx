@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -13,7 +13,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<TelemetryIngestionKey>
         modelType={TelemetryIngestionKey}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="api-keys-table"
         name="Settings > Telemetry Ingestion Keys"

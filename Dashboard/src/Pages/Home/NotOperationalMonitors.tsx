@@ -1,5 +1,5 @@
 import MonitorTable from "../../Components/Monitor/MonitorTable";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -34,7 +34,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
     >
       <MonitorTable
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           currentMonitorStatus: {
             isOperationalState: false,
           },

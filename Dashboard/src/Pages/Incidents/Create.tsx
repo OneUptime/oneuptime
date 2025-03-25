@@ -18,7 +18,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import ProjectUser from "../../Utils/ProjectUser";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -439,7 +439,7 @@ const IncidentCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   fetchDropdownOptions: async () => {
                     return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                      DashboardNavigation.getProjectId()!,
+                      ProjectUtil.getCurrentProjectId()!,
                     );
                   },
                   required: false,

@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
@@ -57,7 +57,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             : "Please wait, we are refreshing the list of users for this project. Please try again in sometime."
         }
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showRefreshButton={true}
         onViewPage={(item: ProjectUser) => {
@@ -79,7 +79,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",
@@ -96,7 +96,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             type: FieldType.EntityArray,
             filterEntityType: Team,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

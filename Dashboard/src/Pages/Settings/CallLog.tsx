@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import { Green, Red } from "Common/Types/BrandColors";
 import CallStatus from "Common/Types/Call/CallStatus";
@@ -146,7 +146,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isCreateable={false}
           name="Call Logs"
           query={{
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           selectMoreFields={{
             callData: true,

@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -50,7 +50,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               placeholder: "No",
             },
           ],
-          modelId: DashboardNavigation.getProjectId()!,
+          modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
     </Fragment>

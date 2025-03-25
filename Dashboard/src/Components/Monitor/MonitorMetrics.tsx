@@ -9,7 +9,7 @@ import MonitorMetricTypeUtil from "Common/Utils/Monitor/MonitorMetricType";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import MetricView from "../Metrics/MetricView";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorType, {
   MonitorTypeHelper,
@@ -128,7 +128,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
               metricName: monitorMetricType,
               attributes: {
                 monitorId: props.monitorId.toString(),
-                projectId: DashboardNavigation.getProjectId()?.toString() || "",
+                projectId: ProjectUtil.getCurrentProjectId()?.toString() || "",
               },
               aggegationType:
                 MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(

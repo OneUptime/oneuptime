@@ -1,7 +1,6 @@
 import OnCallDutyScheduleView from "../../../Components/OnCallPolicy/EscalationRule/OnCallScheduleView";
 import TeamView from "../../../Components/OnCallPolicy/EscalationRule/TeamView";
 import UserView from "../../../Components/OnCallPolicy/EscalationRule/UserView";
-import DashboardNavigation from "../../../Utils/Navigation";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -18,6 +17,7 @@ import OnCallDutyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -44,7 +44,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
         }}
         query={{
           onCallDutyPolicyId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(
           item: OnCallDutyEscalationRule,
@@ -151,7 +151,7 @@ const OnCallPolicyDelete: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             fetchDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             required: false,

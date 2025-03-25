@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -14,7 +14,6 @@ import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
-import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
@@ -85,7 +84,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
   const getCurrentProject: GetCurrentProjectFunction = (): Project | null => {
     // see nav params first, then local storage, then default to first project.
-    const projectId: ObjectID | null = DashboardNavigation.getProjectId();
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
     if (projectId) {
       // check if this project is in the list.

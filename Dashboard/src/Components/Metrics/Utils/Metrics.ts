@@ -1,6 +1,5 @@
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import DashboardNavigation from "../../../Utils/Navigation";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MetricNameAndUnit from "../Types/MetricNameAndUnit";
@@ -17,6 +16,7 @@ import Dictionary from "Common/Types/Dictionary";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import OneUptimeDate from "Common/Types/Date";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export default class MetricUtil {
   public static async fetchResults(data: {
@@ -81,7 +81,7 @@ export default class MetricUtil {
         unit: true,
       },
       query: {
-        projectId: DashboardNavigation.getProjectId()!,
+        projectId: ProjectUtil.getCurrentProjectId()!,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,

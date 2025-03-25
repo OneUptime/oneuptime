@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -25,7 +25,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         query={{
           workflowId: new IsNull(),
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         noItemsMessage={"No global variables found."}
         showViewIdButton={true}

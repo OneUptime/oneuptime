@@ -1,5 +1,5 @@
 import AlertsTable from "../../Components/Alert/AlertsTable";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -7,7 +7,7 @@ const AlertsPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <AlertsTable
       query={{
-        projectId: DashboardNavigation.getProjectId()!,
+        projectId: ProjectUtil.getCurrentProjectId()!,
         currentAlertState: {
           isResolvedState: false,
         },

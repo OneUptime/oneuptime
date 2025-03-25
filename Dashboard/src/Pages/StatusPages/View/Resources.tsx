@@ -1,6 +1,5 @@
 import MonitorElement from "../../../Components/Monitor/Monitor";
 import MonitorGroupElement from "../../../Components/MonitorGroup/MonitorGroupElement";
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -32,6 +31,7 @@ import React, {
 } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import Link from "Common/UI/Components/Link/Link";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -267,7 +267,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         isEditable={true}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           statusPageGroupId: statusPageGroupId!,
         }}
         enableDragAndDrop={true}
@@ -331,7 +331,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             filterEntityType: Monitor,
             filterQuery: {
-              projectId: DashboardNavigation.getProjectId()!,
+              projectId: ProjectUtil.getCurrentProjectId()!,
             },
             filterDropdownField: {
               label: "name",

@@ -10,8 +10,17 @@ import Project from "Common/Models/DatabaseModels/Project";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../Types/Billing/SubscriptionStatus";
+import Navigation from "./Navigation";
 
 export default class ProjectUtil {
+  public static getCurrentProjectId(): ObjectID | null {
+    const projectId: string | undefined = Navigation.getFirstParam(2);
+    if (projectId) {
+      return new ObjectID(projectId);
+    }
+    return null;
+  }
+
   public static setIsSubscriptionInactive(data: {
     paymentProviderMeteredSubscriptionStatus: SubscriptionStatus;
     paymentProviderSubscriptionStatus: SubscriptionStatus;
@@ -42,10 +51,6 @@ export default class ProjectUtil {
       "current_project",
     ) as JSONObject;
     return BaseModel.fromJSON(projectJson, Project) as Project;
-  }
-
-  public static getCurrentProjectId(): ObjectID | null {
-    return this.getCurrentProject()?.id || null;
   }
 
   public static setCurrentProject(project: JSONObject | Project): void {

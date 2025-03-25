@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -138,7 +138,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const monitors: ListResult<Monitor> = await ModelAPI.getList({
         modelType: Monitor,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           name: true,
@@ -156,7 +156,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const labels: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           name: true,
@@ -175,7 +175,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const alertStates: ListResult<AlertState> = await ModelAPI.getList({
         modelType: AlertState,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           name: true,
@@ -195,7 +195,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         {
           modelType: AlertSeverity,
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           select: {
             name: true,
@@ -216,7 +216,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         await ModelAPI.getList({
           modelType: IncidentSeverity,
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           select: {
             name: true,
@@ -235,7 +235,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const incidentStates: ListResult<IncidentState> = await ModelAPI.getList({
         modelType: IncidentState,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           name: true,
@@ -255,7 +255,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         await ModelAPI.getList({
           modelType: ScheduledMaintenanceState,
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           select: {
             name: true,
@@ -274,7 +274,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const monitorStatus: ListResult<MonitorStatus> = await ModelAPI.getList({
         modelType: MonitorStatus,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           name: true,
@@ -293,7 +293,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const teams: ListResult<Team> = await ModelAPI.getList({
         modelType: Team,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           name: true,
@@ -311,7 +311,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       const teamMembers: ListResult<TeamMember> = await ModelAPI.getList({
         modelType: TeamMember,
         query: {
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         },
         select: {
           _id: true,
@@ -403,7 +403,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       <ModelTable<WorkspaceNotificationRule>
         modelType={WorkspaceNotificationRule}
         query={{
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
           eventType: props.eventType,
         }}
         actionButtons={[
@@ -444,7 +444,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={"No notification rules found."}
         onBeforeCreate={(values: WorkspaceNotificationRule) => {
           values.eventType = props.eventType;
-          values.projectId = DashboardNavigation.getProjectId()!;
+          values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
           values.notificationRule = removeFiltersWithNoValues(
             values.notificationRule as IncidentNotificationRule,

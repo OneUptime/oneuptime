@@ -1,4 +1,4 @@
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import ProjectUser from "../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -53,7 +53,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
           modelType: TeamMember,
           query: {
             userId: userId,
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           select: {
             user: {
@@ -173,7 +173,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           userId: userId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         onBeforeCreate={(item: TeamMember): Promise<TeamMember> => {
           if (!props.currentProject || !props.currentProject._id) {
@@ -220,7 +220,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
             filterEntityType: Team,
             fetchFilterDropdownOptions: async () => {
               return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                DashboardNavigation.getProjectId()!,
+                ProjectUtil.getCurrentProjectId()!,
               );
             },
             filterDropdownField: {
@@ -265,7 +265,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
 
       <RemoveUserFromProject
         userId={userId}
-        projectId={DashboardNavigation.getProjectId()!}
+        projectId={ProjectUtil.getCurrentProjectId()!}
         onError={async () => {
           // do nothing.
         }}

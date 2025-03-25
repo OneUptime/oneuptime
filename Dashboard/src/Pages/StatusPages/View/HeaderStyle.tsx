@@ -1,4 +1,3 @@
-import DashboardNavigation from "../../../Utils/Navigation";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -11,6 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -91,7 +91,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         query={{
           statusPageId: modelId,
-          projectId: DashboardNavigation.getProjectId()!,
+          projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         enableDragAndDrop={true}
         dragDropIndexField="order"

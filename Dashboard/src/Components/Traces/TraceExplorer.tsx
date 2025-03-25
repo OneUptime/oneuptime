@@ -2,7 +2,7 @@ import DashboardLogsViewer from "../Logs/LogsViewer";
 import SpanStatusElement from "../Span/SpanStatusElement";
 import SpanViewer from "../Span/SpanViewer";
 import TelemetryServiceElement from "..//TelemetryService/TelemetryServiceElement";
-import DashboardNavigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 import SpanUtil, {
   DivisibilityFactor,
   IntervalUnit,
@@ -83,7 +83,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       const telemetryServices: ListResult<TelemetryService> =
         await ModelAPI.getList<TelemetryService>({
           query: {
-            projectId: DashboardNavigation.getProjectId()!,
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
