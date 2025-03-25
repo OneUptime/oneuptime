@@ -226,46 +226,48 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   if (props.monitorType === MonitorType.CustomJavaScriptCode) {
     codeEditorPlaceholder = `
-        // You can use axios, http modules here.
-        await axios.get('https://example.com'); 
+// You can use axios, http modules here.
+await axios.get('https://example.com'); 
 
-        // when you want to return a value, use return statement with data as a prop.
+// when you want to return a value, use return statement with data as a prop.
 
-        return {
-            data: 'Hello World' 
-        };`;
+return {
+    data: 'Hello World' 
+};
+        `;
   }
 
   if (props.monitorType === MonitorType.SyntheticMonitor) {
     codeEditorPlaceholder = `
-        // Objects available in the context of the script are:
+// Objects available in the context of the script are:
 
-        // - axios: Axios module to make HTTP requests
-        // - page: Playwright Page object to interact with the browser
-        // - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
-        // - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
-        // - browser: Playwright Browser object to interact with the browser
+// - axios: Axios module to make HTTP requests
+// - page: Playwright Page object to interact with the browser
+// - browserType: Browser type in the current run context - Chromium, Firefox, Webkit
+// - screenSizeType: Screen size type in the current run context - Mobile, Tablet, Desktop
+// - browser: Playwright Browser object to interact with the browser
 
-        await page.goto('https://playwright.dev/');
-        
-        // Playwright Documentation here: https://playwright.dev/docs/intro
-    
-        // To take screenshots,
+await page.goto('https://playwright.dev/');
 
-        const screenshots = {};
+// Playwright Documentation here: https://playwright.dev/docs/intro
 
-        screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
+// To take screenshots,
+
+const screenshots = {};
+
+screenshots['screenshot-name'] = await page.screenshot(); // you can save multiple screenshots and have them with different names.
 
 
-        // To log data, use console.log
-        console.log('Hello World');
+// To log data, use console.log
+console.log('Hello World');
 
-        // when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
+// when you want to return a value, use return statement with data as a prop. You can also add screenshots in the screenshots array.
 
-        return {
-            data: 'Hello World',
-            screenshots: screenshots // obj containing screenshots
-        };`;
+return {
+    data: 'Hello World',
+    screenshots: screenshots // obj containing screenshots
+};
+        `;
   }
 
   useEffect(() => {
