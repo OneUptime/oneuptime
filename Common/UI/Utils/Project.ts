@@ -25,6 +25,9 @@ export default class ProjectUtil {
     paymentProviderMeteredSubscriptionStatus: SubscriptionStatus;
     paymentProviderSubscriptionStatus: SubscriptionStatus;
   }): boolean {
+    const currentProjectId: string | undefined =
+      this.getCurrentProjectId()?.toString();
+
     const isSubscriptionInactive: boolean =
       SubscriptionStatusUtil.isSubscriptionInactive(
         data.paymentProviderMeteredSubscriptionStatus,
@@ -34,34 +37,51 @@ export default class ProjectUtil {
       );
 
     // save this to local storage
-    LocalStorage.setItem("isSubscriptionInactive", isSubscriptionInactive);
+    LocalStorage.setItem(
+      currentProjectId?.toString() + "_isSubscriptionInactive",
+      isSubscriptionInactive,
+    );
 
     return isSubscriptionInactive;
   }
 
   public static isSubscriptionInactive(): boolean {
-    return Boolean(LocalStorage.getItem("isSubscriptionInactive")) || false;
+    const currentProjectId: string | undefined =
+      this.getCurrentProjectId()?.toString();
+    return (
+      Boolean(
+        LocalStorage.getItem(
+          currentProjectId?.toString() + "_isSubscriptionInactive",
+        ),
+      ) || false
+    );
   }
 
   public static getCurrentProject(): Project | null {
-    if (!LocalStorage.getItem("current_project")) {
+    const currentProjectId: string | undefined =
+      this.getCurrentProjectId()?.toString();
+    if (!LocalStorage.getItem(`project_${currentProjectId}`)) {
       return null;
     }
     const projectJson: JSONObject = LocalStorage.getItem(
-      "current_project",
+      `project_${currentProjectId}`,
     ) as JSONObject;
     return BaseModel.fromJSON(projectJson, Project) as Project;
   }
 
   public static setCurrentProject(project: JSONObject | Project): void {
+    const currentProjectId: string | undefined =
+      this.getCurrentProjectId()?.toString();
     if (project instanceof Project) {
       project = BaseModel.toJSON(project, Project);
     }
-    LocalStorage.setItem("current_project", project);
+    LocalStorage.setItem(`project_${currentProjectId}`, project);
   }
 
   public static clearCurrentProject(): void {
-    LocalStorage.setItem("current_project", null);
+    const currentProjectId: string | undefined =
+      this.getCurrentProjectId()?.toString();
+    LocalStorage.setItem(`project_${currentProjectId}`, null);
   }
 
   public static getCurrentPlan(): PlanType | null {
