@@ -24,11 +24,11 @@ export default class ProjectUtil {
     const currentProjectId: string | undefined = SessionStorage.getItem(
       `current_project_id`,
     ) as string;
-    
+
     if (currentProjectId) {
       return new ObjectID(currentProjectId);
     }
-    
+
     return null;
   }
 
