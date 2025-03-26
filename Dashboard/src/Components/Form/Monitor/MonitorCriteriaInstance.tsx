@@ -55,7 +55,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     ObjectID | undefined
   >(monitorCriteriaInstance?.data?.monitorStatusId);
 
-
   const filterConditionOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);
 

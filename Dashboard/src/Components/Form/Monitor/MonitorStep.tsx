@@ -66,7 +66,6 @@ import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import Link from "Common/UI/Components/Link/Link";
-import debugPropsChange from "Common/UI/Utils/DebugPropsChange";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -84,7 +83,6 @@ export interface ComponentProps {
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-    
   const [
     showAdvancedOptionsRequestBodyAndHeaders,
     setShowAdvancedOptionsRequestBodyAndHeaders,
