@@ -276,7 +276,7 @@ RunCron(
                   subscriberEmailNotificationFooterText:
                     statuspage.subscriberEmailNotificationFooterText || "",
                 },
-                subject: "[Incident Update] " + statusPageName,
+                subject: "[Incident Update] " + incident.title,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

@@ -294,7 +294,7 @@ RunCron(
                 },
                 subject: `[Incident ${Text.uppercaseFirstLetter(
                   incidentStateTimeline.incidentState.name,
-                )}] ${statusPageName}`,
+                )}] ${incident.title}`,
               },
               {
                 mailServer: ProjectSMTPConfigService.toEmailServer(

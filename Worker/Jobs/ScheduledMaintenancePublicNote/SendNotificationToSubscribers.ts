@@ -275,7 +275,7 @@ RunCron(
                   subscriberEmailNotificationFooterText:
                     statuspage.subscriberEmailNotificationFooterText || "",
                 },
-                subject: "[Scheduled Maintenance Update] " + statusPageName,
+                subject: "[Scheduled Maintenance Update] " + event.title,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

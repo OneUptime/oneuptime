@@ -187,7 +187,7 @@ RunCron(
                         statuspage.subscriberEmailNotificationFooterText || "",
                       unsubscribeUrl: unsubscribeUrl,
                     },
-                    subject: "[Announcement] " + statusPageName,
+                    subject: "[Announcement] " + announcement.title,
                   },
                   {
                     mailServer: ProjectSMTPConfigService.toEmailServer(

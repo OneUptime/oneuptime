@@ -293,7 +293,7 @@ RunCron(
                 },
                 subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
                   scheduledEventStateTimeline.scheduledMaintenanceState?.name,
-                )}] ${statusPageName}`,
+                )}] ${event.title || ""}`,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
