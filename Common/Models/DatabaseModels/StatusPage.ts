@@ -2120,4 +2120,43 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public showScheduledMaintenanceEventsOnStatusPage?: boolean = undefined;
+
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show Subscriber Page on Status Page",
+    description: "Show Subscriber Page on Status Page?",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
+  })
+  public showSubscriberPageOnStatusPage?: boolean = undefined;
 }

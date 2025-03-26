@@ -2,7 +2,7 @@ import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, { FunctionComponent, ReactElement } from "react";
-import Navigation from "../../Utils/Navigation";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 export interface ComponentProps {
   team: Team;
@@ -16,7 +16,7 @@ const TeamElement: FunctionComponent<ComponentProps> = (
     props.team._id &&
     (props.team.projectId ||
       (props.team.project && props.team.project._id) ||
-      Navigation.getProjectId())
+      ProjectUtil.getCurrentProjectId())
   ) {
     let projectId: string | undefined = props.team.projectId
       ? props.team.projectId.toString()
@@ -25,7 +25,7 @@ const TeamElement: FunctionComponent<ComponentProps> = (
         : "";
 
     if (!projectId) {
-      projectId = Navigation.getProjectId()?.toString();
+      projectId = ProjectUtil.getCurrentProjectId()?.toString();
     }
     return (
       <AppLink
