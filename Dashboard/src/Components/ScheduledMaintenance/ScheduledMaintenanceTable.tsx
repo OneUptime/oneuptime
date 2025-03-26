@@ -131,7 +131,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           buttons: cardbuttons,
         }}
         noItemsMessage={
-          props.noItemsMessage || "No scheduled Maintenance Event found."
+          props.noItemsMessage || "No Scheduled Maintenance Event found."
         }
         showViewIdButton={true}
         viewButtonText="View Event"

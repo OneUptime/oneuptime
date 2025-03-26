@@ -79,7 +79,7 @@ export default class Recurring extends DatabaseProperty {
       const intervalType: EventInterval = rotation.intervalType;
       const intervalCount: PositiveNumber = rotation.intervalCount;
 
-      let diff: number = dateNow.getTime() - nextDate.getTime();
+      const diff: number = dateNow.getTime() - nextDate.getTime();
       let intervalMillis: number;
 
       switch (intervalType) {
