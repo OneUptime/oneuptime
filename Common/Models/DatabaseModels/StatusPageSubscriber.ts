@@ -114,7 +114,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
@@ -181,7 +181,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "statusPageId" })
   public statusPage?: StatusPage = undefined;
@@ -351,7 +351,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
@@ -411,7 +411,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    },
+    }
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
@@ -653,7 +653,7 @@ export default class StatusPageSubscriber extends BaseModel {
     () => {
       return StatusPageResource;
     },
-    { eager: false },
+    { eager: false }
   )
   @JoinTable({
     name: "StatusPageSubscriberStatusPageResource",
@@ -702,4 +702,38 @@ export default class StatusPageSubscriber extends BaseModel {
     default: [],
   })
   public statusPageEventTypes?: Array<StatusPageEventType> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Markdown,
+    title: "Notes",
+    description:
+      "Any notes or text you would like to add to this subscriber object. This is for internal use only.",
+  })
+  @Column({
+    type: ColumnType.Markdown,
+    nullable: true,
+    unique: false,
+  })
+  public internalNote?: string = undefined;
 }

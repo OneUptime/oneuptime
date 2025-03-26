@@ -125,6 +125,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         title: "Phone Number",
         description: "Status page updates will be sent to this phone number.",
         fieldType: FormFieldSchemaType.Phone,
+        stepId: "subscriber-info",
         required: true,
         placeholder: "+11234567890",
       },
@@ -136,6 +137,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         description:
           'Send "You have subscribed to this status page" SMS to this subscriber?',
         fieldType: FormFieldSchemaType.Toggle,
+        stepId: "subscriber-info",
         required: false,
         doNotShowWhenEditing: true,
       },
@@ -146,6 +148,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         title: "Unsubscribe",
         description: "Unsubscribe this phone number from the status page.",
         fieldType: FormFieldSchemaType.Toggle,
+        stepId: "subscriber-info",
         required: false,
         doNotShowWhenCreating: true,
       },
@@ -158,6 +161,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Subscribe to All Resources",
         description: "Send notifications for all resources.",
+        stepId: "subscriber-info",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
         defaultValue: true,
@@ -169,6 +173,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
         title: "Select Resources to Subscribe",
         description: "Please select the resources you want to subscribe to.",
+        stepId: "subscriber-info",
         fieldType: FormFieldSchemaType.CategoryCheckbox,
         required: false,
         categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
@@ -184,6 +189,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           isSubscribedToAllEventTypes: true,
         },
         title: "Subscribe to All Event Types",
+        stepId: "subscriber-info",
         description:
           "Select this option if you want to subscribe to all event types.",
         fieldType: FormFieldSchemaType.Checkbox,
@@ -196,6 +202,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           statusPageEventTypes: true,
         },
         title: "Select Event Types to Subscribe",
+        stepId: "subscriber-info",
         description: "Please select the event types you want to subscribe to.",
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         required: false,
@@ -205,6 +212,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         },
       });
     }
+
+
+    // add internal note field
+    formFields.push({
+      field: {
+        internalNote: true,
+      },
+      title: "Internal Note",
+      stepId: "internal-info",
+      description: "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
+      fieldType: FormFieldSchemaType.Markdown,
+      required: false,
+    });
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -260,6 +280,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             formFields={formFields}
             showRefreshButton={true}
             viewPageRoute={Navigation.getCurrentRoute()}
+            formSteps={[
+              {
+                title: "Subscriber Info",
+                id: "subscriber-info",
+              },
+              {
+                title: "Internal Info",
+                id: "internal-info",
+              },
+            ]}
             filters={[
               {
                 field: {
