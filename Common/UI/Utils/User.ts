@@ -11,6 +11,7 @@ import Timezone from "Common/Types/Timezone";
 import API from "Common/Utils/API";
 import Cookie from "./Cookie";
 import CookieName from "Common/Types/CookieName";
+import SessionStorage from "./SessionStorage";
 
 export default class UserUtil {
   public static setProfilePicId(id: ObjectID | null): void {
@@ -172,6 +173,7 @@ export default class UserUtil {
   public static async logout(): Promise<void> {
     await API.post(URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"));
     LocalStorage.clear();
+    SessionStorage.clear();
   }
 
   public static getUtmParams(): Dictionary<string> {
