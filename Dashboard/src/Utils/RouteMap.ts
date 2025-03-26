@@ -4,7 +4,6 @@ import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Project from "Common/Models/DatabaseModels/Project";
 
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
@@ -1871,7 +1870,10 @@ export class RouteUtil {
     const tempRoute: Route = new Route(route.toString());
 
     if (projectId) {
-      route = tempRoute.addRouteParam(RouteParams.ProjectID, projectId?.toString());
+      route = tempRoute.addRouteParam(
+        RouteParams.ProjectID,
+        projectId?.toString(),
+      );
     }
 
     if (props && props.modelId) {

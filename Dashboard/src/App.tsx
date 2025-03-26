@@ -129,6 +129,7 @@ const App: () => JSX.Element = () => {
     const currentRoute: Route = Navigation.getCurrentRoute();
 
     if (!currentRoute.toString().includes(project._id!)) {
+      ProjectUtil.setCurrentProject(project);
       Navigation.navigate(new Route("/dashboard/" + project._id), {
         forceNavigate: true,
       });

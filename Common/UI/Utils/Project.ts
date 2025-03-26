@@ -15,9 +15,8 @@ import SessionStorage from "./SessionStorage";
 
 export default class ProjectUtil {
   public static getCurrentProjectId(): ObjectID | null {
-
-     // if this is not available in the url, check the session storage
-     const currentProjectId: string | undefined = SessionStorage.getItem(
+    // if this is not available in the url, check the session storage
+    const currentProjectId: string | undefined = SessionStorage.getItem(
       `current_project_id`,
     ) as string;
 
@@ -25,10 +24,9 @@ export default class ProjectUtil {
       return new ObjectID(currentProjectId);
     }
 
-
     let projectId: string | undefined = Navigation.getFirstParam(2);
 
-    if(projectId && projectId.includes(":projectId")){
+    if (projectId && projectId.includes(":projectId")) {
       projectId = undefined;
     }
 
@@ -89,7 +87,7 @@ export default class ProjectUtil {
 
   public static setCurrentProject(project: JSONObject | Project): void {
     const currentProjectId: string | undefined =
-      this.getCurrentProjectId()?.toString();
+      project._id?.toString() || this.getCurrentProjectId()?.toString();
     if (project instanceof Project) {
       project = BaseModel.toJSON(project, Project);
     }

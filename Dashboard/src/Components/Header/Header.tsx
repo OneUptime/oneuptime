@@ -228,7 +228,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     isMultiTenantRequest: true,
                   }}
                   onClick={() => {
-                    Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECT_INVITATIONS]!));
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.PROJECT_INVITATIONS]!,
+                      ),
+                    );
                   }}
                 />
 
@@ -249,7 +253,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     isMultiTenantRequest: true,
                   }}
                   onClick={() => {
-                    Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.NEW_INCIDENTS]!));
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NEW_INCIDENTS]!,
+                      ),
+                    );
                   }}
                 />
 
@@ -267,7 +275,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   pluralName="Alerts"
                   tooltip="View all active alerts"
                   onClick={() => {
-                    Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!));
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!),
+                    );
                   }}
                 />
 
@@ -277,7 +287,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     tooltip="Your trial ends soon"
                     alertType={HeaderAlertType.INFO}
                     onClick={() => {
-                      Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_BILLING]!));
+                      Navigation.navigate(
+                        RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.SETTINGS_BILLING]!,
+                        ),
+                      );
                     }}
                     title={`${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                       OneUptimeDate.getCurrentDate(),
