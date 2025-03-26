@@ -75,14 +75,35 @@ export default class Recurring extends DatabaseProperty {
     let nextDate: Date = OneUptimeDate.fromString(startDate);
     const dateNow: Date = OneUptimeDate.getCurrentDate();
 
-    // If the start date is in the past, we need to find the next date. The next date is the first date that is greater than the current date.
-
-    // If the start date is in the future, return the start date.
-
     if (nextDate.getTime() <= dateNow.getTime()) {
-      while (nextDate.getTime() <= dateNow.getTime()) {
-        nextDate = this.getNextDateInterval(nextDate, rotation);
+      const intervalType: EventInterval = rotation.intervalType;
+      const intervalCount: PositiveNumber = rotation.intervalCount;
+
+      let diff: number = dateNow.getTime() - nextDate.getTime();
+      let intervalMillis: number;
+
+      switch (intervalType) {
+        case EventInterval.Hour:
+          intervalMillis = intervalCount.toNumber() * 3600000;
+          break;
+        case EventInterval.Day:
+          intervalMillis = intervalCount.toNumber() * 86400000;
+          break;
+        case EventInterval.Week:
+          intervalMillis = intervalCount.toNumber() * 604800000;
+          break;
+        case EventInterval.Month:
+          intervalMillis = intervalCount.toNumber() * 2629800000; // Approximate month in milliseconds
+          break;
+        case EventInterval.Year:
+          intervalMillis = intervalCount.toNumber() * 31557600000; // Approximate year in milliseconds
+          break;
+        default:
+          throw new BadDataException("Invalid Interval Type: " + intervalType);
       }
+
+      const intervalsToAdd: number = Math.ceil(diff / intervalMillis);
+      nextDate = new Date(nextDate.getTime() + intervalsToAdd * intervalMillis);
     }
 
     return nextDate;
