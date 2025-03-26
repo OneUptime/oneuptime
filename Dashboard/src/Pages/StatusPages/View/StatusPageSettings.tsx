@@ -205,8 +205,8 @@ const StatusPageDelete: FunctionComponent<
       <CardModelDetail<StatusPage>
         name="Status Page > Settings"
         cardProps={{
-          title: "Scheduled Event Settings",
-          description: "Scheduled Event Settings for Status Page",
+          title: "Subscriber Settings",
+          description: "Subscriber Settings for Status Page",
         }}
         editButtonText="Edit Settings"
         isEditable={true}
