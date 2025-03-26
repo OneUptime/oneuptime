@@ -318,6 +318,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             showScheduledMaintenanceEventsOnStatusPage={
               statusPage?.showScheduledMaintenanceEventsOnStatusPage || false
             }
+            showSubscriberPageOnStatusPage={
+              statusPage?.showSubscriberPageOnStatusPage || false
+            }
           />
           {props.children}
           {!footerHtml ? (

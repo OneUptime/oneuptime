@@ -339,6 +339,7 @@ export default class StatusPageAPI extends BaseAPI<
             showIncidentsOnStatusPage: true,
             showAnnouncementsOnStatusPage: true,
             showScheduledMaintenanceEventsOnStatusPage: true,
+            showSubscriberPageOnStatusPage: true,
           };
 
           const hasEnabledSSO: PositiveNumber =
@@ -1972,6 +1973,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
+        showSubscriberPageOnStatusPage: true,
       },
       props: {
         isRoot: true,
@@ -1981,6 +1983,11 @@ export default class StatusPageAPI extends BaseAPI<
     if (!statusPage) {
       logger.debug(`Status page not found with ID: ${objectId}`);
       throw new BadDataException("Status Page not found");
+    }
+
+    if(!statusPage.showSubscriberPageOnStatusPage) {
+      logger.debug(`Subscriber page not enabled for status page with ID: ${objectId}`);
+      throw new BadDataException("Subscribes not enabled for this status page.");  
     }
 
     logger.debug(`Status page found: ${JSON.stringify(statusPage)}`);

@@ -15,6 +15,7 @@ export interface ComponentProps {
   showIncidentsOnStatusPage: boolean;
   showAnnouncementsOnStatusPage: boolean;
   showScheduledMaintenanceEventsOnStatusPage: boolean;
+  showSubscriberPageOnStatusPage: boolean;
 }
 
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
@@ -86,7 +87,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {props.enableEmailSubscribers || props.enableSMSSubscribers ? (
+      {props.showSubscriberPageOnStatusPage && (props.enableEmailSubscribers || props.enableSMSSubscribers) ? (
         <NavBarItem
           id="subscribe-nav-bar-item"
           title="Subscribe"

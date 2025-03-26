@@ -202,6 +202,75 @@ const StatusPageDelete: FunctionComponent<
         }}
       />
 
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Settings"
+        cardProps={{
+          title: "Scheduled Event Settings",
+          description: "Scheduled Event Settings for Status Page",
+        }}
+        editButtonText="Edit Settings"
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              showSubscriberPageOnStatusPage: true,
+            },
+            title: "Show Subscriber Page",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              enableEmailSubscribers: true,
+            },
+            title: "Enable Email Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              enableSmsSubscribers: true,
+            },
+            title: "Enable SMS Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-status-page",
+          fields: [
+            {
+              field: {
+                showSubscriberPageOnStatusPage: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Show Subscriber Page",
+              placeholder: "No",
+            },
+            {
+              field: {
+                enableEmailSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Email Subscribers",
+              placeholder: "No",
+            },
+            {
+              field: {
+                enableSmsSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable SMS Subscribers",
+              placeholder: "No",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
       <CardModelDetail<StatusPage>
         name="Status Page > Settings"
         cardProps={{
