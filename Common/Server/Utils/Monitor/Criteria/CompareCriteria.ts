@@ -175,8 +175,7 @@ export default class CompareCriteria {
   public static convertToNumber(
     threshold: string | number | undefined,
   ): number | null {
-
-    if(threshold === undefined || threshold === null) {
+    if (threshold === undefined || threshold === null) {
       return null;
     }
 
