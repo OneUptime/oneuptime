@@ -203,7 +203,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         title: "Subscribe to All Event Types",
         description:
           "Select this option if you want to subscribe to all event types.",
-          stepId: "subscriber-info",
+        stepId: "subscriber-info",
         fieldType: FormFieldSchemaType.Checkbox,
         required: false,
         defaultValue: true,
@@ -232,7 +232,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       },
       title: "Internal Note",
       stepId: "internal-info",
-      description: "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
+      description:
+        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
       fieldType: FormFieldSchemaType.Markdown,
       required: false,
     });

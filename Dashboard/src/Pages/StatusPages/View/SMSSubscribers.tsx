@@ -213,7 +213,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       });
     }
 
-
     // add internal note field
     formFields.push({
       field: {
@@ -221,7 +220,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       },
       title: "Internal Note",
       stepId: "internal-info",
-      description: "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
+      description:
+        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
       fieldType: FormFieldSchemaType.Markdown,
       required: false,
     });

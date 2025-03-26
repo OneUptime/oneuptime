@@ -114,7 +114,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
@@ -181,7 +181,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "statusPageId" })
   public statusPage?: StatusPage = undefined;
@@ -351,7 +351,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
@@ -411,7 +411,7 @@ export default class StatusPageSubscriber extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;
@@ -653,7 +653,7 @@ export default class StatusPageSubscriber extends BaseModel {
     () => {
       return StatusPageResource;
     },
-    { eager: false }
+    { eager: false },
   )
   @JoinTable({
     name: "StatusPageSubscriberStatusPageResource",
