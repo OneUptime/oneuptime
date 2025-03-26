@@ -55,11 +55,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
     ObjectID | undefined
   >(monitorCriteriaInstance?.data?.monitorStatusId);
 
-  useEffect(() => {
-    if (props.onChange && props.onChange && monitorCriteriaInstance) {
-      props.onChange && props.onChange(monitorCriteriaInstance);
-    }
-  }, [monitorCriteriaInstance]);
 
   const filterConditionOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(FilterCondition);

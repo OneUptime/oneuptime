@@ -77,12 +77,6 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     );
   }, [criteriaFilter]);
 
-  useEffect(() => {
-    if (props.onChange && criteriaFilter) {
-      props.onChange(criteriaFilter);
-    }
-  }, [criteriaFilter]);
-
   if (isLoading) {
     return <></>;
   }
