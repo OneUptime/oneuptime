@@ -11,6 +11,7 @@ import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../Types/Billing/SubscriptionStatus";
 import Navigation from "./Navigation";
+import SessionStorage from "./SessionStorage";
 
 export default class ProjectUtil {
   public static getCurrentProjectId(): ObjectID | null {
@@ -18,6 +19,16 @@ export default class ProjectUtil {
     if (projectId) {
       return new ObjectID(projectId);
     }
+
+    // if this is not available in the url, check the session storage
+    const currentProjectId: string | undefined = SessionStorage.getItem(
+      `current_project_id`,
+    ) as string;
+    
+    if (currentProjectId) {
+      return new ObjectID(currentProjectId);
+    }
+    
     return null;
   }
 
@@ -76,12 +87,14 @@ export default class ProjectUtil {
       project = BaseModel.toJSON(project, Project);
     }
     LocalStorage.setItem(`project_${currentProjectId}`, project);
+    SessionStorage.setItem(`current_project_id`, currentProjectId);
   }
 
   public static clearCurrentProject(): void {
     const currentProjectId: string | undefined =
       this.getCurrentProjectId()?.toString();
     LocalStorage.setItem(`project_${currentProjectId}`, null);
+    SessionStorage.setItem(`current_project_id`, null);
   }
 
   public static getCurrentPlan(): PlanType | null {
