@@ -1985,9 +1985,13 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    if(!statusPage.showSubscriberPageOnStatusPage) {
-      logger.debug(`Subscriber page not enabled for status page with ID: ${objectId}`);
-      throw new BadDataException("Subscribes not enabled for this status page.");  
+    if (!statusPage.showSubscriberPageOnStatusPage) {
+      logger.debug(
+        `Subscriber page not enabled for status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "Subscribes not enabled for this status page.",
+      );
     }
 
     logger.debug(`Status page found: ${JSON.stringify(statusPage)}`);

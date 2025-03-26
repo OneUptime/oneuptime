@@ -2121,7 +2121,6 @@ export default class StatusPage extends BaseModel {
   })
   public showScheduledMaintenanceEventsOnStatusPage?: boolean = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

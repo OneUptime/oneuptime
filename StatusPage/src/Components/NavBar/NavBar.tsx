@@ -87,7 +87,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {props.showSubscriberPageOnStatusPage && (props.enableEmailSubscribers || props.enableSMSSubscribers) ? (
+      {props.showSubscriberPageOnStatusPage &&
+      (props.enableEmailSubscribers || props.enableSMSSubscribers) ? (
         <NavBarItem
           id="subscribe-nav-bar-item"
           title="Subscribe"

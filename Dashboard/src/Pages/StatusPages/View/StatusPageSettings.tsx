@@ -202,7 +202,6 @@ const StatusPageDelete: FunctionComponent<
         }}
       />
 
-
       <CardModelDetail<StatusPage>
         name="Status Page > Settings"
         cardProps={{
