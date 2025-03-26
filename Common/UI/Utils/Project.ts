@@ -15,18 +15,25 @@ import SessionStorage from "./SessionStorage";
 
 export default class ProjectUtil {
   public static getCurrentProjectId(): ObjectID | null {
-    const projectId: string | undefined = Navigation.getFirstParam(2);
-    if (projectId) {
-      return new ObjectID(projectId);
-    }
 
-    // if this is not available in the url, check the session storage
-    const currentProjectId: string | undefined = SessionStorage.getItem(
+     // if this is not available in the url, check the session storage
+     const currentProjectId: string | undefined = SessionStorage.getItem(
       `current_project_id`,
     ) as string;
 
     if (currentProjectId) {
       return new ObjectID(currentProjectId);
+    }
+
+
+    let projectId: string | undefined = Navigation.getFirstParam(2);
+
+    if(projectId && projectId.includes(":projectId")){
+      projectId = undefined;
+    }
+
+    if (projectId) {
+      return new ObjectID(projectId);
     }
 
     return null;

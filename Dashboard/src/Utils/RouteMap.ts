@@ -1867,11 +1867,11 @@ export class RouteUtil {
     },
   ): Route {
     // populate projectid
-    const project: Project | null = ProjectUtil.getCurrentProject();
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     const tempRoute: Route = new Route(route.toString());
 
-    if (project && project._id) {
-      route = tempRoute.addRouteParam(RouteParams.ProjectID, project._id);
+    if (projectId) {
+      route = tempRoute.addRouteParam(RouteParams.ProjectID, projectId?.toString());
     }
 
     if (props && props.modelId) {
