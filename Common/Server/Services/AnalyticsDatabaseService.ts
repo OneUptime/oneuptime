@@ -93,7 +93,7 @@ export default class AnalyticsDatabaseService<
     const dbResult: ExecResult<Stream> = await this.execute(statement);
 
     const strResult: string = await StreamUtil.convertStreamToText(
-      dbResult.stream
+      dbResult.stream,
     );
 
     return strResult.trim().length > 0;
@@ -101,7 +101,7 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async getColumnTypeInDatabase(
-    column: AnalyticsTableColumn
+    column: AnalyticsTableColumn,
   ): Promise<TableColumnType | null> {
     if (!column) {
       return null;
@@ -119,7 +119,7 @@ export default class AnalyticsDatabaseService<
     const dbResult: ExecResult<Stream> = await this.execute(statement);
 
     let strResult: string = await StreamUtil.convertStreamToText(
-      dbResult.stream
+      dbResult.stream,
     );
 
     // if strResult includes Nullable(type) then extract type.
@@ -132,7 +132,7 @@ export default class AnalyticsDatabaseService<
 
     return (
       (this.statementGenerator.toTableColumnType(
-        strResult.trim()
+        strResult.trim(),
       ) as TableColumnType) || null
     );
   }
@@ -145,7 +145,7 @@ export default class AnalyticsDatabaseService<
           this.modelType,
           countBy.query,
           null,
-          countBy.props
+          countBy.props,
         );
 
       countBy.query = checkReadPermissionType.query;
@@ -169,7 +169,7 @@ export default class AnalyticsDatabaseService<
         typeof resultInJSON.data[0]["count"] === "string"
       ) {
         countPositive = new PositiveNumber(
-          resultInJSON.data[0]["count"] as string
+          resultInJSON.data[0]["count"] as string,
         );
       }
 
@@ -186,7 +186,7 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async addColumnInDatabase(
-    column: AnalyticsTableColumn
+    column: AnalyticsTableColumn,
   ): Promise<void> {
     const statement: Statement =
       this.statementGenerator.toAddColumnStatement(column);
@@ -196,7 +196,7 @@ export default class AnalyticsDatabaseService<
   @CaptureSpan()
   public async dropColumnInDatabase(columnName: string): Promise<void> {
     await this.execute(
-      this.statementGenerator.toDropColumnStatement(columnName)
+      this.statementGenerator.toDropColumnStatement(columnName),
     );
   }
 
@@ -207,13 +207,13 @@ export default class AnalyticsDatabaseService<
 
   @CaptureSpan()
   public async aggregateBy(
-    aggregateBy: AggregateBy<TBaseModel>
+    aggregateBy: AggregateBy<TBaseModel>,
   ): Promise<AggregatedResult> {
     return await this._aggregateBy(aggregateBy);
   }
 
   private async _aggregateBy(
-    aggregateBy: AggregateBy<TBaseModel>
+    aggregateBy: AggregateBy<TBaseModel>,
   ): Promise<AggregatedResult> {
     try {
       if (!aggregateBy.sort || Object.keys(aggregateBy.sort).length === 0) {
@@ -233,7 +233,7 @@ export default class AnalyticsDatabaseService<
 
       if (!aggregateBy.aggregationTimestampColumnName) {
         throw new BadDataException(
-          "aggregationTimestampColumnName is required"
+          "aggregationTimestampColumnName is required",
         );
       }
 
@@ -249,7 +249,7 @@ export default class AnalyticsDatabaseService<
             [aggregateBy.aggregateColumnName]: true,
             [aggregateBy.aggregationTimestampColumnName]: true,
           } as Select<TBaseModel>,
-          aggregateBy.props
+          aggregateBy.props,
         );
 
       aggregateBy.query = result.query;
@@ -260,7 +260,7 @@ export default class AnalyticsDatabaseService<
       } = this.toAggregateStatement(aggregateBy);
 
       const dbResult: ResultSet<"JSON"> = await this.executeQuery(
-        findStatement.statement
+        findStatement.statement,
       );
 
       logger.debug(`${this.model.tableName} Aggregate Statement executed`);
@@ -301,7 +301,7 @@ export default class AnalyticsDatabaseService<
             Number.parseFloat(
               (item as JSONObject)[
                 aggregateBy.aggregateColumnName as string
-              ] as string
+              ] as string,
             );
         }
 
@@ -309,7 +309,7 @@ export default class AnalyticsDatabaseService<
           timestamp: OneUptimeDate.fromString(
             (item as JSONObject)[
               aggregateBy.aggregationTimestampColumnName as string
-            ] as string
+            ] as string,
           ),
           value: (item as JSONObject)[
             aggregateBy.aggregateColumnName as string
@@ -332,7 +332,7 @@ export default class AnalyticsDatabaseService<
   }
 
   private async _findBy(
-    findBy: FindBy<TBaseModel>
+    findBy: FindBy<TBaseModel>,
   ): Promise<Array<TBaseModel>> {
     try {
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
@@ -367,7 +367,7 @@ export default class AnalyticsDatabaseService<
           this.modelType,
           onBeforeFind.query,
           onBeforeFind.select || null,
-          onBeforeFind.props
+          onBeforeFind.props,
         );
 
       onBeforeFind.query = result.query;
@@ -387,7 +387,7 @@ export default class AnalyticsDatabaseService<
       } = this.toFindStatement(onBeforeFind);
 
       const dbResult: ResultSet<"JSON"> = await this.executeQuery(
-        findStatement.statement
+        findStatement.statement,
       );
 
       logger.debug(`${this.model.tableName} Find Statement executed`);
@@ -416,7 +416,7 @@ export default class AnalyticsDatabaseService<
 
   public convertSelectReturnedDataToJson(
     strResult: string,
-    columns: string[]
+    columns: string[],
   ): JSONObject[] {
     if (!strResult || !strResult.trim()) {
       return [];
@@ -453,21 +453,21 @@ export default class AnalyticsDatabaseService<
   }
 
   protected async onBeforeDelete(
-    deleteBy: DeleteBy<TBaseModel>
+    deleteBy: DeleteBy<TBaseModel>,
   ): Promise<OnDelete<TBaseModel>> {
     // A place holder method used for overriding.
     return Promise.resolve({ deleteBy, carryForward: null });
   }
 
   protected async onBeforeUpdate(
-    updateBy: UpdateBy<TBaseModel>
+    updateBy: UpdateBy<TBaseModel>,
   ): Promise<OnUpdate<TBaseModel>> {
     // A place holder method used for overriding.
     return Promise.resolve({ updateBy, carryForward: null });
   }
 
   protected async onBeforeFind(
-    findBy: FindBy<TBaseModel>
+    findBy: FindBy<TBaseModel>,
   ): Promise<OnFind<TBaseModel>> {
     // A place holder method used for overriding.
     return Promise.resolve({ findBy, carryForward: null });
@@ -481,7 +481,7 @@ export default class AnalyticsDatabaseService<
     const databaseName: string = this.database.getDatasourceOptions().database!;
 
     const whereStatement: Statement = this.statementGenerator.toWhereStatement(
-      countBy.query
+      countBy.query,
     );
 
     /* eslint-disable prettier/prettier */
