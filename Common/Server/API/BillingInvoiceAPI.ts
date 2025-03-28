@@ -120,7 +120,7 @@ export default class UserAPI extends BaseAPI<
 
             // check if this invoice needs more authentication like 3ds secure.
             if (
-              (invoice.status === InvoiceStatus.Open) &&
+              invoice.status === InvoiceStatus.Open &&
               invoice.paymentIntentId
             ) {
               const paymentIntentId: string = invoice.paymentIntentId;
