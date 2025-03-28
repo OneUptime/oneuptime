@@ -40,7 +40,6 @@ RunCron(
         select: {
           _id: true,
           monitorSteps: true,
-          incomingRequestReceivedAt: true,
           incomingMonitorRequest: true,
           incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
@@ -69,7 +68,6 @@ RunCron(
           _id: true,
           monitorSteps: true,
           incomingMonitorRequest: true,
-          incomingRequestReceivedAt: true,
           incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
         },
@@ -135,7 +133,6 @@ RunCron(
         const incomingRequest: IncomingMonitorRequest = {
           ...(monitor.incomingMonitorRequest! || {}),
           incomingRequestReceivedAt:
-            monitor.incomingRequestReceivedAt ||
             monitor.incomingMonitorRequest?.incomingRequestReceivedAt ||
             monitor.createdAt!,
           onlyCheckForIncomingRequestReceivedAt: true,

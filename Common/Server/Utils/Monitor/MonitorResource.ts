@@ -215,8 +215,6 @@ export default class MonitorResourceUtil {
         id: monitor.id!,
         data: {
           incomingMonitorRequest: dataToProcess as any,
-          incomingRequestReceivedAt: (dataToProcess as IncomingMonitorRequest)
-            .incomingRequestReceivedAt!, // this could be redundant as we are already saving this in the incomingMonitorRequest. we should remove this in the future.
         },
         props: {
           isRoot: true,
