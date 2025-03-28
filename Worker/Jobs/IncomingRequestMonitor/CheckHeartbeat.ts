@@ -135,7 +135,7 @@ RunCron(
         const incomingRequest: IncomingMonitorRequest = {
           ...(monitor.incomingMonitorRequest! || {}),
           incomingRequestReceivedAt:
-            monitor.incomingRequestReceivedAt || monitor.incomingMonitorRequest?.incomingRequestReceivedAt,
+            monitor.incomingRequestReceivedAt || monitor.incomingMonitorRequest?.incomingRequestReceivedAt || monitor.createdAt!,
           onlyCheckForIncomingRequestReceivedAt: true,
           monitorId: monitor.id!,
         };
