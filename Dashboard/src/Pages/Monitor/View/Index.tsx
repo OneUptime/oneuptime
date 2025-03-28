@@ -165,7 +165,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           incomingRequestMonitorHeartbeatCheckedAt: true,
           serverMonitorSecretKey: true,
           serverMonitorRequestReceivedAt: true,
-          incomingRequestReceivedAt: true,
           incomingMonitorRequest: true,
           serverMonitorResponse: true,
           isNoProbeEnabledOnThisMonitor: true,
@@ -500,7 +499,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {/* Heartbeat URL */}
       {monitorType === MonitorType.IncomingRequest &&
       monitor?.incomingRequestSecretKey &&
-      !monitor.incomingRequestReceivedAt ? (
+      !incomingMonitorRequest ? (
         <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
       ) : (
         <></>
