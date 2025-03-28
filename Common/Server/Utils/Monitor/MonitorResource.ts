@@ -214,7 +214,9 @@ export default class MonitorResourceUtil {
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
-          incomingMonitorRequest: dataToProcess as any,
+          incomingMonitorRequest: {
+            ...dataToProcess,
+          } as any,
         },
         props: {
           isRoot: true,
