@@ -635,16 +635,12 @@ export default class ModelPermission {
         modelPermissions,
       )
     ) {
+      const permissions: Array<string> =
+        PermissionHelper.getPermissionTitles(modelPermissions);
 
-      const permissions: Array<string> = PermissionHelper.getPermissionTitles(
-        modelPermissions,
-      );
-
-      if(permissions.length === 0) {
+      if (permissions.length === 0) {
         throw new NotAuthorizedException(
-          `${type} on ${
-            new modelType().singularName
-          } is not allowed.`,
+          `${type} on ${new modelType().singularName} is not allowed.`,
         );
       }
 

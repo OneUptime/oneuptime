@@ -424,21 +424,17 @@ enum Permission {
   EditIncidentFeed = "EditIncidentFeed",
   ReadIncidentFeed = "ReadIncidentFeed",
 
-
   CreateMonitorFeed = "CreateMonitorFeed",
   EditMonitorFeed = "EditMonitorFeed",
   ReadMonitorFeed = "ReadMonitorFeed",
-
 
   CreateScheduledMaintenanceFeed = "CreateScheduledMaintenanceFeed",
   EditScheduledMaintenanceFeed = "EditScheduledMaintenanceFeed",
   ReadScheduledMaintenanceFeed = "ReadScheduledMaintenanceFeed",
 
-
   CreateAlertFeed = "CreateAlertFeed",
   EditAlertFeed = "EditAlertFeed",
   ReadAlertFeed = "ReadAlertFeed",
-
 
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
