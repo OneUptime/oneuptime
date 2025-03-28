@@ -19,7 +19,7 @@ export default class TablePermission {
   @CaptureSpan()
   public static getTablePermission(
     modelType: DatabaseBaseModelType,
-    type: DatabaseRequestType,
+    type: DatabaseRequestType
   ): Array<Permission> {
     let modelPermissions: Array<Permission> = [];
     const model: BaseModel = new modelType();
@@ -47,7 +47,7 @@ export default class TablePermission {
   public static checkTableLevelPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
-    type: DatabaseRequestType,
+    type: DatabaseRequestType
   ): void {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
     PublicPermission.checkIfUserIsLoggedIn(modelType, props, type);
@@ -59,7 +59,7 @@ export default class TablePermission {
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
-        PermissionType.Allow,
+        PermissionType.Allow
       );
 
     const modelPermissions: Array<Permission> =
@@ -70,15 +70,22 @@ export default class TablePermission {
         userPermissions.map((userPermission: UserPermission) => {
           return userPermission.permission;
         }) || [],
-        modelPermissions,
+        modelPermissions
       )
     ) {
+      const permissions: Array<string> =
+        PermissionHelper.getPermissionTitles(modelPermissions);
+
+      if (permissions.length === 0) {
+        throw new NotAuthorizedException(
+          `${type} on ${new modelType().singularName} is not allowed.`
+        );
+      }
+
       throw new NotAuthorizedException(
         `You do not have permissions to ${type} ${
           new modelType().singularName
-        }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-          modelPermissions,
-        ).join(", ")}`,
+        }. You need one of these permissions: ${permissions.join(", ")}`
       );
     }
   }
@@ -87,7 +94,7 @@ export default class TablePermission {
   public static checkTableLevelBlockPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
-    type: DatabaseRequestType,
+    type: DatabaseRequestType
   ): void {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
     PublicPermission.checkIfUserIsLoggedIn(modelType, props, type);
@@ -96,7 +103,7 @@ export default class TablePermission {
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
-        PermissionType.Block,
+        PermissionType.Block
       );
 
     const modelPermissions: Array<Permission> =
@@ -107,7 +114,7 @@ export default class TablePermission {
         userPermissions.map((userPermission: UserPermission) => {
           return userPermission.permission;
         }) || [],
-        modelPermissions,
+        modelPermissions
       );
 
     if (intersectingPermissions && intersectingPermissions.length > 0) {
@@ -115,7 +122,7 @@ export default class TablePermission {
         const userPermission: UserPermission = userPermissions.find(
           (userPermission: UserPermission) => {
             return userPermission.permission === permission;
-          },
+          }
         ) as UserPermission;
 
         if (
@@ -127,7 +134,7 @@ export default class TablePermission {
               new modelType().singularName
             } because ${
               userPermission.permission
-            } is in your team's permission block list.`,
+            } is in your team's permission block list.`
           );
         }
       }

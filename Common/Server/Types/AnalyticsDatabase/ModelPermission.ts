@@ -635,12 +635,23 @@ export default class ModelPermission {
         modelPermissions,
       )
     ) {
+
+      const permissions: Array<string> = PermissionHelper.getPermissionTitles(
+        modelPermissions,
+      );
+
+      if(permissions.length === 0) {
+        throw new NotAuthorizedException(
+          `${type} on ${
+            new modelType().singularName
+          } is not allowed.`,
+        );
+      }
+
       throw new NotAuthorizedException(
         `You do not have permissions to ${type} ${
           new modelType().singularName
-        }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-          modelPermissions,
-        ).join(", ")}`,
+        }. You need one of these permissions: ${permissions.join(", ")}`,
       );
     }
 
