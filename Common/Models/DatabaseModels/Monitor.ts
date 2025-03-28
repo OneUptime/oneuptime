@@ -688,12 +688,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    update: []
   })
   @Index()
   @TableColumn({
@@ -724,10 +719,7 @@ export default class Monitor extends BaseModel {
       Permission.ReadProjectMonitor,
     ],
     update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
+
     ],
   })
   @Index()
@@ -759,12 +751,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    update: []
   })
   @Index()
   @TableColumn({
@@ -794,12 +781,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    update: []
   })
   @Index()
   @TableColumn({
@@ -882,12 +864,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    update: []
   })
   @Index()
   @TableColumn({
@@ -921,7 +898,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
+      Permission.EditProjectMonitor,
     ],
   })
   @Index()
@@ -957,7 +934,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
+      Permission.EditProjectMonitor,
     ],
   })
   @Index()
