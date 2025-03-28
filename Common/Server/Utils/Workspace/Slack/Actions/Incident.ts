@@ -151,6 +151,10 @@ export default class SlackIncidentActions {
       const labels: Array<string> =
         (data.slackRequest.viewValues["labels"] as Array<string>) || [];
 
+      const onCallDutyPolicies: Array<string> =
+        (data.slackRequest.viewValues["onCallDutyPolicies"] as Array<string>) ||
+        [];
+
       const incidentMonitors: Array<ObjectID> = monitors.map(
         (monitor: string) => {
           return new ObjectID(monitor);
@@ -159,6 +163,12 @@ export default class SlackIncidentActions {
       const incidentLabels: Array<ObjectID> = labels.map((label: string) => {
         return new ObjectID(label);
       });
+
+      const incidentOnCallPolicies: Array<ObjectID> = onCallDutyPolicies.map(
+        (policy: string) => {
+          return new ObjectID(policy);
+        },
+      );
 
       const incidentSeverityId: ObjectID = new ObjectID(severity);
       const monitorStatusId: ObjectID | undefined = monitorStatus
@@ -171,6 +181,16 @@ export default class SlackIncidentActions {
       incident.projectId = slackRequest.projectId!;
       incident.createdByUserId = userId;
       incident.incidentSeverityId = incidentSeverityId;
+
+      if (incidentOnCallPolicies.length > 0) {
+        incident.onCallDutyPolicies = incidentOnCallPolicies.map(
+          (policyId: ObjectID) => {
+            const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+            policy.id = policyId;
+            return policy;
+          },
+        );
+      }
 
       if (monitors.length > 0) {
         incident.monitors = incidentMonitors.map((monitorId: ObjectID) => {
@@ -355,6 +375,45 @@ export default class SlackIncidentActions {
       monitorDropdownOptions.length > 0
     ) {
       blocks.push(monitorStatusDropdown);
+    }
+
+    // add on call policy dropdown.
+
+    const onCallPolicies: Array<OnCallDutyPolicy> =
+      await OnCallDutyPolicyService.findBy({
+        query: {
+          projectId: data.slackRequest.projectId!,
+        },
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    const onCallPolicyDropdownOptions: Array<DropdownOption> =
+      onCallPolicies.map((policy: OnCallDutyPolicy) => {
+        return {
+          label: policy.name || "",
+          value: policy._id?.toString() || "",
+        };
+      });
+
+    if (onCallPolicies.length > 0) {
+      const onCallPolicyDropdown: WorkspaceDropdownBlock = {
+        _type: "WorkspaceDropdownBlock",
+        label: "Execute On Call Policy",
+        blockId: "onCallDutyPolicies",
+        placeholder:
+          "Select on call policies to execute when this incident is created",
+        options: onCallPolicyDropdownOptions,
+        multiSelect: true,
+        optional: true,
+      };
+      blocks.push(onCallPolicyDropdown);
     }
 
     const labelsForProject: Array<Label> = await LabelService.findBy({

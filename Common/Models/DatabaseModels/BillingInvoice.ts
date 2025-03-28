@@ -20,7 +20,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 export enum InvoiceStatus {
   Paid = "paid",
-  RequiresAction = "requires_action",
   Draft = "draft",
   Void = "void",
   Uncollectible = "uncollectible",
