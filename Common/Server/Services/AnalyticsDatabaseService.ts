@@ -493,10 +493,7 @@ export default class AnalyticsDatabaseService<
       const groupByKey: string = Object.keys(countBy.groupBy)[0] as string;
 
       statement.append(
-        SQL`DISTINCT ${{
-          value: groupByKey,
-          type: TableColumnType.Text,
-        }}`
+        SQL`DISTINCT ${groupByKey}`
       );
     }
 
