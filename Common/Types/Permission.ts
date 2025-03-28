@@ -423,22 +423,22 @@ enum Permission {
   CreateIncidentFeed = "CreateIncidentFeed",
   EditIncidentFeed = "EditIncidentFeed",
   ReadIncidentFeed = "ReadIncidentFeed",
-  DeleteIncidentFeed = "DeleteIncidentFeed",
+
 
   CreateMonitorFeed = "CreateMonitorFeed",
   EditMonitorFeed = "EditMonitorFeed",
   ReadMonitorFeed = "ReadMonitorFeed",
-  DeleteMonitorFeed = "DeleteMonitorFeed",
+
 
   CreateScheduledMaintenanceFeed = "CreateScheduledMaintenanceFeed",
   EditScheduledMaintenanceFeed = "EditScheduledMaintenanceFeed",
   ReadScheduledMaintenanceFeed = "ReadScheduledMaintenanceFeed",
-  DeleteScheduledMaintenanceFeed = "DeleteScheduledMaintenanceFeed",
+
 
   CreateAlertFeed = "CreateAlertFeed",
   EditAlertFeed = "EditAlertFeed",
   ReadAlertFeed = "ReadAlertFeed",
-  DeleteAlertFeed = "DeleteAlertFeed",
+
 
   // Incident Status Permissions (Owner + Admin Permission by default)
   CreateMonitorStatusTimeline = "CreateMonitorStatusTimeline",
@@ -1126,14 +1126,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteMonitorFeed,
-        title: "Delete Monitor Feed",
-        description:
-          "This permission can delete log of an incident in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
         permission: Permission.EditMonitorFeed,
         title: "Edit Monitor Feed",
         description:
@@ -1155,14 +1147,6 @@ export class PermissionHelper {
         title: "Create Incident Feed",
         description:
           "This permission can create log of an incident in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.DeleteIncidentFeed,
-        title: "Delete Incident Feed",
-        description:
-          "This permission can delete log of an incident in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1192,14 +1176,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
       {
-        permission: Permission.DeleteAlertFeed,
-        title: "Delete Alert Feed",
-        description:
-          "This permission can delete log of an incident in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
         permission: Permission.EditAlertFeed,
         title: "Edit Alert Feed",
         description:
@@ -1221,14 +1197,6 @@ export class PermissionHelper {
         title: "Create Scheduled Maintenance Log",
         description:
           "This permission can create log of a scheduled maintenance in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-      },
-      {
-        permission: Permission.DeleteScheduledMaintenanceFeed,
-        title: "Delete Scheduled Maintenance Log",
-        description:
-          "This permission can delete log of an scheduled maintenance in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
