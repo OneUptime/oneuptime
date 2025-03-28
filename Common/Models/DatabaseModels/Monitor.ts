@@ -688,7 +688,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: []
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -718,9 +718,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: [
-
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -751,7 +749,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: []
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -781,7 +779,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: []
+    update: [],
   })
   @Index()
   @TableColumn({
@@ -864,7 +862,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectMonitor,
     ],
-    update: []
+    update: [],
   })
   @Index()
   @TableColumn({
