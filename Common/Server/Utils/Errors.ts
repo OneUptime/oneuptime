@@ -11,6 +11,8 @@ export default {
     PROMO_CODE_INVALID: "Invalid promo code",
     SUBSCRIPTION_ITEM_NOT_FOUND: "Subscription item not found.",
     SUBSCRIPTION_NOT_FOUND: "Subscription not found.",
+    INVOICE_NOT_FOUND: "Invoice not found.",
+    PAYMENT_INTENT_NOT_FOUND: "Payment intent not found.",
   },
   TeamMemberService: {
     ALREADY_INVITED: "This user has already been invited to this team",

@@ -105,11 +105,39 @@ export default class UserAPI extends BaseAPI<
           if (!item.paymentProviderCustomerId) {
             throw new BadDataException("Customer ID not found");
           }
+          let invoice: Invoice | null = null;
 
-          const invoice: Invoice = await BillingService.payInvoice(
-            item.paymentProviderCustomerId!,
-            item.paymentProviderInvoiceId!,
-          );
+          try {
+            invoice = await BillingService.payInvoice(
+              item.paymentProviderCustomerId!,
+              item.paymentProviderInvoiceId!,
+            );
+          } catch (err) {
+            invoice = await BillingService.getInvoice(
+              item.paymentProviderCustomerId!,
+              item.paymentProviderInvoiceId!,
+            );
+
+            // check if this invoice needs more authentication like 3ds secure.
+            if (
+              (invoice.status === InvoiceStatus.Open ||
+                invoice.status === InvoiceStatus.RequiresAction) &&
+              invoice.paymentIntentId
+            ) {
+              const paymentIntentId: string = invoice.paymentIntentId;
+
+              const clientSecret: string =
+                await BillingService.getPaymentIntentClientSecret(
+                  paymentIntentId,
+                );
+
+              return Response.sendJsonObjectResponse(req, res, {
+                clientSecret: clientSecret,
+              });
+            }
+            // otherwise we have no idea what went wrong and throw an error.
+            throw err;
+          }
 
           // save updated status.
 

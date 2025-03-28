@@ -12,7 +12,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, BILLING_PUBLIC_KEY } from "Common/UI/Config";
 import BaseAPI from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -29,6 +29,12 @@ import React, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import {
+  PaymentIntentResult,
+  Stripe,
+  StripeError,
+  loadStripe,
+} from "@stripe/stripe-js";
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -65,6 +71,36 @@ const Settings: FunctionComponent<ComponentProps> = (
 
       if (result.isFailure()) {
         throw result;
+      }
+
+      if (result.jsonData && (result.jsonData as JSONObject)["clientSecret"]) {
+        // needs more authentication to pay the invoice with the payment intent.
+        const clientSecret: string = (result.jsonData as JSONObject)[
+          "clientSecret"
+        ] as string;
+        const stripe: Stripe | null = await loadStripe(BILLING_PUBLIC_KEY);
+
+        if (!stripe) {
+          setError("Payment provider cannot be loaded. Please try again later");
+          return;
+        }
+
+        if (!clientSecret) {
+          setError("Client secret is not available. Please try again later");
+          return;
+        }
+
+        const paymentIntentResult: PaymentIntentResult =
+          await stripe.confirmCardPayment(clientSecret || "");
+
+        if (paymentIntentResult.error) {
+          // Display error.message in your UI.
+          setError(
+            (paymentIntentResult.error as StripeError).message ||
+              "Something is not quite right. Please try again",
+          );
+          return;
+        }
       }
 
       Navigation.reload();

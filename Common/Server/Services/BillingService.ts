@@ -38,6 +38,7 @@ export interface Invoice {
   customerId: string | undefined;
   invoiceDate: Date;
   invoiceNumber: string | undefined;
+  paymentIntentId?: string | undefined;
 }
 
 export class BillingService extends BaseService {
@@ -710,6 +711,76 @@ export class BillingService extends BaseService {
   }
 
   @CaptureSpan()
+  public async getInvoice(
+    customerId: string,
+    invoiceId: string,
+  ): Promise<Invoice> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    logger.debug("Getting invoice");
+    logger.debug(invoiceId);
+    logger.debug(customerId);
+
+    const invoice: Stripe.Response<Stripe.Invoice> =
+      await this.stripe.invoices.retrieve(invoiceId);
+
+    if (!invoice) {
+      throw new BadDataException(Errors.BillingService.INVOICE_NOT_FOUND);
+    }
+
+    return {
+      id: invoice.id!,
+      amount: invoice.amount_due,
+      currencyCode: invoice.currency,
+      subscriptionId: invoice.subscription?.toString() || undefined,
+      status: invoice.status?.toString() || "Unknown",
+      downloadableLink: invoice.invoice_pdf?.toString() || "",
+      customerId: invoice.customer?.toString() || "",
+      invoiceDate: invoice.created
+        ? new Date(invoice.created * 1000)
+        : OneUptimeDate.getCurrentDate(),
+      invoiceNumber: invoice.number || undefined,
+      paymentIntentId: invoice.payment_intent?.toString() || undefined,
+    };
+  }
+
+  @CaptureSpan()
+  public async getPaymentIntentClientSecret(
+    paymentIntentId: string,
+  ): Promise<string> {
+    const paymentIntent: Stripe.Response<Stripe.PaymentIntent> =
+      await this.stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (!paymentIntent.client_secret) {
+      throw new APIException(Errors.BillingService.CLIENT_SECRET_MISSING);
+    }
+
+    return paymentIntent.client_secret;
+  }
+
+  @CaptureSpan()
+  public async getPaymentIntentIdFromInvoice(
+    invoiceId: string,
+  ): Promise<string> {
+    const invoice: Stripe.Response<Stripe.Invoice> =
+      await this.stripe.invoices.retrieve(invoiceId);
+
+    if (!invoice) {
+      throw new BadDataException(Errors.BillingService.INVOICE_NOT_FOUND);
+    }
+
+    if (!invoice.payment_intent) {
+      throw new BadDataException(
+        Errors.BillingService.PAYMENT_INTENT_NOT_FOUND,
+      );
+    }
+
+    return invoice.payment_intent.toString();
+  }
+
+  @CaptureSpan()
   public async getInvoices(customerId: string): Promise<Array<Invoice>> {
     const invoices: Stripe.ApiList<Stripe.Invoice> =
       await this.stripe.invoices.list({
@@ -731,6 +802,7 @@ export class BillingService extends BaseService {
             ? new Date(invoice.created * 1000)
             : OneUptimeDate.getCurrentDate(),
           invoiceNumber: invoice.number || undefined,
+          paymentIntent: invoice.payment_intent?.toString() || undefined,
         };
       },
     );
