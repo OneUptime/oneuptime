@@ -205,7 +205,9 @@ export default class MonitorResourceUtil {
 
     if (
       monitor.monitorType === MonitorType.IncomingRequest &&
-      (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt
+      (dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt &&
+      !(dataToProcess as IncomingMonitorRequest)
+        .onlyCheckForIncomingRequestReceivedAt
     ) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - Incoming request received at ${(dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt}`,
