@@ -72,14 +72,6 @@ export default class SlackIncidentActions {
     const { slackRequest, req, res } = data;
     const { botUserId, userId, projectAuthToken } = slackRequest;
 
-    if (!userId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid User ID"),
-      );
-    }
-
     if (!projectAuthToken) {
       return Response.sendErrorResponse(
         req,
@@ -179,8 +171,13 @@ export default class SlackIncidentActions {
       incident.title = title;
       incident.description = description;
       incident.projectId = slackRequest.projectId!;
-      incident.createdByUserId = userId;
+      if (userId) {
+        incident.createdByUserId = userId;
+      }
       incident.incidentSeverityId = incidentSeverityId;
+      const rootCauseInMarkdown: string = `Incident Created by ${slackRequest.slackUserFullName} @${slackRequest.slackUsername} on Slack`;
+
+      incident.rootCause = rootCauseInMarkdown;
 
       if (incidentOnCallPolicies.length > 0) {
         incident.onCallDutyPolicies = incidentOnCallPolicies.map(

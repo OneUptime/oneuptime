@@ -67,14 +67,6 @@ export default class SlackScheduledMaintenanceActions {
     const { slackRequest, req, res } = data;
     const { botUserId, userId, projectAuthToken } = slackRequest;
 
-    if (!userId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid User ID"),
-      );
-    }
-
     if (!projectAuthToken) {
       return Response.sendErrorResponse(
         req,
@@ -186,7 +178,11 @@ export default class SlackScheduledMaintenanceActions {
       scheduledMaintenance.title = title;
       scheduledMaintenance.description = description;
       scheduledMaintenance.projectId = slackRequest.projectId!;
-      scheduledMaintenance.createdByUserId = userId;
+
+      if (userId) {
+        scheduledMaintenance.createdByUserId = userId;
+      }
+
       scheduledMaintenance.startsAt = startDate;
       scheduledMaintenance.endsAt = endDate;
 

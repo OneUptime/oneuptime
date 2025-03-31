@@ -40,6 +40,21 @@ export interface SlackRequest {
     | undefined;
 }
 
+const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: Array<SlackActionType> =
+  [
+    // anyone in the company can create incident.
+    // regardless of whether they are connected to OneUptime or not.
+    SlackActionType.NewIncident,
+    SlackActionType.SubmitNewIncident,
+    SlackActionType.ViewIncident,
+
+    // Alerts
+    SlackActionType.ViewAlert,
+
+    // scheduled maintenance
+    SlackActionType.ViewScheduledMaintenance,
+  ];
+
 export default class SlackAuthAction {
   @CaptureSpan()
   public static async isAuthorized(data: {
@@ -177,26 +192,6 @@ export default class SlackAuthAction {
 
     const userId: ObjectID | undefined = userAuth?.userId;
 
-    if (!userAuth || !userId) {
-      const markdwonPayload: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
-      };
-
-      await SlackUtil.sendDirectMessageToUser({
-        authToken: projectAuth.authToken!,
-        workspaceUserId: slackUserId,
-        messageBlocks: [markdwonPayload],
-      });
-
-      // clear response.
-      logger.debug("User auth not found. Returning unauthorized.");
-
-      return {
-        isAuthorized: false,
-      };
-    }
-
     const view: JSONObject | undefined =
       (payload["view"] as JSONObject) || undefined;
 
@@ -224,6 +219,32 @@ export default class SlackAuthAction {
 
       logger.debug("Actions: ");
       logger.debug(actions);
+
+      if (
+        !userId &&
+        action.actionType &&
+        !slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime.includes(
+          action.actionType,
+        )
+      ) {
+        const markdwonPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
+        };
+
+        await SlackUtil.sendDirectMessageToUser({
+          authToken: projectAuth.authToken!,
+          workspaceUserId: slackUserId,
+          messageBlocks: [markdwonPayload],
+        });
+
+        // clear response.
+        logger.debug("User auth not found. Returning unauthorized.");
+
+        return {
+          isAuthorized: false,
+        };
+      }
     }
 
     if (payload["callback_id"]) {
@@ -254,7 +275,7 @@ export default class SlackAuthAction {
       userId: userId,
       projectId: projectId,
       projectAuthToken: projectAuth.authToken!,
-      userAuthToken: userAuth.authToken!,
+      userAuthToken: userAuth?.authToken,
       botUserId: botUserId,
       slackChannelId: slackChannelId,
       slackUsername: slackUsername,
