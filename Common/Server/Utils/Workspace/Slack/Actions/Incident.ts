@@ -175,7 +175,7 @@ export default class SlackIncidentActions {
         incident.createdByUserId = userId;
       }
       incident.incidentSeverityId = incidentSeverityId;
-      const rootCauseInMarkdown: string = `Incident Created by ${slackRequest.slackUserFullName} @${slackRequest.slackUsername} on Slack`;
+      const rootCauseInMarkdown: string = `Incident created by @${slackRequest.slackUsername} on Slack.`;
 
       incident.rootCause = rootCauseInMarkdown;
 
