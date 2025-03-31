@@ -14,7 +14,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import { IsBillingEnabled } from "../EnvironmentConfig";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -23,9 +22,6 @@ import MonitorStatusService from "./MonitorStatusService";
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
     super(MonitorStatusTimeline);
-    if (IsBillingEnabled) {
-      this.hardDeleteItemsOlderThanInDays("startsAt", 120);
-    }
   }
 
   @CaptureSpan()
