@@ -182,6 +182,51 @@ export default class SlackScheduledMaintenanceActions {
         data.slackRequest.viewValues["endDate"].toString(),
       );
 
+      // make sure start and end date are in the future.
+      if (OneUptimeDate.isInTheFuture(startDate) === false) {
+        // send slack message to user that start date is in the past.
+        const markdownPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with start date in the past.`,
+        };
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdownPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!,
+        });
+        return;
+      }
+
+      if (OneUptimeDate.isInTheFuture(endDate) === false) {
+        // send slack message to user that end date is in the past.
+        const markdownPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date in the past.`,
+        };
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdownPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!,
+        });
+        return;
+      }
+
+      // make sure end date is after start date.
+
+      if (OneUptimeDate.isAfter(endDate, startDate) === false) {
+        // send slack message to user that end date is before start date.
+        const markdownPayload: WorkspacePayloadMarkdown = {
+          _type: "WorkspacePayloadMarkdown",
+          text: `@${slackRequest.slackUsername}, unfortunately you cannot create a scheduled maintenance with end date before start date.`,
+        };
+        await SlackUtil.sendDirectMessageToUser({
+          messageBlocks: [markdownPayload],
+          authToken: projectAuthToken,
+          workspaceUserId: slackRequest.slackUserId!,
+        });
+        return;
+      }
+
       const scheduledMaintenance: ScheduledMaintenance =
         new ScheduledMaintenance();
       scheduledMaintenance.title = title;
@@ -242,7 +287,7 @@ export default class SlackScheduledMaintenanceActions {
             messageBlocks: [
               {
                 _type: "WorkspacePayloadMarkdown",
-                text: `**Incident #${createdEvent.scheduledMaintenanceNumber}** created successfully. [View Incident](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                text: `**Scheduled Event #${createdEvent.scheduledMaintenanceNumber}** created successfully. [View Event](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
                   slackRequest.projectId!,
                   createdEvent.id!,
                 )})`,
