@@ -652,19 +652,21 @@ export default class SlackUtil extends WorkspaceBase {
 
     for (const channel of workspaceChannelsToPostTo) {
       try {
-        // check if the user is in the channel.
-        const isUserInChannel: boolean = await this.isUserInChannel({
-          authToken: data.authToken,
-          channelId: channel.id,
-          userId: data.userId,
-        });
-
-        if (!isUserInChannel) {
-          // add user to the channel
-          await this.joinChannel({
+        if (data.userId) {
+          // check if the user is in the channel.
+          const isUserInChannel: boolean = await this.isUserInChannel({
             authToken: data.authToken,
             channelId: channel.id,
+            userId: data.userId,
           });
+
+          if (!isUserInChannel) {
+            // add user to the channel
+            await this.joinChannel({
+              authToken: data.authToken,
+              channelId: channel.id,
+            });
+          }
         }
 
         const thread: WorkspaceThread = await this.sendPayloadBlocksToChannel({

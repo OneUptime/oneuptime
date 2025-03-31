@@ -219,32 +219,6 @@ export default class SlackAuthAction {
 
       logger.debug("Actions: ");
       logger.debug(actions);
-
-      if (
-        !userId &&
-        action.actionType &&
-        !slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime.includes(
-          action.actionType,
-        )
-      ) {
-        const markdwonPayload: WorkspacePayloadMarkdown = {
-          _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
-        };
-
-        await SlackUtil.sendDirectMessageToUser({
-          authToken: projectAuth.authToken!,
-          workspaceUserId: slackUserId,
-          messageBlocks: [markdwonPayload],
-        });
-
-        // clear response.
-        logger.debug("User auth not found. Returning unauthorized.");
-
-        return {
-          isAuthorized: false,
-        };
-      }
     }
 
     if (payload["callback_id"]) {
@@ -266,6 +240,36 @@ export default class SlackAuthAction {
       };
 
       actions.push(action);
+    }
+
+    // check if all the actions are authed.
+    if (!userId) {
+      for (const action of actions) {
+        if (
+          action.actionType &&
+          !slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime.includes(
+            action.actionType,
+          )
+        ) {
+          const markdwonPayload: WorkspacePayloadMarkdown = {
+            _type: "WorkspacePayloadMarkdown",
+            text: `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
+          };
+
+          await SlackUtil.sendDirectMessageToUser({
+            authToken: projectAuth.authToken!,
+            workspaceUserId: slackUserId,
+            messageBlocks: [markdwonPayload],
+          });
+
+          // clear response.
+          logger.debug("User auth not found. Returning unauthorized.");
+
+          return {
+            isAuthorized: false,
+          };
+        }
+      }
     }
 
     const slackRequest: SlackRequest = {

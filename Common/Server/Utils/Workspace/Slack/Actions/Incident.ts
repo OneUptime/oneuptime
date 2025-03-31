@@ -36,6 +36,7 @@ import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -209,12 +210,37 @@ export default class SlackIncidentActions {
         });
       }
 
-      await IncidentService.create({
+      const createdIncident: Incident = await IncidentService.create({
         data: incident,
         props: {
           isRoot: true,
         },
       });
+
+      // post a message to Slack after the incident was created.
+      const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
+
+      if (slackChannelId) {
+        await SlackUtil.sendMessage({
+          authToken: projectAuthToken,
+          userId: botUserId,
+          workspaceMessagePayload: {
+            _type: "WorkspaceMessagePayload",
+            channelIds: [slackChannelId],
+            channelNames: [],
+            workspaceType: WorkspaceType.Slack,
+            messageBlocks: [
+              {
+                _type: "WorkspacePayloadMarkdown",
+                text: `**Incident #${createdIncident.incidentNumber}** created successfully. [View Incident](${await IncidentService.getIncidentLinkInDashboard(
+                  slackRequest.projectId!,
+                  createdIncident.id!,
+                )})`,
+              } as WorkspacePayloadMarkdown,
+            ],
+          },
+        });
+      }
     }
   }
 
@@ -456,7 +482,7 @@ export default class SlackIncidentActions {
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewIncident,
-      actionValue: "",
+      actionValue: data.slackRequest.slackChannelId || "",
       blocks: blocks,
     };
 

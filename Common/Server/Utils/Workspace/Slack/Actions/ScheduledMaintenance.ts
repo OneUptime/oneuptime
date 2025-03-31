@@ -33,6 +33,7 @@ import ScheduledMaintenance from "../../../../../Models/DatabaseModels/Scheduled
 import OneUptimeDate from "../../../../../Types/Date";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -66,6 +67,14 @@ export default class SlackScheduledMaintenanceActions {
   }): Promise<void> {
     const { slackRequest, req, res } = data;
     const { botUserId, userId, projectAuthToken } = slackRequest;
+
+    if (!userId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid User ID"),
+      );
+    }
 
     if (!projectAuthToken) {
       return Response.sendErrorResponse(
@@ -210,12 +219,38 @@ export default class SlackScheduledMaintenanceActions {
         );
       }
 
-      await ScheduledMaintenanceService.create({
-        data: scheduledMaintenance,
-        props: {
-          isRoot: true,
-        },
-      });
+      const createdEvent: ScheduledMaintenance =
+        await ScheduledMaintenanceService.create({
+          data: scheduledMaintenance,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      // post a message to Slack after the incident was created.
+      const slackChannelId: string = data.action.actionValue || ""; // this is the channel id where the incident was created.
+
+      if (slackChannelId) {
+        await SlackUtil.sendMessage({
+          authToken: projectAuthToken,
+          userId: botUserId,
+          workspaceMessagePayload: {
+            _type: "WorkspaceMessagePayload",
+            channelIds: [slackChannelId],
+            channelNames: [],
+            workspaceType: WorkspaceType.Slack,
+            messageBlocks: [
+              {
+                _type: "WorkspacePayloadMarkdown",
+                text: `**Incident #${createdEvent.scheduledMaintenanceNumber}** created successfully. [View Incident](${await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                  slackRequest.projectId!,
+                  createdEvent.id!,
+                )})`,
+              } as WorkspacePayloadMarkdown,
+            ],
+          },
+        });
+      }
     }
   }
 
@@ -405,7 +440,7 @@ export default class SlackScheduledMaintenanceActions {
       submitButtonTitle: "Submit",
       cancelButtonTitle: "Cancel",
       actionId: SlackActionType.SubmitNewScheduledMaintenance,
-      actionValue: "",
+      actionValue: data.slackRequest.slackChannelId || "",
       blocks: blocks,
     };
 
