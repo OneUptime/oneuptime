@@ -60,7 +60,7 @@ import MetricType from "../../../Models/DatabaseModels/MetricType";
 export default class MonitorResourceUtil {
   @CaptureSpan()
   public static async monitorResource(
-    dataToProcess: DataToProcess
+    dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
     let mutex: SemaphoreMutex | null = null;
 
@@ -112,31 +112,31 @@ export default class MonitorResourceUtil {
 
     if (monitor.disableActiveMonitoring) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`
+        `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
       );
 
       throw new BadDataException(
-        "Monitor is disabled. Please enable it to start monitoring again."
+        "Monitor is disabled. Please enable it to start monitoring again.",
       );
     }
 
     if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`
+        `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
       );
 
       throw new BadDataException(
-        "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again."
+        "Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.",
       );
     }
 
     if (monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.`
+        `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.`,
       );
 
       throw new BadDataException(
-        "Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again."
+        "Monitor is disabled because one of the scheduled maintenance event this monitor is attached to has not ended. Please end the scheduled maintenance event to start monitoring again.",
       );
     }
 
@@ -149,7 +149,7 @@ export default class MonitorResourceUtil {
     logger.debug(
       `${dataToProcess.monitorId.toString()} - monitor type ${
         monitor.monitorType
-      }`
+      }`,
     );
 
     if (
@@ -211,7 +211,7 @@ export default class MonitorResourceUtil {
         .onlyCheckForIncomingRequestReceivedAt
     ) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - Incoming request received at ${(dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt}`
+        `${dataToProcess.monitorId.toString()} - Incoming request received at ${(dataToProcess as IncomingMonitorRequest).incomingRequestReceivedAt}`,
       );
 
       await MonitorService.updateOneById({
@@ -234,7 +234,7 @@ export default class MonitorResourceUtil {
       (dataToProcess as ServerMonitorResponse).requestReceivedAt
     ) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`
+        `${dataToProcess.monitorId.toString()} - Server request received at ${(dataToProcess as ServerMonitorResponse).requestReceivedAt}`,
       );
 
       logger.debug(dataToProcess);
@@ -257,7 +257,7 @@ export default class MonitorResourceUtil {
     }
 
     logger.debug(
-      `${dataToProcess.monitorId.toString()} - Saving monitor metrics`
+      `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
     );
 
     try {
@@ -274,7 +274,7 @@ export default class MonitorResourceUtil {
     }
 
     logger.debug(
-      `${dataToProcess.monitorId.toString()} - Monitor metrics saved`
+      `${dataToProcess.monitorId.toString()} - Monitor metrics saved`,
     );
 
     const monitorSteps: MonitorSteps = monitor.monitorSteps!;
@@ -284,13 +284,13 @@ export default class MonitorResourceUtil {
       monitorSteps.data?.monitorStepsInstanceArray.length === 0
     ) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - No monitoring steps.`
+        `${dataToProcess.monitorId.toString()} - No monitoring steps.`,
       );
       return response;
     }
 
     logger.debug(
-      `${dataToProcess.monitorId.toString()} - Auto resolving criteria instances.`
+      `${dataToProcess.monitorId.toString()} - Auto resolving criteria instances.`,
     );
 
     const criteriaInstances: Array<MonitorCriteriaInstance> =
@@ -387,10 +387,10 @@ export default class MonitorResourceUtil {
             monitorStep.id.toString() ===
             (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
           );
-        }
+        },
       );
       logger.debug(
-        `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`
+        `Found Monitor Step ID: ${(dataToProcess as ProbeMonitorResponse).monitorStepId}`,
       );
     }
 
@@ -408,7 +408,7 @@ export default class MonitorResourceUtil {
       monitorSteps.data.monitorStepsInstanceArray.findIndex(
         (step: MonitorStep) => {
           return step.id.toString() === monitorStep.id.toString();
-        }
+        },
       );
 
     response.nextMonitorStepId =
@@ -418,7 +418,7 @@ export default class MonitorResourceUtil {
 
     // now process probe response monitors
     logger.debug(
-      `${dataToProcess.monitorId.toString()} - Processing monitor step...`
+      `${dataToProcess.monitorId.toString()} - Processing monitor step...`,
     );
 
     response = await MonitorResourceUtil.processMonitorStep({
@@ -432,12 +432,12 @@ export default class MonitorResourceUtil {
       logger.debug(
         `${dataToProcess.monitorId.toString()} - Criteria met: ${
           response.criteriaMetId
-        }`
+        }`,
       );
       logger.debug(
         `${dataToProcess.monitorId.toString()} - Root cause: ${
           response.rootCause
-        }`
+        }`,
       );
 
       let telemetryQuery: TelemetryQuery | undefined = undefined;
@@ -449,7 +449,7 @@ export default class MonitorResourceUtil {
           metricViewData: null,
         };
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Log query found.`
+          `${dataToProcess.monitorId.toString()} - Log query found.`,
         );
       }
 
@@ -460,7 +460,7 @@ export default class MonitorResourceUtil {
           metricViewData: null,
         };
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Span query found.`
+          `${dataToProcess.monitorId.toString()} - Span query found.`,
         );
       }
 
@@ -482,7 +482,7 @@ export default class MonitorResourceUtil {
           },
         };
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Span query found.`
+          `${dataToProcess.monitorId.toString()} - Span query found.`,
         );
       }
 
@@ -524,7 +524,7 @@ export default class MonitorResourceUtil {
         monitorSteps.data.defaultMonitorStatusId.toString()
     ) {
       logger.debug(
-        `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`
+        `${dataToProcess.monitorId.toString()} - No criteria met. Change to default status.`,
       );
 
       await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
@@ -572,7 +572,7 @@ export default class MonitorResourceUtil {
         monitorStatusTimeline.projectId = monitor.projectId!;
         monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
         monitorStatusTimeline.statusChangeLog = JSON.parse(
-          JSON.stringify(dataToProcess)
+          JSON.stringify(dataToProcess),
         );
         monitorStatusTimeline.rootCause =
           "No monitoring criteria met. Change to default status. ";
@@ -584,7 +584,7 @@ export default class MonitorResourceUtil {
           },
         });
         logger.debug(
-          `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`
+          `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
         );
       }
     }
@@ -627,8 +627,6 @@ export default class MonitorResourceUtil {
     // since these are monitor metrics. They dont belong to any service so we can keep the array empty.
     const metricNameServiceNameMap: Dictionary<MetricType> = {};
 
-    
-
     if (
       (data.dataToProcess as ServerMonitorResponse).basicInfrastructureMetrics
     ) {
@@ -640,7 +638,7 @@ export default class MonitorResourceUtil {
         const differenceInMinutes: number =
           OneUptimeDate.getDifferenceInMinutes(
             (data.dataToProcess as ServerMonitorResponse).requestReceivedAt,
-            OneUptimeDate.getCurrentDate()
+            OneUptimeDate.getCurrentDate(),
           );
 
         if (differenceInMinutes > 2) {
@@ -653,7 +651,7 @@ export default class MonitorResourceUtil {
         monitorMetric.serviceId = data.monitorId;
         monitorMetric.serviceType = ServiceType.Monitor;
         monitorMetric.name = MonitorMetricType.IsOnline;
-       
+
         monitorMetric.value = isOnline ? 1 : 0;
 
         monitorMetric.attributes = {
@@ -675,8 +673,8 @@ export default class MonitorResourceUtil {
 
         itemsToSave.push(monitorMetric);
 
-        // add MetricType 
-        const metricType: MetricType = new MetricType();  
+        // add MetricType
+        const metricType: MetricType = new MetricType();
         metricType.name = MonitorMetricType.IsOnline;
         metricType.description = CheckOn.IsOnline + " status for monitor";
         metricType.unit = "";
@@ -727,7 +725,8 @@ export default class MonitorResourceUtil {
         metricType.description = CheckOn.CPUUsagePercent + " of Server/VM";
         metricType.unit = "%";
 
-        metricNameServiceNameMap[MonitorMetricType.CPUUsagePercent] = metricType;
+        metricNameServiceNameMap[MonitorMetricType.CPUUsagePercent] =
+          metricType;
       }
 
       if (basicMetrics.memoryMetrics) {
@@ -764,7 +763,8 @@ export default class MonitorResourceUtil {
         metricType.description = CheckOn.MemoryUsagePercent + " of Server/VM";
         metricType.unit = "%";
 
-        metricNameServiceNameMap[MonitorMetricType.MemoryUsagePercent] = metricType;
+        metricNameServiceNameMap[MonitorMetricType.MemoryUsagePercent] =
+          metricType;
       }
 
       if (basicMetrics.diskMetrics && basicMetrics.diskMetrics.length > 0) {
@@ -779,18 +779,18 @@ export default class MonitorResourceUtil {
           monitorMetric.value = diskMetric.percentUsed;
 
           monitorMetric.attributes = {
-        monitorId: data.monitorId.toString(),
-        projectId: data.projectId.toString(),
-        diskPath: diskMetric.diskPath,
+            monitorId: data.monitorId.toString(),
+            projectId: data.projectId.toString(),
+            diskPath: diskMetric.diskPath,
           };
 
           if (data.monitorName) {
-        monitorMetric.attributes["monitorName"] =
-          data.monitorName.toString();
+            monitorMetric.attributes["monitorName"] =
+              data.monitorName.toString();
           }
 
           if (data.probeName) {
-        monitorMetric.attributes["probeName"] = data.probeName.toString();
+            monitorMetric.attributes["probeName"] = data.probeName.toString();
           }
 
           monitorMetric.time = OneUptimeDate.getCurrentDate();
@@ -804,26 +804,27 @@ export default class MonitorResourceUtil {
           metricType.description = CheckOn.DiskUsagePercent + " of Server/VM";
           metricType.unit = "%";
 
-          metricNameServiceNameMap[MonitorMetricType.DiskUsagePercent] = metricType;
+          metricNameServiceNameMap[MonitorMetricType.DiskUsagePercent] =
+            metricType;
         }
       }
-        }
+    }
 
-        if (
+    if (
       (data.dataToProcess as ProbeMonitorResponse).customCodeMonitorResponse
         ?.executionTimeInMS
-        ) {
+    ) {
       const monitorMetric: Metric = new Metric();
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
       monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.ExecutionTime;
-  
+
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).customCodeMonitorResponse?.executionTimeInMS;
-      
+
       monitorMetric.attributes = {
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
@@ -852,16 +853,16 @@ export default class MonitorResourceUtil {
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ExecutionTime] = metricType;
-        }
+    }
 
-        if (
+    if (
       (data.dataToProcess as ProbeMonitorResponse) &&
       (data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse &&
       (
         (data.dataToProcess as ProbeMonitorResponse).syntheticMonitorResponse ||
         []
       ).length > 0
-        ) {
+    ) {
       for (const syntheticMonitorResponse of (
         data.dataToProcess as ProbeMonitorResponse
       ).syntheticMonitorResponse || []) {
@@ -871,14 +872,14 @@ export default class MonitorResourceUtil {
         monitorMetric.serviceId = data.monitorId;
         monitorMetric.serviceType = ServiceType.Monitor;
         monitorMetric.name = MonitorMetricType.ExecutionTime;
-       
+
         monitorMetric.value = syntheticMonitorResponse.executionTimeInMS;
-       
+
         monitorMetric.attributes = {
           monitorId: data.monitorId.toString(),
           projectId: data.projectId.toString(),
           probeId: (
-        data.dataToProcess as ProbeMonitorResponse
+            data.dataToProcess as ProbeMonitorResponse
           ).probeId.toString(),
           browserType: syntheticMonitorResponse.browserType,
           screenSizeType: syntheticMonitorResponse.screenSizeType,
@@ -905,20 +906,20 @@ export default class MonitorResourceUtil {
 
         metricNameServiceNameMap[MonitorMetricType.ExecutionTime] = metricType;
       }
-        }
+    }
 
-        if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
+    if ((data.dataToProcess as ProbeMonitorResponse).responseTimeInMs) {
       const monitorMetric: Metric = new Metric();
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
       monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.ResponseTime;
-      
+
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).responseTimeInMs;
-      
+
       monitorMetric.attributes = {
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
@@ -947,21 +948,21 @@ export default class MonitorResourceUtil {
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ResponseTime] = metricType;
-        }
+    }
 
-        if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {
+    if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {
       const monitorMetric: Metric = new Metric();
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
       monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.IsOnline;
-      
+
       monitorMetric.value = (data.dataToProcess as ProbeMonitorResponse)
         .isOnline
         ? 1
         : 0;
-     
+
       monitorMetric.attributes = {
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
@@ -990,20 +991,20 @@ export default class MonitorResourceUtil {
       metricType.unit = "";
 
       metricNameServiceNameMap[MonitorMetricType.IsOnline] = metricType;
-        }
+    }
 
-        if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
+    if ((data.dataToProcess as ProbeMonitorResponse).responseCode) {
       const monitorMetric: Metric = new Metric();
 
       monitorMetric.projectId = data.projectId;
       monitorMetric.serviceId = data.monitorId;
       monitorMetric.serviceType = ServiceType.Monitor;
       monitorMetric.name = MonitorMetricType.ResponseStatusCode;
-   
+
       monitorMetric.value = (
         data.dataToProcess as ProbeMonitorResponse
       ).responseCode;
-      
+
       monitorMetric.attributes = {
         monitorId: data.monitorId.toString(),
         projectId: data.projectId.toString(),
@@ -1023,8 +1024,9 @@ export default class MonitorResourceUtil {
       metricType.description = CheckOn.ResponseStatusCode + " for this monitor";
       metricType.unit = "Status Code";
 
-      metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] = metricType;
-        }
+      metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] =
+        metricType;
+    }
 
     await MetricService.createMany({
       items: itemsToSave,
@@ -1212,7 +1214,7 @@ export default class MonitorResourceUtil {
         try {
           responseBody = JSON.parse(
             ((input.dataToProcess as ProbeMonitorResponse)
-              .responseBody as string) || "{}"
+              .responseBody as string) || "{}",
           );
         } catch (err) {
           responseBody = (input.dataToProcess as ProbeMonitorResponse)
@@ -1327,7 +1329,7 @@ export default class MonitorResourceUtil {
 
     if (input.monitor.monitorType === MonitorType.IncomingRequest) {
       logger.debug(
-        `${input.monitor.id?.toString()} - Incoming Request Monitor. Checking criteria filter.`
+        `${input.monitor.id?.toString()} - Incoming Request Monitor. Checking criteria filter.`,
       );
       //check  incoming request
       const incomingRequestResult: string | null =

@@ -1329,8 +1329,7 @@ ${incidentSeverity.name}
       incident.createdAt ||
       OneUptimeDate.getCurrentDate();
 
-
-      const metricTypesMap: Dictionary<MetricType> = {};
+    const metricTypesMap: Dictionary<MetricType> = {};
 
     const incidentCountMetric: Metric = new Metric();
 
@@ -1354,11 +1353,6 @@ ${incidentSeverity.name}
       incidentSeverityName: incident.incidentSeverity?.name?.toString(),
     };
 
-
-
-
-    
-
     incidentCountMetric.time = incidentStartsAt;
     incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
       incidentCountMetric.time,
@@ -1367,18 +1361,15 @@ ${incidentSeverity.name}
 
     itemsToSave.push(incidentCountMetric);
 
+    // add metric type for this to map.
+    const metricType: MetricType = new MetricType();
+    metricType.name = incidentCountMetric.name;
+    metricType.description = "Number of incidents created";
+    metricType.unit = "";
+    metricType.telemetryServices = [];
 
-        // add metric type for this to map. 
-        const metricType: MetricType = new MetricType();
-        metricType.name = incidentCountMetric.name;
-        metricType.description = "Number of incidents created";
-        metricType.unit = "";
-        metricType.telemetryServices = []; 
-    
-        // add to map. 
-        metricTypesMap[incidentCountMetric.name] = metricType;
-
-
+    // add to map.
+    metricTypesMap[incidentCountMetric.name] = metricType;
 
     // is the incident acknowledged?
     const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
@@ -1434,7 +1425,7 @@ ${incidentSeverity.name}
         const metricType: MetricType = new MetricType();
         metricType.name = timeToAcknowledgeMetric.name;
         metricType.description = "Time taken to acknowledge the incident";
-        metricType.unit = "seconds"; 
+        metricType.unit = "seconds";
 
         // add to map.
         metricTypesMap[timeToAcknowledgeMetric.name] = metricType;

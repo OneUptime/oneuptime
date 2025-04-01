@@ -52,6 +52,8 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorService from "./MonitorService";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import MetricType from "../../Models/DatabaseModels/MetricType";
+import Dictionary from "../../Types/Dictionary";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -946,8 +948,8 @@ ${alertSeverity.name}
           name: true,
         },
         alertSeverity: {
-          name: true,
           _id: true,
+          name: true,
         },
       },
       props: {
@@ -960,11 +962,10 @@ ${alertSeverity.name}
     }
 
     if (!alert.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Alert Project ID not found");
     }
 
     // get alert state timeline
-
     const alertStateTimelines: Array<AlertStateTimeline> =
       await AlertStateTimelineService.findBy({
         query: {
@@ -993,8 +994,7 @@ ${alertSeverity.name}
     const firstAlertStateTimeline: AlertStateTimeline | undefined =
       alertStateTimelines[0];
 
-    // delete all the alert metrics with this alert id because its a refresh.
-
+    // delete all the alert metrics with this alert id because it's a refresh
     await MetricService.deleteBy({
       query: {
         serviceId: data.alertId,
@@ -1005,9 +1005,9 @@ ${alertSeverity.name}
     });
 
     const itemsToSave: Array<Metric> = [];
+    const metricTypesMap: Dictionary<MetricType> = {};
 
     // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
-
     const alertStartsAt: Date =
       firstAlertStateTimeline?.startsAt ||
       alert.createdAt ||
@@ -1019,16 +1019,14 @@ ${alertSeverity.name}
     alertCountMetric.serviceId = alert.id!;
     alertCountMetric.serviceType = ServiceType.Alert;
     alertCountMetric.name = AlertMetricType.AlertCount;
-    alertCountMetric.description = "Number of alerts created";
     alertCountMetric.value = 1;
-    alertCountMetric.unit = "";
     alertCountMetric.attributes = {
       alertId: data.alertId.toString(),
       projectId: alert.projectId.toString(),
-      monitorId: alert.monitor?.id!.toString() || "",
-      monitorName: alert.monitor?.name!.toString() || "",
-      alertSeverityId: alert.alertSeverity?.id!.toString() || "",
-      alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+      monitorId: alert.monitor?._id?.toString(),
+      monitorName: alert.monitor?.name?.toString(),
+      alertSeverityId: alert.alertSeverity?._id?.toString(),
+      alertSeverityName: alert.alertSeverity?.name?.toString(),
     };
 
     alertCountMetric.time = alertStartsAt;
@@ -1038,6 +1036,13 @@ ${alertSeverity.name}
     alertCountMetric.metricPointType = MetricPointType.Sum;
 
     itemsToSave.push(alertCountMetric);
+
+    const metricType: MetricType = new MetricType();
+    metricType.name = alertCountMetric.name;
+    metricType.description = "Number of alerts created";
+    metricType.unit = "";
+    metricType.telemetryServices = [];
+    metricTypesMap[alertCountMetric.name] = metricType;
 
     // is the alert acknowledged?
     const isAlertAcknowledged: boolean = alertStateTimelines.some(
@@ -1059,20 +1064,17 @@ ${alertSeverity.name}
         timeToAcknowledgeMetric.serviceId = alert.id!;
         timeToAcknowledgeMetric.serviceType = ServiceType.Alert;
         timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
-        timeToAcknowledgeMetric.description =
-          "Time taken to acknowledge the alert";
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
           alertStartsAt,
         );
-        timeToAcknowledgeMetric.unit = "seconds";
         timeToAcknowledgeMetric.attributes = {
           alertId: data.alertId.toString(),
           projectId: alert.projectId.toString(),
-          monitorId: alert.monitor?.id!.toString() || "",
-          monitorName: alert.monitor?.name!.toString() || "",
-          alertSeverityId: alert.alertSeverity?.id!.toString() || "",
-          alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+          monitorId: alert.monitor?._id?.toString(),
+          monitorName: alert.monitor?.name?.toString(),
+          alertSeverityId: alert.alertSeverity?._id?.toString(),
+          alertSeverityName: alert.alertSeverity?.name?.toString(),
         };
 
         timeToAcknowledgeMetric.time =
@@ -1085,6 +1087,12 @@ ${alertSeverity.name}
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
 
         itemsToSave.push(timeToAcknowledgeMetric);
+
+        const metricType: MetricType = new MetricType();
+        metricType.name = timeToAcknowledgeMetric.name;
+        metricType.description = "Time taken to acknowledge the alert";
+        metricType.unit = "seconds";
+        metricTypesMap[timeToAcknowledgeMetric.name] = metricType;
       }
     }
 
@@ -1108,20 +1116,18 @@ ${alertSeverity.name}
         timeToResolveMetric.serviceId = alert.id!;
         timeToResolveMetric.serviceType = ServiceType.Alert;
         timeToResolveMetric.name = AlertMetricType.TimeToResolve;
-        timeToResolveMetric.description = "Time taken to resolve the alert";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedAlertStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
           alertStartsAt,
         );
-        timeToResolveMetric.unit = "seconds";
         timeToResolveMetric.attributes = {
           alertId: data.alertId.toString(),
           projectId: alert.projectId.toString(),
-          monitorId: alert.monitor?.id!.toString() || "",
-          monitorName: alert.monitor?.name!.toString() || "",
-          alertSeverityId: alert.alertSeverity?.id!.toString() || "",
-          alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+          monitorId: alert.monitor?._id?.toString(),
+          monitorName: alert.monitor?.name?.toString(),
+          alertSeverityId: alert.alertSeverity?._id?.toString(),
+          alertSeverityName: alert.alertSeverity?.name?.toString(),
         };
 
         timeToResolveMetric.time =
@@ -1134,11 +1140,16 @@ ${alertSeverity.name}
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
 
         itemsToSave.push(timeToResolveMetric);
+
+        const metricType: MetricType = new MetricType();
+        metricType.name = timeToResolveMetric.name;
+        metricType.description = "Time taken to resolve the alert";
+        metricType.unit = "seconds";
+        metricTypesMap[timeToResolveMetric.name] = metricType;
       }
     }
 
     // alert duration
-
     const alertDurationMetric: Metric = new Metric();
 
     const lastAlertStateTimeline: AlertStateTimeline | undefined =
@@ -1148,25 +1159,21 @@ ${alertSeverity.name}
       const alertEndsAt: Date =
         lastAlertStateTimeline.startsAt || OneUptimeDate.getCurrentDate();
 
-      // save metric.
-
       alertDurationMetric.projectId = alert.projectId;
       alertDurationMetric.serviceId = alert.id!;
       alertDurationMetric.serviceType = ServiceType.Alert;
       alertDurationMetric.name = AlertMetricType.AlertDuration;
-      alertDurationMetric.description = "Duration of the alert";
       alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         alertEndsAt,
         alertStartsAt,
       );
-      alertDurationMetric.unit = "seconds";
       alertDurationMetric.attributes = {
         alertId: data.alertId.toString(),
         projectId: alert.projectId.toString(),
-        monitorId: alert.monitor?.id!.toString() || "",
-        monitorName: alert.monitor?.name!.toString() || "",
-        alertSeverityId: alert.alertSeverity?.id!.toString() || "",
-        alertSeverityName: alert.alertSeverity?.name!.toString() || "",
+        monitorId: alert.monitor?._id?.toString(),
+        monitorName: alert.monitor?.name?.toString(),
+        alertSeverityId: alert.alertSeverity?._id?.toString(),
+        alertSeverityName: alert.alertSeverity?.name?.toString(),
       };
 
       alertDurationMetric.time =
@@ -1177,6 +1184,14 @@ ${alertSeverity.name}
         alertDurationMetric.time,
       );
       alertDurationMetric.metricPointType = MetricPointType.Sum;
+
+      itemsToSave.push(alertDurationMetric);
+
+      const metricType: MetricType = new MetricType();
+      metricType.name = alertDurationMetric.name;
+      metricType.description = "Duration of the alert";
+      metricType.unit = "seconds";
+      metricTypesMap[alertDurationMetric.name] = metricType;
     }
 
     await MetricService.createMany({
@@ -1186,11 +1201,18 @@ ${alertSeverity.name}
       },
     });
 
-    // index attributes.
+    // index attributes
     TelemetryUtil.indexAttributes({
-      attributes: ["monitorId", "projectId", "alertId", "monitorNames"],
+      attributes: ["monitorId", "projectId", "alertId", "monitorName"],
       projectId: alert.projectId,
       telemetryType: TelemetryType.Metric,
+    }).catch((err: Error) => {
+      logger.error(err);
+    });
+
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      metricNameServiceNameMap: metricTypesMap,
+      projectId: alert.projectId,
     }).catch((err: Error) => {
       logger.error(err);
     });
