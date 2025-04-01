@@ -552,4 +552,92 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
     transformer: RestrictionTimes.getDatabaseTransformer(),
   })
   public restrictionTimes?: RestrictionTimes = undefined;
+
+
+    @ColumnAccessControl({
+      create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CreateProjectOnCallDutyPolicySchedule,
+      ],
+      read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.ReadProjectOnCallDutyPolicySchedule,
+      ],
+      update: [],
+    })
+    @TableColumn({
+      manyToOneRelationColumn: "nextUserIdOnLayer",
+      type: TableColumnType.Entity,
+      modelType: User,
+      title: "Next User On Layer",
+      description:
+        "Relation to User who is next on layer",
+    })
+    @ManyToOne(
+      () => {
+        return User;
+      },
+      {
+        eager: false,
+        nullable: true,
+        onDelete: "SET NULL",
+        orphanedRowAction: "nullify",
+      },
+    )
+    @JoinColumn({ name: "nextUserIdOnLayer" })
+    public nextUserOnLayer?: User = undefined;
+  
+    @ColumnAccessControl({
+      create: [
+       
+      ],
+      read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.ReadProjectOnCallDutyPolicySchedule,
+      ],
+      update: [],
+    })
+    @TableColumn({
+      type: TableColumnType.ObjectID,
+      title: "Next User ID On Layer",
+      description:
+        "Next ID who is currently on layer",
+    })
+    @Column({
+      type: ColumnType.ObjectID,
+      nullable: true,
+      transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public nextUserIdOnLayer?: ObjectID = undefined;
+  
+  
+    @ColumnAccessControl({
+      create: [
+       
+      ],
+      read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.ReadProjectOnCallDutyPolicySchedule,
+      ],
+      update: [],
+    })
+    @TableColumn({
+      type: TableColumnType.Date,
+      title: "Layer Next Handoff At",
+      description:
+        "When is the next layer handoff for this schedule?",
+    })
+    @Column({
+      type: ColumnType.Date,
+      nullable: true,
+    })
+    public layerNextHandoffAt?: Date = undefined;
 }
