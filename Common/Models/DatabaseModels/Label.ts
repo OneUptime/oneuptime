@@ -169,6 +169,7 @@ export default class Label extends AccessControlModel {
     length: ColumnLength.ShortText,
   })
   @UniqueColumnBy("projectId")
+  @Index()
   public override name?: string = undefined;
 
   @ColumnAccessControl({

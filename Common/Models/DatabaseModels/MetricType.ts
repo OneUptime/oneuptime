@@ -216,6 +216,7 @@ export default class MetricType extends BaseModel {
     length: ColumnLength.ShortText,
   })
   @UniqueColumnBy("projectId")
+  @Index()
   public name?: string = undefined;
 
   @ColumnAccessControl({
