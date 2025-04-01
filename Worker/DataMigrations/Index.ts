@@ -102,7 +102,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new UpdateRemiderDateInScheduledEvents(),
   new AddAttributesColumnToTelemetryAttribute(),
   new DeleteAllTelemetryAttributes(),
-  new DropDescriptionAndUnitColumnFromMetrics()
+  new DropDescriptionAndUnitColumnFromMetrics(),
 ];
 
 export default DataMigrations;
