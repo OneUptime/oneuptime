@@ -93,7 +93,6 @@ export default class MetricUtil {
 
     const metricTypes: Array<MetricType> = metrics.data;
 
-
     const metricAttributesResponse:
       | HTTPResponse<JSONObject>
       | HTTPErrorResponse = await API.post(

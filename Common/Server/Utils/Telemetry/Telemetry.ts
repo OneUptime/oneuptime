@@ -57,7 +57,6 @@ export default class TelemetryUtil {
 
         let isSame: boolean = true;
 
-
         // check if description is same
         if (metricType.description !== metricTypeInMap.description) {
           isSame = false;
@@ -72,7 +71,6 @@ export default class TelemetryUtil {
 
         // check if telemetry services are same
 
-        
         for (const telemetryServiceId of telemetryServicesInMap) {
           if (
             telemetryServiceIds.filter((serviceId: ObjectID) => {

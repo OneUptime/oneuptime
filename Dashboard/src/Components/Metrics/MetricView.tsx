@@ -52,9 +52,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
     Text.getLetterFromAByNumber(props.data.queryConfigs.length),
   );
 
-  const [metricTypes, setMetricTypes] = useState<
-    Array<MetricType>
-  >([]);
+  const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
 
   const [
     showCannotRemoveOneRemainingQueryError,
@@ -80,9 +78,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           filterData: {
             aggegationType: MetricsAggregationType.Avg,
             metricName:
-              metricTypes.length > 0 &&
-              metricTypes[0] &&
-              metricTypes[0].name
+              metricTypes.length > 0 && metricTypes[0] && metricTypes[0].name
                 ? metricTypes[0].name
                 : "",
           },

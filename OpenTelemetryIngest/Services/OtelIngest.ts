@@ -338,8 +338,8 @@ export default class OtelIngestService {
             dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
             dbMetric.serviceType = ServiceType.OpenTelemetry;
             dbMetric.name = (metric["name"] || "").toString().toLowerCase();
-            const metricDescription = metric["description"] as string;
-            const metricUnit = metric["unit"] as string;
+            const metricDescription: string = metric["description"] as string;
+            const metricUnit: string = metric["unit"] as string;
 
             if (dbMetric.name) {
               // add this to metricNameServiceNameMap
@@ -362,7 +362,7 @@ export default class OtelIngestService {
                   );
                 }).length === 0
               ) {
-                const telemetryService = new TelemetryService();
+                const telemetryService: TelemetryService = new TelemetryService();
                 telemetryService.id =
                   serviceDictionary[serviceName]!.serviceId!;
                 metricNameServiceNameMap[

@@ -37,11 +37,9 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
               title: "Metric Name",
               type: FieldType.Dropdown,
               filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
-                props.metricTypes.map(
-                  (metricType: MetricType) => {
-                    return metricType.name || "";
-                  },
-                ), // metricType is an array of MetricType
+                props.metricTypes.map((metricType: MetricType) => {
+                  return metricType.name || "";
+                }), // metricType is an array of MetricType
               ),
             },
             {

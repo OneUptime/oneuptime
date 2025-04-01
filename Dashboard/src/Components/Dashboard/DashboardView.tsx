@@ -60,9 +60,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const [telemetryAttributes, setTelemetryAttributes] = useState<string[]>([]);
 
-  const [metricTypes, setMetricTypes] = useState<
-    MetricType[]
-  >([]);
+  const [metricTypes, setMetricTypes] = useState<MetricType[]>([]);
 
   const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
     const {
