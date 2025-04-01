@@ -963,6 +963,26 @@ export default class MonitorResourceUtil {
       },
     });
 
+    // Metric name to serviceId map
+      // example: "cpu.usage" -> [serviceId1, serviceId2]
+      // since these are monitor metrics. They dont belong to any service so we can keep the array empty. 
+      const metricNameServiceNameMap: Dictionary<Array<ObjectID>> = {};
+
+      for(const metric of itemsToSave) {
+        const metricName: string = metric.name!;
+        if(!metricNameServiceNameMap[metricName]) {
+          metricNameServiceNameMap[metricName] = [];
+        }
+      }
+
+    // index metrics
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      projectId: data.projectId,
+      metricNameServiceNameMap: metricNameServiceNameMap,
+    }).catch((err: Error) => {
+      logger.error(err);
+    });
+
     // index attributes.
     TelemetryUtil.indexAttributes({
       attributes: [

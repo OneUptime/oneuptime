@@ -353,7 +353,7 @@ export default class OtelIngestService {
                       serviceDictionary[serviceName]!.serviceId!.toString()
                     );
                   },
-                ).length > 0
+                ).length === 0
               ) {
                 metricNameServiceNameMap[dbMetric.name]!.push(
                   dbMetric.serviceId,
