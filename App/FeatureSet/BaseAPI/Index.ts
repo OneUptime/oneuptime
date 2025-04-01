@@ -546,6 +546,12 @@ import MonitorFeedService, {
   Service as MonitorFeedServiceType,
 } from "Common/Server/Services/MonitorFeedService";
 
+// MetricType. 
+import MetricTypeService, {
+  Service as MetricTypeServiceType,
+} from "Common/Server/Services/MetricTypeService";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -574,6 +580,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorFeed, MonitorFeedServiceType>(
         MonitorFeed,
         MonitorFeedService,
+      ).getRouter(),
+    );
+
+    // MetricType
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<MetricType, MetricTypeServiceType>(
+        MetricType,
+        MetricTypeService,
       ).getRouter(),
     );
 

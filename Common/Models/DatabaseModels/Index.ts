@@ -168,6 +168,7 @@ import WorkspaceNotificationRule from "./WorkspaceNotificationRule";
 import ProjectUser from "./ProjectUser";
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
+import MetricType from "./MetricType";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -361,6 +362,8 @@ const AllModelTypes: Array<{
   ProjectUser,
 
   MonitorFeed,
+
+  MetricType
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
