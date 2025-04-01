@@ -40,6 +40,8 @@ import MetricService from "Common/Server/Services/MetricService";
 import SpanService from "Common/Server/Services/SpanService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 
 export default class OtelIngestService {
   @CaptureSpan()
@@ -277,7 +279,7 @@ export default class OtelIngestService {
 
       // Metric name to serviceId map
       // example: "cpu.usage" -> [serviceId1, serviceId2]
-      const metricNameServiceNameMap: Dictionary<Array<ObjectID>> = {};
+      const metricNameServiceNameMap: Dictionary<MetricType> = {};
 
       for (const resourceMetric of resourceMetrics) {
         const serviceName: string = this.getServiceNameFromAttributes(
@@ -336,28 +338,36 @@ export default class OtelIngestService {
             dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
             dbMetric.serviceType = ServiceType.OpenTelemetry;
             dbMetric.name = (metric["name"] || "").toString().toLowerCase();
-            dbMetric.description = metric["description"] as string;
-            dbMetric.unit = metric["unit"] as string;
+            const metricDescription = metric["description"] as string;
+            const metricUnit = metric["unit"] as string;
 
             if (dbMetric.name) {
               // add this to metricNameServiceNameMap
               if (!metricNameServiceNameMap[dbMetric.name]) {
-                metricNameServiceNameMap[dbMetric.name] = [];
+                metricNameServiceNameMap[dbMetric.name] = new MetricType();
+                metricNameServiceNameMap[dbMetric.name]!.name = dbMetric.name;
+                metricNameServiceNameMap[dbMetric.name]!.description =
+                  metricDescription;
+                metricNameServiceNameMap[dbMetric.name]!.unit = metricUnit;
+                metricNameServiceNameMap[dbMetric.name]!.telemetryServices = [];
               }
 
               if (
-                metricNameServiceNameMap[dbMetric.name]!.filter(
-                  (serviceId: ObjectID) => {
-                    return (
-                      serviceId.toString() ===
-                      serviceDictionary[serviceName]!.serviceId!.toString()
-                    );
-                  },
-                ).length === 0
+                metricNameServiceNameMap[
+                  dbMetric.name
+                ]!.telemetryServices!.filter((service: TelemetryService) => {
+                  return (
+                    service.id?.toString() ===
+                    serviceDictionary[serviceName]!.serviceId!.toString()
+                  );
+                }).length === 0
               ) {
-                metricNameServiceNameMap[dbMetric.name]!.push(
-                  dbMetric.serviceId,
-                );
+                const telemetryService = new TelemetryService();
+                telemetryService.id =
+                  serviceDictionary[serviceName]!.serviceId!;
+                metricNameServiceNameMap[
+                  dbMetric.name
+                ]!.telemetryServices!.push(telemetryService);
               }
             }
 

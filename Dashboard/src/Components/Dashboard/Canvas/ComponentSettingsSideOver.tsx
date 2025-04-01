@@ -8,7 +8,7 @@ import SideOver from "Common/UI/Components/SideOver/SideOver";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ArgumentsForm from "./ArgumentsForm";
-import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
   title: string;
@@ -19,7 +19,7 @@ export interface ComponentProps {
   componentId: ObjectID;
   dashboardViewConfig: DashboardViewConfig;
   metrics: {
-    metricNameAndUnits: Array<MetricNameAndUnit>;
+    metricTypes: Array<MetricType>;
     telemetryAttributes: string[];
   };
 }

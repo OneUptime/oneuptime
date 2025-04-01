@@ -12,7 +12,7 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponent;
@@ -99,7 +99,7 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricNameAndUnits]);
+  }, [props.dashboardStartAndEndDate, props.metricTypes]);
 
   useEffect(() => {
     fetchAggregatedResults();
@@ -166,9 +166,9 @@ const DashboardValueComponent: FunctionComponent<ComponentProps> = (
   const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.13;
 
   const unit: string | undefined =
-    props.metricNameAndUnits?.find((item: MetricNameAndUnit) => {
+    props.metricTypes?.find((item: MetricType) => {
       return (
-        item.metricName?.toString() ===
+        item.name?.toString() ===
         props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString()
       );
     })?.unit || "";

@@ -16,7 +16,7 @@ export default class TelemetryUtil {
   @CaptureSpan()
   public static async indexMetricNameServiceNameMap(data: {
     projectId: ObjectID;
-    metricNameServiceNameMap: Dictionary<Array<ObjectID>>;
+    metricNameServiceNameMap: Dictionary<MetricType>;
   }): Promise<void> {
     for (const metricName of Object.keys(data.metricNameServiceNameMap)) {
       // fetch metric
@@ -27,11 +27,23 @@ export default class TelemetryUtil {
         },
         select: {
           telemetryServices: true,
+          name: true,
+          description: true,
+          unit: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+      const metricTypeInMap: MetricType =
+        data.metricNameServiceNameMap[metricName]!;
+
+      // check if telemetry services are same as the ones in the map
+      const telemetryServicesInMap: Array<ObjectID> =
+        metricTypeInMap?.telemetryServices?.map((service: TelemetryService) => {
+          return service.id!;
+        }) || [];
 
       if (metricType) {
         if (!metricType.telemetryServices) {
@@ -43,12 +55,24 @@ export default class TelemetryUtil {
             return service.id!;
           });
 
-        // check if telemetry services are same as the ones in the map
-        const telemetryServicesInMap: Array<ObjectID> =
-          data.metricNameServiceNameMap[metricName] || [];
-
         let isSame: boolean = true;
 
+
+        // check if description is same
+        if (metricType.description !== metricTypeInMap.description) {
+          isSame = false;
+          metricType.description = metricTypeInMap.description || "";
+        }
+
+        // check if unit is same
+        if (metricType.unit !== metricTypeInMap.unit) {
+          isSame = false;
+          metricType.unit = metricTypeInMap.unit || "";
+        }
+
+        // check if telemetry services are same
+
+        
         for (const telemetryServiceId of telemetryServicesInMap) {
           if (
             telemetryServiceIds.filter((serviceId: ObjectID) => {
@@ -71,6 +95,8 @@ export default class TelemetryUtil {
             id: metricType.id!,
             data: {
               telemetryServices: metricType.telemetryServices || [],
+              description: metricTypeInMap.description || "",
+              unit: metricTypeInMap.unit || "",
             },
             props: {
               isRoot: true,
@@ -81,13 +107,12 @@ export default class TelemetryUtil {
         // create metric type
         const metricType: MetricType = new MetricType();
         metricType.name = metricName;
+        metricType.description = metricTypeInMap.description || "";
+        metricType.unit = metricTypeInMap.unit || "";
         metricType.projectId = data.projectId;
         metricType.telemetryServices = [];
 
-        const telemetryServiceIds: Array<ObjectID> =
-          data.metricNameServiceNameMap[metricName] || [];
-
-        for (const telemetryServiceId of telemetryServiceIds) {
+        for (const telemetryServiceId of telemetryServicesInMap) {
           const telemetryService: TelemetryService = new TelemetryService();
           telemetryService.id = telemetryServiceId;
           metricType.telemetryServices!.push(telemetryService);

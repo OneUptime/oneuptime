@@ -538,7 +538,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     if (User.isMasterAdmin()) {
       if (
         (props.actionButtons && props.actionButtons.length > 0) ||
-        props.showViewIdButton
+        props.showViewIdButton ||
+        props.isDeleteable ||
+        props.isEditable ||
+        props.isViewable
       ) {
         showActionsColumn = true;
       }

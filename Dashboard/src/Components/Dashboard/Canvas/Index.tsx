@@ -9,8 +9,8 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -21,7 +21,7 @@ export interface ComponentProps {
   onComponentUnselected: () => void;
   selectedComponentId: ObjectID | null;
   metrics: {
-    metricNameAndUnits: Array<MetricNameAndUnit>;
+    metricTypes: Array<MetricType>;
     telemetryAttributes: string[];
   };
   dashboardStartAndEndDate: DashboardStartAndEndDate;
@@ -209,7 +209,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         }
         dashboardComponentWidthInPx={widthOfComponentInPx}
         dashboardComponentHeightInPx={heightOfComponentInPx}
-        metricNameAndUnits={props.metrics.metricNameAndUnits}
+        metricTypes={props.metrics.metricTypes}
         dashboardStartAndEndDate={props.dashboardStartAndEndDate}
         dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}
         dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}

@@ -21,13 +21,13 @@ import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentTyp
 import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
-import MetricNameAndUnit from "../../Metrics/Types/MetricNameAndUnit";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
   // eslint-disable-next-line react/no-unused-prop-types
   metrics: {
-    metricNameAndUnits: Array<MetricNameAndUnit>;
+    metricTypes: Array<MetricType>;
     telemetryAttributes: string[];
   };
   component: DashboardBaseComponent;
@@ -88,7 +88,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         <MetricQueryConfig
           {...componentProps}
           data={value[arg.id] as MetricQueryConfigData}
-          metricNameAndUnits={props.metrics.metricNameAndUnits}
+          metricTypes={props.metrics.metricTypes}
           telemetryAttributes={props.metrics.telemetryAttributes}
           hideCard={true}
         />

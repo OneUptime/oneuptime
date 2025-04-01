@@ -6,16 +6,16 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
   data: MetricQueryConfigData;
   onChange?: ((data: MetricQueryConfigData) => void) | undefined;
-  metricNameAndUnits: Array<MetricNameAndUnit>;
+  metricTypes: Array<MetricType>;
   telemetryAttributes: string[];
   onRemove?: (() => void) | undefined;
   error?: string | undefined;
@@ -52,7 +52,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               props.onChange &&
                 props.onChange({ ...props.data, metricQueryData: data });
             }}
-            metricNameAndUnits={props.metricNameAndUnits}
+            metricTypes={props.metricTypes}
             telemetryAttributes={props.telemetryAttributes}
           />
         )}

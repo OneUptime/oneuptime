@@ -13,14 +13,14 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import { ChartSeries } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
-import MetricNameAndUnit from "./Types/MetricNameAndUnit";
 import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
   metricViewData: MetricViewData;
   metricResults: Array<AggregatedResult>;
-  metricNamesAndUnits: Array<MetricNameAndUnit>;
+  metricTypes: Array<MetricType>;
   hideCard?: boolean | undefined;
   heightInPx?: number | undefined;
   chartCssClass?: string | undefined;
@@ -188,15 +188,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
-                const metricNameAndUnit: MetricNameAndUnit | undefined =
-                  props.metricNamesAndUnits.find((m: MetricNameAndUnit) => {
+                const metricType: MetricType | undefined =
+                  props.metricTypes.find((m: MetricType) => {
                     return (
-                      m.metricName ===
+                      m.name ===
                       queryConfig.metricQueryData.filterData.metricName
                     );
                   });
 
-                return `${value} ${queryConfig.metricAliasData?.legendUnit || metricNameAndUnit?.unit || ""}`;
+                return `${value} ${queryConfig.metricAliasData?.legendUnit || metricType?.unit || ""}`;
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",

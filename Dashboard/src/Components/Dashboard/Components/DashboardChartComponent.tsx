@@ -94,7 +94,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     fetchAggregatedResults();
-  }, [props.dashboardStartAndEndDate, props.metricNameAndUnits]);
+  }, [props.dashboardStartAndEndDate, props.metricTypes]);
 
   const [metricQueryConfig, setMetricQueryConfig] = React.useState<
     MetricQueryConfigData | undefined
@@ -167,7 +167,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     <div>
       <MetricCharts
         metricResults={metricResults}
-        metricNamesAndUnits={props.metricNameAndUnits}
+        metricTypes={props.metricTypes}
         metricViewData={chartMetricViewData}
         hideCard={true}
         heightInPx={heightOfChart}

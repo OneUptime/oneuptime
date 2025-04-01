@@ -159,52 +159,6 @@ export default class Metric extends AnalyticsBaseModel {
         }),
 
         new AnalyticsTableColumn({
-          key: "description",
-          title: "Description",
-          description: "Description of the Metric",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
-          key: "unit",
-          title: "Unit",
-          description: "Unit of the Metric",
-          required: false,
-          type: TableColumnType.Text,
-          accessControl: {
-            read: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.ReadTelemetryServiceLog,
-            ],
-            create: [
-              Permission.ProjectOwner,
-              Permission.ProjectAdmin,
-              Permission.ProjectMember,
-              Permission.CreateTelemetryServiceLog,
-            ],
-            update: [],
-          },
-        }),
-
-        new AnalyticsTableColumn({
           key: "aggregationTemporality",
           title: "Aggregation Temporality",
           description: "Aggregation Temporality of this Metric",
@@ -601,22 +555,6 @@ export default class Metric extends AnalyticsBaseModel {
 
   public set metricPointType(v: MetricPointType | undefined) {
     this.setColumnValue("metricPointType", v);
-  }
-
-  public get description(): string | undefined {
-    return this.getColumnValue("description") as string | undefined;
-  }
-
-  public set description(v: string | undefined) {
-    this.setColumnValue("description", v);
-  }
-
-  public get unit(): string | undefined {
-    return this.getColumnValue("unit") as string | undefined;
-  }
-
-  public set unit(v: string | undefined) {
-    this.setColumnValue("unit", v);
   }
 
   public get isMonotonic(): boolean | undefined {

@@ -1,8 +1,8 @@
 import Metric from "Common/Models/AnalyticsModels/Metric";
-import ModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import MetricNameAndUnit from "../Types/MetricNameAndUnit";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -17,6 +17,7 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export default class MetricUtil {
   public static async fetchResults(data: {
@@ -27,7 +28,7 @@ export default class MetricUtil {
     const metricViewData: MetricViewData = data.metricViewData;
 
     for (const queryConfig of metricViewData.queryConfigs) {
-      const result: AggregatedResult = await ModelAPI.aggregate({
+      const result: AggregatedResult = await AnalyticsModelAPI.aggregate({
         modelType: Metric,
         aggregateBy: {
           query: {
@@ -71,11 +72,11 @@ export default class MetricUtil {
   }
 
   public static async loadAllMetricsTypes(): Promise<{
-    metricNamesAndUnits: Array<MetricNameAndUnit>;
+    metricTypes: Array<MetricType>;
     telemetryAttributes: Array<string>;
   }> {
-    const metrics: ListResult<Metric> = await ModelAPI.getList({
-      modelType: Metric,
+    const metrics: ListResult<MetricType> = await ModelAPI.getList({
+      modelType: MetricType,
       select: {
         name: true,
         unit: true,
@@ -88,34 +89,10 @@ export default class MetricUtil {
       sort: {
         name: SortOrder.Ascending,
       },
-      groupBy: {
-        name: true,
-        unit: true,
-      },
     });
 
-    const metricNamesAndUnits: Array<MetricNameAndUnit> = metrics.data.map(
-      (metric: Metric) => {
-        return {
-          metricName: metric.name || "",
-          unit: metric.unit || "",
-        };
-      },
-    );
+    const metricTypes: Array<MetricType> = metrics.data;
 
-    // Remove duplicate names from the array
-
-    const uniqueMetricNamesAndUnits: Array<MetricNameAndUnit> = [];
-
-    metricNamesAndUnits.forEach((metricNameAndUnit: MetricNameAndUnit) => {
-      if (
-        !uniqueMetricNamesAndUnits.find((m: MetricNameAndUnit) => {
-          return m.metricName === metricNameAndUnit.metricName;
-        })
-      ) {
-        uniqueMetricNamesAndUnits.push(metricNameAndUnit);
-      }
-    });
 
     const metricAttributesResponse:
       | HTTPResponse<JSONObject>
@@ -125,7 +102,7 @@ export default class MetricUtil {
       ),
       {},
       {
-        ...ModelAPI.getCommonHeaders(),
+        ...AnalyticsModelAPI.getCommonHeaders(),
       },
     );
 
@@ -138,7 +115,7 @@ export default class MetricUtil {
     }
 
     return {
-      metricNamesAndUnits: uniqueMetricNamesAndUnits,
+      metricTypes: metricTypes,
       telemetryAttributes: attributes,
     };
   }
