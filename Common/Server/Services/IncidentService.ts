@@ -59,6 +59,8 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { Dictionary } from "lodash";
+import MetricType from "../../Models/DatabaseModels/MetricType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1327,15 +1329,16 @@ ${incidentSeverity.name}
       incident.createdAt ||
       OneUptimeDate.getCurrentDate();
 
+
+      const metricTypesMap: Dictionary<MetricType> = {};
+
     const incidentCountMetric: Metric = new Metric();
 
     incidentCountMetric.projectId = incident.projectId;
     incidentCountMetric.serviceId = incident.id!;
     incidentCountMetric.serviceType = ServiceType.Incident;
     incidentCountMetric.name = IncidentMetricType.IncidentCount;
-    incidentCountMetric.description = "Number of incidents created";
     incidentCountMetric.value = 1;
-    incidentCountMetric.unit = "";
     incidentCountMetric.attributes = {
       incidentId: data.incidentId.toString(),
       projectId: incident.projectId.toString(),
@@ -1351,6 +1354,11 @@ ${incidentSeverity.name}
       incidentSeverityName: incident.incidentSeverity?.name?.toString(),
     };
 
+
+
+
+    
+
     incidentCountMetric.time = incidentStartsAt;
     incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
       incidentCountMetric.time,
@@ -1358,6 +1366,19 @@ ${incidentSeverity.name}
     incidentCountMetric.metricPointType = MetricPointType.Sum;
 
     itemsToSave.push(incidentCountMetric);
+
+
+        // add metric type for this to map. 
+        const metricType: MetricType = new MetricType();
+        metricType.name = incidentCountMetric.name;
+        metricType.description = "Number of incidents created";
+        metricType.unit = "";
+        metricType.telemetryServices = []; 
+    
+        // add to map. 
+        metricTypesMap[incidentCountMetric.name] = metricType;
+
+
 
     // is the incident acknowledged?
     const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
@@ -1379,13 +1400,10 @@ ${incidentSeverity.name}
         timeToAcknowledgeMetric.serviceId = incident.id!;
         timeToAcknowledgeMetric.serviceType = ServiceType.Incident;
         timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
-        timeToAcknowledgeMetric.description =
-          "Time taken to acknowledge the incident";
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
-        timeToAcknowledgeMetric.unit = "seconds";
         timeToAcknowledgeMetric.attributes = {
           incidentId: data.incidentId.toString(),
           projectId: incident.projectId.toString(),
@@ -1411,6 +1429,15 @@ ${incidentSeverity.name}
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
 
         itemsToSave.push(timeToAcknowledgeMetric);
+
+        // add metric type for this to map.
+        const metricType: MetricType = new MetricType();
+        metricType.name = timeToAcknowledgeMetric.name;
+        metricType.description = "Time taken to acknowledge the incident";
+        metricType.unit = "seconds"; 
+
+        // add to map.
+        metricTypesMap[timeToAcknowledgeMetric.name] = metricType;
       }
     }
 
@@ -1434,13 +1461,11 @@ ${incidentSeverity.name}
         timeToResolveMetric.serviceId = incident.id!;
         timeToResolveMetric.serviceType = ServiceType.Incident;
         timeToResolveMetric.name = IncidentMetricType.TimeToResolve;
-        timeToResolveMetric.description = "Time taken to resolve the incident";
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
-        timeToResolveMetric.unit = "seconds";
         timeToResolveMetric.attributes = {
           incidentId: data.incidentId.toString(),
           projectId: incident.projectId.toString(),
@@ -1466,6 +1491,14 @@ ${incidentSeverity.name}
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
 
         itemsToSave.push(timeToResolveMetric);
+
+        // add metric type for this to map.
+        const metricType: MetricType = new MetricType();
+        metricType.name = timeToResolveMetric.name;
+        metricType.description = "Time taken to resolve the incident";
+        metricType.unit = "seconds";
+        // add to map.
+        metricTypesMap[timeToResolveMetric.name] = metricType;
       }
     }
 
@@ -1486,12 +1519,10 @@ ${incidentSeverity.name}
       incidentDurationMetric.serviceId = incident.id!;
       incidentDurationMetric.serviceType = ServiceType.Incident;
       incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
-      incidentDurationMetric.description = "Duration of the incident";
       incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         incidentEndsAt,
         incidentStartsAt,
       );
-      incidentDurationMetric.unit = "seconds";
       incidentDurationMetric.attributes = {
         incidentId: data.incidentId.toString(),
         projectId: incident.projectId.toString(),
@@ -1515,6 +1546,17 @@ ${incidentSeverity.name}
         incidentDurationMetric.time,
       );
       incidentDurationMetric.metricPointType = MetricPointType.Sum;
+
+      itemsToSave.push(incidentDurationMetric);
+
+      // add metric type for this to map.
+      const metricType: MetricType = new MetricType();
+      metricType.name = incidentDurationMetric.name;
+      metricType.description = "Duration of the incident";
+      metricType.unit = "seconds";
+
+      // add to map.
+      metricTypesMap[incidentDurationMetric.name] = metricType;
     }
 
     await MetricService.createMany({
@@ -1529,6 +1571,13 @@ ${incidentSeverity.name}
       attributes: ["monitorIds", "projectId", "incidentId", "monitorNames"],
       projectId: incident.projectId,
       telemetryType: TelemetryType.Metric,
+    }).catch((err: Error) => {
+      logger.error(err);
+    });
+
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      metricNameServiceNameMap: metricTypesMap,
+      projectId: incident.projectId,
     }).catch((err: Error) => {
       logger.error(err);
     });
