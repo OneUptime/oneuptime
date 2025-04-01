@@ -362,7 +362,8 @@ export default class OtelIngestService {
                   );
                 }).length === 0
               ) {
-                const telemetryService: TelemetryService = new TelemetryService();
+                const telemetryService: TelemetryService =
+                  new TelemetryService();
                 telemetryService.id =
                   serviceDictionary[serviceName]!.serviceId!;
                 metricNameServiceNameMap[
