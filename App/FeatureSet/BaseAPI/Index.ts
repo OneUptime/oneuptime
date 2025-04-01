@@ -546,7 +546,7 @@ import MonitorFeedService, {
   Service as MonitorFeedServiceType,
 } from "Common/Server/Services/MonitorFeedService";
 
-// MetricType. 
+// MetricType.
 import MetricTypeService, {
   Service as MetricTypeServiceType,
 } from "Common/Server/Services/MetricTypeService";

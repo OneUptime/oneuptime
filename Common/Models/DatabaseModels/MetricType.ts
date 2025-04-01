@@ -105,7 +105,7 @@ export default class MetricType extends BaseModel {
       nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "projectId" })
   public project?: Project = undefined;
@@ -141,7 +141,7 @@ export default class MetricType extends BaseModel {
     () => {
       return TelemetryService;
     },
-    { eager: false }
+    { eager: false },
   )
   @JoinTable({
     name: "MetricTypeTelemetryService",
@@ -249,7 +249,7 @@ export default class MetricType extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
@@ -308,7 +308,7 @@ export default class MetricType extends BaseModel {
       nullable: true,
       onDelete: "SET NULL",
       orphanedRowAction: "nullify",
-    }
+    },
   )
   @JoinColumn({ name: "deletedByUserId" })
   public deletedByUser?: User = undefined;

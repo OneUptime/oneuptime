@@ -1,29 +1,16 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import Metric from "Common/Models/AnalyticsModels/Metric";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-} from "react";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import API from "Common/Utils/API";
-import { APP_API_URL } from "Common/UI/Config";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import MetricType from "Common/Models/DatabaseModels/MetricType";
+import Includes from "Common/Types/BaseDatabase/Includes";
 
 export interface ComponentProps {
   telemetryServiceId?: ObjectID | undefined;
@@ -33,61 +20,10 @@ export interface ComponentProps {
 const MetricsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [attributes, setAttributes] = React.useState<Array<string>>([]);
-
-  const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
-  const [pageError, setPageError] = React.useState<string>("");
-
-  const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsPageLoading(true);
-
-      const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post(
-          URL.fromString(APP_API_URL.toString()).addRoute(
-            "/telemetry/metrics/get-attributes",
-          ),
-          {},
-          {
-            ...ModelAPI.getCommonHeaders(),
-          },
-        );
-
-      if (attributeRepsonse instanceof HTTPErrorResponse) {
-        throw attributeRepsonse;
-      } else {
-        const attributes: Array<string> = attributeRepsonse.data[
-          "attributes"
-        ] as Array<string>;
-        setAttributes(attributes);
-      }
-
-      setIsPageLoading(false);
-      setPageError("");
-    } catch (err) {
-      setIsPageLoading(false);
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    }
-  };
-
-  useEffect(() => {
-    loadAttributes().catch((err: Error) => {
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    });
-  }, []);
-
-  if (isPageLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (pageError) {
-    return <ErrorMessage message={pageError} />;
-  }
-
   return (
     <Fragment>
-      <AnalyticsModelTable<Metric>
-        modelType={Metric}
+      <ModelTable<MetricType>
+        modelType={MetricType}
         id="metrics-table"
         isDeleteable={false}
         isEditable={false}
@@ -103,10 +39,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
           description:
             "Metrics are the individual data points that make up a service. They are the building blocks of a service and represent the work done by a single service.",
         }}
-        groupBy={{
-          name: true,
-        }}
-        onViewPage={async (item: Metric) => {
+        onViewPage={async (item: MetricType) => {
           if (!props.telemetryServiceId || !props.telemetryServiceName) {
             const route: Route = RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_METRIC_VIEW]!,
@@ -140,8 +73,8 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
-          serviceId: props.telemetryServiceId
-            ? props.telemetryServiceId
+          telemetryServices: props.telemetryServiceId
+            ? new Includes([props.telemetryServiceId])
             : undefined,
         }}
         showViewIdButton={false}
@@ -155,14 +88,6 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              attributes: true,
-            },
-            type: FieldType.JSON,
-            title: "Attributes",
-            jsonKeys: attributes,
           },
         ]}
         columns={[

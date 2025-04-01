@@ -6,10 +6,104 @@ import GlobalCache from "../../Infrastructure/GlobalCache";
 import TelemetryAttributeService from "../../Services/TelemetryAttributeService";
 import CaptureSpan from "./CaptureSpan";
 import logger from "../Logger";
+import MetricType from "../../../Models/DatabaseModels/MetricType";
+import MetricTypeService from "../../Services/MetricTypeService";
+import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
 
 export type AttributeType = string | number | boolean | null;
 
 export default class TelemetryUtil {
+  @CaptureSpan()
+  public static async indexMetricNameServiceNameMap(data: {
+    projectId: ObjectID;
+    metricNameServiceNameMap: Dictionary<Array<ObjectID>>;
+  }): Promise<void> {
+    for (const metricName of Object.keys(data.metricNameServiceNameMap)) {
+      // fetch metric
+      const metricType: MetricType | null = await MetricTypeService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          name: metricName,
+        },
+        select: {
+          telemetryServices: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (metricType) {
+        if (!metricType.telemetryServices) {
+          metricType.telemetryServices = [];
+        }
+
+        const telemetryServiceIds: Array<ObjectID> =
+          metricType.telemetryServices!.map((service: TelemetryService) => {
+            return service.id!;
+          });
+
+        // check if telemetry services are same as the ones in the map
+        const telemetryServicesInMap: Array<ObjectID> =
+          data.metricNameServiceNameMap[metricName] || [];
+
+        let isSame: boolean = true;
+
+        for (const telemetryServiceId of telemetryServicesInMap) {
+          if (
+            !telemetryServiceIds.filter((serviceId: ObjectID) => {
+              return serviceId.toString() === telemetryServiceId.toString();
+            }).length
+          ) {
+            isSame = false;
+            // add the service id to the list
+            const telemetryService: TelemetryService = new TelemetryService();
+            telemetryService.id = telemetryServiceId;
+            metricType.telemetryServices!.push(telemetryService);
+          }
+        }
+
+        // if its not the same then update the metric type
+
+        if (!isSame) {
+          // update metric type
+          await MetricTypeService.updateOneById({
+            _id: metricType.id!,
+            data: {
+              telemetryServices: metricType.telemetryServices || [],
+            },
+            props: {
+              isRoot: true,
+            },
+          } as any);
+        }
+      } else {
+        // create metric type
+        const metricType: MetricType = new MetricType();
+        metricType.name = metricName;
+        metricType.projectId = data.projectId;
+        metricType.telemetryServices = [];
+
+        const telemetryServiceIds: Array<ObjectID> =
+          data.metricNameServiceNameMap[metricName] || [];
+
+        for (const telemetryServiceId of telemetryServiceIds) {
+          const telemetryService: TelemetryService = new TelemetryService();
+          telemetryService.id = telemetryServiceId;
+          metricType.telemetryServices!.push(telemetryService);
+        }
+
+        // save metric type
+        await MetricTypeService.create({
+          data: metricType,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+  }
+
   @CaptureSpan()
   public static async indexAttributes(data: {
     attributes: Array<string>;

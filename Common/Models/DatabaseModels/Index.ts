@@ -363,7 +363,7 @@ const AllModelTypes: Array<{
 
   MonitorFeed,
 
-  MetricType
+  MetricType,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

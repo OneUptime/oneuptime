@@ -275,6 +275,10 @@ export default class OtelIngestService {
       const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
+      // Metric name to serviceId map
+      // example: "cpu.usage" -> [serviceId1, serviceId2]
+      const metricNameServiceNameMap: Dictionary<Array<ObjectID>> = {};
+
       for (const resourceMetric of resourceMetrics) {
         const serviceName: string = this.getServiceNameFromAttributes(
           ((resourceMetric["resource"] as JSONObject)?.[
@@ -331,9 +335,31 @@ export default class OtelIngestService {
             dbMetric.projectId = (req as TelemetryRequest).projectId;
             dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
             dbMetric.serviceType = ServiceType.OpenTelemetry;
-            dbMetric.name = metric["name"] as string;
+            dbMetric.name = (metric["name"] || "").toString().toLowerCase();
             dbMetric.description = metric["description"] as string;
             dbMetric.unit = metric["unit"] as string;
+
+            if (dbMetric.name) {
+              // add this to metricNameServiceNameMap
+              if (!metricNameServiceNameMap[dbMetric.name]) {
+                metricNameServiceNameMap[dbMetric.name] = [];
+              }
+
+              if (
+                metricNameServiceNameMap[dbMetric.name]!.filter(
+                  (serviceId: ObjectID) => {
+                    return (
+                      serviceId.toString() ===
+                      serviceDictionary[serviceName]!.serviceId!.toString()
+                    );
+                  },
+                ).length > 0
+              ) {
+                metricNameServiceNameMap[dbMetric.name]!.push(
+                  dbMetric.serviceId,
+                );
+              }
+            }
 
             const attributesObject: Dictionary<
               AttributeType | Array<AttributeType>
@@ -426,6 +452,10 @@ export default class OtelIngestService {
           attributes: Array.from(attributeKeySet),
           projectId: (req as TelemetryRequest).projectId,
           telemetryType: TelemetryType.Metric,
+        }),
+        TelemetryUtil.indexMetricNameServiceNameMap({
+          metricNameServiceNameMap: metricNameServiceNameMap,
+          projectId: (req as TelemetryRequest).projectId,
         }),
         OTelIngestService.recordDataIngestedUsgaeBilling({
           services: serviceDictionary,
