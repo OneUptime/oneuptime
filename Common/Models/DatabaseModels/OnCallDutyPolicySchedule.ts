@@ -421,8 +421,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Current User On Roster",
-    description:
-      "Relation to User who is currently on roster",
+    description: "Relation to User who is currently on roster",
   })
   @ManyToOne(
     () => {
@@ -439,9 +438,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   public currentUserOnRoster?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-     
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -453,8 +450,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Current User ID On Roster",
-    description:
-      "User ID who is currently on roster",
+    description: "User ID who is currently on roster",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -462,7 +458,6 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public currentUserIdOnRoster?: ObjectID = undefined;
-
 
   @ColumnAccessControl({
     create: [
@@ -484,8 +479,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "Next User On Roster",
-    description:
-      "Relation to User who is next on roster",
+    description: "Relation to User who is next on roster",
   })
   @ManyToOne(
     () => {
@@ -502,9 +496,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   public nextUserOnRoster?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-     
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -516,8 +508,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Next User ID On Roster",
-    description:
-      "Next ID who is currently on roster",
+    description: "Next ID who is currently on roster",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -526,11 +517,8 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   })
   public nextUserIdOnRoster?: ObjectID = undefined;
 
-
   @ColumnAccessControl({
-    create: [
-     
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -542,13 +530,11 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Roster Next Handoff At",
-    description:
-      "When is the next roster handoff for this schedule?",
+    description: "When is the next roster handoff for this schedule?",
   })
   @Column({
     type: ColumnType.Date,
     nullable: true,
   })
   public rosterNextHandoffAt?: Date = undefined;
-  
 }
