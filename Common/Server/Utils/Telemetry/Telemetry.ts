@@ -51,9 +51,9 @@ export default class TelemetryUtil {
 
         for (const telemetryServiceId of telemetryServicesInMap) {
           if (
-            !telemetryServiceIds.filter((serviceId: ObjectID) => {
+            telemetryServiceIds.filter((serviceId: ObjectID) => {
               return serviceId.toString() === telemetryServiceId.toString();
-            }).length
+            }).length === 0
           ) {
             isSame = false;
             // add the service id to the list
@@ -68,7 +68,7 @@ export default class TelemetryUtil {
         if (!isSame) {
           // update metric type
           await MetricTypeService.updateOneById({
-            _id: metricType.id!,
+            id: metricType.id!,
             data: {
               telemetryServices: metricType.telemetryServices || [],
             },

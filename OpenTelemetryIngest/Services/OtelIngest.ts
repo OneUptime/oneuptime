@@ -441,6 +441,14 @@ export default class OtelIngestService {
         }
       }
 
+      TelemetryUtil.indexMetricNameServiceNameMap({
+        metricNameServiceNameMap: metricNameServiceNameMap,
+        projectId: (req as TelemetryRequest).projectId,
+      }).catch((err: Error) => {
+        logger.error("Error indexing metric name service name map");
+        logger.error(err);
+      });
+
       await Promise.all([
         MetricService.createMany({
           items: dbMetrics,
@@ -452,10 +460,6 @@ export default class OtelIngestService {
           attributes: Array.from(attributeKeySet),
           projectId: (req as TelemetryRequest).projectId,
           telemetryType: TelemetryType.Metric,
-        }),
-        TelemetryUtil.indexMetricNameServiceNameMap({
-          metricNameServiceNameMap: metricNameServiceNameMap,
-          projectId: (req as TelemetryRequest).projectId,
         }),
         OTelIngestService.recordDataIngestedUsgaeBilling({
           services: serviceDictionary,
