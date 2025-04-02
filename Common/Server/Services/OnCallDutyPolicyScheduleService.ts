@@ -18,11 +18,108 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
-  @CaptureSpan()
-  public async getCurrentUserIdInSchedule(
+  public async refreshCurrentUserIdAndHandoffTimeInSchedule(
     scheduleId: ObjectID,
-  ): Promise<ObjectID | null> {
+  ): Promise<{
+    currentUserId: ObjectID | null;
+    handOffTime: Date | null;
+    nextUserId: ObjectID | null;
+  }> {
+    const result: {
+      currentUserId: ObjectID | null;
+      handOffTime: Date | null;
+      nextUserId: ObjectID | null;
+    } = await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId);
+
+    await this.updateOneById({
+      id: scheduleId!,
+      data: {
+        currentUserIdOnRoster: result.currentUserId,
+        rosterNextHandoffAt: result.handOffTime,
+        nextUserIdOnRoster: result.nextUserId,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    return result;
+  }
+
+  public async getCurrrentUserIdAndHandoffTimeInSchedule(
+    scheduleId: ObjectID,
+  ): Promise<{
+    currentUserId: ObjectID | null;
+    handOffTime: Date | null;
+    nextUserId: ObjectID | null;
+  }> {
+    const resultReturn: {
+      currentUserId: ObjectID | null;
+      handOffTime: Date | null;
+      nextUserId: ObjectID | null;
+    } = {
+      currentUserId: null,
+      handOffTime: null,
+      nextUserId: null,
+    };
+
+    const currentEvent: CalendarEvent | null =
+      await this.getEventByIndexInSchedule({
+        scheduleId: scheduleId,
+        eventIndex: 0,
+      });
+
+    if (!currentEvent) {
+      return resultReturn;
+    }
+
+    const userId: string | undefined = currentEvent?.title; // this is user id in string.
+
+    if (!userId) {
+      return resultReturn;
+    }
+
+    resultReturn.currentUserId = new ObjectID(userId);
+
+    // get next event
+    const nextEvent: CalendarEvent | null =
+      await this.getEventByIndexInSchedule({
+        scheduleId: scheduleId,
+        eventIndex: 1,
+      });
+
+    if (!nextEvent) {
+      return resultReturn;
+    }
+
+    const nextUserId: string | undefined = nextEvent?.title; // this is user id in string.
+    if (!nextUserId) {
+      return resultReturn;
+    }
+
+    resultReturn.nextUserId = new ObjectID(nextUserId);
+
+    // get handOffTime
+    const handOffTime: Date | undefined = currentEvent?.end; // this is user id in string.
+
+    if (!handOffTime) {
+      return resultReturn;
+    }
+
+    resultReturn.handOffTime = handOffTime;
+
+    return resultReturn;
+  }
+
+  public async getEventByIndexInSchedule(data: {
+    scheduleId: ObjectID;
+    eventIndex: number; // which event would you like to get. First event, second event, etc.
+  }): Promise<CalendarEvent | null> {
     // get schedule layers.
+
+    const scheduleId: ObjectID = data.scheduleId;
+    const eventIndex: number = data.eventIndex;
 
     const layers: Array<OnCallDutyPolicyScheduleLayer> =
       await OnCallDutyPolicyScheduleLayerService.findBy({
@@ -71,7 +168,7 @@ export class Service extends DatabaseService<Model> {
       });
 
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
-    const currentEndTime: Date = OneUptimeDate.addRemoveSeconds(
+    const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
       1,
     );
@@ -101,17 +198,41 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents({
-      layers: layerProps,
-      calendarStartDate: currentStartTime,
-      calendarEndDate: currentEndTime,
-    });
+    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
+      {
+        layers: layerProps,
+        calendarStartDate: currentStartTime,
+        calendarEndDate: currentEndTime,
+      },
+      {
+        getEventByIndex: eventIndex,
+      },
+    );
 
     if (events.length === 0) {
       return null;
     }
 
-    const userId: string | undefined = events[0]?.title; // this is user id in string.
+    const event: CalendarEvent = events[0]!;
+
+    return event;
+  }
+
+  @CaptureSpan()
+  public async getCurrentUserIdInSchedule(
+    scheduleId: ObjectID,
+  ): Promise<ObjectID | null> {
+    const currentEvent: CalendarEvent | null =
+      await this.getEventByIndexInSchedule({
+        scheduleId: scheduleId,
+        eventIndex: 0,
+      });
+
+    if (!currentEvent) {
+      return null;
+    }
+
+    const userId: string | undefined = currentEvent?.title; // this is user id in string.
 
     if (!userId) {
       return null;

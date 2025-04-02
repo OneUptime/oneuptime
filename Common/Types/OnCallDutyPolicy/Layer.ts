@@ -35,7 +35,14 @@ export interface PriorityCalendarEvents extends CalendarEvent {
 }
 
 export default class LayerUtil {
-  public static getEvents(data: EventProps): Array<CalendarEvent> {
+  public static getEvents(
+    data: EventProps,
+    options?:
+      | {
+          getEventByIndex?: number;
+        }
+      | undefined,
+  ): Array<CalendarEvent> {
     let events: Array<CalendarEvent> = [];
 
     if (!LayerUtil.isDataValid(data)) {
@@ -156,6 +163,12 @@ export default class LayerUtil {
         ),
       ];
 
+      if (options?.getEventByIndex !== undefined) {
+        if (events.length > options.getEventByIndex) {
+          return [events[options.getEventByIndex] as CalendarEvent];
+        }
+      }
+
       // update the current event start time
 
       currentEventStartTime = OneUptimeDate.addRemoveSeconds(
@@ -185,6 +198,13 @@ export default class LayerUtil {
     for (const event of events) {
       event.id = id;
       id++;
+    }
+
+    if (options?.getEventByIndex !== undefined) {
+      if (events.length > options.getEventByIndex) {
+        return [events[options.getEventByIndex] as CalendarEvent];
+      }
+      return [];
     }
 
     return events;
@@ -814,20 +834,28 @@ export default class LayerUtil {
 
   public static getMultiLayerEvents(
     data: MultiLayerProps,
+    options?:
+      | {
+          getEventByIndex?: number;
+        }
+      | undefined,
   ): Array<CalendarEvent> {
     const events: Array<PriorityCalendarEvents> = [];
     let layerPriority: number = 1;
 
     for (const layer of data.layers) {
-      const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents({
-        users: layer.users,
-        startDateTimeOfLayer: layer.startDateTimeOfLayer,
-        restrictionTimes: layer.restrictionTimes,
-        handOffTime: layer.handOffTime,
-        rotation: layer.rotation,
-        calendarStartDate: data.calendarStartDate,
-        calendarEndDate: data.calendarEndDate,
-      });
+      const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents(
+        {
+          users: layer.users,
+          startDateTimeOfLayer: layer.startDateTimeOfLayer,
+          restrictionTimes: layer.restrictionTimes,
+          handOffTime: layer.handOffTime,
+          rotation: layer.rotation,
+          calendarStartDate: data.calendarStartDate,
+          calendarEndDate: data.calendarEndDate,
+        },
+        options,
+      );
 
       // add priority to each event
 
@@ -848,6 +876,13 @@ export default class LayerUtil {
 
     const nonOverlappingEvents: Array<CalendarEvent> =
       LayerUtil.removeOverlappingEvents(events);
+
+    if (options?.getEventByIndex !== undefined) {
+      if (nonOverlappingEvents.length > options.getEventByIndex) {
+        return [nonOverlappingEvents[options.getEventByIndex] as CalendarEvent];
+      }
+      return [];
+    }
 
     return nonOverlappingEvents;
   }

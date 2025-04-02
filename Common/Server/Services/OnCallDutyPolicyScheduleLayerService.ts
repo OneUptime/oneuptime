@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -10,6 +10,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -51,6 +52,61 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const resource: Model | null = await this.findOneById({
+      id: createdItem.id!,
+      select: {
+        onCallDutyPolicyScheduleId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!resource || !resource.onCallDutyPolicyScheduleId) {
+      return createdItem;
+    }
+
+    await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+      resource.onCallDutyPolicyScheduleId,
+    );
+
+    return createdItem;
+  }
+
+  protected override async onUpdateSuccess(
+    _onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    for (const item of updatedItemIds) {
+      const resource: Model | null = await this.findOneById({
+        id: item,
+        select: {
+          onCallDutyPolicyScheduleId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!resource || !resource.onCallDutyPolicyScheduleId) {
+        continue;
+      }
+
+      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        resource.onCallDutyPolicyScheduleId,
+      );
+    }
+
+    return {
+      updateBy: _onUpdate.updateBy,
+      carryForward: null,
+    };
+  }
+
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
@@ -65,6 +121,10 @@ export class Service extends DatabaseService<Model> {
           resource.order,
           resource.onCallDutyPolicyScheduleId,
           false,
+        );
+
+        await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          resource.onCallDutyPolicyScheduleId,
         );
       }
     }

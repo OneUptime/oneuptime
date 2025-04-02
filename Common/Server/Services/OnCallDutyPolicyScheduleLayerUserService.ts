@@ -11,6 +11,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -79,6 +80,12 @@ export class Service extends DatabaseService<Model> {
           resource.onCallDutyPolicyScheduleLayerId,
           false,
         );
+
+        if (resource.onCallDutyPolicyScheduleId) {
+          await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+            resource.onCallDutyPolicyScheduleId,
+          );
+        }
       }
     }
 
@@ -109,6 +116,7 @@ export class Service extends DatabaseService<Model> {
         select: {
           order: true,
           onCallDutyPolicyScheduleLayerId: true,
+          onCallDutyPolicyScheduleId: true,
         },
       });
     }
@@ -116,6 +124,61 @@ export class Service extends DatabaseService<Model> {
     return {
       deleteBy,
       carryForward: resource,
+    };
+  }
+
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    const resource: Model | null = await this.findOneById({
+      id: createdItem.id!,
+      select: {
+        onCallDutyPolicyScheduleId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!resource || !resource.onCallDutyPolicyScheduleId) {
+      return createdItem;
+    }
+
+    await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+      resource.onCallDutyPolicyScheduleId,
+    );
+
+    return createdItem;
+  }
+
+  protected override async onUpdateSuccess(
+    _onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    for (const item of updatedItemIds) {
+      const resource: Model | null = await this.findOneById({
+        id: item,
+        select: {
+          onCallDutyPolicyScheduleId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!resource || !resource.onCallDutyPolicyScheduleId) {
+        continue;
+      }
+
+      await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
+        resource.onCallDutyPolicyScheduleId,
+      );
+    }
+
+    return {
+      updateBy: _onUpdate.updateBy,
+      carryForward: null,
     };
   }
 
