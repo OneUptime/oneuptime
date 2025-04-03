@@ -1,4 +1,3 @@
-
 import UserMiddleware from "../Middleware/UserAuthorization";
 import OnCallDutyPolicyService, {
   Service as OnCallDutyPolicyServiceType,
@@ -29,7 +28,7 @@ export default class OnCallDutyPolicyAPI extends BaseAPI<
 
     // CNAME verification api. THis API will be used from the dashboard to validate the CNAME MANUALLY.
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/current-escalation-policies`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/current-on-duty-escalation-policies`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -44,7 +43,7 @@ export default class OnCallDutyPolicyAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid projectId.")
+              new BadDataException("Invalid projectId."),
             );
           }
 
@@ -52,7 +51,7 @@ export default class OnCallDutyPolicyAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid userId.")
+              new BadDataException("Invalid userId."),
             );
           }
 
@@ -68,21 +67,21 @@ export default class OnCallDutyPolicyAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             escalationRulesByUser: BaseModel.toJSONArray(
               result.escalationRulesByUser,
-              OnCallDutyPolicyEscalationRuleUser
+              OnCallDutyPolicyEscalationRuleUser,
             ),
             escalationRulesByTeam: BaseModel.toJSONArray(
               result.escalationRulesByTeam,
-              OnCallDutyPolicyEscalationRuleTeam
+              OnCallDutyPolicyEscalationRuleTeam,
             ),
             escalationRulesBySchedule: BaseModel.toJSONArray(
               result.escalationRulesBySchedule,
-              OnCallDutyPolicyEscalationRuleSchedule
+              OnCallDutyPolicyEscalationRuleSchedule,
             ),
           });
         } catch (e) {
           next(e);
         }
-      }
+      },
     );
   }
 }

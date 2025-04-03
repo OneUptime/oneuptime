@@ -10,7 +10,7 @@ import UserProfile from "./UserProfile";
 import Route from "Common/Types/API/Route";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
-import { VoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
@@ -20,7 +20,7 @@ import HeaderAlert, {
 import HeaderModelAlert from "Common/UI/Components/HeaderAlert/HeaderModelAlert";
 import HeaderAlertGroup from "Common/UI/Components/HeaderAlert/HeaderAlertGroup";
 import { SizeProp } from "Common/UI/Components/Icon/Icon";
-import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
+import { APP_API_URL, BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
@@ -36,6 +36,19 @@ import Realtime from "Common/UI/Utils/Realtime";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import ObjectID from "Common/Types/ObjectID";
+import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
+import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONObject } from "Common/Types/JSON";
+import API from "Common/Utils/API";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import URL from "Common/Types/API/URL";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 
 export interface ComponentProps {
   projects: Array<Project>;
@@ -168,6 +181,143 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  const [
+    _currentOnCallDutyEscalationPolicyUser,
+    setCurrentOnCallDutyEscalationPolicyUser,
+  ] = useState<Array<OnCallDutyPolicyEscalationRuleUser>>([]);
+  const [
+    _currentOnCallDutyEscalationPolicyTeam,
+    setCurrentOnCallDutyEscalationPolicyTeam,
+  ] = useState<Array<OnCallDutyPolicyEscalationRuleTeam>>([]);
+
+  const [
+    _currentOnCallDutyEscalationPolicySchedule,
+    setCurrentOnCallDutyEscalationPolicySchedule,
+  ] = useState<Array<OnCallDutyPolicyEscalationRuleSchedule>>([]);
+
+  const [onCallDutyPolicyFetchError, setOnCallDutyPolicyFetchError] = useState<
+    string | null
+  >(null);
+
+  const [currentOnCallDutyPolicy, setCurrentOnCallDutyPolicy] = useState<
+    Array<OnCallDutyPolicy>
+  >([]);
+
+  const fetchCurrentOnCallDutyPolicies: PromiseVoidFunction = async (): Promise<void> => {
+    try {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+      if (projectId) {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.get<JSONObject>(
+            URL.fromString(APP_API_URL.toString()).addRoute(
+              `/${
+                new OnCallDutyPolicy().crudApiPath
+              }/current-on-duty-escalation-policies`,
+            ),
+            {},
+            ModelAPI.getCommonHeaders(),
+          );
+
+        if (response.isFailure()) {
+          throw response;
+        }
+
+        const result: JSONObject = response.jsonData as JSONObject;
+
+        const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
+          DatabaseBaseModel.fromJSONArray(
+            result["escalationRulesByUser"] as Array<JSONObject>,
+            OnCallDutyPolicyEscalationRuleUser,
+          ) as Array<OnCallDutyPolicyEscalationRuleUser>;
+
+        const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
+          DatabaseBaseModel.fromJSONArray(
+            result["escalationRulesByTeam"] as Array<JSONObject>,
+            OnCallDutyPolicyEscalationRuleTeam,
+          ) as Array<OnCallDutyPolicyEscalationRuleTeam>;
+
+        const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
+          DatabaseBaseModel.fromJSONArray(
+            result["escalationRulesBySchedule"] as Array<JSONObject>,
+            OnCallDutyPolicyEscalationRuleSchedule,
+          ) as Array<OnCallDutyPolicyEscalationRuleSchedule>;
+
+        setCurrentOnCallDutyEscalationPolicyUser(escalationRulesByUser);
+        setCurrentOnCallDutyEscalationPolicyTeam(escalationRulesByTeam);
+        setCurrentOnCallDutyEscalationPolicySchedule(escalationRulesBySchedule);
+
+        // now get the current on call schedules fron escalationRulesBySchedule
+        const currentOnCallDutyPolicy: Array<OnCallDutyPolicy> = [];
+
+        for (const escalationRule of escalationRulesBySchedule) {
+          const onCallPolicy: OnCallDutyPolicy | undefined =
+            escalationRule.onCallDutyPolicy;
+
+          if (onCallPolicy) {
+            // check if the onCallPolicy is already in the currentOnCallSchedules
+            const onCallPolicyIndex: number = currentOnCallDutyPolicy.findIndex(
+              (schedule: OnCallDutyPolicy) => {
+                return schedule.id?.toString() === onCallPolicy.id?.toString();
+              },
+            );
+
+            if (onCallPolicyIndex === -1) {
+              currentOnCallDutyPolicy.push(onCallPolicy);
+            }
+          }
+        }
+
+        // do the same for users and teams.
+        for (const escalationRule of escalationRulesByUser) {
+          const onCallPolicy: OnCallDutyPolicy | undefined =
+            escalationRule.onCallDutyPolicy;
+          if (onCallPolicy) {
+            // check if the onCallPolicy is already in the currentOnCallSchedules
+            const onCallPolicyIndex: number = currentOnCallDutyPolicy.findIndex(
+              (schedule: OnCallDutyPolicy) => {
+                return schedule.id?.toString() === onCallPolicy.id?.toString();
+              },
+            );
+            if (onCallPolicyIndex === -1) {
+              currentOnCallDutyPolicy.push(onCallPolicy);
+            }
+          }
+        }
+
+        // do the same for teams.
+
+        for (const escalationRule of escalationRulesByTeam) {
+          const onCallPolicy: OnCallDutyPolicy | undefined =
+            escalationRule.onCallDutyPolicy;
+          if (onCallPolicy) {
+            // check if the onCallPolicy is already in the currentOnCallSchedules
+            const onCallPolicyIndex: number = currentOnCallDutyPolicy.findIndex(
+              (schedule: OnCallDutyPolicy) => {
+                return schedule.id?.toString() === onCallPolicy.id?.toString();
+              },
+            );
+            if (onCallPolicyIndex === -1) {
+              currentOnCallDutyPolicy.push(onCallPolicy);
+            }
+          }
+        }
+
+        setCurrentOnCallDutyPolicy(currentOnCallDutyPolicy);
+      }
+    } catch (err) {
+      setOnCallDutyPolicyFetchError(
+        "Something isnt right, we are unable to fetch on-call policies that you are on duty for. Reload the page to try again.",
+      );
+    }
+  };
+
+  useEffect(() => {
+    fetchCurrentOnCallDutyPolicies().catch(() => {
+      // ignore this.
+    });
+  }, [props.selectedProject]);
+
   const showAddCardButton: boolean = Boolean(
     BILLING_ENABLED &&
       props.selectedProject?.id &&
@@ -198,6 +348,19 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      {onCallDutyPolicyFetchError ? (
+        <ConfirmModal
+          description={onCallDutyPolicyFetchError}
+          title={`Error loading on-call policies`}
+          onSubmit={() => {
+            setOnCallDutyPolicyFetchError(null);
+          }}
+          submitButtonText={`Close`}
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      ) : (
+        <></>
+      )}
       <Header
         leftComponents={
           <>
@@ -305,6 +468,26 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         : "day"
                     }`}
                   />
+                )}
+
+                {props.selectedProject && currentOnCallDutyPolicy.length > 0 ? (
+                  <HeaderAlert
+                    icon={IconProp.Call}
+                    tooltip="On-call policies you are currently on duty for"
+                    alertType={HeaderAlertType.SUCCESS}
+                    onClick={() => {
+                      Navigation.navigate(
+                        RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.SETTINGS_BILLING]!,
+                        ),
+                      );
+                    }}
+                    title={`${currentOnCallDutyPolicy.length} ${
+                      currentOnCallDutyPolicy.length > 1 ? "policies" : "policy"
+                    }`}
+                  />
+                ) : (
+                  <></>
                 )}
               </HeaderAlertGroup>
             </div>

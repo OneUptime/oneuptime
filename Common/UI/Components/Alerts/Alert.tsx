@@ -107,7 +107,7 @@ const Alert: FunctionComponent<ComponentProps> = (
             )}
             {type === AlertType.INFO && (
               <Icon
-                icon={props.icon ||  IconProp.Info}
+                icon={props.icon || IconProp.Info}
                 className={`h-5 w-5 ${textClassName}`}
               />
             )}

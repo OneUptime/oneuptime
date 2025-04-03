@@ -530,7 +530,8 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Roster Handoff At",
-    description: "When is the roster handoff for this schedule for the current user?",
+    description:
+      "When is the roster handoff for this schedule for the current user?",
   })
   @Column({
     type: ColumnType.Date,
@@ -551,7 +552,8 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   @TableColumn({
     type: TableColumnType.Date,
     title: "Roster Next Handoff At",
-    description: "When is the next roster handoff for this schedule for the next user?",
+    description:
+      "When is the next roster handoff for this schedule for the next user?",
   })
   @Column({
     type: ColumnType.Date,

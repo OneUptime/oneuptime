@@ -11,13 +11,15 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamMemberService from "./TeamMemberService";
 
 export class Service extends DatabaseService<Model> {
-
   public constructor() {
     super(Model);
   }
 
-  public async getTeamsUserIsAPartOf(data: { userId: ObjectID; projectId: ObjectID; }): Promise<Array<Model>> {
-   const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
+  public async getTeamsUserIsAPartOf(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         userId: data.userId,
         projectId: data.projectId,
@@ -26,13 +28,13 @@ export class Service extends DatabaseService<Model> {
         team: {
           name: true,
           _id: true,
-        }
+        },
       },
       limit: LIMIT_MAX,
       skip: 0,
       props: {
         isRoot: true,
-      }
+      },
     });
 
     const teams: Array<Model> = [];
@@ -44,7 +46,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return teams;
-
   }
 
   @CaptureSpan()

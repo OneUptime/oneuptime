@@ -30,12 +30,12 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
   @CaptureSpan()
   public async getOnCallPolicyLinkInDashboard(
     projectId: ObjectID,
-    onCallDutyPolicyId: ObjectID
+    onCallDutyPolicyId: ObjectID,
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
     );
   }
 
@@ -46,7 +46,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
-    }
+    },
   ): Promise<void> {
     // execute this policy
 
@@ -56,7 +56,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       !options.triggeredByIncidentId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated"
+        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
       );
     }
 
@@ -66,7 +66,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated"
+        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
       );
     }
 
@@ -83,7 +83,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
     if (!policy) {
       throw new BadDataException(
-        `On-Call Duty Policy with id ${policyId.toString()} not found`
+        `On-Call Duty Policy with id ${policyId.toString()} not found`,
       );
     }
 
@@ -124,7 +124,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     // get all schedules where user is on call duty.
     const onCallSchedules: Array<OnCallDutyPolicySchedule> =
       await OnCallDutyPolicyScheduleService.getOnCallSchedulesWhereUserIsOnCallDuty(
-        data
+        data,
       );
 
     const teams: Array<Team> = await TeamService.getTeamsUserIsAPartOf({
@@ -161,7 +161,11 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
       await OnCallDutyPolicyEscalationRuleTeamService.findBy({
         query: {
-          teamId: QueryHelper.any(teams.map((team) => team.id!)),
+          teamId: QueryHelper.any(
+            teams.map((team: Team) => {
+              return team.id!;
+            }),
+          ),
           projectId: data.projectId!,
         },
         select: {
@@ -182,7 +186,9 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
         query: {
           onCallDutyPolicyScheduleId: QueryHelper.any(
-            onCallSchedules.map((schedule) => schedule.id!)
+            onCallSchedules.map((schedule: OnCallDutyPolicySchedule) => {
+              return schedule.id!;
+            }),
           ),
           projectId: data.projectId!,
         },
@@ -199,12 +205,11 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         },
       });
 
-
-      return  {
-        escalationRulesByUser: escalationRulesByUser,
-        escalationRulesByTeam: escalationRulesByTeam,
-        escalationRulesBySchedule: escalationRulesBySchedule,
-      }
+    return {
+      escalationRulesByUser: escalationRulesByUser,
+      escalationRulesByTeam: escalationRulesByTeam,
+      escalationRulesBySchedule: escalationRulesBySchedule,
+    };
   }
 }
 export default new Service();

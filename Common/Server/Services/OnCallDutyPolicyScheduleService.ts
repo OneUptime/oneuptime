@@ -14,12 +14,14 @@ import User from "Common/Models/DatabaseModels/User";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
-  
   public constructor() {
     super(Model);
   }
 
-  public async getOnCallSchedulesWhereUserIsOnCallDuty(data: { projectId: ObjectID; userId: ObjectID; }): Promise<Array<Model>> {
+  public async getOnCallSchedulesWhereUserIsOnCallDuty(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<Array<Model>> {
     const schedules: Array<Model> = await this.findBy({
       query: {
         projectId: data.projectId,
@@ -40,7 +42,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public async refreshCurrentUserIdAndHandoffTimeInSchedule(
-    scheduleId: ObjectID
+    scheduleId: ObjectID,
   ): Promise<{
     currentUserId: ObjectID | null;
     handOffTimeAt: Date | null;
@@ -72,7 +74,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   public async getCurrrentUserIdAndHandoffTimeInSchedule(
-    scheduleId: ObjectID
+    scheduleId: ObjectID,
   ): Promise<{
     currentUserId: ObjectID | null;
     handOffTimeAt: Date | null;
@@ -191,7 +193,7 @@ export class Service extends DatabaseService<Model> {
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
     const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
-      1
+      1,
     );
 
     const layerProps: Array<LayerProps> = [];
@@ -227,7 +229,7 @@ export class Service extends DatabaseService<Model> {
       },
       {
         getNumberOfEvents: numberOfEventsToGet,
-      }
+      },
     );
 
     return events;
@@ -235,7 +237,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
-    scheduleId: ObjectID
+    scheduleId: ObjectID,
   ): Promise<ObjectID | null> {
     const events: Array<CalendarEvent> = await this.getEventByIndexInSchedule({
       scheduleId: scheduleId,
