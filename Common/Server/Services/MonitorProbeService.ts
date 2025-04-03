@@ -28,7 +28,7 @@ export class Service extends DatabaseService<MonitorProbe> {
         probeId: true,
         monitor: {
           monitoringInterval: true,
-        }
+        },
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -56,21 +56,21 @@ export class Service extends DatabaseService<MonitorProbe> {
       }
 
       if (nextPing && monitorProbe.id) {
-       await this.updateOneById({
-        id: monitorProbe.id,
-        data: {
-          nextPingAt: nextPing,
-        },
-        props: {
-          isRoot: true,
-        },
-       });
+        await this.updateOneById({
+          id: monitorProbe.id,
+          data: {
+            nextPingAt: nextPing,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
       }
     }
   }
 
   protected override async onBeforeCreate(
-    createBy: CreateBy<MonitorProbe>
+    createBy: CreateBy<MonitorProbe>,
   ): Promise<OnCreate<MonitorProbe>> {
     if (
       (createBy.data.monitorId || createBy.data.monitor) &&
@@ -107,7 +107,7 @@ export class Service extends DatabaseService<MonitorProbe> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<MonitorProbe>,
-    createdItem: MonitorProbe
+    createdItem: MonitorProbe,
   ): Promise<MonitorProbe> {
     if (createdItem.probeId) {
       await MonitorService.refreshProbeStatus(createdItem.probeId);
@@ -118,7 +118,7 @@ export class Service extends DatabaseService<MonitorProbe> {
 
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<MonitorProbe>,
-    updatedItemIds: ObjectID[]
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<MonitorProbe>> {
     // if isEnabled is updated, refresh the probe status
     if (onUpdate.updateBy.data.isEnabled !== undefined) {

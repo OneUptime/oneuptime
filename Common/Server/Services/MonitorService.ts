@@ -148,11 +148,11 @@ export class Service extends DatabaseService<Model> {
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-          if(onUpdate.updateBy.data.monitoringInterval) {
-            await MonitorProbeService.updateNextPingAtForMonitor({
-              monitorId: monitorId
-            });
-          }
+        if (onUpdate.updateBy.data.monitoringInterval) {
+          await MonitorProbeService.updateNextPingAtForMonitor({
+            monitorId: monitorId,
+          });
+        }
 
         if (onUpdate.updateBy.data.name) {
           // add monitor feed.
