@@ -54,6 +54,8 @@ export class Service extends DatabaseService<Model> {
       handOffTimeAt: Date | null;
       nextUserId: ObjectID | null;
       nextHandOffTimeAt: Date | null;
+      rosterStartAt: Date | null;
+      nextRosterStartAt: Date | null;
     } = await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId);
 
     await this.updateOneById({
@@ -63,6 +65,8 @@ export class Service extends DatabaseService<Model> {
         rosterHandoffAt: result.handOffTimeAt,
         nextUserIdOnRoster: result.nextUserId,
         rosterNextHandoffAt: result.nextHandOffTimeAt,
+        rosterStartAt: result.rosterStartAt,
+        rosterNextStartAt: result.nextRosterStartAt,
       },
       props: {
         isRoot: true,
@@ -76,21 +80,27 @@ export class Service extends DatabaseService<Model> {
   public async getCurrrentUserIdAndHandoffTimeInSchedule(
     scheduleId: ObjectID,
   ): Promise<{
+    rosterStartAt: Date | null;
     currentUserId: ObjectID | null;
     handOffTimeAt: Date | null;
     nextUserId: ObjectID | null;
     nextHandOffTimeAt: Date | null;
+    nextRosterStartAt: Date | null;
   }> {
     const resultReturn: {
+      rosterStartAt: Date | null;
       currentUserId: ObjectID | null;
       handOffTimeAt: Date | null;
       nextUserId: ObjectID | null;
       nextHandOffTimeAt: Date | null;
+      nextRosterStartAt: Date | null;
     } = {
       currentUserId: null,
       handOffTimeAt: null,
       nextUserId: null,
       nextHandOffTimeAt: null,
+      rosterStartAt: null,
+      nextRosterStartAt: null,
     };
 
     const events: Array<CalendarEvent> | null =
@@ -120,6 +130,13 @@ export class Service extends DatabaseService<Model> {
       if (handOffTime) {
         resultReturn.handOffTimeAt = handOffTime;
       }
+
+      // get start time
+      const startTime: Date | undefined = currentEvent?.start; // this is user id in string.
+      if (startTime) {
+        resultReturn.rosterStartAt = startTime;
+      }
+
     }
 
     // do the same for next event.
@@ -135,6 +152,12 @@ export class Service extends DatabaseService<Model> {
       const handOffTime: Date | undefined = nextEvent?.end; // this is user id in string.
       if (handOffTime) {
         resultReturn.nextHandOffTimeAt = handOffTime;
+      }
+
+      // get start time
+      const startTime: Date | undefined = nextEvent?.start; // this is user id in string.
+      if (startTime) {
+        resultReturn.nextRosterStartAt = startTime;
       }
     }
 
