@@ -52,11 +52,7 @@ install_system_packages() {
             sudo apt-get install -y $REQUIRED_PACKAGES
         elif [[ ${DISTRIB} = "fedora"* ]] || [[ ${DISTRIB} = "almalinux"* ]] || [[ ${DISTRIB} = "rockylinux"* ]] || [[ ${DISTRIB} = "rhel"* ]]; then
             print_info "Updating package cache..."
-            if [[ ${DISTRIB} = "rhel"* ]]; then
-                print_info "Enabling EPEL repository for RHEL..."
-                sudo yum install -y epel-release
-            fi
-            sudo yum install -y $REQUIRED_PACKAGES
+            sudo dnf install -y $REQUIRED_PACKAGES
         else
             print_error "Unsupported Linux distribution: $DISTRIB"
             exit 1
