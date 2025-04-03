@@ -35,6 +35,9 @@ import {
   StripeError,
   loadStripe,
 } from "@stripe/stripe-js";
+import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -90,8 +93,33 @@ const Settings: FunctionComponent<ComponentProps> = (
           return;
         }
 
+        // get payment methods. 
+        const paymentMethodsResult: ListResult<BillingPaymentMethod> = await ModelAPI.getList({
+          modelType: BillingPaymentMethod,
+          select: {
+            id: true,
+            paymentProviderPaymentMethodId: true,
+            paymentProviderCustomerId: true,
+            isDefault: true,
+          },
+          query: {
+            paymentProviderCustomerId: customerId,
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          sort: {},
+          skip: 0,
+          limit: LIMIT_PER_PROJECT
+        });
+
+        if(!paymentMethodsResult || paymentMethodsResult.data.length === 0) {
+          setError("Payment methods not found. Please try again later");
+          return;
+        }
+
         const paymentIntentResult: PaymentIntentResult =
-          await stripe.confirmCardPayment(clientSecret || "");
+          await stripe.confirmCardPayment(clientSecret || "", {
+            payment_method: paymentMethodsResult.data[0]!.paymentProviderPaymentMethodId || ""
+          });
 
         if (paymentIntentResult.error) {
           // Display error.message in your UI.
