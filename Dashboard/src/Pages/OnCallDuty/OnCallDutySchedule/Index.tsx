@@ -11,6 +11,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import OneUptimeDate from "Common/Types/Date";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
@@ -20,6 +21,29 @@ const OnCallDutyScheduleView: FunctionComponent<
 
   const [onCallSchedule, setOnCallSchedule] =
     React.useState<OnCallDutySchedule | null>(null);
+
+  let alertTitle: ReactElement | null = null;
+
+  if (onCallSchedule) {
+
+    alertTitle = (
+      <div>
+        {onCallSchedule.currentUserOnRoster && <span>
+          <strong>{onCallSchedule.currentUserOnRoster.name?.toString() || ""}</strong> is on
+          call now.
+        </span>}
+        {onCallSchedule.nextUserOnRoster && <span>
+          <strong>{onCallSchedule.nextUserOnRoster.name?.toString() || ""}</strong> will be on
+          call next.
+        </span>}
+        {onCallSchedule.rosterNextHandoffAt && <span>
+          <strong>{OneUptimeDate.getDateAsLocalFormattedString(onCallSchedule.rosterNextHandoffAt)}</strong> is the
+          next handoff time.
+        </span>}
+      </div>
+    );
+
+  }
 
   return (
     <Fragment>
@@ -83,7 +107,7 @@ const OnCallDutyScheduleView: FunctionComponent<
             placeholder: "Labels",
           },
         ]}
-        
+
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: OnCallDutySchedule,
@@ -143,11 +167,10 @@ const OnCallDutyScheduleView: FunctionComponent<
         }}
       />
 
-      {onCallSchedule && <Alert  
+      {onCallSchedule &&  alertTitle && <Alert  
         type={AlertType.INFO}
-        title={<}
-        
-      />
+        title={alertTitle}
+      />}
 
       <FinalPreview
         onCallDutyPolicyScheduleId={modelId}
