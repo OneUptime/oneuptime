@@ -483,7 +483,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                       );
                     }}
                     title={`${currentOnCallDutyPolicy.length} ${
-                      currentOnCallDutyPolicy.length > 1 ? "policies" : "policy"
+                      currentOnCallDutyPolicy.length > 1 ? "On-Call Policies" : "On-Call Policy"
                     }`}
                   />
                 ) : (

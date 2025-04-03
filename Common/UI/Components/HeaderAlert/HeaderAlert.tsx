@@ -29,7 +29,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
 
   switch (props.alertType) {
     case HeaderAlertType.SUCCESS:
-      textColor = "text-green-500 hover:text-green-600";
+      textColor = "text-emerald-500 hover:text-emerald-600";
       break;
     case HeaderAlertType.ERROR:
       textColor = "text-red-500 hover:text-red-600";
@@ -46,7 +46,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
 
   switch (props.alertType) {
     case HeaderAlertType.SUCCESS:
-      bgColor = "bg-green";
+      bgColor = "bg-emerald";
       break;
     case HeaderAlertType.ERROR:
       bgColor = "bg-red";
