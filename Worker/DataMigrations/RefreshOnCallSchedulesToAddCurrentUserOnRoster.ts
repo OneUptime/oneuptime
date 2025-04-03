@@ -12,17 +12,18 @@ export default class RefreshOnCallSchedulesToAddCurrentUserOnRoster extends Data
   public override async migrate(): Promise<void> {
     // get all the users with email isVerified true.
 
-    const onCallSchedules: Array<OnCallDutyPolicySchedule> = await OnCallDutyPolicyScheduleService.findBy({
+    const onCallSchedules: Array<OnCallDutyPolicySchedule> =
+      await OnCallDutyPolicyScheduleService.findBy({
         query: {},
         select: {
-            _id: true,
+          _id: true,
         },
         skip: 0,
         limit: LIMIT_MAX,
         props: {
-            isRoot: true,
+          isRoot: true,
         },
-    });
+      });
 
     for (const schedule of onCallSchedules) {
       try {
@@ -35,7 +36,6 @@ export default class RefreshOnCallSchedulesToAddCurrentUserOnRoster extends Data
         );
       }
     }
-
   }
 
   public override async rollback(): Promise<void> {

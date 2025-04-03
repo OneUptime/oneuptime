@@ -104,7 +104,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddAttributesColumnToTelemetryAttribute(),
   new DeleteAllTelemetryAttributes(),
   new DropDescriptionAndUnitColumnFromMetrics(),
-  new RefreshOnCallSchedulesToAddCurrentUserOnRoster()
+  new RefreshOnCallSchedulesToAddCurrentUserOnRoster(),
 ];
 
 export default DataMigrations;
