@@ -213,7 +213,7 @@ const OnCallDutyScheduleView: FunctionComponent<
       />
 
       {onCallSchedule && alertTitle && (
-        <Alert type={AlertType.INFO} title={alertTitle} icon={IconProp.User} />
+        <Alert type={AlertType.INFO} title={alertTitle} icon={IconProp.Calendar} />
       )}
 
       <FinalPreview
