@@ -12,6 +12,9 @@ import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/F
 import ProjectUtil from "Common/UI/Utils/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import AppLink from "../../../Components/AppLink/AppLink";
+import DashboardUserUtil from "../../../Utils/User";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
@@ -24,25 +27,63 @@ const OnCallDutyScheduleView: FunctionComponent<
 
   let alertTitle: ReactElement | null = null;
 
-  if (onCallSchedule) {
-
+  if (onCallSchedule && (onCallSchedule.currentUserOnRoster || onCallSchedule.nextUserOnRoster)) {
     alertTitle = (
-      <div>
-        {onCallSchedule.currentUserOnRoster && <span>
-          <strong>{onCallSchedule.currentUserOnRoster.name?.toString() || ""}</strong> is on
-          call now.
-        </span>}
-        {onCallSchedule.nextUserOnRoster && <span>
-          <strong>{onCallSchedule.nextUserOnRoster.name?.toString() || ""}</strong> will be on
-          call next.
-        </span>}
-        {onCallSchedule.rosterNextHandoffAt && <span>
-          <strong>{OneUptimeDate.getDateAsLocalFormattedString(onCallSchedule.rosterNextHandoffAt)}</strong> is the
-          next handoff time.
-        </span>}
+      <div className="space-y-2">
+      {onCallSchedule.currentUserOnRoster && (
+        <div>
+        <strong>
+          <AppLink
+          className="underline"
+          to={DashboardUserUtil.getUserLinkInDashboard(
+            onCallSchedule.currentUserOnRoster.id!
+          )}
+          >
+          {onCallSchedule.currentUserOnRoster.name?.toString() || ""}
+          </AppLink>
+        </strong>{" "}
+        is currently on the roster for this schedule. &nbsp;
+        </div>
+      )}
+      {onCallSchedule.rosterHandoffAt && (
+        <div>
+        The next handoff is scheduled for{" "}
+        <strong>
+          {OneUptimeDate.getDateAsLocalFormattedString(
+          onCallSchedule.rosterHandoffAt
+          )}
+        </strong>
+        , when the next user will take over the roster. &nbsp;
+        </div>
+      )}
+      {onCallSchedule.nextUserOnRoster && (
+        <div>
+        <strong>
+          <AppLink
+          className="underline"
+          to={DashboardUserUtil.getUserLinkInDashboard(
+            onCallSchedule.nextUserOnRoster.id!
+          )}
+          >
+          {onCallSchedule.nextUserOnRoster.name?.toString() || ""}
+          </AppLink>
+        </strong>{" "}
+        is the next user scheduled to be on the roster. &nbsp;
+        {onCallSchedule.rosterNextHandoffAt && (
+          <span>
+          This user will remain on the roster until{" "}
+          <strong>
+            {OneUptimeDate.getDateAsLocalFormattedString(
+            onCallSchedule.rosterNextHandoffAt
+            )}
+          </strong>
+          . &nbsp;
+          </span>
+        )}
+        </div>
+      )}
       </div>
     );
-
   }
 
   return (
@@ -126,9 +167,12 @@ const OnCallDutyScheduleView: FunctionComponent<
               profilePictureId: true,
             },
             rosterNextHandoffAt: true,
+            rosterHandoffAt: true,
           },
           onItemLoaded: (item: OnCallDutySchedule): void => {
+            if(!onCallSchedule){
             setOnCallSchedule(item);
+            }
           },
           fields: [
             {
@@ -170,6 +214,7 @@ const OnCallDutyScheduleView: FunctionComponent<
       {onCallSchedule &&  alertTitle && <Alert  
         type={AlertType.INFO}
         title={alertTitle}
+        icon={IconProp.User}
       />}
 
       <FinalPreview

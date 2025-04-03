@@ -213,9 +213,6 @@ import OnCallDutyPolicyScheduleLayerUserService, {
 import OnCallDutyPolicyScheduleService, {
   Service as OnCallDutyPolicyScheduleServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyScheduleService";
-import OnCallDutyPolicyService, {
-  Service as OnCallDutyPolicyServiceType,
-} from "Common/Server/Services/OnCallDutyPolicyService";
 import ProjectCallSMSConfigService, {
   Service as ProjectCallSMSConfigServiceType,
 } from "Common/Server/Services/ProjectCallSMSConfigService";
@@ -424,7 +421,6 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTimelineStatus from "Common/Models/DatabaseModels/MonitorStatusTimeline";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -551,6 +547,8 @@ import MetricTypeService, {
   Service as MetricTypeServiceType,
 } from "Common/Server/Services/MetricTypeService";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+
+import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -1456,6 +1454,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageAPI().getRouter(),
     );
+
+    // OnCallDutyPolicyAPI
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new OnCallDutyPolicyAPI().getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new WorkspaceNotificationRuleAPI().getRouter(),
@@ -1565,14 +1570,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
         IncidentInternalNote,
         IncidentInternalNoteService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<OnCallDutyPolicy, OnCallDutyPolicyServiceType>(
-        OnCallDutyPolicy,
-        OnCallDutyPolicyService,
       ).getRouter(),
     );
 

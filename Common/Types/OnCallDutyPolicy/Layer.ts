@@ -39,7 +39,7 @@ export default class LayerUtil {
     data: EventProps,
     options?:
       | {
-          getEventByIndex?: number;
+          getNumberOfEvents?: number;
         }
       | undefined,
   ): Array<CalendarEvent> {
@@ -163,9 +163,9 @@ export default class LayerUtil {
         ),
       ];
 
-      if (options?.getEventByIndex !== undefined) {
-        if (events.length > options.getEventByIndex) {
-          return [events[options.getEventByIndex] as CalendarEvent];
+      if (options?.getNumberOfEvents !== undefined) {
+        if (events.length >= options.getNumberOfEvents) {
+          return events;
         }
       }
 
@@ -200,11 +200,10 @@ export default class LayerUtil {
       id++;
     }
 
-    if (options?.getEventByIndex !== undefined) {
-      if (events.length > options.getEventByIndex) {
-        return [events[options.getEventByIndex] as CalendarEvent];
+    if (options?.getNumberOfEvents !== undefined) {
+      if (events.length > options.getNumberOfEvents) {
+        events = events.slice(0, options.getNumberOfEvents);
       }
-      return [];
     }
 
     return events;
@@ -836,7 +835,7 @@ export default class LayerUtil {
     data: MultiLayerProps,
     options?:
       | {
-          getEventByIndex?: number;
+          getNumberOfEvents?: number;
         }
       | undefined,
   ): Array<CalendarEvent> {
@@ -877,11 +876,10 @@ export default class LayerUtil {
     const nonOverlappingEvents: Array<CalendarEvent> =
       LayerUtil.removeOverlappingEvents(events);
 
-    if (options?.getEventByIndex !== undefined) {
-      if (nonOverlappingEvents.length > options.getEventByIndex) {
-        return [nonOverlappingEvents[options.getEventByIndex] as CalendarEvent];
+    if (options?.getNumberOfEvents !== undefined) {
+      if (nonOverlappingEvents.length > options.getNumberOfEvents) {
+        return nonOverlappingEvents.slice(0, options.getNumberOfEvents);
       }
-      return [];
     }
 
     return nonOverlappingEvents;

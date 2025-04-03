@@ -9,6 +9,18 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+import TeamService from "./TeamService";
+import Team from "../../Models/DatabaseModels/Team";
+import OnCallDutyPolicyEscalationRuleUser from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalationRuleUserService";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import OnCallDutyPolicyEscalationRuleTeam from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
+import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
+import QueryHelper from "../Types/Database/QueryHelper";
+import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
   public constructor() {
@@ -18,12 +30,12 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
   @CaptureSpan()
   public async getOnCallPolicyLinkInDashboard(
     projectId: ObjectID,
-    onCallDutyPolicyId: ObjectID,
+    onCallDutyPolicyId: ObjectID
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`
     );
   }
 
@@ -34,7 +46,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
-    },
+    }
   ): Promise<void> {
     // execute this policy
 
@@ -44,7 +56,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       !options.triggeredByIncidentId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated"
       );
     }
 
@@ -54,7 +66,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
+        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated"
       );
     }
 
@@ -71,7 +83,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
     if (!policy) {
       throw new BadDataException(
-        `On-Call Duty Policy with id ${policyId.toString()} not found`,
+        `On-Call Duty Policy with id ${policyId.toString()} not found`
       );
     }
 
@@ -99,6 +111,100 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         isRoot: true,
       },
     });
+  }
+
+  public async getOnCallPoliciesWhereUserIsOnCallDuty(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<{
+    escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser>;
+    escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam>;
+    escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule>;
+  }> {
+    // get all schedules where user is on call duty.
+    const onCallSchedules: Array<OnCallDutyPolicySchedule> =
+      await OnCallDutyPolicyScheduleService.getOnCallSchedulesWhereUserIsOnCallDuty(
+        data
+      );
+
+    const teams: Array<Team> = await TeamService.getTeamsUserIsAPartOf({
+      userId: data.userId,
+      projectId: data.projectId,
+    });
+
+    // get escalationPolicies by user, team and schedule.
+    const escalationRulesByUser: Array<OnCallDutyPolicyEscalationRuleUser> =
+      await OnCallDutyPolicyEscalationRuleUserService.findBy({
+        query: {
+          userId: data.userId!,
+          projectId: data.projectId!,
+        },
+        select: {
+          onCallDutyPolicyEscalationRule: {
+            name: true,
+            _id: true,
+            order: true,
+          },
+          onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // do the same for teams.
+    const escalationRulesByTeam: Array<OnCallDutyPolicyEscalationRuleTeam> =
+      await OnCallDutyPolicyEscalationRuleTeamService.findBy({
+        query: {
+          teamId: QueryHelper.any(teams.map((team) => team.id!)),
+          projectId: data.projectId!,
+        },
+        select: {
+          onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // do the same for schedules.
+    const escalationRulesBySchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
+      await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: QueryHelper.any(
+            onCallSchedules.map((schedule) => schedule.id!)
+          ),
+          projectId: data.projectId!,
+        },
+        select: {
+          onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+
+      return  {
+        escalationRulesByUser: escalationRulesByUser,
+        escalationRulesByTeam: escalationRulesByTeam,
+        escalationRulesBySchedule: escalationRulesBySchedule,
+      }
   }
 }
 export default new Service();

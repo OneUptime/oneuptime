@@ -29,6 +29,7 @@ export interface ComponentProps {
   id?: string | undefined;
   textOnRight?: string | undefined;
   size?: AlertSize | undefined;
+  icon?: IconProp | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -88,25 +89,25 @@ const Alert: FunctionComponent<ComponentProps> = (
           <div className="alert-icon flex-shrink-0">
             {type === AlertType.DANGER && (
               <Icon
-                icon={IconProp.Alert}
+                icon={props.icon || IconProp.Alert}
                 className={`h-5 w-5 ${textClassName}`}
               />
             )}
             {type === AlertType.WARNING && (
               <Icon
-                icon={IconProp.Alert}
+                icon={props.icon || IconProp.Alert}
                 className={`h-5 w-5 ${textClassName}`}
               />
             )}
             {type === AlertType.SUCCESS && (
               <Icon
-                icon={IconProp.CheckCircle}
+                icon={props.icon || IconProp.CheckCircle}
                 className={`h-5 w-5 ${textClassName}`}
               />
             )}
             {type === AlertType.INFO && (
               <Icon
-                icon={IconProp.Info}
+                icon={props.icon ||  IconProp.Info}
                 className={`h-5 w-5 ${textClassName}`}
               />
             )}
