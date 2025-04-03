@@ -8,14 +8,69 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
+import CronTab from "../Utils/CronTab";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
   }
 
+  public async updateNextPingAtForMonitor(data: {
+    monitorId: ObjectID;
+  }): Promise<void> {
+    const monitorProbes: Array<MonitorProbe> = await this.findBy({
+      query: {
+        monitorId: data.monitorId,
+      },
+      select: {
+        nextPingAt: true,
+        probeId: true,
+        monitor: {
+          monitoringInterval: true,
+        }
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const monitorProbe of monitorProbes) {
+      if (!monitorProbe.probeId) {
+        continue;
+      }
+
+      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
+        OneUptimeDate.getCurrentDate(),
+        1,
+      );
+
+      try {
+        nextPing = CronTab.getNextExecutionTime(
+          monitorProbe?.monitor?.monitoringInterval as string,
+        );
+      } catch (err) {
+        logger.error(err);
+      }
+
+      if (nextPing && monitorProbe.id) {
+       await this.updateOneById({
+        id: monitorProbe.id,
+        data: {
+          nextPingAt: nextPing,
+        },
+        props: {
+          isRoot: true,
+        },
+       });
+      }
+    }
+  }
+
   protected override async onBeforeCreate(
-    createBy: CreateBy<MonitorProbe>,
+    createBy: CreateBy<MonitorProbe>
   ): Promise<OnCreate<MonitorProbe>> {
     if (
       (createBy.data.monitorId || createBy.data.monitor) &&
@@ -52,7 +107,7 @@ export class Service extends DatabaseService<MonitorProbe> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<MonitorProbe>,
-    createdItem: MonitorProbe,
+    createdItem: MonitorProbe
   ): Promise<MonitorProbe> {
     if (createdItem.probeId) {
       await MonitorService.refreshProbeStatus(createdItem.probeId);
@@ -63,7 +118,7 @@ export class Service extends DatabaseService<MonitorProbe> {
 
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<MonitorProbe>,
-    updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[]
   ): Promise<OnUpdate<MonitorProbe>> {
     // if isEnabled is updated, refresh the probe status
     if (onUpdate.updateBy.data.isEnabled !== undefined) {
