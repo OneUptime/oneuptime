@@ -41,7 +41,7 @@ const OnCallDutyScheduleView: FunctionComponent<
                   onCallSchedule.currentUserOnRoster.id!,
                 )}
               >
-                {onCallSchedule.currentUserOnRoster.name?.toString() || ""}
+                {onCallSchedule.currentUserOnRoster.name?.toString() || onCallSchedule.currentUserOnRoster.email?.toString() || ""}
               </AppLink>
             </strong>{" "}
             is currently on the roster for this schedule. &nbsp;
@@ -67,7 +67,7 @@ const OnCallDutyScheduleView: FunctionComponent<
                   onCallSchedule.nextUserOnRoster.id!,
                 )}
               >
-                {onCallSchedule.nextUserOnRoster.name?.toString() || ""}
+                {onCallSchedule.nextUserOnRoster.name?.toString() || onCallSchedule.nextUserOnRoster.email?.toString() || ""}
               </AppLink>
             </strong>{" "}
             is the next user scheduled to be on the roster. &nbsp;

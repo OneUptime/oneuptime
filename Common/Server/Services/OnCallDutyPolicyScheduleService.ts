@@ -99,8 +99,14 @@ export class Service extends DatabaseService<Model> {
         getNumberOfEvents: 2,
       });
 
-    const currentEvent: CalendarEvent | null = events[0] || null;
-    const nextEvent: CalendarEvent | null = events[1] || null;
+    let currentEvent: CalendarEvent | null = events[0] || null;
+    let nextEvent: CalendarEvent | null = events[1] || null;
+
+    // if the current event start time in the future then the current event is the next event. 
+    if(currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
+      nextEvent = currentEvent;
+      currentEvent = null;
+    }
 
     if (currentEvent) {
       const userId: string | undefined = currentEvent?.title; // this is user id in string.
