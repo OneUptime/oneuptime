@@ -17,7 +17,7 @@ export enum AlertSize {
 
 export interface ComponentProps {
   strongTitle?: string;
-  title?: string;
+  title?: string | ReactElement;
   onClose?: () => void;
   type?: AlertType;
   onClick?: () => void;

@@ -10,11 +10,16 @@ import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySch
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+
+  const [onCallSchedule, setOnCallSchedule] =
+    React.useState<OnCallDutySchedule | null>(null);
 
   return (
     <Fragment>
@@ -78,10 +83,29 @@ const OnCallDutyScheduleView: FunctionComponent<
             placeholder: "Labels",
           },
         ]}
+        
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: OnCallDutySchedule,
           id: "model-detail-monitors",
+          selectMoreFields: {
+            currentUserOnRoster: {
+              name: true,
+              _id: true,
+              email: true,
+              profilePictureId: true,
+            },
+            nextUserOnRoster: {
+              name: true,
+              _id: true,
+              email: true,
+              profilePictureId: true,
+            },
+            rosterNextHandoffAt: true,
+          },
+          onItemLoaded: (item: OnCallDutySchedule): void => {
+            setOnCallSchedule(item);
+          },
           fields: [
             {
               field: {
@@ -117,6 +141,12 @@ const OnCallDutyScheduleView: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      {onCallSchedule && <Alert  
+        type={AlertType.INFO}
+        title={<}
+        
       />
 
       <FinalPreview
