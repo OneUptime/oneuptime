@@ -8,10 +8,65 @@ import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
+import CronTab from "../Utils/CronTab";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
+  }
+
+  public async updateNextPingAtForMonitor(data: {
+    monitorId: ObjectID;
+  }): Promise<void> {
+    const monitorProbes: Array<MonitorProbe> = await this.findBy({
+      query: {
+        monitorId: data.monitorId,
+      },
+      select: {
+        nextPingAt: true,
+        probeId: true,
+        monitor: {
+          monitoringInterval: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const monitorProbe of monitorProbes) {
+      if (!monitorProbe.probeId) {
+        continue;
+      }
+
+      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
+        OneUptimeDate.getCurrentDate(),
+        1,
+      );
+
+      try {
+        nextPing = CronTab.getNextExecutionTime(
+          monitorProbe?.monitor?.monitoringInterval as string,
+        );
+      } catch (err) {
+        logger.error(err);
+      }
+
+      if (nextPing && monitorProbe.id) {
+        await this.updateOneById({
+          id: monitorProbe.id,
+          data: {
+            nextPingAt: nextPing,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
   }
 
   protected override async onBeforeCreate(
