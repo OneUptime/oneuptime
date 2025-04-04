@@ -46,22 +46,24 @@ const OnCallDutyScheduleView: FunctionComponent<
                   ""}
               </AppLink>
             </strong>{" "}
-            is currently on the roster for this schedule.  &nbsp; 
-            {onCallSchedule.rosterStartAt && onCallSchedule.rosterHandoffAt && <span>
-              This user has been on the roster since{" "}
-              <strong>
-                {OneUptimeDate.getDateAsLocalFormattedString(
-                  onCallSchedule.rosterStartAt,
-                )}
-              </strong>{" "}
-              and will remain on the roster until{" "}
-              <strong>
-                {OneUptimeDate.getDateAsLocalFormattedString(
-                  onCallSchedule.rosterHandoffAt,
-                )}
-              </strong>
-              . &nbsp;
-            </span>}
+            is currently on the roster for this schedule. &nbsp;
+            {onCallSchedule.rosterStartAt && onCallSchedule.rosterHandoffAt && (
+              <span>
+                This user has been on the roster since{" "}
+                <strong>
+                  {OneUptimeDate.getDateAsLocalFormattedString(
+                    onCallSchedule.rosterStartAt,
+                  )}
+                </strong>{" "}
+                and will remain on the roster until{" "}
+                <strong>
+                  {OneUptimeDate.getDateAsLocalFormattedString(
+                    onCallSchedule.rosterHandoffAt,
+                  )}
+                </strong>
+                . &nbsp;
+              </span>
+            )}
           </div>
         )}
         {!onCallSchedule.currentUserOnRoster && (

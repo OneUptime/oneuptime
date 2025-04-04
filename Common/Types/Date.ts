@@ -820,7 +820,6 @@ export default class OneUptimeDate {
     date = this.fromString(date);
     endDate = this.fromString(endDate);
 
-
     return moment(date).isSameOrBefore(endDate, "seconds");
   }
 

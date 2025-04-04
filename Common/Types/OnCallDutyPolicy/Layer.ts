@@ -659,10 +659,9 @@ export default class LayerUtil {
       // if start time is after end time, we need to add one week to the end time
 
       if (OneUptimeDate.isAfter(startTime, endTime)) {
-       // in this case the restriction is towards the ends of the week and not in the middle so we need to add two objects to the array. 
-       // One for start of the week 
-       // and the other for end of the week .
-
+        // in this case the restriction is towards the ends of the week and not in the middle so we need to add two objects to the array.
+        // One for start of the week
+        // and the other for end of the week .
 
         const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(startTime);
         const endOfTheWeek: Date = OneUptimeDate.getEndOfTheWeek(endTime);
@@ -676,15 +675,12 @@ export default class LayerUtil {
           startTime: startTime,
           endTime: endOfTheWeek,
         });
-
-      }else{
+      } else {
         startAndEndTimesOfWeeklyRestrictions.push({
           startTime,
           endTime,
         });
       }
-
-      
     }
 
     return startAndEndTimesOfWeeklyRestrictions;
