@@ -47,6 +47,39 @@ const OnCallDutyScheduleView: FunctionComponent<
             is currently on the roster for this schedule. &nbsp;
           </div>
         )}
+        {!onCallSchedule.currentUserOnRoster &&
+          !onCallSchedule.nextUserOnRoster && (
+            <div>
+              <strong>
+                This schedule does not have any users on the roster.
+              </strong>{" "}
+              <span>
+                This schedule is not currently active. &nbsp;
+              </span>
+            </div>
+          )}
+        {!onCallSchedule.currentUserOnRoster &&
+          onCallSchedule.nextUserOnRoster && (
+            <div>
+              <strong>
+                This schedule does not currently have any users on the roster.
+              </strong>{" "} The next user on the roster is{" "}
+              <strong>
+                <AppLink
+                  className="underline"
+                  to={DashboardUserUtil.getUserLinkInDashboard(
+                    onCallSchedule.nextUserOnRoster.id!,
+                  )}
+                >
+                  {onCallSchedule.nextUserOnRoster.name?.toString() || onCallSchedule.nextUserOnRoster.email?.toString() || ""}
+                </AppLink>
+              </strong>{" "}
+              . &nbsp;
+              <span>
+              </span>
+            </div>
+          )}
+
         {onCallSchedule.rosterHandoffAt && (
           <div>
             The next handoff is scheduled for{" "}
@@ -214,9 +247,9 @@ const OnCallDutyScheduleView: FunctionComponent<
 
       {onCallSchedule && alertTitle && (
         <Alert
-          type={AlertType.INFO}
+          type={onCallSchedule.currentUserOnRoster ? AlertType.INFO : AlertType.DANGER}
           title={alertTitle}
-          icon={IconProp.Calendar}
+          icon={onCallSchedule.currentUserOnRoster ? IconProp.Calendar : undefined}
         />
       )}
 
