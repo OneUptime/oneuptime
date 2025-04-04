@@ -14,6 +14,16 @@ export default class OneUptimeDate {
     return new Date(timestamp * 1000);
   }
 
+  public static getStartOfTheWeek(date: Date): Date {
+    date = this.fromString(date);
+    return moment(date).startOf("week").toDate();
+  }
+
+  public static getEndOfTheWeek(date: Date): Date {
+    date = this.fromString(date);
+    return moment(date).endOf("week").toDate();
+  }
+
   public static getInBetweenDatesAsFormattedString(
     inBetween: InBetween<Date>,
   ): string {
@@ -102,6 +112,11 @@ export default class OneUptimeDate {
     }
 
     return this.addRemoveDays(date, difference);
+  }
+
+  public static getDayOfTheWeekIndex(date: Date): number {
+    date = this.fromString(date);
+    return moment(date).weekday();
   }
 
   public static isOverlapping(

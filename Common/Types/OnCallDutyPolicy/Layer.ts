@@ -647,6 +647,7 @@ export default class LayerUtil {
         eventStartTime,
         startDayOfWeek,
       );
+
       endTime = OneUptimeDate.moveDateToTheDayOfWeek(
         endTime,
         eventStartTime,
@@ -658,13 +659,32 @@ export default class LayerUtil {
       // if start time is after end time, we need to add one week to the end time
 
       if (OneUptimeDate.isAfter(startTime, endTime)) {
-        endTime = OneUptimeDate.addRemoveWeeks(endTime, 1);
+       // in this case the restriction is towards the ends of the week and not in the middle so we need to add two objects to the array. 
+       // One for start of the week 
+       // and the other for end of the week .
+
+
+        const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(startTime);
+        const endOfTheWeek: Date = OneUptimeDate.getEndOfTheWeek(endTime);
+
+        startAndEndTimesOfWeeklyRestrictions.push({
+          startTime: startOfWeek,
+          endTime: endTime,
+        });
+
+        startAndEndTimesOfWeeklyRestrictions.push({
+          startTime: startTime,
+          endTime: endOfTheWeek,
+        });
+
+      }else{
+        startAndEndTimesOfWeeklyRestrictions.push({
+          startTime,
+          endTime,
+        });
       }
 
-      startAndEndTimesOfWeeklyRestrictions.push({
-        startTime,
-        endTime,
-      });
+      
     }
 
     return startAndEndTimesOfWeeklyRestrictions;
