@@ -1,6 +1,6 @@
 service:
   flush: 1
-  log_level: info
+  log_level: debug
 
 pipeline:
   inputs:
@@ -8,29 +8,20 @@ pipeline:
       listen: 0.0.0.0
       port: 8889
 
-      processors:
-        logs:
-          - name: opentelemetry_envelope
-
-          - name: content_modifier
-            context: otel_resource_attributes
-            action: upsert
-            key: service.name
-            value: fluent-bit
-
   outputs:
     - name: stdout
       match: '*'
     - name: opentelemetry
       match: '*'
-      host: 'test.oneuptime.com'
+      host: 'local.genosyn.com'
       port: 443
       metrics_uri: '/otlp/v1/metrics'
       logs_uri: '/otlp/v1/logs'
       traces_uri: '/otlp/v1/traces'
       tls: On
       header: 
-        - x-oneuptime-token 1e603f70-b3c8-11ef-9018-bdd11a3584d1
+        - x-oneuptime-token ad29ff90-100f-11f0-a779-39a19251c0cf
+        - x-oneuptime-service-name demo-service-1
 
 
  

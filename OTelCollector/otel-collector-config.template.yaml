@@ -11,6 +11,9 @@ extensions:
       - action: upsert
         key: x-oneuptime-token
         from_context: x-oneuptime-token
+      - action: upsert
+        key: x-oneuptime-service-name
+        from_context:  x-oneuptime-service-name
 
 processors:
 

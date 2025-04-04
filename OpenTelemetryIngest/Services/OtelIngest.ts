@@ -45,7 +45,10 @@ import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 
 export default class OtelIngestService {
   @CaptureSpan()
-  public static getServiceNameFromAttributes(attributes: JSONArray): string {
+  public static getServiceNameFromAttributes(
+    req: ExpressRequest,
+    attributes: JSONArray,
+  ): string {
     for (const attribute of attributes) {
       if (
         attribute["key"] === "service.name" &&
@@ -58,6 +61,16 @@ export default class OtelIngestService {
           return (attribute["value"] as JSONObject)["stringValue"] as string;
         }
       }
+    }
+
+    // if there's no service name, check header for x-oneuptime-service-name
+
+    const serviceName: string = req.headers[
+      "x-oneuptime-service-name"
+    ] as string;
+
+    if (serviceName) {
+      return serviceName;
     }
 
     return "Unknown Service";
@@ -86,6 +99,7 @@ export default class OtelIngestService {
 
       for (const resourceLog of resourceLogs) {
         const serviceName: string = this.getServiceNameFromAttributes(
+          req,
           ((resourceLog["resource"] as JSONObject)?.[
             "attributes"
           ] as JSONArray) || [],
@@ -283,6 +297,7 @@ export default class OtelIngestService {
 
       for (const resourceMetric of resourceMetrics) {
         const serviceName: string = this.getServiceNameFromAttributes(
+          req,
           ((resourceMetric["resource"] as JSONObject)?.[
             "attributes"
           ] as JSONArray) || [],
@@ -513,6 +528,7 @@ export default class OtelIngestService {
         // get service name from resourceSpan attributes
 
         const serviceName: string = this.getServiceNameFromAttributes(
+          req,
           ((resourceSpan["resource"] as JSONObject)?.[
             "attributes"
           ] as JSONArray) || [],
