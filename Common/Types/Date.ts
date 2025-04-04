@@ -104,6 +104,7 @@ export default class OneUptimeDate {
 
     const dateDayOfWeekNumber: number =
       DayOfWeekUtil.getNumberOfDayOfWeek(dateDayOfWeek);
+      
 
     const difference: number = numberOfDayOfWeek - dateDayOfWeekNumber;
 
