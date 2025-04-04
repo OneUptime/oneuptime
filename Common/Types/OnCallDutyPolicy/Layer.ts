@@ -299,7 +299,7 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
-      if (!OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
         handOffTime = OneUptimeDate.addRemoveDays(handOffTime, 1);
       }
 
@@ -329,7 +329,7 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
-      if (!OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
         handOffTime = OneUptimeDate.addRemoveHours(handOffTime, 1);
       }
 
@@ -359,7 +359,7 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
-      if (!OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
         handOffTime = OneUptimeDate.addRemoveWeeks(handOffTime, 1);
       }
 
@@ -389,7 +389,7 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
-      if (!OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
         handOffTime = OneUptimeDate.addRemoveMonths(handOffTime, 1);
       }
 
@@ -419,7 +419,7 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
-      if (!OneUptimeDate.isAfter(handOffTime, data.currentEventStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
         handOffTime = OneUptimeDate.addRemoveYears(handOffTime, 1);
       }
 

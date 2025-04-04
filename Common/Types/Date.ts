@@ -765,13 +765,13 @@ export default class OneUptimeDate {
   public static isAfter(date: Date, startDate: Date): boolean {
     date = this.fromString(date);
     startDate = this.fromString(startDate);
-    return moment(date).isAfter(startDate);
+    return moment(date).isAfter(startDate, "seconds");
   }
 
   public static isOnOrAfter(date: Date, startDate: Date): boolean {
     date = this.fromString(date);
     startDate = this.fromString(startDate);
-    return moment(date).isSameOrAfter(startDate);
+    return moment(date).isSameOrAfter(startDate, "seconds");
   }
 
   public static getDayOfWeek(date: Date): DayOfWeek {
@@ -804,7 +804,9 @@ export default class OneUptimeDate {
   public static isOnOrBefore(date: Date, endDate: Date): boolean {
     date = this.fromString(date);
     endDate = this.fromString(endDate);
-    return moment(date).isSameOrBefore(endDate);
+
+
+    return moment(date).isSameOrBefore(endDate, "seconds");
   }
 
   public static isEqualBySeconds(date: Date, startDate: Date): boolean {
@@ -815,13 +817,13 @@ export default class OneUptimeDate {
 
   public static hasExpired(expirationDate: Date): boolean {
     expirationDate = this.fromString(expirationDate);
-    return !moment(this.getCurrentDate()).isBefore(expirationDate);
+    return !moment(this.getCurrentDate()).isBefore(expirationDate, "seconds");
   }
 
   public static isBefore(date: Date, endDate: Date): boolean {
     date = this.fromString(date);
     endDate = this.fromString(endDate);
-    return moment(date).isBefore(endDate);
+    return moment(date).isBefore(endDate, "seconds");
   }
 
   public static getCurrentDateAsFormattedString(options?: {
@@ -1135,12 +1137,12 @@ export default class OneUptimeDate {
 
   public static isInThePast(date: string | Date): boolean {
     date = this.fromString(date);
-    return moment(date).isBefore(new Date());
+    return moment(date).isBefore(new Date(), "seconds");
   }
 
   public static isInTheFuture(date: string | Date): boolean {
     date = this.fromString(date);
-    return moment(date).isAfter(new Date());
+    return moment(date).isAfter(new Date(), "seconds");
   }
 
   public static fromString(date: string | JSONObject | Date): Date {

@@ -46,7 +46,22 @@ const OnCallDutyScheduleView: FunctionComponent<
                   ""}
               </AppLink>
             </strong>{" "}
-            is currently on the roster for this schedule. &nbsp;
+            is currently on the roster for this schedule.  &nbsp; 
+            {onCallSchedule.rosterStartAt && onCallSchedule.rosterHandoffAt && <span>
+              This user has been on the roster since{" "}
+              <strong>
+                {OneUptimeDate.getDateAsLocalFormattedString(
+                  onCallSchedule.rosterStartAt,
+                )}
+              </strong>{" "}
+              and will remain on the roster until{" "}
+              <strong>
+                {OneUptimeDate.getDateAsLocalFormattedString(
+                  onCallSchedule.rosterHandoffAt,
+                )}
+              </strong>
+              . &nbsp;
+            </span>}
           </div>
         )}
         {!onCallSchedule.currentUserOnRoster && (
@@ -55,18 +70,6 @@ const OnCallDutyScheduleView: FunctionComponent<
               This schedule does not have any users on the roster.
             </strong>{" "}
             <span>This schedule is not currently active. &nbsp;</span>
-          </div>
-        )}
-
-        {onCallSchedule.rosterHandoffAt && (
-          <div>
-            The next handoff is scheduled for{" "}
-            <strong>
-              {OneUptimeDate.getDateAsLocalFormattedString(
-                onCallSchedule.rosterHandoffAt,
-              )}
-            </strong>
-            , when the next user will take over the roster. &nbsp;
           </div>
         )}
         {onCallSchedule.nextUserOnRoster && (
