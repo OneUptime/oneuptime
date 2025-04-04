@@ -713,13 +713,13 @@ export default class LayerUtil {
 
       // if the event is ourside the restriction times, we need to return the trimmed array
 
-      if (OneUptimeDate.isAfter(restrictionStartTime, currentEndTime)) {
+      if (OneUptimeDate.isOnOrAfter(restrictionStartTime, currentEndTime)) {
         return trimmedStartAndEndTimes;
       }
 
       // if current event start time is after the restriction end time then we need to return empty array as there is no event.
 
-      if (OneUptimeDate.isAfter(currentStartTime, restrictionEndTime)) {
+      if (OneUptimeDate.isOnOrAfter(currentStartTime, restrictionEndTime)) {
         return trimmedStartAndEndTimes;
       }
 
