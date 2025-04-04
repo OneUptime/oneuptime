@@ -28,7 +28,31 @@ RunCron(
         },
       });
 
-    for (const onCallSchedule of onCallScheduleWithHandoffTimeInPast) {
+
+      const nextRosterStartTimeInPastSchedules: Array<OnCallDutyPolicySchedule> =
+      await OnCallDutyPolicyScheduleService.findBy({
+        query: {
+          rosterNextStartAt: QueryHelper.lessThanEqualTo(
+            OneUptimeDate.getCurrentDate(),
+          ),
+          rosterHandoffAt: QueryHelper.isNull()
+        },
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const totalSchedules: Array<OnCallDutyPolicySchedule> = [
+        ...onCallScheduleWithHandoffTimeInPast,
+        ...nextRosterStartTimeInPastSchedules,
+      ];
+
+    for (const onCallSchedule of totalSchedules) {
       try {
         await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
           onCallSchedule.id!,
