@@ -707,7 +707,7 @@ export default class LayerUtil {
     while (!reachedTheEndOfTheCurrentEvent) {
       // if current end time is equalto or before than the current start time, we need to return the current event and exit the loop
 
-      if (OneUptimeDate.isBefore(currentEndTime, currentStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(currentEndTime, currentStartTime)) {
         reachedTheEndOfTheCurrentEvent = true;
       }
 
