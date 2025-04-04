@@ -41,44 +41,22 @@ const OnCallDutyScheduleView: FunctionComponent<
                   onCallSchedule.currentUserOnRoster.id!,
                 )}
               >
-                {onCallSchedule.currentUserOnRoster.name?.toString() || onCallSchedule.currentUserOnRoster.email?.toString() || ""}
+                {onCallSchedule.currentUserOnRoster.name?.toString() ||
+                  onCallSchedule.currentUserOnRoster.email?.toString() ||
+                  ""}
               </AppLink>
             </strong>{" "}
             is currently on the roster for this schedule. &nbsp;
           </div>
         )}
-        {!onCallSchedule.currentUserOnRoster &&
-          !onCallSchedule.nextUserOnRoster && (
-            <div>
-              <strong>
-                This schedule does not have any users on the roster.
-              </strong>{" "}
-              <span>
-                This schedule is not currently active. &nbsp;
-              </span>
-            </div>
-          )}
-        {!onCallSchedule.currentUserOnRoster &&
-          onCallSchedule.nextUserOnRoster && (
-            <div>
-              <strong>
-                This schedule does not currently have any users on the roster.
-              </strong>{" "} The next user on the roster is{" "}
-              <strong>
-                <AppLink
-                  className="underline"
-                  to={DashboardUserUtil.getUserLinkInDashboard(
-                    onCallSchedule.nextUserOnRoster.id!,
-                  )}
-                >
-                  {onCallSchedule.nextUserOnRoster.name?.toString() || onCallSchedule.nextUserOnRoster.email?.toString() || ""}
-                </AppLink>
-              </strong>{" "}
-              . &nbsp;
-              <span>
-              </span>
-            </div>
-          )}
+        {!onCallSchedule.currentUserOnRoster && (
+          <div>
+            <strong>
+              This schedule does not have any users on the roster.
+            </strong>{" "}
+            <span>This schedule is not currently active. &nbsp;</span>
+          </div>
+        )}
 
         {onCallSchedule.rosterHandoffAt && (
           <div>
@@ -100,21 +78,30 @@ const OnCallDutyScheduleView: FunctionComponent<
                   onCallSchedule.nextUserOnRoster.id!,
                 )}
               >
-                {onCallSchedule.nextUserOnRoster.name?.toString() || onCallSchedule.nextUserOnRoster.email?.toString() || ""}
+                {onCallSchedule.nextUserOnRoster.name?.toString() ||
+                  onCallSchedule.nextUserOnRoster.email?.toString() ||
+                  ""}
               </AppLink>
             </strong>{" "}
             is the next user scheduled to be on the roster. &nbsp;
-            {onCallSchedule.rosterNextHandoffAt && (
-              <span>
-                This user will remain on the roster until{" "}
-                <strong>
-                  {OneUptimeDate.getDateAsLocalFormattedString(
-                    onCallSchedule.rosterNextHandoffAt,
-                  )}
-                </strong>
-                . &nbsp;
-              </span>
-            )}
+            {onCallSchedule.rosterNextHandoffAt &&
+              onCallSchedule.rosterNextStartAt && (
+                <span>
+                  This user will be on the roster from{" "}
+                  <strong>
+                    {OneUptimeDate.getDateAsLocalFormattedString(
+                      onCallSchedule.rosterNextStartAt,
+                    )}
+                  </strong>{" "}
+                  and remain on the roster until{" "}
+                  <strong>
+                    {OneUptimeDate.getDateAsLocalFormattedString(
+                      onCallSchedule.rosterNextHandoffAt,
+                    )}
+                  </strong>
+                  . &nbsp;
+                </span>
+              )}
           </div>
         )}
       </div>
@@ -202,6 +189,8 @@ const OnCallDutyScheduleView: FunctionComponent<
             },
             rosterNextHandoffAt: true,
             rosterHandoffAt: true,
+            rosterStartAt: true,
+            rosterNextStartAt: true,
           },
           onItemLoaded: (item: OnCallDutySchedule): void => {
             if (!onCallSchedule) {
@@ -247,9 +236,15 @@ const OnCallDutyScheduleView: FunctionComponent<
 
       {onCallSchedule && alertTitle && (
         <Alert
-          type={onCallSchedule.currentUserOnRoster ? AlertType.INFO : AlertType.DANGER}
+          type={
+            onCallSchedule.currentUserOnRoster
+              ? AlertType.INFO
+              : AlertType.DANGER
+          }
           title={alertTitle}
-          icon={onCallSchedule.currentUserOnRoster ? IconProp.Calendar : undefined}
+          icon={
+            onCallSchedule.currentUserOnRoster ? IconProp.Calendar : undefined
+          }
         />
       )}
 

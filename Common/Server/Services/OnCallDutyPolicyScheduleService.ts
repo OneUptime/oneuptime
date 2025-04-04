@@ -112,8 +112,8 @@ export class Service extends DatabaseService<Model> {
     let currentEvent: CalendarEvent | null = events[0] || null;
     let nextEvent: CalendarEvent | null = events[1] || null;
 
-    // if the current event start time in the future then the current event is the next event. 
-    if(currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
+    // if the current event start time in the future then the current event is the next event.
+    if (currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
       nextEvent = currentEvent;
       currentEvent = null;
     }
@@ -136,7 +136,6 @@ export class Service extends DatabaseService<Model> {
       if (startTime) {
         resultReturn.rosterStartAt = startTime;
       }
-
     }
 
     // do the same for next event.
