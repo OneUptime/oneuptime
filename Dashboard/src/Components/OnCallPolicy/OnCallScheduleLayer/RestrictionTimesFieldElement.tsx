@@ -243,6 +243,15 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                 )}
                 onChange={(value: any) => {
                   params.weeklyRestriction.startDay = value;
+
+                  // move start time to the new start day
+                  if (params.weeklyRestriction.startTime) {
+                    params.weeklyRestriction.startTime = OneUptimeDate.moveDateToTheDayOfWeek(
+                      params.weeklyRestriction.startTime,
+                      OneUptimeDate.getCurrentDate(),
+                      value,
+                    );
+                  }
                   params.onChange(params.weeklyRestriction);
                 }}
               />
@@ -264,7 +273,10 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     date = OneUptimeDate.fromString(value);
                   }
 
-                  params.weeklyRestriction.startTime = date;
+                  // move date to the day of the week from the start day
+
+
+                  params.weeklyRestriction.startTime = OneUptimeDate.moveDateToTheDayOfWeek(date, OneUptimeDate.getCurrentDate(), params.weeklyRestriction.startDay);
 
                   params.onChange(params.weeklyRestriction);
                 }}

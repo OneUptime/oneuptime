@@ -10,11 +10,108 @@ import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySch
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import FinalPreview from "../../../Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import AppLink from "../../../Components/AppLink/AppLink";
+import DashboardUserUtil from "../../../Utils/User";
 
 const OnCallDutyScheduleView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
+  const [onCallSchedule, setOnCallSchedule] =
+    React.useState<OnCallDutySchedule | null>(null);
+
+  let alertTitle: ReactElement | null = null;
+
+  if (
+    onCallSchedule &&
+    (onCallSchedule.currentUserOnRoster || onCallSchedule.nextUserOnRoster)
+  ) {
+    alertTitle = (
+      <div className="space-y-2">
+        {onCallSchedule.currentUserOnRoster && (
+          <div>
+            <strong>
+              <AppLink
+                className="underline"
+                to={DashboardUserUtil.getUserLinkInDashboard(
+                  onCallSchedule.currentUserOnRoster.id!,
+                )}
+              >
+                {onCallSchedule.currentUserOnRoster.name?.toString() ||
+                  onCallSchedule.currentUserOnRoster.email?.toString() ||
+                  ""}
+              </AppLink>
+            </strong>{" "}
+            is currently on the roster for this schedule. &nbsp;
+            {onCallSchedule.rosterStartAt && onCallSchedule.rosterHandoffAt && (
+              <span>
+                This user has been on the roster since{" "}
+                <strong>
+                  {OneUptimeDate.getDateAsLocalFormattedString(
+                    onCallSchedule.rosterStartAt,
+                  )}
+                </strong>{" "}
+                and will remain on the roster until{" "}
+                <strong>
+                  {OneUptimeDate.getDateAsLocalFormattedString(
+                    onCallSchedule.rosterHandoffAt,
+                  )}
+                </strong>
+                . &nbsp;
+              </span>
+            )}
+          </div>
+        )}
+        {!onCallSchedule.currentUserOnRoster && (
+          <div>
+            <strong>
+              This schedule does not have any users on the roster.
+            </strong>{" "}
+            <span>This schedule is not currently active. &nbsp;</span>
+          </div>
+        )}
+        {onCallSchedule.nextUserOnRoster && (
+          <div>
+            <strong>
+              <AppLink
+                className="underline"
+                to={DashboardUserUtil.getUserLinkInDashboard(
+                  onCallSchedule.nextUserOnRoster.id!,
+                )}
+              >
+                {onCallSchedule.nextUserOnRoster.name?.toString() ||
+                  onCallSchedule.nextUserOnRoster.email?.toString() ||
+                  ""}
+              </AppLink>
+            </strong>{" "}
+            is the next user scheduled to be on the roster. &nbsp;
+            {onCallSchedule.rosterNextHandoffAt &&
+              onCallSchedule.rosterNextStartAt && (
+                <span>
+                  This user will be on the roster from{" "}
+                  <strong>
+                    {OneUptimeDate.getDateAsLocalFormattedString(
+                      onCallSchedule.rosterNextStartAt,
+                    )}
+                  </strong>{" "}
+                  and remain on the roster until{" "}
+                  <strong>
+                    {OneUptimeDate.getDateAsLocalFormattedString(
+                      onCallSchedule.rosterNextHandoffAt,
+                    )}
+                  </strong>
+                  . &nbsp;
+                </span>
+              )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Fragment>
@@ -82,6 +179,29 @@ const OnCallDutyScheduleView: FunctionComponent<
           showDetailsInNumberOfColumns: 2,
           modelType: OnCallDutySchedule,
           id: "model-detail-monitors",
+          selectMoreFields: {
+            currentUserOnRoster: {
+              name: true,
+              _id: true,
+              email: true,
+              profilePictureId: true,
+            },
+            nextUserOnRoster: {
+              name: true,
+              _id: true,
+              email: true,
+              profilePictureId: true,
+            },
+            rosterNextHandoffAt: true,
+            rosterHandoffAt: true,
+            rosterStartAt: true,
+            rosterNextStartAt: true,
+          },
+          onItemLoaded: (item: OnCallDutySchedule): void => {
+            if (!onCallSchedule) {
+              setOnCallSchedule(item);
+            }
+          },
           fields: [
             {
               field: {
@@ -118,6 +238,20 @@ const OnCallDutyScheduleView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      {onCallSchedule && alertTitle && (
+        <Alert
+          type={
+            onCallSchedule.currentUserOnRoster
+              ? AlertType.INFO
+              : AlertType.DANGER
+          }
+          title={alertTitle}
+          icon={
+            onCallSchedule.currentUserOnRoster ? IconProp.Calendar : undefined
+          }
+        />
+      )}
 
       <FinalPreview
         onCallDutyPolicyScheduleId={modelId}

@@ -529,12 +529,79 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.Date,
+    title: "Roster Handoff At",
+    description:
+      "When does the roster handoff occur for this schedule for the current user?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public rosterHandoffAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicySchedule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
     title: "Roster Next Handoff At",
-    description: "When is the next roster handoff for this schedule?",
+    description:
+      "When does the next roster handoff occur for this schedule for the next user?",
   })
   @Column({
     type: ColumnType.Date,
     nullable: true,
   })
   public rosterNextHandoffAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicySchedule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Roster Next Event Start At",
+    description:
+      "When does the next event start for this schedule for the next user?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public rosterNextStartAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectOnCallDutyPolicySchedule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Roster Event Start At",
+    description:
+      "When does the current event start for this schedule for the current user?",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public rosterStartAt?: Date = undefined;
 }

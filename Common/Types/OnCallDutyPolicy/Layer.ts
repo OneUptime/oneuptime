@@ -35,7 +35,14 @@ export interface PriorityCalendarEvents extends CalendarEvent {
 }
 
 export default class LayerUtil {
-  public static getEvents(data: EventProps): Array<CalendarEvent> {
+  public static getEvents(
+    data: EventProps,
+    options?:
+      | {
+          getNumberOfEvents?: number;
+        }
+      | undefined,
+  ): Array<CalendarEvent> {
     let events: Array<CalendarEvent> = [];
 
     if (!LayerUtil.isDataValid(data)) {
@@ -156,6 +163,12 @@ export default class LayerUtil {
         ),
       ];
 
+      if (options?.getNumberOfEvents !== undefined) {
+        if (events.length >= options.getNumberOfEvents) {
+          return events;
+        }
+      }
+
       // update the current event start time
 
       currentEventStartTime = OneUptimeDate.addRemoveSeconds(
@@ -185,6 +198,12 @@ export default class LayerUtil {
     for (const event of events) {
       event.id = id;
       id++;
+    }
+
+    if (options?.getNumberOfEvents !== undefined) {
+      if (events.length > options.getNumberOfEvents) {
+        events = events.slice(0, options.getNumberOfEvents);
+      }
     }
 
     return events;
@@ -280,6 +299,10 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
+        handOffTime = OneUptimeDate.addRemoveDays(handOffTime, 1);
+      }
+
       return handOffTime;
     }
 
@@ -305,6 +328,10 @@ export default class LayerUtil {
         handOffTime,
         intervalBetweenStartTimeAndHandoffTime,
       );
+
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
+        handOffTime = OneUptimeDate.addRemoveHours(handOffTime, 1);
+      }
 
       return handOffTime;
     }
@@ -332,6 +359,10 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
+        handOffTime = OneUptimeDate.addRemoveWeeks(handOffTime, 1);
+      }
+
       return handOffTime;
     }
 
@@ -358,6 +389,10 @@ export default class LayerUtil {
         intervalBetweenStartTimeAndHandoffTime,
       );
 
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
+        handOffTime = OneUptimeDate.addRemoveMonths(handOffTime, 1);
+      }
+
       return handOffTime;
     }
 
@@ -383,6 +418,10 @@ export default class LayerUtil {
         handOffTime,
         intervalBetweenStartTimeAndHandoffTime,
       );
+
+      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
+        handOffTime = OneUptimeDate.addRemoveYears(handOffTime, 1);
+      }
 
       return handOffTime;
     }
@@ -608,6 +647,7 @@ export default class LayerUtil {
         eventStartTime,
         startDayOfWeek,
       );
+
       endTime = OneUptimeDate.moveDateToTheDayOfWeek(
         endTime,
         eventStartTime,
@@ -619,13 +659,28 @@ export default class LayerUtil {
       // if start time is after end time, we need to add one week to the end time
 
       if (OneUptimeDate.isAfter(startTime, endTime)) {
-        endTime = OneUptimeDate.addRemoveWeeks(endTime, 1);
-      }
+        // in this case the restriction is towards the ends of the week and not in the middle so we need to add two objects to the array.
+        // One for start of the week
+        // and the other for end of the week .
 
-      startAndEndTimesOfWeeklyRestrictions.push({
-        startTime,
-        endTime,
-      });
+        const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(startTime);
+        const endOfTheWeek: Date = OneUptimeDate.getEndOfTheWeek(endTime);
+
+        startAndEndTimesOfWeeklyRestrictions.push({
+          startTime: startOfWeek,
+          endTime: endTime,
+        });
+
+        startAndEndTimesOfWeeklyRestrictions.push({
+          startTime: startTime,
+          endTime: endOfTheWeek,
+        });
+      } else {
+        startAndEndTimesOfWeeklyRestrictions.push({
+          startTime,
+          endTime,
+        });
+      }
     }
 
     return startAndEndTimesOfWeeklyRestrictions;
@@ -668,19 +723,19 @@ export default class LayerUtil {
     while (!reachedTheEndOfTheCurrentEvent) {
       // if current end time is equalto or before than the current start time, we need to return the current event and exit the loop
 
-      if (OneUptimeDate.isBefore(currentEndTime, currentStartTime)) {
+      if (OneUptimeDate.isOnOrBefore(currentEndTime, currentStartTime)) {
         reachedTheEndOfTheCurrentEvent = true;
       }
 
       // if the event is ourside the restriction times, we need to return the trimmed array
 
-      if (OneUptimeDate.isAfter(restrictionStartTime, currentEndTime)) {
+      if (OneUptimeDate.isOnOrAfter(restrictionStartTime, currentEndTime)) {
         return trimmedStartAndEndTimes;
       }
 
       // if current event start time is after the restriction end time then we need to return empty array as there is no event.
 
-      if (OneUptimeDate.isAfter(currentStartTime, restrictionEndTime)) {
+      if (OneUptimeDate.isOnOrAfter(currentStartTime, restrictionEndTime)) {
         return trimmedStartAndEndTimes;
       }
 
@@ -814,20 +869,28 @@ export default class LayerUtil {
 
   public static getMultiLayerEvents(
     data: MultiLayerProps,
+    options?:
+      | {
+          getNumberOfEvents?: number;
+        }
+      | undefined,
   ): Array<CalendarEvent> {
     const events: Array<PriorityCalendarEvents> = [];
     let layerPriority: number = 1;
 
     for (const layer of data.layers) {
-      const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents({
-        users: layer.users,
-        startDateTimeOfLayer: layer.startDateTimeOfLayer,
-        restrictionTimes: layer.restrictionTimes,
-        handOffTime: layer.handOffTime,
-        rotation: layer.rotation,
-        calendarStartDate: data.calendarStartDate,
-        calendarEndDate: data.calendarEndDate,
-      });
+      const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents(
+        {
+          users: layer.users,
+          startDateTimeOfLayer: layer.startDateTimeOfLayer,
+          restrictionTimes: layer.restrictionTimes,
+          handOffTime: layer.handOffTime,
+          rotation: layer.rotation,
+          calendarStartDate: data.calendarStartDate,
+          calendarEndDate: data.calendarEndDate,
+        },
+        options,
+      );
 
       // add priority to each event
 
@@ -848,6 +911,12 @@ export default class LayerUtil {
 
     const nonOverlappingEvents: Array<CalendarEvent> =
       LayerUtil.removeOverlappingEvents(events);
+
+    if (options?.getNumberOfEvents !== undefined) {
+      if (nonOverlappingEvents.length > options.getNumberOfEvents) {
+        return nonOverlappingEvents.slice(0, options.getNumberOfEvents);
+      }
+    }
 
     return nonOverlappingEvents;
   }
