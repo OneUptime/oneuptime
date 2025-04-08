@@ -173,6 +173,15 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
             name: true,
             _id: true,
           },
+          onCallDutyPolicyEscalationRule: {
+            name: true,
+            _id: true,
+            order: true,
+          },
+          team: {
+            name: true,
+            _id: true,
+          },
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -194,6 +203,15 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         },
         select: {
           onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+          onCallDutyPolicyEscalationRule: {
+            name: true,
+            _id: true,
+            order: true,
+          },
+          onCallDutyPolicySchedule: {
             name: true,
             _id: true,
           },

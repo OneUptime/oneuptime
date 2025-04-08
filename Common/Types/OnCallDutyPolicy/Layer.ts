@@ -119,7 +119,15 @@ export default class LayerUtil {
       return events;
     }
 
+    // break clause. This loop executes 1000 times at max.
+    const maxLoopCount: number = 1000;
+    let loopCount: number = 0;
+
     while (!hasReachedTheEndOfTheCalendar) {
+      loopCount++;
+      if (loopCount > maxLoopCount) {
+        break;
+      }
       currentEventEndTime = handOffTime;
 
       // if current event start time and end time is the same then increase current event start time by 1 second.
@@ -717,7 +725,17 @@ export default class LayerUtil {
 
     let reachedTheEndOfTheCurrentEvent: boolean = false;
 
+    // create a break clause. This loop executes 1000 times at max.
+
+    const maxLoopCount: number = 1000;
+    let loopCount: number = 0;
+
     while (!reachedTheEndOfTheCurrentEvent) {
+      loopCount++;
+
+      if (loopCount > maxLoopCount) {
+        break;
+      }
       // if current end time is equalto or before than the current start time, we need to return the current event and exit the loop
 
       if (OneUptimeDate.isOnOrBefore(currentEndTime, currentStartTime)) {

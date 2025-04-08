@@ -108,7 +108,7 @@ const CurrentOnCallPolicyModal: FunctionComponent<ComponentProps> = (
                         .onCallDutyPolicyEscalationRule?.name
                     }
                   </span>{" "}
-                  for this policy adn you are currently on roster for this
+                  for this policy and you are currently on roster for this
                   schedule.
                 </div>
               );
