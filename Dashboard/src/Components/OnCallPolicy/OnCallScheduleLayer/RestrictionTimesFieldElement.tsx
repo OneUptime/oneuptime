@@ -296,6 +296,15 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                 )}
                 onChange={(value: any) => {
                   params.weeklyRestriction.endDay = value;
+
+                  // move end time to the new end day
+                  if (params.weeklyRestriction.endTime) {
+                    params.weeklyRestriction.endTime = OneUptimeDate.moveDateToTheDayOfWeek(
+                      params.weeklyRestriction.endTime,
+                      OneUptimeDate.getCurrentDate(),
+                      value,
+                    );
+                  }
                   params.onChange(params.weeklyRestriction);
                 }}
               />
@@ -317,7 +326,12 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     date = OneUptimeDate.fromString(value);
                   }
 
-                  params.weeklyRestriction.endTime = date;
+                  // move date to the day of the week from the end day
+                  params.weeklyRestriction.endTime = OneUptimeDate.moveDateToTheDayOfWeek(
+                    date,
+                    OneUptimeDate.getCurrentDate(),
+                    params.weeklyRestriction.endDay,
+                  );
 
                   params.onChange(params.weeklyRestriction);
                 }}
@@ -325,6 +339,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         </div>
+
+
         <div className="mt-8">
           {/* Dellete Button */}
           <Button
