@@ -49,6 +49,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import URL from "Common/Types/API/URL";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import CurrentOnCallPolicyModal from "../OnCallPolicy/CurrentOnCallPolicyModal";
 
 export interface ComponentProps {
   projects: Array<Project>;
@@ -75,6 +76,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   const refreshAlertCount: VoidFunction = () => {
     setActiveAlertToggleRefresh(OneUptimeDate.getCurrentDate().toString());
   };
+
+
+  const [showCurrentOnCallPolicyModal, setShowCurrentOnCallPolicyModal] = 
+    useState<boolean>(false);
 
   const realtimeIncidentCountRefresh: () => VoidFunction = (): VoidFunction => {
     const stopListeningOnCreate: VoidFunction =
@@ -182,16 +187,16 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
   }, []);
 
   const [
-    _currentOnCallDutyEscalationPolicyUser,
+    currentOnCallDutyEscalationPolicyUser,
     setCurrentOnCallDutyEscalationPolicyUser,
   ] = useState<Array<OnCallDutyPolicyEscalationRuleUser>>([]);
   const [
-    _currentOnCallDutyEscalationPolicyTeam,
+    currentOnCallDutyEscalationPolicyTeam,
     setCurrentOnCallDutyEscalationPolicyTeam,
   ] = useState<Array<OnCallDutyPolicyEscalationRuleTeam>>([]);
 
   const [
-    _currentOnCallDutyEscalationPolicySchedule,
+    currentOnCallDutyEscalationPolicySchedule,
     setCurrentOnCallDutyEscalationPolicySchedule,
   ] = useState<Array<OnCallDutyPolicyEscalationRuleSchedule>>([]);
 
@@ -199,7 +204,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     string | null
   >(null);
 
-  const [currentOnCallDutyPolicy, setCurrentOnCallDutyPolicy] = useState<
+  const [currentOnCallPolicies, setCurrentOnCallPolicies] = useState<
     Array<OnCallDutyPolicy>
   >([]);
 
@@ -251,7 +256,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
           );
 
           // now get the current on call schedules fron escalationRulesBySchedule
-          const currentOnCallDutyPolicy: Array<OnCallDutyPolicy> = [];
+          const currentOnCallPolicies: Array<OnCallDutyPolicy> = [];
 
           for (const escalationRule of escalationRulesBySchedule) {
             const onCallPolicy: OnCallDutyPolicy | undefined =
@@ -260,7 +265,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             if (onCallPolicy) {
               // check if the onCallPolicy is already in the currentOnCallSchedules
               const onCallPolicyIndex: number =
-                currentOnCallDutyPolicy.findIndex(
+                currentOnCallPolicies.findIndex(
                   (schedule: OnCallDutyPolicy) => {
                     return (
                       schedule.id?.toString() === onCallPolicy.id?.toString()
@@ -269,7 +274,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 );
 
               if (onCallPolicyIndex === -1) {
-                currentOnCallDutyPolicy.push(onCallPolicy);
+                currentOnCallPolicies.push(onCallPolicy);
               }
             }
           }
@@ -281,7 +286,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             if (onCallPolicy) {
               // check if the onCallPolicy is already in the currentOnCallSchedules
               const onCallPolicyIndex: number =
-                currentOnCallDutyPolicy.findIndex(
+                currentOnCallPolicies.findIndex(
                   (schedule: OnCallDutyPolicy) => {
                     return (
                       schedule.id?.toString() === onCallPolicy.id?.toString()
@@ -289,7 +294,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   },
                 );
               if (onCallPolicyIndex === -1) {
-                currentOnCallDutyPolicy.push(onCallPolicy);
+                currentOnCallPolicies.push(onCallPolicy);
               }
             }
           }
@@ -302,7 +307,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             if (onCallPolicy) {
               // check if the onCallPolicy is already in the currentOnCallSchedules
               const onCallPolicyIndex: number =
-                currentOnCallDutyPolicy.findIndex(
+                currentOnCallPolicies.findIndex(
                   (schedule: OnCallDutyPolicy) => {
                     return (
                       schedule.id?.toString() === onCallPolicy.id?.toString()
@@ -310,12 +315,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   },
                 );
               if (onCallPolicyIndex === -1) {
-                currentOnCallDutyPolicy.push(onCallPolicy);
+                currentOnCallPolicies.push(onCallPolicy);
               }
             }
           }
 
-          setCurrentOnCallDutyPolicy(currentOnCallDutyPolicy);
+          setCurrentOnCallPolicies(currentOnCallPolicies);
         }
       } catch (err) {
         setOnCallDutyPolicyFetchError(
@@ -482,20 +487,16 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                   />
                 )}
 
-                {props.selectedProject && currentOnCallDutyPolicy.length > 0 ? (
+                {props.selectedProject && currentOnCallPolicies.length > 0 ? (
                   <HeaderAlert
                     icon={IconProp.Call}
                     tooltip="On-call policies you are currently on duty for"
                     alertType={HeaderAlertType.SUCCESS}
                     onClick={() => {
-                      Navigation.navigate(
-                        RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.SETTINGS_BILLING]!,
-                        ),
-                      );
+                      setShowCurrentOnCallPolicyModal(true);
                     }}
-                    title={`${currentOnCallDutyPolicy.length} ${
-                      currentOnCallDutyPolicy.length > 1
+                    title={`${currentOnCallPolicies.length} ${
+                      currentOnCallPolicies.length > 1
                         ? "On-Call Policies"
                         : "On-Call Policy"
                     }`}
@@ -556,6 +557,23 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
           </>
         }
       />
+      {showCurrentOnCallPolicyModal && (
+        <CurrentOnCallPolicyModal 
+          showModal={showCurrentOnCallPolicyModal}
+          onClose={() => {
+            setShowCurrentOnCallPolicyModal(false);
+          }}
+          currentOnCallDutyEscalationPolicyUsers={
+            currentOnCallDutyEscalationPolicyUser
+          }
+          currentOnCallDutyEscalationPolicyTeams={
+            currentOnCallDutyEscalationPolicyTeam
+          }
+          currentOnCallDutyEscalationPolicySchedules={
+            currentOnCallDutyEscalationPolicySchedule
+          }
+        />
+      )}
     </>
   );
 };
