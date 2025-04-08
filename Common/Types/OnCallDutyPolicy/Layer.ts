@@ -1,7 +1,6 @@
 import UserModel from "../../Models/DatabaseModels/User";
 import CalendarEvent from "../Calendar/CalendarEvent";
 import OneUptimeDate from "../Date";
-import DayOfWeek from "../Day/DayOfWeek";
 import EventInterval from "../Events/EventInterval";
 import Recurring from "../Events/Recurring";
 import StartAndEndTime from "../Time/StartAndEndTime";
@@ -43,7 +42,6 @@ export default class LayerUtil {
         }
       | undefined,
   ): Array<CalendarEvent> {
-
     let events: Array<CalendarEvent> = [];
 
     if (!LayerUtil.isDataValid(data)) {
@@ -661,8 +659,9 @@ export default class LayerUtil {
         // One for start of the week
         // and the other for end of the week .
 
-        const startOfWeek: Date = OneUptimeDate.getStartOfTheWeek(startTime);
-        const endOfTheWeek: Date = OneUptimeDate.getEndOfTheWeek(endTime);
+        const startOfWeek: Date = data.eventStartTime;
+        // add 7 days to the end time to get the end of the week
+        const endOfTheWeek: Date = OneUptimeDate.addRemoveDays(startOfWeek, 7);
 
         startAndEndTimesOfWeeklyRestrictions.push({
           startTime: startOfWeek,
@@ -673,12 +672,12 @@ export default class LayerUtil {
           startTime: startTime,
           endTime: endOfTheWeek,
         });
-      } else {
-        startAndEndTimesOfWeeklyRestrictions.push({
-          startTime,
-          endTime,
-        });
       }
+
+      startAndEndTimesOfWeeklyRestrictions.push({
+        startTime,
+        endTime,
+      });
     }
 
     return startAndEndTimesOfWeeklyRestrictions;

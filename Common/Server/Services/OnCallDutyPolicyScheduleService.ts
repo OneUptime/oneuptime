@@ -163,14 +163,14 @@ export class Service extends DatabaseService<Model> {
     return resultReturn;
   }
 
-  public async getEventByIndexInSchedule(data: {
-    scheduleId: ObjectID;
-    getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
-  }): Promise<Array<CalendarEvent>> {
-    // get schedule layers.
+  private async getScheduleLayerProps(data: {
+    scheduleId: ObjectID,
+  }
+  ): Promise<Array<LayerProps>> {
+       // get schedule layers.
 
     const scheduleId: ObjectID = data.scheduleId;
-    const numberOfEventsToGet: number = data.getNumberOfEvents;
+   
 
     const layers: Array<OnCallDutyPolicyScheduleLayer> =
       await OnCallDutyPolicyScheduleLayerService.findBy({
@@ -218,37 +218,57 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      const layerProps: Array<LayerProps> = [];
+
+      for (const layer of layers) {
+        layerProps.push({
+          users:
+            layerUsers
+              .filter((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                return (
+                  layerUser.onCallDutyPolicyScheduleLayerId?.toString() ===
+                  layer.id?.toString()
+                );
+              })
+              .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                return layerUser.user!;
+              })
+              .filter((user: User) => {
+                return Boolean(user);
+              }) || [],
+          startDateTimeOfLayer: layer.startsAt!,
+          restrictionTimes: layer.restrictionTimes!,
+          rotation: layer.rotation!,
+          handOffTime: layer.handOffTime!,
+        });
+      }
+
+      return layerProps;
+  }
+
+  public async getEventByIndexInSchedule(data: {
+    scheduleId: ObjectID;
+    getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
+  }): Promise<Array<CalendarEvent>> {
+
+    const layerProps: Array<LayerProps> =
+      await this.getScheduleLayerProps({
+        scheduleId: data.scheduleId,
+      });
+
+    if (layerProps.length === 0) {
+      return [];
+    }
+   
+
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
     const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
       1,
     );
 
-    const layerProps: Array<LayerProps> = [];
-
-    for (const layer of layers) {
-      layerProps.push({
-        users:
-          layerUsers
-            .filter((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-              return (
-                layerUser.onCallDutyPolicyScheduleLayerId?.toString() ===
-                layer.id?.toString()
-              );
-            })
-            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-              return layerUser.user!;
-            })
-            .filter((user: User) => {
-              return Boolean(user);
-            }) || [],
-        startDateTimeOfLayer: layer.startsAt!,
-        restrictionTimes: layer.restrictionTimes!,
-        rotation: layer.rotation!,
-        handOffTime: layer.handOffTime!,
-      });
-    }
-
+   
+    const numberOfEventsToGet: number = data.getNumberOfEvents;
     const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
       {
         layers: layerProps,
@@ -267,10 +287,35 @@ export class Service extends DatabaseService<Model> {
   public async getCurrentUserIdInSchedule(
     scheduleId: ObjectID,
   ): Promise<ObjectID | null> {
-    const events: Array<CalendarEvent> = await this.getEventByIndexInSchedule({
-      scheduleId: scheduleId,
-      getNumberOfEvents: 1,
-    });
+
+    const layerProps: Array<LayerProps> =
+      await this.getScheduleLayerProps({
+        scheduleId: scheduleId,
+      });
+
+    if (layerProps.length === 0) {
+      return null;
+    }
+   
+
+    const currentStartTime: Date = OneUptimeDate.getCurrentDate();
+    const currentEndTime: Date = OneUptimeDate.addRemoveSeconds(
+      currentStartTime,
+      1,
+    );
+
+   
+    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
+      {
+        layers: layerProps,
+        calendarStartDate: currentStartTime,
+        calendarEndDate: currentEndTime,
+      },
+      {
+        getNumberOfEvents: 1,
+      },
+    );
+
 
     const currentEvent: CalendarEvent | null = events[0] || null;
 
