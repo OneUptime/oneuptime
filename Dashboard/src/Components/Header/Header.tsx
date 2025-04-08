@@ -77,8 +77,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     setActiveAlertToggleRefresh(OneUptimeDate.getCurrentDate().toString());
   };
 
-
-  const [showCurrentOnCallPolicyModal, setShowCurrentOnCallPolicyModal] = 
+  const [showCurrentOnCallPolicyModal, setShowCurrentOnCallPolicyModal] =
     useState<boolean>(false);
 
   const realtimeIncidentCountRefresh: () => VoidFunction = (): VoidFunction => {
@@ -264,14 +263,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
             if (onCallPolicy) {
               // check if the onCallPolicy is already in the currentOnCallSchedules
-              const onCallPolicyIndex: number =
-                currentOnCallPolicies.findIndex(
-                  (schedule: OnCallDutyPolicy) => {
-                    return (
-                      schedule.id?.toString() === onCallPolicy.id?.toString()
-                    );
-                  },
-                );
+              const onCallPolicyIndex: number = currentOnCallPolicies.findIndex(
+                (schedule: OnCallDutyPolicy) => {
+                  return (
+                    schedule.id?.toString() === onCallPolicy.id?.toString()
+                  );
+                },
+              );
 
               if (onCallPolicyIndex === -1) {
                 currentOnCallPolicies.push(onCallPolicy);
@@ -285,14 +283,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               escalationRule.onCallDutyPolicy;
             if (onCallPolicy) {
               // check if the onCallPolicy is already in the currentOnCallSchedules
-              const onCallPolicyIndex: number =
-                currentOnCallPolicies.findIndex(
-                  (schedule: OnCallDutyPolicy) => {
-                    return (
-                      schedule.id?.toString() === onCallPolicy.id?.toString()
-                    );
-                  },
-                );
+              const onCallPolicyIndex: number = currentOnCallPolicies.findIndex(
+                (schedule: OnCallDutyPolicy) => {
+                  return (
+                    schedule.id?.toString() === onCallPolicy.id?.toString()
+                  );
+                },
+              );
               if (onCallPolicyIndex === -1) {
                 currentOnCallPolicies.push(onCallPolicy);
               }
@@ -306,14 +303,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
               escalationRule.onCallDutyPolicy;
             if (onCallPolicy) {
               // check if the onCallPolicy is already in the currentOnCallSchedules
-              const onCallPolicyIndex: number =
-                currentOnCallPolicies.findIndex(
-                  (schedule: OnCallDutyPolicy) => {
-                    return (
-                      schedule.id?.toString() === onCallPolicy.id?.toString()
-                    );
-                  },
-                );
+              const onCallPolicyIndex: number = currentOnCallPolicies.findIndex(
+                (schedule: OnCallDutyPolicy) => {
+                  return (
+                    schedule.id?.toString() === onCallPolicy.id?.toString()
+                  );
+                },
+              );
               if (onCallPolicyIndex === -1) {
                 currentOnCallPolicies.push(onCallPolicy);
               }
@@ -558,7 +554,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         }
       />
       {showCurrentOnCallPolicyModal && (
-        <CurrentOnCallPolicyModal 
+        <CurrentOnCallPolicyModal
           showModal={showCurrentOnCallPolicyModal}
           onClose={() => {
             setShowCurrentOnCallPolicyModal(false);
