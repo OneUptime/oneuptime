@@ -438,8 +438,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     }
 
     // add SEND_CURRENTLY_ON_CALL_NOTIFICATION and SEND_NEXT_ON_CALL_NOTIFICATION
-    const currentlyOnCallNotificationEvent: PositiveNumber =
-      await this.countBy({
+    const currentlyOnCallNotificationEvent: PositiveNumber = await this.countBy(
+      {
         query: {
           userId,
           projectId,
@@ -449,7 +449,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         props: {
           isRoot: true,
         },
-      });
+      },
+    );
 
     if (currentlyOnCallNotificationEvent.toNumber() === 0) {
       const item: UserNotificationSetting = new UserNotificationSetting();
@@ -492,7 +493,6 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         },
       });
     }
-    
 
     // check alert state changed notification
     const alertStateChangedNotificationEvent: PositiveNumber =

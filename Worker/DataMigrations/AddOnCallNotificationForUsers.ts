@@ -58,12 +58,12 @@ export default class AddOnCallNotificationForUsers extends DataMigrationBase {
           try {
             await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
               userId,
-              project.id!
+              project.id!,
             );
           } catch (err) {
             // Log the error
             logger.error(
-              `Failed to add default notification settings for user ${userId}: ${err}`
+              `Failed to add default notification settings for user ${userId}: ${err}`,
             );
           }
         }
