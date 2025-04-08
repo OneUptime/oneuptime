@@ -635,9 +635,6 @@ export default class LayerUtil {
     for (const weeklyRestriction of weeklyRestrictionTimes) {
       // move all of these to the week of the event start time
 
-      const startDayOfWeek: DayOfWeek = weeklyRestriction.startDay;
-      const endDayOfWeek: DayOfWeek = weeklyRestriction.endDay;
-
       let startTime: Date = weeklyRestriction.startTime;
       let endTime: Date = weeklyRestriction.endTime;
 
@@ -646,13 +643,13 @@ export default class LayerUtil {
       startTime = OneUptimeDate.moveDateToTheDayOfWeek(
         startTime,
         eventStartTime,
-        startDayOfWeek,
+        OneUptimeDate.getDayOfWeek(startTime),
       );
 
       endTime = OneUptimeDate.moveDateToTheDayOfWeek(
         endTime,
         eventStartTime,
-        endDayOfWeek,
+        OneUptimeDate.getDayOfWeek(endTime),
       );
 
       // now we have true start and end times of the weekly restriction
