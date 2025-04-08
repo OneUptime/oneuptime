@@ -17,9 +17,7 @@ export default class AddOnCallNotificationForUsers extends DataMigrationBase {
     // get all the users with email isVerified true.
 
     const projects: Array<Project> = await ProjectService.findBy({
-      query: {
-        
-      },
+      query: {},
       select: {
         _id: true,
       },
