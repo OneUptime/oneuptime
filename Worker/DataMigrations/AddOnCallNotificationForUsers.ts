@@ -1,7 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ProjectService from "Common/Server/Services/ProjectService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
@@ -19,7 +18,7 @@ export default class AddOnCallNotificationForUsers extends DataMigrationBase {
 
     const projects: Array<Project> = await ProjectService.findBy({
       query: {
-        createdOwnerEmail: QueryHelper.isNull(),
+        
       },
       select: {
         _id: true,
@@ -56,7 +55,7 @@ export default class AddOnCallNotificationForUsers extends DataMigrationBase {
           }
 
           try {
-            await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+            await UserNotificationSettingService.addOnCallNotificationSettings(
               userId,
               project.id!,
             );

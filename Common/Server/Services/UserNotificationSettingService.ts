@@ -197,323 +197,125 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<void> {
-    const probeOwnerAddedNotificationEvent: PositiveNumber = await this.countBy(
-      {
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      },
+    await this.addProbeOwnerNotificationSettings(userId, projectId);
+    await this.addIncidentNotificationSettings(userId, projectId);
+    await this.addMonitorNotificationSettings(userId, projectId);
+    await this.addOnCallNotificationSettings(userId, projectId);
+    await this.addAlertNotificationSettings(userId, projectId);
+  }
+
+  private async addProbeOwnerNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
     );
 
-    if (probeOwnerAddedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION;
-      item.alertByEmail = true;
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+    );
+  }
 
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    const probeStatusChangedNotificationEvent: PositiveNumber =
-      await this.countBy({
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (probeStatusChangedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    const incidentCreatedNotificationEvent: PositiveNumber = await this.countBy(
-      {
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      },
+  private async addIncidentNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
     );
 
-    if (incidentCreatedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION;
-      item.alertByEmail = true;
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+    );
+  }
 
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
+  private async addMonitorNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+    );
 
-    const alertCreatedNotificationEvent: PositiveNumber = await this.countBy({
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+    );
+  }
+
+  public async addOnCallNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION,
+    );
+  }
+
+  private async addAlertNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+    );
+  }
+
+  private async addNotificationSettingIfNotExists(
+    userId: ObjectID,
+    projectId: ObjectID,
+    eventType: NotificationSettingEventType,
+  ): Promise<void> {
+    const existingNotification: PositiveNumber = await this.countBy({
       query: {
         userId,
         projectId,
-        eventType:
-          NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+        eventType,
       },
       props: {
         isRoot: true,
       },
     });
 
-    if (alertCreatedNotificationEvent.toNumber() === 0) {
+    if (existingNotification.toNumber() === 0) {
       const item: UserNotificationSetting = new UserNotificationSetting();
       item.userId = userId;
       item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // check monitor state changed notification
-    const monitorStateChangedNotificationEvent: PositiveNumber =
-      await this.countBy({
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (monitorStateChangedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR
-
-    const monitorNoProbesNotificationEvent: PositiveNumber = await this.countBy(
-      {
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
-        },
-        props: {
-          isRoot: true,
-        },
-      },
-    );
-
-    if (monitorNoProbesNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES
-
-    const monitorProbeStatusChangedNotificationEvent: PositiveNumber =
-      await this.countBy({
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (monitorProbeStatusChangedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // check incident state changed notification
-    const incidentStateChangedNotificationEvent: PositiveNumber =
-      await this.countBy({
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (incidentStateChangedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // add SEND_CURRENTLY_ON_CALL_NOTIFICATION and SEND_NEXT_ON_CALL_NOTIFICATION
-    const currentlyOnCallNotificationEvent: PositiveNumber = await this.countBy(
-      {
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      },
-    );
-
-    if (currentlyOnCallNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION;
-      item.alertByEmail = true;
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    const nextOnCallNotificationEvent: PositiveNumber = await this.countBy({
-      query: {
-        userId,
-        projectId,
-        eventType: NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (nextOnCallNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION;
-      item.alertByEmail = true;
-
-      await this.create({
-        data: item,
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    // check alert state changed notification
-    const alertStateChangedNotificationEvent: PositiveNumber =
-      await this.countBy({
-        query: {
-          userId,
-          projectId,
-          eventType:
-            NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (alertStateChangedNotificationEvent.toNumber() === 0) {
-      const item: UserNotificationSetting = new UserNotificationSetting();
-      item.userId = userId;
-      item.projectId = projectId;
-      item.eventType =
-        NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION;
+      item.eventType = eventType;
       item.alertByEmail = true;
 
       await this.create({
