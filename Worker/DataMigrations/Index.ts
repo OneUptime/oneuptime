@@ -50,6 +50,7 @@ import AddAttributesColumnToTelemetryAttribute from "./AddAttributesColumnToTele
 import DeleteAllTelemetryAttributes from "./DeleteAllTelemetryAttributes";
 import DropDescriptionAndUnitColumnFromMetrics from "./DropDescriptionAndUnitColumnFromMetrics";
 import RefreshOnCallSchedulesToAddCurrentUserOnRoster from "./RefreshOnCallSchedulesToAddCurrentUserOnRoster";
+import AddOnCallNotificationForUsers from "./AddOnCallNotificationForUsers";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -105,6 +106,7 @@ const DataMigrations: Array<DataMigrationBase> = [
   new DeleteAllTelemetryAttributes(),
   new DropDescriptionAndUnitColumnFromMetrics(),
   new RefreshOnCallSchedulesToAddCurrentUserOnRoster(),
+  new AddOnCallNotificationForUsers()
 ];
 
 export default DataMigrations;

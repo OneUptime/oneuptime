@@ -178,6 +178,18 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div>
         {getModelTable({
           eventOptions: [
+            NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION,
+            NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION,
+          ],
+          title: "On-Call Notifications",
+          description:
+            "Here are the list of notification methods we will use when an event happens on an alert.",
+        })}
+      </div>
+
+      <div>
+        {getModelTable({
+          eventOptions: [
             NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
             NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
             NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,

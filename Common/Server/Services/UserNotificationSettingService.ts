@@ -437,6 +437,63 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       });
     }
 
+    // add SEND_CURRENTLY_ON_CALL_NOTIFICATION and SEND_NEXT_ON_CALL_NOTIFICATION
+    const currentlyOnCallNotificationEvent: PositiveNumber =
+      await this.countBy({
+        query: {
+          userId,
+          projectId,
+          eventType:
+            NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (currentlyOnCallNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION;
+      item.alertByEmail = true;
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const nextOnCallNotificationEvent: PositiveNumber = await this.countBy({
+      query: {
+        userId,
+        projectId,
+        eventType: NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (nextOnCallNotificationEvent.toNumber() === 0) {
+      const item: UserNotificationSetting = new UserNotificationSetting();
+      item.userId = userId;
+      item.projectId = projectId;
+      item.eventType =
+        NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION;
+      item.alertByEmail = true;
+
+      await this.create({
+        data: item,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+    
+
     // check alert state changed notification
     const alertStateChangedNotificationEvent: PositiveNumber =
       await this.countBy({

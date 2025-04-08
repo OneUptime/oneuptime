@@ -33,6 +33,10 @@ enum NotificationSettingEventType {
   // Probe Status change Notification
   SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION = "Send probe status changed notification when I am the owner of the probe",
   SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
+
+  // On Call Notifications
+  SEND_CURRENTLY_ON_CALL_NOTIFICATION = "Send currently on call notification",
+  SEND_NEXT_ON_CALL_NOTIFICATION = "Send next on call notification",
 }
 
 export default NotificationSettingEventType;
