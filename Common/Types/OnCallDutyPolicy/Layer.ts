@@ -43,6 +43,7 @@ export default class LayerUtil {
         }
       | undefined,
   ): Array<CalendarEvent> {
+
     let events: Array<CalendarEvent> = [];
 
     if (!LayerUtil.isDataValid(data)) {
