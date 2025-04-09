@@ -144,9 +144,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         previousInformation.currentUserIdOnRoster?.toString() !==
           newInformation.currentUserIdOnRoster?.toString() ||
         previousInformation.rosterHandoffAt?.toString() !==
-          newInformation.rosterHandoffAt?.toString() ||
-        previousInformation.rosterStartAt?.toString() !==
-          newInformation.rosterStartAt?.toString()
+          newInformation.rosterHandoffAt?.toString() 
       ) {
         if (
           previousInformation.currentUserIdOnRoster?.toString() !==
@@ -180,7 +178,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                date: previousInformation.rosterHandoffAt!,
+                date: OneUptimeDate.isInTheFuture(previousInformation.rosterHandoffAt!) ? OneUptimeDate.getCurrentDate() : previousInformation.rosterHandoffAt!,
                 timezones: userTimezone ? [userTimezone] : [],
               }),
             onCallPolicyViewLink: (
