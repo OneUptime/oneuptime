@@ -95,7 +95,7 @@ export class Service extends DatabaseService<Model> {
       escalationRuleOrder:
         createdModel.onCallDutyPolicyEscalationRule?.order?.toString() ||
         "No order provided",
-      reason: "You are currently on roster for schedule" + scheduleName,
+      reason: "You are currently on roster for schedule " + scheduleName,
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
           createdModel!.projectId!,
