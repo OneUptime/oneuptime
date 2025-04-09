@@ -1,0 +1,34 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "You have been REMOVED from On-Call Policy: " onCallPolicyName) }}
+
+{{> InfoBlock info=description}}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="On Call Policy:" text=onCallPolicyName }}
+{{> DetailBoxField title="Escalation Rule: " text=escalationRuleName  }}
+{{> DetailBoxField title="Escalation Order: " text=escalationOrder  }}
+{{> DetailBoxField title="More Information:" text=reason  }}
+
+
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this on-call policy by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=onCallPolicyViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=onCallPolicyViewLink}}
+
+{{> InfoBlock info="You will be notified when your on-call status changes."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

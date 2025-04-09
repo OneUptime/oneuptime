@@ -7,22 +7,37 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
-import Model from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
+import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
+import Dictionary from "../../Types/Dictionary";
+import { EmailEnvelope } from "../../Types/Email/EmailMessage";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import UserService from "./UserService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import { SMSMessage } from "../../Types/SMS/SMS";
+import { CallRequestMessage } from "../../Types/Call/CallRequest";
+import UserNotificationSettingService from "./UserNotificationSettingService";
+import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import Timezone from "../../Types/Timezone";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   public constructor() {
-    super(Model);
+    super(OnCallDutyPolicySchedule);
   }
 
   public async getOnCallSchedulesWhereUserIsOnCallDuty(data: {
     projectId: ObjectID;
     userId: ObjectID;
-  }): Promise<Array<Model>> {
-    const schedules: Array<Model> = await this.findBy({
+  }): Promise<Array<OnCallDutyPolicySchedule>> {
+    const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
       query: {
         projectId: data.projectId,
         currentUserIdOnRoster: data.userId,
@@ -41,6 +56,314 @@ export class Service extends DatabaseService<Model> {
     return schedules;
   }
 
+  private async sendNotificationToUserOnScheduleHandoff(data: {
+    scheduleId: ObjectID;
+    previousInformation: {
+      currentUserIdOnRoster: ObjectID | null;
+      rosterHandoffAt: Date | null;
+      nextUserIdOnRoster: ObjectID | null;
+      nextHandOffTimeAt: Date | null;
+      rosterStartAt: Date | null;
+      nextRosterStartAt: Date | null;
+    };
+    newInformation: {
+      currentUserIdOnRoster: ObjectID | null;
+      rosterHandoffAt: Date | null;
+      nextUserIdOnRoster: ObjectID | null;
+      nextHandOffTimeAt: Date | null;
+      rosterStartAt: Date | null;
+      nextRosterStartAt: Date | null;
+    };
+  }): Promise<void> {
+    // Before we send any notification, we need to check if this schedule is attached to any on-call policy.
+
+    const escalationRulesAttachedToSchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
+      await OnCallDutyPolicyEscalationRuleScheduleService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: data.scheduleId,
+        },
+        select: {
+          projectId: true,
+          _id: true,
+          onCallDutyPolicy: {
+            name: true,
+            _id: true,
+          },
+          onCallDutyPolicyEscalationRule: {
+            name: true,
+            _id: true,
+            order: true,
+          },
+          onCallDutyPolicySchedule: {
+            name: true,
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    if (escalationRulesAttachedToSchedule.length === 0) {
+      // do nothing.
+      return;
+    }
+
+    for (const escalationRule of escalationRulesAttachedToSchedule) {
+      const projectId: ObjectID = escalationRule.projectId!;
+
+      const onCallSchedule: OnCallDutyPolicySchedule | undefined =
+        escalationRule.onCallDutyPolicySchedule;
+
+      if (!onCallSchedule) {
+        continue;
+      }
+
+      const onCallPolicy: OnCallDutyPolicy | undefined =
+        escalationRule.onCallDutyPolicy;
+
+      if (!onCallPolicy) {
+        continue;
+      }
+
+      const onCallDutyPolicyEscalationRule:
+        | OnCallDutyPolicyEscalationRule
+        | undefined = escalationRule.onCallDutyPolicyEscalationRule;
+
+      if (!onCallDutyPolicyEscalationRule) {
+        continue;
+      }
+
+      const { previousInformation, newInformation } = data;
+
+      // if there's a change, witht he current user, send notification to the new current user.
+      // Send notificiation to the new current user.
+      if (
+        previousInformation.currentUserIdOnRoster?.toString() !==
+          newInformation.currentUserIdOnRoster?.toString() ||
+        previousInformation.rosterHandoffAt?.toString() !==
+          newInformation.rosterHandoffAt?.toString() ||
+        previousInformation.rosterStartAt?.toString() !==
+          newInformation.rosterStartAt?.toString()
+      ) {
+        if (
+          previousInformation.currentUserIdOnRoster?.toString() !==
+            newInformation.currentUserIdOnRoster?.toString() &&
+          previousInformation.currentUserIdOnRoster?.toString()
+        ) {
+          // the user has changed. Send notifiction to old user that he has been removed.
+
+          // send notification to the new current user.
+
+          const sendEmailToUserId: ObjectID =
+            previousInformation.currentUserIdOnRoster;
+
+          const userTimezone: Timezone | null =
+            await UserService.getTimezoneForUser(sendEmailToUserId);
+
+          const vars: Dictionary<string> = {
+            onCallPolicyName: onCallPolicy.name || "No name provided",
+            escalationRuleName:
+              onCallDutyPolicyEscalationRule.name || "No name provided",
+            escalationRuleOrder:
+              onCallDutyPolicyEscalationRule.order?.toString() || "-",
+            reason:
+              "Your on-call roster on schedule " +
+              onCallSchedule.name +
+              " just ended.",
+            rosterStartsAt:
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: previousInformation.rosterStartAt!,
+                timezones: userTimezone ? [userTimezone] : [],
+              }),
+            rosterEndsAt:
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: previousInformation.rosterHandoffAt!,
+                timezones: userTimezone ? [userTimezone] : [],
+              }),
+            onCallPolicyViewLink: (
+              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+                projectId,
+                onCallPolicy.id!,
+              )
+            ).toString(),
+          };
+
+          // current user changed, send alert the new current user.
+          const emailMessage: EmailEnvelope = {
+            templateType: EmailTemplateType.UserNoLongerActiveOnOnCallRoster,
+            vars: vars,
+            subject: "You are no longer on-call for " + onCallPolicy.name!,
+          };
+
+          const sms: SMSMessage = {
+            message: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
+          const callMessage: CallRequestMessage = {
+            data: [
+              {
+                sayMessage: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              },
+            ],
+          };
+
+          await UserNotificationSettingService.sendUserNotification({
+            userId: sendEmailToUserId,
+            projectId: projectId,
+            emailEnvelope: emailMessage,
+            smsMessage: sms,
+            callRequestMessage: callMessage,
+            eventType:
+              NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+          });
+        }
+
+        if (newInformation.currentUserIdOnRoster?.toString()) {
+          // send email to the new current user.
+          const sendEmailToUserId: ObjectID =
+            newInformation.currentUserIdOnRoster;
+          const userTimezone: Timezone | null =
+            await UserService.getTimezoneForUser(sendEmailToUserId);
+
+          const vars: Dictionary<string> = {
+            onCallPolicyName: onCallPolicy.name || "No name provided",
+            escalationRuleName:
+              onCallDutyPolicyEscalationRule.name || "No name provided",
+            escalationRuleOrder:
+              onCallDutyPolicyEscalationRule.order?.toString() || "-",
+            reason:
+              "You are now on-call for the policy " +
+              onCallPolicy.name +
+              " because your on-call roster on schedule " +
+              onCallSchedule.name,
+            rosterStartsAt:
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: newInformation.rosterStartAt!,
+                timezones: userTimezone ? [userTimezone] : [],
+              }),
+            rosterEndsAt:
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: newInformation.rosterHandoffAt!,
+                timezones: userTimezone ? [userTimezone] : [],
+              }),
+            onCallPolicyViewLink: (
+              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+                projectId,
+                onCallPolicy.id!,
+              )
+            ).toString(),
+          };
+
+          const emailMessage: EmailEnvelope = {
+            templateType: EmailTemplateType.UserCurrentlyOnOnCallRoster,
+            vars: vars,
+            subject: "You are now on-call for " + onCallPolicy.name!,
+          };
+
+          const sms: SMSMessage = {
+            message: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
+          const callMessage: CallRequestMessage = {
+            data: [
+              {
+                sayMessage: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              },
+            ],
+          };
+
+          await UserNotificationSettingService.sendUserNotification({
+            userId: sendEmailToUserId,
+            projectId: projectId,
+            emailEnvelope: emailMessage,
+            smsMessage: sms,
+            callRequestMessage: callMessage,
+            eventType:
+              NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+          });
+        }
+      }
+
+      // send an email to the next user.
+      if (
+        previousInformation.nextUserIdOnRoster?.toString() !==
+          newInformation.nextUserIdOnRoster?.toString() ||
+        previousInformation.nextHandOffTimeAt?.toString() !==
+          newInformation.nextHandOffTimeAt?.toString() ||
+        previousInformation.nextRosterStartAt?.toString() !==
+          newInformation.nextRosterStartAt?.toString()
+      ) {
+        if (newInformation.nextUserIdOnRoster?.toString()) {
+          // send email to the next user.
+          const sendEmailToUserId: ObjectID = newInformation.nextUserIdOnRoster;
+          const userTimezone: Timezone | null =
+            await UserService.getTimezoneForUser(sendEmailToUserId);
+
+          const vars: Dictionary<string> = {
+            onCallPolicyName: onCallPolicy.name || "No name provided",
+            escalationRuleName:
+              onCallDutyPolicyEscalationRule.name || "No name provided",
+            escalationRuleOrder:
+              onCallDutyPolicyEscalationRule.order?.toString() || "-",
+            reason:
+              "You are next on-call for the policy " +
+              onCallPolicy.name +
+              " because your on-call roster on schedule " +
+              onCallSchedule.name +
+              " will start when the next handoff happens.",
+            rosterStartsAt:
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: newInformation.nextRosterStartAt!,
+                timezones: userTimezone ? [userTimezone] : [],
+              }),
+            rosterEndsAt:
+              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                date: newInformation.nextHandOffTimeAt!,
+                timezones: userTimezone ? [userTimezone] : [],
+              }),
+            onCallPolicyViewLink: (
+              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+                projectId,
+                onCallPolicy.id!,
+              )
+            ).toString(),
+          };
+
+          const emailMessage: EmailEnvelope = {
+            templateType: EmailTemplateType.UserNextOnOnCallRoster,
+            vars: vars,
+            subject: "You are next on-call for " + onCallPolicy.name!,
+          };
+
+          const sms: SMSMessage = {
+            message: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
+          const callMessage: CallRequestMessage = {
+            data: [
+              {
+                sayMessage: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+              },
+            ],
+          };
+
+          await UserNotificationSettingService.sendUserNotification({
+            userId: sendEmailToUserId,
+            projectId: projectId,
+            emailEnvelope: emailMessage,
+            smsMessage: sms,
+            callRequestMessage: callMessage,
+            eventType:
+              NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+          });
+        }
+      }
+    }
+  }
+
   public async refreshCurrentUserIdAndHandoffTimeInSchedule(
     scheduleId: ObjectID,
   ): Promise<{
@@ -48,8 +371,47 @@ export class Service extends DatabaseService<Model> {
     handOffTimeAt: Date | null;
     nextUserId: ObjectID | null;
     nextHandOffTimeAt: Date | null;
+    rosterStartAt: Date | null;
+    nextRosterStartAt: Date | null;
   }> {
-    const result: {
+    // get previoius result.
+    const onCallSchedule: OnCallDutyPolicySchedule | null =
+      await this.findOneById({
+        id: scheduleId,
+        select: {
+          currentUserIdOnRoster: true,
+          rosterHandoffAt: true,
+          nextUserIdOnRoster: true,
+          rosterNextHandoffAt: true,
+          rosterStartAt: true,
+          rosterNextStartAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!onCallSchedule) {
+      throw new BadDataException("Schedule not found");
+    }
+
+    const previousInformation: {
+      currentUserIdOnRoster: ObjectID | null;
+      rosterHandoffAt: Date | null;
+      nextUserIdOnRoster: ObjectID | null;
+      nextHandOffTimeAt: Date | null;
+      rosterStartAt: Date | null;
+      nextRosterStartAt: Date | null;
+    } = {
+      currentUserIdOnRoster: onCallSchedule.currentUserIdOnRoster || null,
+      rosterHandoffAt: onCallSchedule.rosterHandoffAt || null,
+      nextUserIdOnRoster: onCallSchedule.nextUserIdOnRoster || null,
+      nextHandOffTimeAt: onCallSchedule.rosterNextHandoffAt || null,
+      rosterStartAt: onCallSchedule.rosterStartAt || null,
+      nextRosterStartAt: onCallSchedule.rosterNextStartAt || null,
+    };
+
+    const newInformation: {
       currentUserId: ObjectID | null;
       handOffTimeAt: Date | null;
       nextUserId: ObjectID | null;
@@ -61,12 +423,12 @@ export class Service extends DatabaseService<Model> {
     await this.updateOneById({
       id: scheduleId!,
       data: {
-        currentUserIdOnRoster: result.currentUserId,
-        rosterHandoffAt: result.handOffTimeAt,
-        nextUserIdOnRoster: result.nextUserId,
-        rosterNextHandoffAt: result.nextHandOffTimeAt,
-        rosterStartAt: result.rosterStartAt,
-        rosterNextStartAt: result.nextRosterStartAt,
+        currentUserIdOnRoster: newInformation.currentUserId,
+        rosterHandoffAt: newInformation.handOffTimeAt,
+        nextUserIdOnRoster: newInformation.nextUserId,
+        rosterNextHandoffAt: newInformation.nextHandOffTimeAt,
+        rosterStartAt: newInformation.rosterStartAt,
+        rosterNextStartAt: newInformation.nextRosterStartAt,
       },
       props: {
         isRoot: true,
@@ -74,7 +436,21 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    return result;
+    // send notification to the users.
+    await this.sendNotificationToUserOnScheduleHandoff({
+      scheduleId: scheduleId,
+      previousInformation: previousInformation,
+      newInformation: {
+        currentUserIdOnRoster: newInformation.currentUserId,
+        rosterHandoffAt: newInformation.handOffTimeAt,
+        nextUserIdOnRoster: newInformation.nextUserId,
+        nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
+        rosterStartAt: newInformation.rosterStartAt,
+        nextRosterStartAt: newInformation.nextRosterStartAt,
+      },
+    });
+
+    return newInformation;
   }
 
   public async getCurrrentUserIdAndHandoffTimeInSchedule(

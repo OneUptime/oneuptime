@@ -48,6 +48,12 @@ enum EmailTemplateType {
   VerificationCode = "VerificationCode.hbs",
   AcknowledgeIncident = "AcknowledgeIncident.hbs",
   AcknowledgeAlert = "AcknowledgeAlert.hbs",
+
+  UserAddedToOnCallPolicy = "UserAddedToOnCallPolicy.hbs",
+  UserRemovedFromOnCallPolicy = "UserRemovedFromOnCallPolicy.hbs",
+  UserCurrentlyOnOnCallRoster = "UserCurrentlyOnOnCallRoster.hbs",
+  UserNextOnOnCallRoster = "UserNextOnOnCallRoster.hbs",
+  UserNoLongerActiveOnOnCallRoster = "UserNoLongerActiveOnOnCallRoster.hbs",
 }
 
 export default EmailTemplateType;

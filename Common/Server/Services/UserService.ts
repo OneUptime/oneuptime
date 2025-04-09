@@ -34,6 +34,7 @@ import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import Timezone from "../../Types/Timezone";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -363,6 +364,26 @@ export class Service extends DatabaseService<Model> {
       data: user,
       props: props,
     });
+  }
+
+  public async getTimezoneForUser(userId: ObjectID): Promise<Timezone | null> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: userId,
+      },
+      select: {
+        timezone: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return user.timezone || null;
   }
 }
 

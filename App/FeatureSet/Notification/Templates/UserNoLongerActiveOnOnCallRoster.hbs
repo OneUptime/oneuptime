@@ -1,0 +1,33 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat "Your on-call roster has ENDED for this policy: " onCallPolicyName) }}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="On Call Policy:" text=onCallPolicyName }}
+{{> DetailBoxField title="Escalation Rule: " text=escalationRuleName  }}
+{{> DetailBoxField title="Escalation Order: " text=escalationRuleOrder  }}
+{{> DetailBoxField title="More Information:" text=reason  }}
+{{> DetailBoxField title="Your On-Call Roster Started At: " text=rosterStartsAt  }}
+{{> DetailBoxField title="Your On-Call Roster Ended At: " text=rosterStartsAt  }}
+
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can view this on-call policy by clicking on the button below - "}}
+
+{{> ButtonBlock buttonUrl=onCallPolicyViewLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=onCallPolicyViewLink}}
+
+{{> InfoBlock info="You will be notified when your on-call status changes."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}
