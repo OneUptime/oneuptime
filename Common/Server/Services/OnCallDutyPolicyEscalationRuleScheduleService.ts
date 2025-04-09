@@ -98,7 +98,7 @@ export class Service extends DatabaseService<Model> {
       reason: "You are currently on roster for schedule" + scheduleName,
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
-          createdModel.onCallDutyPolicy!.projectId!,
+          createdModel!.projectId!,
           createdModel.onCallDutyPolicy!.id!,
         )
       ).toString(),
@@ -125,7 +125,7 @@ export class Service extends DatabaseService<Model> {
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
-      projectId: createdModel.onCallDutyPolicy!.projectId!,
+      projectId: createdModel!.projectId!,
       emailEnvelope: emailMessage,
       smsMessage: sms,
       callRequestMessage: callMessage,
@@ -210,7 +210,7 @@ export class Service extends DatabaseService<Model> {
         reason: `You have been removed from the on-call duty policy escalation rule for schedule ${scheduleName}.`,
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
-            deletedItem.onCallDutyPolicy!.projectId!,
+            deletedItem!.projectId!,
             deletedItem.onCallDutyPolicy!.id!,
           )
         ).toString(),
@@ -237,7 +237,7 @@ export class Service extends DatabaseService<Model> {
 
       await UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
-        projectId: deletedItem.onCallDutyPolicy!.projectId!,
+        projectId: deletedItem!.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,

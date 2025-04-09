@@ -178,8 +178,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <div>
         {getModelTable({
           eventOptions: [
-            NotificationSettingEventType.SEND_CURRENTLY_ON_CALL_NOTIFICATION,
-            NotificationSettingEventType.SEND_NEXT_ON_CALL_NOTIFICATION,
+            NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+            NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+            NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
+            NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+            NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+
           ],
           title: "On-Call Notifications",
           description:

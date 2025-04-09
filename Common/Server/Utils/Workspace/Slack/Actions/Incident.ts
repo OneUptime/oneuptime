@@ -400,7 +400,7 @@ export default class SlackIncidentActions {
       blocks.push(monitorStatusDropdown);
     }
 
-    // add on call policy dropdown.
+    // add on-call policy dropdown.
 
     const onCallPolicies: Array<OnCallDutyPolicy> =
       await OnCallDutyPolicyService.findBy({
@@ -957,7 +957,7 @@ export default class SlackIncidentActions {
         // send a message to the channel visible to user, that the incident has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on call policy for **[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
+          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Incident ${incidentNumber?.toString()}](${await IncidentService.getIncidentLinkInDashboard(slackRequest.projectId!, incidentId)})**. It has already been resolved.`,
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -983,7 +983,7 @@ export default class SlackIncidentActions {
       const onCallPolicyString: string =
         data.slackRequest.viewValues["onCallPolicy"].toString();
 
-      // get the on call policy id.
+      // get the on-call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {

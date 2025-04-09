@@ -503,7 +503,7 @@ export default class SlackAlertActions {
         // send a message to the channel visible to user, that the alert has already been Resolved.
         const markdwonPayload: WorkspacePayloadMarkdown = {
           _type: "WorkspacePayloadMarkdown",
-          text: `@${slackUsername}, unfortunately you cannot execute the on call policy for **[Alert ${alertNumber?.toString()}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`,
+          text: `@${slackUsername}, unfortunately you cannot execute the on-call policy for **[Alert ${alertNumber?.toString()}](${await AlertService.getAlertLinkInDashboard(slackRequest.projectId!, alertId)})**. It has already been resolved.`,
         };
 
         await SlackUtil.sendDirectMessageToUser({
@@ -529,7 +529,7 @@ export default class SlackAlertActions {
       const onCallPolicyString: string =
         data.slackRequest.viewValues["onCallPolicy"].toString();
 
-      // get the on call policy id.
+      // get the on-call policy id.
       const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {

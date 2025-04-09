@@ -35,10 +35,10 @@ enum NotificationSettingEventType {
   SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
 
   // On Call Notifications
-  SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on call roster",
-  SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on call roster",
-  SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY = "When user is added to on call policy",
-  SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY = "When user is removed from on call policy",
+  SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
+  SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",
+  SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY = "When user is added to on-call policy",
+  SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY = "When user is removed from on-call policy",
   SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER = "When user is no longer active on on-call roster",
 }
 
