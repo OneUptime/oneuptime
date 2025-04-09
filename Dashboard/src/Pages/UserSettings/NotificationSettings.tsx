@@ -183,7 +183,6 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
             NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
             NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
-
           ],
           title: "On-Call Notifications",
           description:
