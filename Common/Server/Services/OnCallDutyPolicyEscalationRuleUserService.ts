@@ -1,12 +1,9 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import Timezone from "../../Types/Timezone";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
-import UserService from "./UserService";
 import Dictionary from "../../Types/Dictionary";
-import OneUptimeDate from "../../Types/Date";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -24,7 +21,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const createdItemId: ObjectID = createdItem.id!;
 
@@ -80,7 +77,7 @@ export class Service extends DatabaseService<Model> {
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
           createdModel.onCallDutyPolicy!.projectId!,
-          createdModel.onCallDutyPolicy!.id!
+          createdModel.onCallDutyPolicy!.id!,
         )
       ).toString(),
     };
@@ -106,7 +103,7 @@ export class Service extends DatabaseService<Model> {
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
-      projectId: createdModel.onCallDutyPolicy?.projectId!,
+      projectId: createdModel.onCallDutyPolicy!.projectId!,
       emailEnvelope: emailMessage,
       smsMessage: sms,
       callRequestMessage: callMessage,
@@ -117,8 +114,9 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
-
-  protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
     const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
       query: deleteBy.query,
       props: {
@@ -141,23 +139,24 @@ export class Service extends DatabaseService<Model> {
         },
       },
       limit: LIMIT_PER_PROJECT,
-      skip: 0
+      skip: 0,
     });
 
     return {
-      deleteBy, carryForward: {
+      deleteBy,
+      carryForward: {
         deletedItems: itemsToFetchBeforeDelete,
-      }
-    }
+      },
+    };
   }
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
 
-    for(const deletedItem of deletedItems) {
+    for (const deletedItem of deletedItems) {
       const sendEmailToUserId: ObjectID | undefined | null =
         deletedItem.user?.id;
 
@@ -169,15 +168,17 @@ export class Service extends DatabaseService<Model> {
         onCallPolicyName:
           deletedItem.onCallDutyPolicy?.name || "No name provided",
         escalationRuleName:
-          deletedItem.onCallDutyPolicyEscalationRule?.name || "No name provided",
+          deletedItem.onCallDutyPolicyEscalationRule?.name ||
+          "No name provided",
         escalationRuleOrder:
           deletedItem.onCallDutyPolicyEscalationRule?.order?.toString() ||
           "No order provided",
-        reason: "You have been removed from the on-call duty policy escalation rule.",
+        reason:
+          "You have been removed from the on-call duty policy escalation rule.",
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
             deletedItem.onCallDutyPolicy!.projectId!,
-            deletedItem.onCallDutyPolicy!.id!
+            deletedItem.onCallDutyPolicy!.id!,
           )
         ).toString(),
       };
@@ -203,7 +204,7 @@ export class Service extends DatabaseService<Model> {
 
       UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
-        projectId: deletedItem.onCallDutyPolicy?.projectId!,
+        projectId: deletedItem.onCallDutyPolicy!.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
