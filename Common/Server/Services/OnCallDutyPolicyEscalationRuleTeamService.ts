@@ -23,7 +23,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const createdItemId: ObjectID = createdItem.id!;
 
@@ -65,7 +65,7 @@ export class Service extends DatabaseService<Model> {
     // send notification to the new current user.
 
     const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
-      createdModel.teamId!
+      createdModel.teamId!,
     );
 
     for (const user of usersInTeam) {
@@ -96,7 +96,7 @@ export class Service extends DatabaseService<Model> {
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
             createdModel.onCallDutyPolicy!.projectId!,
-            createdModel.onCallDutyPolicy!.id!
+            createdModel.onCallDutyPolicy!.id!,
           )
         ).toString(),
       };
@@ -135,7 +135,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -173,13 +173,13 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
 
     for (const deletedItem of deletedItems) {
       const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeam(
-        deletedItem.teamId!
+        deletedItem.teamId!,
       );
 
       for (const user of usersInTeam) {
@@ -204,7 +204,7 @@ export class Service extends DatabaseService<Model> {
           onCallPolicyViewLink: (
             await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
               deletedItem.onCallDutyPolicy!.projectId!,
-              deletedItem.onCallDutyPolicy!.id!
+              deletedItem.onCallDutyPolicy!.id!,
             )
           ).toString(),
         };
