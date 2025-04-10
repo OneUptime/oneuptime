@@ -111,6 +111,32 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
   ];
 
+
+  let archiveTitle = `Archive ${props.workspaceType} Channel`;
+  let archiveDescription = `When above conditions are met, archive the ${props.workspaceType} channel.`;
+
+  if (props.eventType === NotificationRuleEventType.Monitor) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the monitor is deleted.`;
+  }
+
+  if(props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
+  }
+
+  // incident. 
+  if(props.eventType === NotificationRuleEventType.Incident) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the incident is resolved.`;
+  }
+
+  // alert
+  if(props.eventType === NotificationRuleEventType.Alert) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the alert is resolved.`;
+  }
+
   const incidentAlertMaintenanceFields: Array<
     Field<
       | IncidentNotificationRule
@@ -213,8 +239,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     // archive channel automatically
     {
       key: "archiveChannelAutomatically",
-      title: `Archive ${props.workspaceType} Channel Automatically`,
-      description: `When new ${props.workspaceType} channel is created, archive the channel automatically when ${props.eventType} reaches the end state.`,
+      title: archiveTitle,
+      description: archiveDescription,
       fieldType: FieldType.Boolean,
       showIf: (
         formValue:

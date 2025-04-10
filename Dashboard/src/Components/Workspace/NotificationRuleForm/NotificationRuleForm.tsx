@@ -133,6 +133,32 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     },
   ];
 
+
+  let archiveTitle = `Archive ${props.workspaceType} Channel`;
+  let archiveDescription = `When above conditions are met, archive the ${props.workspaceType} channel.`;
+
+  if (props.eventType === NotificationRuleEventType.Monitor) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the monitor is deleted.`;
+  }
+
+  if(props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
+  }
+
+  // incident. 
+  if(props.eventType === NotificationRuleEventType.Incident) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the incident is resolved.`;
+  }
+
+  // alert
+  if(props.eventType === NotificationRuleEventType.Alert) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the alert is resolved.`;
+  }
+
   formFields = formFields.concat([
     {
       field: {
@@ -222,8 +248,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       field: {
         archiveChannelAutomatically: true,
       },
-      title: `Archive ${props.workspaceType} Channel Automatically`,
-      description: `When new ${props.workspaceType} channel is created, archive it automatically when ${props.eventType} reached the end state.`,
+      title: archiveTitle,
+      description: archiveDescription,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
       showIf: (formValue: FormValues<NotificationRulesType>) => {
