@@ -56,12 +56,16 @@ import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
-import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationRuleService, { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import LabelService from "./LabelService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
+import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
+import { FindWhere } from "../../Types/BaseDatabase/Query";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -84,6 +88,43 @@ export class Service extends DatabaseService<Model> {
         props: {
           isRoot: true,
         },
+      });
+
+      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined = deleteBy.query.projectId || deleteBy.props.tenantId;
+
+      if(!projectId) {
+        // fetch this monitor from the database to get the projectId.
+        const monitor: Model | null = await this.findOneById({
+          id: deleteBy.query.id as ObjectID,
+          select: {
+            projectId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!monitor) {
+          throw new BadDataException("Monitor not found.");
+        }
+
+        if (!monitor.id) {
+          throw new BadDataException("Monitor id not found.");
+        }
+
+        projectId = monitor.projectId!;
+      }
+
+      WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: projectId as ObjectID,
+        notificationFor: {
+          monitorId: deleteBy.query.id as ObjectID,
+        }
+      }).catch((error: Error) => {
+        logger.error(
+          `Error archiving workspace channels for monitor ${deleteBy.query.id}: ${error}`,
+        );
+        // ignore the error.
       });
     }
 
