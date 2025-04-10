@@ -117,7 +117,9 @@ export class Service extends DatabaseService<Model> {
         projectId = monitor.projectId!;
       }
 
-      WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+      try {
+
+      await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
         projectId: projectId as ObjectID,
         notificationFor: {
           monitorId: new ObjectID(deleteBy.query._id as string) as ObjectID,
@@ -126,12 +128,12 @@ export class Service extends DatabaseService<Model> {
           _type: "WorkspacePayloadMarkdown",
           text: `🗑️ This monitor is deleted. The channel is being archived.`,
         }
-      }).catch((error: Error) => {
+      })}
+      catch (error) {
         logger.error(
-          `Error archiving workspace channels for monitor ${deleteBy.query.id}: ${error}`
+          `Error while archiving workspace channels for monitor ${deleteBy.query._id}: ${error}`
         );
-        // ignore the error.
-      });
+      }
     }
 
     return { deleteBy, carryForward: null };
