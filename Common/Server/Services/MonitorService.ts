@@ -62,7 +62,6 @@ import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import LabelService from "./LabelService";
-import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import logger from "../Utils/Logger";
