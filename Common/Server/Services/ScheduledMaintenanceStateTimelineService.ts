@@ -27,6 +27,8 @@ import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
@@ -36,9 +38,54 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     }
   }
 
+  private async isLastScheduledMaintenanceState(data: {
+    projectId: ObjectID;
+    scheduledMaintenanceStateId: ObjectID;
+  }) {
+    // find all the states for this project and sort it by order. Then, check if this is the last state.
+    const scheduledMaintenanceStates: ScheduledMaintenanceState[] =
+      await ScheduledMaintenanceStateService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const scheduledMaintenanceState: ScheduledMaintenanceState | null =
+      scheduledMaintenanceStates.find((scheduledMaintenanceState) => {
+        return (
+          scheduledMaintenanceState.id?.toString() ===
+          data.scheduledMaintenanceStateId.toString()
+        );
+      }) || null;
+
+    if (!scheduledMaintenanceState) {
+      throw new BadDataException("ScheduledMaintenance state not found.");
+    }
+
+    const lastScheduledMaintenanceState: ScheduledMaintenanceState | undefined =
+      scheduledMaintenanceStates[scheduledMaintenanceStates.length - 1];
+
+    if (lastScheduledMaintenanceState && lastScheduledMaintenanceState.id) {
+      return (
+        lastScheduledMaintenanceState.id.toString() ===
+        scheduledMaintenanceState.id?.toString()
+      );
+    }
+
+    return false;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<ScheduledMaintenanceStateTimeline>,
+    createBy: CreateBy<ScheduledMaintenanceStateTimeline>
   ): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
     if (!createBy.data.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
@@ -139,7 +186,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
-    createdItem: ScheduledMaintenanceStateTimeline,
+    createdItem: ScheduledMaintenanceStateTimeline
   ): Promise<ScheduledMaintenanceStateTimeline> {
     if (!createdItem.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
@@ -361,12 +408,30 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       await this.enableActiveMonitoringForMonitors(scheduledMaintenanceEvent!);
     }
 
+    const isLastScheduledMaintenanceState: boolean =
+      await this.isLastScheduledMaintenanceState({
+        projectId: createdItem.projectId!,
+        scheduledMaintenanceStateId: createdItem.scheduledMaintenanceStateId,
+      });
+
+    if (isLastScheduledMaintenanceState) {
+      WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: createdItem.projectId!,
+        notificationFor: {
+          scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
+        },
+      }).catch((error: Error) => {
+        logger.error(`Error while archiving workspace channels:`);
+        logger.error(error);
+      });
+    }
+
     return createdItem;
   }
 
   @CaptureSpan()
   public async enableActiveMonitoringForMonitors(
-    scheduledMaintenanceEvent: ScheduledMaintenance,
+    scheduledMaintenanceEvent: ScheduledMaintenance
   ): Promise<void> {
     if (
       scheduledMaintenanceEvent &&
@@ -406,7 +471,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
           const hasMoreOngoingScheduledMaintenanceEvents: boolean =
             await this.hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
-              monitor.id!,
+              monitor.id!
             );
 
           if (hasMoreOngoingScheduledMaintenanceEvents) {
@@ -452,7 +517,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
   @CaptureSpan()
   public async hasThisMonitorMoreOngoingScheduledMaintenanceEvents(
-    id: ObjectID,
+    id: ObjectID
   ): Promise<boolean> {
     const count: PositiveNumber = await ScheduledMaintenanceService.countBy({
       query: {
@@ -475,7 +540,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<ScheduledMaintenanceStateTimeline>,
+    deleteBy: DeleteBy<ScheduledMaintenanceStateTimeline>
   ): Promise<OnDelete<ScheduledMaintenanceStateTimeline>> {
     if (deleteBy.query._id) {
       const scheduledMaintenanceStateTimelineToBeDeleted: ScheduledMaintenanceStateTimeline | null =
@@ -507,13 +572,13 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
         if (!scheduledMaintenanceStateTimelineToBeDeleted) {
           throw new BadDataException(
-            "Scheduled maintenance state timeline not found.",
+            "Scheduled maintenance state timeline not found."
           );
         }
 
         if (scheduledMaintenanceStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Scheduled Maintenance should have at least one state in its timeline.",
+            "Cannot delete the only state timeline. Scheduled Maintenance should have at least one state in its timeline."
           );
         }
 
@@ -528,7 +593,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               scheduledMaintenanceId: scheduledMaintenanceId,
               startsAt: QueryHelper.lessThanEqualTo(
-                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,
+                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -549,7 +614,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             query: {
               scheduledMaintenanceId: scheduledMaintenanceId,
               startsAt: QueryHelper.greaterThan(
-                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!,
+                scheduledMaintenanceStateTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -617,7 +682,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<ScheduledMaintenanceStateTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<ScheduledMaintenanceStateTimeline>> {
     if (onDelete.carryForward) {
       // this is scheduledMaintenanceId.

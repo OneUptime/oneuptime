@@ -22,6 +22,8 @@ import logger from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
@@ -33,7 +35,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
   @CaptureSpan()
   public async getResolvedStateIdForProject(
-    projectId: ObjectID,
+    projectId: ObjectID
   ): Promise<ObjectID> {
     const resolvedState: IncidentState | null =
       await IncidentStateService.findOneBy({
@@ -58,7 +60,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<IncidentStateTimeline>,
+    createBy: CreateBy<IncidentStateTimeline>
   ): Promise<OnCreate<IncidentStateTimeline>> {
     if (!createBy.data.incidentId) {
       throw new BadDataException("incidentId is null");
@@ -89,7 +91,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           {
             userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
+          }
         )}`;
       }
     }
@@ -171,7 +173,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<IncidentStateTimeline>,
-    createdItem: IncidentStateTimeline,
+    createdItem: IncidentStateTimeline
   ): Promise<IncidentStateTimeline> {
     if (!createdItem.incidentId) {
       throw new BadDataException("incidentId is null");
@@ -329,7 +331,7 @@ ${createdItem.rootCause}`,
       if (incident) {
         await IncidentService.markMonitorsActiveForMonitoring(
           incident.projectId!,
-          incident.monitors || [],
+          incident.monitors || []
         );
       }
     }
@@ -359,12 +361,67 @@ ${createdItem.rootCause}`,
       logger.error(error);
     });
 
+    const isLastIncidentState: boolean = await this.isLastIncidentState({
+      projectId: createdItem.projectId!,
+      incidentStateId: createdItem.incidentStateId,
+    });
+
+    if (isLastIncidentState) {
+      WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: createdItem.projectId!,
+        notificationFor: {
+          incidentId: createdItem.incidentId,
+        },
+      }).catch((error: Error) => {
+        logger.error(`Error while archiving workspace channels:`);
+        logger.error(error);
+      });
+    }
+
     return createdItem;
+  }
+
+  private async isLastIncidentState(data: {
+    projectId: ObjectID;
+    incidentStateId: ObjectID;
+  }) {
+    // find all the states for this project and sort it by order. Then, check if this is the last state.
+    const incidentStates: IncidentState[] = await IncidentStateService.findBy({
+      query: {
+        projectId: data.projectId,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const incidentState: IncidentState | null =
+      incidentStates.find((incidentState) => {
+        return incidentState.id?.toString() === data.incidentStateId.toString();
+      }) || null;
+
+    if (!incidentState) {
+      throw new BadDataException("Incident state not found.");
+    }
+
+    const lastIncidentState: IncidentState | undefined =
+      incidentStates[incidentStates.length - 1];
+
+    if (lastIncidentState && lastIncidentState.id) {
+      return lastIncidentState.id.toString() === incidentState.id?.toString();
+    }
+
+    return false;
   }
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<IncidentStateTimeline>,
+    deleteBy: DeleteBy<IncidentStateTimeline>
   ): Promise<OnDelete<IncidentStateTimeline>> {
     if (deleteBy.query._id) {
       const incidentStateTimelineToBeDeleted: IncidentStateTimeline | null =
@@ -399,7 +456,7 @@ ${createdItem.rootCause}`,
 
         if (incidentStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Incident should have at least one state in its timeline.",
+            "Cannot delete the only state timeline. Incident should have at least one state in its timeline."
           );
         }
 
@@ -414,7 +471,7 @@ ${createdItem.rootCause}`,
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               incidentId: incidentId,
               startsAt: QueryHelper.lessThanEqualTo(
-                incidentStateTimelineToBeDeleted.startsAt!,
+                incidentStateTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -435,7 +492,7 @@ ${createdItem.rootCause}`,
             query: {
               incidentId: incidentId,
               startsAt: QueryHelper.greaterThan(
-                incidentStateTimelineToBeDeleted.startsAt!,
+                incidentStateTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -503,7 +560,7 @@ ${createdItem.rootCause}`,
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<IncidentStateTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<IncidentStateTimeline>> {
     if (onDelete.carryForward) {
       // this is incidentId.

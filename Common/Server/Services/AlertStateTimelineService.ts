@@ -21,6 +21,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
@@ -32,7 +34,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
 
   @CaptureSpan()
   public async getResolvedStateIdForProject(
-    projectId: ObjectID,
+    projectId: ObjectID
   ): Promise<ObjectID> {
     const resolvedState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -56,7 +58,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<AlertStateTimeline>,
+    createBy: CreateBy<AlertStateTimeline>
   ): Promise<OnCreate<AlertStateTimeline>> {
     if (!createBy.data.alertId) {
       throw new BadDataException("alertId is null");
@@ -87,7 +89,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
           {
             userId: userId!,
             projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
+          }
         )}`;
       }
     }
@@ -179,7 +181,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<AlertStateTimeline>,
-    createdItem: AlertStateTimeline,
+    createdItem: AlertStateTimeline
   ): Promise<AlertStateTimeline> {
     if (!createdItem.alertId) {
       throw new BadDataException("alertId is null");
@@ -331,17 +333,72 @@ ${createdItem.rootCause}`,
       alertId: createdItem.alertId,
     }).catch((error: Error) => {
       logger.error(
-        "Error while refreshing alert metrics after alert state timeline creation",
+        "Error while refreshing alert metrics after alert state timeline creation"
       );
       logger.error(error);
     });
 
+    const isLastAlertState: boolean = await this.isLastAlertState({
+      projectId: createdItem.projectId!,
+      alertStateId: createdItem.alertStateId,
+    });
+
+    if (isLastAlertState) {
+      WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+        projectId: createdItem.projectId!,
+        notificationFor: {
+          alertId: createdItem.alertId,
+        },
+      }).catch((error: Error) => {
+        logger.error(`Error while archiving workspace channels:`);
+        logger.error(error);
+      });
+    }
+
     return createdItem;
+  }
+
+  private async isLastAlertState(data: {
+    projectId: ObjectID;
+    alertStateId: ObjectID;
+  }) {
+    // find all the states for this project and sort it by order. Then, check if this is the last state.
+    const alertStates: AlertState[] = await AlertStateService.findBy({
+      query: {
+        projectId: data.projectId,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const alertState: AlertState | null =
+      alertStates.find((alertState) => {
+        return alertState.id?.toString() === data.alertStateId.toString();
+      }) || null;
+
+    if (!alertState) {
+      throw new BadDataException("Alert state not found.");
+    }
+
+    const lastAlertState: AlertState | undefined =
+      alertStates[alertStates.length - 1];
+
+    if (lastAlertState && lastAlertState.id) {
+      return lastAlertState.id.toString() === alertState.id?.toString();
+    }
+
+    return false;
   }
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<AlertStateTimeline>,
+    deleteBy: DeleteBy<AlertStateTimeline>
   ): Promise<OnDelete<AlertStateTimeline>> {
     if (deleteBy.query._id) {
       const alertStateTimelineToBeDeleted: AlertStateTimeline | null =
@@ -376,7 +433,7 @@ ${createdItem.rootCause}`,
 
         if (alertStateTimeline.isOne()) {
           throw new BadDataException(
-            "Cannot delete the only state timeline. Alert should have at least one state in its timeline.",
+            "Cannot delete the only state timeline. Alert should have at least one state in its timeline."
           );
         }
 
@@ -391,7 +448,7 @@ ${createdItem.rootCause}`,
               _id: QueryHelper.notEquals(deleteBy.query._id as string),
               alertId: alertId,
               startsAt: QueryHelper.lessThanEqualTo(
-                alertStateTimelineToBeDeleted.startsAt!,
+                alertStateTimelineToBeDeleted.startsAt!
               ),
             },
             sort: {
@@ -405,14 +462,14 @@ ${createdItem.rootCause}`,
               startsAt: true,
               endsAt: true,
             },
-          },
+          }
         );
 
         const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
           query: {
             alertId: alertId,
             startsAt: QueryHelper.greaterThan(
-              alertStateTimelineToBeDeleted.startsAt!,
+              alertStateTimelineToBeDeleted.startsAt!
             ),
           },
           sort: {
@@ -480,7 +537,7 @@ ${createdItem.rootCause}`,
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<AlertStateTimeline>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<AlertStateTimeline>> {
     if (onDelete.carryForward) {
       // this is alertId.
