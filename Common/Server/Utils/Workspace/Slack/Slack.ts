@@ -160,8 +160,8 @@ export default class SlackUtil extends WorkspaceBase {
 
   @CaptureSpan()
   public static override async archiveChannels(data: {
-    channelIds: Array<string>,
-    authToken: string,
+    channelIds: Array<string>;
+    authToken: string;
   }): Promise<void> {
     logger.debug("Archiving channels with data:");
     logger.debug(data);

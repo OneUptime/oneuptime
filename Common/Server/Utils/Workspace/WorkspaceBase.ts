@@ -59,8 +59,8 @@ export default class WorkspaceBase {
 
   @CaptureSpan()
   public static async archiveChannels(_data: {
-    channelIds: Array<string>,
-    authToken: string,
+    channelIds: Array<string>;
+    authToken: string;
   }): Promise<void> {
     throw new NotImplementedException();
   }

@@ -12,7 +12,7 @@ export default interface CreateChannelNotificationRule
   shouldInviteOwnersToNewChannel: boolean;
   newChannelTemplateName: string;
 
-  // if selected this would archive channel when incident, alert, scheduled maintenance reaches the last state (is resolved) 
-  // This would only archive the channel which was created. 
+  // if selected this would archive channel when incident, alert, scheduled maintenance reaches the last state (is resolved)
+  // This would only archive the channel which was created.
   archiveChannelAutomatically: boolean;
 }
