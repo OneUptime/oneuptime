@@ -163,23 +163,20 @@ export default class SlackUtil extends WorkspaceBase {
     userId: string;
     channelIds: Array<string>;
     authToken: string;
-    sendMessageBeforeArchiving: WorkspacePayloadMarkdown; 
+    sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
   }): Promise<void> {
-
-    if(data.sendMessageBeforeArchiving) {
-     await this.sendMessage({
+    if (data.sendMessageBeforeArchiving) {
+      await this.sendMessage({
         workspaceMessagePayload: {
           _type: "WorkspaceMessagePayload",
           channelNames: [],
           channelIds: data.channelIds,
-          messageBlocks: [
-            data.sendMessageBeforeArchiving
-          ],
+          messageBlocks: [data.sendMessageBeforeArchiving],
           workspaceType: WorkspaceType.Slack,
         },
         authToken: data.authToken,
         userId: data.userId,
-     })
+      });
     }
 
     logger.debug("Archiving channels with data:");

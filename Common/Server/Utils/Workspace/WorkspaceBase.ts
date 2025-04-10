@@ -62,7 +62,7 @@ export default class WorkspaceBase {
     channelIds: Array<string>;
     authToken: string;
     userId: string;
-    sendMessageBeforeArchiving: WorkspacePayloadMarkdown; 
+    sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
   }): Promise<void> {
     throw new NotImplementedException();
   }

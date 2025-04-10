@@ -340,7 +340,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           projectAuthToken: projectAuth,
           workspaceType: workspaceType,
         }),
-        sendMessageBeforeArchiving: data.sendMessageBeforeArchiving
+        sendMessageBeforeArchiving: data.sendMessageBeforeArchiving,
       });
     }
   }

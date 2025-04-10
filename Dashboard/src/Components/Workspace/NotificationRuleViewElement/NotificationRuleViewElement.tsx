@@ -111,28 +111,27 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
   ];
 
-
-  let archiveTitle = `Archive ${props.workspaceType} Channel`;
-  let archiveDescription = `When above conditions are met, archive the ${props.workspaceType} channel.`;
+  let archiveTitle: string = `Archive ${props.workspaceType} Channel`;
+  let archiveDescription: string = `When above conditions are met, archive the ${props.workspaceType} channel.`;
 
   if (props.eventType === NotificationRuleEventType.Monitor) {
     archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the monitor is deleted.`;
   }
 
-  if(props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
+  if (props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
     archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
   }
 
-  // incident. 
-  if(props.eventType === NotificationRuleEventType.Incident) {
+  // incident.
+  if (props.eventType === NotificationRuleEventType.Incident) {
     archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the incident is resolved.`;
   }
 
   // alert
-  if(props.eventType === NotificationRuleEventType.Alert) {
+  if (props.eventType === NotificationRuleEventType.Alert) {
     archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the alert is resolved.`;
   }
