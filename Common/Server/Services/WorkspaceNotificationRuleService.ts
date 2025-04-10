@@ -268,6 +268,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public async archiveWorkspaceChannels(data: {
     projectId: ObjectID;
     notificationFor: NotificationFor;
+    sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
   }): Promise<void> {
     const workspaceTypes: Array<WorkspaceType> = Service.getAllWorkspaceTypes();
 
@@ -320,6 +321,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           },
           select: {
             authToken: true,
+            miscData: true,
           },
           props: {
             isRoot: true,
@@ -334,6 +336,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).archiveChannels({
         authToken: projectAuth.authToken!,
         channelIds: channelIds,
+        userId: this.getBotUserIdFromprojectAuthToken({
+          projectAuthToken: projectAuth,
+          workspaceType: workspaceType,
+        }),
+        sendMessageBeforeArchiving: data.sendMessageBeforeArchiving
       });
     }
   }

@@ -122,6 +122,10 @@ export class Service extends DatabaseService<Model> {
         notificationFor: {
           monitorId: new ObjectID(deleteBy.query._id as string) as ObjectID,
         },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `🗑️ This monitor is deleted. The channel is being archived.`,
+        }
       }).catch((error: Error) => {
         logger.error(
           `Error archiving workspace channels for monitor ${deleteBy.query.id}: ${error}`

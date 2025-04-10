@@ -420,6 +420,15 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         notificationFor: {
           scheduledMaintenanceId: createdItem.scheduledMaintenanceId,
         },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `**[Scheduled Event ${scheduledMaintenanceNumber}](${(
+            await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+              createdItem.projectId!,
+              createdItem.scheduledMaintenanceId!
+            )
+          ).toString()})** is complete. Archiving channel.`,
+        },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`);
         logger.error(error);

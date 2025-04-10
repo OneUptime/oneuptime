@@ -372,6 +372,15 @@ ${createdItem.rootCause}`,
         notificationFor: {
           incidentId: createdItem.incidentId,
         },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `**[Incident ${incidentNumber}](${(
+            await IncidentService.getIncidentLinkInDashboard(
+              createdItem.projectId!,
+              createdItem.incidentId!
+            )
+          ).toString()})** is resolved. Archiving channel.`,
+        },
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`);
         logger.error(error);

@@ -61,6 +61,8 @@ export default class WorkspaceBase {
   public static async archiveChannels(_data: {
     channelIds: Array<string>;
     authToken: string;
+    userId: string;
+    sendMessageBeforeArchiving: WorkspacePayloadMarkdown; 
   }): Promise<void> {
     throw new NotImplementedException();
   }

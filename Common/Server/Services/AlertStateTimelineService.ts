@@ -349,6 +349,15 @@ ${createdItem.rootCause}`,
         notificationFor: {
           alertId: createdItem.alertId,
         },
+        sendMessageBeforeArchiving: {
+          _type: "WorkspacePayloadMarkdown",
+          text: `**[Alert ${alertNumber}](${(
+            await AlertService.getAlertLinkInDashboard(
+              createdItem.projectId!,
+              createdItem.alertId!
+            )
+          ).toString()})** is resolved. Archiving channel.`,
+        }
       }).catch((error: Error) => {
         logger.error(`Error while archiving workspace channels:`);
         logger.error(error);
