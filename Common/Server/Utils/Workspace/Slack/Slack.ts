@@ -159,6 +159,49 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
+  public static override async archiveChannels(data: {
+    channelIds: Array<string>,
+    authToken: string,
+  }): Promise<void> {
+    logger.debug("Archiving channels with data:");
+    logger.debug(data);
+
+    for (const channelId of data.channelIds) {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post(
+          URL.fromString("https://slack.com/api/conversations.archive"),
+          {
+            channel: channelId,
+          },
+          {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+        );
+
+      logger.debug("Response from Slack API for archiving channel:");
+      logger.debug(response);
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error response from Slack API:");
+        logger.error(response);
+        throw response;
+      }
+
+      if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+        logger.error("Invalid response from Slack API:");
+        logger.error(response.jsonData);
+        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+          "error"
+        ] as string;
+        throw new BadRequestException("Error from Slack " + messageFromSlack);
+      }
+    }
+
+    logger.debug("Channels archived successfully.");
+  }
+
+  @CaptureSpan()
   public static override async joinChannel(data: {
     authToken: string;
     channelId: string;

@@ -209,6 +209,22 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
         return <UsersElement users={selectedUsers} />;
       },
     },
+
+    // archive channel automatically
+    {
+      key: "archiveChannelAutomatically",
+      title: `Archive ${props.workspaceType} Channel Automatically`,
+      description: `When new ${props.workspaceType} channel is created, archive the channel automatically when ${props.eventType} reaches the end state.`,
+      fieldType: FieldType.Boolean,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule,
+      ) => {
+        return formValue.shouldCreateNewChannel || false;
+      },
+    },
   ];
 
   detailFields = detailFields.concat(

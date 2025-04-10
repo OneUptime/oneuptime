@@ -217,6 +217,22 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         };
       }),
     },
+    // automatically archive channel
+    {
+      field: {
+        archiveChannelAutomatically: true,
+      },
+      title: `Archive ${props.workspaceType} Channel Automatically`,
+      description: `When new ${props.workspaceType} channel is created, archive it automatically when ${props.eventType} reached the end state.`,
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      showIf: (formValue: FormValues<NotificationRulesType>) => {
+        return (
+          (formValue as CreateNewSlackChannelNotificationRuleType)
+            .shouldCreateNewChannel || false
+        );
+      },
+    },
   ]);
 
   // if alerts or incidents

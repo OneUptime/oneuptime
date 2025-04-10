@@ -105,7 +105,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       throw new BadDataException(
         "This account is not connected to " +
           rule.workspaceType +
-          ". Please go to User Settings and connect the account.",
+          ". Please go to User Settings and connect the account."
       );
     }
 
@@ -128,7 +128,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       throw new BadDataException(
         "This project is not connected to " +
           rule.workspaceType +
-          ". Please go to Project Settings and connect the account.",
+          ". Please go to Project Settings and connect the account."
       );
     }
 
@@ -170,7 +170,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
       } catch (err) {
         throw new BadDataException(
-          "Cannot create a new channel. " + (err as Error)?.message,
+          "Cannot create a new channel. " + (err as Error)?.message
         );
       }
 
@@ -183,7 +183,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
       } catch (err) {
         throw new BadDataException(
-          "Cannot invite users to the channel. " + (err as Error)?.message,
+          "Cannot invite users to the channel. " + (err as Error)?.message
         );
       }
     }
@@ -198,7 +198,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           // check if these channels exist.
           const channelExists: boolean =
             await WorkspaceUtil.getWorkspaceTypeUtil(
-              rule.workspaceType!,
+              rule.workspaceType!
             ).doesChannelExist({
               authToken: projectAuthToken,
               channelName: channelName,
@@ -206,7 +206,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
           if (!channelExists) {
             throw new BadDataException(
-              `Channel ${channelName} does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.`,
+              `Channel ${channelName} does not exist. If this channel is private, you need to invite OneUptime bot to the channel and try again.`
             );
           }
         } catch (err) {
@@ -229,12 +229,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                   channelNames: [],
                   channelIds: [createdChannel.id],
                 };
-              },
+              }
             ),
           });
         } catch (err) {
           throw new BadDataException(
-            "Cannot post message to channel. " + (err as Error)?.message,
+            "Cannot post message to channel. " + (err as Error)?.message
           );
         }
       }
@@ -252,15 +252,89 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                   channelNames: [existingChannelName],
                   channelIds: [],
                 };
-              },
+              }
             ),
           });
         } catch (err) {
           throw new BadDataException(
-            "Cannot post message to channel. " + (err as Error)?.message,
+            "Cannot post message to channel. " + (err as Error)?.message
           );
         }
       }
+    }
+  }
+
+  @CaptureSpan()
+  public async archiveWorkspaceChannels(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+  }): Promise<void> {
+    const workspaceTypes: Array<WorkspaceType> = Service.getAllWorkspaceTypes();
+
+    for (const workspaceType of workspaceTypes) {
+      const notificationRules: Array<WorkspaceNotificationRule> =
+        await this.getMatchingNotificationRules({
+          projectId: data.projectId,
+          notificationFor: data.notificationFor,
+          workspaceType: workspaceType,
+          notificationRuleEventType: this.getNotificationRuleEventType(
+            data.notificationFor
+          ),
+        });
+
+      // check if any of these rules have archive channel to true.
+      let shouldArchiveChannel: boolean = false;
+
+      for (const notificationRule of notificationRules) {
+        const rule: CreateChannelNotificationRule =
+          notificationRule.notificationRule as CreateChannelNotificationRule;
+        if (rule && rule.archiveChannelAutomatically) {
+          shouldArchiveChannel = true;
+          break;
+        }
+      }
+
+      if (!shouldArchiveChannel) {
+        continue; // check next workspace type.
+      }
+
+      const channels: Array<WorkspaceChannel> =
+        await this.getWorkspaceChannelsByNotificationFor({
+          projectId: data.projectId,
+          notificationFor: data.notificationFor,
+          workspaceType: workspaceType,
+        });
+
+      const channelIds: Array<string> = channels.map(
+        (channel: WorkspaceChannel) => {
+          return channel.id;
+        }
+      );
+
+      // get project auth token.
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.findOneBy({
+          query: {
+            projectId: data.projectId,
+            workspaceType: workspaceType,
+          },
+          select: {
+            authToken: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!projectAuth || !projectAuth.authToken) {
+        logger.debug("No project auth found for workspace type");
+        continue;
+      }
+
+      await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).archiveChannels({
+        authToken: projectAuth.authToken!,
+        channelIds: channelIds,
+      });
     }
   }
 
@@ -297,7 +371,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               return (
                 messageBlocksByWorkspaceType.workspaceType === workspaceType
               );
-            },
+            }
           )
           ?.messageBlocks.push(...messageBlocksByWorkspaceType.messageBlocks);
       }
@@ -310,49 +384,18 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         await this.getExistingChannelNamesBasedOnEventType({
           projectId: data.projectId,
           notificationRuleEventType: this.getNotificationRuleEventType(
-            data.notificationFor,
+            data.notificationFor
           ),
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
           notificationFor: data.notificationFor,
         });
 
-      let monitorChannels: Array<WorkspaceChannel> = [];
-
-      if (data.notificationFor.monitorId) {
-        monitorChannels = await MonitorService.getWorkspaceChannelForMonitor({
-          monitorId: data.notificationFor.monitorId,
+      let monitorChannels: Array<WorkspaceChannel> =
+        await this.getWorkspaceChannelsByNotificationFor({
+          projectId: data.projectId,
+          notificationFor: data.notificationFor,
           workspaceType: messageBlocksByWorkspaceType.workspaceType,
         });
-      }
-
-      // incidents
-      if (data.notificationFor.incidentId) {
-        monitorChannels = await IncidentService.getWorkspaceChannelForIncident({
-          incidentId: data.notificationFor.incidentId,
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-        });
-      }
-
-      // alerts
-      if (data.notificationFor.alertId) {
-        monitorChannels = await AlertService.getWorkspaceChannelForAlert({
-          alertId: data.notificationFor.alertId,
-          workspaceType: messageBlocksByWorkspaceType.workspaceType,
-        });
-      }
-
-      // scheduled maintenance
-
-      if (data.notificationFor.scheduledMaintenanceId) {
-        monitorChannels =
-          await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
-            {
-              scheduledMaintenanceId:
-                data.notificationFor.scheduledMaintenanceId,
-              workspaceType: messageBlocksByWorkspaceType.workspaceType,
-            },
-          );
-      }
 
       const workspaceMessagePayload: WorkspaceMessagePayload = {
         _type: "WorkspaceMessagePayload",
@@ -374,8 +417,51 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     });
   }
 
+  private async getWorkspaceChannelsByNotificationFor(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+    workspaceType: WorkspaceType;
+  }): Promise<Array<WorkspaceChannel>> {
+    let monitorChannels: Array<WorkspaceChannel> = [];
+
+    if (data.notificationFor.monitorId) {
+      monitorChannels = await MonitorService.getWorkspaceChannelForMonitor({
+        monitorId: data.notificationFor.monitorId,
+        workspaceType: data.workspaceType,
+      });
+    }
+
+    // incidents
+    if (data.notificationFor.incidentId) {
+      monitorChannels = await IncidentService.getWorkspaceChannelForIncident({
+        incidentId: data.notificationFor.incidentId,
+        workspaceType: data.workspaceType,
+      });
+    }
+
+    // alerts
+    if (data.notificationFor.alertId) {
+      monitorChannels = await AlertService.getWorkspaceChannelForAlert({
+        alertId: data.notificationFor.alertId,
+        workspaceType: data.workspaceType,
+      });
+    }
+
+    // scheduled maintenance
+    if (data.notificationFor.scheduledMaintenanceId) {
+      monitorChannels =
+        await ScheduledMaintenanceService.getWorkspaceChannelForScheduledMaintenance(
+          {
+            scheduledMaintenanceId: data.notificationFor.scheduledMaintenanceId,
+            workspaceType: data.workspaceType,
+          }
+        );
+    }
+    return monitorChannels;
+  }
+
   private getNotificationRuleEventType(
-    notificationFor: NotificationFor,
+    notificationFor: NotificationFor
   ): NotificationRuleEventType {
     if (notificationFor.alertId) {
       return NotificationRuleEventType.Alert;
@@ -416,7 +502,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (!userId) {
         throw new BadDataException(
-          "Bot user ID not found in project auth token",
+          "Bot user ID not found in project auth token"
         );
       }
 
@@ -452,7 +538,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         notificationRules: notificationRules.map(
           (rule: WorkspaceNotificationRule) => {
             return rule.notificationRule as BaseNotificationRule;
-          },
+          }
         ),
       }) || [];
 
@@ -472,7 +558,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     channelsCreated: Array<NotificationRuleWorkspaceChannel>;
   } | null> {
     logger.debug(
-      "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
+      "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules"
     );
     logger.debug(data);
 
@@ -546,7 +632,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationRules: notificationRules.map(
             (rule: WorkspaceNotificationRule) => {
               return rule.notificationRule as BaseNotificationRule;
-            },
+            }
           ),
         }) || [];
 
@@ -696,7 +782,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             logger.debug(channelIds);
 
             await WorkspaceUtil.getWorkspaceTypeUtil(
-              data.workspaceType,
+              data.workspaceType
             ).sendMessage({
               userId: data.projectAuth.workspaceProjectId!,
               authToken: data.projectAuth.authToken!,
@@ -727,7 +813,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         logger.debug(workspaceUserIds);
 
         await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
+          data.workspaceType
         ).inviteUsersToChannels({
           authToken: data.projectAuth.authToken!,
           workspaceChannelInvitationPayload: {
@@ -764,7 +850,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     logger.debug(
-      "inviteUsersBasedOnRulesAndWorkspaceChannels called with data:",
+      "inviteUsersBasedOnRulesAndWorkspaceChannels called with data:"
     );
     logger.debug(data);
     const userIds: Array<ObjectID> = data.userIds;
@@ -792,7 +878,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             return notificationRules.find((rule: WorkspaceNotificationRule) => {
               return rule.id?.toString() === channel.notificationRuleId;
             });
-          },
+          }
         );
 
       logger.debug("Channels to invite to based on rule:");
@@ -845,7 +931,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             const channelIds: Array<string> = channelsToInviteToBasedOnRule.map(
               (channel: NotificationRuleWorkspaceChannel) => {
                 return channel.id as string;
-              },
+              }
             );
 
             logger.debug("Channel IDs to send message to:");
@@ -871,7 +957,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     } as WorkspacePayloadMarkdown,
                   ],
                 },
-              },
+              }
             );
           } catch (e) {
             logger.error("Error in sending message to channel");
@@ -886,14 +972,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       const channelNames: Array<string> = channelsToInviteToBasedOnRule.map(
         (channel: NotificationRuleWorkspaceChannel) => {
           return channel.name;
-        },
+        }
       );
 
       logger.debug("Channel names to invite to:");
       logger.debug(channelNames);
 
       await WorkspaceUtil.getWorkspaceTypeUtil(
-        workspaceType,
+        workspaceType
       ).inviteUsersToChannels({
         authToken: projectAuth.authToken!,
         workspaceChannelInvitationPayload: {
@@ -918,7 +1004,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     const usersInTeam: Array<User> = await TeamMemberService.getUsersInTeams(
-      data.teamIds,
+      data.teamIds
     );
 
     logger.debug("Users in teams:");
@@ -1008,17 +1094,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }).length > 0
       ) {
         logger.debug(
-          `Channel name ${notificationChannel.channelName} already created. Skipping.`,
+          `Channel name ${notificationChannel.channelName} already created. Skipping.`
         );
         continue;
       }
 
       logger.debug(
-        `Creating new channel with name: ${notificationChannel.channelName}`,
+        `Creating new channel with name: ${notificationChannel.channelName}`
       );
       const channel: WorkspaceChannel =
         await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
+          data.workspaceType
         ).createChannel({
           authToken: data.projectOrUserAuthTokenForWorkspace,
           channelName: notificationChannel.channelName,
@@ -1139,7 +1225,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<BaseNotificationRule>;
   }): Array<string> {
     logger.debug(
-      "getExistingChannelNamesFromNotificationRules called with data:",
+      "getExistingChannelNamesFromNotificationRules called with data:"
     );
     logger.debug(data);
 
@@ -1183,7 +1269,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRuleId: string;
   }> {
     logger.debug(
-      "getnotificationChannelssFromNotificationRules called with data:",
+      "getnotificationChannelssFromNotificationRules called with data:"
     );
     logger.debug(data);
 
@@ -1218,7 +1304,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channels.filter(
             (name: { channelName: string; notificationRuleId: string }) => {
               return name.channelName === channelName;
-            },
+            }
           ).length === 0
         ) {
           // if channel name is not already added then add it.
@@ -1229,7 +1315,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logger.debug(`Channel name ${channelName} added to the list.`);
         } else {
           logger.debug(
-            `Channel name ${channelName} already exists in the list. Skipping.`,
+            `Channel name ${channelName} already exists in the list. Skipping.`
           );
         }
       }
@@ -1467,7 +1553,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             scheduledMaintenance.monitors?.map(
               (monitor: ScheduledMaintenance) => {
                 return monitor.id!;
-              },
+              }
             ) || [],
         });
 
@@ -1507,7 +1593,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           scheduledMaintenance.monitors?.map(
             (monitor: ScheduledMaintenance) => {
               return monitor._id?.toString() || "";
-            },
+            }
           ) || [],
       };
     }
