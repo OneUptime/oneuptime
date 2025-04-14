@@ -30,6 +30,8 @@ import Timezone from "../../Types/Timezone";
 import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
+  private layerUtil = new LayerUtil();
+
   public constructor() {
     super(OnCallDutyPolicySchedule);
   }
@@ -720,7 +722,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     const numberOfEventsToGet: number = data.getNumberOfEvents;
     logger.debug("Number of events to get: " + numberOfEventsToGet);
 
-    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
+    const events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
       {
         layers: layerProps,
         calendarStartDate: currentStartTime,
@@ -754,7 +756,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       1,
     );
 
-    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
+    const events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
       {
         layers: layerProps,
         calendarStartDate: currentStartTime,

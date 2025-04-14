@@ -34,7 +34,7 @@ export interface PriorityCalendarEvents extends CalendarEvent {
 }
 
 export default class LayerUtil {
-  public static getEvents(
+  public getEvents(
     data: EventProps,
     options?:
       | {
@@ -44,11 +44,11 @@ export default class LayerUtil {
   ): Array<CalendarEvent> {
     let events: Array<CalendarEvent> = [];
 
-    if (!LayerUtil.isDataValid(data)) {
+    if (!this.isDataValid(data)) {
       return [];
     }
 
-    data = LayerUtil.sanitizeData(data);
+    data = this.sanitizeData(data);
 
     let start: Date = data.calendarStartDate;
     const end: Date = data.calendarEndDate;
@@ -78,7 +78,7 @@ export default class LayerUtil {
 
     // before we do this, we need to update the user index.
 
-    currentUserIndex = LayerUtil.getCurrentUserIndexBasedOnHandoffTime({
+    currentUserIndex = this.getCurrentUserIndexBasedOnHandoffTime({
       rotation,
       handOffTime,
       currentUserIndex,
@@ -89,7 +89,7 @@ export default class LayerUtil {
 
     // update handoff time to the same day as current start time
 
-    handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+    handOffTime = this.moveHandsOffTimeAfterCurrentEventStartTime({
       handOffTime,
       currentEventStartTime,
       rotation: data.rotation,
@@ -101,7 +101,7 @@ export default class LayerUtil {
 
     if (OneUptimeDate.isBefore(end, handOffTime)) {
       const trimmedStartAndEndTimes: Array<StartAndEndTime> =
-        LayerUtil.trimStartAndEndTimesBasedOnRestrictionTimes({
+        this.trimStartAndEndTimesBasedOnRestrictionTimes({
           eventStartTime: currentEventStartTime,
           eventEndTime: end,
           restrictionTimes: data.restrictionTimes,
@@ -109,7 +109,7 @@ export default class LayerUtil {
 
       events = [
         ...events,
-        ...LayerUtil.getCalendarEventsFromStartAndEndDates(
+        ...this.getCalendarEventsFromStartAndEndDates(
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
@@ -120,7 +120,7 @@ export default class LayerUtil {
     }
 
     // break clause. This loop executes 50 times at max.
-    const maxLoopCount: number = 10000;
+    const maxLoopCount: number = 100;
     let loopCount: number = 0;
 
     while (!hasReachedTheEndOfTheCalendar) {
@@ -137,7 +137,7 @@ export default class LayerUtil {
           currentEventEndTime,
           1,
         );
-        handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+        handOffTime = this.moveHandsOffTimeAfterCurrentEventStartTime({
           handOffTime,
           currentEventStartTime,
           rotation: data.rotation,
@@ -155,7 +155,7 @@ export default class LayerUtil {
       // check restriction times. if the end time of the event is after the end time of the restriction times, we need to update the end time of the event.
 
       const trimmedStartAndEndTimes: Array<StartAndEndTime> =
-        LayerUtil.trimStartAndEndTimesBasedOnRestrictionTimes({
+        this.trimStartAndEndTimesBasedOnRestrictionTimes({
           eventStartTime: currentEventStartTime,
           eventEndTime: currentEventEndTime,
           restrictionTimes: data.restrictionTimes,
@@ -163,7 +163,7 @@ export default class LayerUtil {
 
       events = [
         ...events,
-        ...LayerUtil.getCalendarEventsFromStartAndEndDates(
+        ...this.getCalendarEventsFromStartAndEndDates(
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
@@ -185,14 +185,14 @@ export default class LayerUtil {
 
       // update the handoff time
 
-      handOffTime = LayerUtil.moveHandsOffTimeAfterCurrentEventStartTime({
+      handOffTime = this.moveHandsOffTimeAfterCurrentEventStartTime({
         handOffTime,
         currentEventStartTime,
         rotation: data.rotation,
       });
 
       // update the current user index
-      currentUserIndex = LayerUtil.incrementUserIndex(
+      currentUserIndex = this.incrementUserIndex(
         currentUserIndex,
         data.users.length,
       );
@@ -216,7 +216,7 @@ export default class LayerUtil {
     return events;
   }
 
-  private static sanitizeData(data: EventProps): EventProps {
+  private sanitizeData(data: EventProps): EventProps {
     if (!(data.restrictionTimes instanceof RestrictionTimes)) {
       data.restrictionTimes = RestrictionTimes.fromJSON(data.restrictionTimes);
     }
@@ -246,7 +246,7 @@ export default class LayerUtil {
     return data;
   }
 
-  private static isDataValid(data: EventProps): boolean {
+  private isDataValid(data: EventProps): boolean {
     // if calendar end time is before the start time then return an empty array.
     if (OneUptimeDate.isBefore(data.calendarEndDate, data.calendarStartDate)) {
       return false;
@@ -267,7 +267,7 @@ export default class LayerUtil {
     return true;
   }
 
-  private static moveHandsOffTimeAfterCurrentEventStartTime(data: {
+  private moveHandsOffTimeAfterCurrentEventStartTime(data: {
     handOffTime: Date;
     currentEventStartTime: Date;
     rotation: Recurring;
@@ -436,7 +436,7 @@ export default class LayerUtil {
     return handOffTime;
   }
 
-  private static getCurrentUserIndexBasedOnHandoffTime(data: {
+  private getCurrentUserIndexBasedOnHandoffTime(data: {
     rotation: Recurring;
     handOffTime: Date;
     currentUserIndex: number;
@@ -523,7 +523,7 @@ export default class LayerUtil {
         numberOfIntervalsBetweenStartAndHandoffTime * -1;
     }
 
-    currentUserIndex = LayerUtil.incrementUserIndex(
+    currentUserIndex = this.incrementUserIndex(
       currentUserIndex,
       data.users.length,
       numberOfIntervalsBetweenStartAndHandoffTime,
@@ -532,7 +532,7 @@ export default class LayerUtil {
     return currentUserIndex;
   }
 
-  public static trimStartAndEndTimesBasedOnRestrictionTimes(data: {
+  public trimStartAndEndTimesBasedOnRestrictionTimes(data: {
     eventStartTime: Date;
     eventEndTime: Date;
     restrictionTimes: RestrictionTimes;
@@ -565,7 +565,7 @@ export default class LayerUtil {
           data.eventStartTime,
         );
 
-      return LayerUtil.getEventsByDailyRestriction({
+      return this.getEventsByDailyRestriction({
         eventStartTime: data.eventStartTime,
         eventEndTime: data.eventEndTime,
         restrictionStartAndEndTime: restrictionTimes.dayRestrictionTimes,
@@ -576,13 +576,13 @@ export default class LayerUtil {
     }
 
     if (restrictionTimes.restictionType === RestrictionType.Weekly) {
-      return LayerUtil.getEventsByWeeklyRestriction(data);
+      return this.getEventsByWeeklyRestriction(data);
     }
 
     return [];
   }
 
-  public static getEventsByWeeklyRestriction(data: {
+  public getEventsByWeeklyRestriction(data: {
     eventStartTime: Date;
     eventEndTime: Date;
     restrictionTimes: RestrictionTimes;
@@ -604,11 +604,11 @@ export default class LayerUtil {
     }
 
     const restrictionStartAndEndTimes: Array<StartAndEndTime> =
-      LayerUtil.getWeeklyRestrictionTimesForWeek(data);
+      this.getWeeklyRestrictionTimesForWeek(data);
 
     for (const restrictionStartAndEndTime of restrictionStartAndEndTimes) {
       const trimmedStartAndEndTimesForRestriction: Array<StartAndEndTime> =
-        LayerUtil.getEventsByDailyRestriction({
+        this.getEventsByDailyRestriction({
           eventStartTime: data.eventStartTime,
           eventEndTime: data.eventEndTime,
           restrictionStartAndEndTime: restrictionStartAndEndTime,
@@ -626,7 +626,7 @@ export default class LayerUtil {
     return trimmedStartAndEndTimes;
   }
 
-  public static getWeeklyRestrictionTimesForWeek(data: {
+  public getWeeklyRestrictionTimesForWeek(data: {
     eventStartTime: Date;
     eventEndTime: Date;
     restrictionTimes: RestrictionTimes;
@@ -691,7 +691,7 @@ export default class LayerUtil {
     return startAndEndTimesOfWeeklyRestrictions;
   }
 
-  public static getEventsByDailyRestriction(data: {
+  public getEventsByDailyRestriction(data: {
     eventStartTime: Date;
     eventEndTime: Date;
     restrictionStartAndEndTime: StartAndEndTime;
@@ -727,7 +727,7 @@ export default class LayerUtil {
 
     // create a break clause. This loop executes 100 times at max.
 
-    const maxLoopCount: number = 10000;
+    const maxLoopCount: number = 50;
     let loopCount: number = 0;
 
     while (!reachedTheEndOfTheCurrentEvent) {
@@ -836,7 +836,7 @@ export default class LayerUtil {
 
   // helper functions.
 
-  private static incrementUserIndex(
+  private incrementUserIndex(
     currentIndex: number,
     userArrayLength: number,
     incrementBy?: number,
@@ -858,7 +858,7 @@ export default class LayerUtil {
     return currentIndex;
   }
 
-  private static getCalendarEventsFromStartAndEndDates(
+  private getCalendarEventsFromStartAndEndDates(
     trimmedStartAndEndTimes: Array<StartAndEndTime>,
     users: Array<UserModel>,
     currentUserIndex: number,
@@ -882,7 +882,7 @@ export default class LayerUtil {
     return events;
   }
 
-  public static getMultiLayerEvents(
+  public getMultiLayerEvents(
     data: MultiLayerProps,
     options?:
       | {
@@ -894,7 +894,7 @@ export default class LayerUtil {
     let layerPriority: number = 1;
 
     for (const layer of data.layers) {
-      const layerEvents: Array<CalendarEvent> = LayerUtil.getEvents(
+      const layerEvents: Array<CalendarEvent> = this.getEvents(
         {
           users: layer.users,
           startDateTimeOfLayer: layer.startDateTimeOfLayer,
@@ -925,7 +925,7 @@ export default class LayerUtil {
     // now remove the overlapping events
 
     const nonOverlappingEvents: Array<CalendarEvent> =
-      LayerUtil.removeOverlappingEvents(events);
+      this.removeOverlappingEvents(events);
 
     if (options?.getNumberOfEvents !== undefined) {
       if (nonOverlappingEvents.length > options.getNumberOfEvents) {
@@ -936,7 +936,7 @@ export default class LayerUtil {
     return nonOverlappingEvents;
   }
 
-  public static removeOverlappingEvents(
+  public removeOverlappingEvents(
     events: PriorityCalendarEvents[],
   ): CalendarEvent[] {
     // now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.

@@ -39,6 +39,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  const layerUtil: LayerUtil = new LayerUtil();
+
   useEffect(() => {
     setCalendarEvents(getCalendarEvents(startTime, endTime));
   }, [props.layers, props.allLayerUsers, startTime, endTime]);
@@ -82,7 +84,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       });
     }
 
-    const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents({
+    const events: Array<CalendarEvent> = layerUtil.getMultiLayerEvents({
       calendarEndDate: calendarEndTime,
       calendarStartDate: calendarStartTime,
       layers: layerProps,
