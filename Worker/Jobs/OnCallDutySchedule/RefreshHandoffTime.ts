@@ -11,6 +11,8 @@ RunCron(
   "OnCallDutySchedule:RefreshHandoffTime",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    logger.debug("Starting cron job: OnCallDutySchedule:RefreshHandoffTime");
+
     const onCallScheduleWithHandoffTimeInPast: Array<OnCallDutyPolicySchedule> =
       await OnCallDutyPolicyScheduleService.findBy({
         query: {
@@ -34,6 +36,10 @@ RunCron(
           isRoot: true,
         },
       });
+
+    logger.debug(
+      `Fetched ${onCallScheduleWithHandoffTimeInPast.length} schedules with handoff time in the past.`,
+    );
 
     const nextRosterStartTimeInPastSchedules: Array<OnCallDutyPolicySchedule> =
       await OnCallDutyPolicyScheduleService.findBy({
@@ -60,21 +66,35 @@ RunCron(
         },
       });
 
+    logger.debug(
+      `Fetched ${nextRosterStartTimeInPastSchedules.length} schedules with next roster start time in the past.`,
+    );
+
     const totalSchedules: Array<OnCallDutyPolicySchedule> = [
       ...onCallScheduleWithHandoffTimeInPast,
       ...nextRosterStartTimeInPastSchedules,
     ];
 
+    logger.debug(`Total schedules to process: ${totalSchedules.length}`);
+
     for (const onCallSchedule of totalSchedules) {
       try {
+        logger.debug(
+          `Processing schedule with ID: ${onCallSchedule.id?.toString()}`,
+        );
         await OnCallDutyPolicyScheduleService.refreshCurrentUserIdAndHandoffTimeInSchedule(
           onCallSchedule.id!,
         );
+        logger.debug(
+          `Successfully refreshed schedule with ID: ${onCallSchedule.id?.toString()}`,
+        );
       } catch (err) {
         logger.error(
-          `Error refreshing current user and handoff time for schedule: ${onCallSchedule.id}`,
+          `Error refreshing current user and handoff time for schedule: ${onCallSchedule.id?.toString()}`,
         );
       }
     }
+
+    logger.debug("Completed cron job: OnCallDutySchedule:RefreshHandoffTime");
   },
 );
