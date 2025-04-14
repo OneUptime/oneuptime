@@ -377,32 +377,43 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     rosterStartAt: Date | null;
     nextRosterStartAt: Date | null;
   }> {
-    logger.debug('refreshCurrentUserIdAndHandoffTimeInSchedule called with scheduleId: '+ scheduleId.toString());
+    logger.debug(
+      "refreshCurrentUserIdAndHandoffTimeInSchedule called with scheduleId: " +
+        scheduleId.toString(),
+    );
 
     // get previoius result.
-    logger.debug('Fetching previous schedule information for scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "Fetching previous schedule information for scheduleId: " +
+        scheduleId.toString(),
+    );
     const onCallSchedule: OnCallDutyPolicySchedule | null =
       await this.findOneById({
-      id: scheduleId,
-      select: {
-        currentUserIdOnRoster: true,
-        rosterHandoffAt: true,
-        nextUserIdOnRoster: true,
-        rosterNextHandoffAt: true,
-        rosterStartAt: true,
-        rosterNextStartAt: true,
-      },
-      props: {
-        isRoot: true,
-      },
+        id: scheduleId,
+        select: {
+          currentUserIdOnRoster: true,
+          rosterHandoffAt: true,
+          nextUserIdOnRoster: true,
+          rosterNextHandoffAt: true,
+          rosterStartAt: true,
+          rosterNextStartAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
       });
 
     if (!onCallSchedule) {
-      logger.debug('Schedule not found for scheduleId: ' + scheduleId.toString());
+      logger.debug(
+        "Schedule not found for scheduleId: " + scheduleId.toString(),
+      );
       throw new BadDataException("Schedule not found");
     }
 
-    logger.debug('Previous schedule information fetched for scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "Previous schedule information fetched for scheduleId: " +
+        scheduleId.toString(),
+    );
 
     const previousInformation: {
       currentUserIdOnRoster: ObjectID | null;
@@ -422,7 +433,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     logger.debug(previousInformation);
 
-    logger.debug('Fetching new schedule information for scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "Fetching new schedule information for scheduleId: " +
+        scheduleId.toString(),
+    );
 
     const newInformation: {
       currentUserId: ObjectID | null;
@@ -435,41 +449,50 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     logger.debug(newInformation);
 
-    logger.debug('Updating schedule with new information for scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "Updating schedule with new information for scheduleId: " +
+        scheduleId.toString(),
+    );
 
     await this.updateOneById({
       id: scheduleId!,
       data: {
-      currentUserIdOnRoster: newInformation.currentUserId,
-      rosterHandoffAt: newInformation.handOffTimeAt,
-      nextUserIdOnRoster: newInformation.nextUserId,
-      rosterNextHandoffAt: newInformation.nextHandOffTimeAt,
-      rosterStartAt: newInformation.rosterStartAt,
-      rosterNextStartAt: newInformation.nextRosterStartAt,
+        currentUserIdOnRoster: newInformation.currentUserId,
+        rosterHandoffAt: newInformation.handOffTimeAt,
+        nextUserIdOnRoster: newInformation.nextUserId,
+        rosterNextHandoffAt: newInformation.nextHandOffTimeAt,
+        rosterStartAt: newInformation.rosterStartAt,
+        rosterNextStartAt: newInformation.nextRosterStartAt,
       },
       props: {
-      isRoot: true,
-      ignoreHooks: true,
+        isRoot: true,
+        ignoreHooks: true,
       },
     });
 
-    logger.debug('Sending notifications for schedule handoff for scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "Sending notifications for schedule handoff for scheduleId: " +
+        scheduleId.toString(),
+    );
 
     // send notification to the users.
     await this.sendNotificationToUserOnScheduleHandoff({
       scheduleId: scheduleId,
       previousInformation: previousInformation,
       newInformation: {
-      currentUserIdOnRoster: newInformation.currentUserId,
-      rosterHandoffAt: newInformation.handOffTimeAt,
-      nextUserIdOnRoster: newInformation.nextUserId,
-      nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
-      rosterStartAt: newInformation.rosterStartAt,
-      nextRosterStartAt: newInformation.nextRosterStartAt,
+        currentUserIdOnRoster: newInformation.currentUserId,
+        rosterHandoffAt: newInformation.handOffTimeAt,
+        nextUserIdOnRoster: newInformation.nextUserId,
+        nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
+        rosterStartAt: newInformation.rosterStartAt,
+        nextRosterStartAt: newInformation.nextRosterStartAt,
       },
     });
 
-    logger.debug('Returning new schedule information for scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "Returning new schedule information for scheduleId: " +
+        scheduleId.toString(),
+    );
 
     return newInformation;
   }
@@ -484,8 +507,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     nextHandOffTimeAt: Date | null;
     nextRosterStartAt: Date | null;
   }> {
-
-    logger.debug('getCurrrentUserIdAndHandoffTimeInSchedule called with scheduleId: ' + scheduleId.toString());
+    logger.debug(
+      "getCurrrentUserIdAndHandoffTimeInSchedule called with scheduleId: " +
+        scheduleId.toString(),
+    );
 
     const resultReturn: {
       rosterStartAt: Date | null;
@@ -503,48 +528,50 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       nextRosterStartAt: null,
     };
 
-    logger.debug('Fetching events for scheduleId: ' + scheduleId.toString());
+    logger.debug("Fetching events for scheduleId: " + scheduleId.toString());
     const events: Array<CalendarEvent> | null =
       await this.getEventByIndexInSchedule({
         scheduleId: scheduleId,
         getNumberOfEvents: 2,
       });
 
-    logger.debug('Events fetched: ' + JSON.stringify(events));
+    logger.debug("Events fetched: " + JSON.stringify(events));
 
     let currentEvent: CalendarEvent | null = events[0] || null;
     let nextEvent: CalendarEvent | null = events[1] || null;
 
-    logger.debug('Current event: ' + JSON.stringify(currentEvent));
-    logger.debug('Next event: ' + JSON.stringify(nextEvent));
+    logger.debug("Current event: " + JSON.stringify(currentEvent));
+    logger.debug("Next event: " + JSON.stringify(nextEvent));
 
     // if the current event start time in the future then the current event is the next event.
     if (currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
-      logger.debug('Current event is in the future, treating it as next event.');
+      logger.debug(
+        "Current event is in the future, treating it as next event.",
+      );
       nextEvent = currentEvent;
       currentEvent = null;
     }
 
     if (currentEvent) {
-      logger.debug('Processing current event: ' + JSON.stringify(currentEvent));
+      logger.debug("Processing current event: " + JSON.stringify(currentEvent));
       const userId: string | undefined = currentEvent?.title; // this is user id in string.
 
       if (userId) {
-        logger.debug('Current userId: ' + userId);
+        logger.debug("Current userId: " + userId);
         resultReturn.currentUserId = new ObjectID(userId);
       }
 
       // get handOffTime
       const handOffTime: Date | undefined = currentEvent?.end; // this is user id in string.
       if (handOffTime) {
-        logger.debug('Current handOffTime: ' + handOffTime.toISOString());
+        logger.debug("Current handOffTime: " + handOffTime.toISOString());
         resultReturn.handOffTimeAt = handOffTime;
       }
 
       // get start time
       const startTime: Date | undefined = currentEvent?.start; // this is user id in string.
       if (startTime) {
-        logger.debug('Current rosterStartAt: ' + startTime.toISOString());
+        logger.debug("Current rosterStartAt: " + startTime.toISOString());
         resultReturn.rosterStartAt = startTime;
       }
     }
@@ -552,30 +579,30 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     // do the same for next event.
 
     if (nextEvent) {
-      logger.debug('Processing next event: ' + JSON.stringify(nextEvent));
+      logger.debug("Processing next event: " + JSON.stringify(nextEvent));
       const userId: string | undefined = nextEvent?.title; // this is user id in string.
 
       if (userId) {
-        logger.debug('Next userId: ' + userId);
+        logger.debug("Next userId: " + userId);
         resultReturn.nextUserId = new ObjectID(userId);
       }
 
       // get handOffTime
       const handOffTime: Date | undefined = nextEvent?.end; // this is user id in string.
       if (handOffTime) {
-        logger.debug('Next handOffTime: ' + handOffTime.toISOString());
+        logger.debug("Next handOffTime: " + handOffTime.toISOString());
         resultReturn.nextHandOffTimeAt = handOffTime;
       }
 
       // get start time
       const startTime: Date | undefined = nextEvent?.start; // this is user id in string.
       if (startTime) {
-        logger.debug('Next rosterStartAt: ' + startTime.toISOString());
+        logger.debug("Next rosterStartAt: " + startTime.toISOString());
         resultReturn.nextRosterStartAt = startTime;
       }
     }
 
-    logger.debug('Returning result: ' + JSON.stringify(resultReturn));
+    logger.debug("Returning result: " + JSON.stringify(resultReturn));
     return resultReturn;
   }
 
@@ -664,30 +691,34 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
   }): Promise<Array<CalendarEvent>> {
-    logger.debug('getEventByIndexInSchedule called with data: ' + JSON.stringify(data));
+    logger.debug(
+      "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
+    );
 
     const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
       scheduleId: data.scheduleId,
     });
 
-    logger.debug('Layer properties fetched: ' + JSON.stringify(layerProps));
+    logger.debug("Layer properties fetched: " + JSON.stringify(layerProps));
 
     if (layerProps.length === 0) {
-      logger.debug('No layers found for scheduleId: ' + data.scheduleId.toString());
+      logger.debug(
+        "No layers found for scheduleId: " + data.scheduleId.toString(),
+      );
       return [];
     }
 
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
-    logger.debug('Current start time: ' + currentStartTime.toISOString());
+    logger.debug("Current start time: " + currentStartTime.toISOString());
 
     const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
       1,
     );
-    logger.debug('Current end time: ' + currentEndTime.toISOString());
+    logger.debug("Current end time: " + currentEndTime.toISOString());
 
     const numberOfEventsToGet: number = data.getNumberOfEvents;
-    logger.debug('Number of events to get: ' + numberOfEventsToGet);
+    logger.debug("Number of events to get: " + numberOfEventsToGet);
 
     const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
       {
@@ -700,7 +731,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       },
     );
 
-    logger.debug('Events fetched: ' + JSON.stringify(events));
+    logger.debug("Events fetched: " + JSON.stringify(events));
 
     return events;
   }
