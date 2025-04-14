@@ -40,7 +40,7 @@ export default class LayerUtil {
       | {
           getNumberOfEvents?: number;
         }
-      | undefined
+      | undefined,
   ): Array<CalendarEvent> {
     let events: Array<CalendarEvent> = [];
 
@@ -112,7 +112,7 @@ export default class LayerUtil {
         ...this.getCalendarEventsFromStartAndEndDates(
           trimmedStartAndEndTimes,
           data.users,
-          currentUserIndex
+          currentUserIndex,
         ),
       ];
 
@@ -135,7 +135,7 @@ export default class LayerUtil {
       if (OneUptimeDate.isSame(currentEventStartTime, currentEventEndTime)) {
         currentEventStartTime = OneUptimeDate.addRemoveSeconds(
           currentEventEndTime,
-          1
+          1,
         );
         handOffTime = this.moveHandsOffTimeAfterCurrentEventStartTime({
           handOffTime,
@@ -166,7 +166,7 @@ export default class LayerUtil {
         ...this.getCalendarEventsFromStartAndEndDates(
           trimmedStartAndEndTimes,
           data.users,
-          currentUserIndex
+          currentUserIndex,
         ),
       ];
 
@@ -180,7 +180,7 @@ export default class LayerUtil {
 
       currentEventStartTime = OneUptimeDate.addRemoveSeconds(
         currentEventEndTime,
-        1
+        1,
       );
 
       // update the handoff time
@@ -194,7 +194,7 @@ export default class LayerUtil {
       // update the current user index
       currentUserIndex = this.incrementUserIndex(
         currentUserIndex,
-        data.users.length
+        data.users.length,
       );
     }
 
@@ -227,7 +227,7 @@ export default class LayerUtil {
 
     if (typeof data.startDateTimeOfLayer === Typeof.String) {
       data.startDateTimeOfLayer = OneUptimeDate.fromString(
-        data.startDateTimeOfLayer
+        data.startDateTimeOfLayer,
       );
     }
 
@@ -287,7 +287,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getDaysBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
 
       if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
@@ -303,7 +303,7 @@ export default class LayerUtil {
 
       handOffTime = OneUptimeDate.addRemoveDays(
         handOffTime,
-        intervalBetweenStartTimeAndHandoffTime
+        intervalBetweenStartTimeAndHandoffTime,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
@@ -317,7 +317,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getHoursBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
 
       if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
@@ -333,7 +333,7 @@ export default class LayerUtil {
 
       handOffTime = OneUptimeDate.addRemoveHours(
         handOffTime,
-        intervalBetweenStartTimeAndHandoffTime
+        intervalBetweenStartTimeAndHandoffTime,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
@@ -347,7 +347,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
 
       if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
@@ -363,7 +363,7 @@ export default class LayerUtil {
 
       handOffTime = OneUptimeDate.addRemoveWeeks(
         handOffTime,
-        intervalBetweenStartTimeAndHandoffTime
+        intervalBetweenStartTimeAndHandoffTime,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
@@ -377,7 +377,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
 
       if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
@@ -393,7 +393,7 @@ export default class LayerUtil {
 
       handOffTime = OneUptimeDate.addRemoveMonths(
         handOffTime,
-        intervalBetweenStartTimeAndHandoffTime
+        intervalBetweenStartTimeAndHandoffTime,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
@@ -407,7 +407,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getYearsBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
 
       if (intervalBetweenStartTimeAndHandoffTime < rotationInterval) {
@@ -423,7 +423,7 @@ export default class LayerUtil {
 
       handOffTime = OneUptimeDate.addRemoveYears(
         handOffTime,
-        intervalBetweenStartTimeAndHandoffTime
+        intervalBetweenStartTimeAndHandoffTime,
       );
 
       if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
@@ -454,7 +454,7 @@ export default class LayerUtil {
     if (
       OneUptimeDate.isBefore(
         data.currentEventStartTime,
-        data.startDateTimeOfLayer
+        data.startDateTimeOfLayer,
       )
     ) {
       return currentUserIndex;
@@ -471,7 +471,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getDaysBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
     }
 
@@ -480,7 +480,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getHoursBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
     }
 
@@ -489,7 +489,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
     }
 
@@ -498,7 +498,7 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
           handOffTime,
-          data.currentEventStartTime
+          data.currentEventStartTime,
         );
     }
 
@@ -507,14 +507,15 @@ export default class LayerUtil {
       intervalBetweenStartTimeAndHandoffTime =
         OneUptimeDate.getYearsBetweenTwoDatesInclusive(
           data.startDateTimeOfLayer,
-          handOffTime
+          handOffTime,
         );
     }
 
     // now divide the interval between start time and handoff time by the interval count.
 
     let numberOfIntervalsBetweenStartAndHandoffTime: number = Math.ceil(
-      intervalBetweenStartTimeAndHandoffTime / rotation.intervalCount.toNumber()
+      intervalBetweenStartTimeAndHandoffTime /
+        rotation.intervalCount.toNumber(),
     );
 
     if (numberOfIntervalsBetweenStartAndHandoffTime < 0) {
@@ -525,7 +526,7 @@ export default class LayerUtil {
     currentUserIndex = this.incrementUserIndex(
       currentUserIndex,
       data.users.length,
-      numberOfIntervalsBetweenStartAndHandoffTime
+      numberOfIntervalsBetweenStartAndHandoffTime,
     );
 
     return currentUserIndex;
@@ -555,13 +556,13 @@ export default class LayerUtil {
       restrictionTimes.dayRestrictionTimes.startTime =
         OneUptimeDate.keepTimeButMoveDay(
           restrictionTimes.dayRestrictionTimes.startTime,
-          data.eventStartTime
+          data.eventStartTime,
         );
 
       restrictionTimes.dayRestrictionTimes.endTime =
         OneUptimeDate.keepTimeButMoveDay(
           restrictionTimes.dayRestrictionTimes.endTime,
-          data.eventStartTime
+          data.eventStartTime,
         );
 
       return this.getEventsByDailyRestriction({
@@ -648,13 +649,13 @@ export default class LayerUtil {
       startTime = OneUptimeDate.moveDateToTheDayOfWeek(
         startTime,
         eventStartTime,
-        OneUptimeDate.getDayOfWeek(startTime)
+        OneUptimeDate.getDayOfWeek(startTime),
       );
 
       endTime = OneUptimeDate.moveDateToTheDayOfWeek(
         endTime,
         eventStartTime,
-        OneUptimeDate.getDayOfWeek(endTime)
+        OneUptimeDate.getDayOfWeek(endTime),
       );
 
       // now we have true start and end times of the weekly restriction
@@ -757,7 +758,7 @@ export default class LayerUtil {
       if (OneUptimeDate.isAfter(restrictionStartTime, restrictionEndTime)) {
         restrictionEndTime = OneUptimeDate.addRemoveDays(
           restrictionEndTime,
-          data.props.intervalType === EventInterval.Day ? 1 : 7 // daily or weekly
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
         );
       }
 
@@ -814,18 +815,18 @@ export default class LayerUtil {
 
         currentStartTime = OneUptimeDate.addRemoveSeconds(
           restrictionEndTime,
-          1
+          1,
         );
 
         // add day to restriction start and end times.
 
         restrictionStartTime = OneUptimeDate.addRemoveDays(
           restrictionStartTime,
-          data.props.intervalType === EventInterval.Day ? 1 : 7 // daily or weekly
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
         );
         restrictionEndTime = OneUptimeDate.addRemoveDays(
           restrictionEndTime,
-          data.props.intervalType === EventInterval.Day ? 1 : 7 // daily or weekly
+          data.props.intervalType === EventInterval.Day ? 1 : 7, // daily or weekly
         );
       }
     }
@@ -838,7 +839,7 @@ export default class LayerUtil {
   private incrementUserIndex(
     currentIndex: number,
     userArrayLength: number,
-    incrementBy?: number
+    incrementBy?: number,
   ): number {
     // update the current user index
 
@@ -860,7 +861,7 @@ export default class LayerUtil {
   private getCalendarEventsFromStartAndEndDates(
     trimmedStartAndEndTimes: Array<StartAndEndTime>,
     users: Array<UserModel>,
-    currentUserIndex: number
+    currentUserIndex: number,
   ): Array<CalendarEvent> {
     const events: Array<CalendarEvent> = [];
 
@@ -887,7 +888,7 @@ export default class LayerUtil {
       | {
           getNumberOfEvents?: number;
         }
-      | undefined
+      | undefined,
   ): Array<CalendarEvent> {
     const events: Array<PriorityCalendarEvents> = [];
     let layerPriority: number = 1;
@@ -903,7 +904,7 @@ export default class LayerUtil {
           calendarStartDate: data.calendarStartDate,
           calendarEndDate: data.calendarEndDate,
         },
-        options
+        options,
       );
 
       // add priority to each event
@@ -936,7 +937,7 @@ export default class LayerUtil {
   }
 
   public removeOverlappingEvents(
-    events: PriorityCalendarEvents[]
+    events: PriorityCalendarEvents[],
   ): CalendarEvent[] {
     // now remove overlapping events by priority and trim them by priority. Lower priority number will be kept and higher priority number will be trimmed.
     // so if there are two events with the same start and end time, we will keep the one with the lower priority number and remove the one with the higher priority number.
@@ -986,8 +987,8 @@ export default class LayerUtil {
         continue;
       }
 
-      for (let i = 0; i < finalEvents.length; i++) {
-        const finalEvent = finalEvents[i];
+      for (let i: number = 0; i < finalEvents.length; i++) {
+        const finalEvent: PriorityCalendarEvents | undefined = finalEvents[i];
 
         if (!finalEvent) {
           continue;
@@ -999,7 +1000,7 @@ export default class LayerUtil {
             finalEvent.start,
             finalEvent.end,
             event.start,
-            event.end
+            event.end,
           )
         ) {
           // if the current event has a higher priority than the final event, we need to trim the final event
