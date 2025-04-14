@@ -664,21 +664,31 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     scheduleId: ObjectID;
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
   }): Promise<Array<CalendarEvent>> {
+    logger.debug('getEventByIndexInSchedule called with data: ' + JSON.stringify(data));
+
     const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
       scheduleId: data.scheduleId,
     });
 
+    logger.debug('Layer properties fetched: ' + JSON.stringify(layerProps));
+
     if (layerProps.length === 0) {
+      logger.debug('No layers found for scheduleId: ' + data.scheduleId.toString());
       return [];
     }
 
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
+    logger.debug('Current start time: ' + currentStartTime.toISOString());
+
     const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
       1,
     );
+    logger.debug('Current end time: ' + currentEndTime.toISOString());
 
     const numberOfEventsToGet: number = data.getNumberOfEvents;
+    logger.debug('Number of events to get: ' + numberOfEventsToGet);
+
     const events: Array<CalendarEvent> = LayerUtil.getMultiLayerEvents(
       {
         layers: layerProps,
@@ -689,6 +699,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
         getNumberOfEvents: numberOfEventsToGet,
       },
     );
+
+    logger.debug('Events fetched: ' + JSON.stringify(events));
 
     return events;
   }
