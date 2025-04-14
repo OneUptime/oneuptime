@@ -34,6 +34,7 @@ export interface PriorityCalendarEvents extends CalendarEvent {
 }
 
 export default class LayerUtil {
+
   public getEvents(
     data: EventProps,
     options?:
@@ -1020,7 +1021,12 @@ export default class LayerUtil {
                 end: tempFinalEventEnd,
               };
 
-              finalEvents.push(trimmedEvent);
+              // check if the event end time is before the start time of the trimmed event
+              if (OneUptimeDate.isAfter(trimmedEvent.end, trimmedEvent.start)) {
+                finalEvents.push(trimmedEvent);
+              }
+
+              
             }
           } else {
             // trim the current event based on the final event
@@ -1030,8 +1036,12 @@ export default class LayerUtil {
         }
       }
 
-      finalEvents.push(event);
+      // check if the event end time is before the start time of the current event
+      if (OneUptimeDate.isAfter(event.end, event.start)) {
+        finalEvents.push(event);
+      }
 
+      
       // sort by start times
 
       finalEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
