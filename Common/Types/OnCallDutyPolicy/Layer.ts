@@ -120,7 +120,7 @@ export default class LayerUtil {
     }
 
     // break clause. This loop executes 50 times at max.
-    const maxLoopCount: number = 100;
+    const maxLoopCount: number = 10000;
     let loopCount: number = 0;
 
     while (!hasReachedTheEndOfTheCalendar) {
@@ -727,7 +727,7 @@ export default class LayerUtil {
 
     // create a break clause. This loop executes 100 times at max.
 
-    const maxLoopCount: number = 100;
+    const maxLoopCount: number = 10000;
     let loopCount: number = 0;
 
     while (!reachedTheEndOfTheCurrentEvent) {
@@ -947,6 +947,17 @@ export default class LayerUtil {
 
     // now remove the overlapping events
 
+    // remove events where start time and end time are the same
+
+    events = events.filter((event: PriorityCalendarEvents) => {
+      return !OneUptimeDate.isSame(event.start, event.end);
+    });
+
+    // remove events where start time is after end time
+    events = events.filter((event: PriorityCalendarEvents) => {
+      return !OneUptimeDate.isBefore(event.end, event.start);
+    });
+
     const finalEvents: PriorityCalendarEvents[] = [];
 
     // sort events by start time
@@ -965,6 +976,16 @@ export default class LayerUtil {
 
     for (const event of events) {
       // trim the trimmed events by the current event based on priority
+
+      // if this event starts and end at the same time, we need to remove it
+      if (OneUptimeDate.isSame(event.start, event.end)) {
+        continue;
+      }
+
+      // if the end time of the event is before the start time, we need to remove it
+      if (OneUptimeDate.isBefore(event.end, event.start)) {
+        continue;
+      }
 
       for (const finalEvent of finalEvents) {
         // check if this final event overlaps with the current event
@@ -1027,17 +1048,26 @@ export default class LayerUtil {
 
       // if an event starts and end at the same time, we need to remove it
 
-      finalEvents.forEach((finalEvent: CalendarEvent, index: number) => {
+      for (let index: number = 0; index < finalEvents.length; index++) {
+        const finalEvent: PriorityCalendarEvents | undefined =
+          finalEvents[index];
+
+        if (!finalEvent) {
+          continue;
+        }
+
         if (OneUptimeDate.isSame(finalEvent.start, finalEvent.end)) {
           finalEvents.splice(index, 1);
+          index--; // Adjust index after removal
+          continue;
         }
 
         // if any event ends before it starts, we need to remove it
-
         if (OneUptimeDate.isBefore(finalEvent.end, finalEvent.start)) {
           finalEvents.splice(index, 1);
+          index--; // Adjust index after removal
         }
-      });
+      }
     }
 
     // convert PriorityCalendarEvents to CalendarEvents
