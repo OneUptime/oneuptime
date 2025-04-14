@@ -120,7 +120,7 @@ export default class LayerUtil {
     }
 
     // break clause. This loop executes 50 times at max.
-    const maxLoopCount: number = 50;
+    const maxLoopCount: number = 100;
     let loopCount: number = 0;
 
     while (!hasReachedTheEndOfTheCalendar) {
@@ -725,9 +725,9 @@ export default class LayerUtil {
 
     let reachedTheEndOfTheCurrentEvent: boolean = false;
 
-    // create a break clause. This loop executes 1000 times at max.
+    // create a break clause. This loop executes 100 times at max.
 
-    const maxLoopCount: number = 50;
+    const maxLoopCount: number = 100;
     let loopCount: number = 0;
 
     while (!reachedTheEndOfTheCurrentEvent) {
