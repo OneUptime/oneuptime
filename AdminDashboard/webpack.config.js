@@ -77,6 +77,13 @@ module.exports = {
         "/admin/assets",
         express.static(path.resolve(__dirname, "public", "assets")),
       );
+
+      devServer.app.get("/admin", (_req, res) => {
+        return res.render("/usr/src/app/public/index.ejs", {
+          enableGoogleTagManager: false, 
+        });
+      });
+
       return middlewares;
     },
   },

@@ -31,8 +31,8 @@
         "@stripe/react-stripe-js": "^1.15.0",
         "@stripe/stripe-js": "^1.44.1",
         "Common": "file:../Common",
-    
         "dotenv": "^16.4.5",
+        "ejs": "^3.1.10",
         "file-loader": "^6.2.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",

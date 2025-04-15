@@ -31,6 +31,7 @@ import Typeof from "Common/Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
 import zlib from "zlib";
+import 'ejs';
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
 

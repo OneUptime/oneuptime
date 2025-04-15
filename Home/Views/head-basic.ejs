@@ -59,6 +59,7 @@
 </style>
 <script src="https://cdn.tailwindcss.com"></script>
 
+<% if(enableGoogleTagManager){ %>
 <!-- Google Tag Manager -->
 <script>(function (w, d, s, l, i) {
         w[l] = w[l] || []; w[l].push({
@@ -69,6 +70,7 @@
                 'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
 <!-- End Google Tag Manager -->
+<% } %>
 
 
 <style>

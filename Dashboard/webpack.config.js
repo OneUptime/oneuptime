@@ -80,6 +80,13 @@ module.exports = {
         "/dashboard/assets",
         express.static(path.resolve(__dirname, "public", "assets")),
       );
+
+      devServer.app.get("/dashboard", (_req, res) => {
+        return res.render("/usr/src/app/public/index.ejs", {
+          enableGoogleTagManager: false, 
+        });
+      });
+
       return middlewares;
     },
   },

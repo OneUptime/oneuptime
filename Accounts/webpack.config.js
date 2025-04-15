@@ -7,6 +7,7 @@ const path = require("path");
 const webpack = require("webpack");
 const dotenv = require("dotenv");
 const express = require("express");
+require('ejs');
 
 const readEnvFile = (pathToFile) => {
   const parsed = dotenv.config({ path: pathToFile }).parsed;
@@ -77,6 +78,13 @@ module.exports = {
         "/accounts/assets",
         express.static(path.resolve(__dirname, "public", "assets")),
       );
+
+      devServer.app.get("/accounts", (_req, res) => {
+        return res.render("/usr/src/app/public/index.ejs", {
+          enableGoogleTagManager: false, 
+        });
+      });
+
       return middlewares;
     },
   },
