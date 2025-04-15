@@ -34,6 +34,7 @@ import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/ScheduledMaintenance";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
+import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDuty";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -344,6 +345,19 @@ export default class SlackAPI {
             })
           ) {
             return SlackIncidentActions.handleIncidentAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+
+          if (
+            SlackOnCallDutyActions.isOnCallDutyAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackOnCallDutyActions.handleOnCallDutyAction({
               slackRequest: authResult,
               action: action,
               req: req,
