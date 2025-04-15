@@ -69,6 +69,29 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           subItemLink={subItemMenuLink}
         />
       </SideMenuSection>
+      <SideMenuSection title="Workspace Connections">
+        <SideMenuItem
+          link={{
+            title: "Slack",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK] as Route,
+            ),
+          }}
+          icon={IconProp.Slack}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+              PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              ] as Route,
+            ),
+          }}
+          icon={IconProp.MicrosoftTeams}
+        />
+      </SideMenuSection>
     </SideMenu>
   );
 };

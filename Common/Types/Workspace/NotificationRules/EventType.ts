@@ -3,6 +3,7 @@ enum NotificationRuleEventType {
   Monitor = "Monitor",
   Alert = "Alert",
   ScheduledMaintenance = "Scheduled Maintenance",
+  OnCallDuty = "On Call Duty",
 }
 
 export default NotificationRuleEventType;
