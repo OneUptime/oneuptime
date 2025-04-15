@@ -387,7 +387,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     ];
   }
 
-  if (!isUserAccountConnected && !isProjectAccountConnected) {
+  if (!isProjectAccountConnected) {
     cardTitle = `Connect with Slack`;
     cardDescription = `Connect your account with Slack to make the most out of OneUptime.`;
     cardButtons = [getConnectWithSlackButton(`Connect with Slack`)];
