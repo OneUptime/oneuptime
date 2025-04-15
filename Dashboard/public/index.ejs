@@ -12,6 +12,7 @@
   <meta name="slack-app-id" content="ACVBMTPJQ">
   <meta name="description" content="OneUptime — the complete open-source observability platform.">
 
+  <% if(enableGoogleTagManager){ %>
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
       w[l] = w[l] || []; w[l].push({
@@ -23,6 +24,7 @@
     })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');
   </script>
   <!-- End Google Tag Manager -->
+  <% } %>
 
   <link rel="manifest" href="/dashboard/assets/img/favicons/ma">
   <link rel="apple-touch-icon" sizes="180x180" href="/dashboard/assets/img/favicons/apple-touch-icon.png">

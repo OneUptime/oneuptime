@@ -10,7 +10,29 @@
     <meta name="theme-color" content="#000000">
     <meta name="slack-app-id" content="ACVBMTPJQ">
     <meta name="description" content="OneUptime — the complete open-source observability platform.">
-    <script src="/status-page/env.js"></script>
+
+    <% if(enableGoogleTagManager){ %>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','GTM-PKQD5WH');
+    </script>
+    <!-- End Google Tag Manager -->
+    <% } %>
+
+    <link rel="manifest" href="/admin/assets/img/favicons/ma">
+    <link rel="apple-touch-icon" sizes="180x180" href="/admin/assets/img/favicons/apple-touch-icon.png">
+    <link rel="shortcut icon" href="/admin/assets/img/favicons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/img/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="194x194" href="/admin/assets/img/favicons/favicon-194x194.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/admin/assets/img/favicons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/admin/assets/img/favicons/favicon-16x16.png">
+    <link rel="mask-icon" href="/admin/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#121212">
+    <meta name="msapplication-TileImage" content="/admin/assets/img/favicons/mstile-144x144.png">
+    <meta name="theme-color" content="#121212">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -46,16 +68,12 @@
           width: auto;
       }
       </style>
-    <script src="/status-page/assets/js/tailwind-3.4.5.js"></script>
-    <title>Status Page</title>
+    <script src="/admin/assets/js/tailwind-3.4.5.js"></script>
+    
+    <script src="/admin/env.js"></script>
 
-        <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-PKQD5WH');</script>
-  <!-- End Google Tag Manager -->
+
+    <title>OneUptime Admin Dashboard</title>
 
    
     <!--
@@ -79,7 +97,8 @@
   <!-- End Google Tag Manager (noscript) -->
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script src="/status-page/dist/bundle.js"></script>
+
+    <script src="/admin/dist/bundle.js"></script>
     <script>
       tailwind.config = {
         theme: {

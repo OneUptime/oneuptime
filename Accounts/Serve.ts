@@ -28,6 +28,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
   }
 };
 
+
 init().catch((err: Error) => {
   logger.error(err);
   logger.error("Exiting node process");
