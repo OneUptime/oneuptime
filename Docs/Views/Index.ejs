@@ -2,7 +2,9 @@
     style="color-scheme: light;">
 
 <head>
-    <%- include('./Partials/Head.ejs') %>
+    <%- include('./Partials/Head.ejs', {
+        enableGoogleTagManager: enableGoogleTagManager
+    }) %>
 </head>
 
 <body class="flex min-h-full bg-white ">
