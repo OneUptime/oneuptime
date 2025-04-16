@@ -441,12 +441,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       });
     }
 
-
-    if(data.notificationFor.onCallDutyPolicyId){
-      monitorChannels = await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
-        onCallDutyPolicyId: data.notificationFor.onCallDutyPolicyId,
-        workspaceType: data.workspaceType,
-      });
+    if (data.notificationFor.onCallDutyPolicyId) {
+      monitorChannels =
+        await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
+          onCallDutyPolicyId: data.notificationFor.onCallDutyPolicyId,
+          workspaceType: data.workspaceType,
+        });
     }
 
     // incidents
@@ -1467,9 +1467,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             return monitor._id?.toString() || "";
           }) || [],
 
-          [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-          [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
-          [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
 
@@ -1544,7 +1545,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         ],
 
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
@@ -1625,9 +1627,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               return monitor._id?.toString() || "";
             },
           ) || [],
-          [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-          [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
-          [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
 
@@ -1686,27 +1689,28 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           monitor?._id?.toString() || "",
         ],
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
-
 
     if (data.notificationFor.onCallDutyPolicyId) {
       logger.debug("Fetching on call policy details for ID:");
       logger.debug(data.notificationFor.onCallDutyPolicyId);
 
-      const onCallDutyPolicy: OnCallDutyPolicy | null = await OnCallDutyPolicyService.findOneById({
-        id: data.notificationFor.onCallDutyPolicyId,
-        select: {
-          name: true,
-          labels: true,
-          description: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const onCallDutyPolicy: OnCallDutyPolicy | null =
+        await OnCallDutyPolicyService.findOneById({
+          id: data.notificationFor.onCallDutyPolicyId,
+          select: {
+            name: true,
+            labels: true,
+            description: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (!onCallDutyPolicy) {
         logger.debug("On Call Duty Policy not found for ID:");
@@ -1714,26 +1718,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         throw new BadDataException("On Call Duty Policy ID not found");
       }
 
-      const onCallDutyPolicyLabels: Array<Label> = onCallDutyPolicy?.labels || [];
+      const onCallDutyPolicyLabels: Array<Label> =
+        onCallDutyPolicy?.labels || [];
 
       return {
-        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: onCallDutyPolicy?.name || "",
-        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: onCallDutyPolicy?.description || "",
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]:
+          onCallDutyPolicy?.name || "",
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          onCallDutyPolicy?.description || "",
         [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]:
-        onCallDutyPolicyLabels.map((label: Label) => {
+          onCallDutyPolicyLabels.map((label: Label) => {
             return label._id?.toString() || "";
           }) || [],
 
-
-          [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorName]: undefined,
         [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
         [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
         [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
         [NotificationRuleConditionCheckOn.IncidentState]: undefined,
-        [NotificationRuleConditionCheckOn.MonitorType]:
-          undefined,
-        [NotificationRuleConditionCheckOn.MonitorStatus]:
-          "",
+        [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorStatus]: "",
         [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
         [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
         [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
@@ -1744,13 +1748,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
         [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
         [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
-        [NotificationRuleConditionCheckOn.MonitorLabels]:
-         undefined,
+        [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
         [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
           undefined,
-        [NotificationRuleConditionCheckOn.Monitors]: 
-          undefined
-        ,
+        [NotificationRuleConditionCheckOn.Monitors]: undefined,
       };
     }
 

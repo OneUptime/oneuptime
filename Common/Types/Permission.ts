@@ -424,7 +424,6 @@ enum Permission {
   EditIncidentFeed = "EditIncidentFeed",
   ReadIncidentFeed = "ReadIncidentFeed",
 
-
   CreateOnCallDutyPolicyFeed = "CreateOnCallDutyPolicyFeed",
   EditOnCallDutyPolicyFeed = "EditOnCallDutyPolicyFeed",
   ReadOnCallDutyPolicyFeed = "ReadOnCallDutyPolicyFeed",
@@ -1167,7 +1166,6 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
-
 
       {
         permission: Permission.CreateOnCallDutyPolicyFeed,

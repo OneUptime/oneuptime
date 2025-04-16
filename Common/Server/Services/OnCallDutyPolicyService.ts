@@ -29,35 +29,35 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     super(OnCallDutyPolicy);
   }
 
-    @CaptureSpan()
-    public async getWorkspaceChannelForOnCallDutyPolicy(data: {
-      onCallDutyPolicyId: ObjectID;
-      workspaceType?: WorkspaceType | null;
-    }): Promise<Array<NotificationRuleWorkspaceChannel>> {
-      const onCallDutyPolicy: OnCallDutyPolicy | null = await this.findOneById({
-        id: data.onCallDutyPolicyId,
-        select: {
-          postUpdatesToWorkspaceChannels: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-  
-      if (!onCallDutyPolicy) {
-        throw new BadDataException("OnCallDutyPolicy not found.");
-      }
-  
-      return (onCallDutyPolicy.postUpdatesToWorkspaceChannels || []).filter(
-        (channel: NotificationRuleWorkspaceChannel) => {
-          if (!data.workspaceType) {
-            return true;
-          }
-  
-          return channel.workspaceType === data.workspaceType;
-        },
-      );
+  @CaptureSpan()
+  public async getWorkspaceChannelForOnCallDutyPolicy(data: {
+    onCallDutyPolicyId: ObjectID;
+    workspaceType?: WorkspaceType | null;
+  }): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    const onCallDutyPolicy: OnCallDutyPolicy | null = await this.findOneById({
+      id: data.onCallDutyPolicyId,
+      select: {
+        postUpdatesToWorkspaceChannels: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!onCallDutyPolicy) {
+      throw new BadDataException("OnCallDutyPolicy not found.");
     }
+
+    return (onCallDutyPolicy.postUpdatesToWorkspaceChannels || []).filter(
+      (channel: NotificationRuleWorkspaceChannel) => {
+        if (!data.workspaceType) {
+          return true;
+        }
+
+        return channel.workspaceType === data.workspaceType;
+      },
+    );
+  }
 
   @CaptureSpan()
   public async getOnCallPolicyLinkInDashboard(

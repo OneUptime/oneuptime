@@ -271,8 +271,9 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES]: "user-overrides",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES]: `policies/${RouteParams.ModelID}/user-overrides`,
   [PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]: `execution-logs/${RouteParams.ModelID}`,
-  //slack 
-  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
+  //slack
+  [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK]:
+    "workspace-connection-slack",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
 };
@@ -1169,11 +1170,11 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
-      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]
+      OnCallDutyRoutePath[
+        PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+      ]
     }`,
   ),
-
-
 
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${

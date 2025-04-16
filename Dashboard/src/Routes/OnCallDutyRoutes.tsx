@@ -96,8 +96,7 @@ const OnCallDutyScheduleViewLayers: LazyExoticComponent<
   return import("../Pages/OnCallDuty/OnCallDutySchedule/Layers");
 });
 
-
-// slack 
+// slack
 const WorkspaceConnectionSlack: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -131,14 +130,18 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
 
         <PageRoute
           path={
-            OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK] || ""
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK
+            ] || ""
           }
           element={
             <Suspense fallback={Loader}>
               <WorkspaceConnectionSlack
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK] as Route
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK
+                  ] as Route
                 }
               />
             </Suspense>
@@ -148,7 +151,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             OnCallDutyRoutePath[
-            PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+              PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
             ] || ""
           }
           element={
@@ -157,7 +160,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                    PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                   ] as Route
                 }
               />
@@ -218,7 +221,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
+                    PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE
                   ] as Route
                 }
               />
@@ -297,7 +300,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
                   ] as Route
                 }
               />
@@ -315,7 +318,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS
                   ] as Route
                 }
               />
@@ -333,7 +336,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
                   ] as Route
                 }
               />
@@ -352,7 +355,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                  PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW
                   ] as Route
                 }
               />

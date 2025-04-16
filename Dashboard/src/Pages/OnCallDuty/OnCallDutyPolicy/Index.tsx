@@ -8,6 +8,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
 
 const OnCallDutyPolicyView: FunctionComponent<
   PageComponentProps
@@ -116,6 +117,8 @@ const OnCallDutyPolicyView: FunctionComponent<
           modelId: modelId,
         }}
       />
+
+      <OnCallDutyPolicyFeedElement onCallDutyPolicyId={modelId} />
     </Fragment>
   );
 };

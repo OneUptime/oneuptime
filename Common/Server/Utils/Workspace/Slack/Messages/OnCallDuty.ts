@@ -48,9 +48,7 @@ export default class SlackIncidentMessages {
       actionId: SlackActionType.ViewOnCallPolicy,
     };
 
-
     buttons.push(viewIncidentButton);
-    
 
     const workspacePayloadButtons: WorkspacePayloadButtons = {
       buttons: buttons,

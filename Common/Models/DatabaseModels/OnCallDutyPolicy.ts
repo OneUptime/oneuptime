@@ -498,23 +498,22 @@ export default class OnCallDutyPolicy extends BaseModel {
   })
   public customFields?: JSONObject = undefined;
 
-
-    @ColumnAccessControl({
-      create: [],
-      read: [],
-      update: [],
-    })
-    @TableColumn({
-      isDefaultValueColumn: false,
-      required: false,
-      type: TableColumnType.JSON,
-      title: "Post Updates To Workspace Channel Name",
-      description: "Post Updates To Workspace Channel Name",
-    })
-    @Column({
-      type: ColumnType.JSON,
-      nullable: true,
-    })
-    public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
-      undefined;
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Post Updates To Workspace Channel Name",
+    description: "Post Updates To Workspace Channel Name",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public postUpdatesToWorkspaceChannels?: Array<NotificationRuleWorkspaceChannel> =
+    undefined;
 }

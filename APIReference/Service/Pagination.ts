@@ -49,7 +49,7 @@ export default class ServiceHandler {
       page: page, // Pass the page parameter
       resources: Resources, // Pass all resources
       pageTitle: pageTitle,
-enableGoogleTagManager: IsBillingEnabled, // Pass the page title
+      enableGoogleTagManager: IsBillingEnabled, // Pass the page title
       pageDescription: pageDescription, // Pass the page description
       pageData: pageData, // Pass the page data
     });

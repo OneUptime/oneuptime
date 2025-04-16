@@ -51,13 +51,13 @@ const DocsFeatureSet: FeatureSet = {
           const fullPath: string =
             `${_req.params["categorypath"]}/${_req.params["pagepath"]}`.toLowerCase();
 
-            // cehck if the file exists. 
+          // cehck if the file exists.
           const fileExists: boolean = await LocalFile.doesFileExist(
             `${ContentPath}/${fullPath}.md`,
           );
 
-          if(!fileExists) {
-            // return 404. 
+          if (!fileExists) {
+            // return 404.
             res.status(404);
             return res.render(`${ViewsPath}/NotFound`, {
               nav: DocsNav,
@@ -118,7 +118,7 @@ const DocsFeatureSet: FeatureSet = {
           return res.render(`${ViewsPath}/ServerError`, {
             nav: DocsNav,
             enableGoogleTagManager: IsBillingEnabled,
-            link: ""
+            link: "",
           });
         }
       },

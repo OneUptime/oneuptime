@@ -7,7 +7,9 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class SlackOnCallDutyActions {
   @CaptureSpan()
-  public static isOnCallDutyAction(data: { actionType: SlackActionType }): boolean {
+  public static isOnCallDutyAction(data: {
+    actionType: SlackActionType;
+  }): boolean {
     const { actionType } = data;
 
     switch (actionType) {
@@ -18,7 +20,6 @@ export default class SlackOnCallDutyActions {
     }
   }
 
-
   @CaptureSpan()
   public static async handleOnCallDutyAction(data: {
     slackRequest: SlackRequest;
@@ -28,8 +29,6 @@ export default class SlackOnCallDutyActions {
   }): Promise<void> {
     // now we should be all set, project is authorized and user is authorized. Lets perform some actions based on the action type.
     const actionType: SlackActionType | undefined = data.action.actionType;
-
-
 
     if (actionType === SlackActionType.ViewOnCallPolicy) {
       // do nothing. This is just a view alert action.

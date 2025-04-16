@@ -263,7 +263,7 @@ export default class ServiceHandler {
       page: page,
       resources: Resources,
       pageTitle: pageTitle,
-enableGoogleTagManager: IsBillingEnabled,
+      enableGoogleTagManager: IsBillingEnabled,
       pageDescription: pageDescription,
       pageData: pageData,
     });

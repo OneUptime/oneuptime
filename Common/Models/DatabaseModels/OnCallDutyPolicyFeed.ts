@@ -26,8 +26,10 @@ export enum OnCallDutyPolicyFeedEventType {
   UserRemoved = "UserRemoved",
   TeamAdded = "TeamAdded",
   TeamRemoved = "TeamRemoved",
-  OnCallDutyScheduleAdded =   "OnCallDutyScheduleAdded",
+  OnCallDutyScheduleAdded = "OnCallDutyScheduleAdded",
   OnCallDutyScheduleRemoved = "OnCallDutyScheduleRemoved",
+  OnCallDutyPolicyCreated = "OnCallDutyPolicyCreated",
+  RosterHandoff = "RosterHandoff",
 }
 
 @EnableDocumentation()
@@ -190,7 +192,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "OnCallDutyPolicy ID",
-    description: "Relation to OnCallDutyPolicy ID in which this resource belongs",
+    description:
+      "Relation to OnCallDutyPolicy ID in which this resource belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -391,7 +394,8 @@ export default class OnCallDutyPolicyFeed extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public onCallDutyPolicyFeedEventType?: OnCallDutyPolicyFeedEventType = undefined;
+  public onCallDutyPolicyFeedEventType?: OnCallDutyPolicyFeedEventType =
+    undefined;
 
   @ColumnAccessControl({
     create: [

@@ -74,7 +74,9 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           link={{
             title: "Slack",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK] as Route,
+              RouteMap[
+                PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK
+              ] as Route,
             ),
           }}
           icon={IconProp.Slack}
@@ -85,7 +87,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-              PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               ] as Route,
             ),
           }}

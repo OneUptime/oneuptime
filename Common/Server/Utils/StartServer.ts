@@ -31,7 +31,7 @@ import Typeof from "Common/Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
 import zlib from "zlib";
-import 'ejs';
+import "ejs";
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
 
@@ -202,7 +202,7 @@ const init: InitFunction = async (
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
       return res.render("/usr/src/app/public/index.ejs", {
-        enableGoogleTagManager: IsBillingEnabled || false, 
+        enableGoogleTagManager: IsBillingEnabled || false,
       });
     });
   }

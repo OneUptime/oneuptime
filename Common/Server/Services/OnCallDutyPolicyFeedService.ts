@@ -43,10 +43,13 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
       | undefined;
   }): Promise<void> {
     try {
-      logger.debug("OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem");
+      logger.debug(
+        "OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem",
+      );
       logger.debug(data);
 
-      const onCallDutyPolicyFeed: OnCallDutyPolicyFeed = new OnCallDutyPolicyFeed();
+      const onCallDutyPolicyFeed: OnCallDutyPolicyFeed =
+        new OnCallDutyPolicyFeed();
 
       if (!data.onCallDutyPolicyId) {
         throw new BadDataException("OnCallDutyPolicy ID is required");
@@ -71,7 +74,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
       onCallDutyPolicyFeed.displayColor = data.displayColor;
       onCallDutyPolicyFeed.onCallDutyPolicyId = data.onCallDutyPolicyId;
       onCallDutyPolicyFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
-      onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType = data.onCallDutyPolicyFeedEventType;
+      onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType =
+        data.onCallDutyPolicyFeedEventType;
       onCallDutyPolicyFeed.projectId = data.projectId;
 
       if (!data.postedAt) {
@@ -83,15 +87,17 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
       }
 
       if (data.moreInformationInMarkdown) {
-        onCallDutyPolicyFeed.moreInformationInMarkdown = data.moreInformationInMarkdown;
+        onCallDutyPolicyFeed.moreInformationInMarkdown =
+          data.moreInformationInMarkdown;
       }
 
-      const createdOnCallDutyPolicyFeed: OnCallDutyPolicyFeed = await this.create({
-        data: onCallDutyPolicyFeed,
-        props: {
-          isRoot: true,
-        },
-      });
+      const createdOnCallDutyPolicyFeed: OnCallDutyPolicyFeed =
+        await this.create({
+          data: onCallDutyPolicyFeed,
+          props: {
+            isRoot: true,
+          },
+        });
 
       logger.debug("OnCallDutyPolicy Feed created");
       logger.debug(createdOnCallDutyPolicyFeed);

@@ -55,7 +55,7 @@ app.get(
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPost,
-        enableGoogleTagManager: IsBillingEnabled
+        enableGoogleTagManager: IsBillingEnabled,
       });
     } catch (e) {
       logger.error(e);
@@ -105,7 +105,7 @@ app.get(
         requestDemoCta: false,
         blogPosts: blogPosts,
         tagName: Text.fromDashesToPascalCase(tagName),
-        enableGoogleTagManager: IsBillingEnabled
+        enableGoogleTagManager: IsBillingEnabled,
       });
     } catch (e) {
       logger.error(e);
@@ -127,7 +127,7 @@ app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
       blackLogo: false,
       requestDemoCta: false,
       blogPosts: blogPosts,
-      enableGoogleTagManager: IsBillingEnabled
+      enableGoogleTagManager: IsBillingEnabled,
     });
   } catch (e) {
     logger.error(e);
