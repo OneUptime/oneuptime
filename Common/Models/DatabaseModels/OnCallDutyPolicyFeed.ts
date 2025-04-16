@@ -55,17 +55,17 @@ export enum OnCallDutyPolicyFeedEventType {
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/onCallDutyPolicy-feed"))
+@CrudApiEndpoint(new Route("/on-call-duty-policy-feed"))
 @Entity({
   name: "OnCallDutyPolicyFeed",
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyFeed",
-  singularName: "OnCallDutyPolicy Feed",
-  pluralName: "OnCallDutyPolicy Feeds",
+  singularName: "On Call Duty Policy Feed",
+  pluralName: "On Call Duty Policy Feeds",
   icon: IconProp.List,
   tableDescription:
-    "Log of the entire onCallDutyPolicy state change. This is a log of all the onCallDutyPolicy state changes, public notes, more etc.",
+    "Log of the entire onCallDutyPolicy state change. This is a log of all the on call duty policy changes.",
 })
 export default class OnCallDutyPolicyFeed extends BaseModel {
   @ColumnAccessControl({
