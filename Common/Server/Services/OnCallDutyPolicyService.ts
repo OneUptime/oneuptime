@@ -73,9 +73,8 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
   @CaptureSpan()
   public async getOnCallDutyPolicyName(data: {
-    onCallDutyPolicyId: ObjectID,
+    onCallDutyPolicyId: ObjectID;
   }): Promise<string | null> {
-
     const { onCallDutyPolicyId } = data;
 
     const onCallDutyPolicy: OnCallDutyPolicy | null = await this.findOneById({
@@ -88,7 +87,9 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       },
     });
 
-    return onCallDutyPolicy && onCallDutyPolicy.name  ? onCallDutyPolicy.name.toString() : null;
+    return onCallDutyPolicy && onCallDutyPolicy.name
+      ? onCallDutyPolicy.name.toString()
+      : null;
   }
 
   @CaptureSpan()

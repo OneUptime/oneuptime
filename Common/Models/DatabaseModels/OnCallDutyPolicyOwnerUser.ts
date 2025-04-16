@@ -225,7 +225,8 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "OnCallDutyPolicy",
-    description: "Relation to OnCallDutyPolicy Resource in which this object belongs",
+    description:
+      "Relation to OnCallDutyPolicy Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
@@ -262,7 +263,8 @@ export default class OnCallDutyPolicyOwnerUser extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "OnCallDutyPolicy ID",
-    description: "ID of your OneUptime OnCallDutyPolicy in which this object belongs",
+    description:
+      "ID of your OneUptime OnCallDutyPolicy in which this object belongs",
   })
   @Column({
     type: ColumnType.ObjectID,

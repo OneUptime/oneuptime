@@ -72,15 +72,17 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const onCallDutyPolicyName: string | null = await OnCallDutyPolicyService.getOnCallDutyPolicyName({
-          onCallDutyPolicyId: onCallDutyPolicyId,
-        });
+        const onCallDutyPolicyName: string | null =
+          await OnCallDutyPolicyService.getOnCallDutyPolicyName({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+          });
 
         if (team && team.name) {
           await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId,
-            onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
             displayColor: Red500,
             feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
@@ -103,7 +105,8 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     // add onCallDutyPolicy feed.
 
-    const onCallDutyPolicyId: ObjectID | undefined = createdItem.onCallDutyPolicyId;
+    const onCallDutyPolicyId: ObjectID | undefined =
+      createdItem.onCallDutyPolicyId;
     const projectId: ObjectID | undefined = createdItem.projectId;
     const teamId: ObjectID | undefined = createdItem.teamId;
     const createdByUserId: ObjectID | undefined =
@@ -121,14 +124,16 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (team && team.name) {
-        const onCallDutyPolicyName: string | null = await OnCallDutyPolicyService.getOnCallDutyPolicyName({
-          onCallDutyPolicyId: onCallDutyPolicyId,
-        });
+        const onCallDutyPolicyName: string | null =
+          await OnCallDutyPolicyService.getOnCallDutyPolicyName({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+          });
 
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId,
-          onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.OwnerTeamAdded,
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** to the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`,
           userId: createdByUserId || undefined,
@@ -159,9 +164,10 @@ export class Service extends DatabaseService<Model> {
       {
         notificationRules: notificationRules,
         projectId: projectId!,
-        workspaceChannels: await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
-          onCallDutyPolicyId: onCallDutyPolicyId!,
-        }),
+        workspaceChannels:
+          await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
+            onCallDutyPolicyId: onCallDutyPolicyId!,
+          }),
         teamIds: [teamId!],
       },
     ).catch((error: Error) => {

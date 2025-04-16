@@ -22,7 +22,6 @@ const OnCallDutyPolicyOwners: FunctionComponent<
 
   return (
     <Fragment>
-      
       <ModelTable<OnCallDutyPolicyOwnerTeam>
         modelType={OnCallDutyPolicyOwnerTeam}
         id="table-OnCallDutyPolicy Team-owner-team"
@@ -37,7 +36,9 @@ const OnCallDutyPolicyOwners: FunctionComponent<
           onCallDutyPolicyId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(item: OnCallDutyPolicyOwnerTeam): Promise<OnCallDutyPolicyOwnerTeam> => {
+        onBeforeCreate={(
+          item: OnCallDutyPolicyOwnerTeam,
+        ): Promise<OnCallDutyPolicyOwnerTeam> => {
           item.onCallDutyPolicyId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
@@ -131,7 +132,9 @@ const OnCallDutyPolicyOwners: FunctionComponent<
           onCallDutyPolicyId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(item: OnCallDutyPolicyOwnerUser): Promise<OnCallDutyPolicyOwnerUser> => {
+        onBeforeCreate={(
+          item: OnCallDutyPolicyOwnerUser,
+        ): Promise<OnCallDutyPolicyOwnerUser> => {
           item.onCallDutyPolicyId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);

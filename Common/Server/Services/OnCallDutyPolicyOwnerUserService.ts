@@ -73,15 +73,17 @@ export class Service extends DatabaseService<Model> {
           },
         });
 
-        const onCallDutyPolicyName: string | null = await OnCallDutyPolicyService.getOnCallDutyPolicyName({
-          onCallDutyPolicyId: onCallDutyPolicyId,
-        });
+        const onCallDutyPolicyName: string | null =
+          await OnCallDutyPolicyService.getOnCallDutyPolicyName({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+          });
 
         if (user && user.name) {
           await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId,
-            onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`,
             userId: deleteByUserId || undefined,
@@ -104,22 +106,25 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     // add onCallDutyPolicy feed.
 
-    const onCallDutyPolicyId: ObjectID | undefined = createdItem.onCallDutyPolicyId;
+    const onCallDutyPolicyId: ObjectID | undefined =
+      createdItem.onCallDutyPolicyId;
     const projectId: ObjectID | undefined = createdItem.projectId;
     const userId: ObjectID | undefined = createdItem.userId;
     const createdByUserId: ObjectID | undefined =
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (onCallDutyPolicyId && userId && projectId) {
-      const onCallDutyPolicyName: string | null = await OnCallDutyPolicyService.getOnCallDutyPolicyName({
-        onCallDutyPolicyId: onCallDutyPolicyId,
-      });
+      const onCallDutyPolicyName: string | null =
+        await OnCallDutyPolicyService.getOnCallDutyPolicyName({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+        });
 
       if (userId) {
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId,
-          onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.OwnerUserAdded,
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
             {
@@ -152,9 +157,10 @@ export class Service extends DatabaseService<Model> {
       {
         notificationRules: notificationRules,
         projectId: projectId!,
-        workspaceChannels: await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
-          onCallDutyPolicyId: onCallDutyPolicyId!,
-        }),
+        workspaceChannels:
+          await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
+            onCallDutyPolicyId: onCallDutyPolicyId!,
+          }),
         userIds: [userId!],
       },
     ).catch((error: Error) => {

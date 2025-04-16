@@ -1151,7 +1151,7 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  // on call policy owners. 
+  // on call policy owners.
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]

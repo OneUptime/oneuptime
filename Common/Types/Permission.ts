@@ -241,7 +241,6 @@ enum Permission {
   EditMonitorOwnerUser = "EditMonitorOwnerUser",
   ReadMonitorOwnerUser = "ReadMonitorOwnerUser",
 
-
   CreateOnCallDutyPolicyOwnerTeam = "CreateOnCallDutyPolicyOwnerTeam",
   DeleteOnCallDutyPolicyOwnerTeam = "DeleteOnCallDutyPolicyOwnerTeam",
   EditOnCallDutyPolicyOwnerTeam = "EditOnCallDutyPolicyOwnerTeam",
@@ -4092,8 +4091,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
-
       {
         permission: Permission.CreateOnCallDutyPolicyOwnerUser,
         title: "Create On Call Duty Policy User Owner",
@@ -4126,7 +4123,6 @@ export class PermissionHelper {
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
-
 
       {
         permission: Permission.CreateOnCallDutyPolicyOwnerTeam,

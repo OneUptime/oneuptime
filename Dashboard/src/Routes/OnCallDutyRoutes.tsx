@@ -52,8 +52,7 @@ const OnCallDutyPolicyViewOwners: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutyPolicy/Owners");
-}
-);
+});
 
 const OnCallDutyPolicyViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -281,8 +280,7 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
-<PageRoute
+        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS,
           )}
