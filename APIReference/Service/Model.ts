@@ -13,6 +13,7 @@ import Permission, {
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 // Get all resources and resource dictionary
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();

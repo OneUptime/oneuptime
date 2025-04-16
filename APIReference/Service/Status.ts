@@ -1,3 +1,4 @@
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
@@ -17,6 +18,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: "status",
       pageTitle: "Status",
+      enableGoogleTagManager: IsBillingEnabled,
       pageDescription: "200 - Success",
       resources: resources, // Pass resources to the template
       pageData: {}, // Pass empty data to the template

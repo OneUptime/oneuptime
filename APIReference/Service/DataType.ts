@@ -1,3 +1,4 @@
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
@@ -117,6 +118,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: "data-types",
       pageTitle: "Data Types",
+      enableGoogleTagManager: IsBillingEnabled,
       pageDescription:
         "Data Types that can be used to interact with OneUptime API",
       resources: Resources,
