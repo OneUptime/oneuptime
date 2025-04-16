@@ -550,6 +550,25 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 
+// OnCallDutyPolicyOwnerTeam
+// OnCallDutyPolicyOwnerUser
+// OnCallDutyPolicyFeed
+
+import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
+import OnCallDutyPolicyFeedService, {
+  Service as OnCallDutyPolicyFeedServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyFeedService";
+
+import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerTeamService, {
+  Service as OnCallDutyPolicyOwnerTeamServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyOwnerTeamService";
+
+import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
+import OnCallDutyPolicyOwnerUserService, {
+  Service as OnCallDutyPolicyOwnerUserServiceType,
+} from "Common/Server/Services/OnCallDutyPolicyOwnerUserService";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -569,6 +588,39 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
+      ).getRouter(),
+    );
+
+    // on-call policy owner user.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyOwnerUser,
+        OnCallDutyPolicyOwnerUserServiceType
+      >(
+        OnCallDutyPolicyOwnerUser,
+        OnCallDutyPolicyOwnerUserService,
+      ).getRouter(),
+    );
+
+    // on-call policy owner team.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        OnCallDutyPolicyOwnerTeam,
+        OnCallDutyPolicyOwnerTeamServiceType
+      >(
+        OnCallDutyPolicyOwnerTeam,
+        OnCallDutyPolicyOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // on-call policy feed.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<OnCallDutyPolicyFeed, OnCallDutyPolicyFeedServiceType>(
+        OnCallDutyPolicyFeed,
+        OnCallDutyPolicyFeedService,
       ).getRouter(),
     );
 
