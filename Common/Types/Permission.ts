@@ -424,6 +424,11 @@ enum Permission {
   EditIncidentFeed = "EditIncidentFeed",
   ReadIncidentFeed = "ReadIncidentFeed",
 
+
+  CreateOnCallDutyPolicyFeed = "CreateOnCallDutyPolicyFeed",
+  EditOnCallDutyPolicyFeed = "EditOnCallDutyPolicyFeed",
+  ReadOnCallDutyPolicyFeed = "ReadOnCallDutyPolicyFeed",
+
   CreateMonitorFeed = "CreateMonitorFeed",
   EditMonitorFeed = "EditMonitorFeed",
   ReadMonitorFeed = "ReadMonitorFeed",
@@ -1117,7 +1122,7 @@ export class PermissionHelper {
         permission: Permission.CreateMonitorFeed,
         title: "Create Monitor Feed",
         description:
-          "This permission can create log of an incident in this project.",
+          "This permission can create log of an monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1125,7 +1130,7 @@ export class PermissionHelper {
         permission: Permission.EditMonitorFeed,
         title: "Edit Monitor Feed",
         description:
-          "This permission can edit log of an incident in this project.",
+          "This permission can edit log of an monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1133,7 +1138,7 @@ export class PermissionHelper {
         permission: Permission.ReadMonitorFeed,
         title: "Read Monitor Feed",
         description:
-          "This permission can read log of an incident in this project.",
+          "This permission can read log of an monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1163,11 +1168,37 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
+
+      {
+        permission: Permission.CreateOnCallDutyPolicyFeed,
+        title: "Create On Call Duty Policy Feed",
+        description:
+          "This permission can create log of an on-call policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyFeed,
+        title: "Edit On Call Duty Policy Feed",
+        description:
+          "This permission can edit log of an on-call policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyFeed,
+        title: "Read On Call Duty Policy Feed",
+        description:
+          "This permission can read log of an on-call policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
       {
         permission: Permission.CreateAlertFeed,
         title: "Create Alert Feed",
         description:
-          "This permission can create log of an incident in this project.",
+          "This permission can create log of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1175,7 +1206,7 @@ export class PermissionHelper {
         permission: Permission.EditAlertFeed,
         title: "Edit Alert Feed",
         description:
-          "This permission can edit log of an incident in this project.",
+          "This permission can edit log of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1183,7 +1214,7 @@ export class PermissionHelper {
         permission: Permission.ReadAlertFeed,
         title: "Read Alert Feed",
         description:
-          "This permission can read log of an incident in this project.",
+          "This permission can read log of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1208,7 +1239,7 @@ export class PermissionHelper {
         permission: Permission.ReadScheduledMaintenanceFeed,
         title: "Read Scheduled Maintenance Log",
         description:
-          "This permission can read log of an incident in this project.",
+          "This permission can read log of an scheduled maintenance in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
