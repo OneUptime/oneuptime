@@ -494,7 +494,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (notificationFor.onCallDutyPolicyId) {
-      return NotificationRuleEventType.OnCallDuty;
+      return NotificationRuleEventType.OnCallDutyPolicy;
     }
 
     if (notificationFor.scheduledMaintenanceId) {

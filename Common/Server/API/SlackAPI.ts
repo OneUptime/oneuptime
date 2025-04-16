@@ -34,7 +34,7 @@ import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/ScheduledMaintenance";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
-import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDuty";
+import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyPolicy";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {

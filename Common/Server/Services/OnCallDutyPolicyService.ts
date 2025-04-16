@@ -23,10 +23,168 @@ import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { FindWhere } from "../../Types/BaseDatabase/Query";
+import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
+import WorkspaceNotificationRuleService, { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
+import logger from "../Utils/Logger";
+import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
+import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
+import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { Green500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<OnCallDutyPolicy> {
   public constructor() {
     super(OnCallDutyPolicy);
+  }
+
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<OnCallDutyPolicy>,
+    createdItem: OnCallDutyPolicy
+  ): Promise<OnCallDutyPolicy> {
+
+    if(!createdItem.id) {
+      throw new BadDataException("On Call Policy id not found.");
+    }
+
+    const onCallPolicy: OnCallDutyPolicy | null = await this.findOneById({
+      id: createdItem.id,
+      select: {
+        projectId: true,
+        name: true,
+        description: true,
+        labels: {
+          name: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if(!onCallPolicy) {
+      throw new BadDataException("On Call Policy not found.");
+    }
+
+    const createdByUserId: ObjectID | undefined | null =
+      createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+    let feedInfoInMarkdown: string = `#### 📞 On Call Policy Created: 
+              
+    **${onCallPolicy.name || "No name provided."}**:
+    
+    ${onCallPolicy.description || "No description provided."}
+        
+    `;
+
+    if (onCallPolicy?.labels && onCallPolicy.labels.length > 0) {
+      feedInfoInMarkdown += `🏷️ **Labels**:\n`;
+
+      for (const label of onCallPolicy.labels) {
+        feedInfoInMarkdown += `- ${label.name}\n`;
+      }
+
+      feedInfoInMarkdown += `\n\n`;
+    }
+
+    // send message to workspaces - slack, teams,   etc.
+    const workspaceResult: {
+      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+    } | null =
+      await OnCallDutyPolicyWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+        projectId: onCallPolicy.projectId!,
+        onCallDutyPolicyId: onCallPolicy.id!,
+        onCallDutyPolicyName: onCallPolicy.name!,
+      });
+
+    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+      // update incident with these channels.
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    const onCallDutyPolicyCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+      await OnCallDutyPolicyWorkspaceMessages.getOnCallDutyPolicyCreateMessageBlocks({
+        onCallDutyPolicyId: createdItem.id!,
+        projectId: createdItem.projectId!,
+      });
+
+    await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+      onCallDutyPolicyId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated,
+      displayColor: Green500,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+      userId: createdByUserId || undefined,
+      workspaceNotification: {
+        appendMessageBlocks: onCallDutyPolicyCreateMessageBlocks,
+        sendWorkspaceNotification: true,
+      },
+    });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<OnCallDutyPolicy>
+  ): Promise<OnDelete<OnCallDutyPolicy>> {
+    if (deleteBy.query._id) {
+      let projectId: FindWhere<ObjectID> | QueryOperator<ObjectID> | undefined =
+        deleteBy.query.projectId || deleteBy.props.tenantId;
+
+      if (!projectId) {
+        // fetch this onCallDutyPolicy from the database to get the projectId.
+        const onCallDutyPolicy: OnCallDutyPolicy | null = await this.findOneById({
+          id: new ObjectID(deleteBy.query._id as string) as ObjectID,
+          select: {
+            projectId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!onCallDutyPolicy) {
+          throw new BadDataException("OnCallDutyPolicy not found.");
+        }
+
+        if (!onCallDutyPolicy.id) {
+          throw new BadDataException("OnCallDutyPolicy id not found.");
+        }
+
+        projectId = onCallDutyPolicy.projectId!;
+      }
+
+      try {
+        await WorkspaceNotificationRuleService.archiveWorkspaceChannels({
+          projectId: projectId as ObjectID,
+          notificationFor: {
+            onCallDutyPolicyId: new ObjectID(
+              deleteBy.query._id as string
+            ) as ObjectID,
+          },
+          sendMessageBeforeArchiving: {
+            _type: "WorkspacePayloadMarkdown",
+            text: `🗑️ This on-call policy is deleted. The channel is being archived.`,
+          },
+        });
+      } catch (error) {
+        logger.error(
+          `Error while archiving workspace channels for onCallDutyPolicy ${deleteBy.query._id}: ${error}`
+        );
+      }
+    }
+
+    return { deleteBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -55,19 +213,19 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
         }
 
         return channel.workspaceType === data.workspaceType;
-      },
+      }
     );
   }
 
   @CaptureSpan()
   public async getOnCallDutyPolicyLinkInDashboard(
     projectId: ObjectID,
-    onCallDutyPolicyId: ObjectID,
+    onCallDutyPolicyId: ObjectID
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`
     );
   }
 
@@ -99,7 +257,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       triggeredByIncidentId?: ObjectID | undefined;
       triggeredByAlertId?: ObjectID | undefined;
       userNotificationEventType: UserNotificationEventType;
-    },
+    }
   ): Promise<void> {
     // execute this policy
 
@@ -109,7 +267,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       !options.triggeredByIncidentId
     ) {
       throw new BadDataException(
-        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+        "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated"
       );
     }
 
@@ -119,7 +277,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
       !options.triggeredByAlertId
     ) {
       throw new BadDataException(
-        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated",
+        "triggeredByAlertId is required when userNotificationEventType is IncidentCreated"
       );
     }
 
@@ -136,7 +294,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
     if (!policy) {
       throw new BadDataException(
-        `On-Call Duty Policy with id ${policyId.toString()} not found`,
+        `On-Call Duty Policy with id ${policyId.toString()} not found`
       );
     }
 
@@ -177,7 +335,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     // get all schedules where user is on call duty.
     const onCallSchedules: Array<OnCallDutyPolicySchedule> =
       await OnCallDutyPolicyScheduleService.getOnCallSchedulesWhereUserIsOnCallDuty(
-        data,
+        data
       );
 
     const teams: Array<Team> = await TeamService.getTeamsUserIsAPartOf({
@@ -217,7 +375,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
           teamId: QueryHelper.any(
             teams.map((team: Team) => {
               return team.id!;
-            }),
+            })
           ),
           projectId: data.projectId!,
         },
@@ -250,7 +408,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
           onCallDutyPolicyScheduleId: QueryHelper.any(
             onCallSchedules.map((schedule: OnCallDutyPolicySchedule) => {
               return schedule.id!;
-            }),
+            })
           ),
           projectId: data.projectId!,
         },

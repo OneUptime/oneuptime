@@ -7,16 +7,16 @@ import {
   WorkspacePayloadDivider,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
-import SlackActionType from "../../../../Utils/Workspace/Slack/Actions/ActionTypes";
+import SlackActionType from "../Actions/ActionTypes";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class SlackIncidentMessages {
   @CaptureSpan()
-  public static async getOnCallPolicyMessageBlocks(data: {
-    onCallPolicyId: ObjectID;
+  public static async getOnCallDutyPolicyCreateMessageBlocks(data: {
+    onCallDutyPolicyId: ObjectID;
     projectId: ObjectID;
   }): Promise<Array<WorkspaceMessageBlock>> {
-    if (!data.onCallPolicyId) {
+    if (!data.onCallDutyPolicyId) {
       throw new BadDataException("On Call Policy ID is required");
     }
 
@@ -42,9 +42,9 @@ export default class SlackIncidentMessages {
       title: "🔗 View Incident",
       url: await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
         data.projectId!,
-        data.onCallPolicyId!,
+        data.onCallDutyPolicyId!,
       ),
-      value: data.onCallPolicyId?.toString() || "",
+      value: data.onCallDutyPolicyId?.toString() || "",
       actionId: SlackActionType.ViewOnCallPolicy,
     };
 
