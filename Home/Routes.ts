@@ -59,7 +59,9 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/support`);
+      res.render(`${ViewsPath}/support`, {
+        enableGoogleTagManager: IsBillingEnabled,
+      });
     });
 
     app.get(
@@ -72,6 +74,7 @@ const HomeFeatureSet: FeatureSet = {
               repositoryUrl: friend.repositoryUrl.toString(),
             };
           }),
+          enableGoogleTagManager: IsBillingEnabled,
         });
       },
     );
@@ -836,6 +839,7 @@ const HomeFeatureSet: FeatureSet = {
 
       res.render(`${ViewsPath}/pricing`, {
         pricing,
+        enableGoogleTagManager: IsBillingEnabled,
       });
     });
 
@@ -849,6 +853,7 @@ enableGoogleTagManager: IsBillingEnabled,
           cta: false,
           blackLogo: true,
           requestDemoCta: false,
+
         });
       },
     );
@@ -856,19 +861,25 @@ enableGoogleTagManager: IsBillingEnabled,
     app.get(
       "/product/status-page",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/status-page`);
+        res.render(`${ViewsPath}/status-page`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
       },
     );
 
     app.get(
       "/product/logs-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/logs-management`);
+        res.render(`${ViewsPath}/logs-management`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
       },
     );
 
     app.get("/product/apm", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.render(`${ViewsPath}/apm`);
+      res.render(`${ViewsPath}/apm`, {
+        enableGoogleTagManager: IsBillingEnabled,
+      });
     });
 
     app.get("/status-page", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -951,6 +962,7 @@ enableGoogleTagManager: IsBillingEnabled,
         contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
         commits: gitHubCommits,
+        enableGoogleTagManager: IsBillingEnabled,
       });
     });
 
@@ -985,28 +997,36 @@ enableGoogleTagManager: IsBillingEnabled,
     app.get(
       "/product/monitoring",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/monitoring`);
+        res.render(`${ViewsPath}/monitoring`,  {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
       },
     );
 
     app.get(
       "/product/on-call",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/on-call`);
+        res.render(`${ViewsPath}/on-call`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
       },
     );
 
     app.get(
       "/product/workflows",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/workflows`);
+        res.render(`${ViewsPath}/workflows`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
       },
     );
 
     app.get(
       "/product/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render(`${ViewsPath}/incident-management`);
+        res.render(`${ViewsPath}/incident-management`, {
+          enableGoogleTagManager: IsBillingEnabled,
+        });
       },
     );
 

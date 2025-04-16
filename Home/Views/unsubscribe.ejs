@@ -26,7 +26,7 @@
   <meta name="description"
     content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
   <%- include('head', {
-    enableGoogleTagManager: enableGoogleTagManager
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
     <link rel="stylesheet" href="/css/contact.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">

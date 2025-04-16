@@ -1,4 +1,4 @@
 <%- include('./head-basic', {
-    enableGoogleTagManager: enableGoogleTagManager
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
 <%- include('./head-social') -%>

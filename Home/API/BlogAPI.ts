@@ -11,6 +11,7 @@ import Express, {
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import Route from "Common/Types/API/Route";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -54,6 +55,7 @@ app.get(
         blackLogo: false,
         requestDemoCta: false,
         blogPost: blogPost,
+        enableGoogleTagManager: IsBillingEnabled
       });
     } catch (e) {
       logger.error(e);
@@ -103,6 +105,7 @@ app.get(
         requestDemoCta: false,
         blogPosts: blogPosts,
         tagName: Text.fromDashesToPascalCase(tagName),
+        enableGoogleTagManager: IsBillingEnabled
       });
     } catch (e) {
       logger.error(e);
@@ -124,6 +127,7 @@ app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
       blackLogo: false,
       requestDemoCta: false,
       blogPosts: blogPosts,
+      enableGoogleTagManager: IsBillingEnabled
     });
   } catch (e) {
     logger.error(e);
