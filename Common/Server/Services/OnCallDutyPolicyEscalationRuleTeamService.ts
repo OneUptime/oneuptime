@@ -94,7 +94,7 @@ export class Service extends DatabaseService<Model> {
           "You have been added to the on-call duty policy escalation rule because you are a member of the team " +
           temaName,
         onCallPolicyViewLink: (
-          await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             createdModel!.projectId!,
             createdModel.onCallDutyPolicy!.id!,
           )
@@ -202,7 +202,7 @@ export class Service extends DatabaseService<Model> {
             "No order provided",
           reason: `You have been removed from the on-call duty policy escalation rule for team ${teamName}.`,
           onCallPolicyViewLink: (
-            await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
               deletedItem!.projectId!,
               deletedItem.onCallDutyPolicy!.id!,
             )

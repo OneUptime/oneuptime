@@ -95,6 +95,34 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
 
       if (
         onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
+        OnCallDutyPolicyFeedEventType.OwnerTeamAdded
+      ) {
+        icon = IconProp.Team;
+      }
+
+      if (
+        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
+        OnCallDutyPolicyFeedEventType.OwnerUserAdded
+      ) {
+        icon = IconProp.User;
+      }
+
+      if (
+        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
+        OnCallDutyPolicyFeedEventType.OwnerUserRemoved
+      ) {
+        icon = IconProp.Close;
+      }
+
+      if (
+        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
+        OnCallDutyPolicyFeedEventType.OwnerTeamRemoved
+      ) {
+        icon = IconProp.Close;
+      }
+
+      if (
+        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
         OnCallDutyPolicyFeedEventType.UserRemoved
       ) {
         icon = IconProp.Close;

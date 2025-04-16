@@ -60,7 +60,7 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
   }
 
   @CaptureSpan()
-  public async getOnCallPolicyLinkInDashboard(
+  public async getOnCallDutyPolicyLinkInDashboard(
     projectId: ObjectID,
     onCallDutyPolicyId: ObjectID,
   ): Promise<URL> {
@@ -69,6 +69,26 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}`,
     );
+  }
+
+  @CaptureSpan()
+  public async getOnCallDutyPolicyName(data: {
+    onCallDutyPolicyId: ObjectID,
+  }): Promise<string | null> {
+
+    const { onCallDutyPolicyId } = data;
+
+    const onCallDutyPolicy: OnCallDutyPolicy | null = await this.findOneById({
+      id: onCallDutyPolicyId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return onCallDutyPolicy && onCallDutyPolicy.name  ? onCallDutyPolicy.name.toString() : null;
   }
 
   @CaptureSpan()

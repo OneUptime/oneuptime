@@ -30,6 +30,10 @@ export enum OnCallDutyPolicyFeedEventType {
   OnCallDutyScheduleRemoved = "OnCallDutyScheduleRemoved",
   OnCallDutyPolicyCreated = "OnCallDutyPolicyCreated",
   RosterHandoff = "RosterHandoff",
+  OwnerUserAdded = "OwnerUserAdded",
+  OwnerUserRemoved = "OwnerUserRemoved",
+  OwnerTeamAdded = "OwnerTeamAdded",
+  OwnerTeamRemoved = "OwnerTeamRemoved",
 }
 
 @EnableDocumentation()

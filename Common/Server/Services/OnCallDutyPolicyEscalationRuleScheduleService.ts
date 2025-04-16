@@ -97,7 +97,7 @@ export class Service extends DatabaseService<Model> {
         "No order provided",
       reason: "You are currently on roster for schedule " + scheduleName,
       onCallPolicyViewLink: (
-        await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
           createdModel!.projectId!,
           createdModel.onCallDutyPolicy!.id!,
         )
@@ -209,7 +209,7 @@ export class Service extends DatabaseService<Model> {
           "No order provided",
         reason: `You have been removed from the on-call duty policy escalation rule for schedule ${scheduleName}.`,
         onCallPolicyViewLink: (
-          await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             deletedItem!.projectId!,
             deletedItem.onCallDutyPolicy!.id!,
           )

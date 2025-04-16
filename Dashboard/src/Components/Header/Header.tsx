@@ -199,7 +199,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     setCurrentOnCallDutyEscalationPolicySchedule,
   ] = useState<Array<OnCallDutyPolicyEscalationRuleSchedule>>([]);
 
-  const [onCallDutyPolicyFetchError, setOnCallDutyPolicyFetchError] = useState<
+  const [On-Call PolicyFetchError, setOnCallDutyPolicyFetchError] = useState<
     string | null
   >(null);
 

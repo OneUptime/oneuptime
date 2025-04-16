@@ -189,7 +189,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 timezones: userTimezone ? [userTimezone] : [],
               }),
             onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
                 onCallPolicy.id!,
               )
@@ -255,7 +255,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 timezones: userTimezone ? [userTimezone] : [],
               }),
             onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
                 onCallPolicy.id!,
               )
@@ -330,7 +330,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 timezones: userTimezone ? [userTimezone] : [],
               }),
             onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
                 onCallPolicy.id!,
               )
