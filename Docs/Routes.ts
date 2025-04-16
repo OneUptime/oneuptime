@@ -56,6 +56,16 @@ const DocsFeatureSet: FeatureSet = {
             `${ContentPath}/${fullPath}.md`,
           );
 
+          if(!fileExists) {
+            // return 404. 
+            res.status(404);
+            return res.render(`${ViewsPath}/NotFound`, {
+              nav: DocsNav,
+              enableGoogleTagManager: IsBillingEnabled,
+              link: "",
+            });
+          }
+
           // Read Markdown file from content folder
           let contentInMarkdown: string = await LocalFile.read(
             `${ContentPath}/${fullPath}.md`,
@@ -90,6 +100,7 @@ const DocsFeatureSet: FeatureSet = {
             return res.render(`${ViewsPath}/NotFound`, {
               nav: DocsNav,
               enableGoogleTagManager: IsBillingEnabled,
+              link: "",
             });
           }
 
@@ -107,6 +118,7 @@ const DocsFeatureSet: FeatureSet = {
           return res.render(`${ViewsPath}/ServerError`, {
             nav: DocsNav,
             enableGoogleTagManager: IsBillingEnabled,
+            link: ""
           });
         }
       },
