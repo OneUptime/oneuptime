@@ -54,6 +54,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.BarsArrowDown}
         />
+
+        <SideMenuItem
+          link={{
+            title: "Owners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Logs">
@@ -62,7 +73,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "Execution Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
+              PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS
               ] as Route,
               { modelId: props.modelId },
             ),
@@ -79,7 +90,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             title: "User Overrides",
             to: RouteUtil.populateRouteParams(
               RouteMap[
-                PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
+              PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES
               ] as Route,
               { modelId: props.modelId },
             ),

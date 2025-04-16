@@ -48,6 +48,13 @@ const OnCallDutyPolicyView: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutyPolicy/Index");
 });
+const OnCallDutyPolicyViewOwners: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/Owners");
+}
+);
+
 const OnCallDutyPolicyViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -268,6 +275,23 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+
+<PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewOwners
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS] as Route
                 }
               />
             </Suspense>

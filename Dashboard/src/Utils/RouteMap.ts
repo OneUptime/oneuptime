@@ -266,6 +266,8 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: `policies/${RouteParams.ModelID}/custom-fields`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: `policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`,
+  //owners
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]: `policies/${RouteParams.ModelID}/owners`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: `policies/${RouteParams.ModelID}/escalation`,
   [PageMap.ON_CALL_DUTY_EXECUTION_LOGS]: "execution-logs",
   [PageMap.ON_CALL_DUTY_POLICY_USER_OVERRIDES]: "user-overrides",
@@ -1146,6 +1148,13 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_USER_OVERRIDES]
+    }`,
+  ),
+
+  // on call policy owners. 
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]
     }`,
   ),
 

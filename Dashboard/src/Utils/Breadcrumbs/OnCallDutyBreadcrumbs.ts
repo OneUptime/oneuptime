@@ -52,6 +52,11 @@ export function getOnCallDutyBreadcrumbs(
     ),
 
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS,
+      ["Project", "On-Call Duty", "View On-Call Policy", "Owners"],
+    ),
+
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE,
       ["Project", "On-Call Duty", "Execution Logs", "Timeline"],
     ),
