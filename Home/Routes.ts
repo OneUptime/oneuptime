@@ -25,6 +25,7 @@ import Reviews from "./Utils/Reviews";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -36,6 +37,7 @@ const HomeFeatureSet: FeatureSet = {
 
       res.render(`${ViewsPath}/index`, {
         support: false,
+        enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -842,6 +844,7 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.render(`${ViewsPath}/demo`, {
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           footerCards: false,
           cta: false,
           blackLogo: true,
@@ -956,6 +959,7 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.render(`${ViewsPath}/status-page`, {
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           footerCards: true,
           cta: true,
           blackLogo: false,
@@ -1018,6 +1022,7 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.render(`${ViewsPath}/enterprise-overview.ejs`, {
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           footerCards: true,
           cta: true,
           blackLogo: false,
@@ -1029,6 +1034,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1040,6 +1046,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/terms", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1051,6 +1058,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/privacy", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1062,6 +1070,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/contact", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1075,6 +1084,7 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.render(`${ViewsPath}/legal.ejs`, {
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           footerCards: true,
           cta: true,
           blackLogo: false,
@@ -1087,6 +1097,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/ccpa", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1098,6 +1109,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/hipaa", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1109,6 +1121,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/dmca", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1120,6 +1133,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get("/legal/pci", (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/legal.ejs`, {
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         footerCards: true,
         cta: true,
         blackLogo: false,
@@ -1133,6 +1147,7 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.render(`${ViewsPath}/legal.ejs`, {
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           footerCards: true,
           cta: true,
           blackLogo: false,
@@ -1148,6 +1163,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/legal.ejs`, {
           footerCards: true,
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           cta: true,
           blackLogo: false,
           section: "iso-27017",
@@ -1162,6 +1178,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/legal.ejs`, {
           footerCards: true,
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           cta: true,
           blackLogo: false,
           section: "iso-27018",
@@ -1176,6 +1193,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/legal.ejs`, {
           footerCards: true,
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           cta: true,
           blackLogo: false,
           section: "iso-27017",
@@ -1190,6 +1208,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/legal.ejs`, {
           footerCards: true,
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           cta: true,
           blackLogo: false,
           section: "iso-27018",
@@ -1202,6 +1221,7 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         cta: true,
         blackLogo: false,
         section: "soc-2",
@@ -1213,6 +1233,7 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         cta: true,
         blackLogo: false,
         section: "soc-3",
@@ -1226,6 +1247,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/legal.ejs`, {
           footerCards: true,
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           cta: true,
           blackLogo: false,
           section: "data-residency",
@@ -1238,6 +1260,7 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         cta: true,
         blackLogo: false,
         section: "gdpr",
@@ -1249,6 +1272,7 @@ const HomeFeatureSet: FeatureSet = {
       res.render(`${ViewsPath}/legal.ejs`, {
         footerCards: true,
         support: false,
+enableGoogleTagManager: IsBillingEnabled,
         cta: true,
         blackLogo: false,
         section: "sla",
@@ -1268,6 +1292,7 @@ const HomeFeatureSet: FeatureSet = {
         }
         res.render(`${ViewsPath}/product-compare.ejs`, {
           support: false,
+enableGoogleTagManager: IsBillingEnabled,
           footerCards: true,
           cta: true,
           blackLogo: false,
