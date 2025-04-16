@@ -103,7 +103,7 @@
    </style>
    <script src="https://cdn.tailwindcss.com"></script>
 
-   <% if(enableGoogleTagManager){ %>
+   <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
 
    <!-- Google Tag Manager -->
    <script>(function (w, d, s, l, i) {

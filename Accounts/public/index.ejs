@@ -12,7 +12,7 @@
   <meta name="slack-app-id" content="ACVBMTPJQ">
   <meta name="description" content="OneUptime — the complete open-source observability platform.">
 
-  <% if(enableGoogleTagManager){ %>
+  <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
       w[l] = w[l] || []; w[l].push({
@@ -97,7 +97,7 @@
 </head>
 
 <body class="h-full bg-gray-50">
-  <% if(enableGoogleTagManager){ %>
+  <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager (noscript) -->
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
       style="display:none;visibility:hidden"></iframe></noscript>
