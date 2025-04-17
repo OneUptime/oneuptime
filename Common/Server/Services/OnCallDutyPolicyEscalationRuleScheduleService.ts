@@ -26,7 +26,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const createdItemId: ObjectID = createdItem.id!;
 
@@ -63,7 +63,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!createdModel.onCallDutyPolicyScheduleId) {
       throw new BadDataException(
-        "Created item does not have a onCallDutyPolicyScheduleId"
+        "Created item does not have a onCallDutyPolicyScheduleId",
       );
     }
 
@@ -71,7 +71,7 @@ export class Service extends DatabaseService<Model> {
 
     const userOnSchedule: ObjectID | null =
       await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
-        createdModel.onCallDutyPolicyScheduleId
+        createdModel.onCallDutyPolicyScheduleId,
       );
 
     if (!userOnSchedule) {
@@ -103,7 +103,7 @@ export class Service extends DatabaseService<Model> {
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
           createdModel!.projectId!,
-          createdModel.onCallDutyPolicy!.id!
+          createdModel.onCallDutyPolicy!.id!,
         )
       ).toString(),
     };
@@ -171,7 +171,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -242,14 +242,14 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
 
     for (const deletedItem of deletedItems) {
       const userOnSchedule: ObjectID | null =
         await OnCallDutyPolicyScheduleService.getCurrentUserIdInSchedule(
-          deletedItem.onCallDutyPolicyScheduleId!
+          deletedItem.onCallDutyPolicyScheduleId!,
         );
 
       if (!userOnSchedule) {
@@ -278,7 +278,7 @@ export class Service extends DatabaseService<Model> {
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             deletedItem!.projectId!,
-            deletedItem.onCallDutyPolicy!.id!
+            deletedItem.onCallDutyPolicy!.id!,
           )
         ).toString(),
       };
