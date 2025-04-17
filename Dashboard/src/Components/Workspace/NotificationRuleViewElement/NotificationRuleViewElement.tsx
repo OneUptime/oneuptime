@@ -152,9 +152,9 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     {
       key: "newChannelTemplateName",
       title: `${props.workspaceType} Channel Template Name`,
-      description: `If your new channel name is "oneuptime-${props.eventType.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType.toLowerCase()}-X".`,
+      description: `If your new channel name is "oneuptime-${props.eventType?.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType?.toLowerCase()}-X".`,
       fieldType: FieldType.Text,
-      placeholder: `oneuptime-${props.eventType.toLowerCase()}-`,
+      placeholder: `oneuptime-${props.eventType?.toLowerCase()}-`,
       showIf: (
         formValue:
           | IncidentNotificationRule

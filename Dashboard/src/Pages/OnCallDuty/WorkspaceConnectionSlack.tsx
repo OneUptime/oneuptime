@@ -54,7 +54,7 @@ const MonitorsPage: FunctionComponent<
       {isSlackConnected && (
         <WorkspaceNotificationRuleTable
           workspaceType={WorkspaceType.Slack}
-          eventType={NotificationRuleEventType.OnCallDuty}
+          eventType={NotificationRuleEventType.OnCallDutyPolicy}
         />
       )}
       {!isSlackConnected && (
