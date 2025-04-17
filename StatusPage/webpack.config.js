@@ -75,26 +75,7 @@ module.exports = {
       writeToDisk: true,
     },
     allowedHosts: "all",
-    setupMiddlewares: (middlewares, devServer) => {
-      devServer.app.use(
-        "/status-page/assets",
-        express.static(path.resolve(__dirname, "public", "assets")),
-      );
-
-      devServer.app.get("/status-page", (_req, res) => {
-        return res.render("/usr/src/app/public/index.ejs", {
-          enableGoogleTagManager: false, 
-        });
-      });
-
-      devServer.app.get("/status-page/*", (_req, res) => {
-        return res.render("/usr/src/app/public/index.ejs", {
-          enableGoogleTagManager: false, 
-        });
-      });
-
-      return middlewares;
-    },
+    setupMiddlewares: setupMiddleware('status-page')
   },
   devtool: "eval-source-map",
 };

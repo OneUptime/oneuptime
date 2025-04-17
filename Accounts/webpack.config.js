@@ -8,6 +8,7 @@ const webpack = require("webpack");
 const dotenv = require("dotenv");
 const express = require("express");
 require('ejs');
+const setupMiddleware = require('Common/UI/webpack-middleware');
 
 const readEnvFile = (pathToFile) => {
   const parsed = dotenv.config({ path: pathToFile }).parsed;
@@ -73,26 +74,7 @@ module.exports = {
       writeToDisk: true,
     },
     allowedHosts: "all",
-    setupMiddlewares: (middlewares, devServer) => {
-      devServer.app.use(
-        "/accounts/assets",
-        express.static(path.resolve(__dirname, "public", "assets")),
-      );
-
-      devServer.app.get("/accounts", (_req, res) => {
-        return res.render("/usr/src/app/public/index.ejs", {
-          enableGoogleTagManager: false, 
-        });
-      });
-
-      devServer.app.get("/accounts/*", (_req, res) => {
-        return res.render("/usr/src/app/public/index.ejs", {
-          enableGoogleTagManager: false, 
-        });
-      });
-
-      return middlewares;
-    },
+    setupMiddlewares: setupMiddleware('accounts')
   },
   devtool: "eval-source-map",
 };

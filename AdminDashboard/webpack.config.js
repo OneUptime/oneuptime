@@ -72,26 +72,7 @@ module.exports = {
       writeToDisk: true,
     },
     allowedHosts: "all",
-    setupMiddlewares: (middlewares, devServer) => {
-      devServer.app.use(
-        "/admin/assets",
-        express.static(path.resolve(__dirname, "public", "assets")),
-      );
-
-      devServer.app.get("/admin", (_req, res) => {
-        return res.render("/usr/src/app/public/index.ejs", {
-          enableGoogleTagManager: false, 
-        });
-      });
-
-      devServer.app.get("/admin/*", (_req, res) => {
-        return res.render("/usr/src/app/public/index.ejs", {
-          enableGoogleTagManager: false, 
-        });
-      });
-
-      return middlewares;
-    },
+    setupMiddlewares: setupMiddleware('admin')
   },
   devtool: "eval-source-map",
 };
