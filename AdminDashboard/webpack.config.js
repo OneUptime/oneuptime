@@ -6,7 +6,7 @@ require("sass-loader");
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require("dotenv");
-const express = require("express");
+const setupMiddleware = require('Common/UI/webpack-middleware');
 
 const readEnvFile = (pathToFile) => {
   const parsed = dotenv.config({ path: pathToFile }).parsed;

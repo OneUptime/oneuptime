@@ -6,7 +6,6 @@ require("sass-loader");
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require("dotenv");
-const express = require("express");
 require('ejs');
 const setupMiddleware = require('Common/UI/webpack-middleware');
 
