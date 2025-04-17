@@ -15,6 +15,10 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
+import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
+import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { Gray500, Red500 } from "../../Types/BrandColors";
+import Team from "../../Models/DatabaseModels/Team";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -131,6 +135,34 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    // add workspace message.
+
+    const onCallDutyPolicyId: ObjectID | undefined | null =
+      createdModel.onCallDutyPolicyId;
+    const projectId: ObjectID | undefined = createdModel.projectId;
+
+    const createdByUserId: ObjectID | undefined | null =
+      createdModel.createdByUserId;
+
+    const team: Team | undefined = createdModel.team;
+    const onCallDutyPolicyName: string | null =
+      createdModel.onCallDutyPolicy?.name || "";
+
+    if (onCallDutyPolicyId) {
+      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        projectId: projectId!,
+        onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.TeamAdded,
+        displayColor: Gray500,
+        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: createdByUserId || undefined,
+        },
+      });
+    }
+
     return createdItem;
   }
 
@@ -162,6 +194,39 @@ export class Service extends DatabaseService<Model> {
       limit: LIMIT_PER_PROJECT,
       skip: 0,
     });
+
+    const deleteByUserId: ObjectID | undefined =
+      deleteBy.deletedByUser?.id || deleteBy.props.userId;
+
+    for (const item of itemsToFetchBeforeDelete) {
+      const onCallDutyPolicyId: ObjectID | undefined = item.onCallDutyPolicyId;
+      const projectId: ObjectID | undefined = item.projectId;
+
+      if (onCallDutyPolicyId && projectId) {
+        const onCallDutyPolicyName: string | null =
+          item.onCallDutyPolicy?.name || "No name provided";
+
+        const team: Team | undefined = item.team;
+
+        if (!team) {
+          continue;
+        }
+
+        await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId,
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.OwnerTeamRemoved,
+          displayColor: Red500,
+          feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) and escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+          userId: deleteByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: deleteByUserId || undefined,
+          },
+        });
+      }
+    }
 
     return {
       deleteBy,

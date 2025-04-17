@@ -15,8 +15,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
-import { Gray500 } from "../../Types/BrandColors";
+import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
+import User from "../../Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -25,7 +26,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const createdItemId: ObjectID = createdItem.id!;
 
@@ -82,7 +83,7 @@ export class Service extends DatabaseService<Model> {
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
           createdModel!.projectId!,
-          createdModel.onCallDutyPolicy!.id!
+          createdModel.onCallDutyPolicy!.id!,
         )
       ).toString(),
     };
@@ -119,26 +120,25 @@ export class Service extends DatabaseService<Model> {
     // add workspace message.
 
     const onCallDutyPolicyId: ObjectID | undefined | null =
-      createdModel.onCallDutyPolicyId; 
-      const projectId: ObjectID | undefined = createdModel.projectId; 
+      createdModel.onCallDutyPolicyId;
+    const projectId: ObjectID | undefined = createdModel.projectId;
 
     if (onCallDutyPolicyId) {
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
         projectId: projectId!,
-        onCallDutyPolicyFeedEventType:
-          OnCallDutyPolicyFeedEventType.UserAdded,
+        onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
         displayColor: Gray500,
         feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
           {
             userId: createdModel.user!.id!,
             projectId: projectId!,
-          }
+          },
         )}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
-        userId:  createdModel.user!.id! || undefined,
+        userId: createdModel.user!.id! || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: createdModel.user?.id!|| undefined,
+          notifyUserId: createdModel.user!.id! || undefined,
         },
       });
     }
@@ -147,7 +147,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -174,6 +174,47 @@ export class Service extends DatabaseService<Model> {
       skip: 0,
     });
 
+    const deleteByUserId: ObjectID | undefined =
+      deleteBy.deletedByUser?.id || deleteBy.props.userId;
+
+    for (const item of itemsToFetchBeforeDelete) {
+      const onCallDutyPolicyId: ObjectID | undefined = item.onCallDutyPolicyId;
+      const projectId: ObjectID | undefined = item.projectId;
+      const userId: ObjectID | undefined = item.userId;
+
+      if (onCallDutyPolicyId && userId && projectId) {
+        const user: User | null = await UserService.findOneById({
+          id: userId,
+          select: {
+            name: true,
+            email: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const onCallDutyPolicyName: string | null =
+          item.onCallDutyPolicy?.name || "No name provided";
+
+        if (user && user.name) {
+          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            projectId: projectId,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
+            displayColor: Red500,
+            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+            userId: deleteByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: userId || undefined,
+            },
+          });
+        }
+      }
+    }
+
     return {
       deleteBy,
       carryForward: {
@@ -184,7 +225,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
 
@@ -210,7 +251,7 @@ export class Service extends DatabaseService<Model> {
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             deletedItem!.projectId!,
-            deletedItem.onCallDutyPolicy!.id!
+            deletedItem.onCallDutyPolicy!.id!,
           )
         ).toString(),
       };

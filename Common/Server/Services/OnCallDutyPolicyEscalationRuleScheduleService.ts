@@ -14,6 +14,10 @@ import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
+import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { Gray500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -132,6 +136,36 @@ export class Service extends DatabaseService<Model> {
       eventType:
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
     });
+
+    // add workspace message.
+
+    const onCallDutyPolicyId: ObjectID | undefined | null =
+      createdModel.onCallDutyPolicyId;
+    const projectId: ObjectID | undefined = createdModel.projectId;
+
+    const createdByUserId: ObjectID | undefined | null =
+      createdModel.createdByUserId;
+
+    const onCallSchedule: OnCallDutyPolicySchedule | undefined =
+      createdModel.onCallDutyPolicySchedule;
+    const onCallDutyPolicyName: string | null =
+      createdModel.onCallDutyPolicy?.name || "";
+
+    if (onCallDutyPolicyId) {
+      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        projectId: projectId!,
+        onCallDutyPolicyFeedEventType:
+          OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
+        displayColor: Gray500,
+        feedInfoInMarkdown: `📅 Removed on-call schedule **${onCallSchedule?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: createdByUserId || undefined,
+        },
+      });
+    }
 
     return createdItem;
   }

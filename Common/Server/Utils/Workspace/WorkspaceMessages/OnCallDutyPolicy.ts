@@ -46,16 +46,20 @@ export default class OnCallDutyPolicyWorkspaceMessages {
     const { onCallDutyPolicyId, projectId } = data;
 
     const slackBlocks: WorkspaceMessageBlock[] =
-      await SlackOnCallDutyPolicyMessages.getOnCallDutyPolicyCreateMessageBlocks({
-        onCallDutyPolicyId: onCallDutyPolicyId,
-        projectId: projectId!,
-      });
+      await SlackOnCallDutyPolicyMessages.getOnCallDutyPolicyCreateMessageBlocks(
+        {
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId!,
+        },
+      );
 
     const microsoftTeamsBlocks: WorkspaceMessageBlock[] =
-      await SlackOnCallDutyPolicyMessages.getOnCallDutyPolicyCreateMessageBlocks({
-        onCallDutyPolicyId: onCallDutyPolicyId,
-        projectId: projectId!,
-      });
+      await SlackOnCallDutyPolicyMessages.getOnCallDutyPolicyCreateMessageBlocks(
+        {
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId!,
+        },
+      );
 
     return [
       {
