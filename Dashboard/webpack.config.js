@@ -87,6 +87,12 @@ module.exports = {
         });
       });
 
+      devServer.app.get("/dashboard/*", (_req, res) => {
+        return res.render("/usr/src/app/public/index.ejs", {
+          enableGoogleTagManager: false, 
+        });
+      });
+
       return middlewares;
     },
   },

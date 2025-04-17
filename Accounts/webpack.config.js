@@ -85,6 +85,12 @@ module.exports = {
         });
       });
 
+      devServer.app.get("/accounts/*", (_req, res) => {
+        return res.render("/usr/src/app/public/index.ejs", {
+          enableGoogleTagManager: false, 
+        });
+      });
+
       return middlewares;
     },
   },
