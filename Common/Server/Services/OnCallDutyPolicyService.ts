@@ -73,11 +73,11 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
 
     let feedInfoInMarkdown: string = `#### 📞 On Call Policy Created: 
               
-    **${onCallPolicy.name || "No name provided."}**:
+**${onCallPolicy.name || "No name provided."}**:
     
-    ${onCallPolicy.description || "No description provided."}
+${onCallPolicy.description || "No description provided."}
         
-    `;
+`;
 
     if (onCallPolicy?.labels && onCallPolicy.labels.length > 0) {
       feedInfoInMarkdown += `🏷️ **Labels**:\n`;

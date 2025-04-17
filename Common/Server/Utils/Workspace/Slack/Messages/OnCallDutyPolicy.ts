@@ -39,7 +39,7 @@ export default class SlackIncidentMessages {
     // view data.
     const viewIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "🔗 View Incident",
+      title: "🔗 View On-Call Policy",
       url: await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
         data.projectId!,
         data.onCallDutyPolicyId!,
