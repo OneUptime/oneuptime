@@ -200,9 +200,9 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title={"OnCallDutyPolicy Feed"}
+      title={"On Call Duty Policy Feed"}
       description={
-        "This is the timeline and feed for this onCallDutyPolicy. You can see all the updates and information about this onCallDutyPolicy here."
+        "This is the timeline and feed for this on call duty policy. You can see all the updates and information about this on call duty policy here."
       }
       buttons={[
         {

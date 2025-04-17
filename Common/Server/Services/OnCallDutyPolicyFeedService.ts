@@ -99,7 +99,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyFeed> {
           },
         });
 
-      logger.debug("OnCallDutyPolicy Feed created");
+      logger.debug("On Call Duty Policy Feed created");
       logger.debug(createdOnCallDutyPolicyFeed);
 
       try {
