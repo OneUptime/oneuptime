@@ -180,7 +180,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: previousInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -189,7 +189,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 )
                   ? OneUptimeDate.getCurrentDate()
                   : previousInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -247,7 +247,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: sendEmailToUserId || undefined,
+              notifyUserId:  undefined,
             },
           });
         }
@@ -273,12 +273,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -334,18 +334,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               },
             )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               },
             )}**.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: sendEmailToUserId || undefined,
+              notifyUserId:  undefined,
             },
           });
         }
@@ -381,12 +381,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.nextRosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.nextHandOffTimeAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -442,18 +442,18 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.nextRosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               },
             )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.nextHandOffTimeAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               },
             )}**.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId: sendEmailToUserId || undefined,
+              notifyUserId: undefined,
             },
           });
         }
