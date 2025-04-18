@@ -236,7 +236,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId!,
             onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.UserAdded,
+              OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
             feedInfoInMarkdown: `😴 **${await UserService.getUserMarkdownString(
               {
@@ -324,7 +324,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId!,
             onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.UserAdded,
+              OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
             feedInfoInMarkdown: `📞 **${await UserService.getUserMarkdownString(
               {
@@ -432,7 +432,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyId: onCallDutyPolicyId,
             projectId: projectId!,
             onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.UserAdded,
+              OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
             feedInfoInMarkdown: `📞 **${await UserService.getUserMarkdownString(
               {
