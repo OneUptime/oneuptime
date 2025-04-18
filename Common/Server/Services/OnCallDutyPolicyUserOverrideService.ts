@@ -116,22 +116,10 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
             userId: overrideUserId,
             projectId: projectId!,
           }
-        )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
-          {
-            userId: routeAlertsToUserId,
-            projectId: projectId!,
-          }
-        )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-          {
-            date: createdItem.startsAt!,
-            timezones: timezones,
-          }
-        )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-          {
-            date: createdItem.endsAt!,
-            timezones: timezones,
-          }
-        )}**.`,
+        )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString({
+          userId: overrideUserId,
+          projectId: projectId!,
+        })}** `,
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -144,109 +132,109 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
     return createdItem;
   }
 
-  protected override async onBeforeDelete(deleteBy: DeleteBy<OnCallDutyPolicyUserOverride>): Promise<OnDelete<OnCallDutyPolicyUserOverride>> {
-      const itemsToDelete: OnCallDutyPolicyUserOverride[] = await this.findBy({
-        query: deleteBy.query,
-        select: {
-          onCallDutyPolicyId: true,
-          projectId: true,
-          overrideUserId: true,
-          routeAlertsToUserId: true,
-          startsAt: true,
-          endsAt: true,
-          createdByUserId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT
-      });
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<OnCallDutyPolicyUserOverride>
+  ): Promise<OnDelete<OnCallDutyPolicyUserOverride>> {
+    const itemsToDelete: OnCallDutyPolicyUserOverride[] = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        onCallDutyPolicyId: true,
+        projectId: true,
+        overrideUserId: true,
+        routeAlertsToUserId: true,
+        startsAt: true,
+        endsAt: true,
+        createdByUserId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
 
+    for (const item of itemsToDelete) {
+      const onCallDutyPolicyId: ObjectID | undefined | null =
+        item.onCallDutyPolicyId || item.onCallDutyPolicy?.id;
 
-      for(const item of itemsToDelete) {
-        const onCallDutyPolicyId: ObjectID | undefined | null =
-          item.onCallDutyPolicyId || item.onCallDutyPolicy?.id;
+      const projectId: ObjectID | undefined | null =
+        item.projectId || item.project?.id;
 
-        const projectId: ObjectID | undefined | null =
-          item.projectId || item.project?.id;
+      const overrideUserId: ObjectID | undefined | null =
+        item.overrideUserId || item.overrideUser?.id;
 
-        const overrideUserId: ObjectID | undefined | null =
-          item.overrideUserId || item.overrideUser?.id;
+      const routeAlertsToUserId: ObjectID | undefined | null =
+        item.routeAlertsToUserId || item.routeAlertsToUser?.id;
 
-        const routeAlertsToUserId: ObjectID | undefined | null =
-          item.routeAlertsToUserId || item.routeAlertsToUser?.id;
-
-        if (
-          onCallDutyPolicyId &&
-          projectId &&
-          overrideUserId &&
-          routeAlertsToUserId
-        ) {
-          const onCallPolicyName: string | null =
-            await OnCallDutyPolicyService.getOnCallDutyPolicyName({
-              onCallDutyPolicyId: onCallDutyPolicyId,
-            });
-
-          const overrideUserTimezone: Timezone | null =
-            await UserService.getTimezoneForUser(overrideUserId);
-
-          const routeAlertsToUserTimezone: Timezone | null =
-            await UserService.getTimezoneForUser(routeAlertsToUserId);
-
-          const timezones: Timezone[] = [];
-          if (overrideUserTimezone) {
-            timezones.push(overrideUserTimezone);
-          }
-
-          if (routeAlertsToUserTimezone) {
-            timezones.push(routeAlertsToUserTimezone);
-          }
-
-
-          const deleteByUserId: ObjectID | undefined | null =  
-            deleteBy.props.userId; 
-
-          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+      if (
+        onCallDutyPolicyId &&
+        projectId &&
+        overrideUserId &&
+        routeAlertsToUserId
+      ) {
+        const onCallPolicyName: string | null =
+          await OnCallDutyPolicyService.getOnCallDutyPolicyName({
             onCallDutyPolicyId: onCallDutyPolicyId,
-            projectId: projectId!,
-            onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
-            displayColor: Gray500,
-            feedInfoInMarkdown: `❌ Removed a User Override Rule for user **${await UserService.getUserMarkdownString(
-              {
-                userId: overrideUserId,
-                projectId: projectId!,
-              }
-            )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
-              {
-                userId: routeAlertsToUserId,
-                projectId: projectId!,
-              })}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-                {
-                  date: item.startsAt!,
-                  timezones: timezones,
-                }
-              )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-                {
-                  date: item.endsAt!,
-                  timezones: timezones,
-                }
-              )}**.`,
-            userId: deleteByUserId || undefined,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-              notifyUserId: deleteByUserId || undefined,
-            },
           });
-        }
-      }
 
-      return {
-        deleteBy,
-        carryForward: null,
+        const overrideUserTimezone: Timezone | null =
+          await UserService.getTimezoneForUser(overrideUserId);
+
+        const routeAlertsToUserTimezone: Timezone | null =
+          await UserService.getTimezoneForUser(routeAlertsToUserId);
+
+        const timezones: Timezone[] = [];
+        if (overrideUserTimezone) {
+          timezones.push(overrideUserTimezone);
+        }
+
+        if (routeAlertsToUserTimezone) {
+          timezones.push(routeAlertsToUserTimezone);
+        }
+
+        const deleteByUserId: ObjectID | undefined | null =
+          deleteBy.props.userId;
+
+        await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId!,
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
+          displayColor: Gray500,
+          feedInfoInMarkdown: `❌ Removed a User Override Rule for user **${await UserService.getUserMarkdownString(
+            {
+              userId: overrideUserId,
+              projectId: projectId!,
+            }
+          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
+            {
+              userId: routeAlertsToUserId,
+              projectId: projectId!,
+            }
+          )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+            {
+              date: item.startsAt!,
+              timezones: timezones,
+            }
+          )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+            {
+              date: item.endsAt!,
+              timezones: timezones,
+            }
+          )}**.`,
+          userId: deleteByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            notifyUserId: deleteByUserId || undefined,
+          },
+        });
       }
-              
+    }
+
+    return {
+      deleteBy,
+      carryForward: null,
+    };
   }
 
   @CaptureSpan()
