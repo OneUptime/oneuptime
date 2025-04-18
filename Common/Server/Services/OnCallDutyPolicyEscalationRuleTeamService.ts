@@ -154,7 +154,7 @@ export class Service extends DatabaseService<Model> {
         projectId: projectId!,
         onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.TeamAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
