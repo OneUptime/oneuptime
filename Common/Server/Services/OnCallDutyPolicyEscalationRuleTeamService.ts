@@ -138,7 +138,7 @@ export class Service extends DatabaseService<Model> {
     // add workspace message.
 
     const onCallDutyPolicyId: ObjectID | undefined | null =
-      createdModel.onCallDutyPolicyId;
+      createdModel.onCallDutyPolicy!.id;
     const projectId: ObjectID | undefined = createdModel.projectId;
 
     const createdByUserId: ObjectID | undefined | null =
