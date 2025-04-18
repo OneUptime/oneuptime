@@ -201,7 +201,7 @@ const init: InitFunction = async (
     );
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
-      return res.render("/usr/src/app/public/index.ejs", {
+      return res.render("/usr/src/app/views/index.ejs", {
         enableGoogleTagManager: IsBillingEnabled || false,
       });
     });
