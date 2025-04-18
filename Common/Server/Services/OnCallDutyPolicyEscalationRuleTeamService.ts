@@ -52,7 +52,7 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
-        createdByUserId: true
+        createdByUserId: true,
       },
       props: {
         isRoot: true,
@@ -200,7 +200,8 @@ export class Service extends DatabaseService<Model> {
       deleteBy.deletedByUser?.id || deleteBy.props.userId;
 
     for (const item of itemsToFetchBeforeDelete) {
-      const onCallDutyPolicyId: ObjectID | undefined = item.onCallDutyPolicy!.id!;
+      const onCallDutyPolicyId: ObjectID | undefined =
+        item.onCallDutyPolicy!.id!;
       const projectId: ObjectID | undefined = item.projectId;
 
       if (onCallDutyPolicyId && projectId) {

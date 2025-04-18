@@ -24,7 +24,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<OnCallDutyPolicyUserOverride>
+    createBy: CreateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
     if (!createBy.data.startsAt || !createBy.data.endsAt) {
       throw new BadDataException("Start time and end time are required");
@@ -52,7 +52,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
     if (overrideUserId.toString() === routeAlertsToUserId.toString()) {
       throw new BadDataException(
-        "Override user and route alerts to user cannot be the same"
+        "Override user and route alerts to user cannot be the same",
       );
     }
 
@@ -64,7 +64,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<OnCallDutyPolicyUserOverride>,
-    createdItem: OnCallDutyPolicyUserOverride
+    createdItem: OnCallDutyPolicyUserOverride,
   ): Promise<OnCallDutyPolicyUserOverride> {
     // add to on call feed.
     const onCallDutyPolicyId: ObjectID | undefined | null =
@@ -115,23 +115,21 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
           {
             userId: overrideUserId,
             projectId: projectId!,
-          }
+          },
         )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
-            {
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
-            }
-          )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-            {
-              date: createdItem.startsAt!,
-              timezones: timezones,
-            }
-          )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-            {
-              date: createdItem.endsAt!,
-              timezones: timezones,
-            }
-          )}**. `,
+          {
+            userId: routeAlertsToUserId,
+            projectId: projectId!,
+          },
+        )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+          {
+            date: createdItem.startsAt!,
+            timezones: timezones,
+          },
+        )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
+          date: createdItem.endsAt!,
+          timezones: timezones,
+        })}**. `,
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -145,7 +143,7 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<OnCallDutyPolicyUserOverride>
+    deleteBy: DeleteBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnDelete<OnCallDutyPolicyUserOverride>> {
     const itemsToDelete: OnCallDutyPolicyUserOverride[] = await this.findBy({
       query: deleteBy.query,
@@ -217,11 +215,13 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
             {
               userId: overrideUserId,
               projectId: projectId!,
-            }
-          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString({
-          userId: overrideUserId,
-          projectId: projectId!,
-        })}**`,
+            },
+          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString(
+            {
+              userId: overrideUserId,
+              projectId: projectId!,
+            },
+          )}**`,
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
@@ -252,11 +252,11 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
 
     if (!onCallDutyPolicyId) {
       return URL.fromString(dashboardUrl.toString()).addRoute(
-        `/${projectId.toString()}/on-call-duty/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`
+        `/${projectId.toString()}/on-call-duty/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`,
       );
     }
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`
+      `/${projectId.toString()}/on-call-duty/policies/${onCallDutyPolicyId.toString()}/user-overrides/${onCallDutyPolicyUserOverrideId.toString()}`,
     );
   }
 }

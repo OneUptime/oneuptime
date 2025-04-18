@@ -146,7 +146,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
   }
 
-  if(props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
+  if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
     archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the on call duty policy is deleted.`;
   }

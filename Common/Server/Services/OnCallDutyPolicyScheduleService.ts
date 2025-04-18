@@ -247,7 +247,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId:  undefined,
+              notifyUserId: undefined,
             },
           });
         }
@@ -345,7 +345,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
-              notifyUserId:  undefined,
+              notifyUserId: undefined,
             },
           });
         }
