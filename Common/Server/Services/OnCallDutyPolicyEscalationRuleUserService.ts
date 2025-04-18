@@ -180,7 +180,7 @@ export class Service extends DatabaseService<Model> {
     for (const item of itemsToFetchBeforeDelete) {
       const onCallDutyPolicyId: ObjectID | undefined = item.onCallDutyPolicy!.id!;
       const projectId: ObjectID | undefined = item.projectId;
-      const userId: ObjectID | undefined = item.userId;
+      const userId: ObjectID | undefined = item.user!.id!;
 
       if (onCallDutyPolicyId && userId && projectId) {
         const user: User | null = await UserService.findOneById({
