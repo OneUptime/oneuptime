@@ -434,7 +434,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallDutyPolicyFeedEventType:
               OnCallDutyPolicyFeedEventType.RosterHandoff,
             displayColor: Green500,
-            feedInfoInMarkdown: `📞 **${await UserService.getUserMarkdownString(
+            feedInfoInMarkdown: `➡️ **${await UserService.getUserMarkdownString(
               {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
