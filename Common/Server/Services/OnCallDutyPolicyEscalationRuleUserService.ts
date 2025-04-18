@@ -135,10 +135,10 @@ export class Service extends DatabaseService<Model> {
             projectId: projectId!,
           },
         )}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
-        userId: createdModel.user!.id! || undefined,
+        userId: createdModel.createdByUserId! || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          notifyUserId: createdModel.user!.id! || undefined,
+          notifyUserId: createdModel.createdByUserId! || undefined,
         },
       });
     }
@@ -169,6 +169,7 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
+        createdByUserId: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,

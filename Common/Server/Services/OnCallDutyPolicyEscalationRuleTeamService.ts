@@ -52,6 +52,7 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
+        createdByUserId: true
       },
       props: {
         isRoot: true,
