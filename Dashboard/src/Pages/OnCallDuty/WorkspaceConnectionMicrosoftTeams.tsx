@@ -67,7 +67,7 @@ const MonitorsPage: FunctionComponent<
       {isMicrosoftTeamsConnected && (
         <WorkspaceNotificationRuleTable
           workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.OnCallDuty}
+          eventType={NotificationRuleEventType.OnCallDutyPolicy}
         />
       )}
       {!isMicrosoftTeamsConnected && (
