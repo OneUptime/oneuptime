@@ -34,6 +34,8 @@ export enum OnCallDutyPolicyFeedEventType {
   OwnerUserRemoved = "OwnerUserRemoved",
   OwnerTeamAdded = "OwnerTeamAdded",
   OwnerTeamRemoved = "OwnerTeamRemoved",
+  UserOverrideAdded = "UserOverrideAdded",
+  UserOverrideRemoved = "UserOverrideRemoved",
 }
 
 @EnableDocumentation()
