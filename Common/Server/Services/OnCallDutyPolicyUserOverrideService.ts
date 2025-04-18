@@ -116,10 +116,22 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
             userId: overrideUserId,
             projectId: projectId!,
           }
-        )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString({
-          userId: overrideUserId,
-          projectId: projectId!,
-        })}** `,
+        )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
+            {
+              userId: routeAlertsToUserId,
+              projectId: projectId!,
+            }
+          )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+            {
+              date: createdItem.startsAt!,
+              timezones: timezones,
+            }
+          )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+            {
+              date: createdItem.endsAt!,
+              timezones: timezones,
+            }
+          )}**. `,
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -206,22 +218,10 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
               userId: overrideUserId,
               projectId: projectId!,
             }
-          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed to **${await UserService.getUserMarkdownString(
-            {
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
-            }
-          )}** from **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-            {
-              date: item.startsAt!,
-              timezones: timezones,
-            }
-          )}**  to **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
-            {
-              date: item.endsAt!,
-              timezones: timezones,
-            }
-          )}**.`,
+          )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString({
+          userId: overrideUserId,
+          projectId: projectId!,
+        })}**`,
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

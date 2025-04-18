@@ -243,7 +243,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
               },
-            )}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule ${onCallSchedule.name} just ended.`,
+            )}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -331,17 +331,17 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
               },
-            )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because you are now on the roster for schedule ${onCallSchedule.name} and your on-call roster starts at ${OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+            )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.rosterStartAt!,
                 timezones: userTimezone ? [userTimezone] : [],
               },
-            )} and ends at ${OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+            )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.rosterHandoffAt!,
                 timezones: userTimezone ? [userTimezone] : [],
               },
-            )}.`,
+            )}**.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -439,17 +439,17 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
               },
-            )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens which is at ${OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+            )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.nextRosterStartAt!,
                 timezones: userTimezone ? [userTimezone] : [],
               },
-            )} and will end at ${OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+            )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.nextHandOffTimeAt!,
                 timezones: userTimezone ? [userTimezone] : [],
               },
-            )}.`,
+            )}**.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
