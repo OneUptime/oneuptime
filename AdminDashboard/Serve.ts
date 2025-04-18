@@ -2,6 +2,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
+import "ejs";
 
 export const APP_NAME: string = "admin";
 

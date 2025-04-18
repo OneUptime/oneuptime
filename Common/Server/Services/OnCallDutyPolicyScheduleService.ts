@@ -28,6 +28,9 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import BadDataException from "../../Types/Exception/BadDataException";
 import Timezone from "../../Types/Timezone";
 import logger from "../Utils/Logger";
+import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
+import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { Green500 } from "../../Types/BrandColors";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
@@ -177,7 +180,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: previousInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -186,10 +189,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
                 )
                   ? OneUptimeDate.getCurrentDate()
                   : previousInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
                 onCallPolicy.id!,
               )
@@ -224,6 +227,29 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
           });
+
+          const onCallDutyPolicyId: ObjectID =
+            escalationRule.onCallDutyPolicy!.id!;
+
+          // Send workspace notifiction as well.
+          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            projectId: projectId!,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.RosterHandoff,
+            displayColor: Green500,
+            feedInfoInMarkdown: `📵 **${await UserService.getUserMarkdownString(
+              {
+                userId: sendEmailToUserId,
+                projectId: projectId!,
+              },
+            )}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`,
+            userId: sendEmailToUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: undefined,
+            },
+          });
         }
 
         if (newInformation.currentUserIdOnRoster?.toString()) {
@@ -247,15 +273,15 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
                 onCallPolicy.id!,
               )
@@ -288,6 +314,39 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             callRequestMessage: callMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+          });
+
+          const onCallDutyPolicyId: ObjectID =
+            escalationRule.onCallDutyPolicy!.id!;
+
+          // Send workspace notifiction as well.
+          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            projectId: projectId!,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.RosterHandoff,
+            displayColor: Green500,
+            feedInfoInMarkdown: `📞 **${await UserService.getUserMarkdownString(
+              {
+                userId: sendEmailToUserId,
+                projectId: projectId!,
+              },
+            )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+              {
+                date: newInformation.rosterStartAt!,
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+              },
+            )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+              {
+                date: newInformation.rosterHandoffAt!,
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+              },
+            )}**.`,
+            userId: sendEmailToUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: undefined,
+            },
           });
         }
       }
@@ -322,15 +381,15 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.nextRosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.nextHandOffTimeAt!,
-                timezones: userTimezone ? [userTimezone] : [],
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
             onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
                 onCallPolicy.id!,
               )
@@ -363,6 +422,39 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             callRequestMessage: callMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+          });
+
+          const onCallDutyPolicyId: ObjectID =
+            escalationRule.onCallDutyPolicy!.id!;
+
+          // Send workspace notifiction as well.
+          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            projectId: projectId!,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.RosterHandoff,
+            displayColor: Green500,
+            feedInfoInMarkdown: `➡️ **${await UserService.getUserMarkdownString(
+              {
+                userId: sendEmailToUserId,
+                projectId: projectId!,
+              },
+            )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+              {
+                date: newInformation.nextRosterStartAt!,
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+              },
+            )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
+              {
+                date: newInformation.nextHandOffTimeAt!,
+                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+              },
+            )}**.`,
+            userId: sendEmailToUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: undefined,
+            },
           });
         }
       }

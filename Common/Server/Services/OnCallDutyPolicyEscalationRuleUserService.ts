@@ -13,6 +13,11 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
+import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
+import { Gray500, Red500 } from "../../Types/BrandColors";
+import UserService from "./UserService";
+import User from "../../Models/DatabaseModels/User";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -46,6 +51,7 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
+        createdByUserId: true,
       },
       props: {
         isRoot: true,
@@ -75,7 +81,7 @@ export class Service extends DatabaseService<Model> {
         "No order provided",
       reason: "You have been added to the on-call duty policy escalation rule.",
       onCallPolicyViewLink: (
-        await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
           createdModel!.projectId!,
           createdModel.onCallDutyPolicy!.id!,
         )
@@ -111,6 +117,32 @@ export class Service extends DatabaseService<Model> {
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
     });
 
+    // add workspace message.
+
+    const onCallDutyPolicyId: ObjectID | undefined | null =
+      createdModel.onCallDutyPolicy!.id;
+    const projectId: ObjectID | undefined = createdModel.projectId;
+
+    if (onCallDutyPolicyId) {
+      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        projectId: projectId!,
+        onCallDutyPolicyFeedEventType: OnCallDutyPolicyFeedEventType.UserAdded,
+        displayColor: Gray500,
+        feedInfoInMarkdown: `👨🏻‍💻 Added **${await UserService.getUserMarkdownString(
+          {
+            userId: createdModel.user!.id!,
+            projectId: projectId!,
+          },
+        )}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        userId: createdModel.createdByUserId! || undefined,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: createdModel.createdByUserId! || undefined,
+        },
+      });
+    }
+
     return createdItem;
   }
 
@@ -137,10 +169,53 @@ export class Service extends DatabaseService<Model> {
           name: true,
           _id: true,
         },
+        createdByUserId: true,
       },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
     });
+
+    const deleteByUserId: ObjectID | undefined =
+      deleteBy.deletedByUser?.id || deleteBy.props.userId;
+
+    for (const item of itemsToFetchBeforeDelete) {
+      const onCallDutyPolicyId: ObjectID | undefined =
+        item.onCallDutyPolicy!.id!;
+      const projectId: ObjectID | undefined = item.projectId;
+      const userId: ObjectID | undefined = item.user!.id!;
+
+      if (onCallDutyPolicyId && userId && projectId) {
+        const user: User | null = await UserService.findOneById({
+          id: userId,
+          select: {
+            name: true,
+            email: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        const onCallDutyPolicyName: string | null =
+          item.onCallDutyPolicy?.name || "No name provided";
+
+        if (user && user.name) {
+          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            projectId: projectId,
+            onCallDutyPolicyFeedEventType:
+              OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
+            displayColor: Red500,
+            feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`,
+            userId: deleteByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              notifyUserId: userId || undefined,
+            },
+          });
+        }
+      }
+    }
 
     return {
       deleteBy,
@@ -176,7 +251,7 @@ export class Service extends DatabaseService<Model> {
         reason:
           "You have been removed from the on-call duty policy escalation rule.",
         onCallPolicyViewLink: (
-          await OnCallDutyPolicyService.getOnCallPolicyLinkInDashboard(
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             deletedItem!.projectId!,
             deletedItem.onCallDutyPolicy!.id!,
           )

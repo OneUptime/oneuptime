@@ -48,6 +48,12 @@ const OnCallDutyPolicyView: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutyPolicy/Index");
 });
+const OnCallDutyPolicyViewOwners: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/Owners");
+});
+
 const OnCallDutyPolicyViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -96,6 +102,20 @@ const OnCallDutyScheduleViewLayers: LazyExoticComponent<
   return import("../Pages/OnCallDuty/OnCallDutySchedule/Layers");
 });
 
+// slack
+const WorkspaceConnectionSlack: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/WorkspaceConnectionSlack");
+});
+
+// Microsoft Teams
+const WorkspaceConnectionTeams: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/WorkspaceConnectionMicrosoftTeams");
+});
+
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -113,6 +133,47 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <WorkspaceConnectionSlack
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={
+            OnCallDutyRoutePath[
+              PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+            ] || ""
+          }
+          element={
+            <Suspense fallback={Loader}>
+              <WorkspaceConnectionTeams
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
         <PageRoute
           path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICIES] || ""}
           element={
@@ -213,6 +274,22 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewOwners
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS] as Route
                 }
               />
             </Suspense>

@@ -1,3 +1,4 @@
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
@@ -17,6 +18,7 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: "404", // The page type (404 in this case)
       pageTitle: "Page Not Found", // The page title
+      enableGoogleTagManager: IsBillingEnabled,
       pageDescription: "Page you're looking for is not found.", // The page description
       resources: Resources, // The array of model documentation resources
       pageData: {}, // An empty object to hold any additional page data

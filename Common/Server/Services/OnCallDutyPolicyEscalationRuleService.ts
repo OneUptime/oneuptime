@@ -543,6 +543,9 @@ export class Service extends DatabaseService<Model> {
     teamInRule.onCallDutyPolicyId = onCallDutyPolicyId;
     teamInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
     teamInRule.teamId = teamId;
+    if (props.userId) {
+      teamInRule.createdByUserId = props.userId;
+    }
 
     await OnCallDutyPolicyEscalationRuleTeamService.create({
       data: teamInRule,
@@ -565,6 +568,10 @@ export class Service extends DatabaseService<Model> {
     scheduleInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
     scheduleInRule.onCallDutyPolicyScheduleId = onCallScheduleId;
 
+    if (props.userId) {
+      scheduleInRule.createdByUserId = props.userId;
+    }
+
     await OnCallDutyPolicyEscalationRuleScheduleService.create({
       data: scheduleInRule,
       props,
@@ -585,6 +592,10 @@ export class Service extends DatabaseService<Model> {
     userInRule.onCallDutyPolicyId = onCallDutyPolicyId;
     userInRule.onCallDutyPolicyEscalationRuleId = escalationRuleId;
     userInRule.userId = userId;
+
+    if (props.userId) {
+      userInRule.createdByUserId = props.userId;
+    }
 
     await OnCallDutyPolicyEscalationRuleUserService.create({
       data: userInRule,
@@ -690,6 +701,7 @@ export class Service extends DatabaseService<Model> {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         props: {
+          userId: deleteBy.props.userId,
           isRoot: true,
         },
       });
@@ -703,6 +715,7 @@ export class Service extends DatabaseService<Model> {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         props: {
+          userId: deleteBy.props.userId,
           isRoot: true,
         },
       });
@@ -716,6 +729,7 @@ export class Service extends DatabaseService<Model> {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         props: {
+          userId: deleteBy.props.userId,
           isRoot: true,
         },
       });

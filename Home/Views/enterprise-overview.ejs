@@ -7,7 +7,9 @@
     <title>OneUptime for Enterprise. </title>
     <meta name="description"
         content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-        <%- include('head') -%>
+        <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
 
 </head>
 

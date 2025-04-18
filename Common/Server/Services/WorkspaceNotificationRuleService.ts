@@ -40,6 +40,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Text from "../../Types/Text";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -51,6 +53,7 @@ export interface NotificationFor {
   alertId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   monitorId?: ObjectID | undefined;
+  onCallDutyPolicyId?: ObjectID | undefined;
 }
 
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
@@ -438,6 +441,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       });
     }
 
+    if (data.notificationFor.onCallDutyPolicyId) {
+      monitorChannels =
+        await OnCallDutyPolicyService.getWorkspaceChannelForOnCallDutyPolicy({
+          onCallDutyPolicyId: data.notificationFor.onCallDutyPolicyId,
+          workspaceType: data.workspaceType,
+        });
+    }
+
     // incidents
     if (data.notificationFor.incidentId) {
       monitorChannels = await IncidentService.getWorkspaceChannelForIncident({
@@ -480,6 +491,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     if (notificationFor.monitorId) {
       return NotificationRuleEventType.Monitor;
+    }
+
+    if (notificationFor.onCallDutyPolicyId) {
+      return NotificationRuleEventType.OnCallDutyPolicy;
     }
 
     if (notificationFor.scheduledMaintenanceId) {
@@ -1451,6 +1466,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           incident.monitors?.map((monitor: Incident) => {
             return monitor._id?.toString() || "";
           }) || [],
+
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
 
@@ -1523,6 +1543,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.Monitors]: [
           alert.monitor?.id!.toString() || "",
         ],
+
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
 
@@ -1602,6 +1627,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               return monitor._id?.toString() || "";
             },
           ) || [],
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
       };
     }
 
@@ -1659,6 +1688,70 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.Monitors]: [
           monitor?._id?.toString() || "",
         ],
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
+      };
+    }
+
+    if (data.notificationFor.onCallDutyPolicyId) {
+      logger.debug("Fetching on call policy details for ID:");
+      logger.debug(data.notificationFor.onCallDutyPolicyId);
+
+      const onCallDutyPolicy: OnCallDutyPolicy | null =
+        await OnCallDutyPolicyService.findOneById({
+          id: data.notificationFor.onCallDutyPolicyId,
+          select: {
+            name: true,
+            labels: true,
+            description: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!onCallDutyPolicy) {
+        logger.debug("On Call Duty Policy not found for ID:");
+        logger.debug(data.notificationFor.onCallDutyPolicyId);
+        throw new BadDataException("On Call Duty Policy ID not found");
+      }
+
+      const onCallDutyPolicyLabels: Array<Label> =
+        onCallDutyPolicy?.labels || [];
+
+      return {
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]:
+          onCallDutyPolicy?.name || "",
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]:
+          onCallDutyPolicy?.description || "",
+        [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]:
+          onCallDutyPolicyLabels.map((label: Label) => {
+            return label._id?.toString() || "";
+          }) || [],
+
+        [NotificationRuleConditionCheckOn.MonitorName]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentState]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorType]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorStatus]: "",
+        [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
+        [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
+        [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
+        [NotificationRuleConditionCheckOn.AlertState]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
+          undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
+        [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
+        [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
+        [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
+        [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]:
+          undefined,
+        [NotificationRuleConditionCheckOn.Monitors]: undefined,
       };
     }
 

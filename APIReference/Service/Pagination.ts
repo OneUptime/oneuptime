@@ -1,3 +1,4 @@
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { CodeExamplesPath, ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
@@ -47,7 +48,8 @@ export default class ServiceHandler {
     return res.render(`${ViewsPath}/pages/index`, {
       page: page, // Pass the page parameter
       resources: Resources, // Pass all resources
-      pageTitle: pageTitle, // Pass the page title
+      pageTitle: pageTitle,
+      enableGoogleTagManager: IsBillingEnabled, // Pass the page title
       pageDescription: pageDescription, // Pass the page description
       pageData: pageData, // Pass the page data
     });

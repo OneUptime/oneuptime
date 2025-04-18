@@ -58,6 +58,12 @@ import OnCallDutyPolicyEscalationRuleTeam from "./OnCallDutyPolicyEscalationRule
 import OnCallDutyPolicyEscalationRuleUser from "./OnCallDutyPolicyEscalationRuleUser";
 import OnCallDutyPolicyExecutionLog from "./OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "./OnCallDutyPolicyExecutionLogTimeline";
+// owner team
+import OnCallDutyPolicyOwnerTeam from "./OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerUser from "./OnCallDutyPolicyOwnerUser";
+
+// OnCall Duty Policy Feed
+import OnCallDutyPolicyFeed from "./OnCallDutyPolicyFeed";
 // On call duty policy schedule
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
@@ -316,7 +322,9 @@ const AllModelTypes: Array<{
   OnCallDutyPolicySchedule,
   OnCallDutyPolicyScheduleLayer,
   OnCallDutyPolicyScheduleLayerUser,
-
+  OnCallDutyPolicyFeed,
+  OnCallDutyPolicyOwnerTeam,
+  OnCallDutyPolicyOwnerUser,
   OnCallDutyPolicyEscalationRuleSchedule,
 
   UsageBilling,

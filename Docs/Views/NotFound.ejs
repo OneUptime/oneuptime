@@ -1,0 +1,42 @@
+<html lang="en" class="h-full antialiased __variable_e66fe9 __variable_b436a8 light nbuofyfqi idc0_350"
+    style="color-scheme: light;">
+
+<head>
+    <%- include('./Partials/Head.ejs', {
+        enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+    }) %>
+</head>
+
+<body class="flex min-h-full bg-white ">
+    
+    <div class="flex w-full flex-col">
+        <%- include('./Partials/Header.ejs') %>
+       
+        <div class="relative mx-auto flex w-full max-w-8xl flex-auto justify-center sm:px-2 lg:px-8 xl:px-12">
+            <div class="hidden lg:relative lg:block lg:flex-none">
+                <div class="absolute inset-y-0 right-0 w-[50vw] bg-slate-50 "></div>
+                <div
+                    class="absolute bottom-0 right-0 top-16 hidden h-12 w-px bg-gradient-to-t from-slate-800 ">
+                </div>
+                <div class="absolute bottom-0 right-0 top-28 hidden w-px bg-slate-800 "></div>
+                <div
+                    class="sticky top-[4.75rem] -ml-0.5 h-[calc(100vh-4.75rem)] w-64 overflow-y-auto overflow-x-hidden py-16 pl-0.5 pr-8 xl:w-72 xl:pr-16">
+                  <%- include('./Partials/Nav.ejs') %>
+                </div>
+            </div>
+            <div class="min-w-0 max-w-2xl flex-auto px-4 py-16 lg:max-w-none lg:pl-8 lg:pr-0 xl:px-16">
+                <article>
+                    <header class="mb-9 space-y-1">
+                        <p class="text-base font-bold text-sky-500">Not Found</p>
+                        <h1 class="font-bold text-3xl tracking-tight text-slate-900 ">The page you are looking for
+                            does not exist.
+                        </h1>
+                    </header>
+                </article>
+            </div>
+         
+        </div>
+    </div>
+</body>
+
+</html>

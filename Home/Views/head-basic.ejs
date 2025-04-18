@@ -59,6 +59,7 @@
 </style>
 <script src="https://cdn.tailwindcss.com"></script>
 
+<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
 <!-- Google Tag Manager -->
 <script>(function (w, d, s, l, i) {
         w[l] = w[l] || []; w[l].push({
@@ -69,6 +70,7 @@
                 'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
 <!-- End Google Tag Manager -->
+<% } %>
 
 
 <style>
@@ -133,6 +135,7 @@
 <link rel="shortcut icon" href="/img/favicons/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="/img/favicons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/favicons/favicon-32x32.png">
+
 <link rel="icon" type="image/png" sizes="16x16" href="/img/favicons/favicon-16x16.png">
 <link rel="mask-icon" href="/img/favicons/safari-pinned-tab.svg" color="#32335b">
 <meta name="msapplication-TileColor" content="#32335b">

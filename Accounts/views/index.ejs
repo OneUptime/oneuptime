@@ -12,6 +12,7 @@
   <meta name="slack-app-id" content="ACVBMTPJQ">
   <meta name="description" content="OneUptime — the complete open-source observability platform.">
 
+  <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager -->
   <script>(function (w, d, s, l, i) {
       w[l] = w[l] || []; w[l].push({
@@ -22,6 +23,7 @@
           'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
   <!-- End Google Tag Manager -->
+  <% } %>
 
   <link rel="manifest" href="/accounts/assets/img/favicons/ma">
   
@@ -95,10 +97,12 @@
 </head>
 
 <body class="h-full bg-gray-50">
+  <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager (noscript) -->
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
       style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
+  <% } %>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
 

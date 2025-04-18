@@ -1,7 +1,7 @@
 // Connect common api's.
 import CommonAPI from "../API/Index";
 import { StatusAPIOptions } from "../API/StatusAPI";
-import { AppVersion } from "../EnvironmentConfig";
+import { AppVersion, IsBillingEnabled } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import "./Environment";
 import Express, {
@@ -31,6 +31,7 @@ import Typeof from "Common/Types/Typeof";
 import CookieParser from "cookie-parser";
 import cors from "cors";
 import zlib from "zlib";
+import "ejs";
 // Make sure we have stack trace for debugging.
 Error.stackTraceLimit = Infinity;
 
@@ -200,7 +201,9 @@ const init: InitFunction = async (
     );
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
-      res.sendFile("/usr/src/app/public/index.html");
+      return res.render("/usr/src/app/public/index.ejs", {
+        enableGoogleTagManager: IsBillingEnabled || false,
+      });
     });
   }
 

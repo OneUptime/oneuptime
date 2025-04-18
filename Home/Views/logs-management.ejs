@@ -7,7 +7,9 @@
   <title>OneUptime | Fastest log ingest and search on the planet. </title>
   <meta name="description"
     content="Powered by Ceph and Clickhouse. Ingest petabytes of logs and search in milliseconds. Ingest from any source, alert right team members when things go wrong.">
-  <%- include('head') -%>
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
 </head>
 
 <body>

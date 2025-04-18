@@ -6,7 +6,7 @@ require("sass-loader");
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require("dotenv");
-const express = require("express");
+const setupMiddleware = require('Common/UI/webpack-middleware');
 
 const readEnvFile = (pathToFile) => {
   const parsed = dotenv.config({ path: pathToFile }).parsed;
@@ -72,13 +72,7 @@ module.exports = {
       writeToDisk: true,
     },
     allowedHosts: "all",
-    setupMiddlewares: (middlewares, devServer) => {
-      devServer.app.use(
-        "/admin/assets",
-        express.static(path.resolve(__dirname, "public", "assets")),
-      );
-      return middlewares;
-    },
+    setupMiddlewares: setupMiddleware('admin')
   },
   devtool: "eval-source-map",
 };

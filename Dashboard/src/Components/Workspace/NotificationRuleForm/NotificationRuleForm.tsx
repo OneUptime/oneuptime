@@ -146,6 +146,11 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
   }
 
+  if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
+    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
+    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the on call duty policy is deleted.`;
+  }
+
   // incident.
   if (props.eventType === NotificationRuleEventType.Incident) {
     archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
@@ -237,7 +242,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
       dropdownOptions: props.users.map((i: User) => {
         return {
-          label: i.name?.toString() || "",
+          label: i.name?.toString() || i.email?.toString() || "",
           value: i._id!.toString()!,
         };
       }),

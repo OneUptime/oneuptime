@@ -241,6 +241,16 @@ enum Permission {
   EditMonitorOwnerUser = "EditMonitorOwnerUser",
   ReadMonitorOwnerUser = "ReadMonitorOwnerUser",
 
+  CreateOnCallDutyPolicyOwnerTeam = "CreateOnCallDutyPolicyOwnerTeam",
+  DeleteOnCallDutyPolicyOwnerTeam = "DeleteOnCallDutyPolicyOwnerTeam",
+  EditOnCallDutyPolicyOwnerTeam = "EditOnCallDutyPolicyOwnerTeam",
+  ReadOnCallDutyPolicyOwnerTeam = "ReadOnCallDutyPolicyOwnerTeam",
+
+  CreateOnCallDutyPolicyOwnerUser = "CreateOnCallDutyPolicyOwner",
+  DeleteOnCallDutyPolicyOwnerUser = "DeleteOnCallDutyPolicyOwnerUser",
+  EditOnCallDutyPolicyOwnerUser = "EditOnCallDutyPolicyOwnerUser",
+  ReadOnCallDutyPolicyOwnerUser = "ReadOnCallDutyPolicyOwnerUser",
+
   CreateMonitorGroupOwnerTeam = "CreateMonitorGroupOwnerTeam",
   DeleteMonitorGroupOwnerTeam = "DeleteMonitorGroupOwnerTeam",
   EditMonitorGroupOwnerTeam = "EditMonitorGroupOwnerTeam",
@@ -423,6 +433,10 @@ enum Permission {
   CreateIncidentFeed = "CreateIncidentFeed",
   EditIncidentFeed = "EditIncidentFeed",
   ReadIncidentFeed = "ReadIncidentFeed",
+
+  CreateOnCallDutyPolicyFeed = "CreateOnCallDutyPolicyFeed",
+  EditOnCallDutyPolicyFeed = "EditOnCallDutyPolicyFeed",
+  ReadOnCallDutyPolicyFeed = "ReadOnCallDutyPolicyFeed",
 
   CreateMonitorFeed = "CreateMonitorFeed",
   EditMonitorFeed = "EditMonitorFeed",
@@ -1117,7 +1131,7 @@ export class PermissionHelper {
         permission: Permission.CreateMonitorFeed,
         title: "Create Monitor Feed",
         description:
-          "This permission can create log of an incident in this project.",
+          "This permission can create log of an monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1125,7 +1139,7 @@ export class PermissionHelper {
         permission: Permission.EditMonitorFeed,
         title: "Edit Monitor Feed",
         description:
-          "This permission can edit log of an incident in this project.",
+          "This permission can edit log of an monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1133,7 +1147,7 @@ export class PermissionHelper {
         permission: Permission.ReadMonitorFeed,
         title: "Read Monitor Feed",
         description:
-          "This permission can read log of an incident in this project.",
+          "This permission can read log of an monitor in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1164,10 +1178,35 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateOnCallDutyPolicyFeed,
+        title: "Create On Call Duty Policy Feed",
+        description:
+          "This permission can create log of an on-call policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyFeed,
+        title: "Edit On Call Duty Policy Feed",
+        description:
+          "This permission can edit log of an on-call policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyFeed,
+        title: "Read On Call Duty Policy Feed",
+        description:
+          "This permission can read log of an on-call policy in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
         permission: Permission.CreateAlertFeed,
         title: "Create Alert Feed",
         description:
-          "This permission can create log of an incident in this project.",
+          "This permission can create log of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1175,7 +1214,7 @@ export class PermissionHelper {
         permission: Permission.EditAlertFeed,
         title: "Edit Alert Feed",
         description:
-          "This permission can edit log of an incident in this project.",
+          "This permission can edit log of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1183,7 +1222,7 @@ export class PermissionHelper {
         permission: Permission.ReadAlertFeed,
         title: "Read Alert Feed",
         description:
-          "This permission can read log of an incident in this project.",
+          "This permission can read log of an alert in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -1208,7 +1247,7 @@ export class PermissionHelper {
         permission: Permission.ReadScheduledMaintenanceFeed,
         title: "Read Scheduled Maintenance Log",
         description:
-          "This permission can read log of an incident in this project.",
+          "This permission can read log of an scheduled maintenance in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },
@@ -4048,6 +4087,72 @@ export class PermissionHelper {
         title: "Read Monitor Group Team Owner",
         description:
           "This permission can read Monitor Group Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateOnCallDutyPolicyOwnerUser,
+        title: "Create On Call Duty Policy User Owner",
+        description:
+          "This permission can create On Call Duty Policy User Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyOwnerUser,
+        title: "Delete On Call Duty Policy User Owner",
+        description:
+          "This permission can delete On Call Duty Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyOwnerUser,
+        title: "Edit On Call Duty Policy User Owner",
+        description:
+          "This permission can edit On Call Duty Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyOwnerUser,
+        title: "Read On Call Duty Policy User Owner",
+        description:
+          "This permission can read On Call Duty Policy User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.CreateOnCallDutyPolicyOwnerTeam,
+        title: "Create On Call Duty Policy Team Owner",
+        description:
+          "This permission can create On Call Duty Policy Team Owner this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.DeleteOnCallDutyPolicyOwnerTeam,
+        title: "Delete On Call Duty Policy Team Owner",
+        description:
+          "This permission can delete On Call Duty Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.EditOnCallDutyPolicyOwnerTeam,
+        title: "Edit On Call Duty Policy Team Owner",
+        description:
+          "This permission can edit On Call Duty Policy Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+      {
+        permission: Permission.ReadOnCallDutyPolicyOwnerTeam,
+        title: "Read On Call Duty Policy Team Owner",
+        description:
+          "This permission can read On Call Duty Policy Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

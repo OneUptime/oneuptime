@@ -33,6 +33,11 @@ export enum NotificationRuleConditionCheckOn {
   MonitorLabels = "Monitor Labels",
   ScheduledMaintenanceLabels = "Scheduled Maintenance Labels",
   Monitors = "Monitors", // like monitor contains in the incident or scheduled event.
+
+  // On Call Duty Policy
+  OnCallDutyPolicyName = "On Call Duty Policy Name",
+  OnCallDutyPolicyDescription = "On Call Duty Policy Description",
+  OnCallDutyPolicyLabels = "On Call Duty Policy Labels",
 }
 
 export enum ConditionType {

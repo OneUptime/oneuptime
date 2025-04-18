@@ -36,6 +36,9 @@ enum SlackActionType {
 
   // Monitor Actions
   ViewMonitor = "ViewMonitor",
+
+  // View on call policy.
+  ViewOnCallPolicy = "ViewOnCallPolicy",
 }
 
 export default SlackActionType;

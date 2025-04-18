@@ -1,5 +1,7 @@
 <html lang="en" class="js-focus-visible ctshmsrlsm idc0_345">
-<%- include('../partials/head') -%>
+<%- include('../partials/head', {
+   enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
+}) -%>
 
    <body onload="applyStyles()" class="bg-white antialiased " data-new-gr-c-s-check-loaded="14.1095.0"
       data-gr-ext-installed="">

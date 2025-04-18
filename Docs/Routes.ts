@@ -12,6 +12,7 @@ import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import "ejs";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const DocsFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -50,6 +51,21 @@ const DocsFeatureSet: FeatureSet = {
           const fullPath: string =
             `${_req.params["categorypath"]}/${_req.params["pagepath"]}`.toLowerCase();
 
+          // cehck if the file exists.
+          const fileExists: boolean = await LocalFile.doesFileExist(
+            `${ContentPath}/${fullPath}.md`,
+          );
+
+          if (!fileExists) {
+            // return 404.
+            res.status(404);
+            return res.render(`${ViewsPath}/NotFound`, {
+              nav: DocsNav,
+              enableGoogleTagManager: IsBillingEnabled,
+              link: "",
+            });
+          }
+
           // Read Markdown file from content folder
           let contentInMarkdown: string = await LocalFile.read(
             `${ContentPath}/${fullPath}.md`,
@@ -83,6 +99,8 @@ const DocsFeatureSet: FeatureSet = {
             res.status(404);
             return res.render(`${ViewsPath}/NotFound`, {
               nav: DocsNav,
+              enableGoogleTagManager: IsBillingEnabled,
+              link: "",
             });
           }
 
@@ -92,12 +110,15 @@ const DocsFeatureSet: FeatureSet = {
             category: currentCategory,
             link: currrentNavLink,
             githubPath: fullPath,
+            enableGoogleTagManager: IsBillingEnabled,
           });
         } catch (err) {
           logger.error(err);
           res.status(500);
           return res.render(`${ViewsPath}/ServerError`, {
             nav: DocsNav,
+            enableGoogleTagManager: IsBillingEnabled,
+            link: "",
           });
         }
       },

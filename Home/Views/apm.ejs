@@ -7,7 +7,9 @@
   <title>OneUptime | Application Performance Monitoring. </title>
   <meta name="description"
     content="Powered by OpenTelemetry. Monitor performance of any app, any service, any stack">
-  <%- include('head') -%>
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
 </head>
 
 <body>
