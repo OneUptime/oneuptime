@@ -159,7 +159,7 @@ export class Service extends DatabaseService<Model> {
         onCallDutyPolicyFeedEventType:
           OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded,
         displayColor: Gray500,
-        feedInfoInMarkdown: `📅 Removed on-call schedule **${onCallSchedule?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
+        feedInfoInMarkdown: `📅 Added on-call schedule **${onCallSchedule?.name || ""}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
         userId: createdByUserId || undefined,
         workspaceNotification: {
           sendWorkspaceNotification: true,
@@ -203,7 +203,7 @@ export class Service extends DatabaseService<Model> {
     const deleteByUserId: ObjectID | undefined =
       deleteBy.deletedByUser?.id || deleteBy.props.userId;
     for (const item of itemsToFetchBeforeDelete) {
-      const onCallDutyPolicyId: ObjectID | undefined = item.onCallDutyPolicyId;
+      const onCallDutyPolicyId: ObjectID | undefined = item.onCallDutyPolicy!.id!;
       const projectId: ObjectID | undefined = item.projectId;
 
       if (onCallDutyPolicyId && projectId) {
