@@ -3,6 +3,8 @@ require("file-loader");
 require("style-loader");
 require("css-loader");
 require("sass-loader");
+require('ejs');
+
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require("dotenv");

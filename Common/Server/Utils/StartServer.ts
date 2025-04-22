@@ -142,6 +142,10 @@ export interface InitFuctionOptions {
   port?: Port | undefined;
   isFrontendApp?: boolean;
   statusOptions: StatusAPIOptions;
+  getVariablesToRenderIndexPage?: (
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ) => Promise<JSONObject>;
 }
 
 type InitFunction = (
@@ -200,9 +204,25 @@ const init: InitFunction = async (
       },
     );
 
-    app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
+    app.get("/*", async (_req: ExpressRequest, res: ExpressResponse) => {
+      let variables: JSONObject = {};
+
+      if (data.getVariablesToRenderIndexPage) {
+        try {
+          const variablesToRenderIndexPage: JSONObject =
+            await data.getVariablesToRenderIndexPage(_req, res);
+          variables = {
+            ...variables,
+            ...variablesToRenderIndexPage,
+          };
+        } catch (error) {
+          logger.error(error);
+        }
+      }
+
       return res.render("/usr/src/app/views/index.ejs", {
         enableGoogleTagManager: IsBillingEnabled || false,
+        ...variables,
       });
     });
   }

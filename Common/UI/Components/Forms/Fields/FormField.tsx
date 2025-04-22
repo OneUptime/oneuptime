@@ -47,6 +47,7 @@ export interface ComponentProps<T extends GenericObject> {
   setFieldValue: (fieldName: string, value: JSONValue) => void;
   disableAutofocus?: boolean;
   submitForm?: (() => void) | undefined;
+  setFormValues?: ((values: FormValues<T>) => void) | undefined;
 }
 
 const FormField: <T extends GenericObject>(
@@ -54,6 +55,19 @@ const FormField: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  type onChangeFunction = (value: JSONValue) => void;
+
+  const onChange: onChangeFunction = (value: JSONValue): void => {
+    props.field.onChange &&
+      props.field.onChange(
+        value,
+        props.currentValues,
+        (newFormValues: FormValues<T>) => {
+          props.setFormValues && props.setFormValues(newFormValues);
+        },
+      );
+  };
+
   type GetFieldTypeFunction = (fieldType: FormFieldSchemaType) => string;
 
   const getFieldType: GetFieldTypeFunction = (
@@ -116,8 +130,8 @@ const FormField: <T extends GenericObject>(
             description={`${props.field.description}`}
             onSubmit={() => {
               setShowMultiSelectCheckboxCategoryModal(false);
-              props.field.onChange &&
-                props.field.onChange(checkboxCategoryValues);
+
+              onChange(checkboxCategoryValues);
               props.setFieldValue(props.fieldName, checkboxCategoryValues);
             }}
             onClose={() => {
@@ -268,7 +282,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: Color | null) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
                 props.setFieldTouched(props.fieldName, true);
               }}
@@ -294,7 +308,7 @@ const FormField: <T extends GenericObject>(
               onChange={async (
                 value: DropdownValue | Array<DropdownValue> | null,
               ) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onBlur={async () => {
@@ -322,7 +336,7 @@ const FormField: <T extends GenericObject>(
               disabled={props.isDisabled || props.field.disabled}
               error={props.touched && props.error ? props.error : undefined}
               onChange={(value: ObjectID) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onEnterPress={() => {
@@ -351,7 +365,7 @@ const FormField: <T extends GenericObject>(
                   : props.field.defaultValue || {}
               }
               onChange={(value: Dictionary<string | number | boolean>) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
             />
@@ -363,7 +377,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               options={props.field.radioButtonOptions || []}
@@ -381,7 +395,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: RadioValue | null) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               options={
@@ -410,7 +424,7 @@ const FormField: <T extends GenericObject>(
               tabIndex={index}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onBlur={async () => {
@@ -433,7 +447,7 @@ const FormField: <T extends GenericObject>(
               tabIndex={index}
               dataTestId={props.field.dataTestId}
               onChange={async (value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onBlur={async () => {
@@ -462,7 +476,7 @@ const FormField: <T extends GenericObject>(
               tabIndex={index}
               type={CodeType.Markdown}
               onChange={async (value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onBlur={async () => {
@@ -484,7 +498,7 @@ const FormField: <T extends GenericObject>(
               error: props.touched && props.error ? props.error : undefined,
               tabIndex: index,
               onChange: async (value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               },
               onBlur: async () => {
@@ -507,7 +521,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={index}
               onChange={async (value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onBlur={async () => {
@@ -551,7 +565,7 @@ const FormField: <T extends GenericObject>(
                   }
                 }
 
-                props.field.onChange && props.field.onChange(fileResult);
+                onChange(fileResult);
                 props.setFieldValue(props.fieldName, fileResult);
               }}
               onBlur={async () => {
@@ -577,7 +591,7 @@ const FormField: <T extends GenericObject>(
             <Toggle
               error={props.touched && props.error ? props.error : undefined}
               onChange={async (value: boolean) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onBlur={async () => {
@@ -594,7 +608,7 @@ const FormField: <T extends GenericObject>(
               title={props.field.title || ""}
               description={props.field.description || ""}
               onChange={async (value: boolean) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               dataTestId={props.field.dataTestId}
@@ -621,7 +635,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               onChange={async (value: Array<CategoryCheckboxValue>) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               initialValue={
@@ -657,7 +671,7 @@ const FormField: <T extends GenericObject>(
               dataTestId={props.field.dataTestId}
               type={fieldType as InputType}
               onChange={(value: string) => {
-                props.field.onChange && props.field.onChange(value);
+                onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
               onEnterPress={() => {

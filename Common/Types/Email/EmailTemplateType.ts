@@ -16,6 +16,7 @@ enum EmailTemplateType {
   SubscriberIncidentNoteCreated = "SubscriberIncidentNoteCreated.hbs",
   SubscriberIncidentStateChanged = "SubscriberIncidentStateChanged.hbs",
   SubscriberScheduledMaintenanceEventCreated = "SubscriberScheduledMaintenanceEventCreated.hbs",
+  ManageExistingStatusPageSubscriberSubscription = "ManageExistingStatusPageSubscriberSubscription.hbs",
   SubscriberScheduledMaintenanceEventStateChanged = "SubscriberScheduledMaintenanceEventStateChanged.hbs",
   StatusPageForgotPassword = "StatusPageForgotPassword.hbs",
   StatusPagePasswordChanged = "StatusPagePasswordChanged.hbs",

@@ -80,7 +80,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   footer?: ReactElement | undefined;
   onCancel?: undefined | (() => void);
   name?: string | undefined;
-  onChange?: undefined | ((values: FormValues<TBaseModel>) => void);
+  onChange?:
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>,
+        setNewFormValues: (newValues: FormValues<TBaseModel>) => void,
+      ) => void);
   onSuccess?: undefined | ((data: TBaseModel, miscData?: JSONObject) => void);
   cancelButtonText?: undefined | string;
   maxPrimaryButtonWidth?: undefined | boolean;
@@ -102,6 +107,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
+  values?: FormValues<TBaseModel> | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -751,6 +757,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
   return (
     <div>
       <BasicModelForm<TBaseModel>
+        values={props.values}
         title={props.title}
         description={props.description}
         disableAutofocus={props.disableAutofocus}
@@ -761,9 +768,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
         onIsLastFormStep={props.onIsLastFormStep}
         fields={fields}
         steps={props.steps}
-        onChange={(values: FormValues<TBaseModel>) => {
+        onChange={(
+          values: FormValues<TBaseModel>,
+          setNewFormValues: (newValues: FormValues<TBaseModel>) => void,
+        ) => {
           if (!isLoading) {
-            props.onChange && props.onChange(values);
+            props.onChange && props.onChange(values, setNewFormValues);
           }
         }}
         showAsColumns={props.showAsColumns}

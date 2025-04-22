@@ -79,6 +79,17 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { Green } from "../../Types/BrandColors";
 import UptimeUtil from "../../Utils/Uptime/UptimeUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import URL from "Common/Types/API/URL";
+import SMS from "../../Types/SMS/SMS";
+import SmsService from "../Services/SmsService";
+import ProjectCallSMSConfigService from "../Services/ProjectCallSMSConfigService";
+import MailService from "../Services/MailService";
+import EmailTemplateType from "../../Types/Email/EmailTemplateType";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import DatabaseConfig from "../DatabaseConfig";
+import { FileRoute } from "../../ServiceRoute";
+import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -86,6 +97,93 @@ export default class StatusPageAPI extends BaseAPI<
 > {
   public constructor() {
     super(StatusPage, StatusPageService);
+
+    // get title, description of the page.  This is used for SEO.
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const statusPageId: ObjectID = new ObjectID(
+          req.params["statusPageId"] as string,
+        );
+
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+          {
+            query: {
+              _id: statusPageId,
+            },
+            select: {
+              pageTitle: true,
+              pageDescription: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+        if (!statusPage) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+
+        return Response.sendJsonObjectResponse(req, res, {
+          title: statusPage.pageTitle,
+          description: statusPage.pageDescription,
+        });
+      },
+    );
+
+    // favicon api.
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const statusPageId: ObjectID = new ObjectID(
+          req.params["statusPageId"] as string,
+        );
+
+        const statusPage: StatusPage | null = await StatusPageService.findOneBy(
+          {
+            query: {
+              _id: statusPageId,
+            },
+            select: {
+              faviconFile: {
+                file: true,
+                _id: true,
+                type: true,
+                name: true,
+              },
+            },
+            props: {
+              isRoot: true,
+            },
+          },
+        );
+
+        if (!statusPage) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+
+        if (!statusPage.faviconFile) {
+          // return default favicon.
+          return Response.sendFileByPath(
+            req,
+            res,
+            `/usr/src/Common/UI/Images/favicon/status-green.png`,
+          );
+        }
+
+        return Response.sendFileResponse(req, res, statusPage.faviconFile!);
+      },
+    );
 
     // confirm subscription api
     this.router.get(
@@ -1347,6 +1445,22 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
+        ?.toString()}/manage-subscription/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.manageExistingSubscription(req);
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
         ?.toString()}/incidents/:statusPageId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -1939,6 +2053,233 @@ export default class StatusPageAPI extends BaseAPI<
     };
 
     return response;
+  }
+
+  @CaptureSpan()
+  public async manageExistingSubscription(req: ExpressRequest): Promise<void> {
+    const objectId: ObjectID = new ObjectID(
+      req.params["statusPageId"] as string,
+    );
+
+    logger.debug(`Managing Existing Subscription for Status Page: ${objectId}`);
+
+    if (
+      !(await this.service.hasReadAccess(
+        objectId,
+        await CommonAPI.getDatabaseCommonInteractionProps(req),
+        req,
+      ))
+    ) {
+      logger.debug(`No read access to status page with ID: ${objectId}`);
+      throw new NotAuthenticatedException(
+        "You are not authenticated to access this status page",
+      );
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneBy({
+      query: {
+        _id: objectId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        enableEmailSubscribers: true,
+        enableSmsSubscribers: true,
+        allowSubscribersToChooseResources: true,
+        allowSubscribersToChooseEventTypes: true,
+        showSubscriberPageOnStatusPage: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!statusPage) {
+      logger.debug(`Status page not found with ID: ${objectId}`);
+      throw new BadDataException("Status Page not found");
+    }
+
+    if (!statusPage.showSubscriberPageOnStatusPage) {
+      logger.debug(
+        `Subscriber page not enabled for status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "Subscribes not enabled for this status page.",
+      );
+    }
+
+    logger.debug(`Status page found: ${JSON.stringify(statusPage)}`);
+
+    if (
+      req.body.data["subscriberEmail"] &&
+      !statusPage.enableEmailSubscribers
+    ) {
+      logger.debug(
+        `Email subscribers not enabled for status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "Email subscribers not enabled for this status page.",
+      );
+    }
+
+    if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
+      logger.debug(
+        `SMS subscribers not enabled for status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "SMS subscribers not enabled for this status page.",
+      );
+    }
+
+    // if no email or phone, throw error.
+
+    if (
+      !req.body.data["subscriberEmail"] &&
+      !req.body.data["subscriberPhone"]
+    ) {
+      logger.debug(
+        `No email or phone provided for subscription to status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "Email or phone is required to subscribe to this status page.",
+      );
+    }
+
+    const email: Email | undefined = req.body.data["subscriberEmail"]
+      ? new Email(req.body.data["subscriberEmail"] as string)
+      : undefined;
+
+    const phone: Phone | undefined = req.body.data["subscriberPhone"]
+      ? new Phone(req.body.data["subscriberPhone"] as string)
+      : undefined;
+
+    let statusPageSubscriber: StatusPageSubscriber | null = null;
+
+    if (email) {
+      logger.debug(`Setting subscriber email: ${email}`);
+      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+        query: {
+          subscriberEmail: email,
+          statusPageId: objectId,
+        },
+        select: {
+          _id: true,
+          subscriberEmail: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (phone) {
+      logger.debug(`Setting subscriber phone: ${phone}`);
+      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+        query: {
+          subscriberPhone: phone,
+          statusPageId: objectId,
+        },
+        select: {
+          _id: true,
+          subscriberPhone: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (!statusPageSubscriber) {
+      // not found, return bad data
+      logger.debug(
+        `Subscriber not found for email: ${email} or phone: ${phone}`,
+      );
+
+      let emailOrPhone: string = "email";
+      if (phone) {
+        emailOrPhone = "phone";
+      }
+
+      throw new BadDataException(
+        `Subscription not found for this status page. Please make sure your ${emailOrPhone} is correct.`,
+      );
+    }
+
+    const statusPageURL: string =
+      await StatusPageService.getStatusPageURL(objectId);
+
+    const manageUrlink: string = StatusPageSubscriberService.getUnsubscribeLink(
+      URL.fromString(statusPageURL),
+      statusPageSubscriber.id!,
+    ).toString();
+
+    const statusPages: Array<StatusPage> =
+      await StatusPageSubscriberService.getStatusPagesToSendNotification([
+        objectId,
+      ]);
+
+    for (const statusPage of statusPages) {
+      // send email to subscriber or sms if phone is provided.
+
+      if (email) {
+        const host: Hostname = await DatabaseConfig.getHost();
+        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+        MailService.sendMail(
+          {
+            toEmail: email,
+            templateType:
+              EmailTemplateType.ManageExistingStatusPageSubscriberSubscription,
+            vars: {
+              statusPageName: statusPage.name || "Status Page",
+              statusPageUrl: statusPageURL,
+              logoUrl: statusPage.logoFileId
+                ? new URL(httpProtocol, host)
+                    .addRoute(FileRoute)
+                    .addRoute("/image/" + statusPage.logoFileId)
+                    .toString()
+                : "",
+              isPublicStatusPage: statusPage.isPublicStatusPage
+                ? "true"
+                : "false",
+              subscriberEmailNotificationFooterText:
+                statusPage.subscriberEmailNotificationFooterText || "",
+
+              manageSubscriptionUrl: manageUrlink,
+            },
+            subject:
+              "Manage your Subscription for" +
+              (statusPage.name || "Status Page"),
+          },
+          {
+            mailServer: ProjectSmtpConfigService.toEmailServer(
+              statusPage.smtpConfig,
+            ),
+            projectId: statusPage.projectId!,
+          },
+        );
+      }
+
+      if (phone) {
+        const sms: SMS = {
+          message: `You have selected to manage your subscription for the status page: ${statusPage.name}. You can manage your subscription here: ${manageUrlink}`,
+          to: phone,
+        };
+        // send sms here.
+        SmsService.sendSms(sms, {
+          projectId: statusPage.projectId,
+          customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+            statusPage.callSmsConfig,
+          ),
+        }).catch((err: Error) => {
+          logger.error(err);
+        });
+      }
+
+      logger.debug(
+        `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
+      );
+    }
   }
 
   @CaptureSpan()

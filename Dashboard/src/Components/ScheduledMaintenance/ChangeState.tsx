@@ -21,6 +21,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 import { Black } from "Common/Types/BrandColors";
+import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
@@ -34,6 +36,11 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [
+    scheduledMaintenanceNoteTemplates,
+    setScheduledMaintenanceNoteTemplates,
+  ] = useState<ScheduledMaintenanceNoteTemplate[]>([]);
 
   const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
     ScheduledMaintenanceState[]
@@ -52,6 +59,31 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
   ] = useState<ScheduledMaintenanceStateTimeline[]>([]);
+
+  const fetchScheduledMaintenanceNoteTemplates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const scheduledMaintenanceNoteTemplates: ListResult<ScheduledMaintenanceNoteTemplate> =
+        await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
+          modelType: ScheduledMaintenanceNoteTemplate,
+          query: {
+            projectId: ProjectUtil.getCurrentProject()!.id!,
+          },
+          limit: 99,
+          skip: 0,
+          select: {
+            _id: true,
+            templateName: true,
+            note: true,
+          },
+          sort: {
+            templateName: SortOrder.Ascending,
+          },
+        });
+
+      setScheduledMaintenanceNoteTemplates(
+        scheduledMaintenanceNoteTemplates.data,
+      );
+    };
 
   const fetchScheduledMaintenanceStates: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -120,6 +152,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
       await fetchScheduledMaintenanceStates();
       await fetchScheduledMaintenanceStateTimelines();
+      await fetchScheduledMaintenanceNoteTemplates();
     } catch (err: unknown) {
       setError(API.getFriendlyMessage(err as Exception));
     }
@@ -256,6 +289,54 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             modelType: ScheduledMaintenanceStateTimeline,
             id: "create-scheduled-maintenance-state-timeline",
             fields: [
+              {
+                field: {
+                  publicNoteTemplate: true,
+                } as any,
+                onChange: (
+                  value: string,
+                  currentValues: FormValues<ScheduledMaintenanceNoteTemplate>,
+                  setNewFormValues: (
+                    currentFormValues: FormValues<ScheduledMaintenanceStateTimeline>,
+                  ) => void,
+                ) => {
+                  // get note template by id
+                  const selectedTemplate:
+                    | ScheduledMaintenanceNoteTemplate
+                    | undefined = scheduledMaintenanceNoteTemplates.find(
+                    (template: ScheduledMaintenanceNoteTemplate) => {
+                      return template.id?.toString() === value;
+                    },
+                  );
+
+                  const note: string = selectedTemplate?.note || "";
+
+                  if (note) {
+                    setNewFormValues({
+                      ...currentValues,
+                      publicNote: note,
+                    } as any);
+                  }
+                },
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: scheduledMaintenanceNoteTemplates.map(
+                  (template: ScheduledMaintenanceNoteTemplate) => {
+                    return {
+                      value: template.id!.toString(),
+                      label: template.templateName || "",
+                    };
+                  },
+                ),
+                showIf: () => {
+                  return scheduledMaintenanceNoteTemplates.length > 0;
+                },
+                description:
+                  "If you have a template for this state change, select it here.",
+                title: "Select Note Template",
+                required: false,
+                overrideFieldKey: "publicNoteTemplate",
+                showEvenIfPermissionDoesNotExist: true,
+              },
               {
                 field: {
                   publicNote: true,
