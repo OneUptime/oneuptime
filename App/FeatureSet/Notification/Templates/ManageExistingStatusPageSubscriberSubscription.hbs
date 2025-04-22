@@ -1,0 +1,15 @@
+{{> Start this}}
+
+{{> CustomLogo this}}
+{{> EmailTitle title=(concat statusPageName " - Manage Subscription" ) }}
+
+{{> InfoBlock info="Please click on the link below to manage or unsubscribe from status page notifications."}}
+
+{{> ButtonBlock buttonUrl=manageSubscriptionUrl buttonText="Manage Subscription"}} 
+
+{{> InfoBlock info="You can also view the status page by visiting this link:"}}
+{{> InfoBlock info=statusPageUrl}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}
