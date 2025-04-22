@@ -102,6 +102,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   doNotFetchExistingModel?: boolean | undefined;
   modelAPI?: typeof ModelAPI | undefined;
   summary?: FormSummaryConfig | undefined;
+  values?: FormValues<TBaseModel> | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -751,6 +752,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
   return (
     <div>
       <BasicModelForm<TBaseModel>
+        values={props.values}
         title={props.title}
         description={props.description}
         disableAutofocus={props.disableAutofocus}

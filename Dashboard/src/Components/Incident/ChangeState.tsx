@@ -53,7 +53,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     IncidentNoteTemplate[]
   >([]);
 
-  const [initialValues, setInitialValues] = useState<FormValues<IncidentStateTimeline>>(
+  const [formValues, setFormValues] = useState<FormValues<IncidentStateTimeline>>(
     {},
   );
 
@@ -255,7 +255,10 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             props.onActionComplete();
           }}
           formProps={{
-            initialValues: initialValues, 
+            values: formValues, 
+            onChange: (values: FormValues<IncidentStateTimeline>) => {
+              setFormValues(values);
+            },
             name: "create-scheduled-maintenance-state-timeline",
             modelType: IncidentStateTimeline,
             id: "create-scheduled-maintenance-state-timeline",
@@ -270,7 +273,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                       return template.id?.toString() === value;
                     });
                   if (incidentNoteTemplate) {
-                    setInitialValues({
+                    setFormValues({
                       publicNote: incidentNoteTemplate.note,
                     } as any);
                   }

@@ -48,6 +48,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   formRef?: undefined | MutableRefObject<FormProps<FormValues<TBaseModel>>>;
   initialValues?: FormValues<TBaseModel> | undefined;
   summary?: FormSummaryConfig | undefined;
+  values?: FormValues<TBaseModel> | undefined;
 }
 
 const BasicModelForm: <TBaseModel extends BaseModel>(
@@ -99,6 +100,7 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
 
   return (
     <BasicForm
+      values={props.values}
       isLoading={props.isLoading || false}
       fields={formFields}
       id={props.id}
