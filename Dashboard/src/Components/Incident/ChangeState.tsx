@@ -23,6 +23,7 @@ import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButton
 import { Black } from "Common/Types/BrandColors";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { JSONObject } from "Common/Types/JSON";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -267,13 +268,14 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                 field: {
                   publicNoteTemplate: true,
                 } as any,
-                onChange: (value: string) => {
+                onChange: (value: FormValues<IncidentNoteTemplate>) => {
                   const incidentNoteTemplate: IncidentNoteTemplate | undefined =
                     incidentNoteTemplates.find((template: IncidentNoteTemplate) => {
-                      return template.id?.toString() === value;
+                      return template.id?.toString() === (value as JSONObject)?.['publicNoteTemplate']?.toString();
                     });
                   if (incidentNoteTemplate) {
                     setFormValues({
+                      ...value,
                       publicNote: incidentNoteTemplate.note,
                     } as any);
                   }
