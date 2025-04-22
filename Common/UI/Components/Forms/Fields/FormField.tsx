@@ -55,10 +55,7 @@ const FormField: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-
-  type onChangeFunction = (
-    value: JSONValue,
-  ) => void;
+  type onChangeFunction = (value: JSONValue) => void;
 
   const onChange: onChangeFunction = (value: JSONValue): void => {
     props.field.onChange &&

@@ -37,9 +37,10 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const [scheduledMaintenanceNoteTemplates, setScheduledMaintenanceNoteTemplates] = useState<
-      ScheduledMaintenanceNoteTemplate[]
-    >([]);
+  const [
+    scheduledMaintenanceNoteTemplates,
+    setScheduledMaintenanceNoteTemplates,
+  ] = useState<ScheduledMaintenanceNoteTemplate[]>([]);
 
   const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
     ScheduledMaintenanceState[]
@@ -60,28 +61,29 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
   ] = useState<ScheduledMaintenanceStateTimeline[]>([]);
 
   const fetchScheduledMaintenanceNoteTemplates: PromiseVoidFunction =
-  async (): Promise<void> => {
-    const scheduledMaintenanceNoteTemplates: ListResult<ScheduledMaintenanceNoteTemplate> =
-      await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
-        modelType: ScheduledMaintenanceNoteTemplate,
-        query: {
-          projectId: ProjectUtil.getCurrentProject()!.id!,
-        },
-        limit: 99,
-        skip: 0,
-        select: {
-          _id: true,
-          templateName: true,
-          note: true,
-        },
-        sort: {
-          templateName: SortOrder.Ascending,
-        },
-      });
+    async (): Promise<void> => {
+      const scheduledMaintenanceNoteTemplates: ListResult<ScheduledMaintenanceNoteTemplate> =
+        await ModelAPI.getList<ScheduledMaintenanceNoteTemplate>({
+          modelType: ScheduledMaintenanceNoteTemplate,
+          query: {
+            projectId: ProjectUtil.getCurrentProject()!.id!,
+          },
+          limit: 99,
+          skip: 0,
+          select: {
+            _id: true,
+            templateName: true,
+            note: true,
+          },
+          sort: {
+            templateName: SortOrder.Ascending,
+          },
+        });
 
-    setScheduledMaintenanceNoteTemplates(scheduledMaintenanceNoteTemplates.data);
-  };
-
+      setScheduledMaintenanceNoteTemplates(
+        scheduledMaintenanceNoteTemplates.data,
+      );
+    };
 
   const fetchScheduledMaintenanceStates: PromiseVoidFunction =
     async (): Promise<void> => {
@@ -299,12 +301,13 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                   ) => void,
                 ) => {
                   // get note template by id
-                  const selectedTemplate: ScheduledMaintenanceNoteTemplate | undefined =
-                    scheduledMaintenanceNoteTemplates.find(
-                      (template: ScheduledMaintenanceNoteTemplate) => {
-                        return template.id?.toString() === value;
-                      },
-                    );
+                  const selectedTemplate:
+                    | ScheduledMaintenanceNoteTemplate
+                    | undefined = scheduledMaintenanceNoteTemplates.find(
+                    (template: ScheduledMaintenanceNoteTemplate) => {
+                      return template.id?.toString() === value;
+                    },
+                  );
 
                   const note: string = selectedTemplate?.note || "";
 

@@ -37,10 +37,9 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const [alertNoteTemplates, setAlertNoteTemplates] = useState<
-      AlertNoteTemplate[]
-    >([]);
-  
+  const [alertNoteTemplates, setAlertNoteTemplates] = useState<
+    AlertNoteTemplate[]
+  >([]);
 
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
   const [currentAlertState, setCurrentAlertState] = useState<
@@ -55,28 +54,28 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
     AlertStateTimeline[]
   >([]);
 
-    const fetchAlertNoteTemplates: PromiseVoidFunction =
-      async (): Promise<void> => {
-        const alertNoteTemplates: ListResult<AlertNoteTemplate> =
-          await ModelAPI.getList<AlertNoteTemplate>({
-            modelType: AlertNoteTemplate,
-            query: {
-              projectId: ProjectUtil.getCurrentProject()!.id!,
-            },
-            limit: 99,
-            skip: 0,
-            select: {
-              _id: true,
-              templateName: true,
-              note: true,
-            },
-            sort: {
-              templateName: SortOrder.Ascending,
-            },
-          });
-  
-        setAlertNoteTemplates(alertNoteTemplates.data);
-      };
+  const fetchAlertNoteTemplates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const alertNoteTemplates: ListResult<AlertNoteTemplate> =
+        await ModelAPI.getList<AlertNoteTemplate>({
+          modelType: AlertNoteTemplate,
+          query: {
+            projectId: ProjectUtil.getCurrentProject()!.id!,
+          },
+          limit: 99,
+          skip: 0,
+          select: {
+            _id: true,
+            templateName: true,
+            note: true,
+          },
+          sort: {
+            templateName: SortOrder.Ascending,
+          },
+        });
+
+      setAlertNoteTemplates(alertNoteTemplates.data);
+    };
 
   const fetchAlertStates: PromiseVoidFunction = async (): Promise<void> => {
     const projectId: ObjectID | undefined | null =
@@ -259,7 +258,13 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
                 field: {
                   privateNoteTemplate: true,
                 } as any,
-                onChange: (value: string, currentValues: FormValues<AlertNoteTemplate>, setNewFormValues: (currentFormValues: FormValues<AlertStateTimeline>) => void) => {
+                onChange: (
+                  value: string,
+                  currentValues: FormValues<AlertNoteTemplate>,
+                  setNewFormValues: (
+                    currentFormValues: FormValues<AlertStateTimeline>,
+                  ) => void,
+                ) => {
                   // get note template by id
                   const selectedTemplate: AlertNoteTemplate | undefined =
                     alertNoteTemplates.find((template: AlertNoteTemplate) => {
