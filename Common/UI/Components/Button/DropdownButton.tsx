@@ -11,10 +11,9 @@ interface DropdownButtonProps {
   onButtonClick: () => void;
 }
 
-
 export interface ComponentProps {
-  title: string; 
-  dropdownOptions: DropdownOption[]; 
+  title: string;
+  dropdownOptions: DropdownOption[];
   onButtonClick: () => void;
 }
 
