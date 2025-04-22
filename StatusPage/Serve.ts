@@ -19,6 +19,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         liveCheck: async () => {},
         readyCheck: async () => {},
       },
+      getVariablesToRenderIndexPage: async (_req, _res) => {
+        return {
+          title: "Status Page",
+          description: "Status Page",
+          faviconUrl: "/favicon.ico",
+        };
+      }
     });
 
     // add default routes

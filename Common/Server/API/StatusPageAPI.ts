@@ -87,6 +87,97 @@ export default class StatusPageAPI extends BaseAPI<
   public constructor() {
     super(StatusPage, StatusPageService);
 
+
+    // get title, description of the page.  This is used for SEO. 
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:statusPageId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const statusPageId: ObjectID = new ObjectID(
+          req.params["statusPageId"] as string,
+        );
+
+        const statusPage: StatusPage | null =
+          await StatusPageService.findOneBy({
+            query: {
+              _id: statusPageId,
+            },
+            select: {
+              pageTitle: true,
+              pageDescription: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!statusPage) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+
+        return Response.sendJsonObjectResponse(req, res, {
+          title: statusPage.pageTitle,
+          description: statusPage.pageDescription,
+        });
+      },
+    );
+
+    // favicon api. 
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageId`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const statusPageId: ObjectID = new ObjectID(
+          req.params["statusPageId"] as string,
+        );
+
+        const statusPage: StatusPage | null =
+          await StatusPageService.findOneBy({
+            query: {
+              _id: statusPageId,
+            },
+            select: {
+              faviconFile: {
+                file: true,
+                _id: true,
+                type: true,
+                name: true,
+              },
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!statusPage) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
+        }
+
+        if(!statusPage.faviconFile) {
+          // return default favicon.
+          return Response.sendFileByPath(
+            req,
+            res,
+            `/usr/src/Common/UI/Images/favicon/status-green.png`,
+          );
+
+        }
+
+        return Response.sendFileResponse(
+          req,
+          res,
+          statusPage.faviconFile!,
+        );
+      },
+    );
+
     // confirm subscription api
     this.router.get(
       `${new this.entityType()
