@@ -11,11 +11,18 @@ interface DropdownButtonProps {
   onButtonClick: () => void;
 }
 
+
+export interface ComponentProps {
+  title: string; 
+  dropdownOptions: DropdownOption[]; 
+  onButtonClick: () => void;
+}
+
 const DropdownButton: React.FC<DropdownButtonProps> = ({
   title,
   dropdownOptions,
   onButtonClick,
-}): ReactElement => {
+}: ComponentProps): ReactElement => {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleDropdown: VoidFunction = () => {
