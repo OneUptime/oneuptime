@@ -28,8 +28,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         _res: ExpressResponse,
       ) => {
         return {
-          title: "Status Page",
-          description: "Status Page",
+          title: "Status Page One",
+          description: "Status Page Two",
           faviconUrl: "/favicon.ico",
         };
       },
