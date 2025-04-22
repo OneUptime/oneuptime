@@ -259,12 +259,20 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                 field: {
                   publicNoteTemplate: true,
                 } as any,
-                onChange: (value: string, currentValues: FormValues<IncidentNoteTemplate>, setNewFormValues: (currentFormValues: FormValues<IncidentStateTimeline>) => void) => {
+                onChange: (
+                  value: string,
+                  currentValues: FormValues<IncidentNoteTemplate>,
+                  setNewFormValues: (
+                    currentFormValues: FormValues<IncidentStateTimeline>,
+                  ) => void,
+                ) => {
                   // get note template by id
                   const selectedTemplate: IncidentNoteTemplate | undefined =
-                    incidentNoteTemplates.find((template: IncidentNoteTemplate) => {
-                      return template.id?.toString() === value;
-                    });
+                    incidentNoteTemplates.find(
+                      (template: IncidentNoteTemplate) => {
+                        return template.id?.toString() === value;
+                      },
+                    );
 
                   const note: string = selectedTemplate?.note || "";
 

@@ -23,7 +23,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     values: FormValues<TBaseModel>,
     onSubmitSuccessful: () => void,
   ) => void;
-  onChange?: undefined | ((values: FormValues<TBaseModel>, setNewFormValues: (newValues: FormValues<TBaseModel>) => void) => void);
+  onChange?:
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>,
+        setNewFormValues: (newValues: FormValues<TBaseModel>) => void,
+      ) => void);
   onValidate?:
     | undefined
     | ((values: FormValues<TBaseModel>) => FormErrors<FormValues<TBaseModel>>);
