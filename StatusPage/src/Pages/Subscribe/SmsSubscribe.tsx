@@ -7,6 +7,7 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
 import { SubscribePageProps } from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -30,6 +31,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
   props: SubscribePageProps,
@@ -149,6 +151,88 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     });
   }
 
+  const getNewSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          id="sms-form"
+          name="Status Page > SMS Subscribe"
+          fields={fields}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/subscribe/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders(
+            StatusPageUtil.getStatusPageId()!,
+          )}
+          formType={FormType.Create}
+          submitButtonText={"Subscribe"}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
+
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
+
+  const getManageExistingSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          id="sms-manage-form"
+          name="Status Page > Manage SMS Subscription"
+          fields={[
+            {
+              field: {
+                subscriberPhone: true,
+              },
+              title: "Please enter your phone number you have subscribed with",
+              description:
+                "We will send you a manage subscription link to this phone number.",
+              fieldType: FormFieldSchemaType.Phone,
+              required: true,
+              placeholder: "+11234567890",
+            },
+          ]}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/manage-subscription/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders(
+            StatusPageUtil.getStatusPageId()!,
+          )}
+          formType={FormType.Create}
+          submitButtonText={"Manage Subscription"}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
+
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
+
   return (
     <Page
       title={"Subscribe"}
@@ -200,36 +284,18 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     "All of our updates will be sent to this phone number."
                   }
                 >
-                  <ModelForm<StatusPageSubscriber>
-                    modelType={StatusPageSubscriber}
-                    id="SMS-form"
-                    name="Status Page > SMS Subscribe"
-                    fields={fields}
-                    createOrUpdateApiUrl={URL.fromString(
-                      STATUS_PAGE_API_URL.toString(),
-                    ).addRoute(`/subscribe/${id.toString()}`)}
-                    requestHeaders={API.getDefaultHeaders(
-                      StatusPageUtil.getStatusPageId()!,
-                    )}
-                    formType={FormType.Create}
-                    submitButtonText={"Subscribe"}
-                    onBeforeCreate={async (item: StatusPageSubscriber) => {
-                      const id: ObjectID = LocalStorage.getItem(
-                        "statusPageId",
-                      ) as ObjectID;
-                      if (!id) {
-                        throw new BadDataException(
-                          "Status Page ID is required",
-                        );
-                      }
-
-                      item.statusPageId = id;
-                      return item;
-                    }}
-                    onSuccess={() => {
-                      setIsSuccess(true);
-                    }}
-                    maxPrimaryButtonWidth={true}
+                  <Tabs
+                    tabs={[
+                      {
+                        name: "New Subscription",
+                        children: getNewSubscriptionContentElement(),
+                      },
+                      {
+                        name: "Manage Existing Subscription",
+                        children: getManageExistingSubscriptionContentElement(),
+                      },
+                    ]}
+                    onTabChange={() => {}}
                   />
                 </Card>
               </div>
