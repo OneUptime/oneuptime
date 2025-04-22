@@ -1,5 +1,5 @@
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import Express, { ExpressApplication, ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import "ejs";
@@ -19,13 +19,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         liveCheck: async () => {},
         readyCheck: async () => {},
       },
-      getVariablesToRenderIndexPage: async (_req, _res) => {
+      getVariablesToRenderIndexPage: async (_req: ExpressRequest, _res: ExpressResponse) => {
         return {
           title: "Status Page",
           description: "Status Page",
           faviconUrl: "/favicon.ico",
         };
-      }
+      },
     });
 
     // add default routes

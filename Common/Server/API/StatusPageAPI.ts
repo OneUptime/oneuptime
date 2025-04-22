@@ -104,7 +104,7 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageId: ObjectID = new ObjectID(
-          req.params["statusPageId"] as string
+          req.params["statusPageId"] as string,
         );
 
         const statusPage: StatusPage | null = await StatusPageService.findOneBy(
@@ -119,14 +119,14 @@ export default class StatusPageAPI extends BaseAPI<
             props: {
               isRoot: true,
             },
-          }
+          },
         );
 
         if (!statusPage) {
           return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException("Status Page not found")
+            new NotFoundException("Status Page not found"),
           );
         }
 
@@ -134,7 +134,7 @@ export default class StatusPageAPI extends BaseAPI<
           title: statusPage.pageTitle,
           description: statusPage.pageDescription,
         });
-      }
+      },
     );
 
     // favicon api.
@@ -142,7 +142,7 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageId`,
       async (req: ExpressRequest, res: ExpressResponse) => {
         const statusPageId: ObjectID = new ObjectID(
-          req.params["statusPageId"] as string
+          req.params["statusPageId"] as string,
         );
 
         const statusPage: StatusPage | null = await StatusPageService.findOneBy(
@@ -161,14 +161,14 @@ export default class StatusPageAPI extends BaseAPI<
             props: {
               isRoot: true,
             },
-          }
+          },
         );
 
         if (!statusPage) {
           return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException("Status Page not found")
+            new NotFoundException("Status Page not found"),
           );
         }
 
@@ -177,12 +177,12 @@ export default class StatusPageAPI extends BaseAPI<
           return Response.sendFileByPath(
             req,
             res,
-            `/usr/src/Common/UI/Images/favicon/status-green.png`
+            `/usr/src/Common/UI/Images/favicon/status-green.png`,
           );
         }
 
         return Response.sendFileResponse(req, res, statusPage.faviconFile!);
-      }
+      },
     );
 
     // confirm subscription api
@@ -194,7 +194,7 @@ export default class StatusPageAPI extends BaseAPI<
         const token: string = req.query["verification-token"] as string;
 
         const statusPageSubscriberId: ObjectID = new ObjectID(
-          req.params["statusPageSubscriberId"] as string
+          req.params["statusPageSubscriberId"] as string,
         );
 
         const subscriber: StatusPageSubscriber | null =
@@ -216,8 +216,8 @@ export default class StatusPageAPI extends BaseAPI<
             req,
             res,
             new NotFoundException(
-              "Subscriber not found or confirmation token is invalid"
-            )
+              "Subscriber not found or confirmation token is invalid",
+            ),
           );
         }
 
@@ -242,7 +242,7 @@ export default class StatusPageAPI extends BaseAPI<
         });
 
         return Response.sendEmptySuccessResponse(req, res);
-      }
+      },
     );
 
     // CNAME verification api
@@ -279,12 +279,12 @@ export default class StatusPageAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid token.")
+            new BadDataException("Invalid token."),
           );
         }
 
         return Response.sendEmptySuccessResponse(req, res);
-      }
+      },
     );
 
     // ACME Challenge Validation.
@@ -310,16 +310,16 @@ export default class StatusPageAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new NotFoundException("Challenge not found")
+            new NotFoundException("Challenge not found"),
           );
         }
 
         return Response.sendTextResponse(
           req,
           res,
-          challenge.challenge as string
+          challenge.challenge as string,
         );
-      }
+      },
     );
 
     this.router.post(
@@ -329,7 +329,7 @@ export default class StatusPageAPI extends BaseAPI<
         try {
           const email: Email = new Email(req.body["email"] as string);
           const statusPageId: ObjectID = new ObjectID(
-            req.body["statusPageId"].toString() as string
+            req.body["statusPageId"].toString() as string,
           );
 
           await StatusPageService.sendEmailReport({
@@ -341,7 +341,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -383,7 +383,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -394,7 +394,7 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const select: Select<StatusPage> = {
@@ -509,11 +509,11 @@ export default class StatusPageAPI extends BaseAPI<
             statusPage: BaseModel.toJSON(item, StatusPage),
             footerLinks: BaseModel.toJSONArray(
               footerLinks,
-              StatusPageFooterLink
+              StatusPageFooterLink,
             ),
             headerLinks: BaseModel.toJSONArray(
               headerLinks,
-              StatusPageHeaderLink
+              StatusPageHeaderLink,
             ),
             hasEnabledSSO: hasEnabledSSO.toNumber(),
           };
@@ -522,7 +522,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -531,7 +531,7 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const sso: Array<StatusPageSSO> = await StatusPageSsoService.findBy({
@@ -557,12 +557,12 @@ export default class StatusPageAPI extends BaseAPI<
             res,
             sso,
             new PositiveNumber(sso.length),
-            StatusPageSSO
+            StatusPageSSO,
           );
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     // Get all status page resources for subscriber to subscribe to.
@@ -574,18 +574,18 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           if (
             !(await this.service.hasReadAccess(
               objectId,
               await CommonAPI.getDatabaseCommonInteractionProps(req),
-              req
+              req,
             ))
           ) {
             throw new NotAuthenticatedException(
-              "You are not authenticated to access this status page"
+              "You are not authenticated to access this status page",
             );
           }
 
@@ -616,12 +616,12 @@ export default class StatusPageAPI extends BaseAPI<
             res,
             resources,
             new PositiveNumber(resources.length),
-            StatusPageResource
+            StatusPageResource,
           );
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -633,11 +633,11 @@ export default class StatusPageAPI extends BaseAPI<
         try {
           // This reosurce ID can be of a status page resource OR a status page group.
           const statusPageResourceId: ObjectID = new ObjectID(
-            req.params["statusPageResourceId"] as string
+            req.params["statusPageResourceId"] as string,
           );
 
           const statusPageId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           if (!statusPageId || !statusPageResourceId) {
@@ -648,11 +648,11 @@ export default class StatusPageAPI extends BaseAPI<
             !(await this.service.hasReadAccess(
               statusPageId,
               await CommonAPI.getDatabaseCommonInteractionProps(req),
-              req
+              req,
             ))
           ) {
             throw new NotAuthenticatedException(
-              "You are not authenticated to access this status page"
+              "You are not authenticated to access this status page",
             );
           }
 
@@ -665,7 +665,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           if (req.body["startDate"]) {
             startDate = OneUptimeDate.fromString(
-              req.body["startDate"] as string
+              req.body["startDate"] as string,
             );
           }
 
@@ -682,7 +682,7 @@ export default class StatusPageAPI extends BaseAPI<
             90
           ) {
             throw new BadDataException(
-              "You can only get uptime for 90 days. Please select a date range within 90 days."
+              "You can only get uptime for 90 days. Please select a date range within 90 days.",
             );
           }
 
@@ -798,7 +798,7 @@ export default class StatusPageAPI extends BaseAPI<
                           statusPageResource: resource,
                           monitorStatusTimelines: monitorStatusTimelines,
                           monitorsInGroup: monitorsInGroup,
-                        }
+                        },
                       );
 
                     if (resource.showUptimePercent) {
@@ -806,7 +806,7 @@ export default class StatusPageAPI extends BaseAPI<
                         UptimeUtil.calculateUptimePercentage(
                           resourceStatusTimelines,
                           precision,
-                          downtimeMonitorStatuses
+                          downtimeMonitorStatuses,
                         );
 
                       resourceUptime.uptimePercent = uptimePercent;
@@ -849,14 +849,14 @@ export default class StatusPageAPI extends BaseAPI<
                             statusPageResource: resource,
                             monitorStatusTimelines: monitorStatusTimelines,
                             monitorsInGroup: monitorsInGroup,
-                          }
+                          },
                         );
 
                       const uptimePercent: number =
                         UptimeUtil.calculateUptimePercentage(
                           resourceStatusTimelines,
                           precision,
-                          downtimeMonitorStatuses
+                          downtimeMonitorStatuses,
                         );
 
                       resourceUptime.uptimePercent = uptimePercent;
@@ -911,7 +911,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           for (const group of statusPageGroups) {
             groupUptimes.push(
-              getUptimeByStatusPageGroup({ statusPageGroup: group })
+              getUptimeByStatusPageGroup({ statusPageGroup: group }),
             );
           }
 
@@ -927,7 +927,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -938,18 +938,18 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           if (
             !(await this.service.hasReadAccess(
               objectId,
               await CommonAPI.getDatabaseCommonInteractionProps(req),
-              req
+              req,
             ))
           ) {
             throw new NotAuthenticatedException(
-              "You are not authenticated to access this status page"
+              "You are not authenticated to access this status page",
             );
           }
 
@@ -1009,7 +1009,7 @@ export default class StatusPageAPI extends BaseAPI<
                 statusPage.projectId!,
                 {
                   isRoot: true,
-                }
+                },
               );
 
             const unresolvedIncidentStateIds: Array<ObjectID> =
@@ -1022,7 +1022,7 @@ export default class StatusPageAPI extends BaseAPI<
                 query: {
                   monitors: monitorsOnStatusPage as any,
                   currentIncidentStateId: QueryHelper.any(
-                    unresolvedIncidentStateIds
+                    unresolvedIncidentStateIds,
                   ),
                   isVisibleOnStatusPage: true,
                   projectId: statusPage.projectId!,
@@ -1044,7 +1044,7 @@ export default class StatusPageAPI extends BaseAPI<
           const incidentsOnStatusPage: Array<ObjectID> = activeIncidents.map(
             (incident: Incident) => {
               return incident.id!;
-            }
+            },
           );
 
           let incidentPublicNotes: Array<IncidentPublicNote> = [];
@@ -1219,7 +1219,7 @@ export default class StatusPageAPI extends BaseAPI<
           futureScheduledMaintenanceEvents.forEach(
             (event: ScheduledMaintenance) => {
               scheduledMaintenanceEvents.push(event);
-            }
+            },
           );
 
           const scheduledMaintenanceEventsOnStatusPage: Array<ObjectID> =
@@ -1235,7 +1235,7 @@ export default class StatusPageAPI extends BaseAPI<
               await ScheduledMaintenancePublicNoteService.findBy({
                 query: {
                   scheduledMaintenanceId: QueryHelper.any(
-                    scheduledMaintenanceEventsOnStatusPage
+                    scheduledMaintenanceEventsOnStatusPage,
                   ),
                   projectId: statusPage.projectId!,
                 },
@@ -1263,7 +1263,7 @@ export default class StatusPageAPI extends BaseAPI<
               await ScheduledMaintenanceStateTimelineService.findBy({
                 query: {
                   scheduledMaintenanceId: QueryHelper.any(
-                    scheduledMaintenanceEventsOnStatusPage
+                    scheduledMaintenanceEventsOnStatusPage,
                   ),
                   projectId: statusPage.projectId!,
                 },
@@ -1319,7 +1319,7 @@ export default class StatusPageAPI extends BaseAPI<
             this.getOverallMonitorStatus(
               statusPageResources,
               monitorStatuses,
-              monitorGroupCurrentStatuses
+              monitorGroupCurrentStatuses,
             );
 
           const response: JSONObject = {
@@ -1329,55 +1329,55 @@ export default class StatusPageAPI extends BaseAPI<
 
             scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
               scheduledMaintenanceEventsPublicNotes,
-              ScheduledMaintenancePublicNote
+              ScheduledMaintenancePublicNote,
             ),
             statusPageHistoryChartBarColorRules: BaseModel.toJSONArray(
               statusPageHistoryChartBarColorRules,
-              StatusPageHistoryChartBarColorRule
+              StatusPageHistoryChartBarColorRule,
             ),
             scheduledMaintenanceEvents: BaseModel.toJSONArray(
               scheduledMaintenanceEvents,
-              ScheduledMaintenance
+              ScheduledMaintenance,
             ),
             activeAnnouncements: BaseModel.toJSONArray(
               activeAnnouncements,
-              StatusPageAnnouncement
+              StatusPageAnnouncement,
             ),
             incidentPublicNotes: BaseModel.toJSONArray(
               incidentPublicNotes,
-              IncidentPublicNote
+              IncidentPublicNote,
             ),
 
             activeIncidents: BaseModel.toJSONArray(activeIncidents, Incident),
 
             monitorStatusTimelines: BaseModel.toJSONArray(
               monitorStatusTimelines,
-              MonitorStatusTimeline
+              MonitorStatusTimeline,
             ),
             resourceGroups: BaseModel.toJSONArray(
               statusPageGroups,
-              StatusPageGroup
+              StatusPageGroup,
             ),
             monitorStatuses: BaseModel.toJSONArray(
               monitorStatuses,
-              MonitorStatus
+              MonitorStatus,
             ),
             statusPageResources: BaseModel.toJSONArray(
               statusPageResources,
-              StatusPageResource
+              StatusPageResource,
             ),
             incidentStateTimelines: BaseModel.toJSONArray(
               incidentStateTimelines,
-              IncidentStateTimeline
+              IncidentStateTimeline,
             ),
             statusPage: BaseModel.toJSONObject(statusPage, StatusPage),
             scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
               scheduledMaintenanceStateTimelines,
-              ScheduledMaintenanceStateTimeline
+              ScheduledMaintenanceStateTimeline,
             ),
 
             monitorGroupCurrentStatuses: JSONFunctions.serialize(
-              monitorGroupCurrentStatuses
+              monitorGroupCurrentStatuses,
             ),
             monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
           };
@@ -1386,7 +1386,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.put(
@@ -1401,7 +1401,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1418,12 +1418,12 @@ export default class StatusPageAPI extends BaseAPI<
             req,
             res,
             subscriber,
-            StatusPageSubscriber
+            StatusPageSubscriber,
           );
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1439,7 +1439,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1455,7 +1455,7 @@ export default class StatusPageAPI extends BaseAPI<
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1466,21 +1466,21 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const response: JSONObject = await this.getIncidents(
             objectId,
             null,
             await CommonAPI.getDatabaseCommonInteractionProps(req),
-            req
+            req,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1491,21 +1491,21 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
             objectId,
             null,
             await CommonAPI.getDatabaseCommonInteractionProps(req),
-            req
+            req,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1516,21 +1516,21 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const response: JSONObject = await this.getAnnouncements(
             objectId,
             null,
             await CommonAPI.getDatabaseCommonInteractionProps(req),
-            req
+            req,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1541,25 +1541,25 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const incidentId: ObjectID = new ObjectID(
-            req.params["incidentId"] as string
+            req.params["incidentId"] as string,
           );
 
           const response: JSONObject = await this.getIncidents(
             objectId,
             incidentId,
             await CommonAPI.getDatabaseCommonInteractionProps(req),
-            req
+            req,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1570,25 +1570,25 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const scheduledMaintenanceId: ObjectID = new ObjectID(
-            req.params["scheduledMaintenanceId"] as string
+            req.params["scheduledMaintenanceId"] as string,
           );
 
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
             objectId,
             scheduledMaintenanceId,
             await CommonAPI.getDatabaseCommonInteractionProps(req),
-            req
+            req,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -1599,25 +1599,25 @@ export default class StatusPageAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string
+            req.params["statusPageId"] as string,
           );
 
           const announcementId: ObjectID = new ObjectID(
-            req.params["announcementId"] as string
+            req.params["announcementId"] as string,
           );
 
           const response: JSONObject = await this.getAnnouncements(
             objectId,
             announcementId,
             await CommonAPI.getDatabaseCommonInteractionProps(req),
-            req
+            req,
           );
 
           return Response.sendJsonObjectResponse(req, res, response);
         } catch (err) {
           next(err);
         }
-      }
+      },
     );
   }
 
@@ -1626,11 +1626,11 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageId: ObjectID,
     scheduledMaintenanceId: ObjectID | null,
     props: DatabaseCommonInteractionProps,
-    req: ExpressRequest
+    req: ExpressRequest,
   ): Promise<JSONObject> {
     if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
       throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page"
+        "You are not authenticated to access this status page",
       );
     }
 
@@ -1656,7 +1656,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       throw new BadDataException(
-        "Scheduled Maintenance Events are not enabled on this status page"
+        "Scheduled Maintenance Events are not enabled on this status page",
       );
     }
 
@@ -1669,7 +1669,7 @@ export default class StatusPageAPI extends BaseAPI<
     // check if status page has active scheduled events.
     const today: Date = OneUptimeDate.getCurrentDate();
     const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showScheduledEventHistoryInDays || 14
+      statusPage.showScheduledEventHistoryInDays || 14,
     );
 
     let query: Query<ScheduledMaintenance> = {
@@ -1760,7 +1760,7 @@ export default class StatusPageAPI extends BaseAPI<
       futureScheduledMaintenanceEvents.forEach(
         (event: ScheduledMaintenance) => {
           scheduledMaintenanceEvents.push(event);
-        }
+        },
       );
     }
 
@@ -1777,7 +1777,7 @@ export default class StatusPageAPI extends BaseAPI<
         await ScheduledMaintenancePublicNoteService.findBy({
           query: {
             scheduledMaintenanceId: QueryHelper.any(
-              scheduledMaintenanceEventsOnStatusPage
+              scheduledMaintenanceEventsOnStatusPage,
             ),
             projectId: statusPage.projectId!,
           },
@@ -1805,7 +1805,7 @@ export default class StatusPageAPI extends BaseAPI<
         await ScheduledMaintenanceStateTimelineService.findBy({
           query: {
             scheduledMaintenanceId: QueryHelper.any(
-              scheduledMaintenanceEventsOnStatusPage
+              scheduledMaintenanceEventsOnStatusPage,
             ),
             projectId: statusPage.projectId!,
           },
@@ -1915,23 +1915,23 @@ export default class StatusPageAPI extends BaseAPI<
     const response: JSONObject = {
       scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
         scheduledMaintenanceEventsPublicNotes,
-        ScheduledMaintenancePublicNote
+        ScheduledMaintenancePublicNote,
       ),
       scheduledMaintenanceStates: BaseModel.toJSONArray(
         scheduledEventStates,
-        ScheduledMaintenanceState
+        ScheduledMaintenanceState,
       ),
       scheduledMaintenanceEvents: BaseModel.toJSONArray(
         scheduledMaintenanceEvents,
-        ScheduledMaintenance
+        ScheduledMaintenance,
       ),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
-        StatusPageResource
+        StatusPageResource,
       ),
       scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
         scheduledMaintenanceStateTimelines,
-        ScheduledMaintenanceStateTimeline
+        ScheduledMaintenanceStateTimeline,
       ),
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };
@@ -1944,11 +1944,11 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageId: ObjectID,
     announcementId: ObjectID | null,
     props: DatabaseCommonInteractionProps,
-    req: ExpressRequest
+    req: ExpressRequest,
   ): Promise<JSONObject> {
     if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
       throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page"
+        "You are not authenticated to access this status page",
       );
     }
 
@@ -1973,7 +1973,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage.showAnnouncementsOnStatusPage) {
       throw new BadDataException(
-        "Announcements are not enabled for this status page."
+        "Announcements are not enabled for this status page.",
       );
     }
 
@@ -1981,7 +1981,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     const today: Date = OneUptimeDate.getCurrentDate();
     const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showAnnouncementHistoryInDays || 14
+      statusPage.showAnnouncementHistoryInDays || 14,
     );
 
     let query: Query<StatusPageAnnouncement> = {
@@ -2044,11 +2044,11 @@ export default class StatusPageAPI extends BaseAPI<
     const response: JSONObject = {
       announcements: BaseModel.toJSONArray(
         announcements,
-        StatusPageAnnouncement
+        StatusPageAnnouncement,
       ),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
-        StatusPageResource
+        StatusPageResource,
       ),
     };
 
@@ -2058,7 +2058,7 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async manageExistingSubscription(req: ExpressRequest): Promise<void> {
     const objectId: ObjectID = new ObjectID(
-      req.params["statusPageId"] as string
+      req.params["statusPageId"] as string,
     );
 
     logger.debug(`Managing Existing Subscription for Status Page: ${objectId}`);
@@ -2067,12 +2067,12 @@ export default class StatusPageAPI extends BaseAPI<
       !(await this.service.hasReadAccess(
         objectId,
         await CommonAPI.getDatabaseCommonInteractionProps(req),
-        req
+        req,
       ))
     ) {
       logger.debug(`No read access to status page with ID: ${objectId}`);
       throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page"
+        "You are not authenticated to access this status page",
       );
     }
 
@@ -2101,10 +2101,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage.showSubscriberPageOnStatusPage) {
       logger.debug(
-        `Subscriber page not enabled for status page with ID: ${objectId}`
+        `Subscriber page not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Subscribes not enabled for this status page."
+        "Subscribes not enabled for this status page.",
       );
     }
 
@@ -2115,19 +2115,19 @@ export default class StatusPageAPI extends BaseAPI<
       !statusPage.enableEmailSubscribers
     ) {
       logger.debug(
-        `Email subscribers not enabled for status page with ID: ${objectId}`
+        `Email subscribers not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Email subscribers not enabled for this status page."
+        "Email subscribers not enabled for this status page.",
       );
     }
 
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
-        `SMS subscribers not enabled for status page with ID: ${objectId}`
+        `SMS subscribers not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "SMS subscribers not enabled for this status page."
+        "SMS subscribers not enabled for this status page.",
       );
     }
 
@@ -2138,10 +2138,10 @@ export default class StatusPageAPI extends BaseAPI<
       !req.body.data["subscriberPhone"]
     ) {
       logger.debug(
-        `No email or phone provided for subscription to status page with ID: ${objectId}`
+        `No email or phone provided for subscription to status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Email or phone is required to subscribe to this status page."
+        "Email or phone is required to subscribe to this status page.",
       );
     }
 
@@ -2192,16 +2192,16 @@ export default class StatusPageAPI extends BaseAPI<
     if (!statusPageSubscriber) {
       // not found, return bad data
       logger.debug(
-        `Subscriber not found for email: ${email} or phone: ${phone}`
+        `Subscriber not found for email: ${email} or phone: ${phone}`,
       );
 
-      let emailOrPhone = "email";
+      let emailOrPhone: string = "email";
       if (phone) {
         emailOrPhone = "phone";
       }
 
       throw new BadDataException(
-        `Subscription not found for this status page. Please make sure your ${emailOrPhone} is correct.`
+        `Subscription not found for this status page. Please make sure your ${emailOrPhone} is correct.`,
       );
     }
 
@@ -2210,7 +2210,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     const manageUrlink: string = StatusPageSubscriberService.getUnsubscribeLink(
       URL.fromString(statusPageURL),
-      statusPageSubscriber.id!
+      statusPageSubscriber.id!,
     ).toString();
 
     const statusPages: Array<StatusPage> =
@@ -2221,13 +2221,10 @@ export default class StatusPageAPI extends BaseAPI<
     for (const statusPage of statusPages) {
       // send email to subscriber or sms if phone is provided.
 
-
-
       if (email) {
-
         const host: Hostname = await DatabaseConfig.getHost();
         const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-        
+
         MailService.sendMail(
           {
             toEmail: email,
@@ -2246,12 +2243,13 @@ export default class StatusPageAPI extends BaseAPI<
                 ? "true"
                 : "false",
               subscriberEmailNotificationFooterText:
-              statusPage.subscriberEmailNotificationFooterText || "",
-              
+                statusPage.subscriberEmailNotificationFooterText || "",
+
               manageSubscriptionUrl: manageUrlink,
             },
             subject:
-              "Manage your Subscription for" + (statusPage.name || "Status Page"),
+              "Manage your Subscription for" +
+              (statusPage.name || "Status Page"),
           },
           {
             mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -2271,7 +2269,7 @@ export default class StatusPageAPI extends BaseAPI<
         SmsService.sendSms(sms, {
           projectId: statusPage.projectId,
           customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-            statusPage.callSmsConfig
+            statusPage.callSmsConfig,
           ),
         }).catch((err: Error) => {
           logger.error(err);
@@ -2279,7 +2277,7 @@ export default class StatusPageAPI extends BaseAPI<
       }
 
       logger.debug(
-        `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`
+        `Subscription management link sent to subscriber with ID: ${statusPageSubscriber.id}`,
       );
     }
   }
@@ -2287,7 +2285,7 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async subscribeToStatusPage(req: ExpressRequest): Promise<void> {
     const objectId: ObjectID = new ObjectID(
-      req.params["statusPageId"] as string
+      req.params["statusPageId"] as string,
     );
 
     logger.debug(`Subscribing to status page with ID: ${objectId}`);
@@ -2296,12 +2294,12 @@ export default class StatusPageAPI extends BaseAPI<
       !(await this.service.hasReadAccess(
         objectId,
         await CommonAPI.getDatabaseCommonInteractionProps(req),
-        req
+        req,
       ))
     ) {
       logger.debug(`No read access to status page with ID: ${objectId}`);
       throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page"
+        "You are not authenticated to access this status page",
       );
     }
 
@@ -2330,10 +2328,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage.showSubscriberPageOnStatusPage) {
       logger.debug(
-        `Subscriber page not enabled for status page with ID: ${objectId}`
+        `Subscriber page not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Subscribes not enabled for this status page."
+        "Subscribes not enabled for this status page.",
       );
     }
 
@@ -2344,19 +2342,19 @@ export default class StatusPageAPI extends BaseAPI<
       !statusPage.enableEmailSubscribers
     ) {
       logger.debug(
-        `Email subscribers not enabled for status page with ID: ${objectId}`
+        `Email subscribers not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Email subscribers not enabled for this status page."
+        "Email subscribers not enabled for this status page.",
       );
     }
 
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
-        `SMS subscribers not enabled for status page with ID: ${objectId}`
+        `SMS subscribers not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "SMS subscribers not enabled for this status page."
+        "SMS subscribers not enabled for this status page.",
       );
     }
 
@@ -2367,10 +2365,10 @@ export default class StatusPageAPI extends BaseAPI<
       !req.body.data["subscriberPhone"]
     ) {
       logger.debug(
-        `No email or phone provided for subscription to status page with ID: ${objectId}`
+        `No email or phone provided for subscription to status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Email or phone is required to subscribe to this status page."
+        "Email or phone is required to subscribe to this status page.",
       );
     }
 
@@ -2388,16 +2386,16 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!req.params["subscriberId"]) {
       logger.debug(
-        `Creating new subscriber for status page with ID: ${objectId}`
+        `Creating new subscriber for status page with ID: ${objectId}`,
       );
       statusPageSubscriber = new StatusPageSubscriber();
     } else {
       const subscriberId: ObjectID = new ObjectID(
-        req.params["subscriberId"] as string
+        req.params["subscriberId"] as string,
       );
 
       logger.debug(
-        `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`
+        `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
       );
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
@@ -2431,10 +2429,10 @@ export default class StatusPageAPI extends BaseAPI<
       !statusPage.allowSubscribersToChooseResources
     ) {
       logger.debug(
-        `Subscribers not allowed to choose resources for status page with ID: ${objectId}`
+        `Subscribers not allowed to choose resources for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Subscribers are not allowed to choose resources for this status page."
+        "Subscribers are not allowed to choose resources for this status page.",
       );
     }
 
@@ -2443,10 +2441,10 @@ export default class StatusPageAPI extends BaseAPI<
       !statusPage.allowSubscribersToChooseEventTypes
     ) {
       logger.debug(
-        `Subscribers not allowed to choose event types for status page with ID: ${objectId}`
+        `Subscribers not allowed to choose event types for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Subscribers are not allowed to choose event types for this status page."
+        "Subscribers are not allowed to choose event types for this status page.",
       );
     }
 
@@ -2454,11 +2452,11 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageSubscriber.sendYouHaveSubscribedMessage = true;
     statusPageSubscriber.projectId = statusPage.projectId!;
     statusPageSubscriber.isSubscribedToAllResources = Boolean(
-      req.body.data["isSubscribedToAllResources"]
+      req.body.data["isSubscribedToAllResources"],
     );
 
     statusPageSubscriber.isSubscribedToAllEventTypes = Boolean(
-      req.body.data["isSubscribedToAllEventTypes"]
+      req.body.data["isSubscribedToAllEventTypes"],
     );
 
     if (
@@ -2466,7 +2464,7 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["statusPageResources"].length > 0
     ) {
       logger.debug(
-        `Setting subscriber resources: ${JSON.stringify(req.body.data["statusPageResources"])}`
+        `Setting subscriber resources: ${JSON.stringify(req.body.data["statusPageResources"])}`,
       );
       statusPageSubscriber.statusPageResources = req.body.data[
         "statusPageResources"
@@ -2478,7 +2476,7 @@ export default class StatusPageAPI extends BaseAPI<
       req.body.data["statusPageEventTypes"].length > 0
     ) {
       logger.debug(
-        `Setting subscriber event types: ${JSON.stringify(req.body.data["statusPageEventTypes"])}`
+        `Setting subscriber event types: ${JSON.stringify(req.body.data["statusPageEventTypes"])}`,
       );
       statusPageSubscriber.statusPageEventTypes = req.body.data[
         "statusPageEventTypes"
@@ -2489,7 +2487,7 @@ export default class StatusPageAPI extends BaseAPI<
       // check isUnsubscribed is set to false.
       logger.debug(`Updating subscriber with ID: ${statusPageSubscriber.id}`);
       statusPageSubscriber.isUnsubscribed = Boolean(
-        req.body.data["isUnsubscribed"]
+        req.body.data["isUnsubscribed"],
       );
 
       await StatusPageSubscriberService.updateOneById({
@@ -2506,7 +2504,7 @@ export default class StatusPageAPI extends BaseAPI<
       });
     } else {
       logger.debug(
-        `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`
+        `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
       );
       await StatusPageSubscriberService.create({
         data: statusPageSubscriber,
@@ -2517,27 +2515,27 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     logger.debug(
-      `Subscription process completed for status page with ID: ${objectId}`
+      `Subscription process completed for status page with ID: ${objectId}`,
     );
   }
 
   @CaptureSpan()
   public async getSubscriber(
-    req: ExpressRequest
+    req: ExpressRequest,
   ): Promise<StatusPageSubscriber> {
     const objectId: ObjectID = new ObjectID(
-      req.params["statusPageId"] as string
+      req.params["statusPageId"] as string,
     );
 
     if (
       !(await this.service.hasReadAccess(
         objectId,
         await CommonAPI.getDatabaseCommonInteractionProps(req),
-        req
+        req,
       ))
     ) {
       throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page"
+        "You are not authenticated to access this status page",
       );
     }
 
@@ -2559,7 +2557,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const subscriberId: ObjectID = new ObjectID(
-      req.params["subscriberId"] as string
+      req.params["subscriberId"] as string,
     );
 
     const statusPageSubscriber: StatusPageSubscriber | null =
@@ -2593,11 +2591,11 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageId: ObjectID,
     incidentId: ObjectID | null,
     props: DatabaseCommonInteractionProps,
-    req: ExpressRequest
+    req: ExpressRequest,
   ): Promise<JSONObject> {
     if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
       throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page"
+        "You are not authenticated to access this status page",
       );
     }
 
@@ -2623,7 +2621,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage.showIncidentsOnStatusPage) {
       throw new BadDataException(
-        "Incidents are not enabled on this status page."
+        "Incidents are not enabled on this status page.",
       );
     }
 
@@ -2641,7 +2639,7 @@ export default class StatusPageAPI extends BaseAPI<
     const today: Date = OneUptimeDate.getCurrentDate();
 
     const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      statusPage.showIncidentHistoryInDays || 14
+      statusPage.showIncidentHistoryInDays || 14,
     );
 
     let incidentQuery: Query<Incident> = {
@@ -2713,7 +2711,7 @@ export default class StatusPageAPI extends BaseAPI<
           statusPage.projectId!,
           {
             isRoot: true,
-          }
+          },
         );
 
       const unresolvbedIncidentStateIds: Array<ObjectID> =
@@ -2728,7 +2726,7 @@ export default class StatusPageAPI extends BaseAPI<
             monitors: monitorsOnStatusPage as any,
             isVisibleOnStatusPage: true,
             currentIncidentStateId: QueryHelper.any(
-              unresolvbedIncidentStateIds
+              unresolvbedIncidentStateIds,
             ),
             projectId: statusPage.projectId!,
           },
@@ -2755,7 +2753,7 @@ export default class StatusPageAPI extends BaseAPI<
     const incidentsOnStatusPage: Array<ObjectID> = incidents.map(
       (incident: Incident) => {
         return incident.id!;
-      }
+      },
     );
 
     let incidentPublicNotes: Array<IncidentPublicNote> = [];
@@ -2831,17 +2829,17 @@ export default class StatusPageAPI extends BaseAPI<
     const response: JSONObject = {
       incidentPublicNotes: BaseModel.toJSONArray(
         incidentPublicNotes,
-        IncidentPublicNote
+        IncidentPublicNote,
       ),
       incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
       incidents: BaseModel.toJSONArray(incidents, Incident),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
-        StatusPageResource
+        StatusPageResource,
       ),
       incidentStateTimelines: BaseModel.toJSONArray(
         incidentStateTimelines,
-        IncidentStateTimeline
+        IncidentStateTimeline,
       ),
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };
@@ -2852,7 +2850,7 @@ export default class StatusPageAPI extends BaseAPI<
   public getOverallMonitorStatus(
     statusPageResources: Array<StatusPageResource>,
     monitorStatuses: Array<MonitorStatus>,
-    monitorGroupCurrentStatuses: Dictionary<ObjectID>
+    monitorGroupCurrentStatuses: Dictionary<ObjectID>,
   ): MonitorStatus | null {
     let currentStatus: MonitorStatus | null =
       monitorStatuses.length > 0 && monitorStatuses[0]
@@ -2865,7 +2863,7 @@ export default class StatusPageAPI extends BaseAPI<
       if (resource.monitor?.currentMonitorStatusId) {
         if (
           !Object.keys(dict).includes(
-            resource.monitor?.currentMonitorStatusId.toString() || ""
+            resource.monitor?.currentMonitorStatusId.toString() || "",
           )
         ) {
           dict[resource.monitor?.currentMonitorStatusId?.toString()] = 1;
@@ -3101,7 +3099,7 @@ export default class StatusPageAPI extends BaseAPI<
             resource.monitorGroupId?.toString() === monitorGroupId.toString() &&
             (resource.showStatusHistoryChart || resource.showUptimePercent)
           );
-        })
+        }),
       );
 
       for (const monitorId of monitorsInGroupIds) {

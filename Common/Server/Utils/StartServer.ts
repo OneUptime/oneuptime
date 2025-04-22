@@ -205,21 +205,16 @@ const init: InitFunction = async (
     );
 
     app.get("/*", async (_req: ExpressRequest, res: ExpressResponse) => {
-
-
       let variables: JSONObject = {};
 
-      if(data.getVariablesToRenderIndexPage) {
+      if (data.getVariablesToRenderIndexPage) {
         try {
           const variablesToRenderIndexPage: JSONObject =
-            await data.getVariablesToRenderIndexPage(
-              _req,
-              res,
-            );
-            variables = {
+            await data.getVariablesToRenderIndexPage(_req, res);
+          variables = {
             ...variables,
             ...variablesToRenderIndexPage,
-          }
+          };
         } catch (error) {
           logger.error(error);
         }

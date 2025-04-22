@@ -151,89 +151,87 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     });
   }
 
+  const getNewSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          id="email-form"
+          name="Status Page > Email Subscribe"
+          fields={fields}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/subscribe/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders(
+            StatusPageUtil.getStatusPageId()!,
+          )}
+          formType={FormType.Create}
+          submitButtonText={"Subscribe"}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
 
-  const getNewSubscriptionContentElement: GetReactElementFunction = (): ReactElement => {
-    return (
-      <ModelForm<StatusPageSubscriber>
-        modelType={StatusPageSubscriber}
-        id="email-form"
-        name="Status Page > Email Subscribe"
-        fields={fields}
-        createOrUpdateApiUrl={URL.fromString(
-          STATUS_PAGE_API_URL.toString(),
-        ).addRoute(`/subscribe/${id.toString()}`)}
-        requestHeaders={API.getDefaultHeaders(
-          StatusPageUtil.getStatusPageId()!,
-        )}
-        formType={FormType.Create}
-        submitButtonText={"Subscribe"}
-        onBeforeCreate={async (item: StatusPageSubscriber) => {
-          const id: ObjectID = LocalStorage.getItem(
-            "statusPageId",
-          ) as ObjectID;
-          if (!id) {
-            throw new BadDataException(
-              "Status Page ID is required",
-            );
-          }
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
 
-          item.statusPageId = id;
-          return item;
-        }}
-        onSuccess={() => {
-          setIsSuccess(true);
-        }}
-        maxPrimaryButtonWidth={true}
-      />
-    )
-  };
-
-  const getManageExistingSubscriptionContentElement: GetReactElementFunction = (): ReactElement => {
-    return (
-      <ModelForm<StatusPageSubscriber>
-        modelType={StatusPageSubscriber}
-        id="email-form"
-        name="Status Page > Mage Subscribe"
-        fields={[
-          {
-            field: {
-              subscriberEmail: true,
+  const getManageExistingSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          id="email-form"
+          name="Status Page > Mage Subscribe"
+          fields={[
+            {
+              field: {
+                subscriberEmail: true,
+              },
+              title: "Please enter your email you have subscribed with",
+              description:
+                "We will send you a manage subscription link to this email.",
+              fieldType: FormFieldSchemaType.Email,
+              required: true,
+              placeholder: "email@yourcompany.com",
             },
-            title: "Please enter your email you have subscribed with",
-            description: "We will send you a manage subscription link to this email.",
-            fieldType: FormFieldSchemaType.Email,
-            required: true,
-            placeholder: "email@yourcompany.com"
-          }
-        ]}
-        createOrUpdateApiUrl={URL.fromString(
-          STATUS_PAGE_API_URL.toString(),
-        ).addRoute(`/manage-subscription/${id.toString()}`)}
-        requestHeaders={API.getDefaultHeaders(
-          StatusPageUtil.getStatusPageId()!,
-        )}
-        formType={FormType.Create}
-        submitButtonText={"Subscribe"}
-        onBeforeCreate={async (item: StatusPageSubscriber) => {
-          const id: ObjectID = LocalStorage.getItem(
-            "statusPageId",
-          ) as ObjectID;
-          if (!id) {
-            throw new BadDataException(
-              "Status Page ID is required",
-            );
-          }
+          ]}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/manage-subscription/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders(
+            StatusPageUtil.getStatusPageId()!,
+          )}
+          formType={FormType.Create}
+          submitButtonText={"Subscribe"}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
 
-          item.statusPageId = id;
-          return item;
-        }}
-        onSuccess={() => {
-          setIsSuccess(true);
-        }}
-        maxPrimaryButtonWidth={true}
-      />
-    )
-  }
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
 
   return (
     <Page
@@ -274,8 +272,8 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
                 {" "}
-                An email with the link has been sent to your email. If you don&apos;t
-                see the email, please check your spam folder.{" "}
+                An email with the link has been sent to your email. If you
+                don&apos;t see the email, please check your spam folder.{" "}
               </p>
             )}
 
@@ -287,7 +285,6 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                     "All of our updates will be sent to this email address."
                   }
                 >
-
                   <Tabs
                     tabs={[
                       {
@@ -297,12 +294,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                       {
                         name: "Manage Existing Subscription",
                         children: getManageExistingSubscriptionContentElement(),
-                      }
+                      },
                     ]}
-                    onTabChange={() => { }}
+                    onTabChange={() => {}}
                   />
-
-
                 </Card>
               </div>
             ) : (
