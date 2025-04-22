@@ -60,7 +60,7 @@ export interface BaseComponentProps<T> {
   initialValues?: FormValues<T> | undefined;
   values?: FormValues<T> | undefined;
   onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
-  onChange?: undefined | ((values: FormValues<T>) => void);
+  onChange?: undefined | ((values: FormValues<T>, setNewFormValues: (newValues: FormValues<T>) => void) => void);
   fields: Fields<T>;
   steps?: undefined | Array<FormStep<T>>;
   submitButtonText?: undefined | string;
@@ -352,7 +352,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       setCurrentValue(refCurrentValue.current);
 
       if (props.onChange && isInitialValuesSet.current) {
-        props.onChange(refCurrentValue.current);
+        props.onChange(refCurrentValue.current, (values: FormValues<T>) => {
+          refCurrentValue.current = values;
+          setCurrentValue(refCurrentValue.current);
+        });
       }
     };
 
@@ -656,6 +659,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                                   submitForm={submitForm}
                                   disableAutofocus={
                                     props.disableAutofocus || false
+                                  }
+                                  setFormValues={(values: FormValues<T>) => {
+                                    refCurrentValue.current = values;
+                                    setCurrentValue(refCurrentValue.current);
+                                  }
                                   }
                                 />
                               }

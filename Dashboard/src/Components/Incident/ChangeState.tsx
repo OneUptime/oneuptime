@@ -23,7 +23,6 @@ import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButton
 import { Black } from "Common/Types/BrandColors";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { JSONObject } from "Common/Types/JSON";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -53,10 +52,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   const [incidentNoteTemplates, setIncidentNoteTemplates] = useState<
     IncidentNoteTemplate[]
   >([]);
-
-  const [formValues, setFormValues] = useState<FormValues<IncidentStateTimeline>>(
-    {},
-  );
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     const projectId: ObjectID | undefined | null =
@@ -256,10 +251,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             props.onActionComplete();
           }}
           formProps={{
-            values: formValues, 
-            onChange: (values: FormValues<IncidentStateTimeline>) => {
-              setFormValues(values);
-            },
             name: "create-scheduled-maintenance-state-timeline",
             modelType: IncidentStateTimeline,
             id: "create-scheduled-maintenance-state-timeline",
@@ -268,15 +259,19 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                 field: {
                   publicNoteTemplate: true,
                 } as any,
-                onChange: (value: FormValues<IncidentNoteTemplate>) => {
-                  const incidentNoteTemplate: IncidentNoteTemplate | undefined =
+                onChange: (value: string, currentValues: FormValues<IncidentNoteTemplate>, setNewFormValues: (currentFormValues: FormValues<IncidentStateTimeline>) => void) => {
+                  // get note template by id
+                  const selectedTemplate: IncidentNoteTemplate | undefined =
                     incidentNoteTemplates.find((template: IncidentNoteTemplate) => {
-                      return template.id?.toString() === (value as JSONObject)?.['publicNoteTemplate']?.toString();
+                      return template.id?.toString() === value;
                     });
-                  if (incidentNoteTemplate) {
-                    setFormValues({
-                      ...value,
-                      publicNote: incidentNoteTemplate.note,
+
+                  const note: string = selectedTemplate?.note || "";
+
+                  if (note) {
+                    setNewFormValues({
+                      ...currentValues,
+                      publicNote: note,
                     } as any);
                   }
                 },
