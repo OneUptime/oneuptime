@@ -21,6 +21,8 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ProgressButtons from "Common/UI/Components/ProgressButtons/ProgressButtons";
 import { Black } from "Common/Types/BrandColors";
+import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -47,6 +49,13 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   const [incidentStateTimelines, setIncidentStateTimelines] = useState<
     IncidentStateTimeline[]
   >([]);
+  const [incidentNoteTemplates, setIncidentNoteTemplates] = useState<
+    IncidentNoteTemplate[]
+  >([]);
+
+  const [initialValues, setInitialValues] = useState<FormValues<IncidentStateTimeline>>(
+    {},
+  );
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     const projectId: ObjectID | undefined | null =
@@ -111,11 +120,35 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
       await fetchIncidentStates();
       await fetchIncidentStateTimelines();
+      await fetchIncidentNoteTemplates();
     } catch (err: unknown) {
       setError(API.getFriendlyMessage(err as Exception));
     }
     setIsLoading(false);
   };
+
+  const fetchIncidentNoteTemplates: PromiseVoidFunction =
+    async (): Promise<void> => {
+      const incidentNoteTemplates: ListResult<IncidentNoteTemplate> =
+        await ModelAPI.getList<IncidentNoteTemplate>({
+          modelType: IncidentNoteTemplate,
+          query: {
+            projectId: ProjectUtil.getCurrentProject()!.id!,
+          },
+          limit: 99,
+          skip: 0,
+          select: {
+            _id: true,
+            templateName: true,
+            note: true,
+          },
+          sort: {
+            templateName: SortOrder.Ascending,
+          },
+        });
+
+      setIncidentNoteTemplates(incidentNoteTemplates.data);
+    };
 
   useEffect(() => {
     loadPage().catch((err: unknown) => {
@@ -222,10 +255,45 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             props.onActionComplete();
           }}
           formProps={{
+            initialValues: initialValues, 
             name: "create-scheduled-maintenance-state-timeline",
             modelType: IncidentStateTimeline,
             id: "create-scheduled-maintenance-state-timeline",
             fields: [
+              {
+                field: {
+                  publicNoteTemplate: true,
+                } as any,
+                onChange: (value: string) => {
+                  const incidentNoteTemplate: IncidentNoteTemplate | undefined =
+                    incidentNoteTemplates.find((template: IncidentNoteTemplate) => {
+                      return template.id?.toString() === value;
+                    });
+                  if (incidentNoteTemplate) {
+                    setInitialValues({
+                      publicNote: incidentNoteTemplate.note,
+                    } as any);
+                  }
+                },
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: incidentNoteTemplates.map(
+                  (template: IncidentNoteTemplate) => {
+                    return {
+                      value: template.id!.toString(),
+                      label: template.templateName || "",
+                    };
+                  },
+                ),
+                showIf: () => {
+                  return incidentNoteTemplates.length > 0;
+                },
+                description:
+                  "If you have a template for this state change, select it here.",
+                title: "Select Note Template",
+                required: false,
+                overrideFieldKey: "publicNoteTemplate",
+                showEvenIfPermissionDoesNotExist: true,
+              },
               {
                 field: {
                   publicNote: true,
