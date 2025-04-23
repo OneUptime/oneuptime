@@ -63,7 +63,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             logger.debug(
               "Status page ID not found in URL, checking request headers for domain",
             );
-            const host: string = req.hostname?.toString() || req.headers["host"]?.toString() || "";
+            const host: string =
+              req.hostname?.toString() || req.headers["host"]?.toString() || "";
             if (host) {
               statusPageIdOrDomain = host;
               logger.debug(
