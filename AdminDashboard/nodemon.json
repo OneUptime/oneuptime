@@ -11,5 +11,5 @@
         "./build/dist/*",
         "./build/dist/**"
     ],
-    "exec": "export DEBUG=express:* && printenv > /usr/src/app/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/dev-env/.env && npm run dev-build && npm run start"
+    "exec": "printenv > /usr/src/app/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/dev-env/.env && npm run dev-build && npm run start"
 }

@@ -204,10 +204,15 @@ const init: InitFunction = async (
       },
     );
 
-    app.get("/*", async (_req: ExpressRequest, res: ExpressResponse) => {
+    app.get(["/*", `/${appName}/*`], async (_req: ExpressRequest, res: ExpressResponse) => {
+
+        logger.debug("Rendering index page");
+
       let variables: JSONObject = {};
 
       if (data.getVariablesToRenderIndexPage) {
+
+        logger.debug("Getting variables to render index page");
         try {
           const variablesToRenderIndexPage: JSONObject =
             await data.getVariablesToRenderIndexPage(_req, res);
@@ -219,6 +224,9 @@ const init: InitFunction = async (
           logger.error(error);
         }
       }
+
+      logger.debug("Rendering index page with variables: ");
+      logger.debug(variables);
 
       return res.render("/usr/src/app/views/index.ejs", {
         enableGoogleTagManager: IsBillingEnabled || false,
