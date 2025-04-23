@@ -9,9 +9,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import Semaphore, {
-  SemaphoreMutex,
-} from "Common/Server/Infrastructure/Semaphore";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import Query from "Common/Server/Types/Database/Query";
@@ -33,6 +30,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
+import NumberUtil from "Common/Utils/Number";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -286,7 +284,6 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    let mutex: SemaphoreMutex | null = null;
 
     logger.debug("Monitor list API called");
 
@@ -323,28 +320,6 @@ router.post(
         );
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: probeId.toString(),
-          namespace: "MonitorAPI.monitor-list",
-          lockTimeout: 15000,
-          acquireTimeout: 20000,
-        });
-        logger.debug(
-          "Mutex acquired - " +
-            probeId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
-        );
-      } catch (err) {
-        logger.debug(
-          "Mutex acquire failed - " +
-            probeId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
-        );
-        logger.error(err);
-      }
 
       //get list of monitors to be monitored
 
@@ -355,6 +330,11 @@ router.post(
       // const moduloBy: number = 10;
       // const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
 
+      let skip: number = 0;
+
+      // skip the monitors randomly so that we can distribute the load among the probes
+      skip = NumberUtil.getRandomNumber(0, 10 * limit) % limit;
+
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
           query: {
@@ -364,7 +344,7 @@ router.post(
           sort: {
             nextPingAt: SortOrder.Ascending,
           },
-          skip: 0,
+          skip: skip,
           limit: limit,
           select: {
             nextPingAt: true,
@@ -422,25 +402,6 @@ router.post(
 
       await Promise.all(updatePromises);
 
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-          logger.debug(
-            "Mutex released - " +
-              probeId.toString() +
-              " at " +
-              OneUptimeDate.getCurrentDateAsFormattedString(),
-          );
-        } catch (err) {
-          logger.debug(
-            "Mutex release failed - " +
-              probeId.toString() +
-              " at " +
-              OneUptimeDate.getCurrentDateAsFormattedString(),
-          );
-          logger.error(err);
-        }
-      }
 
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
@@ -483,13 +444,6 @@ router.post(
         Monitor,
       );
     } catch (err) {
-      try {
-        if (mutex) {
-          await Semaphore.release(mutex);
-        }
-      } catch (err) {
-        logger.error(err);
-      }
 
       return next(err);
     }
@@ -504,7 +458,7 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    let mutex: SemaphoreMutex | null = null;
+    
 
     logger.debug("Monitor test list API called");
 
@@ -541,14 +495,7 @@ router.post(
         );
       }
 
-      try {
-        mutex = await Semaphore.lock({
-          key: probeId.toString(),
-          namespace: "MonitorAPI.monitor-test-list",
-        });
-      } catch (err) {
-        logger.error(err);
-      }
+     
 
       //get list of monitors to be monitored
 
@@ -598,13 +545,7 @@ router.post(
 
       await Promise.all(updatePromises);
 
-      if (mutex) {
-        try {
-          await Semaphore.release(mutex);
-        } catch (err) {
-          logger.error(err);
-        }
-      }
+      
 
       logger.debug("Sending response");
 
@@ -616,13 +557,7 @@ router.post(
         MonitorTest,
       );
     } catch (err) {
-      try {
-        if (mutex) {
-          await Semaphore.release(mutex);
-        }
-      } catch (err) {
-        logger.error(err);
-      }
+     
 
       return next(err);
     }
