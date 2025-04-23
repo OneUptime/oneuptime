@@ -1,4 +1,9 @@
 {
     "watch": ["./","../Common/Server", "../Common/Types", "../Common/Utils", "../Common/Models"],
+    "ignore": [
+        "/usr/src/app/dev-env/*",
+        "/usr/src/app/dev-env/.env",
+        "/usr/src/app/build/*"
+    ],
     "exec": "export DEBUG=express:* && printenv > /usr/src/app/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/dev-env/.env && npm run dev-build && npm run start"
 }

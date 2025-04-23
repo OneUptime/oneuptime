@@ -7,7 +7,6 @@ require('ejs');
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require("dotenv");
-const setupMiddleware = require('Common/UI/webpack-middleware');
 
 const readEnvFile = (pathToFile) => {
   const parsed = dotenv.config({ path: pathToFile }).parsed;
@@ -66,14 +65,6 @@ module.exports = {
         loader: "file-loader",
       },
     ],
-  },
-  devServer: {
-    historyApiFallback: true,
-    devMiddleware: {
-      writeToDisk: true,
-    },
-    allowedHosts: "all",
-    setupMiddlewares: setupMiddleware('admin')
   },
   devtool: "eval-source-map",
 };
