@@ -32,7 +32,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       },
       getVariablesToRenderIndexPage: async (
         req: ExpressRequest,
-        _res: ExpressResponse
+        _res: ExpressResponse,
       ) => {
         try {
           logger.debug("Getting variables to render index page");
@@ -53,33 +53,34 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           logger.debug(`Request path: ${path}`);
 
           if (path && path.includes("/status-page/")) {
-            statusPageIdOrDomain = path.split("/status-page/")[1]?.split("/")[0] || "";
+            statusPageIdOrDomain =
+              path.split("/status-page/")[1]?.split("/")[0] || "";
             logger.debug(
-              `Found status page ID in URL: ${statusPageIdOrDomain}`
+              `Found status page ID in URL: ${statusPageIdOrDomain}`,
             );
           } else {
             // If not, check the domain from the request headers
             logger.debug(
-              "Status page ID not found in URL, checking request headers for domain"
+              "Status page ID not found in URL, checking request headers for domain",
             );
-            const host = req.hostname || req.headers["host"];
+            const host: string = req.hostname?.toString() || req.headers["host"]?.toString() || "";
             if (host) {
               statusPageIdOrDomain = host;
               logger.debug(
-                `Found domain in request headers: ${statusPageIdOrDomain}`
+                `Found domain in request headers: ${statusPageIdOrDomain}`,
               );
             }
           }
 
           // now ping the API.
           logger.debug(
-            `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`
+            `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
           );
           const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.get(
               URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
-                `/seo/${statusPageIdOrDomain}`
-              )
+                `/seo/${statusPageIdOrDomain}`,
+              ),
             );
 
           if (response instanceof HTTPErrorResponse) {

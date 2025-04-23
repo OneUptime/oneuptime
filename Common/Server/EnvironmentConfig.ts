@@ -307,7 +307,6 @@ export const AdminDashboardClientURL: URL = new URL(
 
 export const AppApiClientUrl: URL = new URL(HttpProtocol, Host, AppApiRoute);
 
-
 export const StatusPageApiClientUrl: URL = new URL(
   HttpProtocol,
   Host,

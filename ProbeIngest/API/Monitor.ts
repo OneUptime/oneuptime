@@ -284,7 +284,6 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-
     logger.debug("Monitor list API called");
 
     try {
@@ -319,7 +318,6 @@ router.post(
           new BadDataException("Probe not found"),
         );
       }
-
 
       //get list of monitors to be monitored
 
@@ -402,7 +400,6 @@ router.post(
 
       await Promise.all(updatePromises);
 
-
       const monitors: Array<Monitor> = monitorProbes
         .map((monitorProbe: MonitorProbe) => {
           return monitorProbe.monitor!;
@@ -444,7 +441,6 @@ router.post(
         Monitor,
       );
     } catch (err) {
-
       return next(err);
     }
   },
@@ -458,8 +454,6 @@ router.post(
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
-    
-
     logger.debug("Monitor test list API called");
 
     try {
@@ -494,8 +488,6 @@ router.post(
           new BadDataException("Probe not found"),
         );
       }
-
-     
 
       //get list of monitors to be monitored
 
@@ -545,8 +537,6 @@ router.post(
 
       await Promise.all(updatePromises);
 
-      
-
       logger.debug("Sending response");
 
       return Response.sendEntityArrayResponse(
@@ -557,8 +547,6 @@ router.post(
         MonitorTest,
       );
     } catch (err) {
-     
-
       return next(err);
     }
   },

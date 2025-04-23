@@ -28,7 +28,6 @@ export const AdminDashboardRoute: Route = new Route("/admin");
 
 export const ProbeIngestRoute: Route = new Route("/probe-ingest");
 
-
 export const OpenTelemetryIngestRoute: Route = new Route(
   "/open-telemetry-ingest",
 );

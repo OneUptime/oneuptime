@@ -103,14 +103,13 @@ export default class StatusPageAPI extends BaseAPI<
       `${new this.entityType().getCrudApiPath()?.toString()}/seo/:statusPageIdOrDomain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
-
         const statusPageIdOrDomain: string = req.params[
           "statusPageIdOrDomain"
         ] as string;
 
-        let statusPageId: ObjectID | null = null; 
+        let statusPageId: ObjectID | null = null;
 
-        if(statusPageIdOrDomain  && statusPageIdOrDomain.includes(".")) {
+        if (statusPageIdOrDomain && statusPageIdOrDomain.includes(".")) {
           // then this is a domain and not the status page id. We need to get the status page id from the domain.
 
           const statusPageDomain: StatusPageDomain | null =
@@ -129,16 +128,16 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
-            if(!statusPageDomain || !statusPageDomain.statusPageId) {
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new NotFoundException("Status Page not found"),
-              );
-            }
+          if (!statusPageDomain || !statusPageDomain.statusPageId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page not found"),
+            );
+          }
 
-            statusPageId = statusPageDomain.statusPageId;
-        }else{
+          statusPageId = statusPageDomain.statusPageId;
+        } else {
           // then this is a status page id. We need to get the status page id from the id.
           try {
             statusPageId = new ObjectID(statusPageIdOrDomain);
@@ -159,7 +158,7 @@ export default class StatusPageAPI extends BaseAPI<
             select: {
               pageTitle: true,
               pageDescription: true,
-              name: true
+              name: true,
             },
             props: {
               isRoot: true,
@@ -190,9 +189,9 @@ export default class StatusPageAPI extends BaseAPI<
           "statusPageIdOrDomain"
         ] as string;
 
-        let statusPageId: ObjectID | null = null; 
+        let statusPageId: ObjectID | null = null;
 
-        if(statusPageIdOrDomain  && statusPageIdOrDomain.includes(".")) {
+        if (statusPageIdOrDomain && statusPageIdOrDomain.includes(".")) {
           // then this is a domain and not the status page id. We need to get the status page id from the domain.
 
           const statusPageDomain: StatusPageDomain | null =
@@ -211,16 +210,16 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
-            if(!statusPageDomain || !statusPageDomain.statusPageId) {
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new NotFoundException("Status Page not found"),
-              );
-            }
+          if (!statusPageDomain || !statusPageDomain.statusPageId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page not found"),
+            );
+          }
 
-            statusPageId = statusPageDomain.statusPageId;
-        }else{
+          statusPageId = statusPageDomain.statusPageId;
+        } else {
           // then this is a status page id. We need to get the status page id from the id.
           try {
             statusPageId = new ObjectID(statusPageIdOrDomain);
@@ -253,8 +252,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         if (!statusPage || !statusPage.faviconFile) {
-
-          logger.debug('Favicon file not found. Returning default favicon.');
+          logger.debug("Favicon file not found. Returning default favicon.");
 
           // return default favicon.
           return Response.sendFileByPath(
