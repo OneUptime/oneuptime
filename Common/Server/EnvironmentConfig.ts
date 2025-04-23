@@ -3,6 +3,7 @@ import {
   AdminDashboardRoute,
   DashboardRoute,
   AppApiRoute,
+  StatusPageApiRoute,
 } from "Common/ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Hostname from "Common/Types/API/Hostname";
@@ -305,6 +306,13 @@ export const AdminDashboardClientURL: URL = new URL(
 );
 
 export const AppApiClientUrl: URL = new URL(HttpProtocol, Host, AppApiRoute);
+
+
+export const StatusPageApiClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  StatusPageApiRoute,
+);
 
 export const DashboardClientUrl: URL = new URL(
   HttpProtocol,

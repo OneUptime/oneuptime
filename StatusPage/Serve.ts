@@ -7,6 +7,13 @@ import Express, {
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import "ejs";
+import API from "Common/Utils/API";
+import ObjectID from "Common/Types/ObjectID";
+import { StatusPageApiClientUrl } from "Common/Server/EnvironmentConfig";
+import URL from "Common/Types/API/URL";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 
 export const APP_NAME: string = "status-page";
 
@@ -24,14 +31,58 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         readyCheck: async () => {},
       },
       getVariablesToRenderIndexPage: async (
-        _req: ExpressRequest,
-        _res: ExpressResponse,
+        req: ExpressRequest,
+        _res: ExpressResponse
       ) => {
-        return {
-          title: "Status Page One",
-          description: "Status Page Two",
-          faviconUrl: "/favicon.ico",
-        };
+        try {
+          // To get the status Page id.
+          // first we need to see where the request is coming from.
+          // if the request is coming from the url that contains the status page id it will contain /status-page/:id/xxx
+          // then id is the status page id
+          // if it does not include /status-page/:id/xxx then we need to check the domain where the request is coming from
+          // and pass the domain to the API to get the status page id
+
+          let statusPageIdOrDomain: string = "";
+
+          // Check if the URL contains /status-page/:id/xxx
+          const statusPageIdMatch = req.path.match(/\/status-page\/([^/]+)\//);
+          if (statusPageIdMatch && statusPageIdMatch[1]) {
+            statusPageIdOrDomain = statusPageIdMatch[1];
+          } else {
+            // If not, check the domain from the request headers
+            const host = req.hostname || req.headers["host"];
+            if (host) {
+              statusPageIdOrDomain = host;
+            }
+          }
+
+          // now ping the API. 
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(URL.fromString(StatusPageApiClientUrl.toString()).addRoute(`/seo/${statusPageIdOrDomain}`));
+
+          if(response instanceof HTTPErrorResponse) {
+            throw response; 
+          }
+
+        
+          // Return the variables to render the index page
+          return {
+            title: response?.data?.['title'] || "Status Page",
+            description:
+              response?.data?.['description'] || "Status Page lets you see real-time information about the status of our services.",
+            faviconUrl:
+               `/status-page-api/${statusPageIdOrDomain}/favicon`
+          };
+
+        } catch (err) {
+          return {
+            title: "Status Page",
+            description:
+              "Status Page lets you see real-time information about the status of our services.",
+            faviconUrl:
+              "/status-page-api/favicon/" +
+              ObjectID.getZeroObjectID().toString(),
+          };
+        }
       },
     });
 

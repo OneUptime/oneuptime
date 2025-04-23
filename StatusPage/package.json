@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npx nodemon",
     "build": "webpack build --mode=production",
+    "dev-build": "webpack build --mode=development",
     "analyze": "cross-env analyze=true webpack build --mode=production",
     "test": "",
     "compile": "tsc",
@@ -49,6 +50,7 @@
     "nodemon": "^2.0.20",
     "ts-node": "^10.9.1",
     "webpack": "^5.76.0",
-    "webpack-bundle-analyzer": "^4.10.1"
+    "webpack-bundle-analyzer": "^4.10.1",
+    "webpack-cli": "^6.0.1"
   }
 }

@@ -100,12 +100,56 @@ export default class StatusPageAPI extends BaseAPI<
 
     // get title, description of the page.  This is used for SEO.
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/:statusPageId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/seo/:statusPageIdOrDomain`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        const statusPageId: ObjectID = new ObjectID(
-          req.params["statusPageId"] as string,
-        );
+
+        const statusPageIdOrDomain: string = req.params[
+          "statusPageIdOrDomain"
+        ] as string;
+
+        let statusPageId: ObjectID | null = null; 
+
+        if(statusPageIdOrDomain  && statusPageIdOrDomain.includes(".")) {
+          // then this is a domain and not the status page id. We need to get the status page id from the domain.
+
+          const statusPageDomain: StatusPageDomain | null =
+            await StatusPageDomainService.findOneBy({
+              query: {
+                fullDomain: statusPageIdOrDomain,
+                domain: {
+                  isVerified: true,
+                } as any,
+              },
+              select: {
+                statusPageId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if(!statusPageDomain || !statusPageDomain.statusPageId) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new NotFoundException("Status Page not found"),
+              );
+            }
+
+            statusPageId = statusPageDomain.statusPageId;
+        }else{
+          // then this is a status page id. We need to get the status page id from the id.
+          try {
+            statusPageId = new ObjectID(statusPageIdOrDomain);
+          } catch (err) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page not found"),
+            );
+          }
+        }
 
         const statusPage: StatusPage | null = await StatusPageService.findOneBy(
           {
@@ -115,6 +159,7 @@ export default class StatusPageAPI extends BaseAPI<
             select: {
               pageTitle: true,
               pageDescription: true,
+              name: true
             },
             props: {
               isRoot: true,
@@ -131,7 +176,7 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         return Response.sendJsonObjectResponse(req, res, {
-          title: statusPage.pageTitle,
+          title: statusPage.pageTitle || statusPage.name,
           description: statusPage.pageDescription,
         });
       },
@@ -139,11 +184,54 @@ export default class StatusPageAPI extends BaseAPI<
 
     // favicon api.
     this.router.get(
-      `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/favicon/:statusPageIdOrDomain`,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        const statusPageId: ObjectID = new ObjectID(
-          req.params["statusPageId"] as string,
-        );
+        const statusPageIdOrDomain: string = req.params[
+          "statusPageIdOrDomain"
+        ] as string;
+
+        let statusPageId: ObjectID | null = null; 
+
+        if(statusPageIdOrDomain  && statusPageIdOrDomain.includes(".")) {
+          // then this is a domain and not the status page id. We need to get the status page id from the domain.
+
+          const statusPageDomain: StatusPageDomain | null =
+            await StatusPageDomainService.findOneBy({
+              query: {
+                fullDomain: statusPageIdOrDomain,
+                domain: {
+                  isVerified: true,
+                } as any,
+              },
+              select: {
+                statusPageId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if(!statusPageDomain || !statusPageDomain.statusPageId) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new NotFoundException("Status Page not found"),
+              );
+            }
+
+            statusPageId = statusPageDomain.statusPageId;
+        }else{
+          // then this is a status page id. We need to get the status page id from the id.
+          try {
+            statusPageId = new ObjectID(statusPageIdOrDomain);
+          } catch (err) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page not found"),
+            );
+          }
+        }
 
         const statusPage: StatusPage | null = await StatusPageService.findOneBy(
           {
@@ -164,15 +252,7 @@ export default class StatusPageAPI extends BaseAPI<
           },
         );
 
-        if (!statusPage) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException("Status Page not found"),
-          );
-        }
-
-        if (!statusPage.faviconFile) {
+        if (!statusPage || !statusPage.faviconFile) {
           // return default favicon.
           return Response.sendFileByPath(
             req,
