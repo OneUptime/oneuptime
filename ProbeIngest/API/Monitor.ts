@@ -321,17 +321,34 @@ router.post(
 
       //get list of monitors to be monitored
 
-      logger.debug("Fetching monitor list");
+      logger.debug("Fetching monitor list for probes");
 
       // we do this to distribute the load among the probes.
       // so every request will get a different set of monitors to monitor
       // const moduloBy: number = 10;
       // const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
 
+
+      const count: PositiveNumber = await MonitorProbeService.countBy({
+        query: {
+          ...getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
+          // version: QueryHelper.modulo(moduloBy, reminder), // distribute the load among the probes
+        },
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // we do this to distribute the load among the probes.
+      // so every request will get a different set of monitors to monitor
+      const countNumber: number = count.toNumber();
       let skip: number = 0;
 
-      // skip the monitors randomly so that we can distribute the load among the probes
-      skip = NumberUtil.getRandomNumber(0, 10 * limit) % limit;
+      if (countNumber > limit) {
+        skip = NumberUtil.getRandomNumber(0, countNumber - limit);
+      }
+
 
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
