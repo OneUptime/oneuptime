@@ -239,11 +239,11 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           modelType={ScheduledMaintenanceStateTimeline}
           name={"create-scheduledMaintenance-state-timeline"}
           title={
-            "Mark ScheduledMaintenance as " +
+            "Mark Scheduled Maintenance as " +
             selectedScheduledMaintenanceState?.name
           }
           description={
-            "You are about to mark this scheduledMaintenance as " +
+            "You are about to mark this scheduled maintenance as " +
             selectedScheduledMaintenanceState?.name +
             "."
           }
