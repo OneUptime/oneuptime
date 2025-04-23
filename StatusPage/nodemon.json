@@ -1,5 +1,6 @@
 {
-    "watch": ["./","../Common/Server", "../Common/Types", "../Common/Utils", "../Common/Models"],
+    "watch": ["./*","../Common/Server", "../Common/Types", "../Common/Utils", "../Common/Models"],
+    "ext": "ts,json,tsx,env,js,jsx,hbs",
     "ignore": [
         "./public/**",
         "./public/dist/**",

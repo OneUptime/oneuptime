@@ -47,9 +47,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
           // Check if the URL contains /status-page/:id/xxx
           logger.debug("Checking if the URL contains /status-page/:id/xxx");
-          const statusPageIdMatch = req.path.match(/\/status-page\/([^/]+)\//);
-          if (statusPageIdMatch && statusPageIdMatch[1]) {
-            statusPageIdOrDomain = statusPageIdMatch[1];
+
+          const path: string = req.path;
+
+          logger.debug(`Request path: ${path}`);
+
+          if (path && path.includes("/status-page/")) {
+            statusPageIdOrDomain = path.split("/status-page/")[1]?.split("/")[0] || "";
             logger.debug(
               `Found status page ID in URL: ${statusPageIdOrDomain}`
             );
@@ -91,7 +95,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             description:
               response?.data?.["description"] ||
               "Status Page lets you see real-time information about the status of our services.",
-            faviconUrl: `/status-page-api/${statusPageIdOrDomain}/favicon`,
+            faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
           };
         } catch (err) {
           return {

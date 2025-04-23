@@ -253,6 +253,9 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         if (!statusPage || !statusPage.faviconFile) {
+
+          logger.debug('Favicon file not found. Returning default favicon.');
+
           // return default favicon.
           return Response.sendFileByPath(
             req,
@@ -260,6 +263,10 @@ export default class StatusPageAPI extends BaseAPI<
             `/usr/src/Common/UI/Images/favicon/status-green.png`,
           );
         }
+
+        logger.debug(
+          `Favicon file found. Sending file: ${statusPage.faviconFile.name}`,
+        );
 
         return Response.sendFileResponse(req, res, statusPage.faviconFile!);
       },
