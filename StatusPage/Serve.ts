@@ -35,6 +35,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         _res: ExpressResponse
       ) => {
         try {
+
+          logger.debug("Getting variables to render index page");
           // To get the status Page id.
           // first we need to see where the request is coming from.
           // if the request is coming from the url that contains the status page id it will contain /status-page/:id/xxx

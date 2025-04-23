@@ -13,6 +13,7 @@
         "style-loader": "^3.3.4"
     },
     "scripts": {
+        "dev-build": "webpack build --mode=development",
         "dev": "npx nodemon",
         "build": "webpack build --mode=production",
         "test": "react-app-rewired test",

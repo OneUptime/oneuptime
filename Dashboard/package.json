@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "private": false,
     "scripts": {
+        "dev-build": "webpack build --mode=development",
         "dev": "npx nodemon",
         "build": "webpack build --mode=production",
         "analyze": "cross-env analyze=true webpack build --mode=production",
