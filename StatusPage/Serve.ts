@@ -35,7 +35,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         _res: ExpressResponse
       ) => {
         try {
-
           logger.debug("Getting variables to render index page");
           // To get the status Page id.
           // first we need to see where the request is coming from.
@@ -47,34 +46,53 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
           let statusPageIdOrDomain: string = "";
 
           // Check if the URL contains /status-page/:id/xxx
+          logger.debug("Checking if the URL contains /status-page/:id/xxx");
           const statusPageIdMatch = req.path.match(/\/status-page\/([^/]+)\//);
           if (statusPageIdMatch && statusPageIdMatch[1]) {
             statusPageIdOrDomain = statusPageIdMatch[1];
+            logger.debug(
+              `Found status page ID in URL: ${statusPageIdOrDomain}`
+            );
           } else {
             // If not, check the domain from the request headers
+            logger.debug(
+              "Status page ID not found in URL, checking request headers for domain"
+            );
             const host = req.hostname || req.headers["host"];
             if (host) {
               statusPageIdOrDomain = host;
+              logger.debug(
+                `Found domain in request headers: ${statusPageIdOrDomain}`
+              );
             }
           }
 
-          // now ping the API. 
-          const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(URL.fromString(StatusPageApiClientUrl.toString()).addRoute(`/seo/${statusPageIdOrDomain}`));
+          // now ping the API.
+          logger.debug(
+            `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`
+          );
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get(
+              URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
+                `/seo/${statusPageIdOrDomain}`
+              )
+            );
 
-          if(response instanceof HTTPErrorResponse) {
-            throw response; 
+          if (response instanceof HTTPErrorResponse) {
+            logger.debug(`Received error response from API: ${response}`);
+            throw response;
           }
 
-        
+          logger.debug("Successfully received response from API");
+
           // Return the variables to render the index page
           return {
-            title: response?.data?.['title'] || "Status Page",
+            title: response?.data?.["title"] || "Status Page",
             description:
-              response?.data?.['description'] || "Status Page lets you see real-time information about the status of our services.",
-            faviconUrl:
-               `/status-page-api/${statusPageIdOrDomain}/favicon`
+              response?.data?.["description"] ||
+              "Status Page lets you see real-time information about the status of our services.",
+            faviconUrl: `/status-page-api/${statusPageIdOrDomain}/favicon`,
           };
-
         } catch (err) {
           return {
             title: "Status Page",
