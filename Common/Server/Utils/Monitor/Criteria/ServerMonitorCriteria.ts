@@ -49,7 +49,7 @@ export default class ServerMonitorCriteria {
         }
       } catch (err) {
         logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`
+          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
         );
         logger.error(err);
         overTimeValue = undefined;
@@ -61,7 +61,7 @@ export default class ServerMonitorCriteria {
 
     const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
       lastCheckTime,
-      OneUptimeDate.getCurrentDate()
+      OneUptimeDate.getCurrentDate(),
     );
 
     let offlineIfNotCheckedInMinutes: number = 3;
@@ -80,7 +80,7 @@ export default class ServerMonitorCriteria {
     logger.debug(`Check On: ${input.criteriaFilter.checkOn}`);
     logger.debug(`Difference in Minutes: ${differenceInMinutes}`);
     logger.debug(
-      `Offline if not checked in minutes: ${offlineIfNotCheckedInMinutes}`
+      `Offline if not checked in minutes: ${offlineIfNotCheckedInMinutes}`,
     );
 
     if (
@@ -177,7 +177,7 @@ export default class ServerMonitorCriteria {
               item.diskPath.trim().toLowerCase() ===
               diskPath.trim().toLowerCase()
             );
-          }
+          },
         )[0]?.percentFree || 0;
 
       return CompareCriteria.compareCriteriaNumbers({
@@ -202,7 +202,7 @@ export default class ServerMonitorCriteria {
           (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
             (item: ServerProcess) => {
               return item.name.trim().toLowerCase();
-            }
+            },
           ) || [];
 
         if (processNames.includes(thresholdProcessName)) {
@@ -217,7 +217,7 @@ export default class ServerMonitorCriteria {
           (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
             (item: ServerProcess) => {
               return item.name.trim().toLowerCase();
-            }
+            },
           ) || [];
 
         if (!processNames.includes(thresholdProcessName)) {
@@ -243,7 +243,7 @@ export default class ServerMonitorCriteria {
           (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
             (item: ServerProcess) => {
               return item.pid.toString().trim().toLowerCase();
-            }
+            },
           ) || [];
 
         if (processPIDs.includes(thresholdProcessPID)) {
@@ -258,7 +258,7 @@ export default class ServerMonitorCriteria {
           (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
             (item: ServerProcess) => {
               return item.pid.toString().trim().toLowerCase();
-            }
+            },
           ) || [];
 
         if (!processPIDs.includes(thresholdProcessPID)) {
@@ -286,7 +286,7 @@ export default class ServerMonitorCriteria {
           (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
             (item: ServerProcess) => {
               return item.command.trim().toLowerCase();
-            }
+            },
           ) || [];
 
         if (processCommands.includes(thresholdProcessCommand)) {
@@ -301,7 +301,7 @@ export default class ServerMonitorCriteria {
           (input.dataToProcess as ServerMonitorResponse)?.processes?.map(
             (item: ServerProcess) => {
               return item.command.trim().toLowerCase();
-            }
+            },
           ) || [];
 
         if (!processCommands.includes(thresholdProcessCommand)) {

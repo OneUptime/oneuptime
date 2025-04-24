@@ -24,15 +24,15 @@ export default class IncomingRequestCriteria {
 
     logger.debug(
       "Checking IncomingRequestCriteria for Monitor: " +
-        input.dataToProcess.monitorId.toString()
+        input.dataToProcess.monitorId.toString(),
     );
 
     logger.debug(
-      "Data to process: " + JSON.stringify(input.dataToProcess, null, 2)
+      "Data to process: " + JSON.stringify(input.dataToProcess, null, 2),
     );
 
     logger.debug(
-      "Criteria Filter: " + JSON.stringify(input.criteriaFilter, null, 2)
+      "Criteria Filter: " + JSON.stringify(input.criteriaFilter, null, 2),
     );
 
     let value: number | string | undefined = input.criteriaFilter.value;
@@ -60,7 +60,7 @@ export default class IncomingRequestCriteria {
         }
       } catch (err) {
         logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`
+          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
         );
         logger.error(err);
         overTimeValue = undefined;
@@ -83,7 +83,7 @@ export default class IncomingRequestCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.IncomingRequest) {
       logger.debug(
         "Checking IncomingRequest for Monitor: " +
-          input.dataToProcess.monitorId.toString()
+          input.dataToProcess.monitorId.toString(),
       );
 
       const lastCheckTime: Date = (
@@ -94,7 +94,7 @@ export default class IncomingRequestCriteria {
 
       const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
         lastCheckTime,
-        OneUptimeDate.getCurrentDate()
+        OneUptimeDate.getCurrentDate(),
       );
 
       logger.debug("Difference in minutes: " + differenceInMinutes);
@@ -119,13 +119,13 @@ export default class IncomingRequestCriteria {
       if (input.criteriaFilter.filterType === FilterType.RecievedInMinutes) {
         logger.debug(
           "Checking RecievedInMinutes for Monitor: " +
-            input.dataToProcess.monitorId.toString()
+            input.dataToProcess.monitorId.toString(),
         );
         if (value && differenceInMinutes <= (value as number)) {
           logger.debug(
             "RecievedInMinutes for Monitor: " +
               input.dataToProcess.monitorId.toString() +
-              " is true"
+              " is true",
           );
           return `Incoming request / heartbeat received in ${value} minutes.`;
         }
@@ -135,13 +135,13 @@ export default class IncomingRequestCriteria {
       if (input.criteriaFilter.filterType === FilterType.NotRecievedInMinutes) {
         logger.debug(
           "Checking NotRecievedInMinutes for Monitor: " +
-            input.dataToProcess.monitorId.toString()
+            input.dataToProcess.monitorId.toString(),
         );
         if (value && differenceInMinutes > (value as number)) {
           logger.debug(
             "NotRecievedInMinutes for Monitor: " +
               input.dataToProcess.monitorId.toString() +
-              " is true"
+              " is true",
           );
           return `Incoming request / heartbeat not received in ${value} minutes.`;
         }
@@ -196,7 +196,7 @@ export default class IncomingRequestCriteria {
         .onlyCheckForIncomingRequestReceivedAt
     ) {
       const headerKeys: Array<string> = Object.keys(
-        (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {}
+        (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {},
       ).map((key: string) => {
         return key.toLowerCase();
       });
@@ -223,7 +223,7 @@ export default class IncomingRequestCriteria {
         .onlyCheckForIncomingRequestReceivedAt
     ) {
       const headerValues: Array<string> = Object.values(
-        (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {}
+        (input.dataToProcess as IncomingMonitorRequest).requestHeaders || {},
       ).map((key: string) => {
         return key.toLowerCase();
       });

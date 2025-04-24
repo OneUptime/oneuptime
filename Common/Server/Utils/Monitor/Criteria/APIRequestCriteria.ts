@@ -46,7 +46,7 @@ export default class APIRequestCriteria {
           return null;
         }
       } catch (err) {
-        logger.error( 
+        logger.error(
           `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
         );
         logger.error(err);
@@ -137,7 +137,7 @@ export default class APIRequestCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
       const headerKeys: Array<string> = Object.keys(
-        (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {}
+        (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {},
       ).map((key: string) => {
         return key.toLowerCase();
       });
@@ -168,7 +168,7 @@ export default class APIRequestCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.ResponseHeaderValue) {
       const headerValues: Array<string> = Object.values(
-        (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {}
+        (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {},
       ).map((key: string) => {
         return key.toLowerCase();
       });

@@ -50,7 +50,7 @@ export default class ServerMonitorCriteria {
         }
       } catch (err) {
         logger.error(
-          `Error in getting over time value for ${input.criteriaFilter.checkOn}`
+          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
         );
         logger.error(err);
         overTimeValue = undefined;
@@ -76,8 +76,8 @@ export default class ServerMonitorCriteria {
           !sslResponse.isSelfSigned &&
           OneUptimeDate.isAfter(
             sslResponse.expiresAt,
-            OneUptimeDate.getCurrentDate()
-          )
+            OneUptimeDate.getCurrentDate(),
+          ),
       );
 
       const isTrue: boolean =
@@ -97,7 +97,7 @@ export default class ServerMonitorCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.IsSelfSignedCertificate) {
       const isSelfSigned: boolean = Boolean(
-        sslResponse && sslResponse.isSelfSigned
+        sslResponse && sslResponse.isSelfSigned,
       );
       const isTrue: boolean =
         input.criteriaFilter.filterType === FilterType.True;
@@ -120,8 +120,8 @@ export default class ServerMonitorCriteria {
           sslResponse.expiresAt &&
           OneUptimeDate.isBefore(
             sslResponse.expiresAt,
-            OneUptimeDate.getCurrentDate()
-          )
+            OneUptimeDate.getCurrentDate(),
+          ),
       );
 
       const isTrue: boolean =
@@ -149,8 +149,8 @@ export default class ServerMonitorCriteria {
             (sslResponse.isSelfSigned ||
               OneUptimeDate.isBefore(
                 sslResponse.expiresAt,
-                OneUptimeDate.getCurrentDate()
-              ))
+                OneUptimeDate.getCurrentDate(),
+              )),
         );
       const isTrue: boolean =
         input.criteriaFilter.filterType === FilterType.True;
@@ -179,7 +179,7 @@ export default class ServerMonitorCriteria {
         expiresAt &&
         OneUptimeDate.getHoursBetweenTwoDates(
           OneUptimeDate.getCurrentDate(),
-          expiresAt
+          expiresAt,
         );
 
       if (hours === null || hours === undefined) {
@@ -205,7 +205,7 @@ export default class ServerMonitorCriteria {
         expiresAt &&
         OneUptimeDate.getDaysBetweenTwoDates(
           OneUptimeDate.getCurrentDate(),
-          expiresAt
+          expiresAt,
         );
 
       if (days === null || days === undefined) {
