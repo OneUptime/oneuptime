@@ -53,4 +53,21 @@ CREATE ROLE readonlyuser WITH LOGIN PASSWORD '<password>'
 GRANT pg_read_all_data TO readonlyuser;
 ```
 
+
+### Increasing max_connections for postgres. 
+
+To see the current number of max_connections. You need to run the following command in psql.
+
 ```
+SHOW max_connections;
+```
+
+To increase the max_connections, you need to run this sql command in psql.
+
+
+```
+ALTER SYSTEM SET max_connections = 200;
+```
+
+Then you need to restart the postgres pod. 
+
