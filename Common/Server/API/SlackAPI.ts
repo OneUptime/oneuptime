@@ -35,6 +35,7 @@ import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/S
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
 import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyPolicy";
+import WorkspaceProjectAuthToken, { SlackMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -64,6 +65,7 @@ export default class SlackAPI {
       },
     );
 
+    // this is project specific auth endpoint.
     router.get(
       "/slack/auth/:projectId/:userId",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -264,6 +266,243 @@ export default class SlackAPI {
           userId: new ObjectID(userId),
           workspaceType: WorkspaceType.Slack,
           authToken: slackUserAccessToken || "",
+          workspaceUserId: slackUserId || "",
+          miscData: {
+            userId: slackUserId || "",
+          },
+        });
+
+        // return back to dashboard after successful auth.
+        Response.redirect(req, res, slackIntegrationPageUrl);
+      },
+    );
+
+    // this is user specific auth endpoint to sign in to slack.
+    router.get(
+      "/slack/auth/:projectId/:userId/user",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        if (!SlackAppClientId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Slack App Client ID is not set"),
+          );
+        }
+
+        if (!SlackAppClientSecret) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Slack App Client Secret is not set"),
+          );
+        }
+
+        const projectId: string | undefined =
+          req.params["projectId"]?.toString();
+        const userId: string | undefined = req.params["userId"]?.toString();
+
+        if (!projectId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid ProjectID in request"),
+          );
+        }
+
+        if (!userId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid UserID in request"),
+          );
+        }
+
+        // if there's an error query param.
+        const error: string | undefined = req.query["error"]?.toString();
+
+        const slackIntegrationPageUrl: URL = URL.fromString(
+          DashboardClientUrl.toString() +
+            `/${projectId.toString()}/settings/slack-integration`,
+        );
+
+        if (error) {
+          return Response.redirect(
+            req,
+            res,
+            slackIntegrationPageUrl.addQueryParam("error", error),
+          );
+        }
+
+        // slack returns the code on successful auth.
+        const code: string | undefined = req.query["code"]?.toString();
+
+        if (!code) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid request"),
+          );
+        }
+
+        // get access token from slack api.
+
+        const redirectUri: URL = URL.fromString(
+          `${AppApiClientUrl.toString()}/slack/auth/${projectId}/${userId}/user`,
+        );
+
+        const requestBody: JSONObject = {
+          code: code,
+          client_id: SlackAppClientId,
+          client_secret: SlackAppClientSecret,
+          redirect_uri: redirectUri.toString(),
+        };
+
+        logger.debug("Slack Auth Request Body: ");
+        logger.debug(requestBody);
+
+        // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
+
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.post(
+            URL.fromString("https://slack.com/api/openid.connect.token"),
+            requestBody,
+            {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          );
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const responseBody: JSONObject = response.data;
+
+        logger.debug("Slack User Auth Request Body: ");
+        logger.debug(responseBody);
+
+        if (
+          responseBody["id_token"] &&
+          typeof responseBody["id_token"] === "string" &&
+          responseBody["id_token"].split(".").length > 0
+        ) {
+          const idToken: string = responseBody["id_token"];
+          const decodedIdToken: JSONObject = JSON.parse(
+            Buffer.from(
+              (idToken.split(".")?.[1] as string) || "",
+              "base64",
+            ).toString("utf8"),
+          );
+          logger.debug("Decoded ID Token: ");
+          logger.debug(decodedIdToken);
+          responseBody["id_token"] = decodedIdToken;
+        }
+
+        const idToken: JSONObject | undefined = responseBody[
+          "id_token"
+        ] as JSONObject;
+
+        // Example of Response Body
+        // {
+        //   "iss": "https://slack.com",
+        //   "sub": "U123ABC456",
+        //   "aud": "25259531569.1115258246291",
+        //   "exp": 1626874955,
+        //   "iat": 1626874655,
+        //   "auth_time": 1626874655,
+        //   "nonce": "abcd",
+        //   "at_hash": "abc...123",
+        //   "https://slack.com/team_id": "T0123ABC456",
+        //   "https://slack.com/user_id": "U123ABC456",
+        //   "email": "alice@example.com",
+        //   "email_verified": true,
+        //   "date_email_verified": 1622128723,
+        //   "locale": "en-US",
+        //   "name": "Alice",
+        //   "given_name": "",
+        //   "family_name": "",
+        //   "https://slack.com/team_image_230": "https://secure.gravatar.com/avatar/bc.png",
+        //   "https://slack.com/team_image_default": true
+        // }
+
+        // check if the team id matches the project id.
+        // get project auth.
+
+        const projectAuth: WorkspaceProjectAuthToken | null =
+          await WorkspaceProjectAuthTokenService.findOneBy({
+            query: {
+              projectId: new ObjectID(projectId),
+              workspaceType: WorkspaceType.Slack,
+            },
+            select: {
+              workspaceProjectId: true,
+              miscData: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        // cehck if the workspace project id is same as the team id.
+        if (projectAuth) {
+          logger.debug("Project Auth: ");
+          logger.debug(projectAuth.workspaceProjectId);
+          logger.debug("Response Team ID: ");
+          logger.debug(idToken["https://slack.com/team_id"]);
+          logger.debug("Response User ID: ");
+          logger.debug(idToken["https://slack.com/user_id"]);
+
+          if (
+            projectAuth.workspaceProjectId?.toString() !==
+            idToken["https://slack.com/team_id"]?.toString()
+          ) {
+            const teamName: string | undefined = (
+              projectAuth.miscData as SlackMiscData
+            )?.teamName;
+
+            // send error response.
+            return Response.redirect(
+              req,
+              res,
+              slackIntegrationPageUrl.addQueryParam(
+                "error",
+                "Looks like you are trying to sign in to a different slack workspace. Please try again and sign in to the workspace " +
+                  teamName,
+              ),
+            );
+          }
+        } else {
+          // send error response.
+          return Response.redirect(
+            req,
+            res,
+            slackIntegrationPageUrl.addQueryParam(
+              "error",
+              "Looks like this OneUptime project is not connected to any slack workspace. Please try again and sign in to the workspace",
+            ),
+          );
+        }
+
+        const authToken: string | undefined =
+          responseBody["access_token"]?.toString();
+        const slackUserId: string | undefined =
+          idToken["https://slack.com/user_id"]?.toString();
+
+        if (!slackUserId) {
+          return Response.redirect(
+            req,
+            res,
+            slackIntegrationPageUrl.addQueryParam(
+              "error",
+              "Unfortunately, we were unable to get your slack user id. Please try again.",
+            ),
+          );
+        }
+
+        await WorkspaceUserAuthTokenService.refreshAuthToken({
+          projectId: new ObjectID(projectId),
+          userId: new ObjectID(userId),
+          workspaceType: WorkspaceType.Slack,
+          authToken: authToken || "",
           workspaceUserId: slackUserId || "",
           miscData: {
             userId: slackUserId || "",

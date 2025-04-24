@@ -300,17 +300,27 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
+      const project_install_redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
+      const user_signin_redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}/user`;
 
-      Navigation.navigate(
-        URL.fromString(
-          `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
-            ",",
-          )}&user_scope=${userScopes.join(
-            ",",
-          )}&client_id=${SlackAppClientId}&redirect_uri=${redirect_uri}`,
-        ),
-      );
+      if (!isProjectAccountConnected) {
+        Navigation.navigate(
+          URL.fromString(
+            `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
+              ",",
+            )}&user_scope=${userScopes.join(
+              ",",
+            )}&client_id=${SlackAppClientId}&redirect_uri=${project_install_redirect_uri}`,
+          ),
+        );
+      } else {
+        // if project account is not connected then we just need to sign in with slack and not install the app.
+        Navigation.navigate(
+          URL.fromString(
+            `https://slack.com/openid/connect/authorize?response_type=code&scope=openid%20profile%20email&client_id=${SlackAppClientId}&redirect_uri=${user_signin_redirect_uri}`,
+          ),
+        );
+      }
     } else {
       setError(
         <div>
