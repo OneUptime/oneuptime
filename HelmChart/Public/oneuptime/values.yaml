@@ -81,6 +81,8 @@ postgresql:
 clickhouse:
   enabled: true
   clusterDomain: *global-cluster-domain
+  keeper:
+    enabled: false
   service:
     ports:
       http: "8123"
@@ -101,12 +103,7 @@ clickhouse:
   initdbScripts:
     db-init.sql: |
       CREATE DATABASE oneuptime;
-  # extraOverrides: |
-  #     <clickhouse>
-  #     <mysql_port></mysql_port>
-  #     <postgresql_port></postgresql_port>
-  #     </clickhouse>
-  
+
 
 redis:
   enabled: true
