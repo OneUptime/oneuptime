@@ -10,6 +10,7 @@ import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorRespon
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import logger from "../../Logger";
 
 export default class ServerMonitorCriteria {
   @CaptureSpan()
@@ -33,18 +34,26 @@ export default class ServerMonitorCriteria {
       input.criteriaFilter.eveluateOverTime &&
       input.criteriaFilter.evaluateOverTimeOptions
     ) {
-      overTimeValue = await EvaluateOverTime.getValueOverTime({
-        monitorId: input.dataToProcess.monitorId!,
-        evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
-        metricType: input.criteriaFilter.checkOn,
-      });
+      try {
+        overTimeValue = await EvaluateOverTime.getValueOverTime({
+          monitorId: input.dataToProcess.monitorId!,
+          evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+          metricType: input.criteriaFilter.checkOn,
+        });
 
-      if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-        return null;
-      }
+        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
+          return null;
+        }
 
-      if (overTimeValue === undefined) {
-        return null;
+        if (overTimeValue === undefined) {
+          return null;
+        }
+      } catch (err) {
+        logger.error(
+          `Error in getting over time value for ${input.criteriaFilter.checkOn}`
+        );
+        logger.error(err);
+        overTimeValue = undefined;
       }
     }
 
@@ -67,8 +76,8 @@ export default class ServerMonitorCriteria {
           !sslResponse.isSelfSigned &&
           OneUptimeDate.isAfter(
             sslResponse.expiresAt,
-            OneUptimeDate.getCurrentDate(),
-          ),
+            OneUptimeDate.getCurrentDate()
+          )
       );
 
       const isTrue: boolean =
@@ -88,7 +97,7 @@ export default class ServerMonitorCriteria {
 
     if (input.criteriaFilter.checkOn === CheckOn.IsSelfSignedCertificate) {
       const isSelfSigned: boolean = Boolean(
-        sslResponse && sslResponse.isSelfSigned,
+        sslResponse && sslResponse.isSelfSigned
       );
       const isTrue: boolean =
         input.criteriaFilter.filterType === FilterType.True;
@@ -111,8 +120,8 @@ export default class ServerMonitorCriteria {
           sslResponse.expiresAt &&
           OneUptimeDate.isBefore(
             sslResponse.expiresAt,
-            OneUptimeDate.getCurrentDate(),
-          ),
+            OneUptimeDate.getCurrentDate()
+          )
       );
 
       const isTrue: boolean =
@@ -140,8 +149,8 @@ export default class ServerMonitorCriteria {
             (sslResponse.isSelfSigned ||
               OneUptimeDate.isBefore(
                 sslResponse.expiresAt,
-                OneUptimeDate.getCurrentDate(),
-              )),
+                OneUptimeDate.getCurrentDate()
+              ))
         );
       const isTrue: boolean =
         input.criteriaFilter.filterType === FilterType.True;
@@ -170,7 +179,7 @@ export default class ServerMonitorCriteria {
         expiresAt &&
         OneUptimeDate.getHoursBetweenTwoDates(
           OneUptimeDate.getCurrentDate(),
-          expiresAt,
+          expiresAt
         );
 
       if (hours === null || hours === undefined) {
@@ -196,7 +205,7 @@ export default class ServerMonitorCriteria {
         expiresAt &&
         OneUptimeDate.getDaysBetweenTwoDates(
           OneUptimeDate.getCurrentDate(),
-          expiresAt,
+          expiresAt
         );
 
       if (days === null || days === undefined) {
