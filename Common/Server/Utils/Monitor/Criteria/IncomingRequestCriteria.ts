@@ -52,7 +52,7 @@ export default class IncomingRequestCriteria {
         });
 
         if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined; 
+          overTimeValue = undefined;
         }
       } catch (err) {
         logger.error(
