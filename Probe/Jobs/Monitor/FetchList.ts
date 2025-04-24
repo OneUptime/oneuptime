@@ -61,17 +61,14 @@ export default class FetchListAndProbe {
     logger.debug(`Running worker ${this.workerName}`);
 
     try {
-
       logger.debug(`Probing monitors ${this.workerName}`);
 
       await this.fetchListAndProbe();
 
       logger.debug(`Probing monitors ${this.workerName} complete`);
-
     } catch (err) {
       logger.error(`Error in worker ${this.workerName}`);
       logger.error(err);
-      
     }
   }
 
