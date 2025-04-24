@@ -41,11 +41,7 @@ export default class ServerMonitorCriteria {
         });
 
         if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          return null;
-        }
-
-        if (overTimeValue === undefined) {
-          return null;
+          overTimeValue = undefined; 
         }
       } catch (err) {
         logger.error(

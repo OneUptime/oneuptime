@@ -39,12 +39,9 @@ export default class APIRequestCriteria {
         });
 
         if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          return null;
+          overTimeValue = undefined; 
         }
 
-        if (overTimeValue === undefined) {
-          return null;
-        }
       } catch (err) {
         logger.error(
           `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
