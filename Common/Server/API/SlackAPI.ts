@@ -35,7 +35,9 @@ import SlackScheduledMaintenanceActions from "../Utils/Workspace/Slack/Actions/S
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
 import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyPolicy";
-import WorkspaceProjectAuthToken, { SlackMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  SlackMiscData,
+} from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
