@@ -1,4 +1,8 @@
-import { PROBE_INGEST_URL, PROBE_MONITOR_FETCH_LIMIT, PROBE_MONITORING_WORKERS } from "../../Config";
+import {
+  PROBE_INGEST_URL,
+  PROBE_MONITOR_FETCH_LIMIT,
+  PROBE_MONITORING_WORKERS,
+} from "../../Config";
 import MonitorUtil from "../../Utils/Monitors/Monitor";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -17,7 +21,6 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 
-
 BasicCron({
   jobName: "Probe:MonitorFetchList",
   options: {
@@ -25,7 +28,6 @@ BasicCron({
     runOnStartup: true,
   },
   runFunction: async () => {
-
     try {
       let workers: number = 0;
 
@@ -60,40 +62,34 @@ export default class FetchListAndProbe {
   public async run(): Promise<void> {
     logger.debug(`Running worker ${this.workerName}`);
 
-      try {
-        // Sleep randomly between 500 and 1300 milliseconds
-        // We do this to avoid all workers hitting the server at the same time and fetching the same monitors.
-        const sleepTime: number = Math.floor(Math.random() * 1300) + 500;
-        logger.debug(
-          `Worker ${this.workerName} is sleeping for ${sleepTime}ms`,
-        );
-        await Sleep.sleep(Math.round(sleepTime) % 5000);
+    try {
+      // Sleep randomly between 500 and 1300 milliseconds
+      // We do this to avoid all workers hitting the server at the same time and fetching the same monitors.
+      const sleepTime: number = Math.floor(Math.random() * 1300) + 500;
+      logger.debug(`Worker ${this.workerName} is sleeping for ${sleepTime}ms`);
+      await Sleep.sleep(Math.round(sleepTime) % 5000);
 
-        const runTime: Date = OneUptimeDate.getCurrentDate();
+      const runTime: Date = OneUptimeDate.getCurrentDate();
 
-        logger.debug(`Probing monitors ${this.workerName}`);
+      logger.debug(`Probing monitors ${this.workerName}`);
 
-        await this.fetchListAndProbe();
+      await this.fetchListAndProbe();
 
-        logger.debug(`Probing monitors ${this.workerName} complete`);
+      logger.debug(`Probing monitors ${this.workerName} complete`);
 
-        // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
+      // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
 
-        const twoSecondsAdded: Date = OneUptimeDate.addRemoveSeconds(
-          runTime,
-          2,
-        );
+      const twoSecondsAdded: Date = OneUptimeDate.addRemoveSeconds(runTime, 2);
 
-        if (OneUptimeDate.isInTheFuture(twoSecondsAdded)) {
-          logger.debug(`Worker ${this.workerName} is waiting for 1 seconds`);
-          await Sleep.sleep(1000);
-        }
-      } catch (err) {
-        logger.error(`Error in worker ${this.workerName}`);
-        logger.error(err);
+      if (OneUptimeDate.isInTheFuture(twoSecondsAdded)) {
+        logger.debug(`Worker ${this.workerName} is waiting for 1 seconds`);
         await Sleep.sleep(1000);
       }
-    
+    } catch (err) {
+      logger.error(`Error in worker ${this.workerName}`);
+      logger.error(err);
+      await Sleep.sleep(1000);
+    }
   }
 
   private async fetchListAndProbe(): Promise<void> {

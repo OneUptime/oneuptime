@@ -1,8 +1,6 @@
-import {
-  PORT,
-} from "./Config";
+import { PORT } from "./Config";
 import "./Jobs/Alive";
-import  "./Jobs/Monitor/FetchList";
+import "./Jobs/Monitor/FetchList";
 import "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -46,8 +44,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       logger.error(err);
       throw err;
     }
-
-    
   } catch (err) {
     logger.error("App Init Failed:");
     logger.error(err);

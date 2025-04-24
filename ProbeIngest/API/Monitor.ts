@@ -328,7 +328,6 @@ router.post(
       // const moduloBy: number = 10;
       // const reminder: number = NumberUtil.getRandomNumber(0, 100) % moduloBy;
 
-
       const count: PositiveNumber = await MonitorProbeService.countBy({
         query: {
           ...getMonitorFetchQuery((req as OneUptimeRequest).probe!.id!),
@@ -348,7 +347,6 @@ router.post(
       if (countNumber > limit) {
         skip = NumberUtil.getRandomNumber(0, countNumber - limit);
       }
-
 
       const monitorProbes: Array<MonitorProbe> =
         await MonitorProbeService.findBy({
