@@ -10,11 +10,9 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
 import APIException from "Common/Types/Exception/ApiException";
 import { JSONArray } from "Common/Types/JSON";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -63,13 +61,6 @@ export default class FetchListAndProbe {
     logger.debug(`Running worker ${this.workerName}`);
 
     try {
-      // Sleep randomly between 500 and 1300 milliseconds
-      // We do this to avoid all workers hitting the server at the same time and fetching the same monitors.
-      const sleepTime: number = Math.floor(Math.random() * 1300) + 500;
-      logger.debug(`Worker ${this.workerName} is sleeping for ${sleepTime}ms`);
-      await Sleep.sleep(Math.round(sleepTime) % 5000);
-
-      const runTime: Date = OneUptimeDate.getCurrentDate();
 
       logger.debug(`Probing monitors ${this.workerName}`);
 
@@ -77,18 +68,10 @@ export default class FetchListAndProbe {
 
       logger.debug(`Probing monitors ${this.workerName} complete`);
 
-      // if rumTime  + 5 seconds is in the future, then this fetchLst either errored out or had no monitors in the list. Either way, wait for 5 seconds and proceed.
-
-      const twoSecondsAdded: Date = OneUptimeDate.addRemoveSeconds(runTime, 2);
-
-      if (OneUptimeDate.isInTheFuture(twoSecondsAdded)) {
-        logger.debug(`Worker ${this.workerName} is waiting for 1 seconds`);
-        await Sleep.sleep(1000);
-      }
     } catch (err) {
       logger.error(`Error in worker ${this.workerName}`);
       logger.error(err);
-      await Sleep.sleep(1000);
+      
     }
   }
 
