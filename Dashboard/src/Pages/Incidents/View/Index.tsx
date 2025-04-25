@@ -176,7 +176,7 @@ const IncidentView: FunctionComponent<
     const incidentStartTime: Date =
       incidentStateTimeline[0]?.startsAt || new Date();
 
-    const acknowledgeTime: Date | undefined = incidentStateTimeline.find(
+    const acknowledgeTime: Date | undefined = incidentStateTimeline.reverse().find(
       (timeline: IncidentStateTimeline) => {
         return (
           timeline.incidentStateId?.toString() ===
@@ -185,7 +185,7 @@ const IncidentView: FunctionComponent<
       },
     )?.startsAt;
 
-    const resolveTime: Date | undefined = incidentStateTimeline.find(
+    const resolveTime: Date | undefined = incidentStateTimeline.reverse().find(
       (timeline: IncidentStateTimeline) => {
         return (
           timeline.incidentStateId?.toString() ===
