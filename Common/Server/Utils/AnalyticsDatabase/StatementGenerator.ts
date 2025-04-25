@@ -724,6 +724,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // to specify the table engine
     const tableEngineStatement: string = this.model.tableEngine;
 
+
+    const partitionKey: string = this.model.partitionKey;
+
     const statement: Statement = SQL`
             CREATE TABLE IF NOT EXISTS ${databaseName}.${this.model.tableName}
             (\n`
@@ -734,6 +737,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ENGINE = `,
       )
       .append(tableEngineStatement).append(SQL`
+        PARTITION BY ${partitionKey}
+        `)
+      .append(SQL`
             PRIMARY KEY (`);
 
     for (let i: number = 0; i < this.model.primaryKeys.length; i++) {

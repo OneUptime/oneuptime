@@ -494,6 +494,7 @@ export default class Span extends AnalyticsBaseModel {
       ],
       sortKeys: ["projectId", "startTime", "serviceId", "traceId"],
       primaryKeys: ["projectId", "startTime", "serviceId", "traceId"],
+      partitionKey: "(projectId, toYYYYMM(startTime))",
     });
   }
 

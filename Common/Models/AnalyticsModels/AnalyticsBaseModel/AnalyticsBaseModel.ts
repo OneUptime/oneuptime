@@ -39,6 +39,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     sortKeys: Array<string>; // this should be the subset of tableColumns
     enableWorkflowOn?: EnableWorkflowOn | undefined;
     enableRealtimeEventsOn?: EnableRealtimeEventsOn | undefined;
+    partitionKey: string;
   }) {
     super({
       tableColumns: data.tableColumns,
@@ -138,6 +139,7 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.enableWorkflowOn = data.enableWorkflowOn;
     this.crudApiPath = data.crudApiPath;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
+    this.partitionKey = data.partitionKey;
 
     // initialize Arrays.
     for (const column of this.tableColumns) {
@@ -185,6 +187,14 @@ export default class AnalyticsBaseModel extends CommonModel {
   }
   public set primaryKeys(v: Array<string>) {
     this._primaryKeys = v;
+  }
+
+  private _partitionKey: string = "";
+  public get partitionKey(): string {
+    return this._partitionKey;
+  }
+  public set partitionKey(v: string) {
+    this._partitionKey = v;
   }
 
   private _sortKeys: Array<string> = [];
