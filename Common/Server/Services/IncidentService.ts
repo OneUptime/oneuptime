@@ -167,6 +167,16 @@ export class Service extends DatabaseService<Model> {
     incidentId: ObjectID,
     resolvedByUserId: ObjectID,
   ): Promise<Model> {
+
+    // check if the incident is already resolved.
+    const isIncidentResolved: boolean = await this.isIncidentResolved({
+      incidentId: incidentId,
+    });
+
+    if (isIncidentResolved) {
+      throw new BadDataException("Incident is already resolved.");
+    }
+
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
@@ -226,6 +236,16 @@ export class Service extends DatabaseService<Model> {
     incidentId: ObjectID,
     acknowledgedByUserId: ObjectID,
   ): Promise<Model> {
+
+    // check if the incident is already acknowledged.
+    const isIncidentAcknowledged: boolean = await this.isIncidentAcknowledged({
+      incidentId: incidentId,
+    });
+
+    if (isIncidentAcknowledged) {
+      throw new BadDataException("Incident is already acknowledged.");
+    }
+
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
