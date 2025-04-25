@@ -100,6 +100,12 @@ clickhouse:
     username: oneuptime
   # For some reason bitnami clickhouse choose to have resourcesPreset: "small" as default. We dont want that.
   resourcesPreset: "none" 
+  configdFiles:
+    99-disable-db-interface.xml: |-
+      <clickhouse>
+        <mysql_port remove='1'></mysql_port>
+        <postgresql_port remove='1'></postgresql_port>
+      </clickhouse>
   initdbScripts:
     db-init.sql: |
       CREATE DATABASE oneuptime;
