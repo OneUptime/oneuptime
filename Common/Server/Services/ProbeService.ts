@@ -214,7 +214,7 @@ export class Service extends DatabaseService<Model> {
       return; // might be global probe. Do not notify.
     }
 
-    if(probe.isGlobalProbe && IsBillingEnabled) {
+    if (probe.isGlobalProbe && IsBillingEnabled) {
       return; // do not notify for global probes.
     }
 

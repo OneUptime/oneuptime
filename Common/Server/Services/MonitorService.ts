@@ -873,7 +873,7 @@ ${createdItem.description || "No description provided."}
       },
     );
 
-    if(IsBillingEnabled){
+    if (IsBillingEnabled) {
       // check if these probes are global probes.
       const anyGlobalProbe: boolean = enabledProbes.some(
         (monitorProbe: MonitorProbe) => {
@@ -881,7 +881,7 @@ ${createdItem.description || "No description provided."}
         },
       );
 
-      if(anyGlobalProbe){
+      if (anyGlobalProbe) {
         // do not notify if any global probe is disconnected.
         return;
       }
