@@ -68,8 +68,6 @@ export default class AnalyticsDatabaseService<
     modelType: { new (): TBaseModel };
     database?: ClickhouseDatabase | undefined;
   }) {
-  
-
     super();
     this.modelType = data.modelType;
     this.model = new this.modelType();
