@@ -10,39 +10,43 @@ import logger from "Common/Server/Utils/Logger";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 
-BasicCron({
-  jobName: "Basic:Alive",
-  options: {
-    schedule: EVERY_MINUTE,
-    runOnStartup: false,
-  },
-  runFunction: async () => {
-    logger.debug("Checking if probe is alive...");
+const InitJob: VoidFunction = (): void => {
+  BasicCron({
+    jobName: "Basic:Alive",
+    options: {
+      schedule: EVERY_MINUTE,
+      runOnStartup: false,
+    },
+    runFunction: async () => {
+      logger.debug("Checking if probe is alive...");
 
-    const probeId: string | undefined = LocalCache.getString(
-      "PROBE",
-      "PROBE_ID",
-    );
-
-    if (!probeId) {
-      logger.warn(
-        "Probe is not registered yet. Skipping alive check. Trying to register probe again...",
+      const probeId: string | undefined = LocalCache.getString(
+        "PROBE",
+        "PROBE_ID",
       );
-      await Register.registerProbe();
-      return;
-    }
 
-    logger.debug("Probe ID: " + probeId.toString());
+      if (!probeId) {
+        logger.warn(
+          "Probe is not registered yet. Skipping alive check. Trying to register probe again...",
+        );
+        await Register.registerProbe();
+        return;
+      }
 
-    const result: HTTPResponse<JSONObject> = await API.post(
-      URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
-      ProbeAPIRequest.getDefaultRequestBody(),
-    );
+      logger.debug("Probe ID: " + probeId.toString());
 
-    if (result.isSuccess()) {
-      logger.debug("Probe update sent to server successfully.");
-    } else {
-      logger.error("Failed to send probe update to server.");
-    }
-  },
-});
+      const result: HTTPResponse<JSONObject> = await API.post(
+        URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
+        ProbeAPIRequest.getDefaultRequestBody(),
+      );
+
+      if (result.isSuccess()) {
+        logger.debug("Probe update sent to server successfully.");
+      } else {
+        logger.error("Failed to send probe update to server.");
+      }
+    },
+  });
+};
+
+export default InitJob;

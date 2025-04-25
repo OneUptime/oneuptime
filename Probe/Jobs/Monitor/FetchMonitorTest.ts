@@ -15,23 +15,25 @@ import logger from "Common/Server/Utils/Logger";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import { EVERY_TEN_SECONDS } from "Common/Utils/CronTime";
 
-BasicCron({
-  jobName: "Probe:MonitorTest",
-  options: {
-    schedule: EVERY_TEN_SECONDS,
-    runOnStartup: true,
-  },
-  runFunction: async () => {
-    try {
-      await FetchMonitorTestAndProbe.run();
-    } catch (err) {
-      logger.error("Error in worker");
-      logger.error(err);
-    }
-  },
-});
+const InitJob: VoidFunction = (): void => {
+  BasicCron({
+    jobName: "Probe:MonitorTest",
+    options: {
+      schedule: EVERY_TEN_SECONDS,
+      runOnStartup: true,
+    },
+    runFunction: async () => {
+      try {
+        await FetchMonitorTestAndProbe.run();
+      } catch (err) {
+        logger.error("Error in worker");
+        logger.error(err);
+      }
+    },
+  });
+};
 
-export default class FetchMonitorTestAndProbe {
+class FetchMonitorTestAndProbe {
   public static async run(): Promise<void> {
     try {
       logger.debug(`MONITOR TEST: Probing monitors `);
@@ -115,3 +117,5 @@ export default class FetchMonitorTestAndProbe {
     }
   }
 }
+
+export default InitJob;

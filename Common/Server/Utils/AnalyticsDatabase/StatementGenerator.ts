@@ -724,7 +724,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     // to specify the table engine
     const tableEngineStatement: string = this.model.tableEngine;
 
-
     const partitionKey: string = this.model.partitionKey;
 
     const statement: Statement = SQL`
@@ -738,8 +737,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       )
       .append(tableEngineStatement).append(SQL`
         PARTITION BY ${partitionKey}
-        `)
-      .append(SQL`
+        `).append(SQL`
             PRIMARY KEY (`);
 
     for (let i: number = 0; i < this.model.primaryKeys.length; i++) {
