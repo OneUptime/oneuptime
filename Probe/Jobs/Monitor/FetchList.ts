@@ -18,6 +18,8 @@ import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
+import NumberUtil from "Common/Utils/Number";
+import Sleep from "Common/Types/Sleep";
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -76,6 +78,14 @@ class FetchListAndProbe {
   private async fetchListAndProbe(): Promise<void> {
     try {
       logger.debug("Fetching monitor list");
+
+      // sleep randomly between 0 and 45 seconds
+
+      const sleepTime: number = NumberUtil.getRandomNumber(0, 45000);
+      logger.debug(
+        `Sleeping for ${sleepTime} ms, just to give probe API's soem time to load balance between different workers`,
+      );
+      await Sleep.sleep(sleepTime);
 
       const monitorListUrl: URL = URL.fromString(
         PROBE_INGEST_URL.toString(),

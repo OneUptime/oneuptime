@@ -13,10 +13,14 @@ metadata:
     date: "{{ now | unixEpoch }}"
 spec:
   schedule: "*/30 * * * *" # At every 30 minute.
+  {{- if $.Values.nodeSelector }}
+  nodeSelector: {{- $.Values.nodeSelector | toYaml | nindent 8 }}
+  {{- end }}
   jobTemplate:
     spec:
       template:
         spec:
+          
           containers:
           - name: e2e-cron
             image: {{ printf "%s/%s/%s:%s" $.Values.image.registry $.Values.image.repository "e2e" $.Values.image.tag }}
