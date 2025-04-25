@@ -57,7 +57,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
       <div className="flex space-x-3">
         <InfoCard
           className="w-1/3 shadow-none border-2 border-gray-100 "
-          title="Response Staus Code"
+          title="Response Status Code"
           value={props.probeMonitorResponse?.responseCode?.toString() || "-"}
         />
         <InfoCard
