@@ -143,12 +143,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       records.push(record);
     }
 
+    // we need async insert to be enabled for clickhouse to work.
+    // otherwise too many parts will be created.
+
     const statement: string = `INSERT INTO ${
       this.database.getDatasourceOptions().database
     }.${this.model.tableName} 
         ( 
             ${columnNames.join(", ")}
-        )
+        ) SETTINGS async_insert=1, wait_for_async_insert=0
         VALUES
         ${this.getValuesStatement(records)}
         `;

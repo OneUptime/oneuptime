@@ -14,9 +14,6 @@ export default class Log extends AnalyticsBaseModel {
       tableName: "LogItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
       singularName: "Log",
-      enableRealtimeEventsOn: {
-        create: true,
-      },
       accessControl: {
         read: [
           Permission.ProjectOwner,
