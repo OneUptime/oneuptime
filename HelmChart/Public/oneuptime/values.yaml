@@ -105,6 +105,7 @@ clickhouse:
       <clickhouse>
         <mysql_port remove='1'></mysql_port>
         <postgresql_port remove='1'></postgresql_port>
+        <tcp_port remove='1'></tcp_port>
       </clickhouse>
   initdbScripts:
     db-init.sql: |
