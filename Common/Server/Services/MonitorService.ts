@@ -809,6 +809,7 @@ ${createdItem.description || "No description provided."}
           probeId: true,
           probe: {
             connectionStatus: true,
+            isGlobalProbe: true,
           },
         },
         skip: 0,
@@ -871,6 +872,20 @@ ${createdItem.description || "No description provided."}
         );
       },
     );
+
+    if(IsBillingEnabled){
+      // check if these probes are global probes.
+      const anyGlobalProbe: boolean = enabledProbes.some(
+        (monitorProbe: MonitorProbe) => {
+          return monitorProbe.probe?.isGlobalProbe === true;
+        },
+      );
+
+      if(anyGlobalProbe){
+        // do not notify if any global probe is disconnected.
+        return;
+      }
+    }
 
     if (
       disconnectedProbes.length === enabledProbes.length &&

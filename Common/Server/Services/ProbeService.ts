@@ -29,6 +29,7 @@ import URL from "../../Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -195,6 +196,7 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         lastAlive: true,
         connectionStatus: true,
+        isGlobalProbe: true,
         name: true,
         description: true,
         projectId: true,
@@ -210,6 +212,10 @@ export class Service extends DatabaseService<Model> {
 
     if (!probe.projectId) {
       return; // might be global probe. Do not notify.
+    }
+
+    if(probe.isGlobalProbe && IsBillingEnabled) {
+      return; // do not notify for global probes.
     }
 
     // notify the probe owner
