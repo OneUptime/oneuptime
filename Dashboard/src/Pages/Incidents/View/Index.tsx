@@ -176,23 +176,23 @@ const IncidentView: FunctionComponent<
     const incidentStartTime: Date =
       incidentStateTimeline[0]?.startsAt || new Date();
 
-    const acknowledgeTime: Date | undefined = incidentStateTimeline.reverse().find(
-      (timeline: IncidentStateTimeline) => {
+    const acknowledgeTime: Date | undefined = incidentStateTimeline
+      .reverse()
+      .find((timeline: IncidentStateTimeline) => {
         return (
           timeline.incidentStateId?.toString() ===
           getAcknowledgeState()?._id?.toString()
         );
-      },
-    )?.startsAt;
+      })?.startsAt;
 
-    const resolveTime: Date | undefined = incidentStateTimeline.reverse().find(
-      (timeline: IncidentStateTimeline) => {
+    const resolveTime: Date | undefined = incidentStateTimeline
+      .reverse()
+      .find((timeline: IncidentStateTimeline) => {
         return (
           timeline.incidentStateId?.toString() ===
           getResolvedState()?._id?.toString()
         );
-      },
-    )?.startsAt;
+      })?.startsAt;
 
     if (!acknowledgeTime && !resolveTime) {
       return (
