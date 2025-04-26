@@ -43,7 +43,7 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
-import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+// import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import Metric, {
   MetricPointType,
   ServiceType,
@@ -62,16 +62,16 @@ export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
-    let mutex: SemaphoreMutex | null = null;
+    // let mutex: SemaphoreMutex | null = null;
 
-    try {
-      mutex = await Semaphore.lock({
-        key: dataToProcess.monitorId.toString(),
-        namespace: "MonitorResourceUtil.monitorResource",
-      });
-    } catch (err) {
-      logger.error(err);
-    }
+    // try {
+    //   mutex = await Semaphore.lock({
+    //     key: dataToProcess.monitorId.toString(),
+    //     namespace: "MonitorResourceUtil.monitorResource",
+    //   });
+    // } catch (err) {
+    //   logger.error(err);
+    // }
 
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
@@ -589,13 +589,13 @@ export default class MonitorResourceUtil {
       }
     }
 
-    if (mutex) {
-      try {
-        await Semaphore.release(mutex);
-      } catch (err) {
-        logger.error(err);
-      }
-    }
+    // if (mutex) {
+    //   try {
+    //     await Semaphore.release(mutex);
+    //   } catch (err) {
+    //     logger.error(err);
+    //   }
+    // }
 
     return response;
   }
