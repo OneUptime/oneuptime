@@ -367,6 +367,7 @@ router.post(
               monitorSteps: true,
               monitorType: true,
               monitoringInterval: true,
+              projectId: true,
             },
           },
           props: {
@@ -523,6 +524,7 @@ router.post(
           monitorType: true,
           monitorSteps: true,
           _id: true,
+          projectId: true,
         },
         props: {
           isRoot: true,

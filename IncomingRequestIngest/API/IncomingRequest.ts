@@ -68,7 +68,7 @@ const processIncomingRequest: RequestHandler = async (
       throw new BadDataException("Monitor not found");
     }
 
-    if(!monitor.projectId) {
+    if (!monitor.projectId) {
       throw new BadDataException("Project not found");
     }
 

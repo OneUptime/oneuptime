@@ -102,8 +102,6 @@ export default class MonitorResourceUtil {
       },
     });
 
-    
-
     logger.debug("Monitor found");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
 
@@ -112,7 +110,7 @@ export default class MonitorResourceUtil {
       throw new BadDataException("Monitor not found");
     }
 
-    if(!monitor.projectId){
+    if (!monitor.projectId) {
       logger.debug(
         `${dataToProcess.monitorId.toString()} Monitor does not have a projectId`,
       );

@@ -57,6 +57,7 @@ export default class MonitorUtil {
         monitorType: monitorTest.monitorType!,
         monitorId: monitorTest.id!,
         monitorStep: monitorStep,
+        projectId: monitorTest.projectId!,
       });
 
       if (result) {
@@ -105,6 +106,7 @@ export default class MonitorUtil {
         monitorType: monitor.monitorType!,
         monitorId: monitor.id!,
         monitorStep: monitorStep,
+        projectId: monitor.projectId!,
       });
 
       if (result) {
@@ -172,6 +174,7 @@ export default class MonitorUtil {
     monitorStep: MonitorStep;
     monitorType: MonitorType;
     monitorId: ObjectID;
+    projectId: ObjectID; 
   }): Promise<ProbeMonitorResponse | null> {
     const monitorStep: MonitorStep = data.monitorStep;
     const monitorType: MonitorType = data.monitorType;
@@ -179,6 +182,7 @@ export default class MonitorUtil {
 
     const result: ProbeMonitorResponse = {
       monitorStepId: monitorStep.id,
+      projectId: data.projectId,
       monitorId: monitorId!,
       probeId: ProbeUtil.getProbeId(),
       failureCause: "",

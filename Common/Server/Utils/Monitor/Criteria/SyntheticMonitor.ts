@@ -17,7 +17,6 @@ export default class SyntheticMonitoringCriteria {
       // check custom code monitoring criteria first
       const result: string | null =
         await CustomCodeMonitoringCriteria.isMonitorInstanceCriteriaFilterMet({
-          
           monitorResponse: syntheticMonitorResponse,
           criteriaFilter: input.criteriaFilter,
         });
