@@ -14,33 +14,33 @@ export default class InfrastructureStatus {
     checkPostgresStatus: boolean;
     checkClickhouseStatus: boolean;
   }): Promise<void> {
-    logger.debug("Checking infrastructure status");
+    logger.info("Checking infrastructure status");
 
     if (data.checkRedisStatus) {
-      logger.debug("Checking Redis status");
+      logger.info("Checking Redis status");
       if (!(await Redis.checkConnnectionStatus())) {
-        logger.debug("Redis is not connected");
+        logger.info("Redis is not connected");
         throw new DatabaseNotConnectedException("Redis is not connected");
       }
-      logger.debug("Redis is connected");
+      logger.info("Redis is connected");
     }
 
     if (data.checkPostgresStatus) {
-      logger.debug("Checking Postgres status");
+      logger.info("Checking Postgres status");
       if (!(await PostgresAppInstance.checkConnnectionStatus())) {
-        logger.debug("Postgres is not connected");
+        logger.info("Postgres is not connected");
         throw new DatabaseNotConnectedException("Postgres is not connected");
       }
-      logger.debug("Postgres is connected");
+      logger.info("Postgres is connected");
     }
 
     if (data.checkClickhouseStatus) {
-      logger.debug("Checking Clickhouse status");
+      logger.info("Checking Clickhouse status");
       if (!(await ClickhouseAppInstance.checkConnnectionStatus())) {
-        logger.debug("Clickhouse is not connected");
+        logger.info("Clickhouse is not connected");
         throw new DatabaseNotConnectedException("Clickhouse is not connected");
       }
-      logger.debug("Clickhouse is connected");
+      logger.info("Clickhouse is connected");
     }
   }
 

@@ -127,7 +127,7 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Ready check");
+      logger.info("Ready check: Init");
       await options.readyCheck();
       logger.info("Ready check: ok");
       stausReadySuccess.add(1);
@@ -136,6 +136,9 @@ export default class StatusAPI {
         status: "ok",
       });
     } catch (e) {
+      logger.error("Ready check: failed");
+      logger.error(e);
+
       stausReadyFailed.add(1);
       Response.sendErrorResponse(
         req,
@@ -154,7 +157,7 @@ export default class StatusAPI {
     res: ExpressResponse,
   ): Promise<void> {
     try {
-      logger.debug("Live check");
+      logger.info("Live check: Init");
       await options.liveCheck();
       logger.info("Live check: ok");
       stausLiveSuccess.add(1);
@@ -163,6 +166,8 @@ export default class StatusAPI {
         status: "ok",
       });
     } catch (e) {
+      logger.error("Live check: failed");
+      logger.error(e);
       stausLiveFailed.add(1);
       Response.sendErrorResponse(
         req,
