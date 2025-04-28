@@ -57,6 +57,7 @@ const processIncomingRequest: RequestHandler = async (
       },
       select: {
         _id: true,
+        projectId: true,
       },
       props: {
         isRoot: true,
@@ -67,8 +68,13 @@ const processIncomingRequest: RequestHandler = async (
       throw new BadDataException("Monitor not found");
     }
 
+    if(!monitor.projectId) {
+      throw new BadDataException("Project not found");
+    }
+
     const incomingRequest: IncomingMonitorRequest = {
-      monitorId: new ObjectID(monitor._id),
+      projectId: monitor.projectId,
+      monitorId: new ObjectID(monitor._id.toString()),
       requestHeaders: requestHeaders,
       requestBody: requestBody,
       incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),

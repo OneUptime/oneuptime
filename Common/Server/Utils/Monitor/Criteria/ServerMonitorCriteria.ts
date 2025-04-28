@@ -34,6 +34,7 @@ export default class ServerMonitorCriteria {
     ) {
       try {
         overTimeValue = await EvaluateOverTime.getValueOverTime({
+          projectId: (input.dataToProcess as ServerMonitorResponse).projectId,
           monitorId: input.dataToProcess.monitorId!,
           evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
           metricType: input.criteriaFilter.checkOn,

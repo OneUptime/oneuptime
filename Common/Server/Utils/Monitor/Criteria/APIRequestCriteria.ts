@@ -32,6 +32,7 @@ export default class APIRequestCriteria {
     ) {
       try {
         overTimeValue = await EvaluateOverTime.getValueOverTime({
+          projectId: (input.dataToProcess as ProbeMonitorResponse).projectId,
           monitorId: input.dataToProcess.monitorId!,
           evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
           metricType: input.criteriaFilter.checkOn,

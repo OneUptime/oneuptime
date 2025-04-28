@@ -102,6 +102,8 @@ export default class MonitorResourceUtil {
       },
     });
 
+    
+
     logger.debug("Monitor found");
     logger.debug("Monitor ID: " + dataToProcess.monitorId);
 
@@ -109,6 +111,15 @@ export default class MonitorResourceUtil {
       logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
       throw new BadDataException("Monitor not found");
     }
+
+    if(!monitor.projectId){
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} Monitor does not have a projectId`,
+      );
+      throw new BadDataException("Monitor does not have a projectId");
+    }
+
+    dataToProcess.projectId = monitor.projectId;
 
     if (monitor.disableActiveMonitoring) {
       logger.debug(
