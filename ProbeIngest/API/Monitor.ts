@@ -96,6 +96,7 @@ router.get(
               monitorSteps: true,
               monitorType: true,
               monitoringInterval: true,
+              projectId: true,
             },
           },
           skip: 0,
