@@ -76,7 +76,7 @@ RunCron(
             continue;
           }
 
-          if(!serverMonitor.projectId){
+          if (!serverMonitor.projectId) {
             logger.error(
               `Server monitor ${serverMonitor.id} does not have a projectId. Skipping.`,
             );
