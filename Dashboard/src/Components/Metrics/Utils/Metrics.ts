@@ -32,6 +32,7 @@ export default class MetricUtil {
         modelType: Metric,
         aggregateBy: {
           query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
             time: metricViewData.startAndEndDate!,
             name: queryConfig.metricQueryData.filterData.metricName!,
             attributes: queryConfig.metricQueryData.filterData
