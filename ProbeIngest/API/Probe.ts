@@ -5,7 +5,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ProbeStatusReport from "Common/Types/Probe/ProbeStatusReport";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
@@ -264,14 +263,13 @@ router.post(
         );
       }
 
-      
-      MonitorResourceUtil.monitorResource(probeResponse).catch((err) => {
+      MonitorResourceUtil.monitorResource(probeResponse).catch((err: Error) => {
         logger.error("Error in monitor resource");
         logger.error(err);
       });
 
       return Response.sendJsonObjectResponse(req, res, {
-        result: "processing"
+        result: "processing",
       });
     } catch (err) {
       return next(err);
