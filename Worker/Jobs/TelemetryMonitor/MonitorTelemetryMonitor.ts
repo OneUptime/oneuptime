@@ -235,6 +235,7 @@ const monitorTrace: MonitorTraceFunction = async (data: {
   });
 
   return {
+    projectId: data.projectId,
     spanCount: countTraces.toNumber(),
     spanQuery: query,
     monitorId: data.monitorId,
@@ -314,6 +315,7 @@ const monitorMetric: MonitorMetricFunction = async (data: {
   }
 
   return {
+    projectId: data.projectId,
     metricViewConfig: metricMonitorConfig.metricViewConfig,
     startAndEndDate: startAndEndDate,
     metricResult: finalResult,
@@ -352,6 +354,7 @@ const monitorLogs: MonitorLogsFunction = async (data: {
   });
 
   return {
+    projectId: data.projectId,
     logCount: countLogs.toNumber(),
     logQuery: JSONFunctions.anyObjectToJSONObject(query),
     monitorId: data.monitorId,

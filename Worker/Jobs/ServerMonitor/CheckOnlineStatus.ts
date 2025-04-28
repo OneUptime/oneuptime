@@ -58,6 +58,7 @@ RunCron(
             select: {
               _id: true,
               monitorSteps: true,
+              projectId: true,
               serverMonitorRequestReceivedAt: true,
               createdAt: true,
               serverMonitorResponse: true,
@@ -75,9 +76,17 @@ RunCron(
             continue;
           }
 
+          if(!serverMonitor.projectId){
+            logger.error(
+              `Server monitor ${serverMonitor.id} does not have a projectId. Skipping.`,
+            );
+            continue;
+          }
+
           const serverMonitorResponse: ServerMonitorResponse = {
             monitorId: serverMonitor.id!,
             onlyCheckRequestReceivedAt: true,
+            projectId: serverMonitor.projectId,
             requestReceivedAt:
               serverMonitor.serverMonitorRequestReceivedAt ||
               serverMonitor.serverMonitorResponse?.requestReceivedAt ||
