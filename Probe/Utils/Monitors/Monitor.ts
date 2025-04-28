@@ -174,7 +174,7 @@ export default class MonitorUtil {
     monitorStep: MonitorStep;
     monitorType: MonitorType;
     monitorId: ObjectID;
-    projectId: ObjectID; 
+    projectId: ObjectID;
   }): Promise<ProbeMonitorResponse | null> {
     const monitorStep: MonitorStep = data.monitorStep;
     const monitorType: MonitorType = data.monitorType;
