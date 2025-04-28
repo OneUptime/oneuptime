@@ -43,6 +43,7 @@ RunCron(
           incomingMonitorRequest: true,
           incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
+          projectId: true,
         },
         sort: {
           createdAt: SortOrder.Ascending,
@@ -70,6 +71,7 @@ RunCron(
           incomingMonitorRequest: true,
           incomingRequestMonitorHeartbeatCheckedAt: true,
           createdAt: true,
+          projectId: true,
         },
         sort: {
           incomingRequestMonitorHeartbeatCheckedAt: SortOrder.Ascending,
@@ -137,6 +139,7 @@ RunCron(
             monitor.createdAt!,
           onlyCheckForIncomingRequestReceivedAt: true,
           monitorId: monitor.id!,
+          projectId: monitor.projectId!,
         };
 
         logger.debug(
