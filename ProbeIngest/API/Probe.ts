@@ -264,13 +264,15 @@ router.post(
         );
       }
 
-      // process probe response here.
-      const probeApiIngestResponse: ProbeApiIngestResponse =
-        await MonitorResourceUtil.monitorResource(probeResponse);
+      
+      MonitorResourceUtil.monitorResource(probeResponse).catch((err) => {
+        logger.error("Error in monitor resource");
+        logger.error(err);
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
-        probeApiIngestResponse: probeApiIngestResponse,
-      } as any);
+        result: "processing"
+      });
     } catch (err) {
       return next(err);
     }
