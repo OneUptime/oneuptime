@@ -306,7 +306,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           <NavBar
             isPrivateStatusPage={props.isPrivateStatusPage}
             show={true}
-            isPreview={true}
+            isPreview={props.isPreview}
             enableEmailSubscribers={props.enableEmailSubscribers}
             enableSMSSubscribers={props.enableSMSSubscribers}
             showIncidentsOnStatusPage={
