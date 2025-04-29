@@ -92,7 +92,7 @@ spec:
               value: {{ $val.disableTelemetryCollection | quote }}
             {{- end }}
             {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
-          {{- if $val.Resources }}
+          {{- if $val.resources }}
           resources:
             {{- toYaml $val.resources | nindent 12 }}
           {{- end }}
