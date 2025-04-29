@@ -9,7 +9,6 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -47,12 +46,6 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
     Permission.ProjectAdmin,
     Permission.EditMonitorProbe,
   ],
-})
-@EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
 })
 @CrudApiEndpoint(new Route("/monitor-probe"))
 @TableMetadata({
