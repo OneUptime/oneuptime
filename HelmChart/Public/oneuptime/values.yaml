@@ -214,17 +214,20 @@ probes:
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
-    resources:
-    additionalContainers:
-  # two:
-  #   name: "Probe 2"
-  #   description: "Probe 2"
-  #   monitoringWorkers: 3
-  #   monitorFetchLimit: 10
-  #   key:
-  #   replicaCount: 1
-  #   syntheticMonitorScriptTimeoutInMs: 60000
-  #   customCodeMonitorScriptTimeoutInMs: 60000
+#   resources:
+#   additionalContainers:
+# two:
+#   name: "Probe 2"
+#   description: "Probe 2"
+#   monitoringWorkers: 3
+#   monitorFetchLimit: 10
+#   key:
+#   replicaCount: 1
+#   syntheticMonitorScriptTimeoutInMs: 60000
+#   customCodeMonitorScriptTimeoutInMs: 60000
+#   resources:
+#   additionalContainers:
+
 
 port:
   app: 3002
