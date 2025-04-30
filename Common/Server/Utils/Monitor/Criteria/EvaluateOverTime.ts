@@ -12,7 +12,7 @@ import Metric from "../../../../Models/AnalyticsModels/Metric";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MetricService from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import QueryHelper from "../../../Types/Database/QueryHelper";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
 
 export default class EvaluateOverTime {
   @CaptureSpan()
@@ -35,7 +35,7 @@ export default class EvaluateOverTime {
 
     const query: Query<Metric> = {
       projectId: data.projectId,
-      time: QueryHelper.inBetween(lastMinutesDate, now),
+      time: new InBetween(lastMinutesDate, now),
       serviceId: data.monitorId,
       name: MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(data.metricType),
     };
