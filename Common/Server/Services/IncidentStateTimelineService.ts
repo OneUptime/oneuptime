@@ -130,6 +130,11 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           },
           select: {
             incidentStateId: true,
+            incidentState: {
+              _id: true,
+              order: true,
+              name: true,
+            },
             startsAt: true,
             endsAt: true,
           },

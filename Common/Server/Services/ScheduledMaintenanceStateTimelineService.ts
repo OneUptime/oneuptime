@@ -132,6 +132,10 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           },
           select: {
             scheduledMaintenanceStateId: true,
+            scheduledMaintenanceState: {
+              order: true,
+              name: true,
+            },
             startsAt: true,
             endsAt: true,
           },
