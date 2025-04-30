@@ -15,6 +15,7 @@ import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BasicInfrastructureMetrics from "Common/Types/Infrastructure/BasicMetrics";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
+import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import { JSONObject } from "Common/Types/JSON";
 import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -62,16 +63,16 @@ export default class MonitorResourceUtil {
   public static async monitorResource(
     dataToProcess: DataToProcess,
   ): Promise<ProbeApiIngestResponse> {
-    // let mutex: SemaphoreMutex | null = null;
+    let mutex: SemaphoreMutex | null = null;
 
-    // try {
-    //   mutex = await Semaphore.lock({
-    //     key: dataToProcess.monitorId.toString(),
-    //     namespace: "MonitorResourceUtil.monitorResource",
-    //   });
-    // } catch (err) {
-    //   logger.error(err);
-    // }
+    try {
+      mutex = await Semaphore.lock({
+        key: dataToProcess.monitorId.toString(),
+        namespace: "MonitorResourceUtil.monitorResource",
+      });
+    } catch (err) {
+      logger.error(err);
+    }
 
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
@@ -598,13 +599,13 @@ export default class MonitorResourceUtil {
       }
     }
 
-    // if (mutex) {
-    //   try {
-    //     await Semaphore.release(mutex);
-    //   } catch (err) {
-    //     logger.error(err);
-    //   }
-    // }
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
+      }
+    }
 
     return response;
   }
