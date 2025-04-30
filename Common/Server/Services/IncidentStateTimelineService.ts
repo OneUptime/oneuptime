@@ -162,40 +162,35 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         }
       }
 
-
       if (stateBeforeThis && stateBeforeThis.incidentState?.order) {
-              const newIncidentState: IncidentState | null =
-                await IncidentStateService.findOneBy({
-                  query: {
-                    _id: incidentStateId,
-                  },
-                  select: {
-                    order: true,
-                    name: true,
-                  },
-                  props: {
-                    isRoot: true,
-                  },
-                });
-      
-              if (
-                newIncidentState &&
-                newIncidentState.order
-              ) {
-                // check if the new incident state is in order is greater than the previous state order
-                if (
-                  stateBeforeThis &&
-                  stateBeforeThis.incidentState &&
-                  stateBeforeThis.incidentState.order &&
-                  newIncidentState.order <=
-                    stateBeforeThis.incidentState.order
-                ) {
-                  throw new BadDataException(
-                    `Incident cannot transition to ${newIncidentState.name} state from ${stateBeforeThis.incidentState.name} state because ${newIncidentState.name} is before ${stateBeforeThis.incidentState.name} in the order of incident states.`
-                  );
-                }
-              }
-            }
+        const newIncidentState: IncidentState | null =
+          await IncidentStateService.findOneBy({
+            query: {
+              _id: incidentStateId,
+            },
+            select: {
+              order: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (newIncidentState && newIncidentState.order) {
+          // check if the new incident state is in order is greater than the previous state order
+          if (
+            stateBeforeThis &&
+            stateBeforeThis.incidentState &&
+            stateBeforeThis.incidentState.order &&
+            newIncidentState.order <= stateBeforeThis.incidentState.order
+          ) {
+            throw new BadDataException(
+              `Incident cannot transition to ${newIncidentState.name} state from ${stateBeforeThis.incidentState.name} state because ${newIncidentState.name} is before ${stateBeforeThis.incidentState.name} in the order of incident states.`,
+            );
+          }
+        }
+      }
 
       const stateAfterThis: IncidentStateTimeline | null = await this.findOneBy(
         {
