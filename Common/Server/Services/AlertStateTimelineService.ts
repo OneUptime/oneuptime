@@ -127,6 +127,9 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         },
         select: {
           alertStateId: true,
+          alertState: {
+            order: true,
+          },
           startsAt: true,
           endsAt: true,
         },
