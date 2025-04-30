@@ -29,6 +29,7 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
@@ -93,96 +94,159 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       throw new BadDataException("scheduledMaintenanceId is null");
     }
 
-    if (!createBy.data.startsAt) {
-      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
-    }
+    let mutex: SemaphoreMutex | null = null;
 
-    const stateBeforeThis: ScheduledMaintenanceStateTimeline | null =
-      await this.findOneBy({
-        query: {
-          scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
-          startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Descending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          scheduledMaintenanceStateId: true,
-          startsAt: true,
-          endsAt: true,
-        },
-      });
-
-    // If this is the first state, then do not notify the owner.
-    if (!stateBeforeThis) {
-      // since this is the first status, do not notify the owner.
-      createBy.data.isOwnerNotified = true;
-    }
-
-    const stateAfterThis: ScheduledMaintenanceStateTimeline | null =
-      await this.findOneBy({
-        query: {
-          scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
-          startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
-        },
-        sort: {
-          startsAt: SortOrder.Ascending,
-        },
-        props: {
-          isRoot: true,
-        },
-        select: {
-          scheduledMaintenanceStateId: true,
-          startsAt: true,
-          endsAt: true,
-        },
-      });
-
-    // compute ends at. It's the start of the next status.
-    if (stateAfterThis && stateAfterThis.startsAt) {
-      createBy.data.endsAt = stateAfterThis.startsAt;
-    }
-
-    const publicNote: string | undefined = (
-      createBy.miscDataProps as JSONObject | undefined
-    )?.["publicNote"] as string | undefined;
-
-    if (publicNote) {
-      const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
-        new ScheduledMaintenancePublicNote();
-      scheduledMaintenancePublicNote.scheduledMaintenanceId =
-        createBy.data.scheduledMaintenanceId;
-      scheduledMaintenancePublicNote.note = publicNote;
-      scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
-      scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
-      scheduledMaintenancePublicNote.projectId = createBy.data.projectId!;
-      scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-        Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
-
-      // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-      if (
-        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
-      ) {
-        createBy.data.isStatusPageSubscribersNotified = true;
+    try {
+      try {
+        mutex = await Semaphore.lock({
+          key: createBy.data.scheduledMaintenanceId.toString(),
+          namespace: "ScheduledMaintenanceStateTimeline.create",
+        });
+      } catch (err) {
+        logger.error(err);
       }
 
-      await ScheduledMaintenancePublicNoteService.create({
-        data: scheduledMaintenancePublicNote,
-        props: createBy.props,
-      });
-    }
+      if (!createBy.data.startsAt) {
+        createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+      }
 
-    return {
-      createBy,
-      carryForward: {
-        statusTimelineBeforeThisStatus: stateBeforeThis || null,
-        statusTimelineAfterThisStatus: stateAfterThis || null,
-        publicNote: publicNote,
-      },
-    };
+      const scheduledMaintenanceStateId: ObjectID | undefined | null =
+        createBy.data.scheduledMaintenanceStateId ||
+        createBy.data.scheduledMaintenanceState?.id;
+
+      if (!scheduledMaintenanceStateId) {
+        throw new BadDataException("scheduledMaintenanceStateId is null");
+      }
+
+      const stateBeforeThis: ScheduledMaintenanceStateTimeline | null =
+        await this.findOneBy({
+          query: {
+            scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
+            startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
+          },
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            scheduledMaintenanceStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        });
+
+      // If this is the first state, then do not notify the owner.
+      if (!stateBeforeThis) {
+        // since this is the first status, do not notify the owner.
+        createBy.data.isOwnerNotified = true;
+      }
+
+      if (
+        stateBeforeThis &&
+        stateBeforeThis.scheduledMaintenanceStateId &&
+        scheduledMaintenanceStateId
+      ) {
+        if (
+          stateBeforeThis.scheduledMaintenanceStateId.toString() ===
+          scheduledMaintenanceStateId.toString()
+        ) {
+          throw new BadDataException(
+            "Scheduled Maintenance state cannot be same as previous state.",
+          );
+        }
+      }
+
+      const stateAfterThis: ScheduledMaintenanceStateTimeline | null =
+        await this.findOneBy({
+          query: {
+            scheduledMaintenanceId: createBy.data.scheduledMaintenanceId,
+            startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            scheduledMaintenanceStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        });
+
+      // compute ends at. It's the start of the next status.
+      if (stateAfterThis && stateAfterThis.startsAt) {
+        createBy.data.endsAt = stateAfterThis.startsAt;
+      }
+
+      if (
+        stateAfterThis &&
+        stateAfterThis.scheduledMaintenanceStateId &&
+        scheduledMaintenanceStateId
+      ) {
+        if (
+          stateAfterThis.scheduledMaintenanceStateId.toString() ===
+          scheduledMaintenanceStateId.toString()
+        ) {
+          throw new BadDataException(
+            "Scheduled Maintenance state cannot be same as next state.",
+          );
+        }
+      }
+
+      const publicNote: string | undefined = (
+        createBy.miscDataProps as JSONObject | undefined
+      )?.["publicNote"] as string | undefined;
+
+      if (publicNote) {
+        const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
+          new ScheduledMaintenancePublicNote();
+        scheduledMaintenancePublicNote.scheduledMaintenanceId =
+          createBy.data.scheduledMaintenanceId;
+        scheduledMaintenancePublicNote.note = publicNote;
+        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
+        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
+        scheduledMaintenancePublicNote.projectId = createBy.data.projectId!;
+        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
+        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
+        if (
+          scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+        ) {
+          createBy.data.isStatusPageSubscribersNotified = true;
+        }
+
+        await ScheduledMaintenancePublicNoteService.create({
+          data: scheduledMaintenancePublicNote,
+          props: createBy.props,
+        });
+      }
+
+      return {
+        createBy,
+        carryForward: {
+          statusTimelineBeforeThisStatus: stateBeforeThis || null,
+          statusTimelineAfterThisStatus: stateAfterThis || null,
+          publicNote: publicNote,
+          mutex: mutex,
+        },
+      };
+    } catch (error) {
+      // release the mutex if it was acquired.
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+
+      throw error;
+    }
   }
 
   @CaptureSpan()
@@ -190,6 +254,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     onCreate: OnCreate<ScheduledMaintenanceStateTimeline>,
     createdItem: ScheduledMaintenanceStateTimeline,
   ): Promise<ScheduledMaintenanceStateTimeline> {
+    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
+
     if (!createdItem.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -264,6 +330,14 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         },
         props: onCreate.createBy.props,
       });
+    }
+
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
+      }
     }
 
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =

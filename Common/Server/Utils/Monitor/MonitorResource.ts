@@ -44,7 +44,6 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
-// import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import Metric, {
   MetricPointType,
   ServiceType,

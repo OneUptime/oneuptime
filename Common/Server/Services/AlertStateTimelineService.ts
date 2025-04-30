@@ -23,6 +23,7 @@ import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export class Service extends DatabaseService<AlertStateTimeline> {
   public constructor() {
@@ -64,118 +65,176 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       throw new BadDataException("alertId is null");
     }
 
-    if (!createBy.data.startsAt) {
-      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
-    }
+    let mutex: SemaphoreMutex | null = null;
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
-
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
+    try {
+      if (!createBy.data.startsAt) {
+        createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
+      try {
+        mutex = await Semaphore.lock({
+          key: createBy.data.alertId.toString(),
+          namespace: "AlertStateTimeline.create",
+        });
+      } catch (err) {
+        logger.error(err);
       }
 
-      if (userId) {
-        createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
+      if (
+        (createBy.data.createdByUserId ||
+          createBy.data.createdByUser ||
+          createBy.props.userId) &&
+        !createBy.data.rootCause
+      ) {
+        let userId: ObjectID | undefined = createBy.data.createdByUserId;
+
+        if (createBy.props.userId) {
+          userId = createBy.props.userId;
+        }
+
+        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
+          userId = createBy.data.createdByUser.id;
+        }
+
+        if (userId) {
+          createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: userId!,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`;
+        }
       }
-    }
 
-    const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy({
-      query: {
-        alertId: createBy.data.alertId,
-        startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
-      },
-      sort: {
-        startsAt: SortOrder.Descending,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        alertStateId: true,
-        startsAt: true,
-        endsAt: true,
-      },
-    });
+      const alertStateId: ObjectID | undefined | null =
+        createBy.data.alertStateId || createBy.data.alertState?.id;
 
-    logger.debug("State Before this");
-    logger.debug(stateBeforeThis);
+      if (!alertStateId) {
+        throw new BadDataException("alertStateId is null");
+      }
 
-    // If this is the first state, then do not notify the owner.
-    if (!stateBeforeThis) {
-      // since this is the first status, do not notify the owner.
-      createBy.data.isOwnerNotified = true;
-    }
-
-    const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
-      query: {
-        alertId: createBy.data.alertId,
-        startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
-      },
-      sort: {
-        startsAt: SortOrder.Ascending,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        alertStateId: true,
-        startsAt: true,
-        endsAt: true,
-      },
-    });
-
-    // compute ends at. It's the start of the next status.
-    if (stateAfterThis && stateAfterThis.startsAt) {
-      createBy.data.endsAt = stateAfterThis.startsAt;
-    }
-
-    logger.debug("State After this");
-    logger.debug(stateAfterThis);
-
-    const internalNote: string | undefined = (
-      createBy.miscDataProps as JSONObject | undefined
-    )?.["internalNote"] as string | undefined;
-
-    if (internalNote) {
-      const alertNote: AlertInternalNote = new AlertInternalNote();
-      alertNote.alertId = createBy.data.alertId;
-      alertNote.note = internalNote;
-      alertNote.createdAt = createBy.data.startsAt;
-      alertNote.projectId = createBy.data.projectId!;
-
-      await AlertInternalNoteService.create({
-        data: alertNote,
-        props: createBy.props,
+      const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy({
+        query: {
+          alertId: createBy.data.alertId,
+          startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          alertStateId: true,
+          startsAt: true,
+          endsAt: true,
+        },
       });
+
+      logger.debug("State Before this");
+      logger.debug(stateBeforeThis);
+
+      // If this is the first state, then do not notify the owner.
+      if (!stateBeforeThis) {
+        // since this is the first status, do not notify the owner.
+        createBy.data.isOwnerNotified = true;
+      }
+
+      // check if this new state and the previous state are same.
+      // if yes, then throw bad data exception.
+
+      if (stateBeforeThis && stateBeforeThis.alertStateId && alertStateId) {
+        if (
+          stateBeforeThis.alertStateId.toString() === alertStateId.toString()
+        ) {
+          throw new BadDataException(
+            "Alert state cannot be same as previous state.",
+          );
+        }
+      }
+
+      const stateAfterThis: AlertStateTimeline | null = await this.findOneBy({
+        query: {
+          alertId: createBy.data.alertId,
+          startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+        },
+        sort: {
+          startsAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          alertStateId: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      });
+
+      // compute ends at. It's the start of the next status.
+      if (stateAfterThis && stateAfterThis.startsAt) {
+        createBy.data.endsAt = stateAfterThis.startsAt;
+      }
+
+      // check if this new state and the previous state are same.
+      // if yes, then throw bad data exception.
+
+      if (stateAfterThis && stateAfterThis.alertStateId && alertStateId) {
+        if (
+          stateAfterThis.alertStateId.toString() === alertStateId.toString()
+        ) {
+          throw new BadDataException(
+            "Alert state cannot be same as next state.",
+          );
+        }
+      }
+
+      logger.debug("State After this");
+      logger.debug(stateAfterThis);
+
+      const internalNote: string | undefined = (
+        createBy.miscDataProps as JSONObject | undefined
+      )?.["internalNote"] as string | undefined;
+
+      if (internalNote) {
+        const alertNote: AlertInternalNote = new AlertInternalNote();
+        alertNote.alertId = createBy.data.alertId;
+        alertNote.note = internalNote;
+        alertNote.createdAt = createBy.data.startsAt;
+        alertNote.projectId = createBy.data.projectId!;
+
+        await AlertInternalNoteService.create({
+          data: alertNote,
+          props: createBy.props,
+        });
+      }
+
+      const privateNote: string | undefined = (
+        createBy.miscDataProps as JSONObject | undefined
+      )?.["privateNote"] as string | undefined;
+
+      return {
+        createBy,
+        carryForward: {
+          statusTimelineBeforeThisStatus: stateBeforeThis || null,
+          statusTimelineAfterThisStatus: stateAfterThis || null,
+          privateNote: privateNote,
+          mutex: mutex,
+        },
+      };
+    } catch (error) {
+      // release the mutex if it was acquired.
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+
+      throw error;
     }
-
-    const privateNote: string | undefined = (
-      createBy.miscDataProps as JSONObject | undefined
-    )?.["privateNote"] as string | undefined;
-
-    return {
-      createBy,
-      carryForward: {
-        statusTimelineBeforeThisStatus: stateBeforeThis || null,
-        statusTimelineAfterThisStatus: stateAfterThis || null,
-        privateNote: privateNote,
-      },
-    };
   }
 
   @CaptureSpan()
@@ -186,6 +245,8 @@ export class Service extends DatabaseService<AlertStateTimeline> {
     if (!createdItem.alertId) {
       throw new BadDataException("alertId is null");
     }
+
+    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
 
     if (!createdItem.alertStateId) {
       throw new BadDataException("alertStateId is null");
@@ -254,6 +315,14 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         },
         props: onCreate.createBy.props,
       });
+    }
+
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
+      }
     }
 
     const alertState: AlertState | null = await AlertStateService.findOneBy({

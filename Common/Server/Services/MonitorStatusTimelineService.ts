@@ -37,7 +37,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     try {
       mutex = await Semaphore.lock({
         key: createBy.data.monitorId.toString(),
-        namespace: "MonitorStatusTimeline.onBeforeCreate",
+        namespace: "MonitorStatusTimeline.create",
       });
     } catch (e) {
       logger.error(e);
@@ -73,6 +73,13 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       }
     }
 
+    const monitorStatusId: ObjectID | undefined | null =
+      createBy.data.monitorStatusId || createBy.data.monitorStatus?.id;
+
+    if (!monitorStatusId) {
+      throw new BadDataException("monitorStatusId is null");
+    }
+
     const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
         monitorId: createBy.data.monitorId,
@@ -100,6 +107,20 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       createBy.data.isOwnerNotified = true;
     }
 
+    // check if this new state and the previous state are same.
+    // if yes, then throw bad data exception.
+
+    if (stateBeforeThis && stateBeforeThis.monitorStatusId && monitorStatusId) {
+      if (
+        stateBeforeThis.monitorStatusId.toString() ===
+        monitorStatusId.toString()
+      ) {
+        throw new BadDataException(
+          "Monitor Status cannot be same as previous status.",
+        );
+      }
+    }
+
     const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
         monitorId: createBy.data.monitorId,
@@ -121,6 +142,19 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     // compute ends at. It's the start of the next status.
     if (stateAfterThis && stateAfterThis.startsAt) {
       createBy.data.endsAt = stateAfterThis.startsAt;
+    }
+
+    // check if this new state and the previous state are same.
+    // if yes, then throw bad data exception.
+
+    if (stateAfterThis && stateAfterThis.monitorStatusId && monitorStatusId) {
+      if (
+        stateAfterThis.monitorStatusId.toString() === monitorStatusId.toString()
+      ) {
+        throw new BadDataException(
+          "Monitor Status cannot be same as next status.",
+        );
+      }
     }
 
     logger.debug("State After this");

@@ -24,6 +24,7 @@ import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed"
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
@@ -62,112 +63,179 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
-    if (!createBy.data.incidentId) {
-      throw new BadDataException("incidentId is null");
-    }
+    let mutex: SemaphoreMutex | null = null;
 
-    if (!createBy.data.startsAt) {
-      createBy.data.startsAt = OneUptimeDate.getCurrentDate();
-    }
-
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
-
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
+    try {
+      if (!createBy.data.incidentId) {
+        throw new BadDataException("incidentId is null");
       }
 
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
+      try {
+        mutex = await Semaphore.lock({
+          key: createBy.data.incidentId.toString(),
+          namespace: "IncidentStateTimeline.create",
+        });
+      } catch (err) {
+        logger.error(err);
       }
 
-      if (userId) {
-        createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
+      if (!createBy.data.startsAt) {
+        createBy.data.startsAt = OneUptimeDate.getCurrentDate();
+      }
+
+      if (
+        (createBy.data.createdByUserId ||
+          createBy.data.createdByUser ||
+          createBy.props.userId) &&
+        !createBy.data.rootCause
+      ) {
+        let userId: ObjectID | undefined = createBy.data.createdByUserId;
+
+        if (createBy.props.userId) {
+          userId = createBy.props.userId;
+        }
+
+        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
+          userId = createBy.data.createdByUser.id;
+        }
+
+        if (userId) {
+          createBy.data.rootCause = `Incident state created by ${await UserService.getUserMarkdownString(
+            {
+              userId: userId!,
+              projectId: createBy.data.projectId || createBy.props.tenantId!,
+            },
+          )}`;
+        }
+      }
+
+      const incidentStateId: ObjectID | undefined | null =
+        createBy.data.incidentStateId || createBy.data.incidentState?.id;
+
+      if (!incidentStateId) {
+        throw new BadDataException("incidentStateId is null");
+      }
+
+      const stateBeforeThis: IncidentStateTimeline | null =
+        await this.findOneBy({
+          query: {
+            incidentId: createBy.data.incidentId,
+            startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
           },
-        )}`;
+          sort: {
+            startsAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            incidentStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        });
+
+      logger.debug("State Before this");
+      logger.debug(stateBeforeThis);
+
+      // If this is the first state, then do not notify the owner.
+      if (!stateBeforeThis) {
+        // since this is the first status, do not notify the owner.
+        createBy.data.isOwnerNotified = true;
       }
-    }
 
-    const stateBeforeThis: IncidentStateTimeline | null = await this.findOneBy({
-      query: {
-        incidentId: createBy.data.incidentId,
-        startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
-      },
-      sort: {
-        startsAt: SortOrder.Descending,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        incidentStateId: true,
-        startsAt: true,
-        endsAt: true,
-      },
-    });
+      // check if this new state and the previous state are same.
+      // if yes, then throw bad data exception.
 
-    logger.debug("State Before this");
-    logger.debug(stateBeforeThis);
-
-    // If this is the first state, then do not notify the owner.
-    if (!stateBeforeThis) {
-      // since this is the first status, do not notify the owner.
-      createBy.data.isOwnerNotified = true;
-    }
-
-    const stateAfterThis: IncidentStateTimeline | null = await this.findOneBy({
-      query: {
-        incidentId: createBy.data.incidentId,
-        startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
-      },
-      sort: {
-        startsAt: SortOrder.Ascending,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        incidentStateId: true,
-        startsAt: true,
-        endsAt: true,
-      },
-    });
-
-    // compute ends at. It's the start of the next status.
-    if (stateAfterThis && stateAfterThis.startsAt) {
-      createBy.data.endsAt = stateAfterThis.startsAt;
-    }
-
-    logger.debug("State After this");
-    logger.debug(stateAfterThis);
-
-    const publicNote: string | undefined = (
-      createBy.miscDataProps as JSONObject | undefined
-    )?.["publicNote"] as string | undefined;
-
-    if (publicNote) {
-      // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-      if (createBy.data.shouldStatusPageSubscribersBeNotified) {
-        createBy.data.isStatusPageSubscribersNotified = true;
+      if (
+        stateBeforeThis &&
+        stateBeforeThis.incidentStateId &&
+        incidentStateId
+      ) {
+        if (
+          stateBeforeThis.incidentStateId.toString() ===
+          incidentStateId.toString()
+        ) {
+          throw new BadDataException(
+            "Incident state cannot be same as previous state.",
+          );
+        }
       }
-    }
 
-    return {
-      createBy,
-      carryForward: {
-        statusTimelineBeforeThisStatus: stateBeforeThis || null,
-        statusTimelineAfterThisStatus: stateAfterThis || null,
-        publicNote: publicNote,
-      },
-    };
+      const stateAfterThis: IncidentStateTimeline | null = await this.findOneBy(
+        {
+          query: {
+            incidentId: createBy.data.incidentId,
+            startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            incidentStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        },
+      );
+
+      // compute ends at. It's the start of the next status.
+      if (stateAfterThis && stateAfterThis.startsAt) {
+        createBy.data.endsAt = stateAfterThis.startsAt;
+      }
+
+      // check if this new state and the previous state are same.
+      // if yes, then throw bad data exception.
+
+      if (stateAfterThis && stateAfterThis.incidentStateId && incidentStateId) {
+        if (
+          stateAfterThis.incidentStateId.toString() ===
+          incidentStateId.toString()
+        ) {
+          throw new BadDataException(
+            "Incident state cannot be same as next state.",
+          );
+        }
+      }
+
+      logger.debug("State After this");
+      logger.debug(stateAfterThis);
+
+      const publicNote: string | undefined = (
+        createBy.miscDataProps as JSONObject | undefined
+      )?.["publicNote"] as string | undefined;
+
+      if (publicNote) {
+        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
+        if (createBy.data.shouldStatusPageSubscribersBeNotified) {
+          createBy.data.isStatusPageSubscribersNotified = true;
+        }
+      }
+
+      return {
+        createBy,
+        carryForward: {
+          statusTimelineBeforeThisStatus: stateBeforeThis || null,
+          statusTimelineAfterThisStatus: stateAfterThis || null,
+          publicNote: publicNote,
+          mutex: mutex,
+        },
+      };
+    } catch (err) {
+      // release the mutex if it was acquired.
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+
+      throw err;
+    }
   }
 
   @CaptureSpan()
@@ -175,6 +243,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
     onCreate: OnCreate<IncidentStateTimeline>,
     createdItem: IncidentStateTimeline,
   ): Promise<IncidentStateTimeline> {
+    const mutex: SemaphoreMutex | null = onCreate.carryForward.mutex;
+
     if (!createdItem.incidentId) {
       throw new BadDataException("incidentId is null");
     }
@@ -266,6 +336,14 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           name: true,
         },
       });
+
+    if (mutex) {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        logger.error(err);
+      }
+    }
 
     const stateName: string = incidentState?.name || "";
     let stateEmoji: string = "➡️";
