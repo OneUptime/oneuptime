@@ -16,6 +16,7 @@ import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
+import MonitorAPI from "Common/Server/API/MonitorAPI";
 import ShortLinkAPI from "Common/Server/API/ShortLinkAPI";
 import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
@@ -169,9 +170,6 @@ import MonitorProbeService, {
 import MonitorSecretService, {
   Service as MonitorSecretServiceType,
 } from "Common/Server/Services/MonitorSecretService";
-import MonitorService, {
-  Service as MonitorServiceType,
-} from "Common/Server/Services/MonitorService";
 import MonitorStatusService, {
   Service as MonitorStatusServiceType,
 } from "Common/Server/Services/MonitorStatusService";
@@ -1450,14 +1448,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Monitor, MonitorServiceType>(
-        Monitor,
-        MonitorService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter(),
     );
 
@@ -1502,6 +1492,9 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageAPI().getRouter(),
