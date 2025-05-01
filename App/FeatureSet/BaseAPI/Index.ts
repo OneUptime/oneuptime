@@ -408,7 +408,6 @@ import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemp
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
 
 import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorGroupOwnerTeam from "Common/Models/DatabaseModels/MonitorGroupOwnerTeam";
 import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwnerUser";
