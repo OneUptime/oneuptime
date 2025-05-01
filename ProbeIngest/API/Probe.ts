@@ -38,15 +38,7 @@ router.post(
 
     const probeId: ObjectID = new ObjectID(data["probeId"] as string);
 
-    await ProbeService.updateOneById({
-      id: probeId,
-      data: {
-        lastAlive: OneUptimeDate.getCurrentDate(),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    await ProbeService.updateLastAlive(probeId);
 
     return Response.sendEmptySuccessResponse(req, res);
   },

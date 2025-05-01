@@ -1,5 +1,4 @@
 import { ProbeExpressRequest } from "../Types/Request";
-import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -49,15 +48,7 @@ export default class ProbeAuthorization {
       );
     }
 
-    await ProbeService.updateOneById({
-      id: probeId,
-      data: {
-        lastAlive: OneUptimeDate.getCurrentDate(),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    await ProbeService.updateLastAlive(probeId);
 
     req.probe = probe;
 

@@ -30,10 +30,96 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import GlobalCache from "../Infrastructure/GlobalCache";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  public async saveLastAliveInCache(
+    probeId: ObjectID,
+    lastAlive: Date,
+  ): Promise<void> {
+    if (!probeId) {
+      throw new BadDataException("probeId is required");
+    }
+
+    try {
+      await GlobalCache.setString(
+        "probe-last-alive",
+        probeId.toString(),
+        OneUptimeDate.toString(lastAlive),
+      );
+    } catch (err) {
+      logger.error("Error in saving last alive in cache");
+      logger.error(err);
+    }
+  }
+
+  public async shouldSaveLastAlive(probeId: ObjectID): Promise<boolean> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    try {
+      // before we hit the database, we need to check if the lastAlive was updated in Global Cache.
+      const previousLastAliveCheck: string | null = await GlobalCache.getString(
+        "probe-last-alive",
+        probeId.toString(),
+      );
+
+      if (!previousLastAliveCheck) {
+        return true;
+      }
+
+      const previousLastAliveCheckDate: Date | null = OneUptimeDate.fromString(
+        previousLastAliveCheck,
+      );
+
+      // if this date is within 30 seconds of current date, then we will not update the last alive.
+      if (previousLastAliveCheckDate) {
+        const diff: number = OneUptimeDate.getDifferenceInSeconds(
+          now,
+          previousLastAliveCheckDate,
+        );
+
+        if (diff < 30) {
+          return false;
+        }
+      }
+    } catch (err) {
+      // failed to hit the cache, so we will hit the database
+      logger.error("Error in getting last alive from cache");
+      logger.error(err);
+    }
+
+    return true;
+  }
+
+  public async updateLastAlive(probeId: ObjectID): Promise<void> {
+    if (!probeId) {
+      throw new BadDataException("probeId is required");
+    }
+
+    const shouldSaveLastAlive: boolean =
+      await this.shouldSaveLastAlive(probeId);
+
+    if (!shouldSaveLastAlive) {
+      return;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    await this.updateOneById({
+      id: probeId,
+      data: {
+        lastAlive: now,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    await this.saveLastAliveInCache(probeId, now);
   }
 
   @CaptureSpan()
