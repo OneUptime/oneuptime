@@ -18,9 +18,7 @@ RunCron(
 
     await MetricService.deleteBy({
       query: {
-        createdAt: new LessThan(
-          OneUptimeDate.getSomeDaysAgo(olderThanDays),
-        ),
+        createdAt: new LessThan(OneUptimeDate.getSomeDaysAgo(olderThanDays)),
         serviceType: ServiceType.Alert,
       },
       props: {

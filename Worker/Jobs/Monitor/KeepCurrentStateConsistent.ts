@@ -17,7 +17,7 @@ RunCron(
 
       const projects: Array<Project> = await ProjectService.findBy({
         query: {
-            ...ProjectService.getActiveProjectStatusQuery()
+          ...ProjectService.getActiveProjectStatusQuery(),
         },
         select: {
           _id: true,

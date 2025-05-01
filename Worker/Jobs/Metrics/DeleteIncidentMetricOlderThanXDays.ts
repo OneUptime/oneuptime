@@ -1,4 +1,3 @@
-
 import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
 import { EVERY_DAY } from "Common/Utils/CronTime";
@@ -19,9 +18,7 @@ RunCron(
 
     await MetricService.deleteBy({
       query: {
-        createdAt: new LessThan(
-          OneUptimeDate.getSomeDaysAgo(olderThanDays),
-        ),
+        createdAt: new LessThan(OneUptimeDate.getSomeDaysAgo(olderThanDays)),
         serviceType: ServiceType.Incident,
       },
       props: {

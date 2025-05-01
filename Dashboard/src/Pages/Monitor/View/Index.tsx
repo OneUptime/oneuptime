@@ -127,10 +127,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setError("");
 
     try {
-
-      await API.get(URL.fromString(APP_API_URL.toString()).addRoute(
-        "/monitor/refresh-status/" + modelId.toString(),
-      ));
+      await API.get(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          "/monitor/refresh-status/" + modelId.toString(),
+        ),
+      );
 
       const monitorStatus: ListResult<MonitorStatusTimeline> =
         await ModelAPI.getList({
@@ -505,16 +506,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       {/* Heartbeat URL */}
       {monitorType === MonitorType.IncomingRequest &&
-        monitor?.incomingRequestSecretKey &&
-        !incomingMonitorRequest ? (
+      monitor?.incomingRequestSecretKey &&
+      !incomingMonitorRequest ? (
         <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
       ) : (
         <></>
       )}
 
       {monitorType === MonitorType.Server &&
-        monitor?.serverMonitorSecretKey &&
-        !monitor.serverMonitorRequestReceivedAt ? (
+      monitor?.serverMonitorSecretKey &&
+      !monitor.serverMonitorRequestReceivedAt ? (
         <ServerMonitorDocumentation
           secretKey={monitor?.serverMonitorSecretKey}
         />

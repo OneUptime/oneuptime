@@ -1491,9 +1491,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ShortLinkAPI().getRouter());
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MonitorAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StatusPageAPI().getRouter(),

@@ -82,7 +82,7 @@ export class Service extends DatabaseService<Model> {
       },
       props: {
         isRoot: true,
-        ignoreHooks:  true,
+        ignoreHooks: true,
       },
     });
 

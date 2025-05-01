@@ -12,10 +12,7 @@ import BaseAPI from "./BaseAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ObjectID from "../../Types/ObjectID";
 
-export default class MonitorAPI extends BaseAPI<
-  Monitor,
-  MonitorServiceType
-> {
+export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
   public constructor() {
     super(Monitor, MonitorService);
 
@@ -24,12 +21,12 @@ export default class MonitorAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-         const monitorId: ObjectID = new ObjectID(
+          const monitorId: ObjectID = new ObjectID(
             req.params["monitorId"] as string,
-            );
+          );
 
-            await MonitorService.refreshMonitorCurrentStatus(monitorId);
-            return Response.sendEmptySuccessResponse(req, res);
+          await MonitorService.refreshMonitorCurrentStatus(monitorId);
+          return Response.sendEmptySuccessResponse(req, res);
         } catch (e) {
           next(e);
         }
