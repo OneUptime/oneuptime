@@ -10,6 +10,9 @@ import "./Jobs/IncidentOwners/SendNotePostedNotification";
 import "./Jobs/IncidentOwners/SendOwnerAddedNotification";
 import "./Jobs/IncidentOwners/SendStateChangeNotification";
 
+// Monitor Jobs.
+import "./Jobs/Monitor/KeepCurrentStateConsistent";
+
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";
 import "./Jobs/AlertOwners/SendNotePostedNotification";
@@ -91,8 +94,7 @@ import "./Jobs/Metrics/DeleteAlertMetricOlderThanXDays";
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
-// Monitor Jobs.
-import "./Jobs/Monitor/KeepCurrentStateConsistent";
+
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";

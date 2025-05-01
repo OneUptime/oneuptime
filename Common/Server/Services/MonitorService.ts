@@ -5,7 +5,7 @@ import {
 } from "../EnvironmentConfig";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
@@ -74,16 +74,15 @@ export class Service extends DatabaseService<Model> {
   }
 
   public async refreshMonitorCurrentStatus(monitorId: ObjectID): Promise<void> {
-    const monitor: Model | null = await this.findOneBy({
-      query: {
-        _id: monitorId,
-      },
+    const monitor: Model | null = await this.findOneById({
+      id: monitorId,
       select: {
         _id: true,
         currentMonitorStatusId: true,
       },
       props: {
         isRoot: true,
+        ignoreHooks:  true,
       },
     });
 
