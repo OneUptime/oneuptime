@@ -91,6 +91,9 @@ import "./Jobs/Metrics/DeleteAlertMetricOlderThanXDays";
 
 import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
+// Monitor Jobs.
+import "./Jobs/Monitor/KeepCurrentStateConsistent";
+
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import JobDictionary from "./Utils/JobDictionary";

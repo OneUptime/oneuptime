@@ -73,6 +73,62 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  public async refreshMonitorCurrentStatus(monitorId: ObjectID): Promise<void> {
+    const monitor: Model | null = await this.findOneBy({
+      query: {
+        _id: monitorId,
+      },
+      select: {
+        _id: true,
+        currentMonitorStatusId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const lastMonitorStatus: MonitorStatusTimeline | null =
+      await MonitorStatusTimelineService.findOneBy({
+        query: {
+          monitorId: monitorId,
+          endsAt: QueryHelper.isNull(),
+        },
+        select: {
+          _id: true,
+          monitorStatusId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!lastMonitorStatus) {
+      return;
+    }
+    if (!lastMonitorStatus.monitorStatusId) {
+      return;
+    }
+
+    if (!monitor) {
+      return;
+    }
+
+    if (
+      monitor.currentMonitorStatusId?.toString() !==
+      lastMonitorStatus.monitorStatusId.toString()
+    ) {
+      await this.updateOneById({
+        id: monitor.id!,
+        data: {
+          currentMonitorStatusId: lastMonitorStatus.monitorStatusId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
