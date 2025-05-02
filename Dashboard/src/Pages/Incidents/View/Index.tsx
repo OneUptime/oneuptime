@@ -50,6 +50,8 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -260,6 +262,10 @@ const IncidentView: FunctionComponent<
             id: "incident-details",
           },
           {
+            title: "Resources Affected",
+            id: "resources-affected",
+          },
+          {
             title: "Labels",
             id: "labels",
           },
@@ -294,6 +300,39 @@ const IncidentView: FunctionComponent<
             },
             required: true,
             placeholder: "Incident Severity",
+          },
+          {
+            field: {
+              monitors: true,
+            },
+            title: "Monitors affected",
+            stepId: "resources-affected",
+            description: "Select monitors affected by this incident.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Monitors affected",
+          },
+          {
+            field: {
+              changeMonitorStatusTo: true,
+            },
+            title: "Change Monitor Status to ",
+            stepId: "resources-affected",
+            description:
+              "This will change the status of all the monitors attached to this incident.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: MonitorStatus,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Monitor Status",
           },
           {
             field: {

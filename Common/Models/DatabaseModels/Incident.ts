@@ -670,7 +670,12 @@ export default class Incident extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadProjectIncident,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectIncident,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
