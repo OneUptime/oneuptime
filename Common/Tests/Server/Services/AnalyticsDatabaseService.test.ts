@@ -99,7 +99,7 @@ describe("AnalyticsDatabaseService", () => {
 
       expect(statement.query).toBe(
         "SELECT\n" +
-          "    count()\n" +
+          "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>",
       );
@@ -118,7 +118,7 @@ describe("AnalyticsDatabaseService", () => {
 
       expect(statement.query).toBe(
         "SELECT\n" +
-          "    count()\n" +
+          "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
           "LIMIT {p2:Int32}",
@@ -139,7 +139,7 @@ describe("AnalyticsDatabaseService", () => {
 
       expect(statement.query).toBe(
         "SELECT\n" +
-          "    count()\n" +
+          "    count() as count\n" +
           "FROM {p0:Identifier}.{p1:Identifier}\n" +
           "WHERE TRUE <where-statement>\n" +
           "OFFSET {p2:Int32}",
