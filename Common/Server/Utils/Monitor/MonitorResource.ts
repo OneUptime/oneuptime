@@ -56,6 +56,7 @@ import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMo
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
+import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
 
 export default class MonitorResourceUtil {
   @CaptureSpan()
@@ -1067,6 +1068,14 @@ export default class MonitorResourceUtil {
     }).catch((err: Error) => {
       logger.error(err);
     });
+    
+
+    // save monitor log. 
+    const monitorLog: MonitorLog = new MonitorLog();
+    monitorLog.monitorId = data.monitorId;
+    monitorLog.projectId = data.projectId;
+    monitorLog.logBody = data.dataToProcess;
+    
   }
 
   private static async processMonitorStep(input: {

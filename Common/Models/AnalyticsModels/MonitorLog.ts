@@ -112,8 +112,6 @@ export default class MonitorLog extends AnalyticsBaseModel {
           },
         }),
 
-       
-
         new AnalyticsTableColumn({
           key: "logBody",
           title: "Log Body",
@@ -137,8 +135,6 @@ export default class MonitorLog extends AnalyticsBaseModel {
             update: [],
           },
         }),
-
-        
       ],
       sortKeys: ["projectId", "time", "monitorId"],
       primaryKeys: ["projectId", "time", "monitorId"],
@@ -154,24 +150,24 @@ export default class MonitorLog extends AnalyticsBaseModel {
     this.setColumnValue("projectId", v);
   }
 
-    public get monitorId(): ObjectID | undefined {
-        return this.getColumnValue("monitorId") as ObjectID | undefined;
-    }
+  public get monitorId(): ObjectID | undefined {
+    return this.getColumnValue("monitorId") as ObjectID | undefined;
+  }
 
-    public set monitorId(v: ObjectID | undefined) {
-        this.setColumnValue("monitorId", v);
-    }
+  public set monitorId(v: ObjectID | undefined) {
+    this.setColumnValue("monitorId", v);
+  }
 
-    public get time(): Date | undefined {
-        return this.getColumnValue("time") as Date | undefined;
-    }
-    public set time(v: Date | undefined) {
-        this.setColumnValue("time", v);
-    }
-    public get logBody(): JSONObject | undefined {
-        return this.getColumnValue("logBody") as JSONObject | undefined;
-    }
-    public set logBody(v: JSONObject | undefined) {
-        this.setColumnValue("logBody", v);
-    }
+  public get time(): Date | undefined {
+    return this.getColumnValue("time") as Date | undefined;
+  }
+  public set time(v: Date | undefined) {
+    this.setColumnValue("time", v);
+  }
+  public get logBody(): JSONObject | undefined {
+    return this.getColumnValue("logBody") as JSONObject | undefined;
+  }
+  public set logBody(v: JSONObject | undefined) {
+    this.setColumnValue("logBody", v);
+  }
 }

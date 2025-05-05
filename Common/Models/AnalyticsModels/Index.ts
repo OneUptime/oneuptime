@@ -12,7 +12,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Metric,
   TelemetryAttribute,
   ExceptionInstance,
-  MonitorLog
+  MonitorLog,
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};
