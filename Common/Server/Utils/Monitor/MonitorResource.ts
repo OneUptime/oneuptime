@@ -1069,9 +1069,8 @@ export default class MonitorResourceUtil {
     }).catch((err: Error) => {
       logger.error(err);
     });
-    
 
-    // save monitor log. 
+    // save monitor log.
     const monitorLog: MonitorLog = new MonitorLog();
     monitorLog.monitorId = data.monitorId;
     monitorLog.projectId = data.projectId;
@@ -1086,7 +1085,6 @@ export default class MonitorResourceUtil {
     }).catch((err: Error) => {
       logger.error(err);
     });
-    
   }
 
   private static async processMonitorStep(input: {

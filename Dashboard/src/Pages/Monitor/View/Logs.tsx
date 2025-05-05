@@ -1,8 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
-import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
-import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -11,10 +8,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import ProbeElement from "Common/UI/Components/Probe/Probe";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -22,8 +16,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   Fragment,
@@ -32,18 +25,15 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 
-const MonitorProbes: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
+const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
-
-  const [probes, setProbes] = useState<Array<Probe>>([]);
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     // get item.
@@ -65,9 +55,6 @@ const MonitorProbes: FunctionComponent<
         return;
       }
 
-      const probes: Array<Probe> = await ProbeUtil.getAllProbes();
-
-      setProbes(probes);
       setMonitorType(item.monitorType);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -97,13 +84,12 @@ const MonitorProbes: FunctionComponent<
       return (
         <EmptyState
           id="monitoring-probes-empty-state"
-          icon={IconProp.Signal}
-          title={"No Monitoring Probes for Manual Monitors"}
+          icon={IconProp.Logs}
+          title={"No Logs Manual Monitors"}
           description={
             <>
               This is a manual monitor. It does not monitor anything and so, it
-              cannot have monitoring probes set. You can have monitoring probes
-              on other monitor types.{" "}
+              cannot have any logs. You can have logs on other monitor types.{" "}
             </>
           }
         />
@@ -111,47 +97,37 @@ const MonitorProbes: FunctionComponent<
     }
 
     return (
-      <ModelTable<MonitorProbe>
-        modelType={MonitorProbe}
+      <AnalyticsModelTable<MonitorLog>
+        modelType={MonitorLog}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           monitorId: modelId.toString(),
         }}
-        onBeforeCreate={(item: MonitorProbe): Promise<MonitorProbe> => {
-          item.monitorId = modelId;
-          item.projectId = ProjectUtil.getCurrentProjectId()!;
-
-          return Promise.resolve(item);
-        }}
         id="probes-table"
         name="Monitor > Monitor Probes"
         isDeleteable={false}
-        isEditable={true}
-        isCreateable={true}
+        isEditable={false}
+        isCreateable={false}
         cardProps={{
-          title: "Probes",
-          description: "List of probes that help you monitor this resource.",
+          title: "Monitor Logs",
+          description: "Here are the latest logs for this resource.",
         }}
         noItemsMessage={
-          "No probes found for this resource. However, you can add some probes to monitor this resource."
+          "No logs found for this resource. Please check back later."
         }
-        viewPageRoute={Navigation.getCurrentRoute()}
-        selectMoreFields={{
-          lastMonitoringLog: true,
-        }}
         actionButtons={[
           {
             title: "View Logs",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (
-              item: MonitorProbe,
+              item: MonitorLog,
               onCompleteAction: VoidFunction,
             ) => {
               setLogs(
-                item["lastMonitoringLog"]
-                  ? JSON.stringify(item["lastMonitoringLog"], null, 2)
-                  : "Not monitored yet",
+                item.logBody
+                  ? JSON.stringify(item.logBody, null, 2)
+                  : "Not logs so far",
               );
               setShowViewLogsModal(true);
 
@@ -159,100 +135,24 @@ const MonitorProbes: FunctionComponent<
             },
           },
         ]}
-        formFields={[
-          {
-            field: {
-              probe: true,
-            },
-            title: "Probe",
-            stepId: "incident-details",
-            description: "Which probe do you want to use?",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probes.map((probe: Probe) => {
-              if (!probe.name || !probe._id) {
-                throw new BadDataException(`Probe name or id is missing`);
-              }
-
-              return {
-                label: probe.name,
-                value: probe._id,
-              };
-            }),
-            required: true,
-            placeholder: "Probe",
-          },
-
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-        ]}
         showRefreshButton={true}
         filters={[
           {
             field: {
-              probe: {
-                name: true,
-              },
+              time: true,
             },
-            type: FieldType.Text,
-            title: "Probe Name",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            type: FieldType.Boolean,
+            type: FieldType.DateTime,
+            title: "Time",
           },
         ]}
         columns={[
           {
             field: {
-              probe: {
-                name: true,
-                iconFileId: true,
-              },
+              time: true,
             },
 
-            title: "Probe",
-            type: FieldType.Entity,
-            getElement: (item: MonitorProbe): ReactElement => {
-              return <ProbeElement probe={item["probe"]} />;
-            },
-          },
-          {
-            field: {
-              probe: {
-                connectionStatus: true,
-              },
-            },
-            title: "Probe Status",
-            type: FieldType.Text,
-
-            getElement: (item: MonitorProbe): ReactElement => {
-              return <ProbeStatusElement probe={item["probe"]!} />;
-            },
-          },
-          {
-            field: {
-              lastPingAt: true,
-            },
-            title: "Last Monitored At",
+            title: "Time",
             type: FieldType.DateTime,
-
-            noValueMessage: "Will be picked up by this probe soon.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            type: FieldType.Boolean,
           },
         ]}
       />
@@ -265,8 +165,8 @@ const MonitorProbes: FunctionComponent<
       {getPageContent()}
       {showViewLogsModal && (
         <Modal
-          title={"Monitoring Logs"}
-          description="Here are the latest monitoring log for this resource."
+          title={"Monitor Log"}
+          description={"Here are the logs for this monitor."}
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {
@@ -286,4 +186,4 @@ const MonitorProbes: FunctionComponent<
   );
 };
 
-export default MonitorProbes;
+export default MonitorLogs;

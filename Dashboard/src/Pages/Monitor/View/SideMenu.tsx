@@ -23,6 +23,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props.monitorType,
   );
 
+  const isNotManualMonitor: boolean = !MonitorTypeHelper.isManualMonitor(
+    props.monitorType,
+  );
+
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
@@ -153,6 +157,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               ),
             }}
             icon={IconProp.Signal}
+          />
+        ) : (
+          <></>
+        )}
+        {isNotManualMonitor ? (
+          <SideMenuItem
+            link={{
+              title: "Monitoring Logs",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITOR_VIEW_LOGS] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Logs}
           />
         ) : (
           <></>

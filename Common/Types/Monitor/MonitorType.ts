@@ -31,6 +31,10 @@ export interface MonitorTypeProps {
 }
 
 export class MonitorTypeHelper {
+  public static isManualMonitor(monitorType: MonitorType): boolean {
+    return monitorType === MonitorType.Manual;
+  }
+
   public static getAllMonitorTypeProps(): Array<MonitorTypeProps> {
     const monitorTypeProps: Array<MonitorTypeProps> = [
       {
