@@ -57,6 +57,7 @@ import FilterCondition from "../../../Types/Filter/FilterCondition";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
+import MonitorLogService from "../../Services/MonitorLogService";
 
 export default class MonitorResourceUtil {
   @CaptureSpan()
@@ -1074,7 +1075,17 @@ export default class MonitorResourceUtil {
     const monitorLog: MonitorLog = new MonitorLog();
     monitorLog.monitorId = data.monitorId;
     monitorLog.projectId = data.projectId;
-    monitorLog.logBody = data.dataToProcess;
+    monitorLog.logBody = JSON.parse(JSON.stringify(data.dataToProcess));
+    monitorLog.time = OneUptimeDate.getCurrentDate();
+
+    MonitorLogService.create({
+      data: monitorLog,
+      props: {
+        isRoot: true,
+      },
+    }).catch((err: Error) => {
+      logger.error(err);
+    });
     
   }
 
