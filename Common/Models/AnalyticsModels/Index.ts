@@ -4,6 +4,7 @@ import Metric from "./Metric";
 import Span from "./Span";
 import TelemetryAttribute from "./TelemetryAttribute";
 import ExceptionInstance from "./ExceptionInstance";
+import MonitorLog from "./MonitorLog";
 
 const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Log,
@@ -11,6 +12,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   Metric,
   TelemetryAttribute,
   ExceptionInstance,
+  MonitorLog
 ];
 
 const modelTypeMap: { [key: string]: { new (): AnalyticsBaseModel } } = {};

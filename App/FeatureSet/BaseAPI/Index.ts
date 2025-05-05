@@ -565,6 +565,10 @@ import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPo
 import OnCallDutyPolicyOwnerUserService, {
   Service as OnCallDutyPolicyOwnerUserServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyOwnerUserService";
+import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
+import MonitorLogService, {
+  Service as MonitorLogServiceType,
+} from "Common/Server/Services/MonitorLogService";
 
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -577,6 +581,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAnalyticsAPI<TelemetryAttribute, TelemetryAttributeServiceType>(
         TelemetryAttribute,
         TelemetryAttributeService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<MonitorLog, MonitorLogServiceType>(
+        MonitorLog,
+        MonitorLogService,
       ).getRouter(),
     );
 

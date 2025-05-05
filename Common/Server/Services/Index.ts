@@ -160,6 +160,8 @@ import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
+import MonitorLogService from "./MonitorLogService";
+
 const services: Array<BaseService> = [
   AcmeCertificateService,
   PromoCodeService,
@@ -341,6 +343,7 @@ export const AnalyticsServices: Array<
   MetricService,
   TelemetryAttributeService,
   ExceptionInstanceService,
+  MonitorLogService,
 ];
 
 export default services;
