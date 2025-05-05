@@ -184,7 +184,7 @@ The on-call policy **[${onCallDutyPolicyExecutionLogTimeline.onCallDutyPolicy.na
             userId: onCallDutyPolicyExecutionLogTimeline.alertSentToUserId!,
             projectId: onCallDutyPolicyExecutionLogTimeline.projectId!,
           },
-        )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "**" : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "**" : ""}`;
+        )} was alerted. The status of this alert is **${status}** with the message: \`${onCallDutyPolicyExecutionLogTimeline.statusMessage}\`. ${onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name ? "The alert was sent because the user belogs to the team **" + onCallDutyPolicyExecutionLogTimeline.userBelongsToTeam?.name + "** " : ""} ${onCallDutyPolicyExecutionLogTimeline.isAcknowledged ? "The alert was acknowledged at **" + onCallDutyPolicyExecutionLogTimeline.acknowledgedAt + "** " : ""}`;
 
         if (onCallDutyPolicyExecutionLogTimeline.overridedByUser) {
           feedInfoInMarkdown += `The alert was supposed to be sent to **${await UserService.getUserMarkdownString(
