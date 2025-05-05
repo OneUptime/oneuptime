@@ -108,6 +108,9 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
+        selectMoreFields={{
+          logBody: true,
+        }}
         cardProps={{
           title: "Monitor Logs",
           description: "Here are the latest logs for this resource.",
