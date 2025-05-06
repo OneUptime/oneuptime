@@ -38,6 +38,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={TeamMember}
         name="Project Invitations"
         id="team-member-table"
+        localPreferencesKey="project-invitations-table"
         isDeleteable={true}
         query={{
           userId: User.getUserId(),

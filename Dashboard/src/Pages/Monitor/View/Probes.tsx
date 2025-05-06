@@ -124,6 +124,7 @@ const MonitorProbes: FunctionComponent<
 
           return Promise.resolve(item);
         }}
+        localPreferencesKey="monitor-probes-table"
         id="probes-table"
         name="Monitor > Monitor Probes"
         isDeleteable={false}

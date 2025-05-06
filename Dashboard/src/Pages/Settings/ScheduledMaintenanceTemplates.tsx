@@ -400,6 +400,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
       <ModelTable<ScheduledMaintenanceTemplate>
         modelType={ScheduledMaintenanceTemplate}
         id="Scheduled-Maintenance-templates-table"
+        localPreferencesKey="scheduled-maintenance-templates-table"
         name="Settings > Scheduled Maintenance Templates"
         isDeleteable={false}
         isEditable={false}

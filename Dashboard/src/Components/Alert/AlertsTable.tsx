@@ -43,6 +43,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     <>
       <ModelTable<Alert>
         name="Alerts"
+        localPreferencesKey="alerts-table"
         bulkActions={{
           buttons: [ModalTableBulkDefaultActions.Delete],
         }}

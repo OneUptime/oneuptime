@@ -280,6 +280,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<ScheduledMaintenanceTemplateOwnerTeam>
         modelType={ScheduledMaintenanceTemplateOwnerTeam}
         id="table-ScheduledMaintenance-owner-team"
+        localPreferencesKey="scheduled-maintenance-owner-team-table"
         name="ScheduledMaintenance Template > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -368,6 +369,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<ScheduledMaintenanceTemplateOwnerUser>
         modelType={ScheduledMaintenanceTemplateOwnerUser}
         id="table-ScheduledMaintenance-owner-team"
+        localPreferencesKey="scheduled-maintenance-owner-user-table"
         name="ScheduledMaintenance > Owner Team"
         isDeleteable={true}
         singularName="User"

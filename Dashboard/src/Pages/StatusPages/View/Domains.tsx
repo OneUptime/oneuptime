@@ -60,6 +60,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             statusPageId: modelId,
           }}
           name="Status Page > Domains"
+          localPreferencesKey="status-page-domains-table"
           id="domains-table"
           isDeleteable={true}
           isCreateable={true}

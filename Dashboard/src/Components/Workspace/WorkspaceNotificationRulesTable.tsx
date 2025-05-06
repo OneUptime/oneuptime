@@ -406,6 +406,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
           eventType: props.eventType,
         }}
+        localPreferencesKey="workspace-notification-rules-table"
         actionButtons={[
           {
             title: "Test Rule",

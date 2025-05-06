@@ -61,6 +61,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         id="status-page-Footer-link"
         isDeleteable={true}
         name="Status Page > Footer Links"
+        localPreferencesKey="status-page-footer-link-table"
         sortBy="order"
         sortOrder={SortOrder.Ascending}
         isCreateable={true}

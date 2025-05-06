@@ -57,6 +57,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       />
 
       <ModelTable<Probe>
+        localPreferencesKey={"admin-probes-table"}
         modelType={Probe}
         id="probes-table"
         name="Settings > Global Probes"

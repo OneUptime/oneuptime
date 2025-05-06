@@ -38,6 +38,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userNotificationLogId: modelId.toString(),
           userId: User.getUserId()?.toString(),
         }}
+        localPreferencesKey="user-notification-logs-timeline-table"
         id="notification-logs-timeline-table"
         name="User Settings > Notification Logs > Timeline"
         isDeleteable={false}

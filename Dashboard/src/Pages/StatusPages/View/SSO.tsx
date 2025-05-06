@@ -51,6 +51,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
 
         <ModelTable<StatusPageSSO>
           modelType={StatusPageSSO}
+          localPreferencesKey={"status-page-sso-table"}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,
             statusPageId: modelId.toString(),

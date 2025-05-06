@@ -25,6 +25,7 @@ const ServiceCatalogOwners: FunctionComponent<
       <ModelTable<ServiceCatalogOwnerTeam>
         modelType={ServiceCatalogOwnerTeam}
         id="table-ServiceCatalog-owner-team"
+        localPreferencesKey="serviceCatalog-owner-team-table"
         name="ServiceCatalog > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -123,6 +124,7 @@ const ServiceCatalogOwners: FunctionComponent<
         modelType={ServiceCatalogOwnerUser}
         id="table-ServiceCatalog-owner-team"
         name="ServiceCatalog > Owner Team"
+        localPreferencesKey="serviceCatalog-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

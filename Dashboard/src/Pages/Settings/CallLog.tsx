@@ -145,6 +145,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           name="Call Logs"
+          localPreferencesKey="call-logs-table"
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}

@@ -27,6 +27,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
     <Fragment>
       <ModelTable<StatusPageAnnouncement>
         modelType={StatusPageAnnouncement}
+        localPreferencesKey="status-page-announcements-table"
         id="table-status-page-note"
         isDeleteable={true}
         isCreateable={true}

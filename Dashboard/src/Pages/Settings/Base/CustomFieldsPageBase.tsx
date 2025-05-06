@@ -34,6 +34,7 @@ const CustomFieldsPageBase: (
     <Fragment>
       <ModelTable<CustomFieldsBaseModels>
         modelType={props.modelType}
+        localPreferencesKey="custom-fields-table"
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

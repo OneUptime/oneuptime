@@ -86,6 +86,7 @@ import React, {
 } from "react";
 import TableViewElement from "./TableView";
 import TableView from "../../../Models/DatabaseModels/TableView";
+import LocalStorage from "../../Utils/LocalStorage";
 
 export enum ShowAs {
   Table,
@@ -219,6 +220,12 @@ export interface BaseTableProps<
   onFilterApplied?: ((isFilterApplied: boolean) => void) | undefined;
 
   formSummary?: FormSummaryConfig | undefined;
+
+
+  // this key is used to save table user preferences in local storage.
+  // If you provide this key, the table will save the user preferences in local storage.
+  // If you do not provide this key, the table will not save the user preferences in local storage.
+  localPreferencesKey: string;
 }
 
 export interface ComponentProps<
@@ -237,6 +244,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+
+  const localStorageItemsOnPageKey: string | undefined = props.localPreferencesKey ? `table-${props.localPreferencesKey}-itemsOnPage` : undefined;
+
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -289,6 +299,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
   }, [props.modelType]);
 
+
+  const getItemsOnPage: () => number = (): number => {
+
+    if(localStorageItemsOnPageKey){
+      const itemsOnPage: number | null = LocalStorage.getItem(localStorageItemsOnPageKey) as number | null;
+      if(itemsOnPage){
+        return itemsOnPage;
+      }
+    }
+
+    return props.initialItemsOnPage || 10;
+
+  }
+
   const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
     useState<number | null>(null);
 
@@ -320,9 +344,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [currentDeleteableItem, setCurrentDeleteableItem] =
     useState<TBaseModel | null>(null);
 
+
+
   const [itemsOnPage, setItemsOnPage] = useState<number>(
-    props.initialItemsOnPage || 10,
+    getItemsOnPage()
   );
+
+  useEffect(() => { 
+    // update items on page in localstorage. 
+    if(itemsOnPage && localStorageItemsOnPageKey){
+      LocalStorage.setItem(localStorageItemsOnPageKey, itemsOnPage);
+    }
+  }, [itemsOnPage]);
 
   const [fields, setFields] = useState<Array<Field<TBaseModel>>>([]);
 
@@ -1534,6 +1567,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
+        
       />
     );
   };
@@ -1602,6 +1636,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         actionButtons={actionButtonSchema}
         getTitleElement={getTitleElement}
         getDescriptionElement={getDescriptionElement}
+        
       />
     );
   };
@@ -1665,6 +1700,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await fetchItems();
         }}
         actionButtons={actionButtonSchema}
+        
       />
     );
   };

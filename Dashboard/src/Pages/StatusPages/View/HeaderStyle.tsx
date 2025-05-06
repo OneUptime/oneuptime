@@ -83,6 +83,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         modelType={StatusPageHeaderLink}
         id="status-page-header-link"
         name="Status Page > Header Links"
+        localPreferencesKey="status-page-header-link-table"
         isDeleteable={true}
         sortBy="order"
         sortOrder={SortOrder.Ascending}

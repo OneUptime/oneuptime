@@ -39,6 +39,7 @@ const MonitorSecrets: FunctionComponent<
         link={URL.fromString("https://www.youtube.com/watch?v=V5eIpd_IPlU")}
       />
       <ModelTable<MonitorSecret>
+        localPreferencesKey={"monitor-secrets-table"}
         modelType={MonitorSecret}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

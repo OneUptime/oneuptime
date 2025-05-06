@@ -54,6 +54,7 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
         modelType={TelemetryException}
         id="TelemetryException-table"
         isDeleteable={false}
+        localPreferencesKey="telemetry-exception-table"
         isEditable={false}
         isCreateable={false}
         singularName="Exception"

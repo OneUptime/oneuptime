@@ -27,6 +27,7 @@ const CopilotPriorities: FunctionComponent<
         }}
         sortBy={"priority"}
         sortOrder={SortOrder.Ascending}
+        localPreferencesKey="copilot-priorities-table"
         id="priority-table"
         name="Settings > priority"
         isDeleteable={true}

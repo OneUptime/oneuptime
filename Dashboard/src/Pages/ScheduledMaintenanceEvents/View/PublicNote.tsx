@@ -123,6 +123,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         modelType={ScheduledMaintenancePublicNote}
         id="table-scheduled-maintenance-internal-note"
         name="Scheduled Maintenance Events > Public Notes"
+        localPreferencesKey="scheduled-maintenance-public-note-table"
         isDeleteable={true}
         createEditModalWidth={ModalWidth.Large}
         isCreateable={true}

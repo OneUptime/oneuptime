@@ -116,6 +116,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         modelType={ScheduledMaintenance}
         id="scheduledMaintenances-table"
         name="Scheduled Maintenance Events"
+        localPreferencesKey={"scheduled-maintenance-table"}
         isDeleteable={false}
         query={props.query || {}}
         isEditable={false}

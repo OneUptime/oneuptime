@@ -49,6 +49,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
         modelType={MonitorGroup}
         name="Monitor Groups"
         id="monitors-group-table"
+        localPreferencesKey="monitor-groups-table"
         isDeleteable={false}
         showViewIdButton={true}
         isEditable={false}

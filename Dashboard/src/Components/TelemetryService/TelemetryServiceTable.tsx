@@ -33,6 +33,7 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
       id="services-table"
       isDeleteable={false}
       isEditable={false}
+      localPreferencesKey="telemetry-services-table"
       query={props.query || {}}
       actionButtons={props.actionButtons}
       isCreateable={!props.disableCreate}

@@ -36,6 +36,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId()?.toString(),
         }}
+        localPreferencesKey="user-notification-logs-table"
         id="notification-logs-table"
         name="User Settings > Notification Logs"
         isDeleteable={false}

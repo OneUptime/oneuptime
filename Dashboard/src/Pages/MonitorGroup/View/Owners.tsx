@@ -26,6 +26,7 @@ const MonitorGroupOwners: FunctionComponent<
         modelType={MonitorGroupOwnerTeam}
         id="table-monitor-group-owner-team"
         name="MonitorGroup > Owner Team"
+        localPreferencesKey="monitor-group-owner-team-table"
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -122,6 +123,7 @@ const MonitorGroupOwners: FunctionComponent<
         modelType={MonitorGroupOwnerUser}
         id="table-monitor-group-owner-team"
         name="MonitorGroup > Owner Team"
+        localPreferencesKey="monitor-group-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

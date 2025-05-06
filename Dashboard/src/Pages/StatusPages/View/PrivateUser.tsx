@@ -21,6 +21,7 @@ const StatusPageDelete: FunctionComponent<
         modelType={StatusPagePrivateUser}
         id="status-page-group"
         name="Status Page > Private Users"
+        localPreferencesKey="status-page-private-user-table"
         isDeleteable={true}
         showViewIdButton={true}
         isCreateable={true}

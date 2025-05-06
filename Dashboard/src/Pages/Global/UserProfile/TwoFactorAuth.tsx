@@ -70,6 +70,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType={UserTwoFactorAuth}
           name="Two Factor Authentication"
           id="two-factor-auth-table"
+          localPreferencesKey="user-two-factor-auth-table"
           isDeleteable={true}
           refreshToggle={tableRefreshToggle}
           filters={[]}

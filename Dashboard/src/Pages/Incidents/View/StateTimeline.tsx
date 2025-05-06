@@ -41,6 +41,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         modelType={IncidentStateTimeline}
         id="table-incident-status-timeline"
         name="Monitor > State Timeline"
+        localPreferencesKey="incident-status-timeline-table"
         isEditable={false}
         isDeleteable={true}
         isCreateable={true}

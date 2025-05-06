@@ -74,6 +74,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     <ModelTable<Monitor>
       modelType={Monitor}
       name="Monitors"
+      localPreferencesKey="monitors-table"
       id="Monitors-table"
       saveFilterProps={props.saveFilterProps}
       bulkActions={{

@@ -17,6 +17,7 @@ const IncidentNoteTemplates: FunctionComponent<PageComponentProps> = (
         id="incident-templates-table"
         name="Settings > Incident Templates"
         isDeleteable={false}
+        localPreferencesKey="incident-templates-table"
         isEditable={false}
         isCreateable={true}
         isViewable={true}

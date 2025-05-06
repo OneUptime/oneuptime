@@ -43,6 +43,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
     <>
       <ModelTable<UserSMS>
         modelType={UserSMS}
+        localPreferencesKey={"user-sms-table"}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId().toString(),

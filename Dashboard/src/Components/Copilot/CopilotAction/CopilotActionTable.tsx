@@ -182,6 +182,7 @@ const CopilotActionTable: FunctionComponent<ComponentProps> = (
         modelType={CopilotAction}
         id="table-copiolt-pull-requests"
         name="Code Repository > Pull Requests"
+        localPreferencesKey="copilot-action-table"
         isDeleteable={isPendingAction}
         isCreateable={false}
         isEditable={false}

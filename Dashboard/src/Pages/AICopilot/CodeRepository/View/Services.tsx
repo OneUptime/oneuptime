@@ -22,6 +22,7 @@ const ServiceCopilotCodeRepositoryPage: FunctionComponent<
         modelType={ServiceCopilotCodeRepository}
         id="table-service-repository-page"
         name="Code Repository > Service Repository"
+        localPreferencesKey="service-copilot-code-repositories-table"
         isDeleteable={true}
         createVerb={"Add"}
         isCreateable={true}

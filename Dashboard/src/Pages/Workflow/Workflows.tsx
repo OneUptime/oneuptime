@@ -55,6 +55,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ModelTable<Workflow>
           modelType={Workflow}
           id="status-page-table"
+          localPreferencesKey="workflow-table"
           isDeleteable={false}
           isEditable={false}
           isCreateable={true}

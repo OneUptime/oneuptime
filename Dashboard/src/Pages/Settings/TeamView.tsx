@@ -75,6 +75,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
     return (
       <ModelTable<TeamPermission>
         modelType={TeamPermission}
+        localPreferencesKey={"team-permission-table-" + permissionType}
         id={"table-team-permission-" + permissionType}
         isDeleteable={true}
         isEditable={true}
@@ -298,6 +299,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       <ModelTable<TeamMember>
         modelType={TeamMember}
         id="table-team-member"
+        localPreferencesKey="team-member-table"
         isDeleteable={true}
         name="Settings > Team > Member"
         createVerb={"Invite"}

@@ -465,7 +465,11 @@ export default class API {
   }
 
   public static getFriendlyErrorMessage(error: AxiosError | Error): string {
-    const errorString: string = error.message || error.toString();
+    let errorString: string = error.message || error.toString();
+
+    if (error instanceof APIException) {
+      errorString = `${error.message?.toString()} ${error.error?.message || error.error?.toString() || ""}`;
+    }
 
     if (errorString.toLocaleLowerCase().includes("network error")) {
       return "Network Error.";

@@ -23,6 +23,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Here is a list of global secrets and variables for this project.",
         }}
+        localPreferencesKey="workflow-variable-table"
         query={{
           workflowId: new IsNull(),
           projectId: ProjectUtil.getCurrentProjectId()!,

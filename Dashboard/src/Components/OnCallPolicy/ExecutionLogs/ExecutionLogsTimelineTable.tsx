@@ -33,6 +33,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
     return (
       <ModelTable<OnCallDutyPolicyExecutionLogTimeline>
         modelType={OnCallDutyPolicyExecutionLogTimeline}
+        localPreferencesKey={"on-call-policy-execution-log-timeline-table"}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           onCallDutyPolicyExecutionLogId:

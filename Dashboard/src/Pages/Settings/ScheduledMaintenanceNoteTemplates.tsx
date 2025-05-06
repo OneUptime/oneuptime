@@ -20,6 +20,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        localPreferencesKey="scheduled-maintenance-note-templates-table"
         cardProps={{
           title:
             "Public or Private Note Templates for Scheduled Maintenance Events",

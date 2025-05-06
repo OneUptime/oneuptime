@@ -25,6 +25,7 @@ const OnCallDutyPolicyOwners: FunctionComponent<
       <ModelTable<OnCallDutyPolicyOwnerTeam>
         modelType={OnCallDutyPolicyOwnerTeam}
         id="table-OnCallDutyPolicy Team-owner-team"
+        localPreferencesKey="on-call-policy-owner-team-table"
         name="OnCallDutyPolicy > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -121,6 +122,7 @@ const OnCallDutyPolicyOwners: FunctionComponent<
       <ModelTable<OnCallDutyPolicyOwnerUser>
         modelType={OnCallDutyPolicyOwnerUser}
         id="table-on-call policy-owner-team"
+        localPreferencesKey="on-call-policy-owner-user-table"
         name="on-call policy > Owner Team"
         isDeleteable={true}
         singularName="User"

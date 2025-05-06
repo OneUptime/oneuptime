@@ -20,6 +20,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={true}
         isViewable={true}
+        localPreferencesKey="teams-table"
         cardProps={{
           title: "Teams",
           description: "Here is a list of all the teams in this project.",

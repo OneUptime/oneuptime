@@ -402,6 +402,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           <ModelTable<BillingPaymentMethod>
             modelType={BillingPaymentMethod}
             id="payment-methods-table"
+            localPreferencesKey="billing-payment-methods-table"
             isDeleteable={true}
             isEditable={false}
             isCreateable={false}

@@ -35,6 +35,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelType={Probe}
           id="probes-table"
           name="Settings > Global Probes"
+          localPreferencesKey={"admin-probes-table"}
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}
@@ -112,6 +113,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           id="probes-table"
+          localPreferencesKey={"probes-table"}
           name="Settings > Probes"
           isDeleteable={false}
           isEditable={false}

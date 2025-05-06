@@ -18,6 +18,7 @@ const AlertSeverityPage: FunctionComponent<
       <ModelTable<AlertSeverity>
         modelType={AlertSeverity}
         id="alert-state-table"
+        localPreferencesKey="alert-severity-table"
         name="Settings > Alert Severity"
         isDeleteable={true}
         isEditable={true}

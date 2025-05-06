@@ -116,6 +116,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         modelType={IncidentPublicNote}
         id="table-incident-internal-note"
         name="Monitor > Public Note"
+        localPreferencesKey="incident-public-note-table"
         isDeleteable={true}
         showCreateForm={Object.keys(initialValuesForIncident).length > 0}
         createInitialValues={initialValuesForIncident}

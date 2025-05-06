@@ -208,6 +208,7 @@ const UserOverrideTable: FunctionComponent<ComponentProps> = (
         query={query}
         id="on-call-user-override-table"
         name="On-Call Policy > User Overrides"
+        localPreferencesKey="on-call-user-override-table"
         isDeleteable={true}
         isEditable={false}
         isCreateable={true}

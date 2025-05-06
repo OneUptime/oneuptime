@@ -137,6 +137,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ModelTable<SmsLog>
           modelType={SmsLog}
           id="sms-logs-table"
+          localPreferencesKey="sms-logs-table"
           isDeleteable={false}
           isEditable={false}
           isCreateable={false}

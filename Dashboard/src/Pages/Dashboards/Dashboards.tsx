@@ -34,6 +34,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<Dashboard>
         modelType={Dashboard}
         id="dashboard-table"
+        localPreferencesKey="dashboards-table"
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

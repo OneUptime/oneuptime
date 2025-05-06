@@ -48,6 +48,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
 
         <ModelTable<ProjectSSO>
           modelType={ProjectSSO}
+          localPreferencesKey={"project-sso-table"}
           query={{
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}

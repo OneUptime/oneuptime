@@ -24,6 +24,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<StatusPage>
         modelType={StatusPage}
         id="status-page-table"
+        localPreferencesKey="status-page-table"
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

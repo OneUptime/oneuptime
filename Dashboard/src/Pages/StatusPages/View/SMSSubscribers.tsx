@@ -245,6 +245,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           )}
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
+            localPreferencesKey="status-page-sms-subscribers-table"
             id="table-subscriber"
             name="Status Page > SMS Subscribers"
             isDeleteable={true}

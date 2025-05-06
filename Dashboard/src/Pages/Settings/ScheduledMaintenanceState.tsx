@@ -19,6 +19,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
       <ModelTable<ScheduledMaintenanceState>
         modelType={ScheduledMaintenanceState}
         id="ScheduledMaintenance-state-table"
+        localPreferencesKey="scheduled-maintenance-state-table"
         name="Settings > Scheduled Maintenance State"
         isDeleteable={true}
         isEditable={true}
