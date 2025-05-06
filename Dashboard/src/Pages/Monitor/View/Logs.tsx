@@ -104,6 +104,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <AnalyticsModelTable<MonitorLog>
         modelType={MonitorLog}
+        localPreferencesKey="monitor-logs-table"
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           monitorId: modelId.toString(),
