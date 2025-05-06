@@ -44,8 +44,8 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
           value={
             props.incomingMonitorRequest?.incomingRequestReceivedAt
               ? OneUptimeDate.getDateAsLocalFormattedString(
-                  props.incomingMonitorRequest.incomingRequestReceivedAt,
-                )
+                props.incomingMonitorRequest.incomingRequestReceivedAt,
+              )
               : "-"
           }
         />
@@ -54,17 +54,19 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
           title="Request Method"
           value={props.incomingMonitorRequest.requestMethod || "-"}
         />
-        <InfoCard
-          className="w-1/2 shadow-none border-2 border-gray-100"
-          title="Monitor Status Check At"
-          value={
-            props.incomingRequestMonitorHeartbeatCheckedAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
+        {props.incomingRequestMonitorHeartbeatCheckedAt &&
+          <InfoCard
+            className="w-1/2 shadow-none border-2 border-gray-100"
+            title="Monitor Status Check At"
+            value={
+              props.incomingRequestMonitorHeartbeatCheckedAt
+                ? OneUptimeDate.getDateAsLocalFormattedString(
                   props.incomingRequestMonitorHeartbeatCheckedAt,
                 )
-              : "-"
-          }
-        />
+                : "-"
+            }
+          />
+        }
       </div>
 
       {showMoreDetails && (
