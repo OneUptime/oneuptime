@@ -142,7 +142,7 @@ const MonitorProbes: FunctionComponent<
         }}
         actionButtons={[
           {
-            title: "View Logs",
+            title: "View Summary",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (
@@ -269,8 +269,8 @@ const MonitorProbes: FunctionComponent<
       {getPageContent()}
       {showViewLogsModal && (
         <Modal
-          title={"Monitoring Logs"}
-          description="Here are the latest monitoring log for this resource."
+          title={"Monitoring Summary"}
+          description="Here are the latest monitoring summary for this resource."
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {

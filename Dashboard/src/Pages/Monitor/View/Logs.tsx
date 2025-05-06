@@ -30,6 +30,7 @@ import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -115,6 +116,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         selectMoreFields={{
           logBody: true,
         }}
+        sortBy="time"
+        sortOrder={SortOrder.Descending}
         cardProps={{
           title: "Monitor Logs",
           description: "Here are the latest logs for this resource.",
