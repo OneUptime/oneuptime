@@ -4,7 +4,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import React, { ReactElement, useEffect } from "react";
 
-
 export enum StartAndEndDateType {
   Date = "Date",
   DateTime = "DateTime",
