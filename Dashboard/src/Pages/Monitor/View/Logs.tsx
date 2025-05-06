@@ -30,7 +30,6 @@ import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import OneUptimeDate from "Common/Types/Date";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -132,11 +131,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               item: MonitorLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setLogs(
-                item.logBody
-                  ? item.logBody
-                  : {}
-              );
+              setLogs(item.logBody ? item.logBody : {});
               setShowViewLogsModal(true);
 
               onCompleteAction();
@@ -186,8 +181,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <SummaryInfo
             monitorType={monitorType!}
             probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
-            incomingMonitorRequest={(logs as unknown) as IncomingMonitorRequest}
-            serverMonitorResponse={(logs as unknown) as ServerMonitorResponse}
+            incomingMonitorRequest={logs as unknown as IncomingMonitorRequest}
+            serverMonitorResponse={logs as unknown as ServerMonitorResponse}
           />
         </Modal>
       )}

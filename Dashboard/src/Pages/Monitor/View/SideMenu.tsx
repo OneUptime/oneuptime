@@ -23,7 +23,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     props.monitorType,
   );
 
-  const isNotManualMonitor: boolean = !MonitorTypeHelper.isManualMonitor(
+  const isManualMonitor: boolean = MonitorTypeHelper.isManualMonitor(
+    props.monitorType,
+  );
+
+  const isTelemetryMonitor: boolean = MonitorTypeHelper.isTelemetryMonitor(
     props.monitorType,
   );
 
@@ -161,7 +165,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {isNotManualMonitor ? (
+        {!isManualMonitor && !isTelemetryMonitor ? (
           <SideMenuItem
             link={{
               title: "Monitoring Logs",

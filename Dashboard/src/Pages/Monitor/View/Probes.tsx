@@ -15,7 +15,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
-import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
@@ -32,13 +31,15 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 
 const MonitorProbes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
-  const [logs, setLogs] = useState<string>("");
+  const [logs, setLogs] = useState<Array<ProbeMonitorResponse>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
@@ -149,9 +150,12 @@ const MonitorProbes: FunctionComponent<
               onCompleteAction: VoidFunction,
             ) => {
               setLogs(
-                item["lastMonitoringLog"]
-                  ? JSON.stringify(item["lastMonitoringLog"], null, 2)
-                  : "Not monitored yet",
+                item["lastMonitoringLog"] &&
+                  Object.keys(item["lastMonitoringLog"]).length > 0
+                  ? (Object.values(
+                      item["lastMonitoringLog"],
+                    ) as Array<ProbeMonitorResponse>)
+                  : [],
               );
               setShowViewLogsModal(true);
 
@@ -275,11 +279,10 @@ const MonitorProbes: FunctionComponent<
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer>
-            {logs.split("\n").map((log: string, i: number) => {
-              return <div key={i}>{log}</div>;
-            })}
-          </SimpleLogViewer>
+          <SummaryInfo
+            monitorType={monitorType!}
+            probeMonitorResponses={logs}
+          />
         </Modal>
       )}
     </Fragment>
