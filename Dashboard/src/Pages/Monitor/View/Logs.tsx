@@ -125,7 +125,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }
         actionButtons={[
           {
-            title: "View Logs",
+            title: "View Summary",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (
@@ -150,7 +150,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               time: true,
             },
             type: FieldType.DateTime,
-            title: "Time",
+            title: "Monitored At",
           },
         ]}
         columns={[
@@ -159,7 +159,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               time: true,
             },
 
-            title: "Time",
+            title: "Monitored At",
             type: FieldType.DateTime,
           },
         ]}
@@ -173,8 +173,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       {getPageContent()}
       {showViewLogsModal && monitorType && (
         <Modal
-          title={"Monitor Log"}
-          description={"Here are the logs for this monitor."}
+          title={"Monitoring Summary"}
+          description={"Here is the summary of this monitor."}
           isLoading={false}
           modalWidth={ModalWidth.Large}
           onSubmit={() => {
@@ -184,15 +184,11 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
           <SummaryInfo
-          monitorType={monitorType!}
-          probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
-          incomingMonitorRequest={(logs as unknown) as IncomingMonitorRequest}
-          serverMonitorResponse={(logs as unknown) as ServerMonitorResponse}
-          telemetryMonitorSummary={undefined}
-          incomingRequestMonitorHeartbeatCheckedAt={
-            OneUptimeDate.getCurrentDate()
-          }
-        />
+            monitorType={monitorType!}
+            probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
+            incomingMonitorRequest={(logs as unknown) as IncomingMonitorRequest}
+            serverMonitorResponse={(logs as unknown) as ServerMonitorResponse}
+          />
         </Modal>
       )}
     </Fragment>
