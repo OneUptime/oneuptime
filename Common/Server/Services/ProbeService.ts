@@ -68,6 +68,7 @@ export class Service extends DatabaseService<Model> {
       );
 
       if (!previousLastAliveCheck) {
+        await this.saveLastAliveInCache(probeId, now);
         return true;
       }
 
@@ -86,6 +87,8 @@ export class Service extends DatabaseService<Model> {
           return false;
         }
       }
+
+      await this.saveLastAliveInCache(probeId, now);
     } catch (err) {
       // failed to hit the cache, so we will hit the database
       logger.error("Error in getting last alive from cache");
@@ -118,8 +121,6 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
-
-    await this.saveLastAliveInCache(probeId, now);
   }
 
   @CaptureSpan()
