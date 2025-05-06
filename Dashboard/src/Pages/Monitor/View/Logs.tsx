@@ -9,7 +9,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
@@ -26,11 +25,17 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
+import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
+import { JSONObject } from "Common/Types/JSON";
+import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import OneUptimeDate from "Common/Types/Date";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
-  const [logs, setLogs] = useState<string>("");
+  const [logs, setLogs] = useState<JSONObject>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [error, setError] = useState<string>("");
@@ -129,8 +134,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             ) => {
               setLogs(
                 item.logBody
-                  ? JSON.stringify(item.logBody, null, 2)
-                  : "Not logs so far",
+                  ? item.logBody
+                  : {}
               );
               setShowViewLogsModal(true);
 
@@ -166,7 +171,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <DisabledWarning monitorId={modelId} />
       {getPageContent()}
-      {showViewLogsModal && (
+      {showViewLogsModal && monitorType && (
         <Modal
           title={"Monitor Log"}
           description={"Here are the logs for this monitor."}
@@ -178,11 +183,16 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SimpleLogViewer>
-            {logs.split("\n").map((log: string, i: number) => {
-              return <div key={i}>{log}</div>;
-            })}
-          </SimpleLogViewer>
+          <SummaryInfo
+          monitorType={monitorType!}
+          probeMonitorResponses={[logs as unknown as ProbeMonitorResponse]}
+          incomingMonitorRequest={(logs as unknown) as IncomingMonitorRequest}
+          serverMonitorResponse={(logs as unknown) as ServerMonitorResponse}
+          telemetryMonitorSummary={undefined}
+          incomingRequestMonitorHeartbeatCheckedAt={
+            OneUptimeDate.getCurrentDate()
+          }
+        />
         </Modal>
       )}
     </Fragment>
