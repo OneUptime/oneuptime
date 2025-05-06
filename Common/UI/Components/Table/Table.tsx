@@ -72,7 +72,6 @@ export interface ComponentProps<T extends GenericObject> {
   onBulkActionEnd: () => void;
   onBulkActionStart: () => void;
   bulkItemToString: (item: T) => string;
-
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -296,7 +295,6 @@ const Table: TableFunction = <T extends GenericObject>(
               onNavigateToPage={props.onNavigateToPage}
               isLoading={props.isLoading}
               isError={Boolean(props.error)}
-
             />
           )}
         </div>
