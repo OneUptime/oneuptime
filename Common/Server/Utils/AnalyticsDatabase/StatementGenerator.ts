@@ -735,8 +735,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             )
             ENGINE = `,
       )
-      .append(tableEngineStatement).append(SQL`
-        PARTITION BY ${partitionKey}
+      .append(tableEngineStatement).append(`
+        PARTITION BY (${partitionKey})
         `).append(SQL`
             PRIMARY KEY (`);
 
