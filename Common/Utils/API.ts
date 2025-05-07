@@ -458,8 +458,11 @@ export default class API {
     // get url from error
     const url: string = error?.config?.url || "";
 
+
+    const errorMessage: string = error.message || error.toString();
+
     throw new APIException(
-      `Error occurred while making request to ${url}.`,
+      `Request failed to ${url}. ${errorMessage}`,
       error,
     );
   }
