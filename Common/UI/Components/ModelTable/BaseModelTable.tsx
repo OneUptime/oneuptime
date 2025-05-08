@@ -86,8 +86,9 @@ import React, {
 } from "react";
 import TableViewElement from "./TableView";
 import TableView from "../../../Models/DatabaseModels/TableView";
-import LocalStorage from "../../Utils/LocalStorage";
-import UserPreferences, { UserPreferenceType } from "../../../Utils/UserPreferences";
+import UserPreferences, {
+  UserPreferenceType,
+} from "../../../Utils/UserPreferences";
 
 export enum ShowAs {
   Table,
@@ -244,8 +245,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-
-
   const [tableView, setTableView] = useState<TableView | null>(null);
 
   const matchBulkSelectedItemByField: keyof TBaseModel =
@@ -299,13 +298,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, [props.modelType]);
 
   const getItemsOnPage: () => number = (): number => {
-    if ( props.userPreferencesKey) {
-      const itemsOnPage: number | null = UserPreferences.getUserPreferenceByTypeAsNumber(
-        {
+    if (props.userPreferencesKey) {
+      const itemsOnPage: number | null =
+        UserPreferences.getUserPreferenceByTypeAsNumber({
           userPreferenceType: UserPreferenceType.BaseModelTablePageSize,
           key: props.userPreferencesKey,
-        }
-      )
+        });
       if (itemsOnPage) {
         return itemsOnPage;
       }
