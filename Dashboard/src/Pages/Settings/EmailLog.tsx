@@ -138,7 +138,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           id="Email-logs-table"
           isDeleteable={false}
           isEditable={false}
-          localPreferencesKey="email-logs-table"
+          userPreferencesKey="email-logs-table"
           isCreateable={false}
           showViewIdButton={true}
           name="Email Logs"

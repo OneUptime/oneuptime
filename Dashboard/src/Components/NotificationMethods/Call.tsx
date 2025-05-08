@@ -43,7 +43,7 @@ const Call: () => JSX.Element = (): ReactElement => {
     <>
       <ModelTable<UserCall>
         modelType={UserCall}
-        localPreferencesKey={"user-call-table"}
+        userPreferencesKey={"user-call-table"}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId().toString(),

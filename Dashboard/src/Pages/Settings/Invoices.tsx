@@ -149,7 +149,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         <ModelTable<BillingInvoice>
           modelType={BillingInvoice}
           id="invoices-table"
-          localPreferencesKey="billing-invoices-table"
+          userPreferencesKey="billing-invoices-table"
           isDeleteable={false}
           name="Settings > Billing > Invoices"
           isEditable={false}

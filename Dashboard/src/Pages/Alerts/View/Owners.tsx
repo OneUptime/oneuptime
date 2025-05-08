@@ -24,7 +24,7 @@ const AlertOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={AlertOwnerTeam}
         id="table-alert-owner-team"
         name="Alert > Owner Team"
-        localPreferencesKey="alert-owner-team-table"
+        userPreferencesKey="alert-owner-team-table"
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -120,7 +120,7 @@ const AlertOwners: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={AlertOwnerUser}
         id="table-alert-owner-team"
         name="Alert > Owner Team"
-        localPreferencesKey="alert-owner-user-table"
+        userPreferencesKey="alert-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

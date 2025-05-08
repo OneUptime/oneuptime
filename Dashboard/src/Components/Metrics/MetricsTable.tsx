@@ -25,7 +25,7 @@ const MetricsTable: FunctionComponent<ComponentProps> = (
       <ModelTable<MetricType>
         modelType={MetricType}
         id="metrics-table"
-        localPreferencesKey="metrics-table"
+        userPreferencesKey="metrics-table"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}

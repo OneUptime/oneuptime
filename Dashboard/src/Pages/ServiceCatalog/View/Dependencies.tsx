@@ -22,7 +22,7 @@ const ServiceCatalogDelete: FunctionComponent<
         modelType={ServiceCatalogDependency}
         id="table-ServiceCatalog-dependency"
         name="ServiceCatalog > Dependency"
-        localPreferencesKey="serviceCatalog-dependency-table"
+        userPreferencesKey="serviceCatalog-dependency-table"
         singularName="Dependency"
         isDeleteable={true}
         createVerb={"Add"}

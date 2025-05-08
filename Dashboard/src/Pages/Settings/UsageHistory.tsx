@@ -23,7 +23,7 @@ const Settings: FunctionComponent<ComponentProps> = (
       <ModelTable<TelemetryUsageBilling>
         modelType={TelemetryUsageBilling}
         id="usage-history-table"
-        localPreferencesKey="usage-history-table"
+        userPreferencesKey="usage-history-table"
         isDeleteable={false}
         name="Settings > Billing > Usage History"
         isEditable={false}

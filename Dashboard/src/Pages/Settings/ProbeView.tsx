@@ -220,7 +220,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
       <ModelTable<ProbeOwnerTeam>
         modelType={ProbeOwnerTeam}
         id="table-monitor-owner-team"
-        localPreferencesKey="probe-owner-team-table"
+        userPreferencesKey="probe-owner-team-table"
         name="Probe > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -316,7 +316,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         modelType={ProbeOwnerUser}
         id="table-monitor-owner-team"
         name="Probe > Owner Team"
-        localPreferencesKey="probe-owner-user-table"
+        userPreferencesKey="probe-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

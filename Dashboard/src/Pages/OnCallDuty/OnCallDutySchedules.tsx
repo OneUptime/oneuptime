@@ -17,7 +17,7 @@ const OnCallDutyPage: FunctionComponent<
       <ModelTable<OnCallDutySchedule>
         modelType={OnCallDutySchedule}
         id="on-call-duty-table"
-        localPreferencesKey="on-call-duty-table"
+        userPreferencesKey="on-call-duty-table"
         isDeleteable={false}
         name="On-Call > Schedules"
         showViewIdButton={true}

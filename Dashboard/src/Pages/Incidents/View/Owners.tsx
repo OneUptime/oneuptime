@@ -26,7 +26,7 @@ const IncidentOwners: FunctionComponent<
         modelType={IncidentOwnerTeam}
         id="table-incident-owner-team"
         name="Incident > Owner Team"
-        localPreferencesKey="incident-owner-team-table"
+        userPreferencesKey="incident-owner-team-table"
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -124,7 +124,7 @@ const IncidentOwners: FunctionComponent<
         modelType={IncidentOwnerUser}
         id="table-incident-owner-team"
         name="Incident > Owner Team"
-        localPreferencesKey="incident-owner-team-table"
+        userPreferencesKey="incident-owner-team-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

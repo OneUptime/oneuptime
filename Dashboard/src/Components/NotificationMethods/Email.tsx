@@ -42,7 +42,7 @@ const Email: () => JSX.Element = (): ReactElement => {
   return (
     <>
       <ModelTable<UserEmail>
-        localPreferencesKey={"user-email-table"}
+        userPreferencesKey={"user-email-table"}
         modelType={UserEmail}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

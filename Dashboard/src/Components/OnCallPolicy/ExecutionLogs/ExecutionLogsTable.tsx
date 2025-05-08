@@ -206,7 +206,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
     <>
       <ModelTable<OnCallDutyPolicyExecutionLog>
         modelType={OnCallDutyPolicyExecutionLog}
-        localPreferencesKey="on-call-policy-execution-logs-table"
+        userPreferencesKey="on-call-policy-execution-logs-table"
         query={query}
         id="execution-logs-table"
         name="On-Call Policy > Logs"

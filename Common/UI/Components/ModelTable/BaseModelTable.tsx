@@ -87,6 +87,7 @@ import React, {
 import TableViewElement from "./TableView";
 import TableView from "../../../Models/DatabaseModels/TableView";
 import LocalStorage from "../../Utils/LocalStorage";
+import UserPreferences, { UserPreferenceType } from "../../../Utils/UserPreferences";
 
 export enum ShowAs {
   Table,
@@ -224,7 +225,7 @@ export interface BaseTableProps<
   // this key is used to save table user preferences in local storage.
   // If you provide this key, the table will save the user preferences in local storage.
   // If you do not provide this key, the table will not save the user preferences in local storage.
-  localPreferencesKey: string;
+  userPreferencesKey: string;
 }
 
 export interface ComponentProps<
@@ -243,10 +244,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const localStorageItemsOnPageKey: string | undefined =
-    props.localPreferencesKey
-      ? `table-${props.localPreferencesKey}-itemsOnPage`
-      : undefined;
+
 
   const [tableView, setTableView] = useState<TableView | null>(null);
 
@@ -301,10 +299,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, [props.modelType]);
 
   const getItemsOnPage: () => number = (): number => {
-    if (localStorageItemsOnPageKey) {
-      const itemsOnPage: number | null = LocalStorage.getItem(
-        localStorageItemsOnPageKey,
-      ) as number | null;
+    if ( props.userPreferencesKey) {
+      const itemsOnPage: number | null = UserPreferences.getUserPreferenceByTypeAsNumber(
+        {
+          userPreferenceType: UserPreferenceType.BaseModelTablePageSize,
+          key: props.userPreferencesKey,
+        }
+      )
       if (itemsOnPage) {
         return itemsOnPage;
       }
@@ -348,8 +349,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   useEffect(() => {
     // update items on page in localstorage.
-    if (itemsOnPage && localStorageItemsOnPageKey) {
-      LocalStorage.setItem(localStorageItemsOnPageKey, itemsOnPage);
+    if (itemsOnPage && props.userPreferencesKey) {
+      UserPreferences.saveUserPreferenceByTypeAsNumber({
+        userPreferenceType: UserPreferenceType.BaseModelTablePageSize,
+        key: props.userPreferencesKey,
+        value: itemsOnPage,
+      });
     }
   }, [itemsOnPage]);
 

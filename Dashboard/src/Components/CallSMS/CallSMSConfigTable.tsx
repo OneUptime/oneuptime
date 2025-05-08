@@ -49,7 +49,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
       <ModelTable<ProjectCallSMSConfig>
         modelType={ProjectCallSMSConfig}
         id="call-sms-table"
-        localPreferencesKey="call-sms-table"
+        userPreferencesKey="call-sms-table"
         actionButtons={[
           {
             title: "Send Test SMS",

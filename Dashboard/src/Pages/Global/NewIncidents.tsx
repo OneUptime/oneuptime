@@ -34,7 +34,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Incident}
         name="New Incidents"
         id="incident-table"
-        localPreferencesKey="new-incidents-table"
+        userPreferencesKey="new-incidents-table"
         isDeleteable={false}
         query={{
           currentIncidentState: {

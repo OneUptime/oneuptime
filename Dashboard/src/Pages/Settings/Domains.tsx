@@ -43,7 +43,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={Domain}
         showViewIdButton={true}
         name="Settings > Domain"
-        localPreferencesKey={"domains-table"}
+        userPreferencesKey={"domains-table"}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}

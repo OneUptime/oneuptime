@@ -59,7 +59,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <ModelTable<UserNotificationRule>
         modelType={UserNotificationRule}
-        localPreferencesKey={`user-notification-rules-table-${options.ruleType}`}
+        userPreferencesKey={`user-notification-rules-table-${options.ruleType}`}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId()!,

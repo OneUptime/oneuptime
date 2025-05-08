@@ -22,7 +22,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showViewIdButton={true}
         name="Workflows"
         isViewable={false}
-        localPreferencesKey="workflow-variable-table"
+        userPreferencesKey="workflow-variable-table"
         cardProps={{
           title: "Workflow Variables",
           description:

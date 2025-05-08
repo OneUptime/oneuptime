@@ -17,7 +17,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         id="api-keys-table"
         name="Settings > API Keys"
-        localPreferencesKey="api-keys-table"
+        userPreferencesKey="api-keys-table"
         isDeleteable={false}
         isEditable={false}
         showViewIdButton={false}

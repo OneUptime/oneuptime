@@ -314,7 +314,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<IncidentTemplateOwnerTeam>
         modelType={IncidentTemplateOwnerTeam}
         id="table-incident-owner-team"
-        localPreferencesKey="incident-owner-team-table"
+        userPreferencesKey="incident-owner-team-table"
         name="Incident Template > Owner Team"
         singularName="Team"
         isDeleteable={true}
@@ -402,7 +402,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType={IncidentTemplateOwnerUser}
         id="table-incident-owner-team"
         name="Incident > Owner Team"
-        localPreferencesKey="incident-owner-user-table"
+        userPreferencesKey="incident-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

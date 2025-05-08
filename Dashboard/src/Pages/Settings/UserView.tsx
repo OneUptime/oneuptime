@@ -166,7 +166,7 @@ const UserView: FunctionComponent<PageComponentProps> = (
       <ModelTable<TeamMember>
         modelType={TeamMember}
         id="table-User-member"
-        localPreferencesKey="user-member-table"
+        userPreferencesKey="user-member-table"
         isDeleteable={true}
         name="Settings > User > Member"
         createVerb={"Invite"}

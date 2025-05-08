@@ -26,7 +26,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<
         modelType={ScheduledMaintenanceOwnerTeam}
         id="table-scheduledMaintenance-owner-team"
         name="ScheduledMaintenance > Owner Team"
-        localPreferencesKey="scheduled-maintenance-owner-team-table"
+        userPreferencesKey="scheduled-maintenance-owner-team-table"
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -126,7 +126,7 @@ const ScheduledMaintenanceOwners: FunctionComponent<
         modelType={ScheduledMaintenanceOwnerUser}
         id="table-scheduledMaintenance-owner-team"
         name="ScheduledMaintenance > Owner Team"
-        localPreferencesKey="scheduled-maintenance-owner-user-table"
+        userPreferencesKey="scheduled-maintenance-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

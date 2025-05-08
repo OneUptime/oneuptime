@@ -19,7 +19,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         id="labels-table"
         name="Settings > Labels"
-        localPreferencesKey="labels-table"
+        userPreferencesKey="labels-table"
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}

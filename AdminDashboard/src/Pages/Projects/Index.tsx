@@ -243,7 +243,7 @@ const Projects: FunctionComponent = (): ReactElement => {
             type: FieldType.DateTime,
           },
         ]}
-        localPreferencesKey="admin-projects-table"
+        userPreferencesKey="admin-projects-table"
       />
     </Page>
   );

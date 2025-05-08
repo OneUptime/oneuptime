@@ -26,7 +26,7 @@ const StatusPageOwners: FunctionComponent<
         modelType={StatusPageOwnerTeam}
         id="table-statusPage-owner-team"
         name="StatusPage > Owner Team"
-        localPreferencesKey="status-page-owner-team-table"
+        userPreferencesKey="status-page-owner-team-table"
         singularName="Team"
         isDeleteable={true}
         createVerb={"Add"}
@@ -124,7 +124,7 @@ const StatusPageOwners: FunctionComponent<
         modelType={StatusPageOwnerUser}
         id="table-statusPage-owner-team"
         name="StatusPage > Owner Team"
-        localPreferencesKey="status-page-owner-user-table"
+        userPreferencesKey="status-page-owner-user-table"
         isDeleteable={true}
         singularName="User"
         isCreateable={true}

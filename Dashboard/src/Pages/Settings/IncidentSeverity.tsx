@@ -18,7 +18,7 @@ const IncidentSeverityPage: FunctionComponent<
       <ModelTable<IncidentSeverity>
         modelType={IncidentSeverity}
         id="incident-state-table"
-        localPreferencesKey="incident-state-table"
+        userPreferencesKey="incident-state-table"
         name="Settings > Incident Severity"
         isDeleteable={true}
         isEditable={true}

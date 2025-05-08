@@ -257,7 +257,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       <ModelTable<StatusPageResource>
         modelType={StatusPageResource}
         id={`status-page-group-${statusPageGroupId?.toString() || ""}`}
-        localPreferencesKey="status-page-resource-table"
+        userPreferencesKey="status-page-resource-table"
         isDeleteable={true}
         name="Status Page > Resources"
         sortBy="order"

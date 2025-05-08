@@ -77,7 +77,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
       <ModelTable<ApiKeyPermission>
         modelType={ApiKeyPermission}
         id="api-key-permission-table"
-        localPreferencesKey="api-key-permission-table"
+        userPreferencesKey="api-key-permission-table"
         isDeleteable={true}
         name="Settings > API Key > Permissions"
         query={{
