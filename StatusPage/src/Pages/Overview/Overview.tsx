@@ -18,7 +18,6 @@ import URL from "Common/Types/API/URL";
 import { Green } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -55,6 +54,7 @@ import React, {
 } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -525,17 +525,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       for (const activeIncident of activeIncidents) {
         if (!activeIncident.currentIncidentState) {
-          throw new BadDataException("Incident State not found.");
+          //should not happen.
+          continue;
         }
 
         const timeline: IncidentStateTimeline | undefined =
           incidentStateTimelines.find((timeline: IncidentStateTimeline) => {
             return timeline.incidentId?.toString() === activeIncident._id;
           });
-
-        if (!timeline) {
-          throw new BadDataException("Incident Timeline not found.");
-        }
 
         const group: IncidentGroup = {
           incident: activeIncident,
@@ -547,7 +544,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             },
           ),
           incidentSeverity: activeIncident.incidentSeverity!,
-          incidentStateTimelines: [timeline],
+          incidentStateTimelines: timeline ? [timeline] : [],
           monitorsInGroup: monitorsInGroup,
         };
 
@@ -566,7 +563,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       for (const activeEvent of activeScheduledMaintenanceEvents) {
         if (!activeEvent.currentScheduledMaintenanceState) {
-          throw new BadDataException("Scheduled Maintenance State not found.");
+          //should not happen.
+          continue;
         }
 
         const timeline: ScheduledMaintenanceStateTimeline | undefined =
@@ -577,10 +575,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
               );
             },
           );
-
-        if (!timeline) {
-          throw new BadDataException("Incident Timeline not found.");
-        }
 
         const group: ScheduledMaintenanceGroup = {
           scheduledMaintenance: activeEvent,
@@ -595,7 +589,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               );
             },
           ),
-          scheduledMaintenanceStateTimelines: [timeline],
+          scheduledMaintenanceStateTimelines: timeline ? [timeline] : [],
           monitorsInGroup: monitorsInGroup,
         };
 
