@@ -93,73 +93,84 @@ RunCron(
     logger.debug(totalIncomingRequestMonitors);
 
     for (const monitor of totalIncomingRequestMonitors) {
-      try {
-        logger.debug(
-          `Processing incoming request monitor: ${monitor.id?.toString()}`,
-        );
-
-        if (!monitor.monitorSteps) {
-          logger.debug("Monitor has no steps. Skipping...");
-          continue;
-        }
-
-        logger.debug(
-          `Updating incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
-        );
-
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            incomingRequestMonitorHeartbeatCheckedAt:
-              OneUptimeDate.getCurrentDate(),
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        logger.debug(
-          `Updated incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
-        );
-
-        const processRequest: boolean = shouldProcessRequest(monitor);
-
-        logger.debug(
-          `Monitor: ${monitor.id} should process request: ${processRequest}`,
-        );
-
-        if (!processRequest) {
-          continue;
-        }
-
-        const incomingRequest: IncomingMonitorRequest = {
-          ...(monitor.incomingMonitorRequest! || {}),
-          incomingRequestReceivedAt:
-            monitor.incomingMonitorRequest?.incomingRequestReceivedAt ||
-            monitor.createdAt!,
-          onlyCheckForIncomingRequestReceivedAt: true,
-          monitorId: monitor.id!,
-          projectId: monitor.projectId!,
-        };
-
-        logger.debug(
-          `Processing incoming request monitor: ${monitor.id?.toString()}`,
-        );
-
-        await MonitorResourceUtil.monitorResource(incomingRequest);
-
-        logger.debug(
-          `Processed incoming request monitor: ${monitor.id?.toString()}`,
-        );
-      } catch (error) {
+      checkHeartBeat(monitor).catch((error: Error) => {
         logger.error(
           `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
         );
         logger.error(error);
-      }
+      });
     }
   },
 );
+
+const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
+  monitor: Monitor,
+): Promise<void> => {
+  try {
+    logger.debug(
+      `Processing incoming request monitor: ${monitor.id?.toString()}`,
+    );
+
+    if (!monitor.monitorSteps) {
+      logger.debug("Monitor has no steps. Skipping...");
+      return;
+    }
+
+    logger.debug(
+      `Updating incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
+    );
+
+    await MonitorService.updateOneById({
+      id: monitor.id!,
+      data: {
+        incomingRequestMonitorHeartbeatCheckedAt:
+          OneUptimeDate.getCurrentDate(),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.debug(
+      `Updated incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
+    );
+
+    const processRequest: boolean = shouldProcessRequest(monitor);
+
+    logger.debug(
+      `Monitor: ${monitor.id} should process request: ${processRequest}`,
+    );
+
+    if (!processRequest) {
+      return;
+    }
+
+    const incomingRequest: IncomingMonitorRequest = {
+      ...(monitor.incomingMonitorRequest! || {}),
+      incomingRequestReceivedAt:
+        monitor.incomingMonitorRequest?.incomingRequestReceivedAt ||
+        monitor.createdAt!,
+      onlyCheckForIncomingRequestReceivedAt: true,
+      monitorId: monitor.id!,
+      projectId: monitor.projectId!,
+    };
+
+    logger.debug(
+      `Processing incoming request monitor: ${monitor.id?.toString()}`,
+    );
+
+    await MonitorResourceUtil.monitorResource(incomingRequest);
+
+    logger.debug(
+      `Processed incoming request monitor: ${monitor.id?.toString()}`,
+    );
+  } catch (error) {
+    logger.error(
+      `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
+    );
+    logger.error(error);
+  }
+};
 
 type ShouldProcessRequestFunction = (monitor: Monitor) => boolean;
 
