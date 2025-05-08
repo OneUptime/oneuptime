@@ -510,7 +510,7 @@ export default class Metric extends AnalyticsBaseModel {
       ],
       sortKeys: ["projectId", "time", "serviceId"],
       primaryKeys: ["projectId", "time", "serviceId"],
-      partitionKey: "toYYYYMM(time)",
+      partitionKey: "sipHash64(projectId) % 16",
     });
   }
 

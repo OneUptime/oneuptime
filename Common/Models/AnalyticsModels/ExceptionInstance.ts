@@ -371,7 +371,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       ],
       sortKeys: ["projectId", "time", "serviceId", "fingerprint"],
       primaryKeys: ["projectId", "time", "serviceId", "fingerprint"],
-      partitionKey: "toYYYYMM(time)",
+      partitionKey: "sipHash64(projectId) % 16",
     });
   }
 
