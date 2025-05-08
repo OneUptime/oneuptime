@@ -17,6 +17,7 @@ import Express, {
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import logger from "Common/Server/Utils/Logger";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -72,18 +73,26 @@ const processIncomingRequest: RequestHandler = async (
       throw new BadDataException("Project not found");
     }
 
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     const incomingRequest: IncomingMonitorRequest = {
       projectId: monitor.projectId,
       monitorId: new ObjectID(monitor._id.toString()),
       requestHeaders: requestHeaders,
       requestBody: requestBody,
-      incomingRequestReceivedAt: OneUptimeDate.getCurrentDate(),
+      incomingRequestReceivedAt: now,
       onlyCheckForIncomingRequestReceivedAt: false,
       requestMethod: httpMethod,
+      checkedAt: now,
     };
 
     // process probe response here.
-    await MonitorResourceUtil.monitorResource(incomingRequest);
+    MonitorResourceUtil.monitorResource(incomingRequest).catch((err: Error) => {
+      // do nothing.
+      // we don't want to throw error here.
+      // we just want to log the error.
+      logger.error(err);
+    });
 
     return Response.sendEmptySuccessResponse(req, res);
   } catch (err) {

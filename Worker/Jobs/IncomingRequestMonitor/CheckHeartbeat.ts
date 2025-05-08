@@ -153,6 +153,7 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       onlyCheckForIncomingRequestReceivedAt: true,
       monitorId: monitor.id!,
       projectId: monitor.projectId!,
+      checkedAt: OneUptimeDate.getCurrentDate(),
     };
 
     logger.debug(

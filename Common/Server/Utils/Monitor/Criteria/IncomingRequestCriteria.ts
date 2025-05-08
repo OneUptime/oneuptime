@@ -91,7 +91,8 @@ export default class IncomingRequestCriteria {
 
       const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
         lastCheckTime,
-        OneUptimeDate.getCurrentDate(),
+        (input.dataToProcess as IncomingMonitorRequest)?.checkedAt ||
+          OneUptimeDate.getCurrentDate(),
       );
 
       logger.debug("Difference in minutes: " + differenceInMinutes);

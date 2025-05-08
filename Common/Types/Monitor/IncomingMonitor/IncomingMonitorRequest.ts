@@ -11,4 +11,5 @@ export default interface IncomingMonitorRequest {
   requestMethod?: HTTPMethod | undefined;
   incomingRequestReceivedAt: Date;
   onlyCheckForIncomingRequestReceivedAt?: boolean | undefined;
+  checkedAt: Date;
 }
