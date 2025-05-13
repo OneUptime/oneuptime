@@ -76,6 +76,9 @@ upstream opentelemetry-collector-grpc {
 
 server {
 
+    server_tokens off;
+    
+
     gzip on;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
@@ -119,6 +122,9 @@ server {
 
 server {
 
+    server_tokens off;
+    
+
     gzip on;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
@@ -156,6 +162,9 @@ server {
 # Status Pages
 
 server {
+
+    server_tokens off;
+    
 
     gzip on;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
@@ -282,6 +291,9 @@ server {
 
 server {
 
+    server_tokens off;
+    
+
     gzip on;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
     gzip_proxied    no-cache no-store private expired auth;
@@ -387,6 +399,9 @@ server {
 }
 
 server {
+
+    server_tokens off;
+    
 
     gzip on;
     gzip_types      text/plain application/xml application/javascript text/javascript text/css application/json;
