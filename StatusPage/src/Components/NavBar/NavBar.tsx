@@ -25,8 +25,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  const isAnyPageDisabled: boolean =
+    !props.showIncidentsOnStatusPage ||
+    !props.showAnnouncementsOnStatusPage ||
+    !props.showScheduledMaintenanceEventsOnStatusPage ||
+    !props.showSubscriberPageOnStatusPage;
+
+  const spaceAroundClassName: string = isAnyPageDisabled
+    ? "justify-around"
+    : "justify-between";
+
   return (
-    <NavBar className="bg-white lg:flex text-center justify-between py-2 mt-5 rounded-lg shadow px-5">
+    <NavBar
+      className={`bg-white lg:flex text-center ${spaceAroundClassName} py-2 mt-5 rounded-lg shadow px-5`}
+    >
       <NavBarItem
         id="overview-nav-bar-item"
         title="Overview"
