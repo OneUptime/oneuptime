@@ -26,4 +26,5 @@ export default interface ProbeMonitorResponse {
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
   monitoredAt: Date;
+  isTimeout?: boolean | undefined;
 }

@@ -62,6 +62,17 @@ export default class APIRequestCriteria {
       });
     }
 
+    if (input.criteriaFilter.checkOn === CheckOn.IsTimeout) {
+      const currentIsTimeout: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) ||
+        (input.dataToProcess as ProbeMonitorResponse).isTimeout;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsTimeout,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     // check response time filter
     if (input.criteriaFilter.checkOn === CheckOn.ResponseTime) {
       threshold = CompareCriteria.convertToNumber(threshold);

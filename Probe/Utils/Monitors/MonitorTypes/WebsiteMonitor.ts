@@ -22,6 +22,7 @@ export interface ProbeWebsiteResponse {
   responseHeaders: Headers | undefined;
   isOnline: boolean;
   failureCause: string;
+  isTimeout?: boolean;
 }
 
 export default class WebsiteMonitor {
@@ -104,6 +105,7 @@ export default class WebsiteMonitor {
         responseBody: result.responseBody,
         responseHeaders: result.responseHeaders,
         failureCause: "",
+        isTimeout: false,
       };
 
       logger.debug(
@@ -139,6 +141,7 @@ export default class WebsiteMonitor {
           responseTimeInMS: new PositiveNumber(0),
           statusCode: err.response?.status,
           responseBody: err.response?.data,
+          isTimeout: false,
           responseHeaders: (err.response?.headers as Headers) || {},
           failureCause: API.getFriendlyErrorMessage(err),
         };
@@ -152,6 +155,7 @@ export default class WebsiteMonitor {
           statusCode: undefined,
           responseBody: undefined,
           responseHeaders: undefined,
+          isTimeout: false,
           failureCause: API.getFriendlyErrorMessage(err as Error),
         };
       }
@@ -178,7 +182,8 @@ export default class WebsiteMonitor {
           "Request was tried " +
           options.currentRetryCount +
           " times and it timed out.";
-        probeWebsiteResponse.isOnline = false;
+        probeWebsiteResponse.isOnline = true;
+        probeWebsiteResponse.isTimeout = true;
 
         return probeWebsiteResponse;
       }

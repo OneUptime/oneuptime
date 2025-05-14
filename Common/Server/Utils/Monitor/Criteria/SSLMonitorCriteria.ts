@@ -65,6 +65,18 @@ export default class ServerMonitorCriteria {
       });
     }
 
+    // timeout.
+    if (input.criteriaFilter.checkOn === CheckOn.IsTimeout) {
+      const currentIsTimeout: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) ||
+        (input.dataToProcess as ProbeMonitorResponse).isTimeout;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsTimeout,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     if (input.criteriaFilter.checkOn === CheckOn.IsValidCertificate) {
       const isValidCertificate: boolean = Boolean(
         sslResponse &&

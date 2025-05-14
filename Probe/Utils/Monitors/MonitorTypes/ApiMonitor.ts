@@ -23,6 +23,7 @@ export interface APIResponse {
   responseHeaders: Headers;
   isOnline: boolean;
   failureCause: string;
+  isTimeout?: boolean;
 }
 
 export default class ApiMonitor {
@@ -135,6 +136,7 @@ export default class ApiMonitor {
         responseHeaders: result.headers,
         requestBody: options.requestBody || {},
         failureCause: "",
+        isTimeout: false,
       };
 
       logger.debug(
@@ -176,6 +178,7 @@ export default class ApiMonitor {
         isSecure: url.protocol === Protocol.HTTPS,
         responseTimeInMS: new PositiveNumber(0),
         statusCode: undefined,
+        isTimeout: false,
         responseBody: "",
         responseHeaders: {},
         failureCause: API.getFriendlyErrorMessage(err as Error),
@@ -194,7 +197,8 @@ export default class ApiMonitor {
           "Request was tried " +
           options.currentRetryCount +
           " times and it timed out.";
-        apiResponse.isOnline = false;
+        apiResponse.isOnline = true;
+        apiResponse.isTimeout = true;
       }
 
       logger.error(

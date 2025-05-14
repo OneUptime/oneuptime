@@ -58,7 +58,10 @@ export default class EvaluateOverTime {
 
     const values: Array<number | boolean> = monitorMetricsItems
       .map((item: Metric) => {
-        if (data.metricType === CheckOn.IsOnline) {
+        if (
+          data.metricType === CheckOn.IsOnline ||
+          data.metricType === CheckOn.IsTimeout
+        ) {
           return item.value === 1;
         }
 

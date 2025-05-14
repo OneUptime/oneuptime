@@ -148,7 +148,11 @@ export default class CriteriaFilterUtil {
       monitorType === MonitorType.Port
     ) {
       options = options.filter((i: DropdownOption) => {
-        return i.value === CheckOn.IsOnline || i.value === CheckOn.ResponseTime;
+        return (
+          i.value === CheckOn.IsOnline ||
+          i.value === CheckOn.ResponseTime ||
+          i.value === CheckOn.IsTimeout
+        );
       });
     }
 
@@ -225,7 +229,8 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.ResponseHeader ||
           i.value === CheckOn.ResponseHeaderValue ||
           i.value === CheckOn.ResponseStatusCode ||
-          i.value === CheckOn.JavaScriptExpression
+          i.value === CheckOn.JavaScriptExpression ||
+          i.value === CheckOn.IsTimeout
         );
       });
     }
@@ -325,7 +330,7 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (checkOn === CheckOn.IsOnline) {
+    if (checkOn === CheckOn.IsOnline || checkOn === CheckOn.IsTimeout) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
       });

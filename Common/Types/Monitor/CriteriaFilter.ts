@@ -22,6 +22,7 @@ export enum CheckOn {
   IsExpiredCertificate = "Is Expired Certificate",
   IsValidCertificate = "Is Valid Certificate",
   IsNotAValidCertificate = "Is Not A Valid Certificate",
+  IsTimeout = "Is Timeout",
 
   // Custom code or synthetic monitor.
   ResultValue = "Result Value",
@@ -118,6 +119,10 @@ export class CriteriaFilterUtil {
     const { checkOn } = data;
 
     if (checkOn === CheckOn.IsOnline) {
+      return false;
+    }
+
+    if (checkOn === CheckOn.IsTimeout) {
       return false;
     }
 

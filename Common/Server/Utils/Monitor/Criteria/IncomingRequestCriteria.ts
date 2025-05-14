@@ -75,6 +75,18 @@ export default class IncomingRequestCriteria {
       });
     }
 
+    // timeout.
+    if (input.criteriaFilter.checkOn === CheckOn.IsTimeout) {
+      const currentIsTimeout: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) ||
+        (input.dataToProcess as ProbeMonitorResponse).isTimeout;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsTimeout,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     // All incoming request related checks
 
     if (input.criteriaFilter.checkOn === CheckOn.IncomingRequest) {
