@@ -18,7 +18,7 @@ export interface ProbeWebsiteResponse {
   isSecure: boolean;
   responseTimeInMS: PositiveNumber;
   statusCode: number | undefined;
-  responseBody: HTML | undefined;
+  responseBody: HTML | string | undefined;
   responseHeaders: Headers | undefined;
   isOnline: boolean;
   failureCause: string;
@@ -132,6 +132,15 @@ export default class WebsiteMonitor {
 
       let probeWebsiteResponse: ProbeWebsiteResponse | undefined = undefined;
 
+      let responsebody: string | undefined = undefined;
+      if ((err as any)?.response?.data) {
+        responsebody = (err as any).response.data;
+      }
+
+      if (typeof responsebody === "object") {
+        responsebody = JSON.stringify(responsebody);
+      }
+
       if (err instanceof AxiosError) {
         probeWebsiteResponse = {
           url: url,
@@ -140,21 +149,21 @@ export default class WebsiteMonitor {
           isSecure: url.protocol === Protocol.HTTPS,
           responseTimeInMS: new PositiveNumber(0),
           statusCode: err.response?.status,
-          responseBody: err.response?.data,
+          responseBody: responsebody,
           isTimeout: false,
           responseHeaders: (err.response?.headers as Headers) || {},
           failureCause: API.getFriendlyErrorMessage(err),
         };
       } else {
-
         probeWebsiteResponse = {
           url: url,
           isOnline: false,
+
           requestHeaders: {},
           isSecure: url.protocol === Protocol.HTTPS,
           responseTimeInMS: new PositiveNumber(0),
           statusCode: (err as any)?.response?.status,
-          responseBody: (err as any)?.response?.data,
+          responseBody: responsebody,
           responseHeaders: ((err as any)?.response?.headers as Headers) || {},
           isTimeout: false,
           failureCause: API.getFriendlyErrorMessage(err as Error),

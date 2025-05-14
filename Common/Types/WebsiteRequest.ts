@@ -1,4 +1,3 @@
-
 import HTTPMethod from "./API/HTTPMethod";
 import Headers from "./API/Headers";
 import URL from "./API/URL";
@@ -55,7 +54,6 @@ export default class WebsiteRequest {
           method: HTTPMethod.GET,
         });
       } else {
-        
         throw err;
       }
     }
