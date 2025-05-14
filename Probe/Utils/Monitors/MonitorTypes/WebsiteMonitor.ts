@@ -36,7 +36,7 @@ export default class WebsiteMonitor {
       isOnlineCheckRequest?: boolean | undefined;
       timeout?: PositiveNumber; // timeout in milliseconds
       doNotFollowRedirects?: boolean | undefined;
-    },
+    }
   ): Promise<ProbeWebsiteResponse | null> {
     if (!options) {
       options = {};
@@ -56,7 +56,7 @@ export default class WebsiteMonitor {
       logger.debug(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
           options.currentRetryCount
-        }`,
+        }`
       );
 
       let startTime: [number, number] = process.hrtime();
@@ -81,7 +81,7 @@ export default class WebsiteMonitor {
 
       const endTime: [number, number] = process.hrtime(startTime);
       const responseTimeInMS: PositiveNumber = new PositiveNumber(
-        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+        (endTime[0] * 1000000000 + endTime[1]) / 1000000
       );
 
       // if response time is greater than 10 seconds then give it one more try
@@ -110,8 +110,8 @@ export default class WebsiteMonitor {
 
       logger.debug(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} Success - Response: ${JSON.stringify(
-          probeWebsiteResponse,
-        )}`,
+          probeWebsiteResponse
+        )}`
       );
 
       return probeWebsiteResponse;
@@ -152,9 +152,9 @@ export default class WebsiteMonitor {
           requestHeaders: {},
           isSecure: url.protocol === Protocol.HTTPS,
           responseTimeInMS: new PositiveNumber(0),
-          statusCode: undefined,
-          responseBody: undefined,
-          responseHeaders: undefined,
+          statusCode: (err as any)?.response?.status,
+          responseBody: (err as any)?.response?.data,
+          responseHeaders: ((err as any)?.response?.headers as Headers) || {},
           isTimeout: false,
           failureCause: API.getFriendlyErrorMessage(err as Error),
         };
@@ -163,7 +163,7 @@ export default class WebsiteMonitor {
       if (!options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
           );
           return null;
         }
@@ -175,7 +175,7 @@ export default class WebsiteMonitor {
         (err as any).toString().includes("exceeded")
       ) {
         logger.debug(
-          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`
         );
 
         probeWebsiteResponse.failureCause =
@@ -190,8 +190,8 @@ export default class WebsiteMonitor {
 
       logger.error(
         `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
-          probeWebsiteResponse,
-        )}`,
+          probeWebsiteResponse
+        )}`
       );
 
       return probeWebsiteResponse;
