@@ -102,6 +102,52 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         throw new Error("Incident or Alert not found.");
       }
 
+      if (incident) {
+        // check if the incident is acknowledged.
+        const isAcknowledged: boolean =
+          await IncidentService.isIncidentAcknowledged({
+            incidentId: pendingNotificationLog.triggeredByIncidentId!,
+          });
+        if (isAcknowledged) {
+          // then mark this policy as executed.
+          await UserOnCallLogService.updateOneById({
+            id: pendingNotificationLog.id!,
+            data: {
+              status: UserNotificationExecutionStatus.Completed,
+              statusMessage:
+                "Execution completed because incident is acknowledged.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+      }
+
+      if (alert) {
+        // check if the alert is acknowledged.
+        const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
+          alertId: pendingNotificationLog.triggeredByAlertId!,
+        });
+
+        if (isAcknowledged) {
+          // then mark this policy as executed.
+          await UserOnCallLogService.updateOneById({
+            id: pendingNotificationLog.id!,
+            data: {
+              status: UserNotificationExecutionStatus.Completed,
+              statusMessage:
+                "Execution completed because alert is acknowledged.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+      }
+
       const notificationRules: Array<UserNotificationRule> =
         await UserNotificationRuleService.findBy({
           query: {
