@@ -146,6 +146,7 @@ export default class WebsiteMonitor {
           failureCause: API.getFriendlyErrorMessage(err),
         };
       } else {
+
         probeWebsiteResponse = {
           url: url,
           isOnline: false,

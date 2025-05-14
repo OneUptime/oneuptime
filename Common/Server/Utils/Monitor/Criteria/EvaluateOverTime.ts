@@ -60,7 +60,7 @@ export default class EvaluateOverTime {
       .map((item: Metric) => {
         if (
           data.metricType === CheckOn.IsOnline ||
-          data.metricType === CheckOn.IsTimeout
+          data.metricType === CheckOn.IsRequestTimeout
         ) {
           return item.value === 1;
         }

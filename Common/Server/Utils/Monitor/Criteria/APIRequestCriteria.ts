@@ -62,7 +62,7 @@ export default class APIRequestCriteria {
       });
     }
 
-    if (input.criteriaFilter.checkOn === CheckOn.IsTimeout) {
+    if (input.criteriaFilter.checkOn === CheckOn.IsRequestTimeout) {
       const currentIsTimeout: boolean | Array<boolean> =
         (overTimeValue as Array<boolean>) ||
         (input.dataToProcess as ProbeMonitorResponse).isTimeout;
