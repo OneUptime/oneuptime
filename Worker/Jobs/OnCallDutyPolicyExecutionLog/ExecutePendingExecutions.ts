@@ -86,6 +86,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           id: executionLog.id!,
           data: {
             status: OnCallDutyPolicyStatus.Completed,
+            statusMessage: "Execution completed because alert is acknowledged or resolved.",
           },
           props: {
             isRoot: true,
@@ -116,6 +117,7 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
           id: executionLog.id!,
           data: {
             status: OnCallDutyPolicyStatus.Completed,
+            statusMessage: "Execution completed because incident is acknowledged or resolved.",
           },
           props: {
             isRoot: true,
