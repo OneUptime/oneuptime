@@ -218,6 +218,7 @@ export default class MonitorUtil {
         }
 
         result.isOnline = response.isOnline;
+        result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
       } else {
@@ -235,6 +236,7 @@ export default class MonitorUtil {
         }
 
         result.isOnline = response.isOnline;
+        result.isTimeout = response.isTimeout;
         result.responseTimeInMs = response.responseTimeInMS?.toNumber();
         result.failureCause = response.failureCause;
       }
@@ -274,6 +276,7 @@ export default class MonitorUtil {
       result.isOnline = response.isOnline;
       result.responseTimeInMs = response.responseTimeInMS?.toNumber();
       result.failureCause = response.failureCause;
+      result.isTimeout = response.isTimeout;
     }
 
     if (monitorType === MonitorType.SyntheticMonitor) {
@@ -349,6 +352,7 @@ export default class MonitorUtil {
 
       result.isOnline = response.isOnline;
       result.failureCause = response.failureCause;
+      result.isTimeout = response.isTimeout;
       result.sslResponse = {
         ...response,
       };
@@ -382,6 +386,7 @@ export default class MonitorUtil {
       result.responseHeaders = response.responseHeaders;
       result.responseCode = response.statusCode;
       result.failureCause = response.failureCause;
+      result.isTimeout = response.isTimeout;
     }
 
     if (monitorType === MonitorType.API) {
@@ -419,6 +424,7 @@ export default class MonitorUtil {
       }
 
       result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
       result.responseTimeInMs = response.responseTimeInMS?.toNumber();
       result.responseBody = response.responseBody;
       result.responseHeaders = response.responseHeaders;

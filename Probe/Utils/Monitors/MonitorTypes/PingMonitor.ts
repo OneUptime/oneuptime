@@ -16,6 +16,7 @@ export interface PingResponse {
   isOnline: boolean;
   responseTimeInMS?: PositiveNumber | undefined;
   failureCause: string;
+  isTimeout?: boolean | undefined;
 }
 
 export interface PingOptions {
@@ -135,7 +136,8 @@ export default class PingMonitor {
         );
 
         return {
-          isOnline: false,
+          isOnline: true,
+          isTimeout: true,
           failureCause:
             "Request was tried " +
             pingOptions.currentRetryCount +
@@ -144,6 +146,7 @@ export default class PingMonitor {
       }
 
       return {
+        isTimeout: false,
         isOnline: false,
         failureCause: (err as any).toString(),
       };
