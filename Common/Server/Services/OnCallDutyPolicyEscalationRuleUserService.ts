@@ -20,6 +20,7 @@ import UserService from "./UserService";
 import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -28,7 +29,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     const createdItemId: ObjectID = createdItem.id!;
 
@@ -85,7 +86,7 @@ export class Service extends DatabaseService<Model> {
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
           createdModel!.projectId!,
-          createdModel.onCallDutyPolicy!.id!
+          createdModel.onCallDutyPolicy!.id!,
         )
       ).toString(),
     };
@@ -119,8 +120,6 @@ export class Service extends DatabaseService<Model> {
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
     });
 
-    
-
     // add workspace message.
 
     const onCallDutyPolicyId: ObjectID | undefined | null =
@@ -137,7 +136,7 @@ export class Service extends DatabaseService<Model> {
           {
             userId: createdModel.user!.id!,
             projectId: projectId!,
-          }
+          },
         )}** to the [On-Call Policy ${createdModel.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${createdModel.onCallDutyPolicyEscalationRule?.name}** with order **${createdModel.onCallDutyPolicyEscalationRule?.order}**.`,
         userId: createdModel.createdByUserId! || undefined,
         workspaceNotification: {
@@ -150,23 +149,22 @@ export class Service extends DatabaseService<Model> {
       OnCallDutyPolicyTimeLogService.startTimeLogForUser({
         projectId: projectId!,
         onCallDutyPolicyId: onCallDutyPolicyId!,
-        onCallDutyPolicyEscalationRuleId: createdModel.onCallDutyPolicyEscalationRule!.id!,
+        onCallDutyPolicyEscalationRuleId:
+          createdModel.onCallDutyPolicyEscalationRule!.id!,
         userId: createdModel.user!.id!,
         startsAt: OneUptimeDate.getCurrentDate(),
-      }).catch((error) => {
-        console.error(
-          `Error starting time log for user ${createdModel.user?.id}: ${error}`
+      }).catch((error: Error) => {
+        logger.error(
+          `Error starting time log for user ${createdModel.user?.id}: ${error}`,
         );
       });
-
-      
     }
 
     return createdItem;
   }
 
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const itemsToFetchBeforeDelete: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -241,12 +239,9 @@ export class Service extends DatabaseService<Model> {
               item.onCallDutyPolicyEscalationRule!.id!,
             userId: userId,
             endsAt: OneUptimeDate.getCurrentDate(),
-          }).catch((error) => {
-            console.error(
-              `Error ending time log for user ${userId}: ${error}`
-            );
-          }
-          );
+          }).catch((error: Error) => {
+            logger.error(`Error ending time log for user ${userId}: ${error}`);
+          });
         }
       }
     }
@@ -261,7 +256,7 @@ export class Service extends DatabaseService<Model> {
 
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: Array<ObjectID>
+    _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     const deletedItems: Array<Model> = onDelete.carryForward.deletedItems;
 
@@ -287,7 +282,7 @@ export class Service extends DatabaseService<Model> {
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
             deletedItem!.projectId!,
-            deletedItem.onCallDutyPolicy!.id!
+            deletedItem.onCallDutyPolicy!.id!,
           )
         ).toString(),
       };

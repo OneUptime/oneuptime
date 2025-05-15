@@ -138,8 +138,6 @@ export class Service extends DatabaseService<Model> {
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
     });
 
-    
-
     // add workspace message.
 
     const onCallDutyPolicyId: ObjectID | undefined | null =
@@ -168,9 +166,6 @@ export class Service extends DatabaseService<Model> {
           notifyUserId: createdByUserId || undefined,
         },
       });
-
-
-      
     }
 
     return createdItem;

@@ -186,7 +186,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             rosterEndsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: OneUptimeDate.isInTheFuture(
-                  previousInformation.rosterHandoffAt!
+                  previousInformation.rosterHandoffAt!,
                 )
                   ? OneUptimeDate.getCurrentDate()
                   : previousInformation.rosterHandoffAt!,
@@ -195,7 +195,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
-                onCallPolicy.id!
+                onCallPolicy.id!,
               )
             ).toString(),
           };
@@ -234,11 +234,11 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             userId: sendEmailToUserId,
             onCallDutyPolicyScheduleId: data.scheduleId,
             onCallDutyPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule?.id!,
-            onCallDutyPolicyId: escalationRule.onCallDutyPolicy?.id!,
+              escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallDutyPolicyId: escalationRule.onCallDutyPolicy!.id!,
             projectId: projectId,
             endsAt: OneUptimeDate.getCurrentDate(),
-          }).catch((err) => {
+          }).catch((err: Error) => {
             logger.error(
               "Error ending time log for user: " +
                 sendEmailToUserId.toString() +
@@ -262,7 +262,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              }
+              },
             )}** is no longer on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because your on-call roster on schedule **${onCallSchedule.name}** just ended.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
@@ -303,7 +303,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
-                onCallPolicy.id!
+                onCallPolicy.id!,
               )
             ).toString(),
           };
@@ -341,11 +341,11 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             userId: sendEmailToUserId,
             onCallDutyPolicyScheduleId: data.scheduleId,
             onCallDutyPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule?.id!,
-            onCallDutyPolicyId: escalationRule.onCallDutyPolicy?.id!,
+              escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallDutyPolicyId: escalationRule.onCallDutyPolicy!.id!,
             projectId: projectId,
             startsAt: OneUptimeDate.getCurrentDate(),
-          }).catch((err) => {
+          }).catch((err: Error) => {
             logger.error(
               "Error starting time log for user: " +
                 sendEmailToUserId.toString() +
@@ -369,17 +369,17 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              }
+              },
             )}** is currently on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}** because of schedule **${onCallSchedule.name}** and your on-call roster starts at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.rosterStartAt!,
                 timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }
+              },
             )}** and ends at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.rosterHandoffAt!,
                 timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }
+              },
             )}**.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
@@ -430,7 +430,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
-                onCallPolicy.id!
+                onCallPolicy.id!,
               )
             ).toString(),
           };
@@ -477,17 +477,17 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
               {
                 userId: sendEmailToUserId,
                 projectId: projectId!,
-              }
+              },
             )}** is next on call for [On-Call Policy ${escalationRule.onCallDutyPolicy?.name}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) escalation rule **${escalationRule.onCallDutyPolicyEscalationRule?.name}** with order **${escalationRule.onCallDutyPolicyEscalationRule?.order}**. The on-call roster on schedule **${onCallSchedule.name}** will start when the next handoff happens which is at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.nextRosterStartAt!,
                 timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }
+              },
             )}** and will end at **${OneUptimeDate.getDateAsFormattedStringInMultipleTimezones(
               {
                 date: newInformation.nextHandOffTimeAt!,
                 timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }
+              },
             )}**.`,
             userId: sendEmailToUserId || undefined,
             workspaceNotification: {
@@ -501,7 +501,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   }
 
   public async refreshCurrentUserIdAndHandoffTimeInSchedule(
-    scheduleId: ObjectID
+    scheduleId: ObjectID,
   ): Promise<{
     currentUserId: ObjectID | null;
     handOffTimeAt: Date | null;
@@ -512,13 +512,13 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   }> {
     logger.debug(
       "refreshCurrentUserIdAndHandoffTimeInSchedule called with scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     // get previoius result.
     logger.debug(
       "Fetching previous schedule information for scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
     const onCallSchedule: OnCallDutyPolicySchedule | null =
       await this.findOneById({
@@ -538,14 +538,14 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     if (!onCallSchedule) {
       logger.debug(
-        "Schedule not found for scheduleId: " + scheduleId.toString()
+        "Schedule not found for scheduleId: " + scheduleId.toString(),
       );
       throw new BadDataException("Schedule not found");
     }
 
     logger.debug(
       "Previous schedule information fetched for scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     const previousInformation: {
@@ -568,7 +568,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     logger.debug(
       "Fetching new schedule information for scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     const newInformation: {
@@ -584,7 +584,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     logger.debug(
       "Updating schedule with new information for scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     await this.updateOneById({
@@ -605,7 +605,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     logger.debug(
       "Sending notifications for schedule handoff for scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     // send notification to the users.
@@ -624,14 +624,14 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     logger.debug(
       "Returning new schedule information for scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     return newInformation;
   }
 
   public async getCurrrentUserIdAndHandoffTimeInSchedule(
-    scheduleId: ObjectID
+    scheduleId: ObjectID,
   ): Promise<{
     rosterStartAt: Date | null;
     currentUserId: ObjectID | null;
@@ -642,7 +642,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   }> {
     logger.debug(
       "getCurrrentUserIdAndHandoffTimeInSchedule called with scheduleId: " +
-        scheduleId.toString()
+        scheduleId.toString(),
     );
 
     const resultReturn: {
@@ -679,7 +679,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     // if the current event start time in the future then the current event is the next event.
     if (currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
       logger.debug(
-        "Current event is in the future, treating it as next event."
+        "Current event is in the future, treating it as next event.",
       );
       nextEvent = currentEvent;
       currentEvent = null;
@@ -825,7 +825,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     getNumberOfEvents: number; // which event would you like to get. First event, second event, etc.
   }): Promise<Array<CalendarEvent>> {
     logger.debug(
-      "getEventByIndexInSchedule called with data: " + JSON.stringify(data)
+      "getEventByIndexInSchedule called with data: " + JSON.stringify(data),
     );
 
     const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
@@ -836,7 +836,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     if (layerProps.length === 0) {
       logger.debug(
-        "No layers found for scheduleId: " + data.scheduleId.toString()
+        "No layers found for scheduleId: " + data.scheduleId.toString(),
       );
       return [];
     }
@@ -846,7 +846,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
     const currentEndTime: Date = OneUptimeDate.addRemoveYears(
       currentStartTime,
-      1
+      1,
     );
     logger.debug("Current end time: " + currentEndTime.toISOString());
 
@@ -861,7 +861,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       },
       {
         getNumberOfEvents: numberOfEventsToGet,
-      }
+      },
     );
 
     logger.debug("Events fetched: " + JSON.stringify(events));
@@ -871,7 +871,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
 
   @CaptureSpan()
   public async getCurrentUserIdInSchedule(
-    scheduleId: ObjectID
+    scheduleId: ObjectID,
   ): Promise<ObjectID | null> {
     const layerProps: Array<LayerProps> = await this.getScheduleLayerProps({
       scheduleId: scheduleId,
@@ -884,7 +884,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     const currentStartTime: Date = OneUptimeDate.getCurrentDate();
     const currentEndTime: Date = OneUptimeDate.addRemoveSeconds(
       currentStartTime,
-      1
+      1,
     );
 
     const events: Array<CalendarEvent> = this.layerUtil.getMultiLayerEvents(
@@ -895,7 +895,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       },
       {
         getNumberOfEvents: 1,
-      }
+      },
     );
 
     const currentEvent: CalendarEvent | null = events[0] || null;

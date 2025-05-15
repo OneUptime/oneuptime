@@ -137,7 +137,7 @@ export class Service extends DatabaseService<Model> {
           NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
       });
 
-      // add start log 
+      // add start log
       OnCallDutyPolicyTimeLogService.startTimeLogForUser({
         userId: sendEmailToUserId,
         onCallDutyPolicyId: createdModel.onCallDutyPolicy!.id!,
@@ -240,8 +240,6 @@ export class Service extends DatabaseService<Model> {
             notifyUserId: deleteByUserId || undefined,
           },
         });
-
-        
       }
     }
 
@@ -320,17 +318,16 @@ export class Service extends DatabaseService<Model> {
             NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
         });
 
-
         // end time log
         await OnCallDutyPolicyTimeLogService.endTimeLogForUser({
           userId: sendEmailToUserId,
           onCallDutyPolicyId: deletedItem.onCallDutyPolicy!.id!,
           onCallDutyPolicyEscalationRuleId:
-            deletedItem.onCallDutyPolicyEscalationRule!.id!,      
+            deletedItem.onCallDutyPolicyEscalationRule!.id!,
 
           projectId: deletedItem.projectId!,
           teamId: deletedItem.teamId!,
-          endsAt: OneUptimeDate.getCurrentDate()
+          endsAt: OneUptimeDate.getCurrentDate(),
         });
       }
     }
