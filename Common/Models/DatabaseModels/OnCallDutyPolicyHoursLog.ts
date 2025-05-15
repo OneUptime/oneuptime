@@ -1,4 +1,3 @@
-import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -32,7 +31,6 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    
   ],
   read: [
     Permission.ProjectOwner,
@@ -44,13 +42,11 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    
   ],
 })
 @CrudApiEndpoint(new Route("/on-call-duty-policy-time-log"))
@@ -71,7 +67,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -107,7 +102,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -132,14 +126,11 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
-  
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -165,16 +156,128 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   })
   public onCallDutyPolicyId?: ObjectID = undefined; // no replationship to OnCallDutyPolicy because this is a log table. We do not want logs to delete when the policy is deleted.
 
-
-
-  
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadOnCallDutyPolicyTimeLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Policy Schedule ID",
+    description:
+      "ID of your On-Call Policy Schedule where this escalation rule belongs.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyScheduleId?: ObjectID = undefined; // no replationship to OnCallDutyPolicy because this is a log table. We do not want logs to delete when the policy is deleted.
 
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadOnCallDutyPolicyTimeLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Policy Escalation Rule ID",
+    description:
+      "ID of your On-Call Policy Escalation Rule ID where this escalation rule belongs.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined; // no replationship to OnCallDutyPolicy because this is a log table. We do not want logs to delete when the policy is deleted.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadOnCallDutyPolicyTimeLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Team ID",
+    description:
+      "ID of your On-Call Policy Team ID where this escalation rule belongs.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamId?: ObjectID = undefined; // no replationship to OnCallDutyPolicy because this is a log table. We do not want logs to delete when the policy is deleted.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadOnCallDutyPolicyTimeLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.VeryLongText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "More Info",
+    description: "More information about this log record.",
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public moreInfo?: string = undefined; // no replationship to OnCallDutyPolicy because this is a log table. We do not want logs to delete when the policy is deleted.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
     ],
     read: [
       Permission.ProjectOwner,
@@ -211,7 +314,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -239,7 +341,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -276,7 +377,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -290,8 +390,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     title: "User ID",
-    description:
-      "User ID for which this log belongs",
+    description: "User ID for which this log belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -311,7 +410,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,
@@ -338,7 +436,6 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      
     ],
     read: [
       Permission.ProjectOwner,

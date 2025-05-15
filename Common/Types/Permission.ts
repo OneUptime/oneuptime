@@ -532,7 +532,6 @@ enum Permission {
   DeleteOnCallDutyPolicyUserOverride = "DeleteOnCallDutyPolicyUserOverride",
   ReadOnCallDutyPolicyUserOverride = "ReadOnCallDutyPolicyUserOverride",
 
-
   ReadOnCallDutyPolicyTimeLog = "ReadOnCallDutyPolicyTimeLog",
 
   // Resource Permissions (Team Permission)
@@ -2427,8 +2426,7 @@ export class PermissionHelper {
         isAccessControlPermission: false,
       },
 
-
-       {
+      {
         permission: Permission.ReadOnCallDutyPolicyTimeLog,
         title: "Create On-Call Policy Time Log",
         description:
