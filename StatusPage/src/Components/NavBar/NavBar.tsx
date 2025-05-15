@@ -25,15 +25,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const isAnyPageDisabled: boolean =
-    !props.showIncidentsOnStatusPage ||
-    !props.showAnnouncementsOnStatusPage ||
-    !props.showScheduledMaintenanceEventsOnStatusPage ||
-    !props.showSubscriberPageOnStatusPage;
-
-  const spaceAroundClassName: string = isAnyPageDisabled
-    ? "justify-around"
-    : "justify-between";
+  const spaceAroundClassName: string = "justify-between";
 
   return (
     <NavBar
