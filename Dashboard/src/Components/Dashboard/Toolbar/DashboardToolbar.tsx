@@ -30,8 +30,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
-
-
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
 
   const isSaving: boolean = props.isSaving;
@@ -155,7 +153,6 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      
     </div>
   );
 };

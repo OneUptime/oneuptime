@@ -391,7 +391,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }} OR ${key} IS NULL)`,
         );
-      }else if (value instanceof GreaterThanOrNull) {
+      } else if (value instanceof GreaterThanOrNull) {
         whereStatement.append(
           SQL`AND (${key} >= ${{
             value: value,

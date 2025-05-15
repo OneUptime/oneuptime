@@ -63,7 +63,7 @@ export interface ComponentProps<T extends GenericObject> {
   onClearSelectionClick: () => void;
   buttons: Array<BulkActionButtonSchema<T>>;
   onActionStart?: (() => void) | undefined;
-  onActionEnd?:  (() => void) | undefined;
+  onActionEnd?: (() => void) | undefined;
   itemToString?: ((item: T) => string) | undefined;
 }
 

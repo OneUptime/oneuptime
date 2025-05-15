@@ -50,12 +50,11 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 onItemSelected={props.onItemSelected}
                 onItemDeselected={props.onItemDeselected}
                 isItemSelected={
-
                   props.selectedItems?.filter((selectedItem: T) => {
                     if (props.matchBulkSelectedItemByField === undefined) {
                       return false;
                     }
-                    
+
                     return (
                       selectedItem[
                         props.matchBulkSelectedItemByField

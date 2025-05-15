@@ -170,7 +170,7 @@ export default class QueryUtil {
         query[key] = QueryHelper.lessThanOrNull(
           (query[key] as LessThanOrNull<CompareType>).toString() as any,
         ) as any;
-      }  else if (
+      } else if (
         query[key] &&
         query[key] instanceof GreaterThanOrNull &&
         tableColumnMetadata

@@ -125,7 +125,7 @@ export type JSONValue =
   | Array<GreaterThanOrEqual<CompareType>>
   | LessThanOrNull<CompareType>
   | Array<LessThanOrNull<CompareType>>
-  | GreaterThanOrNull <CompareType>
+  | GreaterThanOrNull<CompareType>
   | Array<GreaterThanOrNull<CompareType>>
   | PositiveNumber
   | Array<PositiveNumber>

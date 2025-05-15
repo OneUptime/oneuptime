@@ -90,8 +90,8 @@ const Table: TableFunction = <T extends GenericObject>(
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
 
   useEffect(() => {
-    if(props.bulkSelectedItems){
-    setBulkSelectedItems(props.bulkSelectedItems);
+    if (props.bulkSelectedItems) {
+      setBulkSelectedItems(props.bulkSelectedItems);
     }
   }, [props.bulkSelectedItems]);
 
@@ -171,7 +171,7 @@ const Table: TableFunction = <T extends GenericObject>(
         }}
         onItemDeselected={(item: T) => {
           // set bulk selected items.
-          if(props.matchBulkSelectedItemByField === undefined){
+          if (props.matchBulkSelectedItemByField === undefined) {
             return;
           }
           const index: number = bulkSelectedItems.findIndex((x: T) => {
@@ -247,7 +247,7 @@ const Table: TableFunction = <T extends GenericObject>(
           onActionEnd={() => {
             setIsAllItemsSelected(false);
             setBulkSelectedItems([]);
-             props.onBulkActionEnd && props.onBulkActionEnd();
+            props.onBulkActionEnd && props.onBulkActionEnd();
           }}
           itemToString={props.bulkItemToString}
         />
@@ -282,7 +282,8 @@ const Table: TableFunction = <T extends GenericObject>(
                     props.onBulkClearAllItems && props.onBulkClearAllItems();
                   }}
                   onAllItemsOnThePageSelected={() => {
-                    props.onBulkSelectItemsOnCurrentPage && props.onBulkSelectItemsOnCurrentPage();
+                    props.onBulkSelectItemsOnCurrentPage &&
+                      props.onBulkSelectItemsOnCurrentPage();
                   }}
                   isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
                   hasTableItems={props.data.length > 0}

@@ -101,7 +101,7 @@ export class Statement implements BaseQueryParams {
       v.value instanceof LessThan ||
       v.value instanceof LessThanOrEqual ||
       v.value instanceof GreaterThan ||
-      v.value instanceof GreaterThanOrEqual || 
+      v.value instanceof GreaterThanOrEqual ||
       v.value instanceof LessThanOrNull ||
       v.value instanceof GreaterThanOrNull
     ) {
