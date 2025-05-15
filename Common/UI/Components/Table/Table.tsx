@@ -51,8 +51,8 @@ export interface ComponentProps<T extends GenericObject> {
   filterError?: string | undefined;
   onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
   onFilterRefreshClick?: undefined | (() => void);
-  onFilterModalClose: () => void;
-  onFilterModalOpen: () => void;
+  onFilterModalClose?: (() => void) | undefined;
+  onFilterModalOpen?: (() => void) | undefined;
   filterData?: undefined | FilterData<T>;
 
   enableDragAndDrop?: boolean | undefined;
@@ -61,17 +61,17 @@ export interface ComponentProps<T extends GenericObject> {
   onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 
   // bulk actions
-  bulkActions: BulkActionProps<T>;
-  bulkSelectedItems: Array<T>;
-  onBulkSelectedItemAdded: (item: T) => void;
-  onBulkSelectedItemRemoved: (item: T) => void;
-  onBulkSelectAllItems: () => void;
-  onBulkSelectItemsOnCurrentPage: () => void;
-  onBulkClearAllItems: () => void;
-  matchBulkSelectedItemByField: keyof T; // which field to use to match selected items. For exmaple this could be '_id'
-  onBulkActionEnd: () => void;
-  onBulkActionStart: () => void;
-  bulkItemToString: (item: T) => string;
+  bulkActions?: BulkActionProps<T> | undefined;
+  bulkSelectedItems?: Array<T> | undefined;
+  onBulkSelectedItemAdded?: ((item: T) => void) | undefined;
+  onBulkSelectedItemRemoved?: ((item: T) => void) | undefined;
+  onBulkSelectAllItems?: (() => void) | undefined;
+  onBulkSelectItemsOnCurrentPage?: (() => void) | undefined;
+  onBulkClearAllItems?: (() => void) | undefined;
+  matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
+  onBulkActionEnd?: (() => void) | undefined;
+  onBulkActionStart?: (() => void) | undefined;
+  bulkItemToString?: ((item: T) => string) | undefined;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -81,7 +81,7 @@ type TableFunction = <T extends GenericObject>(
 const Table: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const isBulkActionsEnabled: boolean =
+  const isBulkActionsEnabled: boolean | undefined =
     props.bulkActions &&
     props.bulkActions.buttons &&
     props.bulkActions.buttons.length > 0;
@@ -90,7 +90,9 @@ const Table: TableFunction = <T extends GenericObject>(
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
 
   useEffect(() => {
+    if(props.bulkSelectedItems){
     setBulkSelectedItems(props.bulkSelectedItems);
+    }
   }, [props.bulkSelectedItems]);
 
   let colspan: number = props.columns.length || 0;
@@ -165,14 +167,17 @@ const Table: TableFunction = <T extends GenericObject>(
         onItemSelected={(item: T) => {
           // set bulk selected items.
           setBulkSelectedItems([...bulkSelectedItems, item]);
-          props.onBulkSelectedItemAdded(item);
+          props.onBulkSelectedItemAdded?.(item);
         }}
         onItemDeselected={(item: T) => {
           // set bulk selected items.
+          if(props.matchBulkSelectedItemByField === undefined){
+            return;
+          }
           const index: number = bulkSelectedItems.findIndex((x: T) => {
             return (
-              x[props.matchBulkSelectedItemByField]?.toString() ===
-              item[props.matchBulkSelectedItemByField]?.toString()
+              x[props.matchBulkSelectedItemByField!]?.toString() ===
+              item[props.matchBulkSelectedItemByField!]?.toString()
             );
           });
 
@@ -180,7 +185,7 @@ const Table: TableFunction = <T extends GenericObject>(
             bulkSelectedItems.splice(index, 1);
           }
 
-          props.onBulkSelectedItemRemoved(item);
+          props.onBulkSelectedItemRemoved?.(item);
         }}
         selectedItems={bulkSelectedItems}
         matchBulkSelectedItemByField={props.matchBulkSelectedItemByField}
@@ -193,6 +198,9 @@ const Table: TableFunction = <T extends GenericObject>(
 
   props.data.forEach((item: T) => {
     const index: number = bulkSelectedItems.findIndex((x: T) => {
+      if (props.matchBulkSelectedItemByField === undefined) {
+        return false;
+      }
       return (
         x[props.matchBulkSelectedItemByField]?.toString() ===
         item[props.matchBulkSelectedItemByField]?.toString()
@@ -224,11 +232,11 @@ const Table: TableFunction = <T extends GenericObject>(
         <BulkUpdateForm
           buttons={props.bulkActions.buttons}
           onClearSelectionClick={() => {
-            props.onBulkClearAllItems();
+            props.onBulkClearAllItems && props.onBulkClearAllItems();
             setIsAllItemsSelected(false);
           }}
           onSelectAllClick={() => {
-            props.onBulkSelectAllItems();
+            props.onBulkSelectAllItems && props.onBulkSelectAllItems();
             setIsAllItemsSelected(true);
           }}
           selectedItems={bulkSelectedItems}
@@ -239,7 +247,7 @@ const Table: TableFunction = <T extends GenericObject>(
           onActionEnd={() => {
             setIsAllItemsSelected(false);
             setBulkSelectedItems([]);
-            props.onBulkActionEnd();
+             props.onBulkActionEnd && props.onBulkActionEnd();
           }}
           itemToString={props.bulkItemToString}
         />
@@ -271,10 +279,10 @@ const Table: TableFunction = <T extends GenericObject>(
                   isBulkActionsEnabled={isBulkActionsEnabled}
                   onAllItemsDeselected={() => {
                     setIsAllItemsSelected(false);
-                    props.onBulkClearAllItems();
+                    props.onBulkClearAllItems && props.onBulkClearAllItems();
                   }}
                   onAllItemsOnThePageSelected={() => {
-                    props.onBulkSelectItemsOnCurrentPage();
+                    props.onBulkSelectItemsOnCurrentPage && props.onBulkSelectItemsOnCurrentPage();
                   }}
                   isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
                   hasTableItems={props.data.length > 0}

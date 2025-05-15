@@ -62,9 +62,9 @@ export interface ComponentProps<T extends GenericObject> {
   pluralLabel: string;
   onClearSelectionClick: () => void;
   buttons: Array<BulkActionButtonSchema<T>>;
-  onActionStart?: () => void;
-  onActionEnd?: () => void;
-  itemToString?: (item: T) => string;
+  onActionStart?: (() => void) | undefined;
+  onActionEnd?:  (() => void) | undefined;
+  itemToString?: ((item: T) => string) | undefined;
 }
 
 const BulkUpdateForm: <T extends GenericObject>(
