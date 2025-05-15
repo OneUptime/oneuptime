@@ -162,7 +162,10 @@ import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideS
 
 import MonitorLogService from "./MonitorLogService";
 
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+
 const services: Array<BaseService> = [
+  OnCallDutyPolicyTimeLogService, 
   AcmeCertificateService,
   PromoCodeService,
 

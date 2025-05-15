@@ -68,6 +68,8 @@ import OnCallDutyPolicyFeed from "./OnCallDutyPolicyFeed";
 import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLayer from "./OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "./OnCallDutyPolicyScheduleLayerUser";
+import OnCallDutyPolicyTimeLog from "./OnCallDutyPolicyTimeLog";
+
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
 import ProbeOwnerUser from "./ProbeOwnerUser";
@@ -175,6 +177,8 @@ import ProjectUser from "./ProjectUser";
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
 import MetricType from "./MetricType";
+
+
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -372,6 +376,8 @@ const AllModelTypes: Array<{
   MonitorFeed,
 
   MetricType,
+
+  OnCallDutyPolicyTimeLog
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
