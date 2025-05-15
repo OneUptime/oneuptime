@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -11,6 +11,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import UserElement from "../../User/User";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
+import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 
 export interface ComponentProps {
     projectId: ObjectID;
@@ -18,7 +22,7 @@ export interface ComponentProps {
 
 
 export interface TableDataItem {
-    user: User; 
+    user: User;
     totalTimeInMinutesOnCall: number;
 }
 
@@ -26,7 +30,11 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
     props: ComponentProps,
 ): ReactElement => {
 
-    const [startAndEndTime, setStartAndEndTime] = React.useState<InBetween<Date>>(new InBetween<Date>(OneUptimeDate.getSomeDaysAgo(30), OneUptimeDate.getCurrentDate()));
+    const [startAndEndDate, setStartAndEndDate] =
+        useState<RangeStartAndEndDateTime>({
+            range: TimeRange.PAST_ONE_MONTH,
+        });
+
     const [timeLogs, setTimeLogs] = React.useState<OnCallDutyPolicyTimeLog[]>([]);
     const [error, setError] = React.useState<string | null>(null);
     const [loading, setLoading] = React.useState<boolean>(false);
@@ -38,46 +46,60 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
     }
 
     useEffect(() => {
-
-
+        loadItems().catch((error: Error) => {
+            setError(error.message);
+        });
     }, []);
 
+    useEffect(() => {
+        loadItems().catch((error: Error) => {
+            setError(error.message);
+        });
+    }, [startAndEndDate]);
 
-    if(error){
+
+    if (error) {
         return <ErrorMessage message={error} />;
     }
 
     if (loading) {
-        return <PageLoader isVisible={true}/>;
+        return <PageLoader isVisible={true} />;
     }
 
     return <div>
-            <Card
+        <Card
             title={'On Call Time Log for Users'}
             description={'This table shows the time logs for users on call duty.'}
-            rightElement={}
-        > 
-        <LocalTable 
-            singularLabel="On Call Policy Time Log"
-            pluralLabel="On Call Policy Time Logs"
-            data={tableDataItems}
-            id="on-call-policy-log-table"
-            columns={[
-                {
-                    title: "User",
-                    type: FieldType.Element,
-                    key: "user",
-                    getElement: (item: TableDataItem) => {
-                        return <UserElement user={item.user} />;
-                    }
-                },
-                {
-                    title: "Time on Call",
-                    type: FieldType.Minutes,
-                    key: "totalTimeInMinutesOnCall"
-                },
-            ]}
-        /> 
+            rightElement={
+                <RangeStartAndEndDateView
+                    dashboardStartAndEndDate={startAndEndDate}
+                    onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                        setStartAndEndDate(startAndEndDate);
+                    }}
+                />
+            }
+        >
+            <LocalTable
+                singularLabel="On Call Policy Time Log"
+                pluralLabel="On Call Policy Time Logs"
+                data={tableDataItems}
+                id="on-call-policy-log-table"
+                columns={[
+                    {
+                        title: "User",
+                        type: FieldType.Element,
+                        key: "user",
+                        getElement: (item: TableDataItem) => {
+                            return <UserElement user={item.user} />;
+                        }
+                    },
+                    {
+                        title: "Time on Call",
+                        type: FieldType.Minutes,
+                        key: "totalTimeInMinutesOnCall"
+                    },
+                ]}
+            />
         </Card>
 
     </div>

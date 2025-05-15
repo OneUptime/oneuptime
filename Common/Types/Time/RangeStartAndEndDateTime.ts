@@ -2,14 +2,14 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import TimeRange from "./TimeRange";
 import OneUptimeDate from "Common/Types/Date";
 
-export default interface RangestartAndEndDateTime {
+export default interface RangeStartAndEndDateTime {
   startAndEndDate?: InBetween<Date> | undefined;
   range: TimeRange;
 }
 
 export class RangeStartAndEndDateTimeUtil {
   public static getStartAndEndDate(
-    dashboardStartAndEndDate: RangestartAndEndDateTime,
+    dashboardStartAndEndDate: RangeStartAndEndDateTime,
   ): InBetween<Date> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 

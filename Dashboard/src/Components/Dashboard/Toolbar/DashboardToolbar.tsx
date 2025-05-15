@@ -5,9 +5,7 @@ import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
-import Modal from "Common/UI/Components/Modal/Modal";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import RangeStartAndEndDateEdit from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -32,10 +30,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
-  const [tempStartAndEndDate, setTempStartAndEndDate] =
-    useState<RangeStartAndEndDateTime | null>(null);
-  const [showTimeSelectModal, setShowTimeSelectModal] =
-    useState<boolean>(false);
+
 
   const [showCancelModal, setShowCancelModal] = useState<boolean>(false);
 
@@ -58,9 +53,8 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                 <div className="mt-1.5">
                   <RangeStartAndEndDateView
                     dashboardStartAndEndDate={props.startAndEndDate}
-                    onClick={() => {
-                      setTempStartAndEndDate(props.startAndEndDate);
-                      setShowTimeSelectModal(true);
+                    onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                      props.onStartAndEndDateChange(startAndEndDate);
                     }}
                   />
                 </div>
@@ -161,32 +155,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-
-      {showTimeSelectModal && (
-        <Modal
-          title="Select Start and End Time"
-          onClose={() => {
-            setTempStartAndEndDate(null);
-            setShowTimeSelectModal(false);
-          }}
-          onSubmit={() => {
-            if (tempStartAndEndDate) {
-              props.onStartAndEndDateChange(tempStartAndEndDate);
-            }
-            setShowTimeSelectModal(false);
-            setTempStartAndEndDate(null);
-          }}
-        >
-          <div className="mt-5">
-            <RangeStartAndEndDateEdit
-              value={tempStartAndEndDate || undefined}
-              onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
-                setTempStartAndEndDate(startAndEndDate);
-              }}
-            />
-          </div>
-        </Modal>
-      )}
+      
     </div>
   );
 };

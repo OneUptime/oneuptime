@@ -27,7 +27,7 @@ import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
-import RangestartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 
@@ -43,7 +43,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   );
 
   const [startAndEndDate, setStartAndEndDate] =
-    useState<RangestartAndEndDateTime>({
+    useState<RangeStartAndEndDateTime>({
       range: TimeRange.PAST_ONE_HOUR,
     });
 
@@ -226,7 +226,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         }}
         startAndEndDate={startAndEndDate}
         onStartAndEndDateChange={(
-          newStartAndEndDate: RangestartAndEndDateTime,
+          newStartAndEndDate: RangeStartAndEndDateTime,
         ) => {
           setStartAndEndDate(newStartAndEndDate);
         }}
