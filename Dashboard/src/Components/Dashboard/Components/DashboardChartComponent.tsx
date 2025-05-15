@@ -3,7 +3,6 @@ import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
-import { DashboardStartAndEndDateUtil } from "../Types/DashboardStartAndEndDate";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
@@ -14,6 +13,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -32,7 +32,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     queryConfigs: props.component.arguments.metricQueryConfig
       ? [props.component.arguments.metricQueryConfig]
       : [],
-    startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
+    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
     formulaConfigs: [],
@@ -157,7 +157,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           },
         ]
       : [],
-    startAndEndDate: DashboardStartAndEndDateUtil.getStartAndEndDate(
+    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
       props.dashboardStartAndEndDate,
     ),
     formulaConfigs: [],

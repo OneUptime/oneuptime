@@ -7,7 +7,7 @@ export default interface RangestartAndEndDateTime {
   range: TimeRange;
 }
 
-export class DashboardStartAndEndDateUtil {
+export class RangeStartAndEndDateTimeUtil {
   public static getStartAndEndDate(
     dashboardStartAndEndDate: RangestartAndEndDateTime,
   ): InBetween<Date> {

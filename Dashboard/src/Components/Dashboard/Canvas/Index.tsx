@@ -9,7 +9,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsSideOver from "./ComponentSettingsSideOver";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 
 export interface ComponentProps {
@@ -24,7 +24,7 @@ export interface ComponentProps {
     metricTypes: Array<MetricType>;
     telemetryAttributes: string[];
   };
-  dashboardStartAndEndDate: DashboardStartAndEndDate;
+  dashboardStartAndEndDate: RangeStartAndEndDateTime;
 }
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
