@@ -178,8 +178,6 @@ import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
 import MetricType from "./MetricType";
 
-
-
 const AllModelTypes: Array<{
   new (): BaseModel;
 }> = [
@@ -377,7 +375,7 @@ const AllModelTypes: Array<{
 
   MetricType,
 
-  OnCallDutyPolicyTimeLog
+  OnCallDutyPolicyTimeLog,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

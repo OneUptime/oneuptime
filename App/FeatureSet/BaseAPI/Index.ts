@@ -570,7 +570,6 @@ import MonitorLogService, {
   Service as MonitorLogServiceType,
 } from "Common/Server/Services/MonitorLogService";
 
-
 //OnCallDutyPolicyTimeLog
 import OnCallDutyPolicyTimeLog from "Common/Models/DatabaseModels/OnCallDutyPolicyTimeLog";
 import OnCallDutyPolicyTimeLogService, {
@@ -610,10 +609,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // OnCallDutyPolicyTimeLogService
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        OnCallDutyPolicyTimeLog,
-        OnCallDutyPolicyTimeLogServiceType
-      >(
+      new BaseAPI<OnCallDutyPolicyTimeLog, OnCallDutyPolicyTimeLogServiceType>(
         OnCallDutyPolicyTimeLog,
         OnCallDutyPolicyTimeLogService,
       ).getRouter(),
