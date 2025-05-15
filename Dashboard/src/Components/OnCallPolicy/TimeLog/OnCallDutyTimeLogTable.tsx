@@ -1,8 +1,8 @@
 import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -18,7 +18,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import RangeStartAndEndDateTime, {
-  RangeStartAndEndDateTimeUtil,
+    RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import BaseAPI from "Common/UI/Utils/API/API";
@@ -30,165 +30,197 @@ import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import LessThanOrNull from "Common/Types/BaseDatabase/LessThanOrNull";
 
 export interface ComponentProps {
-  projectId: ObjectID;
+    projectId: ObjectID;
 }
 
 export interface TableDataItem {
-  user: User;
-  totalTimeInMinutesOnCall: number;
+    user: User;
+    totalTimeInMinutesOnCall: number;
 }
 
 const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+    props: ComponentProps,
 ): ReactElement => {
-  const [startAndEndDate, setStartAndEndDate] =
-    useState<RangeStartAndEndDateTime>({
-      range: TimeRange.PAST_ONE_MONTH,
-    });
-
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState<boolean>(false);
-  const [tableDataItems, setTableDataItems] = React.useState<TableDataItem[]>(
-    [],
-  );
-
-  const loadItems: PromiseVoidFunction = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const pickedStartAndEndDate: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(startAndEndDate);
-
-      const startDate: Date = pickedStartAndEndDate.startValue;
-
-      const onCallDutyPolicyTimeLogs: ListResult<OnCallDutyPolicyTimeLog> =
-        await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
-          modelType: OnCallDutyPolicyTimeLog,
-          query: {
-            projectId: props.projectId,
-            startsAt: new GreaterThanOrEqual<Date>(startDate),
-            endsAt: new LessThanOrNull<Date>(startDate),
-          },
-          select: {
-            user: {
-              id: true,
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-            startsAt: true,
-            endsAt: true,
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
+    const [startAndEndDate, setStartAndEndDate] =
+        useState<RangeStartAndEndDateTime>({
+            range: TimeRange.PAST_ONE_MONTH,
         });
 
-      const timeLogs: OnCallDutyPolicyTimeLog[] = onCallDutyPolicyTimeLogs.data;
+    const [error, setError] = React.useState<string | null>(null);
+    const [loading, setLoading] = React.useState<boolean>(false);
+    const [tableDataItems, setTableDataItems] = React.useState<TableDataItem[]>(
+        [],
+    );
 
-      /// now we need to get the total time in minutes for each user, but we need to remove overlapping time logs
-      const timeLogMap: Map<string, number> = new Map<string, number>();
-      timeLogs.forEach((timeLog: OnCallDutyPolicyTimeLog) => {
-        const userId: string = timeLog.user!.id!.toString();
-        const startDate: Date = timeLog.startsAt!;
-        const endDate: Date = timeLog.endsAt || OneUptimeDate.getCurrentDate();
+    const loadItems: PromiseVoidFunction = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const pickedStartAndEndDate: InBetween<Date> =
+                RangeStartAndEndDateTimeUtil.getStartAndEndDate(startAndEndDate);
 
-        if (timeLogMap.has(userId)) {
-          const totalTimeInMinutes: number = timeLogMap.get(userId) || 0;
-          const newTotalTimeInMinutes: number =
-            totalTimeInMinutes +
-            OneUptimeDate.getDifferenceInMinutes(startDate, endDate);
-          timeLogMap.set(userId, newTotalTimeInMinutes);
-        } else {
-          timeLogMap.set(
-            userId,
-            OneUptimeDate.getDifferenceInMinutes(startDate, endDate),
-          );
+            const startDate: Date = pickedStartAndEndDate.startValue;
+
+            const onCallDutyPolicyTimeLogs: ListResult<OnCallDutyPolicyTimeLog> =
+                await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
+                    modelType: OnCallDutyPolicyTimeLog,
+                    query: {
+                        projectId: props.projectId,
+                        startsAt: new GreaterThanOrEqual<Date>(startDate),
+                        endsAt: new LessThanOrNull<Date>(startDate),
+                    },
+                    select: {
+                        user: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profilePictureId: true,
+                        },
+                        startsAt: true,
+                        endsAt: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_MAX,
+                    sort: {
+                        startsAt: SortOrder.Ascending,
+                    },
+                });
+
+            // Extract time logs from the API response
+            const timeLogs: OnCallDutyPolicyTimeLog[] = onCallDutyPolicyTimeLogs.data;
+
+            // Group time logs by user ID
+            const userTimeLogs: Map<string, OnCallDutyPolicyTimeLog[]> = new Map();
+            timeLogs.forEach((timeLog: OnCallDutyPolicyTimeLog) => {
+                const userId: string = timeLog.user!.id!.toString();
+                if (!userTimeLogs.has(userId)) {
+                    userTimeLogs.set(userId, []);
+                }
+                userTimeLogs.get(userId)!.push(timeLog);
+            });
+
+            // Process each user's time logs to calculate total time on call (accounting for overlaps)
+            const timeLogMap: Map<string, number> = new Map<string, number>();
+            const userMap: Map<string, User> = new Map<string, User>();
+
+            userTimeLogs.forEach((logs: OnCallDutyPolicyTimeLog[], userId: string) => {
+                // Store user object for later use
+                if (logs.length > 0) {
+                    userMap.set(userId, logs[0]!.user!);
+                }
+
+                // Sort logs by start time to properly handle overlaps
+                logs.sort((a, b) => a.startsAt!.getTime() - b.startsAt!.getTime());
+
+                // Merge overlapping time periods
+                const mergedPeriods: Array<{ start: Date; end: Date }> = [];
+
+                logs.forEach((log) => {
+                    const startDate: Date = log.startsAt!;
+                    const endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
+
+                    // Check if we should create a new period or extend an existing one
+                    if (
+                        mergedPeriods.length === 0 ||
+                        startDate.getTime() > mergedPeriods[mergedPeriods.length - 1]!.end.getTime()
+                    ) {
+                        // No overlap - add as a new period
+                        mergedPeriods.push({ start: startDate, end: endDate });
+                    } else {
+                        // Overlapping with the last period - extend the end time if necessary
+                        const lastPeriod = mergedPeriods[mergedPeriods.length - 1];
+                        if (endDate.getTime() > lastPeriod!.end.getTime()) {
+                            lastPeriod!.end = endDate;
+                        }
+                    }
+                });
+
+                // Calculate total minutes from merged periods (no double counting)
+                let totalMinutes = 0;
+                mergedPeriods.forEach((period) => {
+                    totalMinutes += OneUptimeDate.getDifferenceInMinutes(period.start, period.end);
+                });
+
+                timeLogMap.set(userId, totalMinutes);
+            });
+
+            // Convert the results to the table data format
+            const tableDataItems: TableDataItem[] = [];
+            timeLogMap.forEach((totalTimeInMinutesOnCall: number, userId: string) => {
+                const user = userMap.get(userId);
+                if (user) {
+                    tableDataItems.push({
+                        user: user,
+                        totalTimeInMinutesOnCall: totalTimeInMinutesOnCall,
+                    });
+                }
+            });
+
+            setTableDataItems(tableDataItems);
+        } catch (error: unknown) {
+            setError(BaseAPI.getFriendlyErrorMessage(error as Error));
         }
-      });
+        setLoading(false);
+    };
 
-      const tableDataItems: TableDataItem[] = [];
-      timeLogMap.forEach((totalTimeInMinutesOnCall: number, userId: string) => {
-        const user: User | undefined = timeLogs.find(
-          (timeLog: OnCallDutyPolicyTimeLog) => {
-            return timeLog.user!.id!.toString() === userId;
-          },
-        )?.user;
-        if (user) {
-          tableDataItems.push({
-            user: user,
-            totalTimeInMinutesOnCall: totalTimeInMinutesOnCall,
-          });
-        }
-      });
+    useEffect(() => {
+        loadItems().catch((error: Error) => {
+            setError(error.message);
+        });
+    }, []);
 
-      setTableDataItems(tableDataItems);
-    } catch (error: unknown) {
-      setError(BaseAPI.getFriendlyErrorMessage(error as Error));
+    useEffect(() => {
+        loadItems().catch((error: Error) => {
+            setError(error.message);
+        });
+    }, [startAndEndDate]);
+
+    if (error) {
+        return <ErrorMessage message={error} />;
     }
-    setLoading(false);
-  };
 
-  useEffect(() => {
-    loadItems().catch((error: Error) => {
-      setError(error.message);
-    });
-  }, []);
+    if (loading) {
+        return <PageLoader isVisible={true} />;
+    }
 
-  useEffect(() => {
-    loadItems().catch((error: Error) => {
-      setError(error.message);
-    });
-  }, [startAndEndDate]);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
-  if (loading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  return (
-    <div>
-      <Card
-        title={"On Call Time Log for Users"}
-        description={"This table shows the time logs for users on call duty."}
-        rightElement={
-          <RangeStartAndEndDateView
-            dashboardStartAndEndDate={startAndEndDate}
-            onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
-              setStartAndEndDate(startAndEndDate);
-            }}
-          />
-        }
-      >
-        <LocalTable
-          singularLabel="On Call Policy Time Log"
-          pluralLabel="On Call Policy Time Logs"
-          data={tableDataItems}
-          id="on-call-policy-log-table"
-          columns={[
-            {
-              title: "User",
-              type: FieldType.Element,
-              key: "user",
-              getElement: (item: TableDataItem) => {
-                return <UserElement user={item.user} />;
-              },
-            },
-            {
-              title: "Time on Call",
-              type: FieldType.Minutes,
-              key: "totalTimeInMinutesOnCall",
-            },
-          ]}
-        />
-      </Card>
-    </div>
-  );
+    return (
+        <div>
+            <Card
+                title={"On Call Time Log for Users"}
+                description={"This table shows the time logs for users on call duty."}
+                rightElement={
+                    <RangeStartAndEndDateView
+                        dashboardStartAndEndDate={startAndEndDate}
+                        onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
+                            setStartAndEndDate(startAndEndDate);
+                        }}
+                    />
+                }
+            >
+                <LocalTable
+                    singularLabel="On Call Policy Time Log"
+                    pluralLabel="On Call Policy Time Logs"
+                    data={tableDataItems}
+                    id="on-call-policy-log-table"
+                    columns={[
+                        {
+                            title: "User",
+                            type: FieldType.Element,
+                            key: "user",
+                            getElement: (item: TableDataItem) => {
+                                return <UserElement user={item.user} />;
+                            },
+                        },
+                        {
+                            title: "Time on Call",
+                            type: FieldType.Minutes,
+                            key: "totalTimeInMinutesOnCall",
+                        },
+                    ]}
+                />
+            </Card>
+        </div>
+    );
 };
 
 export default OnCallPolicyLogTable;
