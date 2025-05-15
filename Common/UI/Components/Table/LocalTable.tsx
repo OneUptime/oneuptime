@@ -58,7 +58,7 @@ const LocalTable: TableFunction = <T extends GenericObject>(
       onSortChanged={(sortBy: keyof T | null, sortOrder: SortOrder) => {
         setSortOrder(sortOrder);
         setSortBy(sortBy);
-        const sortedData: T[] = [...props.data].sort((a: T, b:T) => {
+        const sortedData: T[] = [...props.data].sort((a: T, b: T) => {
           if (sortOrder === SortOrder.Ascending) {
             return a[sortBy as keyof T] > b[sortBy as keyof T] ? 1 : -1;
           }
