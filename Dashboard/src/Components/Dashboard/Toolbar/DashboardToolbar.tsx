@@ -6,9 +6,9 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import Modal from "Common/UI/Components/Modal/Modal";
-import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
-import DashboardStartAndEndDateElement from "./DashboardStartAndEndDateEdit";
-import DashboardStartAndEndDateView from "./DashboardStartAndEndDateView";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import RangeStartAndEndDateEdit from "Common/UI/Components/Date/RangeStartAndEndDateEdit";
+import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Loader from "Common/UI/Components/Loader/Loader";
@@ -22,8 +22,8 @@ export interface ComponentProps {
   onAddComponentClick: (type: DashboardComponentType) => void;
   isSaving: boolean;
   dashboardName: string;
-  startAndEndDate: DashboardStartAndEndDate;
-  onStartAndEndDateChange: (startAndEndDate: DashboardStartAndEndDate) => void;
+  startAndEndDate: RangeStartAndEndDateTime;
+  onStartAndEndDateChange: (startAndEndDate: RangeStartAndEndDateTime) => void;
   dashboardViewConfig: DashboardViewConfig;
 }
 
@@ -33,7 +33,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
   const isEditMode: boolean = props.dashboardMode === DashboardMode.Edit;
 
   const [tempStartAndEndDate, setTempStartAndEndDate] =
-    useState<DashboardStartAndEndDate | null>(null);
+    useState<RangeStartAndEndDateTime | null>(null);
   const [showTimeSelectModal, setShowTimeSelectModal] =
     useState<boolean>(false);
 
@@ -56,7 +56,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
               props.dashboardViewConfig.components &&
               props.dashboardViewConfig.components.length > 0 && (
                 <div className="mt-1.5">
-                  <DashboardStartAndEndDateView
+                  <RangeStartAndEndDateView
                     dashboardStartAndEndDate={props.startAndEndDate}
                     onClick={() => {
                       setTempStartAndEndDate(props.startAndEndDate);
@@ -178,9 +178,9 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
           }}
         >
           <div className="mt-5">
-            <DashboardStartAndEndDateElement
+            <RangeStartAndEndDateEdit
               value={tempStartAndEndDate || undefined}
-              onChange={(startAndEndDate: DashboardStartAndEndDate) => {
+              onChange={(startAndEndDate: RangeStartAndEndDateTime) => {
                 setTempStartAndEndDate(startAndEndDate);
               }}
             />

@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import DashboardStartAndEndDate from "../Types/DashboardStartAndEndDate";
-import DashboardStartAndEndDateRange from "../Types/DashboardStartAndEndDateRange";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -10,7 +10,7 @@ import HeaderAlert, {
 import ColorSwatch from "Common/Types/ColorSwatch";
 
 export interface ComponentProps {
-  dashboardStartAndEndDate: DashboardStartAndEndDate;
+  dashboardStartAndEndDate: RangeStartAndEndDateTime;
   onClick: () => void;
 }
 
@@ -19,7 +19,7 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isCustomRange: boolean =
     props.dashboardStartAndEndDate.range ===
-    DashboardStartAndEndDateRange.CUSTOM;
+    TimeRange.CUSTOM;
 
   const getContent: GetReactElementFunction = (): ReactElement => {
     const title: string = isCustomRange

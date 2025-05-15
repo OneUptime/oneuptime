@@ -10,6 +10,7 @@ import User from "Common/Models/DatabaseModels/User";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import UserElement from "../../User/User";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import Card from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
     projectId: ObjectID;
@@ -33,7 +34,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
 
 
     const loadItems: PromiseVoidFunction = async () => {
-        
+
     }
 
     useEffect(() => {
@@ -51,7 +52,11 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
     }
 
     return <div>
-
+            <Card
+            title={'On Call Time Log for Users'}
+            description={'This table shows the time logs for users on call duty.'}
+            rightElement={}
+        > 
         <LocalTable 
             singularLabel="On Call Policy Time Log"
             pluralLabel="On Call Policy Time Logs"
@@ -73,6 +78,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
                 },
             ]}
         /> 
+        </Card>
 
     </div>
 };

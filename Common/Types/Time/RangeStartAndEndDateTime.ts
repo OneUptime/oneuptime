@@ -1,22 +1,22 @@
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import DashboardStartAndEndDateRange from "./DashboardStartAndEndDateRange";
+import TimeRange from "./TimeRange";
 import OneUptimeDate from "Common/Types/Date";
 
-export default interface DashboardStartAndEndDate {
+export default interface RangestartAndEndDateTime {
   startAndEndDate?: InBetween<Date> | undefined;
-  range: DashboardStartAndEndDateRange;
+  range: TimeRange;
 }
 
 export class DashboardStartAndEndDateUtil {
   public static getStartAndEndDate(
-    dashboardStartAndEndDate: DashboardStartAndEndDate,
+    dashboardStartAndEndDate: RangestartAndEndDateTime,
   ): InBetween<Date> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
     // 30 mins.
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_THIRTY_MINS
+      TimeRange.PAST_THIRTY_MINS
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveMinutes(currentDate, -30),
@@ -26,7 +26,7 @@ export class DashboardStartAndEndDateUtil {
 
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_ONE_HOUR
+      TimeRange.PAST_ONE_HOUR
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveHours(currentDate, -1),
@@ -37,7 +37,7 @@ export class DashboardStartAndEndDateUtil {
     // two hours.
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_TWO_HOURS
+      TimeRange.PAST_TWO_HOURS
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveHours(currentDate, -2),
@@ -48,7 +48,7 @@ export class DashboardStartAndEndDateUtil {
     // three hours
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_THREE_HOURS
+      TimeRange.PAST_THREE_HOURS
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveHours(currentDate, -3),
@@ -58,7 +58,7 @@ export class DashboardStartAndEndDateUtil {
 
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_ONE_DAY
+      TimeRange.PAST_ONE_DAY
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveDays(currentDate, -1),
@@ -69,7 +69,7 @@ export class DashboardStartAndEndDateUtil {
     // two days .
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_TWO_DAYS
+      TimeRange.PAST_TWO_DAYS
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveDays(currentDate, -2),
@@ -79,7 +79,7 @@ export class DashboardStartAndEndDateUtil {
 
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_ONE_WEEK
+      TimeRange.PAST_ONE_WEEK
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveDays(currentDate, -7),
@@ -90,7 +90,7 @@ export class DashboardStartAndEndDateUtil {
     // two weeks.
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_TWO_WEEKS
+      TimeRange.PAST_TWO_WEEKS
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveDays(currentDate, -14),
@@ -100,7 +100,7 @@ export class DashboardStartAndEndDateUtil {
 
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_ONE_MONTH
+      TimeRange.PAST_ONE_MONTH
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveMonths(currentDate, -1),
@@ -111,7 +111,7 @@ export class DashboardStartAndEndDateUtil {
     // three months.
     if (
       dashboardStartAndEndDate.range ===
-      DashboardStartAndEndDateRange.PAST_THREE_MONTHS
+      TimeRange.PAST_THREE_MONTHS
     ) {
       return new InBetween<Date>(
         OneUptimeDate.addRemoveMonths(currentDate, -3),
