@@ -7,6 +7,8 @@ import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
+import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
+import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import Search from "Common/Types/BaseDatabase/Search";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
@@ -99,7 +101,9 @@ export class Statement implements BaseQueryParams {
       v.value instanceof LessThan ||
       v.value instanceof LessThanOrEqual ||
       v.value instanceof GreaterThan ||
-      v.value instanceof GreaterThanOrEqual
+      v.value instanceof GreaterThanOrEqual || 
+      v.value instanceof LessThanOrNull ||
+      v.value instanceof GreaterThanOrNull
     ) {
       finalValue = v.value.value;
     } else if (v.value instanceof Includes) {

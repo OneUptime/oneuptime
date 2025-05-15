@@ -28,6 +28,8 @@ import StartAndEndTime from "./Time/StartAndEndTime";
 import Version from "./Version";
 import { BaseEntity } from "typeorm";
 import DashboardViewConfig from "./Dashboard/DashboardViewConfig";
+import LessThanOrNull from "./BaseDatabase/LessThanOrNull";
+import GreaterThanOrNull from "./BaseDatabase/GreaterThanOrNull";
 
 export enum ObjectType {
   ObjectID = "ObjectID",
@@ -54,6 +56,8 @@ export enum ObjectType {
   Search = "Search",
   GreaterThan = "GreaterThan",
   GreaterThanOrEqual = "GreaterThanOrEqual",
+  GreaterThanOrNull = "GreaterThanOrNull",
+  LessThanOrNull = "LessThanOrNull",
   LessThan = "LessThan",
   LessThanOrEqual = "LessThanOrEqual",
   Port = "Port",
@@ -119,6 +123,10 @@ export type JSONValue =
   | Array<GreaterThan<CompareType>>
   | GreaterThanOrEqual<CompareType>
   | Array<GreaterThanOrEqual<CompareType>>
+  | LessThanOrNull<CompareType>
+  | Array<LessThanOrNull<CompareType>>
+  | GreaterThanOrNull <CompareType>
+  | Array<GreaterThanOrNull<CompareType>>
   | PositiveNumber
   | Array<PositiveNumber>
   | LessThan<CompareType>

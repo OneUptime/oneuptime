@@ -19,6 +19,8 @@ describe("ObjectType", () => {
     "GreaterThanOrEqual",
     "LessThan",
     "LessThanOrEqual",
+    "LessThanOrNull",
+    "GreaterThanOrNull",
     "Port",
     "Hostname",
     "HashedString",
