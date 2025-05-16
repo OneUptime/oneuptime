@@ -225,9 +225,20 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
               },
             },
             {
-              title: "Hours / Minutes user was on call",
+              title: "Time user was on call",
               type: FieldType.Minutes,
               key: "totalTimeInMinutesOnCall",
+              getElement: (item: TableDataItem) => {
+
+                
+                return (
+                  <span>
+                    {OneUptimeDate.getHoursAndMinutesFromMinutes(
+                      item.totalTimeInMinutesOnCall,
+                    )}
+                  </span>
+                );
+              }
             },
           ]}
         />

@@ -10,6 +10,27 @@ export const Moment: typeof moment = moment;
 
 export default class OneUptimeDate {
   // get date time from unix timestamp
+
+  public static getHoursAndMinutesFromMinutes(
+    minutes: number,
+  ): string {
+    const hours: number = Math.floor(minutes / 60);
+    const mins: number = minutes % 60;
+
+    let formattedString: string = "";
+
+    if (hours > 0) {
+      formattedString += hours + " hours ";
+    }
+
+    if (mins > 0) {
+      formattedString += mins + " minutes";
+    }
+    
+
+    return formattedString.trim() || "0 minutes";
+  }
+
   public static fromUnixTimestamp(timestamp: number): Date {
     return new Date(timestamp * 1000);
   }
