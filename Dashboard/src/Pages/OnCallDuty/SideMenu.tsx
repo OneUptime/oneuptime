@@ -65,9 +65,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route,
             ),
           }}
-          icon={IconProp.Logs}
-          subItemIcon={IconProp.Clock}
-          subItemLink={subItemMenuLink}
+          icon={IconProp.Clock}
         />
         <SideMenuItem
           link={{

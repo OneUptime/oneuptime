@@ -71,7 +71,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
           },
           select: {
             user: {
-              id: true,
+              _id: true,
               name: true,
               email: true,
               profilePictureId: true,
