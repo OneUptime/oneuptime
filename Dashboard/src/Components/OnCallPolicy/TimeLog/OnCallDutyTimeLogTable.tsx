@@ -27,7 +27,6 @@ import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
-import LessThanOrNull from "Common/Types/BaseDatabase/LessThanOrNull";
 
 export interface ComponentProps {
   projectId: ObjectID;
