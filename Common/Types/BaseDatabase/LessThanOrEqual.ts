@@ -17,18 +17,15 @@ export default class LessThanOrEqual<
     };
   }
 
+  public override toString(): string {
+    let value: T = this.value;
 
-     public override toString(): string {
-        let value: T = this.value;
-  
-    
-        if (value instanceof Date) {
-          value = OneUptimeDate.asDateForDatabaseQuery(value) as T;
-        }
-    
-  
-        return value.toString();
-      }
+    if (value instanceof Date) {
+      value = OneUptimeDate.asDateForDatabaseQuery(value) as T;
+    }
+
+    return value.toString();
+  }
 
   public static override fromJSON<T extends CompareType>(
     json: JSONObject,

@@ -54,7 +54,7 @@ export class Service extends DatabaseService<Model> {
     const { endsAt, onCallDutyPolicyScheduleId } = data;
     await this.updateBy({
       query: {
-        projectId: data.projectId, 
+        projectId: data.projectId,
         onCallDutyPolicyScheduleId,
       },
       data: {
@@ -80,7 +80,7 @@ export class Service extends DatabaseService<Model> {
         teamId,
       },
 
-       limit: LIMIT_PER_PROJECT,
+      limit: LIMIT_PER_PROJECT,
       skip: 0,
       data: {
         endsAt: endsAt,
@@ -102,7 +102,7 @@ export class Service extends DatabaseService<Model> {
         projectId: data.projectId,
         userId,
       },
-       limit: LIMIT_PER_PROJECT,
+      limit: LIMIT_PER_PROJECT,
       skip: 0,
       data: {
         endsAt: endsAt,
@@ -139,7 +139,7 @@ export class Service extends DatabaseService<Model> {
         ...(teamId && { teamId }),
         ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
       },
-       limit: LIMIT_PER_PROJECT,
+      limit: LIMIT_PER_PROJECT,
       skip: 0,
       data: {
         endsAt: endsAt,

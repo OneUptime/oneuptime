@@ -74,7 +74,7 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
       for (const escalationRule of escalationRulesForTeams) {
         // get users in team.
         const users: Array<User> = await TeamMemberService.getUsersInTeam(
-          escalationRule.teamId!
+          escalationRule.teamId!,
         );
 
         for (const user of users) {

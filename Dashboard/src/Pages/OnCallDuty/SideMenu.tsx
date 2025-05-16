@@ -58,7 +58,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.User}
         />
 
-        
         <SideMenuItem
           link={{
             title: "Execution Logs",
@@ -72,7 +71,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
       <SideMenuSection title="Reports">
-          <SideMenuItem
+        <SideMenuItem
           link={{
             title: "User On Call Time",
             to: RouteUtil.populateRouteParams(

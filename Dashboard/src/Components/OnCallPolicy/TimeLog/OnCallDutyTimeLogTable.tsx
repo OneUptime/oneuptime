@@ -109,21 +109,22 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
           }
 
           // Sort logs by start time to properly handle overlaps
-          logs.sort((a, b) => {
+          logs.sort((a: OnCallDutyPolicyTimeLog, b: OnCallDutyPolicyTimeLog) => {
             return a.startsAt!.getTime() - b.startsAt!.getTime();
           });
 
           // Merge overlapping time periods
           const mergedPeriods: Array<{ start: Date; end: Date }> = [];
 
-          logs.forEach((log) => {
+          logs.forEach((log: OnCallDutyPolicyTimeLog) => {
             const startDate: Date = log.startsAt!;
             let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
 
-
-            // if end date is mroe than the end date selected in the range, then 
+            // if end date is mroe than the end date selected in the range, then
             // set the end date to the end date selected in the range
-            if (OneUptimeDate.isAfter(endDate, pickedStartAndEndDate.endValue)) {
+            if (
+              OneUptimeDate.isAfter(endDate, pickedStartAndEndDate.endValue)
+            ) {
               endDate = pickedStartAndEndDate.endValue;
             }
 
@@ -131,13 +132,16 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
             if (
               mergedPeriods.length === 0 ||
               startDate.getTime() >
-                mergedPeriods[mergedPeriods.length - 1]!.end.getTime()
+              mergedPeriods[mergedPeriods.length - 1]!.end.getTime()
             ) {
               // No overlap - add as a new period
               mergedPeriods.push({ start: startDate, end: endDate });
             } else {
               // Overlapping with the last period - extend the end time if necessary
-              const lastPeriod = mergedPeriods[mergedPeriods.length - 1];
+              const lastPeriod: {
+                start: Date;
+                end: Date;
+              } | undefined = mergedPeriods[mergedPeriods.length - 1];
               if (endDate.getTime() > lastPeriod!.end.getTime()) {
                 lastPeriod!.end = endDate;
               }
@@ -145,8 +149,11 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
           });
 
           // Calculate total minutes from merged periods (no double counting)
-          let totalMinutes = 0;
-          mergedPeriods.forEach((period) => {
+          let totalMinutes: number = 0;
+          mergedPeriods.forEach((period: {
+            start: Date;
+            end: Date;
+          }) => {
             totalMinutes += OneUptimeDate.getDifferenceInMinutes(
               period.start,
               period.end,
@@ -229,8 +236,6 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
               type: FieldType.Minutes,
               key: "totalTimeInMinutesOnCall",
               getElement: (item: TableDataItem) => {
-
-                
                 return (
                   <span>
                     {OneUptimeDate.getHoursAndMinutesFromMinutes(
@@ -238,7 +243,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
                     )}
                   </span>
                 );
-              }
+              },
             },
           ]}
         />
