@@ -120,7 +120,14 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
 
           logs.forEach((log) => {
             const startDate: Date = log.startsAt!;
-            const endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
+            let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
+
+
+            // if end date is mroe than the end date selected in the range, then 
+            // set the end date to the end date selected in the range
+            if (OneUptimeDate.isAfter(endDate, pickedStartAndEndDate.endValue)) {
+              endDate = pickedStartAndEndDate.endValue;
+            }
 
             // Check if we should create a new period or extend an existing one
             if (
@@ -220,7 +227,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
               },
             },
             {
-              title: "Time on Call",
+              title: "Hours / Minutes user was on call",
               type: FieldType.Minutes,
               key: "totalTimeInMinutesOnCall",
             },
