@@ -116,6 +116,13 @@ const WorkspaceConnectionTeams: LazyExoticComponent<
   return import("../Pages/OnCallDuty/WorkspaceConnectionMicrosoftTeams");
 });
 
+// User Time Logs
+const OnCallDutyUserTimeLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutyUserTimeLogs");
+});
+
 const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -242,6 +249,20 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
               <OnCallDutySchedules
                 {...props}
                 pageRoute={RouteMap[PageMap.ON_CALL_DUTY_SCHEDULES] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={OnCallDutyRoutePath[PageMap.ON_CALLDUTY_USER_TIME_LOGS] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyUserTimeLogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route
+                }
               />
             </Suspense>
           }
