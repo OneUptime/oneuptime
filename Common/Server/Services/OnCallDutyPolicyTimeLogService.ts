@@ -1,3 +1,4 @@
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
 import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyTimeLog";
@@ -34,10 +35,78 @@ export class Service extends DatabaseService<Model> {
     if (onCallDutyPolicyScheduleId) {
       timeLog.onCallDutyPolicyScheduleId = onCallDutyPolicyScheduleId;
     }
+    timeLog.projectId = data.projectId;
     timeLog.startsAt = startsAt;
 
     return await this.create({
       data: timeLog,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  public async endTimeForSchedule(data: {
+    projectId: ObjectID;
+    onCallDutyPolicyScheduleId: ObjectID;
+    endsAt: Date;
+  }): Promise<void> {
+    const { endsAt, onCallDutyPolicyScheduleId } = data;
+    await this.updateBy({
+      query: {
+        projectId: data.projectId, 
+        onCallDutyPolicyScheduleId,
+      },
+      data: {
+        endsAt: endsAt,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  public async endTimeForTeam(data: {
+    projectId: ObjectID;
+    teamId: ObjectID;
+    endsAt: Date;
+  }): Promise<void> {
+    const { endsAt, teamId } = data;
+    await this.updateBy({
+      query: {
+        projectId: data.projectId,
+        teamId,
+      },
+
+       limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      data: {
+        endsAt: endsAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  public async endTimeForUser(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    endsAt: Date;
+  }): Promise<void> {
+    const { endsAt, userId } = data;
+    await this.updateBy({
+      query: {
+        projectId: data.projectId,
+        userId,
+      },
+       limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      data: {
+        endsAt: endsAt,
+      },
       props: {
         isRoot: true,
       },
@@ -61,14 +130,17 @@ export class Service extends DatabaseService<Model> {
       endsAt,
     } = data;
 
-    await this.updateOneBy({
+    await this.updateBy({
       query: {
+        projectId: data.projectId,
         onCallDutyPolicyId,
         onCallDutyPolicyEscalationRuleId: data.onCallDutyPolicyEscalationRuleId,
         userId,
         ...(teamId && { teamId }),
         ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
       },
+       limit: LIMIT_PER_PROJECT,
+      skip: 0,
       data: {
         endsAt: endsAt,
       },

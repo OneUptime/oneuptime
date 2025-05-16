@@ -428,7 +428,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
   @TableColumn({
     title: "Ends At",
     type: TableColumnType.Date,
-    required: true,
+    required: false,
     description: "When does this end?",
   })
   @ColumnAccessControl({

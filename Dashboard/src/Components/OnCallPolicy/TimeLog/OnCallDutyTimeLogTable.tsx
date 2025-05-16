@@ -67,7 +67,6 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
           query: {
             projectId: props.projectId,
             startsAt: new GreaterThanOrEqual<Date>(startDate),
-            endsAt: new LessThanOrNull<Date>(startDate),
           },
           select: {
             user: {
