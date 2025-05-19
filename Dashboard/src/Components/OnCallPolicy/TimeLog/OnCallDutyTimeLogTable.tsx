@@ -109,9 +109,11 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
           }
 
           // Sort logs by start time to properly handle overlaps
-          logs.sort((a: OnCallDutyPolicyTimeLog, b: OnCallDutyPolicyTimeLog) => {
-            return a.startsAt!.getTime() - b.startsAt!.getTime();
-          });
+          logs.sort(
+            (a: OnCallDutyPolicyTimeLog, b: OnCallDutyPolicyTimeLog) => {
+              return a.startsAt!.getTime() - b.startsAt!.getTime();
+            },
+          );
 
           // Merge overlapping time periods
           const mergedPeriods: Array<{ start: Date; end: Date }> = [];
@@ -132,16 +134,18 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
             if (
               mergedPeriods.length === 0 ||
               startDate.getTime() >
-              mergedPeriods[mergedPeriods.length - 1]!.end.getTime()
+                mergedPeriods[mergedPeriods.length - 1]!.end.getTime()
             ) {
               // No overlap - add as a new period
               mergedPeriods.push({ start: startDate, end: endDate });
             } else {
               // Overlapping with the last period - extend the end time if necessary
-              const lastPeriod: {
-                start: Date;
-                end: Date;
-              } | undefined = mergedPeriods[mergedPeriods.length - 1];
+              const lastPeriod:
+                | {
+                    start: Date;
+                    end: Date;
+                  }
+                | undefined = mergedPeriods[mergedPeriods.length - 1];
               if (endDate.getTime() > lastPeriod!.end.getTime()) {
                 lastPeriod!.end = endDate;
               }
@@ -150,10 +154,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
 
           // Calculate total minutes from merged periods (no double counting)
           let totalMinutes: number = 0;
-          mergedPeriods.forEach((period: {
-            start: Date;
-            end: Date;
-          }) => {
+          mergedPeriods.forEach((period: { start: Date; end: Date }) => {
             totalMinutes += OneUptimeDate.getDifferenceInMinutes(
               period.start,
               period.end,
@@ -167,7 +168,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
       // Convert the results to the table data format
       const tableDataItems: TableDataItem[] = [];
       timeLogMap.forEach((totalTimeInMinutesOnCall: number, userId: string) => {
-        const user = userMap.get(userId);
+        const user: User | undefined = userMap.get(userId);
         if (user) {
           tableDataItems.push({
             user: user,
