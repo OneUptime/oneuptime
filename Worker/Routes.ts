@@ -96,6 +96,8 @@ import "./Jobs/OnCallDutySchedule/RefreshHandoffTime";
 
 import "./Jobs/Monitor/DeleteMonitorLogOlderThan24Hours";
 
+import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
+
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import JobDictionary from "./Utils/JobDictionary";
