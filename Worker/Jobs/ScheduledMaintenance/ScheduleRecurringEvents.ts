@@ -1,21 +1,21 @@
 import RunCron from "../../Utils/Cron";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
-import ScheduledMaintenanceTemplateService from "Common/Server/Services/ScheduledMaintenanceTemplateService";
-import ScheduledMaintenanceTemplateOwnerUserService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
-import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
-import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
-import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
-import ScheduledMaintenanceTemplateOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
-import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
-import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
-import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
-import logger from "Common/Server/Utils/Logger";
-import Recurring from "Common/Types/Events/Recurring";
+import LIMIT_MAX from '../../../Common/Types/Database/LimitMax';
+import OneUptimeDate from '../../../Common/Types/Date';
+import { EVERY_MINUTE } from '../../../Common/Utils/CronTime';
+import ScheduledMaintenanceService from '../../../Common/Server/Services/ScheduledMaintenanceService';
+import QueryHelper from '../../../Common/Server/Types/Database/QueryHelper';
+import ScheduledMaintenanceTemplate from '../../../Common/Models/DatabaseModels/ScheduledMaintenanceTemplate';
+import ScheduledMaintenanceTemplateService from '../../../Common/Server/Services/ScheduledMaintenanceTemplateService';
+import ScheduledMaintenanceTemplateOwnerUserService from '../../../Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService';
+import ScheduledMaintenanceOwnerUser from '../../../Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser';
+import ScheduledMaintenanceTemplateOwnerUser from '../../../Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser';
+import ScheduledMaintenanceOwnerTeamService from '../../../Common/Server/Services/ScheduledMaintenanceOwnerTeamService';
+import ScheduledMaintenanceTemplateOwnerTeamService from '../../../Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService';
+import ScheduledMaintenance from '../../../Common/Models/DatabaseModels/ScheduledMaintenance';
+import ScheduledMaintenanceOwnerUserService from '../../../Common/Server/Services/ScheduledMaintenanceOwnerUserService';
+import ScheduledMaintenanceOwnerTeam from '../../../Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam';
+import logger from '../../../Common/Server/Utils/Logger';
+import Recurring from '../../../Common/Types/Events/Recurring';
 
 RunCron(
   "ScheduledMaintenance:ScheduleRecurringEvents",
@@ -71,15 +71,33 @@ RunCron(
           continue;
         }
 
-        // update the next scheduled time for this event.
-        const recurringInterval: Recurring =
-          recurringTemplate.recurringInterval!;
-        const nextScheduledTime: Date =
-          ScheduledMaintenanceTemplateService.getNextEventTime({
-            dateAndTime: recurringTemplate.scheduleNextEventAt!,
-            recurringInterval,
-          });
+        // --- NEW: Fetch the most recent scheduled event for this template ---
+        const lastEvent = (await ScheduledMaintenanceService.findBy({
+          query: {
+            scheduledMaintenanceTemplateId: recurringTemplate.id!,
+          },
+          limit: 1,
+          skip: 0,
+          sort: { startsAt: -1 },
+          select: {
+            startsAt: true,
+            endsAt: true,
+          },
+          props: { isRoot: true },
+        }))[0];
 
+        // --- Use last event's startsAt/endsAt as base, or fallback to template's firstEventStartsAt/firstEventEndsAt ---
+        const baseStart = lastEvent?.startsAt || recurringTemplate.firstEventStartsAt!;
+        const baseEnd = lastEvent?.endsAt || recurringTemplate.firstEventEndsAt!;
+        const recurringInterval: Recurring = recurringTemplate.recurringInterval!;
+        const nextStart = Recurring.getNextDate(baseStart, recurringInterval);
+        const nextEnd = Recurring.getNextDate(baseEnd, recurringInterval);
+
+        // update the next scheduled time for this event (for the next run)
+        const nextScheduledTime: Date = ScheduledMaintenanceTemplateService.getNextEventTime({
+          dateAndTime: nextStart,
+          recurringInterval,
+        });
         await ScheduledMaintenanceTemplateService.updateOneById({
           id: recurringTemplate.id!,
           data: {
@@ -141,36 +159,9 @@ RunCron(
         scheduledMaintenanceEvent.labels = recurringTemplate.labels!;
         scheduledMaintenanceEvent.sendSubscriberNotificationsOnBeforeTheEvent =
           recurringTemplate.sendSubscriberNotificationsOnBeforeTheEvent!;
-
-        const eventscheduledTime: Date = recurringTemplate.scheduleNextEventAt!;
-
-        const firstScheduledTime: Date =
-          recurringTemplate.firstEventScheduledAt!;
-        const firstStartTime: Date = recurringTemplate.firstEventStartsAt!;
-        const firstEndTime: Date = recurringTemplate.firstEventEndsAt!;
-
-        const minutesBetwenScheduledAndStartTime: number =
-          OneUptimeDate.getMinutesBetweenTwoDates(
-            eventscheduledTime,
-            firstStartTime,
-          );
-        const minutesBetweenScheduledAndEndTime: number =
-          OneUptimeDate.getMinutesBetweenTwoDates(
-            eventscheduledTime,
-            firstEndTime,
-          );
-
-        // set the scheduled time for this event.
-        scheduledMaintenanceEvent.createdAt = eventscheduledTime!;
-        scheduledMaintenanceEvent.startsAt = OneUptimeDate.addRemoveMinutes(
-          firstScheduledTime,
-          minutesBetwenScheduledAndStartTime,
-        );
-        scheduledMaintenanceEvent.endsAt = OneUptimeDate.addRemoveMinutes(
-          firstScheduledTime,
-          minutesBetweenScheduledAndEndTime,
-        );
-
+        scheduledMaintenanceEvent.createdAt = nextStart;
+        scheduledMaintenanceEvent.startsAt = nextStart;
+        scheduledMaintenanceEvent.endsAt = nextEnd;
         // now create this event.
 
         scheduledMaintenanceEvent = await ScheduledMaintenanceService.create({
