@@ -24,6 +24,27 @@ export class Service extends DatabaseService<Model> {
       onCallDutyPolicyScheduleId,
       startsAt,
     } = data;
+
+    // check if the time log already exists for the user.
+
+    const existingTimeLog: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        onCallDutyPolicyId,
+        onCallDutyPolicyEscalationRuleId: data.onCallDutyPolicyEscalationRuleId,
+        userId,
+        ...(teamId && { teamId }),
+        ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (existingTimeLog) {
+      return existingTimeLog;
+    }
+
     const timeLog: Model = new Model();
     timeLog.onCallDutyPolicyId = onCallDutyPolicyId;
     timeLog.userId = userId;

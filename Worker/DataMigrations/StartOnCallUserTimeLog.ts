@@ -10,6 +10,7 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import User from "Common/Models/DatabaseModels/User";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleScheduleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
+import OneUptimeDate from "Common/Types/Date";
 
 export default class StartOnCallUserTimeLog extends DataMigrationBase {
   public constructor() {
@@ -42,14 +43,21 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
         });
 
       for (const escalationRule of escalationRulesForUsers) {
-        await OnCallDutyPolicyTimeLogService.startTimeLogForUser({
-          projectId: escalationRule.projectId!,
-          onCallDutyPolicyId: escalationRule.onCallDutyPolicyId!,
-          onCallDutyPolicyEscalationRuleId:
-            escalationRule.onCallDutyPolicyEscalationRuleId!,
-          userId: escalationRule.userId!,
-          startsAt: new Date(),
-        });
+        try {
+          await OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+            projectId: escalationRule.projectId!,
+            onCallDutyPolicyId: escalationRule.onCallDutyPolicyId!,
+            onCallDutyPolicyEscalationRuleId:
+              escalationRule.onCallDutyPolicyEscalationRuleId!,
+            userId: escalationRule.userId!,
+            startsAt: OneUptimeDate.getCurrentDate(),
+          });
+        } catch (err) {
+          logger.error(
+            `Error in starting time log for user ${escalationRule.userId?.toString()}`,
+          );
+          logger.error(err);
+        }
       }
 
       logger.info("Started time logs for all users in escalation rules");
@@ -78,15 +86,22 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
         );
 
         for (const user of users) {
-          await OnCallDutyPolicyTimeLogService.startTimeLogForUser({
-            projectId: escalationRule.projectId!,
-            onCallDutyPolicyId: escalationRule.onCallDutyPolicyId!,
-            onCallDutyPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRuleId!,
-            userId: user.id!,
-            teamId: escalationRule.teamId!,
-            startsAt: new Date(),
-          });
+          try {
+            await OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+              projectId: escalationRule.projectId!,
+              onCallDutyPolicyId: escalationRule.onCallDutyPolicyId!,
+              onCallDutyPolicyEscalationRuleId:
+                escalationRule.onCallDutyPolicyEscalationRuleId!,
+              userId: user.id!,
+              teamId: escalationRule.teamId!,
+              startsAt: OneUptimeDate.getCurrentDate(),
+            });
+          } catch (err) {
+            logger.error(
+              `Error in starting time log for user ${user.id?.toString()}`,
+            );
+            logger.error(err);
+          }
         }
       }
 
@@ -115,15 +130,22 @@ export default class StartOnCallUserTimeLog extends DataMigrationBase {
           continue;
         }
 
-        await OnCallDutyPolicyTimeLogService.startTimeLogForUser({
-          projectId: schedule.projectId!,
-          onCallDutyPolicyId: schedule.onCallDutyPolicyId!,
-          onCallDutyPolicyEscalationRuleId:
-            schedule.onCallDutyPolicyEscalationRuleId!,
-          userId: schedule.onCallDutyPolicySchedule!.currentUserIdOnRoster!,
-          onCallDutyPolicyScheduleId: schedule.onCallDutyPolicyScheduleId!,
-          startsAt: new Date(),
-        });
+        try {
+          await OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+            projectId: schedule.projectId!,
+            onCallDutyPolicyId: schedule.onCallDutyPolicyId!,
+            onCallDutyPolicyEscalationRuleId:
+              schedule.onCallDutyPolicyEscalationRuleId!,
+            userId: schedule.onCallDutyPolicySchedule!.currentUserIdOnRoster!,
+            onCallDutyPolicyScheduleId: schedule.onCallDutyPolicyScheduleId!,
+            startsAt: OneUptimeDate.getCurrentDate(),
+          });
+        } catch (err) {
+          logger.error(
+            `Error in starting time log for schedule ${schedule.id} and user ${schedule.onCallDutyPolicySchedule?.currentUserIdOnRoster}`,
+          );
+          logger.error(err);
+        }
       }
     } catch (err) {
       logger.error("Error in StartOnCallUserTimeLog migration");
