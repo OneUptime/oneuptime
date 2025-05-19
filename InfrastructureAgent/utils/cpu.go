@@ -10,51 +10,19 @@ import (
 )
 
 func GetCpuMetrics() *model.CPUMetrics {
-	//avg, err := load.Avg()
-	//if err != nil {
-	//	slog.Error(err)
-	//	return nil
-	//}
-	//
-	//numCpu, err := cpu.Counts(true)
-	//if err != nil {
-	//	slog.Error(err)
-	//	return nil
-	//}
-	//
-	//// Calculate CPU usage, which is the average load over the last minute divided by the number of CPUs
-	//cpuUsage := (avg.Load1 / float64(numCpu)) * 100
-
-	//trying new calculation method, more accurate
-	// Get CPU times at the start
-	startTimes, err := cpu.Times(false) // false to get the aggregate of all CPUs
-	if err != nil {
-		slog.Error(fmt.Sprintf("error fetching initial CPU times: %v", err))
+	// Use gopsutil's cpu.Percent for accurate CPU usage
+	percent, err := cpu.Percent(time.Second, false)
+	if err != nil || len(percent) == 0 {
+		slog.Error(fmt.Sprintf("error fetching CPU percent: %v", err))
 		return nil
 	}
-
-	// Wait for a short interval (e.g., 1000 milliseconds)
-	time.Sleep(1000 * time.Millisecond)
-
-	// Get CPU times after the interval
-	endTimes, err := cpu.Times(false)
-	if err != nil {
-		slog.Error(fmt.Sprintf("error fetching final CPU times: %v", err))
-		return nil
-	}
-
-	// Calculate the difference in total and idle times
-	totalDelta := TotalCPUTime(endTimes[0]) - TotalCPUTime(startTimes[0])
-	idleDelta := endTimes[0].Idle - startTimes[0].Idle
-
-	// Calculate the CPU usage percentage
-	if totalDelta == 0 {
-		slog.Error("totalDelta is 0")
-		return nil
-	}
-	cpuUsagePercent := (1 - idleDelta/totalDelta) * 100
+	cpuUsagePercent := percent[0]
 
 	numberOfCpuCores, err := cpu.Counts(true)
+	if err != nil {
+		slog.Error(fmt.Sprintf("error fetching CPU core count: %v", err))
+		return nil
+	}
 
 	return &model.CPUMetrics{
 		PercentUsed: cpuUsagePercent,
