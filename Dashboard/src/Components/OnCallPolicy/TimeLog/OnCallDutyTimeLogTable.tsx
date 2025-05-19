@@ -133,10 +133,14 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
             // if start date is less than the start date selected in the range, then
             // set the start date to the start date selected in the range
 
-            if (OneUptimeDate.isBefore(startDate, pickedStartAndEndDate.startValue)) {
+            if (
+              OneUptimeDate.isBefore(
+                startDate,
+                pickedStartAndEndDate.startValue,
+              )
+            ) {
               startDate = pickedStartAndEndDate.startValue;
             }
-
 
             // Check if we should create a new period or extend an existing one
             if (
