@@ -119,7 +119,7 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
           const mergedPeriods: Array<{ start: Date; end: Date }> = [];
 
           logs.forEach((log: OnCallDutyPolicyTimeLog) => {
-            const startDate: Date = log.startsAt!;
+            let startDate: Date = log.startsAt!;
             let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
 
             // if end date is mroe than the end date selected in the range, then
@@ -129,6 +129,14 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
             ) {
               endDate = pickedStartAndEndDate.endValue;
             }
+
+            // if start date is less than the start date selected in the range, then
+            // set the start date to the start date selected in the range
+
+            if (OneUptimeDate.isBefore(startDate, pickedStartAndEndDate.startValue)) {
+              startDate = pickedStartAndEndDate.startValue;
+            }
+
 
             // Check if we should create a new period or extend an existing one
             if (
