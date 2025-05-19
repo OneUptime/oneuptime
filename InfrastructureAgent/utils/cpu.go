@@ -10,13 +10,30 @@ import (
 )
 
 func GetCpuMetrics() *model.CPUMetrics {
-	// Use gopsutil's cpu.Percent for accurate CPU usage
-	percent, err := cpu.Percent(time.Second, false)
-	if err != nil || len(percent) == 0 {
-		slog.Error(fmt.Sprintf("error fetching CPU percent: %v", err))
+	// Get per-core CPU percentages
+	perCorePercent, err := cpu.Percent(time.Second, true)
+	if err != nil {
+		slog.Error(fmt.Sprintf("error fetching per-core CPU percent: %v", err))
 		return nil
 	}
-	cpuUsagePercent := percent[0]
+
+	// Calculate average of all cores
+	var avgCorePercent float64
+	if len(perCorePercent) > 0 {
+		var sum float64
+		for _, p := range perCorePercent {
+			sum += p
+		}
+		avgCorePercent = sum / float64(len(perCorePercent))
+	} else {
+		// Fallback to overall CPU percentage
+		overallPercent, err := cpu.Percent(time.Second, false)
+		if err != nil || len(overallPercent) == 0 {
+			slog.Error(fmt.Sprintf("error fetching CPU percent: %v", err))
+			return nil
+		}
+		avgCorePercent = overallPercent[0]
+	}
 
 	numberOfCpuCores, err := cpu.Counts(true)
 	if err != nil {
@@ -25,13 +42,7 @@ func GetCpuMetrics() *model.CPUMetrics {
 	}
 
 	return &model.CPUMetrics{
-		PercentUsed: cpuUsagePercent,
+		PercentUsed: avgCorePercent,
 		Cores:       numberOfCpuCores,
 	}
-}
-
-func TotalCPUTime(times cpu.TimesStat) float64 {
-	return times.User + times.System + times.Idle + times.Nice +
-		times.Iowait + times.Irq + times.Softirq + times.Steal +
-		times.Guest + times.GuestNice
 }
