@@ -1,4 +1,4 @@
-enum DashboardStartAndEndDateRange {
+enum Range {
   PAST_THIRTY_MINS = "Past 30 Mins",
   PAST_ONE_HOUR = "Past 1 Hour",
   PAST_TWO_HOURS = "Past 2 Hours",
@@ -12,4 +12,4 @@ enum DashboardStartAndEndDateRange {
   CUSTOM = "Custom",
 }
 
-export default DashboardStartAndEndDateRange;
+export default Range;

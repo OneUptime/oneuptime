@@ -18,6 +18,9 @@ import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCal
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
 import User from "../../Models/DatabaseModels/User";
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OneUptimeDate from "../../Types/Date";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -141,6 +144,20 @@ export class Service extends DatabaseService<Model> {
           notifyUserId: createdModel.createdByUserId! || undefined,
         },
       });
+
+      // also add on-call duty time log.
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        projectId: projectId!,
+        onCallDutyPolicyId: onCallDutyPolicyId!,
+        onCallDutyPolicyEscalationRuleId:
+          createdModel.onCallDutyPolicyEscalationRule!.id!,
+        userId: createdModel.user!.id!,
+        startsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((error: Error) => {
+        logger.error(
+          `Error starting time log for user ${createdModel.user?.id}: ${error}`,
+        );
+      });
     }
 
     return createdItem;
@@ -212,6 +229,18 @@ export class Service extends DatabaseService<Model> {
               sendWorkspaceNotification: true,
               notifyUserId: userId || undefined,
             },
+          });
+
+          // also remove on-call duty time log.
+          OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+            projectId: projectId,
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            onCallDutyPolicyEscalationRuleId:
+              item.onCallDutyPolicyEscalationRule!.id!,
+            userId: userId,
+            endsAt: OneUptimeDate.getCurrentDate(),
+          }).catch((error: Error) => {
+            logger.error(`Error ending time log for user ${userId}: ${error}`);
           });
         }
       }

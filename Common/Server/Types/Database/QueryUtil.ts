@@ -20,6 +20,8 @@ import Typeof from "Common/Types/Typeof";
 import { FindOperator } from "typeorm/find-options/FindOperator";
 import { CompareType } from "../../../Types/Database/CompareBase";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
+import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 
 export default class QueryUtil {
   @CaptureSpan()
@@ -159,6 +161,22 @@ export default class QueryUtil {
       ) {
         query[key] = QueryHelper.lessThanEqualTo(
           (query[key] as LessThanOrEqual<CompareType>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof LessThanOrNull &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.lessThanOrNull(
+          (query[key] as LessThanOrNull<CompareType>).toString() as any,
+        ) as any;
+      } else if (
+        query[key] &&
+        query[key] instanceof GreaterThanOrNull &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.greaterThanOrNull(
+          (query[key] as LessThanOrNull<CompareType>).toString() as any,
         ) as any;
       } else if (
         query[key] &&

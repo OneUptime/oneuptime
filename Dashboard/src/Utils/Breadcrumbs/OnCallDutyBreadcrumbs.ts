@@ -112,6 +112,11 @@ export function getOnCallDutyBreadcrumbs(
       "View On-Call Schedule",
       "Delete On-Call Schedule",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALLDUTY_USER_TIME_LOGS, [
+      "Project",
+      "On-Call Duty",
+      "User Time Logs",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

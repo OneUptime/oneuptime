@@ -88,6 +88,26 @@ export default class ServiceHandler {
       },
     );
 
+    pageData.lessThanOrNullCode = await LocalCache.getOrSetString(
+      "data-type",
+      "less-than-or-equal",
+      async () => {
+        return await LocalFile.read(
+          `${CodeExamplesPath}/DataTypes/LessThanOrNull.md`,
+        );
+      },
+    );
+
+    pageData.greaterThanOrNullCode = await LocalCache.getOrSetString(
+      "data-type",
+      "less-than-or-equal",
+      async () => {
+        return await LocalFile.read(
+          `${CodeExamplesPath}/DataTypes/LessThanOrNull.md`,
+        );
+      },
+    );
+
     pageData.isNullCode = await LocalCache.getOrSetString(
       "data-type",
       "is-null",

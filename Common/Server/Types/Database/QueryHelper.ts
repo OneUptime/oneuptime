@@ -314,6 +314,21 @@ export default class QueryHelper {
   }
 
   @CaptureSpan()
+  public static lessThanOrNull<T extends number | Date>(
+    value: T,
+  ): FindWhereProperty<T> {
+    const rid: string = Text.generateRandomText(10);
+    return Raw(
+      (alias: string) => {
+        return `(${alias} < :${rid} or ${alias} IS NULL)`;
+      },
+      {
+        [rid]: value,
+      },
+    ) as FindWhereProperty<T>;
+  }
+
+  @CaptureSpan()
   public static lessThanEqualToOrNull<T extends number | Date>(
     value: T,
   ): FindWhereProperty<T> {

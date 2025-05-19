@@ -25,8 +25,8 @@ export interface ComponentProps<T extends GenericObject> {
   showFilterModal: boolean;
   onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
   filterError?: string | undefined;
-  onFilterModalClose: () => void;
-  onFilterModalOpen: () => void;
+  onFilterModalClose?: (() => void) | undefined;
+  onFilterModalOpen?: (() => void) | undefined;
   isModalLoading?: boolean;
   onFilterRefreshClick?: undefined | (() => void);
   filterData?: FilterData<T> | undefined;
@@ -399,7 +399,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               <Button
                 onClick={() => {
                   changeFilterData({});
-                  props.onFilterModalClose();
+                  props.onFilterModalClose && props.onFilterModalClose();
                 }}
                 className="font-medium text-gray-900"
                 icon={IconProp.Close}
@@ -421,7 +421,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
           } by the following criteria:`}
           submitButtonText={`Apply Filters`}
           onClose={() => {
-            props.onFilterModalClose();
+            props.onFilterModalClose && props.onFilterModalClose();
           }}
           onSubmit={() => {
             setTempFilterDataForModal({});
@@ -430,7 +430,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 ...tempFilterDataForModal,
               });
             }
-            props.onFilterModalClose();
+            props.onFilterModalClose && props.onFilterModalClose();
           }}
         >
           <FiltersForm

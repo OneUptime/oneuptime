@@ -532,6 +532,8 @@ enum Permission {
   DeleteOnCallDutyPolicyUserOverride = "DeleteOnCallDutyPolicyUserOverride",
   ReadOnCallDutyPolicyUserOverride = "ReadOnCallDutyPolicyUserOverride",
 
+  ReadOnCallDutyPolicyTimeLog = "ReadOnCallDutyPolicyTimeLog",
+
   // Resource Permissions (Team Permission)
   CreateProjectOnCallDutyPolicyEscalationRuleUser = "CreateProjectOnCallDutyPolicyEscalationRuleUser",
   EditProjectOnCallDutyPolicyEscalationRuleUser = "EditProjectOnCallDutyPolicyEscalationRuleUser",
@@ -2420,6 +2422,15 @@ export class PermissionHelper {
         title: "Read On-Call Duty Policy Escalation Rule",
         description:
           "This permission can read on-call duty escalation rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.ReadOnCallDutyPolicyTimeLog,
+        title: "Create On-Call Policy Time Log",
+        description:
+          "This permission can read on-call policy time log this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

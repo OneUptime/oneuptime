@@ -57,6 +57,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.User}
         />
+
         <SideMenuItem
           link={{
             title: "Execution Logs",
@@ -67,6 +68,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           icon={IconProp.Logs}
           subItemIcon={IconProp.Clock}
           subItemLink={subItemMenuLink}
+        />
+      </SideMenuSection>
+      <SideMenuSection title="Reports">
+        <SideMenuItem
+          link={{
+            title: "User On Call Time",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ON_CALLDUTY_USER_TIME_LOGS] as Route,
+            ),
+          }}
+          icon={IconProp.Clock}
         />
       </SideMenuSection>
       <SideMenuSection title="Workspace Connections">

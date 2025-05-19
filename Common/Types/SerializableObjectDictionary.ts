@@ -9,6 +9,8 @@ import Includes from "./BaseDatabase/Includes";
 import IsNull from "./BaseDatabase/IsNull";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
+import LessThanOrNull from "./BaseDatabase/LessThanOrNull";
+import GreaterThanOrNull from "./BaseDatabase/GreaterThanOrNull";
 import NotEqual from "./BaseDatabase/NotEqual";
 import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
@@ -54,6 +56,8 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.GreaterThanOrEqual]: GreaterThanOrEqual,
   [ObjectType.LessThan]: LessThan,
   [ObjectType.LessThanOrEqual]: LessThanOrEqual,
+  [ObjectType.LessThanOrNull]: LessThanOrNull,
+  [ObjectType.GreaterThanOrNull]: GreaterThanOrNull,
   [ObjectType.Port]: Port,
   [ObjectType.Hostname]: Hostname,
   [ObjectType.HashedString]: HashedString,

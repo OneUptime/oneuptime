@@ -3,10 +3,12 @@ import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
+import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import { CompareType } from "../../../Types/Database/CompareBase";
@@ -31,6 +33,8 @@ export type RecordValue =
   | LessThan<CompareType>
   | LessThanOrEqual<CompareType>
   | GreaterThanOrEqual<CompareType>
+  | GreaterThanOrNull<CompareType>
+  | LessThanOrNull<CompareType>
   | Array<number>
   | Array<string>
   | Array<ObjectID>

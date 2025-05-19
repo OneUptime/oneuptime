@@ -19,6 +19,8 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Team from "../../Models/DatabaseModels/Team";
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OneUptimeDate from "../../Types/Date";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -133,6 +135,17 @@ export class Service extends DatabaseService<Model> {
         callRequestMessage: callMessage,
         eventType:
           NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
+      });
+
+      // add start log
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        userId: sendEmailToUserId,
+        onCallDutyPolicyId: createdModel.onCallDutyPolicy!.id!,
+        onCallDutyPolicyEscalationRuleId:
+          createdModel.onCallDutyPolicyEscalationRule!.id!,
+        projectId: createdModel.projectId!,
+        teamId: createdModel.teamId!,
+        startsAt: new Date(),
       });
     }
 
@@ -303,6 +316,18 @@ export class Service extends DatabaseService<Model> {
           callRequestMessage: callMessage,
           eventType:
             NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
+        });
+
+        // end time log
+        await OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+          userId: sendEmailToUserId,
+          onCallDutyPolicyId: deletedItem.onCallDutyPolicy!.id!,
+          onCallDutyPolicyEscalationRuleId:
+            deletedItem.onCallDutyPolicyEscalationRule!.id!,
+
+          projectId: deletedItem.projectId!,
+          teamId: deletedItem.teamId!,
+          endsAt: OneUptimeDate.getCurrentDate(),
         });
       }
     }

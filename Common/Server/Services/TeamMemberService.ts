@@ -34,6 +34,8 @@ import Project from "Common/Models/DatabaseModels/Project";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import ProjectUserService from "./ProjectUserService";
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import OneUptimeDate from "../../Types/Date";
 
 export class TeamMemberService extends DatabaseService<TeamMember> {
   public constructor() {
@@ -280,6 +282,14 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
     // check if there's one member in the team.
     for (const member of members) {
+      OnCallDutyPolicyTimeLogService.endTimeForUser({
+        projectId: member.projectId!,
+        userId: member.userId!,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
+
       if (member.team?.shouldHaveAtLeastOneMember) {
         if (!member.hasAcceptedInvitation) {
           continue;
