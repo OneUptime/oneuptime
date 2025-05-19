@@ -32,12 +32,46 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Green500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnDelete } from "../Types/Database/Hooks";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
 
   public constructor() {
     super(OnCallDutyPolicySchedule);
+  }
+
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<OnCallDutyPolicySchedule>,
+  ): Promise<OnDelete<OnCallDutyPolicySchedule>> {
+    const callSchedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
+      query: deleteBy.query,
+      select: {
+        _id: true,
+        projectId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const schedule of callSchedules) {
+      OnCallDutyPolicyTimeLogService.endTimeForSchedule({
+        projectId: schedule.projectId!,
+        onCallDutyPolicyScheduleId: schedule.id!,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(err);
+      });
+    }
+
+    return {
+      deleteBy: deleteBy,
+      carryForward: {},
+    };
   }
 
   public async getOnCallSchedulesWhereUserIsOnCallDuty(data: {
