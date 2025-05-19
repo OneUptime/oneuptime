@@ -21,6 +21,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import { MonitorStepProbeResponse } from "./MonitorProbe";
 import Probe from "./Probe";
+import Monitor from "./Monitor";
 
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -475,4 +476,78 @@ export default class MonitorTest extends BaseModel {
     default: true,
   })
   public isInQueue?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor ID",
+    description: "ID of the Monitor this test is related to.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "monitorId",
+    type: TableColumnType.Entity,
+    modelType: Monitor,
+    title: "Monitor",
+    description: "Relation to Monitor Resource in which this test belongs.",
+  })
+  @ManyToOne(
+    () => Monitor,
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "monitorId" })
+  public monitor?: Monitor = undefined;
 }

@@ -555,6 +555,21 @@ router.post(
 
       await Promise.all(updatePromises);
 
+      // Fetch secrets for each monitor test if monitorId exists
+      for (const test of monitorTests) {
+        if (test.monitorId) {
+          // Fetch secrets for this monitorId
+          test.secrets = await global["MonitorSecretService"].findBy({
+            query: { monitorId: test.monitorId },
+            limit: 100,
+            skip: 0,
+            props: { isRoot: true },
+          });
+        } else {
+          test.secrets = [];
+        }
+      }
+
       logger.debug("Sending response");
 
       return Response.sendEntityArrayResponse(

@@ -70,6 +70,10 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
       monitorTestObj.probeId = probeId;
       monitorTestObj.monitorType = props.monitorType;
       monitorTestObj.isInQueue = true;
+      // Add monitorId if available in props
+      if ((props as any).monitorId) {
+        monitorTestObj.monitorId = (props as any).monitorId;
+      }
 
       // save the monitor test to the database.
 
