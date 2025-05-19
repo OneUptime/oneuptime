@@ -526,6 +526,7 @@ router.post(
           monitorSteps: true,
           _id: true,
           projectId: true,
+          monitorId: true,
         },
         props: {
           isRoot: true,
@@ -555,13 +556,38 @@ router.post(
 
       await Promise.all(updatePromises);
 
+      logger.debug("Populating secrets");
+      logger.debug(monitorTests);
+
+      // check if the monitor needs secrets to be filled.
+
+      let monitorTestsWithSecretPopulated: Array<MonitorTest> = [];
+      const monitorTestsWithSecretsPopulatePromises: Array<
+        Promise<MonitorTest>
+      > = [];
+
+      for (const monitorTest of monitorTests) {
+        monitorTestsWithSecretsPopulatePromises.push(
+          MonitorUtil.populateSecretsOnMonitorTest(monitorTest),
+        );
+      }
+
+      monitorTestsWithSecretPopulated = await Promise.all(
+        monitorTestsWithSecretsPopulatePromises,
+      );
+
+      logger.debug("Populated secrets");
+      logger.debug(monitorTestsWithSecretPopulated);
+
+      // return the list of monitors to be monitored
+
       logger.debug("Sending response");
 
       return Response.sendEntityArrayResponse(
         req,
         res,
-        monitorTests,
-        new PositiveNumber(monitorTests.length),
+        monitorTestsWithSecretPopulated,
+        new PositiveNumber(monitorTestsWithSecretPopulated.length),
         MonitorTest,
       );
     } catch (err) {

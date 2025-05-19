@@ -2,7 +2,6 @@ import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Dictionary from "Common/Types/Dictionary";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IP from "Common/Types/IP/IP";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -11,53 +10,56 @@ import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
+import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import ObjectID from "Common/Types/ObjectID";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 
 export default class MonitorUtil {
-  public static async populateSecrets(monitor: Monitor): Promise<Monitor> {
+  public static async loadMonitorSecrets(
+    monitorId: ObjectID,
+  ): Promise<MonitorSecret[]> {
+    const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
+      query: {
+        monitors: [monitorId] as any,
+      },
+      select: {
+        secretValue: true,
+        name: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return secrets;
+  }
+
+  public static async populateSecretsInMonitorSteps(data: {
+    monitorSteps: MonitorSteps;
+    monitorType: MonitorType;
+    monitorId: ObjectID;
+  }): Promise<MonitorSteps> {
     const isSecretsLoaded: boolean = false;
     let monitorSecrets: MonitorSecret[] = [];
 
-    const loadSecrets: PromiseVoidFunction = async (): Promise<void> => {
-      if (isSecretsLoaded) {
-        return;
-      }
+    const monitorSteps: MonitorSteps = data.monitorSteps;
+    const monitorType: MonitorType = data.monitorType;
+    const monitorId: ObjectID = data.monitorId;
 
-      if (!monitor.id) {
-        return;
-      }
-
-      const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
-        query: {
-          monitors: [monitor.id] as any,
-        },
-        select: {
-          secretValue: true,
-          name: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      monitorSecrets = secrets;
-    };
-
-    if (!monitor.monitorSteps) {
-      return monitor;
-    }
-
-    if (monitor.monitorType === MonitorType.API) {
-      for (const monitorStep of monitor.monitorSteps?.data
-        ?.monitorStepsInstanceArray || []) {
+    if (monitorType === MonitorType.API) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
         if (
           monitorStep.data?.requestHeaders &&
           this.hasSecrets(
             JSONFunctions.toString(monitorStep.data.requestHeaders),
           )
         ) {
-          await loadSecrets();
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
 
           monitorStep.data.requestHeaders =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -68,7 +70,9 @@ export default class MonitorUtil {
           monitorStep.data?.requestBody &&
           this.hasSecrets(JSONFunctions.toString(monitorStep.data.requestBody))
         ) {
-          await loadSecrets();
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
 
           monitorStep.data.requestBody =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -80,15 +84,15 @@ export default class MonitorUtil {
     }
 
     if (
-      monitor.monitorType === MonitorType.API ||
-      monitor.monitorType === MonitorType.IP ||
-      monitor.monitorType === MonitorType.Ping ||
-      monitor.monitorType === MonitorType.Port ||
-      monitor.monitorType === MonitorType.Website ||
-      monitor.monitorType === MonitorType.SSLCertificate
+      monitorType === MonitorType.API ||
+      monitorType === MonitorType.IP ||
+      monitorType === MonitorType.Ping ||
+      monitorType === MonitorType.Port ||
+      monitorType === MonitorType.Website ||
+      monitorType === MonitorType.SSLCertificate
     ) {
-      for (const monitorStep of monitor.monitorSteps?.data
-        ?.monitorStepsInstanceArray || []) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
         if (
           monitorStep.data?.monitorDestination &&
           this.hasSecrets(
@@ -96,7 +100,9 @@ export default class MonitorUtil {
           )
         ) {
           // replace secret in monitorDestination.
-          await loadSecrets();
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
 
           monitorStep.data.monitorDestination =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -108,17 +114,19 @@ export default class MonitorUtil {
     }
 
     if (
-      monitor.monitorType === MonitorType.SyntheticMonitor ||
-      monitor.monitorType === MonitorType.CustomJavaScriptCode
+      monitorType === MonitorType.SyntheticMonitor ||
+      monitorType === MonitorType.CustomJavaScriptCode
     ) {
-      for (const monitorStep of monitor.monitorSteps?.data
-        ?.monitorStepsInstanceArray || []) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
         if (
           monitorStep.data?.customCode &&
           this.hasSecrets(JSONFunctions.toString(monitorStep.data.customCode))
         ) {
           // replace secret in script
-          await loadSecrets();
+          if (!isSecretsLoaded) {
+            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+          }
 
           monitorStep.data.customCode =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -128,6 +136,62 @@ export default class MonitorUtil {
         }
       }
     }
+
+    return monitorSteps;
+  }
+
+  public static async populateSecretsOnMonitorTest(
+    monitorTest: MonitorTest,
+  ): Promise<MonitorTest> {
+    const monitorId: ObjectID | undefined = monitorTest.monitorId;
+
+    if (!monitorId) {
+      return monitorTest;
+    }
+
+    if (!monitorTest.monitorSteps) {
+      return monitorTest;
+    }
+
+    if (!monitorTest.monitorSteps.data) {
+      return monitorTest;
+    }
+
+    if (!monitorTest.monitorType) {
+      return monitorTest;
+    }
+
+    monitorTest.monitorSteps = await MonitorUtil.populateSecretsInMonitorSteps({
+      monitorSteps: monitorTest.monitorSteps,
+      monitorType: monitorTest.monitorType,
+      monitorId: monitorId,
+    });
+
+    return monitorTest;
+  }
+
+  public static async populateSecrets(monitor: Monitor): Promise<Monitor> {
+    if (!monitor.id) {
+      return monitor;
+    }
+
+    if (!monitor.monitorSteps) {
+      return monitor;
+    }
+
+    if (!monitor.monitorSteps.data) {
+      return monitor;
+    }
+
+    if (!monitor.monitorType) {
+      return monitor;
+    }
+
+    monitor.monitorSteps = await MonitorUtil.populateSecretsInMonitorSteps({
+      monitorSteps: monitor.monitorSteps,
+      monitorType: monitor.monitorType,
+      monitorId: monitor.id,
+    });
 
     return monitor;
   }

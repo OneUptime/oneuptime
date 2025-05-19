@@ -124,6 +124,7 @@ const MonitorCriteria: FunctionComponent<
           description: "Here is the criteria we use to monitor this resource.",
           rightElement: monitorSteps ? (
             <MonitorTestForm
+              monitorId={modelId}
               buttonSize={ButtonSize.Normal}
               monitorSteps={monitorSteps}
               monitorType={monitorType}
