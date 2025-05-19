@@ -23,10 +23,11 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import LessThan from "Common/Types/BaseDatabase/LessThan";
+import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
 
 export interface ComponentProps {
   projectId: ObjectID;
@@ -59,13 +60,38 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(startAndEndDate);
 
       const startDate: Date = pickedStartAndEndDate.startValue;
+      const endDate: Date = pickedStartAndEndDate.endValue;
 
-      const onCallDutyPolicyTimeLogs: ListResult<OnCallDutyPolicyTimeLog> =
+      const onCallDutyPolicyTimeLogsStartsAt: ListResult<OnCallDutyPolicyTimeLog> =
         await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
           modelType: OnCallDutyPolicyTimeLog,
           query: {
             projectId: props.projectId,
-            startsAt: new GreaterThanOrEqual<Date>(startDate),
+            startsAt: new LessThan<Date>(endDate),
+          },
+          select: {
+            user: {
+              _id: true,
+              name: true,
+              email: true,
+              profilePictureId: true,
+            },
+            startsAt: true,
+            endsAt: true,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+        });
+
+      const onCallDutyPolicyTimeLogsEndsAt: ListResult<OnCallDutyPolicyTimeLog> =
+        await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
+          modelType: OnCallDutyPolicyTimeLog,
+          query: {
+            projectId: props.projectId,
+            endsAt: new GreaterThanOrNull<Date>(startDate),
           },
           select: {
             user: {
@@ -85,7 +111,10 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
         });
 
       // Extract time logs from the API response
-      const timeLogs: OnCallDutyPolicyTimeLog[] = onCallDutyPolicyTimeLogs.data;
+      const timeLogs: OnCallDutyPolicyTimeLog[] = [
+        ...onCallDutyPolicyTimeLogsStartsAt.data,
+        ...onCallDutyPolicyTimeLogsEndsAt.data,
+      ];
 
       // Group time logs by user ID
       const userTimeLogs: Map<string, OnCallDutyPolicyTimeLog[]> = new Map();
