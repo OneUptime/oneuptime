@@ -1,4 +1,4 @@
-import AlignItem from "../../../Types/AlignItem";
+import AlignItem from "../../Types/AlignItem";
 import { Logger } from "../../Utils/Logger";
 import CodeEditor from "../CodeEditor/CodeEditor";
 import ColorViewer from "../ColorViewer/ColorViewer";

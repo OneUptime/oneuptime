@@ -3,10 +3,10 @@ import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTi
 import TimeRange from "../../../Types/Time/TimeRange";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
-import { GetReactElementFunction } from "../../UI/Types/FunctionTypes";
+import { GetReactElementFunction } from "../../../UI/Types/FunctionTypes";
 import HeaderAlert, {
   HeaderAlertType,
-} from "../../UI/Components/HeaderAlert/HeaderAlert";
+} from "../../../UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "../../../Types/ColorSwatch";
 import RangeStartAndEndDateEdit from "./RangeStartAndEndDateEdit";
 import Modal from "../Modal/Modal";

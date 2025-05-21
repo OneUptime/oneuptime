@@ -8,10 +8,10 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import ObjectID from "Common/Types/ObjectID";
-import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import ObjectID from "../../../Types/ObjectID";
+import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
