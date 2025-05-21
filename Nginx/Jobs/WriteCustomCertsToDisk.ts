@@ -58,12 +58,12 @@ export default class Jobs {
 
           // Write to disk.
           await LocalFile.write(
-            `/etc/nginx/certs/StatusPageCerts/${cert.domain}.crt`,
+            `/etc/nginx/certs/StatusPageCerts/${cert.fullDomain}.crt`,
             cert.customCertificate?.toString() || "",
           );
 
           await LocalFile.write(
-            `/etc/nginx/certs/StatusPageCerts/${cert.domain}.key`,
+            `/etc/nginx/certs/StatusPageCerts/${cert.fullDomain}.key`,
             cert.customCertificateKey?.toString() || "",
           );
 
