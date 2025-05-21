@@ -8,14 +8,14 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import "../TestingUtils/Init";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import { UserTenantAccessPermission } from "Common/Types/Permission";
-import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import OneUptimeDate from "../../../Types/Date";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import ObjectID from "../../../Types/ObjectID";
+import { UserTenantAccessPermission } from "../../../Types/Permission";
+import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import { describe, expect, afterEach, jest } from "@jest/globals";
-import getJestMockFunction from "Common/Tests/MockType";
-import { getJestSpyOn } from "Common/Tests/Spy";
+import getJestMockFunction from "../../../Tests/MockType";
+import { getJestSpyOn } from "../../../Tests/Spy";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";
 import APIKeyAccessPermission from "../../../Server/Utils/APIKey/AccessPermission";
 

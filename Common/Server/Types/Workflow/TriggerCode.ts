@@ -2,10 +2,10 @@
 //
 import { ExpressRouter } from "../../Utils/Express";
 import ComponentCode, { RunOptions, RunReturnType } from "./ComponentCode";
-import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
-import ObjectID from "../../Types/ObjectID";
-import { Port } from "../../Types/Workflow/Component";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import { Port } from "../../../Types/Workflow/Component";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export interface ExecuteWorkflowType {

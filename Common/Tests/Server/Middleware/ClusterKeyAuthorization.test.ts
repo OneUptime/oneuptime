@@ -6,8 +6,8 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 
 describe("ClusterKeyAuthorization", () => {
   describe("getClusterKeyHeaders", () => {

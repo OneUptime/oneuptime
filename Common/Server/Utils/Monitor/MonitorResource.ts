@@ -10,34 +10,34 @@ import SSLMonitorCriteria from "./Criteria/SSLMonitorCriteria";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import DataToProcess from "./DataToProcess";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import Dictionary from "../../Types/Dictionary";
-import BadDataException from "../../Types/Exception/BadDataException";
-import BasicInfrastructureMetrics from "../../Types/Infrastructure/BasicMetrics";
-import ReturnResult from "../../Types/IsolatedVM/ReturnResult";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import BasicInfrastructureMetrics from "../../../Types/Infrastructure/BasicMetrics";
+import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
-import { JSONObject } from "../../Types/JSON";
-import { CheckOn, CriteriaFilter } from "../../Types/Monitor/CriteriaFilter";
-import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import MonitorCriteria from "../../Types/Monitor/MonitorCriteria";
-import MonitorCriteriaInstance from "../../Types/Monitor/MonitorCriteriaInstance";
-import MonitorStep from "../../Types/Monitor/MonitorStep";
-import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import { JSONObject } from "../../../Types/JSON";
+import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
+import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
-} from "../../Types/Monitor/MonitorType";
-import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
-import ObjectID from "../../Types/ObjectID";
-import ProbeApiIngestResponse from "../../Types/Probe/ProbeApiIngestResponse";
-import ProbeMonitorResponse from "../../Types/Probe/ProbeMonitorResponse";
-import Typeof from "../../Types/Typeof";
-import Monitor from "../../Models/DatabaseModels/Monitor";
-import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
-import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
-import OneUptimeDate from "../../Types/Date";
+} from "../../../Types/Monitor/MonitorType";
+import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ObjectID from "../../../Types/ObjectID";
+import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
+import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import Typeof from "../../../Types/Typeof";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
+import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import OneUptimeDate from "../../../Types/Date";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
-import LogMonitorResponse from "../../Types/Monitor/LogMonitor/LogMonitorResponse";
-import TelemetryType from "../../Types/Telemetry/TelemetryType";
+import LogMonitorResponse from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
@@ -1296,7 +1296,7 @@ export default class MonitorResourceUtil {
         return null;
       }
 
-      if (result.returnValue) {
+      if (result && result.returnValue) {
         return `JavaScript Expression - ${expression} - evaluated to true.`;
       }
 

@@ -8,10 +8,10 @@ import {
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 // Helpers
 import Response from "../../../Server/Utils/Response";
-import { OnCallInputRequest } from "Common/Types/Call/CallRequest";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
+import { OnCallInputRequest } from "../../../Types/Call/CallRequest";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 
 jest.mock("twilio/lib/twiml/VoiceResponse");
@@ -21,7 +21,7 @@ jest.mock("../../../Server/Utils/JsonWebToken", () => {
     decodeJsonPayload: jest.fn(),
   };
 });
-jest.mock("Common/Types/JSONFunctions", () => {
+jest.mock("../../../Types/JSONFunctions", () => {
   return {
     deserialize: jest.fn(),
   };

@@ -5,8 +5,8 @@ import {
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import { describe, expect, it } from "@jest/globals";
-import { JSONObject } from "Common/Types/JSON";
-import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import { JSONObject } from "../../../Types/JSON";
+import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
 describe("BearerTokenAuthorization", () => {
   describe("isAuthorizedBearerToken", () => {

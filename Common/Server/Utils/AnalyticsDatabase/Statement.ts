@@ -1,18 +1,18 @@
 import { BaseQueryParams } from "@clickhouse/client";
 import { integer } from "@elastic/elasticsearch/lib/api/types";
-import { RecordValue } from "../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
-import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
-import GreaterThan from "../../Types/BaseDatabase/GreaterThan";
-import GreaterThanOrEqual from "../../Types/BaseDatabase/GreaterThanOrEqual";
-import Includes from "../../Types/BaseDatabase/Includes";
-import LessThan from "../../Types/BaseDatabase/LessThan";
-import LessThanOrEqual from "../../Types/BaseDatabase/LessThanOrEqual";
+import { RecordValue } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
+import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import LessThan from "../../../Types/BaseDatabase/LessThan";
+import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
-import Search from "../../Types/BaseDatabase/Search";
-import OneUptimeDate from "../../Types/Date";
-import Dictionary from "../../Types/Dictionary";
-import ObjectID from "../../Types/ObjectID";
+import Search from "../../../Types/BaseDatabase/Search";
+import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
+import ObjectID from "../../../Types/ObjectID";
 import { inspect } from "util";
 
 /**

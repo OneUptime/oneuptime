@@ -9,7 +9,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import APIComponents from "../../../../../Types/Workflow/Components/API";
-import API from "../../Utils/API";
+import API from "../../../../../Utils/API";
 import logger from "../../../../Utils/Logger";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 

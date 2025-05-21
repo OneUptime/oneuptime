@@ -11,19 +11,19 @@ import {
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
-import Dictionary from "Common/Types/Dictionary";
-import Email from "Common/Types/Email";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import SsoAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
-import HashedString from "Common/Types/HashedString";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import ObjectID from "Common/Types/ObjectID";
+import Dictionary from "../../../Types/Dictionary";
+import Email from "../../../Types/Email";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
+import HashedString from "../../../Types/HashedString";
+import JSONFunctions from "../../../Types/JSONFunctions";
+import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import ObjectID from "../../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
-} from "Common/Types/Permission";
-import Project from "Common/Models/DatabaseModels/Project";
+} from "../../../Types/Permission";
+import Project from "../../../Models/DatabaseModels/Project";
 import {
   describe,
   expect,
@@ -32,8 +32,8 @@ import {
   afterEach,
   jest,
 } from "@jest/globals";
-import { getJestSpyOn } from "Common/Tests/Spy";
-import getJestMockFunction from "Common/Tests/MockType";
+import { getJestSpyOn } from "../../../Tests/Spy";
+import getJestMockFunction from "../../../Tests/MockType";
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -43,8 +43,8 @@ jest.mock("../../../Server/Services/UserService");
 jest.mock("../../../Server/Services/AccessTokenService");
 jest.mock("../../../Server/Utils/Response");
 jest.mock("../../../Server/Services/ProjectService");
-jest.mock("Common/Types/HashedString");
-jest.mock("Common/Types/JSONFunctions");
+jest.mock("../../../Types/HashedString");
+jest.mock("../../../Types/JSONFunctions");
 
 type StringOrUndefined = string | undefined;
 
