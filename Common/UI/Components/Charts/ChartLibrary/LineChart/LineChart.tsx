@@ -29,7 +29,7 @@ import {
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
-import ChartCurve from "../../../Types/ChartCurve";
+import ChartCurve from "../../Types/ChartCurve";
 
 //#region Legend
 
