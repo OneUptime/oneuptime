@@ -4,16 +4,16 @@ import {
   DashboardRoute,
   AppApiRoute,
   StatusPageApiRoute,
-} from "../../ServiceRoute";
+} from "../../../ServiceRoute";
 import BillingConfig from "./BillingConfig";
-import Hostname from "../../Types/API/Hostname";
-import Protocol from "../../Types/API/Protocol";
-import URL from "../../Types/API/URL";
-import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
-import Email from "../../Types/Email";
-import { JSONObject } from "../../Types/JSON";
-import ObjectID from "../../Types/ObjectID";
-import Port from "../../Types/Port";
+import Hostname from "../../../Types/API/Hostname";
+import Protocol from "../../../Types/API/Protocol";
+import URL from "../../../Types/API/URL";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import Email from "../../../Types/Email";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import Port from "../../../Types/Port";
 
 export enum ConfigLogLevel {
   INFO = "INFO",
