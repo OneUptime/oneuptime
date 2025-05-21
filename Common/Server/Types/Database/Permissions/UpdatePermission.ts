@@ -4,9 +4,9 @@ import AccessControlUtil from "./AccessControlPermission";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import ColumnPermissions from "./ColumnPermission";
 import TablePermission from "./TablePermission";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UpdatePermission {

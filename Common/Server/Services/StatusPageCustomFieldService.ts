@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/StatusPageCustomField";
+import Model from "../../Models/DatabaseModels/StatusPageCustomField";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

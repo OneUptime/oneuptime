@@ -1,12 +1,12 @@
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
+import CopilotCodeRepository from "../../Models/DatabaseModels/CopilotCodeRepository";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
-import ObjectID from "Common/Types/ObjectID";
+import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class CopilotCodeRepositoryAuthorization {

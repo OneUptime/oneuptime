@@ -1,6 +1,6 @@
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
+import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";

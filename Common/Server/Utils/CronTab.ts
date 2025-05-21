@@ -1,4 +1,4 @@
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import CronParser, { CronExpression } from "cron-parser";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 

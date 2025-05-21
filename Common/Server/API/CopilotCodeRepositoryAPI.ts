@@ -1,4 +1,4 @@
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate from "../../Types/Date";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
 import CopilotCodeRepositoryService, {
   Service as CopilotCodeRepositoryServiceType,
@@ -11,11 +11,11 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
-import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import CopilotCodeRepository from "../../Models/DatabaseModels/CopilotCodeRepository";
+import ServiceCopilotCodeRepository from "../../Models/DatabaseModels/ServiceCopilotCodeRepository";
 
 export default class CopilotCodeRepositoryAPI extends BaseAPI<
   CopilotCodeRepository,

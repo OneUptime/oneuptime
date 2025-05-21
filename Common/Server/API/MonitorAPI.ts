@@ -9,7 +9,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Monitor from "../../Models/DatabaseModels/Monitor";
 import ObjectID from "../../Types/ObjectID";
 
 export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {

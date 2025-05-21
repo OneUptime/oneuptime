@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import MonitorTest from "../../Models/DatabaseModels/MonitorTest";
 
 export class Service extends DatabaseService<MonitorTest> {
   public constructor() {

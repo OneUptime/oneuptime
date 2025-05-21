@@ -1,4 +1,4 @@
-import ObjectID from "Common/Types/ObjectID";
+import ObjectID from "../../Types/ObjectID";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import UserTwoFactorAuthService, {
   Service as UserTwoFactorAuthServiceType,
@@ -10,11 +10,11 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import BaseAPI from "./BaseAPI";
-import UserTwoFactorAuth from "Common/Models/DatabaseModels/UserTwoFactorAuth";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import UserTwoFactorAuth from "../../Models/DatabaseModels/UserTwoFactorAuth";
+import BadDataException from "../../Types/Exception/BadDataException";
 import TwoFactorAuth from "../Utils/TwoFactorAuth";
 import Response from "../Utils/Response";
-import User from "Common/Models/DatabaseModels/User";
+import User from "../../Models/DatabaseModels/User";
 import UserService from "../Services/UserService";
 
 export default class UserTwoFactorAuthAPI extends BaseAPI<

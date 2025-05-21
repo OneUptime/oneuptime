@@ -1,4 +1,4 @@
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export type SelectPropertyOptions<T> = boolean | SelectOptions<T> | undefined;
 

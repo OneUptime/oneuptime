@@ -7,7 +7,7 @@ import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import { JSONObject } from "../../Types/JSON";
-import API from "Common/Utils/API";
+import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class StatusPageCertificateService extends BaseService {

@@ -1,10 +1,10 @@
 import logger from "../Utils/Logger";
 import Redis, { ClientType } from "./Redis";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
+import { JSONArray, JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default abstract class GlobalCache {

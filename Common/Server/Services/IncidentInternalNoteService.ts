@@ -1,6 +1,6 @@
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/IncidentInternalNote";
+import Model from "../../Models/DatabaseModels/IncidentInternalNote";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";

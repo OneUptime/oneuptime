@@ -1,17 +1,17 @@
 import logger from "../../../Utils/Logger";
 import DataToProcess from "../DataToProcess";
-import OneUptimeDate from "Common/Types/Date";
-import { JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "../../Types/Date";
+import { JSONObject } from "../../Types/JSON";
 import {
   CheckOn,
   CriteriaFilter,
   FilterType,
-} from "Common/Types/Monitor/CriteriaFilter";
-import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import Typeof from "Common/Types/Typeof";
+} from "../../Types/Monitor/CriteriaFilter";
+import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import Typeof from "../../Types/Typeof";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CompareCriteria from "./CompareCriteria";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ProbeMonitorResponse from "../../Types/Probe/ProbeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class IncomingRequestCriteria {

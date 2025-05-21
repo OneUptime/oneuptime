@@ -7,12 +7,12 @@ import Express, {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import Exception from "Common/Types/Exception/Exception";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ObjectID from "Common/Types/ObjectID";
-import Permission, { UserPermission } from "Common/Types/Permission";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
+import JSONFunctions from "../../Types/JSONFunctions";
+import ObjectID from "../../Types/ObjectID";
+import Permission, { UserPermission } from "../../Types/Permission";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 const router: ExpressRouter = Express.getRouter();
 

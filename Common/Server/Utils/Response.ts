@@ -8,20 +8,20 @@ import JsonToCsv from "./JsonToCsv";
 import logger from "./Logger";
 import AnalyticsDataModel, {
   AnalyticsBaseModelType,
-} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+} from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import FileModel from "Common/Models/DatabaseModels/DatabaseBaseModel/FileModel";
-import EmptyResponse from "Common/Types/API/EmptyResponse";
-import StatusCode from "Common/Types/API/StatusCode";
-import URL from "Common/Types/API/URL";
-import { DEFAULT_LIMIT } from "Common/Types/Database/LimitMax";
-import Dictionary from "Common/Types/Dictionary";
-import Exception from "Common/Types/Exception/Exception";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
-import ListData from "Common/Types/ListData";
-import PositiveNumber from "Common/Types/PositiveNumber";
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import FileModel from "../../Models/DatabaseModels/DatabaseBaseModel/FileModel";
+import EmptyResponse from "../../Types/API/EmptyResponse";
+import StatusCode from "../../Types/API/StatusCode";
+import URL from "../../Types/API/URL";
+import { DEFAULT_LIMIT } from "../../Types/Database/LimitMax";
+import Dictionary from "../../Types/Dictionary";
+import Exception from "../../Types/Exception/Exception";
+import { JSONArray, JSONObject } from "../../Types/JSON";
+import ListData from "../../Types/ListData";
+import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 

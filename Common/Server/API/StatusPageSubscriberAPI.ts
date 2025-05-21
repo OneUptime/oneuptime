@@ -8,7 +8,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 
 export default class StatusPageSubscriberAPI extends BaseAPI<
   StatusPageSubscriber,

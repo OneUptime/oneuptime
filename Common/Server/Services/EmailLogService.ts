@@ -1,6 +1,6 @@
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/EmailLog";
+import Model from "../../Models/DatabaseModels/EmailLog";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

@@ -1,12 +1,12 @@
 import IO, { Socket, SocketServer } from "../Infrastructure/SocketIO";
 import logger from "./Logger";
-import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseType from "Common/Types/BaseDatabase/DatabaseType";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import RealtimeUtil from "Common/Utils/Realtime";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseType from "../../Types/BaseDatabase/DatabaseType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import RealtimeUtil from "../../Utils/Realtime";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
 import JSONWebToken from "./JsonWebToken";
 import Permission, {

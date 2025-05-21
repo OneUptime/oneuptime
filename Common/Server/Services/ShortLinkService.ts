@@ -2,13 +2,13 @@ import DatabaseConfig from "../DatabaseConfig";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import { LinkShortenerRoute } from "Common/ServiceRoute";
+import { LinkShortenerRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
 import Text from "../../Types/Text";
-import Model from "Common/Models/DatabaseModels/ShortLink";
+import Model from "../../Models/DatabaseModels/ShortLink";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

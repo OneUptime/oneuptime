@@ -10,9 +10,9 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
-import Label from "Common/Models/DatabaseModels/Label";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import Label from "../../Models/DatabaseModels/Label";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 import PermissionNamespace from "../Types/Permission/PermissionNamespace";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";

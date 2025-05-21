@@ -1,7 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import Model from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";

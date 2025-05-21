@@ -8,7 +8,7 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import Model, {
   ScheduledMaintenanceFeedEventType,
-} from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
+} from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";

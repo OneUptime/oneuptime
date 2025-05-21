@@ -1,8 +1,8 @@
-import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import LessThan from "Common/Types/BaseDatabase/LessThan";
-import ObjectID from "Common/Types/ObjectID";
+import GreaterThan from "../../Types/BaseDatabase/GreaterThan";
+import InBetween from "../../Types/BaseDatabase/InBetween";
+import Includes from "../../Types/BaseDatabase/Includes";
+import LessThan from "../../Types/BaseDatabase/LessThan";
+import ObjectID from "../../Types/ObjectID";
 import { CompareType } from "../../../Types/Database/CompareBase";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 

@@ -1,4 +1,4 @@
-import CopilotCodeRepository from "Common/Models/DatabaseModels/CopilotCodeRepository";
+import CopilotCodeRepository from "../../Models/DatabaseModels/CopilotCodeRepository";
 import CopilotPullRequestService, {
   Service as CopilotPullRequestServiceType,
 } from "../Services/CopilotPullRequestService";
@@ -9,13 +9,13 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
 import CopilotCodeRepositoryService from "../Services/CopilotCodeRepositoryService";
 import CodeRepositoryAuthorization from "../Middleware/CodeRepositoryAuthorization";
-import CopilotPullRequest from "Common/Models/DatabaseModels/CopilotPullRequest";
-import PullRequestState from "Common/Types/CodeRepository/PullRequestState";
+import CopilotPullRequest from "../../Models/DatabaseModels/CopilotPullRequest";
+import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 
 export default class CopilotPullRequestAPI extends BaseAPI<
   CopilotPullRequest,

@@ -1,6 +1,6 @@
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
+import Model from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";

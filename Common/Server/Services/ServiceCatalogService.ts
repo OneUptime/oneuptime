@@ -3,7 +3,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ArrayUtil from "../../Utils/Array";
 import { BrightColors } from "../../Types/BrandColors";
-import Model from "Common/Models/DatabaseModels/ServiceCatalog";
+import Model from "../../Models/DatabaseModels/ServiceCatalog";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {

@@ -4,7 +4,7 @@ import logger from "../Utils/Logger";
 import { ClickhouseAppInstance } from "./ClickhouseDatabase";
 import PostgresAppInstance from "./PostgresDatabase";
 import Redis from "./Redis";
-import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
+import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class InfrastructureStatus {

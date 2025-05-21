@@ -1,7 +1,7 @@
-import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
-import CommonAggregateBy from "Common/Types/BaseDatabase/AggregateBy";
-import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
+import CommonAggregateBy from "../../Types/BaseDatabase/AggregateBy";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 

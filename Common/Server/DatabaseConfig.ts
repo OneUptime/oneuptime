@@ -1,12 +1,12 @@
 import GlobalConfigService from "./Services/GlobalConfigService";
-import { AccountsRoute, DashboardRoute } from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import URL from "Common/Types/API/URL";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONValue } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { AccountsRoute, DashboardRoute } from "../../ServiceRoute";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import URL from "../../Types/API/URL";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONValue } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import CaptureSpan from "./Utils/Telemetry/CaptureSpan";
 
 export default class DatabaseConfig {

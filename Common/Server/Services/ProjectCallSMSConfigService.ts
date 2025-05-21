@@ -1,7 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Model from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import Model from "../../Models/DatabaseModels/ProjectCallSMSConfig";
 import Phone from "../../Types/Phone";
 
 export class Service extends DatabaseService<Model> {

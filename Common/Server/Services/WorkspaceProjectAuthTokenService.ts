@@ -3,7 +3,7 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
   SlackMiscData,
-} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+} from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

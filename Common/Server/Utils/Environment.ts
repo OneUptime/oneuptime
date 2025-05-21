@@ -1,4 +1,4 @@
-import AppEnvironment from "Common/Types/AppEnvironment";
+import AppEnvironment from "../../Types/AppEnvironment";
 import dotenv from "dotenv";
 
 const Env: string = process.env["NODE_ENV"] || AppEnvironment.Development;

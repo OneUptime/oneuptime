@@ -12,7 +12,7 @@ import {
   ShouldRedisTlsEnable,
 } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
-import Sleep from "Common/Types/Sleep";
+import Sleep from "../../Types/Sleep";
 import { Redis as RedisClient, RedisOptions } from "ioredis";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

@@ -2,23 +2,23 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
 import TablePermission from "./TablePermission";
-import AccessControlModel from "Common/Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
+import AccessControlModel from "../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import ArrayUtil from "Common/Utils/Array";
-import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ArrayUtil from "../../Utils/Array";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
-import ObjectID from "Common/Types/ObjectID";
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import ObjectID from "../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   UserPermission,
-} from "Common/Types/Permission";
+} from "../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class AccessControlPermission {

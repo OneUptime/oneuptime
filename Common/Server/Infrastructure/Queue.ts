@@ -4,8 +4,8 @@ import {
   RedisPassword,
   RedisPort,
 } from "../EnvironmentConfig";
-import Dictionary from "Common/Types/Dictionary";
-import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "../../Types/Dictionary";
+import { JSONObject } from "../../Types/JSON";
 import { Queue as BullQueue, Job, JobsOptions } from "bullmq";
 import { ExpressAdapter } from "@bull-board/express";
 import { createBullBoard } from "@bull-board/api";

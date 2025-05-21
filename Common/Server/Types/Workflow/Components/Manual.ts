@@ -1,8 +1,8 @@
 import TriggerCode from "../TriggerCode";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ComponentMetadata from "Common/Types/Workflow/Component";
-import ComponentID from "Common/Types/Workflow/ComponentID";
-import ManualComponents from "Common/Types/Workflow/Components/Manual";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ComponentMetadata from "../../Types/Workflow/Component";
+import ComponentID from "../../Types/Workflow/ComponentID";
+import ManualComponents from "../../Types/Workflow/Components/Manual";
 
 export default class ManualTrigger extends TriggerCode {
   public constructor() {

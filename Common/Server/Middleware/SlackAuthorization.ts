@@ -4,7 +4,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import BadDataException from "../../Types/Exception/BadDataException";
 import { SlackAppSigningSecret } from "../EnvironmentConfig";
 import crypto from "crypto";
 import logger from "../Utils/Logger";

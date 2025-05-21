@@ -9,8 +9,8 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import UserEmail from "Common/Models/DatabaseModels/UserEmail";
+import BadDataException from "../../Types/Exception/BadDataException";
+import UserEmail from "../../Models/DatabaseModels/UserEmail";
 
 export default class UserEmailAPI extends BaseAPI<
   UserEmail,

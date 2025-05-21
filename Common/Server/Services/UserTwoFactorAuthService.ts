@@ -1,11 +1,11 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/UserTwoFactorAuth";
+import Model from "../../Models/DatabaseModels/UserTwoFactorAuth";
 import TwoFactorAuth from "../Utils/TwoFactorAuth";
 import UserService from "./UserService";
 import BadDataException from "../../Types/Exception/BadDataException";
-import User from "Common/Models/DatabaseModels/User";
+import User from "../../Models/DatabaseModels/User";
 import DeleteBy from "../Types/Database/DeleteBy";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";

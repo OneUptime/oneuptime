@@ -1,16 +1,16 @@
 import DatabaseService from "../../../../Services/DatabaseService";
 import Query from "../../../Database/Query";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Text from "Common/Types/Text";
-import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
-import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Text from "../../Types/Text";
+import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
+import BaseModelComponents from "../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class UpdateManyBaseModel<

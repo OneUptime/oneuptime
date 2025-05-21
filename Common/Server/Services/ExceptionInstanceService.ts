@@ -1,6 +1,6 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
-import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 
 export class ExceptionInstanceService extends AnalyticsDatabaseService<ExceptionInstance> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

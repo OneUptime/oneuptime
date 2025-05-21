@@ -2,7 +2,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
+import Model from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import Dictionary from "../../Types/Dictionary";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";

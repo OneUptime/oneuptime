@@ -9,7 +9,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 

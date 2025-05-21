@@ -8,7 +8,7 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import IncidentFeed, {
   IncidentFeedEventType,
-} from "Common/Models/DatabaseModels/IncidentFeed";
+} from "../../Models/DatabaseModels/IncidentFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";

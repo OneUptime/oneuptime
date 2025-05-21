@@ -1,12 +1,12 @@
 import { ExpressRequest, ExpressResponse } from "./Express";
-import Dictionary from "Common/Types/Dictionary";
-import ObjectID from "Common/Types/ObjectID";
+import Dictionary from "../../Types/Dictionary";
+import ObjectID from "../../Types/ObjectID";
 import { CookieOptions } from "express";
 import JSONWebToken from "./JsonWebToken";
-import User from "Common/Models/DatabaseModels/User";
-import OneUptimeDate from "Common/Types/Date";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import CookieName from "Common/Types/CookieName";
+import User from "../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../Types/Date";
+import PositiveNumber from "../../Types/PositiveNumber";
+import CookieName from "../../Types/CookieName";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CookieUtil {

@@ -8,15 +8,15 @@ import {
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import { UserTenantAccessPermission } from "Common/Types/Permission";
-import UserType from "Common/Types/UserType";
-import ApiKey from "Common/Models/DatabaseModels/ApiKey";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
-import User from "Common/Models/DatabaseModels/User";
+import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import { UserTenantAccessPermission } from "../../Types/Permission";
+import UserType from "../../Types/UserType";
+import ApiKey from "../../Models/DatabaseModels/ApiKey";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import User from "../../Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

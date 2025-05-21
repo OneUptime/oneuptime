@@ -10,11 +10,11 @@ import SelectPermission from "./SelectPermission";
 import TablePermission from "./TablePermission";
 import TenantPermission from "./TenantPermission";
 import UserPermissions from "./UserPermission";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
-import TableColumnType from "Common/Types/Database/TableColumnType";
-import ObjectID from "Common/Types/ObjectID";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { TableColumnMetadata } from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {

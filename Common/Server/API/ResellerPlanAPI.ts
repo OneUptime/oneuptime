@@ -13,15 +13,15 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import StatusCode from "Common/Types/API/StatusCode";
-import URL from "Common/Types/API/URL";
-import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import Email from "Common/Types/Email";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import Project from "Common/Models/DatabaseModels/Project";
-import PromoCode from "Common/Models/DatabaseModels/PromoCode";
-import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
+import StatusCode from "../../Types/API/StatusCode";
+import URL from "../../Types/API/URL";
+import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import Email from "../../Types/Email";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import Project from "../../Models/DatabaseModels/Project";
+import PromoCode from "../../Models/DatabaseModels/PromoCode";
+import ResellerPlan from "../../Models/DatabaseModels/ResellerPlan";
 
 export default class ResellerPlanAPI extends BaseAPI<
   ResellerPlan,

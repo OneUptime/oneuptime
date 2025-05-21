@@ -1,7 +1,7 @@
 import Team from "../../Models/DatabaseModels/Team";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import TeamService from "./TeamService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";

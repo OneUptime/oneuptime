@@ -12,8 +12,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
-import Project from "Common/Models/DatabaseModels/Project";
-import Model from "Common/Models/DatabaseModels/UserCall";
+import Project from "../../Models/DatabaseModels/Project";
+import Model from "../../Models/DatabaseModels/UserCall";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {

@@ -6,8 +6,8 @@ import DatabaseService from "./DatabaseService";
 import ProjectService from "./ProjectService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Model from "Common/Models/DatabaseModels/BillingPaymentMethod";
-import Project from "Common/Models/DatabaseModels/Project";
+import Model from "../../Models/DatabaseModels/BillingPaymentMethod";
+import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {

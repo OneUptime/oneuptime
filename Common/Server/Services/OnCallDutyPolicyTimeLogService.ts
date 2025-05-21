@@ -1,7 +1,7 @@
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/OnCallDutyPolicyTimeLog";
+import Model from "../../Models/DatabaseModels/OnCallDutyPolicyTimeLog";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

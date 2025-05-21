@@ -6,13 +6,13 @@ import Select from "../Select";
 import SelectUtil from "../SelectUtil";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import TablePermission from "./TablePermission";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import ObjectID from "Common/Types/ObjectID";
-import Permission, { UserPermission } from "Common/Types/Permission";
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import ObjectID from "../../Types/ObjectID";
+import Permission, { UserPermission } from "../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>

@@ -1,6 +1,6 @@
 import logger from "../Utils/Logger";
 import DatabaseDataSourceOptions from "./Postgres/DataSourceOptions";
-import Sleep from "Common/Types/Sleep";
+import Sleep from "../../Types/Sleep";
 import { DataSource, DataSourceOptions } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";

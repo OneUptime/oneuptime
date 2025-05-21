@@ -2,11 +2,11 @@ import BillingService from "../../../Services/BillingService";
 import ProjectService from "../../../Services/ProjectService";
 import TelemetryUsageBillingService from "../../../Services/TelemetryUsageBillingService";
 import ServerMeteredPlan from "./ServerMeteredPlan";
-import OneUptimeDate from "Common/Types/Date";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
-import ObjectID from "Common/Types/ObjectID";
-import Project from "Common/Models/DatabaseModels/Project";
-import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
+import OneUptimeDate from "../../Types/Date";
+import ProductType from "../../Types/MeteredPlan/ProductType";
+import ObjectID from "../../Types/ObjectID";
+import Project from "../../Models/DatabaseModels/Project";
+import TelemetryUsageBilling from "../../Models/DatabaseModels/TelemetryUsageBilling";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class TelemetryMeteredPlan extends ServerMeteredPlan {

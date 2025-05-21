@@ -5,7 +5,7 @@ import Domain from "../Types/Domain";
 import DatabaseService from "./DatabaseService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Text from "../../Types/Text";
-import Model from "Common/Models/DatabaseModels/Domain";
+import Model from "../../Models/DatabaseModels/Domain";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export class Service extends DatabaseService<Model> {
   public constructor() {

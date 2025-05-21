@@ -3,25 +3,25 @@ import {
   getAllEnvVars,
 } from "../../../../Server/EnvironmentConfig";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
-import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import ColumnBillingAccessControl from "../../Types/BaseDatabase/ColumnBillingAccessControl";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import Columns from "Common/Types/Database/Columns";
-import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
-import TableColumnType from "Common/Types/Database/TableColumnType";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
+import Columns from "../../Types/Database/Columns";
+import { TableColumnMetadata } from "../../Types/Database/TableColumn";
+import TableColumnType from "../../Types/Database/TableColumnType";
+import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 
 import Permission, {
   PermissionHelper,
   UserPermission,
-} from "Common/Types/Permission";
+} from "../../Types/Permission";
 
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 

@@ -10,9 +10,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import Model from "Common/Models/DatabaseModels/TeamPermission";
+import Team from "../../Models/DatabaseModels/Team";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import Model from "../../Models/DatabaseModels/TeamPermission";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

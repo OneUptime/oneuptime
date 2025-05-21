@@ -2,7 +2,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/ServiceCatalogMonitor";
+import Model from "../../Models/DatabaseModels/ServiceCatalogMonitor";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

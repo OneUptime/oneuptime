@@ -1,15 +1,15 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import { ApiComponentUtils } from "./Utils";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
-import ComponentID from "Common/Types/Workflow/ComponentID";
-import APIComponents from "Common/Types/Workflow/Components/API";
-import API from "Common/Utils/API";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import URL from "../../Types/API/URL";
+import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
+import ComponentID from "../../Types/Workflow/ComponentID";
+import APIComponents from "../../Types/Workflow/Components/API";
+import API from "../../Utils/API";
 import logger from "../../../../Utils/Logger";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 

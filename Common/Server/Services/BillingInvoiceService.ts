@@ -8,8 +8,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model, {
   InvoiceStatus,
-} from "Common/Models/DatabaseModels/BillingInvoice";
-import Project from "Common/Models/DatabaseModels/Project";
+} from "../../Models/DatabaseModels/BillingInvoice";
+import Project from "../../Models/DatabaseModels/Project";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
 import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";

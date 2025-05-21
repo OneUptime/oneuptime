@@ -14,8 +14,8 @@ import {
   NodeDataProp,
   NodeType,
 } from "../../Types/Workflow/Component";
-import API from "Common/Utils/API";
-import Model from "Common/Models/DatabaseModels/Workflow";
+import API from "../../Utils/API";
+import Model from "../../Models/DatabaseModels/Workflow";
 import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {

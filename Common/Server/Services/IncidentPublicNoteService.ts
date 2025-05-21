@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
-import Model from "Common/Models/DatabaseModels/IncidentPublicNote";
+import Model from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Blue500, Indigo500 } from "../../Types/BrandColors";

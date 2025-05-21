@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/GreenlockCertificate";
+import Model from "../../Models/DatabaseModels/GreenlockCertificate";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

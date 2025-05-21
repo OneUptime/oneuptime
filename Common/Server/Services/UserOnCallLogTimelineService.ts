@@ -12,8 +12,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
-import User from "Common/Models/DatabaseModels/User";
-import Model from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import User from "../../Models/DatabaseModels/User";
+import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
 
 export class Service extends DatabaseService<Model> {

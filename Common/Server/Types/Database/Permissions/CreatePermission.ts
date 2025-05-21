@@ -1,8 +1,8 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "./ColumnPermission";
 import TablePermission from "./TablePermission";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class CreatePermission {

@@ -14,24 +14,24 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import ProjectMiddleware from "./ProjectAuthorization";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import Exception from "Common/Types/Exception/Exception";
-import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
-import SsoAuthorizationException from "Common/Types/Exception/SsoAuthorizationException";
-import TenantNotFoundException from "Common/Types/Exception/TenantNotFoundException";
-import HashedString from "Common/Types/HashedString";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import ObjectID from "Common/Types/ObjectID";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
+import Exception from "../../Types/Exception/Exception";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import SsoAuthorizationException from "../../Types/Exception/SsoAuthorizationException";
+import TenantNotFoundException from "../../Types/Exception/TenantNotFoundException";
+import HashedString from "../../Types/HashedString";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import ObjectID from "../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
-} from "Common/Types/Permission";
-import UserType from "Common/Types/UserType";
-import Project from "Common/Models/DatabaseModels/Project";
+} from "../../Types/Permission";
+import UserType from "../../Types/UserType";
+import Project from "../../Models/DatabaseModels/Project";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
 
 export default class UserMiddleware {

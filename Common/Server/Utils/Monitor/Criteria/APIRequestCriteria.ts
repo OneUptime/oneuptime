@@ -1,14 +1,14 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import EvaluateOverTime from "./EvaluateOverTime";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "../../Types/JSON";
 import {
   CheckOn,
   CriteriaFilter,
   FilterType,
-} from "Common/Types/Monitor/CriteriaFilter";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import Typeof from "Common/Types/Typeof";
+} from "../../Types/Monitor/CriteriaFilter";
+import ProbeMonitorResponse from "../../Types/Probe/ProbeMonitorResponse";
+import Typeof from "../../Types/Typeof";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 

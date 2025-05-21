@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/WorkflowVariable";
+import Model from "../../Models/DatabaseModels/WorkflowVariable";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

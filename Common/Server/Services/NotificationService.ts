@@ -5,7 +5,7 @@ import BillingService from "./BillingService";
 import ProjectService from "./ProjectService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
-import Project from "Common/Models/DatabaseModels/Project";
+import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class NotificationService extends BaseService {

@@ -10,7 +10,7 @@ import CallRequest from "../../Types/Call/CallRequest";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import API from "Common/Utils/API";
+import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class CallService extends BaseService {

@@ -3,7 +3,7 @@ import ObjectID from "../../Types/ObjectID";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
+import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import UserService from "./UserService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";

@@ -11,7 +11,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Model from "Common/Models/DatabaseModels/StatusPageResource";
+import Model from "../../Models/DatabaseModels/StatusPageResource";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

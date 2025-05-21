@@ -1,4 +1,4 @@
-import User from "Common/Models/DatabaseModels/User";
+import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -6,11 +6,11 @@ import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import Model, {
   ProbeConnectionStatus,
-} from "Common/Models/DatabaseModels/Probe";
-import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+} from "../../Models/DatabaseModels/Probe";
+import ProbeOwnerUser from "../../Models/DatabaseModels/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import ProbeOwnerTeam from "../../Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
 import BadDataException from "../../Types/Exception/BadDataException";

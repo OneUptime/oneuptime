@@ -1,7 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import Model from "../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "../../Types/BrandColors";

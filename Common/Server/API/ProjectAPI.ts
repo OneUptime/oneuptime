@@ -14,12 +14,12 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Project from "Common/Models/DatabaseModels/Project";
-import Reseller from "Common/Models/DatabaseModels/Reseller";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Project from "../../Models/DatabaseModels/Project";
+import Reseller from "../../Models/DatabaseModels/Reseller";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {

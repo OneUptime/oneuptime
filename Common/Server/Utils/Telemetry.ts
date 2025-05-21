@@ -28,8 +28,8 @@ import {
 import * as opentelemetry from "@opentelemetry/sdk-node";
 import { SpanExporter } from "@opentelemetry/sdk-trace-node";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
-import URL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
+import URL from "../../Types/API/URL";
+import Dictionary from "../../Types/Dictionary";
 import { DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
 

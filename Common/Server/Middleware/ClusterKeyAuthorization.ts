@@ -5,8 +5,8 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
+import Dictionary from "../../Types/Dictionary";
+import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class ClusterKeyAuthorization {

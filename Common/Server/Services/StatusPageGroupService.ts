@@ -10,7 +10,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Model from "Common/Models/DatabaseModels/StatusPageGroup";
+import Model from "../../Models/DatabaseModels/StatusPageGroup";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

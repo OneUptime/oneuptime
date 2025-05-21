@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import TableView from "Common/Models/DatabaseModels/TableView";
+import TableView from "../../Models/DatabaseModels/TableView";
 
 export class Service extends DatabaseService<TableView> {
   public constructor() {

@@ -1,4 +1,4 @@
-import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
+import AggregateBy from "../../Types/BaseDatabase/AggregateBy";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import AnalyticsDatabaseService from "../Services/AnalyticsDatabaseService";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
@@ -15,19 +15,19 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
-import AnalyticsDataModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AnalyticsDataModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DEFAULT_LIMIT,
   LIMIT_PER_PROJECT,
-} from "Common/Types/Database/LimitMax";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ObjectID from "Common/Types/ObjectID";
-import { UserPermission } from "Common/Types/Permission";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+} from "../../Types/Database/LimitMax";
+import BadRequestException from "../../Types/Exception/BadRequestException";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import ObjectID from "../../Types/ObjectID";
+import { UserPermission } from "../../Types/Permission";
+import PositiveNumber from "../../Types/PositiveNumber";
+import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class BaseAnalyticsAPI<

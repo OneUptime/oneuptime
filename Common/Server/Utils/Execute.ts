@@ -1,4 +1,4 @@
-import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
+import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import { ExecException, exec } from "node:child_process";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";

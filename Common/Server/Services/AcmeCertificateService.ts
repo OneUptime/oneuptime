@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/AcmeCertificate";
+import Model from "../../Models/DatabaseModels/AcmeCertificate";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

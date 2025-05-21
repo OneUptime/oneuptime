@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/PromoCode";
+import Model from "../../Models/DatabaseModels/PromoCode";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

@@ -11,8 +11,8 @@ import {
   ShouldDatabaseSslEnable,
 } from "../../../Server/EnvironmentConfig";
 import Migrations from "./SchemaMigrations/Index";
-import DatabaseType from "Common/Types/DatabaseType";
-import Entities from "Common/Models/DatabaseModels/Index";
+import DatabaseType from "../../Types/DatabaseType";
+import Entities from "../../Models/DatabaseModels/Index";
 import { DataSourceOptions } from "typeorm";
 
 const dataSourceOptions: DataSourceOptions = {

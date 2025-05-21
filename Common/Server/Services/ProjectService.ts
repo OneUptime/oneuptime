@@ -1,4 +1,4 @@
-import ResellerPlan from "Common/Models/DatabaseModels/ResellerPlan";
+import ResellerPlan from "../../Models/DatabaseModels/ResellerPlan";
 import {
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateProject,
@@ -51,16 +51,16 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
-import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import Model from "Common/Models/DatabaseModels/Project";
-import PromoCode from "Common/Models/DatabaseModels/PromoCode";
-import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
-import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
-import User from "Common/Models/DatabaseModels/User";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import Model from "../../Models/DatabaseModels/Project";
+import PromoCode from "../../Models/DatabaseModels/PromoCode";
+import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import Team from "../../Models/DatabaseModels/Team";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
+import User from "../../Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
 import Query from "../Types/Database/Query";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";

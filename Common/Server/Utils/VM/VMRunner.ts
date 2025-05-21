@@ -1,7 +1,7 @@
-import Dictionary from "Common/Types/Dictionary";
-import GenericObject from "Common/Types/GenericObject";
-import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import Dictionary from "../../Types/Dictionary";
+import GenericObject from "../../Types/GenericObject";
+import ReturnResult from "../../Types/IsolatedVM/ReturnResult";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import axios from "axios";
 import http from "http";
 import https from "https";

@@ -1,17 +1,17 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import EvaluateOverTime from "./EvaluateOverTime";
-import OneUptimeDate from "Common/Types/Date";
-import { BasicDiskMetrics } from "Common/Types/Infrastructure/BasicMetrics";
-import { JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "../../Types/Date";
+import { BasicDiskMetrics } from "../../Types/Infrastructure/BasicMetrics";
+import { JSONObject } from "../../Types/JSON";
 import {
   CheckOn,
   CriteriaFilter,
   FilterType,
-} from "Common/Types/Monitor/CriteriaFilter";
+} from "../../Types/Monitor/CriteriaFilter";
 import ServerMonitorResponse, {
   ServerProcess,
-} from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+} from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 

@@ -7,16 +7,16 @@ import Response from "../../../../Utils/Response";
 import Select from "../../../Database/Select";
 import { RunOptions, RunReturnType } from "../../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../../TriggerCode";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ObjectID from "Common/Types/ObjectID";
-import Text from "Common/Types/Text";
-import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
-import BaseModelComponents from "Common/Types/Workflow/Components/BaseModel";
-import Workflow from "Common/Models/DatabaseModels/Workflow";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import ObjectID from "../../Types/ObjectID";
+import Text from "../../Types/Text";
+import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
+import BaseModelComponents from "../../Types/Workflow/Components/BaseModel";
+import Workflow from "../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export default class OnTriggerBaseModel<

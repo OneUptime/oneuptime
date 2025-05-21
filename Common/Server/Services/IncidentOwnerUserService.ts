@@ -1,6 +1,6 @@
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import Model from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";

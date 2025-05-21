@@ -2,7 +2,7 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/ProjectUser";
+import Model from "../../Models/DatabaseModels/ProjectUser";
 import TeamMemberService from "./TeamMemberService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

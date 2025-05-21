@@ -1,7 +1,7 @@
 import Express from "../Utils/Express";
 import Redis from "./Redis";
-import { RealtimeRoute } from "Common/ServiceRoute";
-import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
+import { RealtimeRoute } from "../../ServiceRoute";
+import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import http from "http";
 import SocketIO from "socket.io";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";

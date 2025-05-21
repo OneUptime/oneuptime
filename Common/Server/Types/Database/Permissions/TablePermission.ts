@@ -3,17 +3,17 @@ import BillingPermissions from "./BillingPermission";
 import PublicPermission from "./PublicPermission";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import Permission, {
   PermissionHelper,
   UserPermission,
-} from "Common/Types/Permission";
+} from "../../Types/Permission";
 
 export default class TablePermission {
   @CaptureSpan()

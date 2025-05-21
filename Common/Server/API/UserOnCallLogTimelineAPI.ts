@@ -10,16 +10,16 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { AppApiRoute, DashboardRoute } from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import { AppApiRoute, DashboardRoute } from "../../ServiceRoute";
+import Hostname from "../../Types/API/Hostname";
+import Protocol from "../../Types/API/Protocol";
+import URL from "../../Types/API/URL";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import Route from "../../Types/API/Route";
 
 export default class UserNotificationLogTimelineAPI extends BaseAPI<

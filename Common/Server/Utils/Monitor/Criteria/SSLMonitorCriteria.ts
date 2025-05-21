@@ -1,13 +1,13 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate from "../../Types/Date";
 import {
   CheckOn,
   CriteriaFilter,
   FilterType,
-} from "Common/Types/Monitor/CriteriaFilter";
-import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
-import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+} from "../../Types/Monitor/CriteriaFilter";
+import SslMonitorResponse from "../../Types/Monitor/SSLMonitor/SslMonitorResponse";
+import ProbeMonitorResponse from "../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";

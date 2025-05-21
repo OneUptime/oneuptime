@@ -1,6 +1,6 @@
 import { AirtableApiKey, AirtableBaseId } from "../EnvironmentConfig";
-import Dictionary from "Common/Types/Dictionary";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import Dictionary from "../../Types/Dictionary";
+import PositiveNumber from "../../Types/PositiveNumber";
 import AirtableLib, { FieldSet, Records } from "airtable";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

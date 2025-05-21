@@ -1,7 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/MonitorOwnerTeam";
+import Model from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";

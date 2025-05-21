@@ -1,4 +1,4 @@
-import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
+import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import fs from "fs";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 

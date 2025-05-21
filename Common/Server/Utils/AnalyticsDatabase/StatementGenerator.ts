@@ -6,29 +6,29 @@ import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
-import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonModel, {
   Record,
   RecordValue,
-} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
-import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
-import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import IsNull from "Common/Types/BaseDatabase/IsNull";
-import LessThan from "Common/Types/BaseDatabase/LessThan";
-import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
+} from "../../Models/AnalyticsModels/AnalyticsBaseModel/CommonModel";
+import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
+import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import GreaterThan from "../../Types/BaseDatabase/GreaterThan";
+import GreaterThanOrEqual from "../../Types/BaseDatabase/GreaterThanOrEqual";
+import InBetween from "../../Types/BaseDatabase/InBetween";
+import Includes from "../../Types/BaseDatabase/Includes";
+import IsNull from "../../Types/BaseDatabase/IsNull";
+import LessThan from "../../Types/BaseDatabase/LessThan";
+import LessThanOrEqual from "../../Types/BaseDatabase/LessThanOrEqual";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
-import NotEqual from "Common/Types/BaseDatabase/NotEqual";
-import Search from "Common/Types/BaseDatabase/Search";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
+import NotEqual from "../../Types/BaseDatabase/NotEqual";
+import Search from "../../Types/BaseDatabase/Search";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
 import AggregateBy, {
   AggregateUtil,
 } from "../../Types/AnalyticsDatabase/AggregateBy";

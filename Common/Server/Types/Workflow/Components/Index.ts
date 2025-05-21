@@ -28,10 +28,10 @@ import MicrosoftTeamsSendMessageToChannel from "./MicrosoftTeams/SendMessageToCh
 import Schedule from "./Schedule";
 import SlackSendMessageToChannel from "./Slack/SendMessageToChannel";
 import WebhookTrigger from "./Webhook";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Dictionary from "Common/Types/Dictionary";
-import Text from "Common/Types/Text";
-import ComponentID from "Common/Types/Workflow/ComponentID";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Dictionary from "../../Types/Dictionary";
+import Text from "../../Types/Text";
+import ComponentID from "../../Types/Workflow/ComponentID";
 import ApiPatch from "./API/Patch";
 
 const Components: Dictionary<ComponentCode> = {

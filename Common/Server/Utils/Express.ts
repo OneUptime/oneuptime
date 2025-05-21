@@ -1,15 +1,15 @@
 import logger from "./Logger";
-import Dictionary from "Common/Types/Dictionary";
-import GenericFunction from "Common/Types/GenericFunction";
-import { JSONObject, JSONObjectOrArray } from "Common/Types/JSON";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import ObjectID from "Common/Types/ObjectID";
+import Dictionary from "../../Types/Dictionary";
+import GenericFunction from "../../Types/GenericFunction";
+import { JSONObject, JSONObjectOrArray } from "../../Types/JSON";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import ObjectID from "../../Types/ObjectID";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
-} from "Common/Types/Permission";
-import Port from "Common/Types/Port";
-import UserType from "Common/Types/UserType";
+} from "../../Types/Permission";
+import Port from "../../Types/Port";
+import UserType from "../../Types/UserType";
 import "ejs";
 import express from "express";
 import { Server, createServer } from "http";

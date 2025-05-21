@@ -1,6 +1,6 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
-import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
+import MonitorLog from "../../Models/AnalyticsModels/MonitorLog";
 
 export class Service extends AnalyticsDatabaseService<MonitorLog> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {

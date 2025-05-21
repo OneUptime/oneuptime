@@ -1,5 +1,5 @@
 import logger from "./Logger";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import cron from "node-cron";
 
 type BasicCronProps = {

@@ -1,6 +1,6 @@
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/AlertInternalNote";
+import Model from "../../Models/DatabaseModels/AlertInternalNote";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";

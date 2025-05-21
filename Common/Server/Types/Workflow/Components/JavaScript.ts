@@ -1,12 +1,12 @@
 import { WorkflowScriptTimeoutInMS } from "../../../../Server/EnvironmentConfig";
 import VMUtil from "../../../Utils/VM/VMAPI";
 import ComponentCode, { RunOptions, RunReturnType } from "../ComponentCode";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
-import ComponentMetadata, { Port } from "Common/Types/Workflow/Component";
-import ComponentID from "Common/Types/Workflow/ComponentID";
-import JavaScriptComponents from "Common/Types/Workflow/Components/JavaScript";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ReturnResult from "../../Types/IsolatedVM/ReturnResult";
+import { JSONObject, JSONValue } from "../../Types/JSON";
+import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
+import ComponentID from "../../Types/Workflow/ComponentID";
+import JavaScriptComponents from "../../Types/Workflow/Components/JavaScript";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class JavaScriptCode extends ComponentCode {

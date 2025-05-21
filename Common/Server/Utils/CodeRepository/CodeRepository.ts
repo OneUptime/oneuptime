@@ -3,7 +3,7 @@ import LocalFile from "../LocalFile";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CodeRepositoryFile from "./CodeRepositoryFile";
-import Dictionary from "Common/Types/Dictionary";
+import Dictionary from "../../Types/Dictionary";
 
 export default class CodeRepositoryUtil {
   @CaptureSpan()

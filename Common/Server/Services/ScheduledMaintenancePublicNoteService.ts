@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
-import Model from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import Model from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import ObjectID from "../../Types/ObjectID";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";

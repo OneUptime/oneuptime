@@ -5,10 +5,10 @@ import {
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class BillingPermissions {

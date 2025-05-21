@@ -1,8 +1,8 @@
 import Query from "../Query";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import UserModel from "Common/Models/DatabaseModels/User";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import UserModel from "../../Models/DatabaseModels/User";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UserPermissions {

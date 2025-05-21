@@ -13,9 +13,9 @@ import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/O
 import PositiveNumber from "../../Types/PositiveNumber";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
-import Incident from "Common/Models/DatabaseModels/Incident";
-import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
-import Model from "Common/Models/DatabaseModels/UserOnCallLog";
+import Incident from "../../Models/DatabaseModels/Incident";
+import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRule";
+import Model from "../../Models/DatabaseModels/UserOnCallLog";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";

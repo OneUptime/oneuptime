@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "../../Types/ObjectID";
-import Model from "Common/Models/DatabaseModels/CopilotCodeRepository";
+import Model from "../../Models/DatabaseModels/CopilotCodeRepository";
 import {
   CopilotActionTypeData,
   CopilotActionTypeUtil,

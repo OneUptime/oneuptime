@@ -10,7 +10,7 @@ import Email from "../../Types/Email/EmailMessage";
 import EmailServer from "../../Types/Email/EmailServer";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import API from "Common/Utils/API";
+import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class MailService extends BaseService {

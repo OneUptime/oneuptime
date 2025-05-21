@@ -1,14 +1,14 @@
 import { EncryptionSecret } from "../EnvironmentConfig";
-import Email from "Common/Types/Email";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import Name from "Common/Types/Name";
-import ObjectID from "Common/Types/ObjectID";
-import Timezone from "Common/Types/Timezone";
-import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
-import User from "Common/Models/DatabaseModels/User";
+import Email from "../../Types/Email";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import Name from "../../Types/Name";
+import ObjectID from "../../Types/ObjectID";
+import Timezone from "../../Types/Timezone";
+import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import User from "../../Models/DatabaseModels/User";
 import jwt from "jsonwebtoken";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 

@@ -13,14 +13,14 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import Permission, { UserPermission } from "Common/Types/Permission";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
+import Permission, { UserPermission } from "../../Types/Permission";
 import BillingInvoice, {
   InvoiceStatus,
-} from "Common/Models/DatabaseModels/BillingInvoice";
-import Project from "Common/Models/DatabaseModels/Project";
+} from "../../Models/DatabaseModels/BillingInvoice";
+import Project from "../../Models/DatabaseModels/Project";
 
 export default class UserAPI extends BaseAPI<
   BillingInvoice,

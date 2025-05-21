@@ -30,16 +30,16 @@ import MonitorType, {
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
-import Model from "Common/Models/DatabaseModels/Monitor";
-import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
-import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
-import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import Model from "../../Models/DatabaseModels/Monitor";
+import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
+import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
+import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import Probe, {
   ProbeConnectionStatus,
-} from "Common/Models/DatabaseModels/Probe";
-import User from "Common/Models/DatabaseModels/User";
+} from "../../Models/DatabaseModels/Probe";
+import User from "../../Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";

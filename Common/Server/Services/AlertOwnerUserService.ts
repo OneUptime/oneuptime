@@ -3,7 +3,7 @@ import ObjectID from "../../Types/ObjectID";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/AlertOwnerUser";
+import Model from "../../Models/DatabaseModels/AlertOwnerUser";
 import UserService from "./UserService";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";

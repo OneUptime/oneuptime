@@ -1,6 +1,6 @@
 import logger from "../Utils/Logger";
-import DomainCommon from "Common/Types/Domain";
-import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
+import DomainCommon from "../../Types/Domain";
+import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import dns from "dns";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

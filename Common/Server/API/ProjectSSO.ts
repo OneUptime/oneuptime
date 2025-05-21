@@ -4,11 +4,11 @@ import ProjectSsoService, {
 import { ExpressRequest, ExpressResponse } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
+import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
+import ProjectSSO from "../../Models/DatabaseModels/ProjectSso";
 
 export default class ProjectSsoAPI extends BaseAPI<
   ProjectSSO,

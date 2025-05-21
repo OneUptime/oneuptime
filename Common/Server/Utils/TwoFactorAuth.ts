@@ -1,4 +1,4 @@
-import Email from "Common/Types/Email";
+import Email from "../../Types/Email";
 import * as OTPAuth from "otpauth";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 

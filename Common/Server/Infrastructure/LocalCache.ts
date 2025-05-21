@@ -1,6 +1,6 @@
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Dictionary from "Common/Types/Dictionary";
-import { JSONValue } from "Common/Types/JSON";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Dictionary from "../../Types/Dictionary";
+import { JSONValue } from "../../Types/JSON";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default abstract class LocalCache {

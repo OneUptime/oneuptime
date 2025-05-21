@@ -11,7 +11,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import Model from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import Model from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

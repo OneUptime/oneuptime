@@ -17,10 +17,10 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { SMSMessage } from "../../Types/SMS/SMS";
-import UserCall from "Common/Models/DatabaseModels/UserCall";
-import UserEmail from "Common/Models/DatabaseModels/UserEmail";
-import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
-import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import UserCall from "../../Models/DatabaseModels/UserCall";
+import UserEmail from "../../Models/DatabaseModels/UserEmail";
+import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
+import UserSMS from "../../Models/DatabaseModels/UserSMS";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<UserNotificationSetting> {

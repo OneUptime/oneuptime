@@ -8,8 +8,8 @@ import Express, {
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import Telemetry, { TelemetryCounter } from "../Utils/Telemetry";
-import Exception from "Common/Types/Exception/Exception";
-import ServerException from "Common/Types/Exception/ServerException";
+import Exception from "../../Types/Exception/Exception";
+import ServerException from "../../Types/Exception/ServerException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export interface StatusAPIOptions {

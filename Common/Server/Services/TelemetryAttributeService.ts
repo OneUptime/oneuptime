@@ -1,7 +1,7 @@
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
-import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute";
+import TelemetryAttribute from "../../Models/AnalyticsModels/TelemetryAttribute";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 

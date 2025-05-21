@@ -1,8 +1,8 @@
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CompareCriteria from "./CompareCriteria";
 import CustomCodeMonitoringCriteria from "./CustomCodeMonitorCriteria";
-import { CheckOn, CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
-import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
+import { CheckOn, CriteriaFilter } from "../../Types/Monitor/CriteriaFilter";
+import SyntheticMonitorResponse from "../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 
 export default class SyntheticMonitoringCriteria {
   @CaptureSpan()

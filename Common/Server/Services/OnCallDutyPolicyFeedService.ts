@@ -8,7 +8,7 @@ import logger from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import OnCallDutyPolicyFeed, {
   OnCallDutyPolicyFeedEventType,
-} from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
+} from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";

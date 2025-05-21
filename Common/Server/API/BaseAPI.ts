@@ -15,19 +15,19 @@ import Express, {
 import Response from "../Utils/Response";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CommonAPI from "./CommonAPI";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DEFAULT_LIMIT,
   LIMIT_PER_PROJECT,
-} from "Common/Types/Database/LimitMax";
-import PartialEntity from "Common/Types/Database/PartialEntity";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import ObjectID from "Common/Types/ObjectID";
-import { UserPermission } from "Common/Types/Permission";
-import PositiveNumber from "Common/Types/PositiveNumber";
+} from "../../Types/Database/LimitMax";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import BadRequestException from "../../Types/Exception/BadRequestException";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import ObjectID from "../../Types/ObjectID";
+import { UserPermission } from "../../Types/Permission";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export default class BaseAPI<
   TBaseModel extends BaseModel,

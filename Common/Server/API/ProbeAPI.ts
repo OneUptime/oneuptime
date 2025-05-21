@@ -9,9 +9,9 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import PositiveNumber from "../../Types/PositiveNumber";
+import Probe from "../../Models/DatabaseModels/Probe";
 
 export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
   public constructor() {

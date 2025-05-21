@@ -1,6 +1,6 @@
 import ObjectID from "../../Types/ObjectID";
 import DatabaseService from "./DatabaseService";
-import Model from "Common/Models/DatabaseModels/MonitorOwnerUser";
+import Model from "../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
