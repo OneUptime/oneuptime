@@ -11,6 +11,9 @@
             "babelConfig": false
         }
     },
+    "moduleNameMapper": {
+        "Common/(.*)": "<rootDir>/$1"
+    },
     "moduleFileExtensions": [
         "ts",
         "js",
