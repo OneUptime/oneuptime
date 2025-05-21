@@ -1,10 +1,10 @@
 // this class is the base class that all the component can implement
 //
-import BadDataException from "../../Types/Exception/BadDataException";
-import Exception from "../../Types/Exception/Exception";
-import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
-import ObjectID from "../../Types/ObjectID";
-import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import ComponentMetadata, { Port } from "../../../Types/Workflow/Component";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export interface RunOptions {

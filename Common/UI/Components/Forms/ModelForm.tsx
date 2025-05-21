@@ -1,4 +1,4 @@
-import SelectFormFields from "../../../Types/SelectEntityField";
+import SelectFormFields from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import Select from "../../Utils/BaseDatabase/Select";
 import ModelAPI, {

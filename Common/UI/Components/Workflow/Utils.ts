@@ -1,6 +1,6 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import IconProp from "../../../../Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import Typeof from "../../../Types/Typeof";
 import ComponentMetadata, {
   ComponentCategory,

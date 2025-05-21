@@ -1,6 +1,6 @@
 import { DatabaseName } from "../../../../Server/EnvironmentConfig";
 import ProdDataSourceOptions from "../../../../Server/Infrastructure/Postgres/DataSourceOptions";
-import Faker from "../../Utils/Faker";
+import Faker from "../../../../Utils/Faker";
 import { DataSourceOptions } from "typeorm";
 
 type GetTestDataSourceOptions = () => DataSourceOptions;
