@@ -1,5 +1,5 @@
-import { JSONObject } from "../../../Types/JSON";
-import JSONFunctions from "../../../Types/JSONFunctions";
+import { JSONObject } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
 
 export default class JsonWebToken {
   public static decode(token: string): JSONObject | null {

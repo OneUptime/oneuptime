@@ -1,6 +1,6 @@
-import InBetween from "Common/Types/BaseDatabase/InBetween";
+import InBetween from "../BaseDatabase/InBetween";
 import TimeRange from "./TimeRange";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate from "../Date";
 
 export default interface RangeStartAndEndDateTime {
   startAndEndDate?: InBetween<Date> | undefined;

@@ -8,13 +8,13 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
-import JSONWebTokenData from "Common/Types/JsonWebTokenData";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Project from "Common/Models/DatabaseModels/Project";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import Project from "../../../Models/DatabaseModels/Project";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {

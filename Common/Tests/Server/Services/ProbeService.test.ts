@@ -1,11 +1,11 @@
 import "../TestingUtils/Init";
 import UserTestService from "../TestingUtils/Services/UserServiceHelper";
-import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Version from "Common/Types/Version";
-import Faker from "Common/Utils/Faker";
-import Probe from "Common/Models/DatabaseModels/Probe";
-import User from "Common/Models/DatabaseModels/User";
+import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import Version from "../../../Types/Version";
+import Faker from "../../../Utils/Faker";
+import Probe from "../../../Models/DatabaseModels/Probe";
+import User from "../../../Models/DatabaseModels/User";
 import { fail } from "assert";
 import { describe, expect, beforeEach, afterEach, test } from "@jest/globals";
 import { TestDatabaseMock } from "../TestingUtils/__mocks__/TestDatabase.mock";

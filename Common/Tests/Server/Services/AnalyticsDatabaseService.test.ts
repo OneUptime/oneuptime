@@ -5,12 +5,12 @@ import {
 } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../Server/Utils/Logger";
 import "../TestingUtils/Init";
-import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import Route from "Common/Types/API/Route";
-import AnalyticsTableEngine from "Common/Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "Common/Types/AnalyticsDatabase/TableColumn";
-import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
-import GenericObject from "Common/Types/GenericObject";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import Route from "../../../Types/API/Route";
+import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
+import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import GenericObject from "../../../Types/GenericObject";
 import {
   describe,
   expect,

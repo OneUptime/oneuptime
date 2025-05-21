@@ -1,4 +1,4 @@
-import getJestMockFunction from "Common/Tests/MockType";
+import getJestMockFunction from "../../MockType";
 import {
   BillingService,
   Invoice,
@@ -29,9 +29,9 @@ import {
 } from "../TestingUtils/Services/Types";
 import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
-import MeteredPlan from "Common/Types/Billing/MeteredPlan";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import MeteredPlan from "../../../Types/Billing/MeteredPlan";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 
 describe("BillingService", () => {

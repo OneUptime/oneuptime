@@ -13,18 +13,18 @@ import Express, {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import BadRequestException from "Common/Types/Exception/BadRequestException";
-import GenericObject from "Common/Types/GenericObject";
-import ObjectID from "Common/Types/ObjectID";
-import { UserPermission } from "Common/Types/Permission";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import UserType from "Common/Types/UserType";
-import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
+import GenericObject from "../../../Types/GenericObject";
+import ObjectID from "../../../Types/ObjectID";
+import { UserPermission } from "../../../Types/Permission";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import UserType from "../../../Types/UserType";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -74,7 +74,7 @@ jest.mock("../../../Server/Services/DatabaseService", () => {
 });
 
 jest.mock(
-  "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel",
+  "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel",
   () => {
     return jest.fn().mockImplementation((initObject: GenericObject) => {
       return {

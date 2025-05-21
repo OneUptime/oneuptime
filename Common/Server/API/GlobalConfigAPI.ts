@@ -9,8 +9,7 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
-
-// import ObjectID from 'Common/Types/ObjectID';
+import ObjectID from "../../Types/ObjectID";
 
 export default class GlobalConfigAPI extends BaseAPI<
   GlobalConfig,

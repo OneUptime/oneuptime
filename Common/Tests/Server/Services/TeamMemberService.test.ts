@@ -12,12 +12,12 @@ import TeamMemberServiceHelper from "../TestingUtils/Services/TeamMemberServiceH
 import TeamServiceHelper from "../TestingUtils/Services/TeamServiceHelper";
 import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
 import { describe, expect, it } from "@jest/globals";
-import Email from "Common/Types/Email";
-import ObjectID from "Common/Types/ObjectID";
-import Project from "Common/Models/DatabaseModels/Project";
-import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import User from "Common/Models/DatabaseModels/User";
+import Email from "../../Types/Email";
+import ObjectID from "../../Types/ObjectID";
+import Project from "../../Models/DatabaseModels/Project";
+import Team from "../../Models/DatabaseModels/Team";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
+import User from "../../Models/DatabaseModels/User";
 import Faker from "../../../Utils/Faker";
 import UserService from "../../../Server/Services/UserService";
 import ProjectService from "../../../Server/Services/ProjectService";
