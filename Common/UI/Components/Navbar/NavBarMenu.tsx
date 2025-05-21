@@ -9,36 +9,67 @@ export interface ComponentProps {
     description: string;
     link: URL;
   };
+  isMobileView?: boolean; // Added to control styling, passed from NavBarItem
 }
 
-const NavBarItem: FunctionComponent<ComponentProps> = (
+const NavBarMenu: FunctionComponent<ComponentProps> = ( // Renamed component
   props: ComponentProps,
 ): ReactElement => {
-  let children: Array<ReactElement>;
+  let childrenElements: Array<ReactElement>;
   if (!Array.isArray(props.children) && props.children) {
-    children = [props.children];
+    childrenElements = [props.children];
   } else {
-    children = props.children;
+    childrenElements = props.children as Array<ReactElement>;
   }
+
+  // Base classes
+  let mainContainerClasses: string = "";
+  let childrenOuterContainerClasses: string = "overflow-hidden rounded-lg";
+  let childrenInnerContainerClasses: string = "relative grid bg-white";
+  let footerContainerClasses: string = "bg-gray-50";
+  let footerLinkClasses: string = "-m-3 flow-root rounded-md p-3 transition duration-150 ease-in-out hover:bg-gray-100";
+  let footerTitleClasses: string = "text-base font-medium text-gray-900";
+  let footerDescriptionClasses: string = "mt-1 block text-sm text-gray-500 text-left";
+
+
+  if (props.isMobileView) {
+    // Mobile specific classes: Displayed inline, full width, simplified padding
+    mainContainerClasses = "w-full mt-1"; // No absolute positioning, simpler margin for nesting
+    childrenOuterContainerClasses = "rounded-md border border-gray-200"; // Simple border for mobile
+    childrenInnerContainerClasses += " gap-3 p-4 grid-cols-1"; // Simplified padding, single column
+    footerContainerClasses += " p-4 border-t border-gray-200"; // Simplified padding
+    footerLinkClasses = "block p-2 hover:bg-gray-100 rounded-md"; // Simpler link styling for mobile
+    footerTitleClasses = "text-sm font-medium text-gray-800";
+    footerDescriptionClasses = "mt-1 block text-xs text-gray-500";
+
+  } else {
+    // Desktop specific classes: Dropdown menu
+    mainContainerClasses = "absolute left-1/3 z-10 mt-10 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0 lg:max-w-3xl";
+    childrenOuterContainerClasses += " shadow-lg ring-1 ring-black ring-opacity-5"; // Desktop shadow
+    childrenInnerContainerClasses += " gap-6 px-5 py-6 sm:gap-8 sm:p-8 lg:grid-cols-2";
+    footerContainerClasses += " p-5 sm:p-8";
+    // footerLinkClasses, footerTitleClasses, footerDescriptionClasses retain their defaults for desktop
+  }
+
   return (
-    <div className="absolute left-1/3 z-10 mt-10 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0 lg:max-w-3xl">
-      <div className="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
-        <div className="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8 lg:grid-cols-2">
-          {children}
+    <div className={mainContainerClasses}>
+      <div className={childrenOuterContainerClasses}>
+        <div className={childrenInnerContainerClasses}>
+          {childrenElements}
         </div>
         {props.footer && (
-          <div className="bg-gray-50 p-5 sm:p-8">
+          <div className={footerContainerClasses}>
             <Link
               to={props.footer.link}
               openInNewTab={true}
-              className="-m-3 flow-root rounded-md p-3 transition duration-150 ease-in-out hover:bg-gray-100"
+              className={footerLinkClasses}
             >
               <span className="flex items-center">
-                <span className="text-base font-medium text-gray-900">
+                <span className={footerTitleClasses}>
                   {props.footer.title}
                 </span>
               </span>
-              <span className="mt-1 block text-sm text-gray-500 text-left">
+              <span className={footerDescriptionClasses}>
                 {props.footer.description}
               </span>
             </Link>
@@ -49,4 +80,4 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default NavBarItem;
+export default NavBarMenu; // Renamed export
