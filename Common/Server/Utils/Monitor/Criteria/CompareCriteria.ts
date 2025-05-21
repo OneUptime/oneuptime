@@ -4,8 +4,8 @@ import {
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
-} from "../../Types/Monitor/CriteriaFilter";
-import Typeof from "../../Types/Typeof";
+} from "../../../../Types/Monitor/CriteriaFilter";
+import Typeof from "../../../../Types/Typeof";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class CompareCriteria {

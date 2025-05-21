@@ -1,13 +1,13 @@
 import Query from "../../../Types/AnalyticsDatabase/Query";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import OneUptimeDate from "../../Types/Date";
-import { JSONObject } from "../../Types/JSON";
+import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../../Types/Date";
+import { JSONObject } from "../../../../Types/JSON";
 import {
   CheckOn,
   EvaluateOverTimeOptions,
   EvaluateOverTimeType,
-} from "../../Types/Monitor/CriteriaFilter";
-import ObjectID from "../../Types/ObjectID";
+} from "../../../../Types/Monitor/CriteriaFilter";
+import ObjectID from "../../../../Types/ObjectID";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MetricService from "../../../Services/MetricService";

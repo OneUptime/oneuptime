@@ -2,21 +2,21 @@ import LocalStorage from "../LocalStorage";
 import Navigation from "../Navigation";
 import PermissionUtil from "../Permission";
 import User from "../User";
-import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
-import Headers from "../../Types/API/Headers";
-import Hostname from "../../Types/API/Hostname";
-import Protocol from "../../Types/API/Protocol";
-import Route from "../../Types/API/Route";
-import URL from "../../Types/API/URL";
-import Dictionary from "../../Types/Dictionary";
-import APIException from "../../Types/Exception/ApiException";
-import Exception from "../../Types/Exception/Exception";
-import JSONFunctions from "../../Types/JSONFunctions";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import Headers from "../../../Types/API/Headers";
+import Hostname from "../../../Types/API/Hostname";
+import Protocol from "../../../Types/API/Protocol";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
+import APIException from "../../../Types/Exception/ApiException";
+import Exception from "../../../Types/Exception/Exception";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
-} from "../../Types/Permission";
-import API from "../../Utils/API";
+} from "../../../Types/Permission";
+import API from "../../../Utils/API";
 import Cookies from "universal-cookie";
 
 class BaseAPI extends API {

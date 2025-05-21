@@ -10,7 +10,7 @@ import {
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeType,
-} from "../../Types/Monitor/CriteriaFilter";
+} from "../../../../Types/Monitor/CriteriaFilter";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class MetricMonitorCriteria {

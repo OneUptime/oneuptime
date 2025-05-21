@@ -3,7 +3,7 @@ import {
   Statement,
 } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import "../../TestingUtils/Init";
-import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
+import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 
 describe("Statement", () => {
   describe("constructor", () => {
