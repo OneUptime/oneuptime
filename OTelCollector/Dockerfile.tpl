@@ -32,4 +32,4 @@ COPY ./OTelCollector/otel-collector-config.template.yaml /etc/otel-collector-con
 
 # In command, gomplate the configuration file to replace the environment variables otel-collector-config.yaml and run the collector
 
-CMD gomplate -f /etc/otel-collector-config.template.yaml > /etc/otel-collector-config.yaml && echo "Here is the generated config file: " && cat /etc/otel-collector-config.yaml && otelcol --config /etc/otel-collector-config.yaml
+CMD gomplate -f /etc/otel-collector-config.template.yaml > /tmp/otel-collector-config.yaml && echo "Here is the generated config file: " && cat /tmp/otel-collector-config.yaml && otelcol --config /tmp/otel-collector-config.yaml
