@@ -2,7 +2,7 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import ColorSwatch from "../../../Types/ColorSwatch";
 
 export enum HeaderAlertType {

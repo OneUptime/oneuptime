@@ -1,4 +1,4 @@
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Field from "../Detail/Field";

@@ -1,7 +1,7 @@
 import EmptyState from "../../../../UI/Components/EmptyState/EmptyState";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../../Types/Icon/IconProp";
 import React from "react";
 
 describe("EmptyState", () => {

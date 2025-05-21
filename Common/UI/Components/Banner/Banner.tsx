@@ -2,7 +2,7 @@ import Link from "../Link/Link";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import React, { FunctionComponent, ReactElement } from "react";
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
 export interface ComponentProps {
   title: string;

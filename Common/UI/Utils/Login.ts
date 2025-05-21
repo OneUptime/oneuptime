@@ -3,10 +3,10 @@ import Analytics from "../Utils/Analytics";
 import Navigation from "../Utils/Navigation";
 import UserUtil from "../Utils/User";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Email from "../../../Types/Email";
-import { JSONObject } from "../../../Types/JSON";
-import Name from "../../../Types/Name";
-import ObjectID from "../../../Types/ObjectID";
+import Email from "../../Types/Email";
+import { JSONObject } from "../../Types/JSON";
+import Name from "../../Types/Name";
+import ObjectID from "../../Types/ObjectID";
 import User from "../../Models/DatabaseModels/User";
 
 export default abstract class LoginUtil {

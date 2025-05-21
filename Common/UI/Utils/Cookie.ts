@@ -1,12 +1,12 @@
-import Route from "../../../Types/API/Route";
-import URL from "../../../Types/API/URL";
-import OneUptimeDate from "../../../Types/Date";
-import Email from "../../../Types/Email";
-import { JSONObject, JSONValue } from "../../../Types/JSON";
-import JSONFunctions from "../../../Types/JSONFunctions";
-import Typeof from "../../../Types/Typeof";
+import Route from "../../Types/API/Route";
+import URL from "../../Types/API/URL";
+import OneUptimeDate from "../../Types/Date";
+import Email from "../../Types/Email";
+import { JSONObject, JSONValue } from "../../Types/JSON";
+import JSONFunctions from "../../Types/JSONFunctions";
+import Typeof from "../../Types/Typeof";
 import UniversalCookies, { CookieSetOptions } from "universal-cookie";
-import CookieName from "../../../Types/CookieName";
+import CookieName from "../../Types/CookieName";
 
 export default class Cookie {
   public static setItem(

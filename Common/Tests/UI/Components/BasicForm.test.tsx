@@ -6,10 +6,10 @@ import "@testing-library/jest-dom/extend-expect";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
-import Route from "Common/Types/API/Route";
+import Route from "../../../Types/API/Route";
 import * as React from "react";
 import { describe, expect } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
 describe("BasicForm test", () => {
   const fields: Fields<FormValues<any>> = [

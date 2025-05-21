@@ -5,9 +5,9 @@ import Item, {
 import { describe, expect, jest } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React from "react";
-import getJestMockFunction from "Common/Tests/MockType";
+import getJestMockFunction from "../../../Tests/MockType";
 
 describe("Item component", () => {
   interface ItemData {

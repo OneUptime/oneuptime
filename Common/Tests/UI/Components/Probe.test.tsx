@@ -1,8 +1,8 @@
 import ProbeElement from "../../../UI/Components/Probe/Probe";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
-import ObjectID from "Common/Types/ObjectID";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import ObjectID from "../../../Types/ObjectID";
+import Probe from "../../../Models/DatabaseModels/Probe";
 import * as React from "react";
 import { describe, expect, test } from "@jest/globals";
 

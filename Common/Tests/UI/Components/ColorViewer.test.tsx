@@ -1,10 +1,10 @@
 import ColorViewer from "../../../UI/Components/ColorViewer/ColorViewer";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render } from "@testing-library/react";
-import Color from "Common/Types/Color";
+import Color from "../../../Types/Color";
 import * as React from "react";
 import { describe, expect } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
 describe("Color Viewer", () => {
   test("Render the component", () => {

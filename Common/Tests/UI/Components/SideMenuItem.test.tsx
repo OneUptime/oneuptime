@@ -9,10 +9,10 @@ import { describe, expect, afterEach, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 // Types
-import Route from "Common/Types/API/Route";
-import IconProp from "Common/Types/Icon/IconProp";
+import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 import React from "react";
-import getJestMockFunction from "Common/Tests/MockType";
+import getJestMockFunction from "../../../Tests/MockType";
 
 const highlightClassList: string =
   "bg-gray-100 text-indigo-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium";

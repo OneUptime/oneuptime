@@ -6,7 +6,7 @@ import "@testing-library/jest-dom/extend-expect";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { describe, expect, afterEach, test } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
 describe("Input", () => {
   afterEach(() => {

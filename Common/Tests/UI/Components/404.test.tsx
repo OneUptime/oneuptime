@@ -1,9 +1,9 @@
 import NotFound, { ComponentProps } from "../../../UI/Components/404";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import Email from "Common/Types/Email";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import Email from "../../../Types/Email";
 import * as React from "react";
 import { describe, expect, jest } from "@jest/globals";
 

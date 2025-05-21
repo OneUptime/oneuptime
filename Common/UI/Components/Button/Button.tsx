@@ -5,7 +5,7 @@ import ButtonType from "./ButtonTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Tooltip from "../Tooltip/Tooltip";
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
 export enum ButtonStyleType {
   PRIMARY,

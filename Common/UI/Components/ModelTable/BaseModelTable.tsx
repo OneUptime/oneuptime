@@ -1,6 +1,6 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import GroupBy from "../../Utils/BaseDatabase/GroupBy";

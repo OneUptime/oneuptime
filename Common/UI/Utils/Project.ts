@@ -3,13 +3,13 @@ import LocalStorage from "./LocalStorage";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SubscriptionPlan, {
   PlanType,
-} from "../../../Types/Billing/SubscriptionPlan";
-import { JSONObject } from "../../../Types/JSON";
-import ObjectID from "../../../Types/ObjectID";
+} from "../../Types/Billing/SubscriptionPlan";
+import { JSONObject } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
-} from "../../../Types/Billing/SubscriptionStatus";
+} from "../../Types/Billing/SubscriptionStatus";
 import Navigation from "./Navigation";
 import SessionStorage from "./SessionStorage";
 

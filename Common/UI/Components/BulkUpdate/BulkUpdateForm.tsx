@@ -1,4 +1,4 @@
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon, { SizeProp } from "../Icon/Icon";
 import ConfirmModal, {

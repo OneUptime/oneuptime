@@ -6,10 +6,10 @@ import DictionaryOfStrings, {
 import { describe, expect, it, jest } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
-import Dictionary from "Common/Types/Dictionary";
+import Dictionary from "../../../Types/Dictionary";
 import React from "react";
 
-jest.mock("Common/Types/Date", () => {
+jest.mock("../../../Types/Date", () => {
   return {
     toDateTimeLocalString: jest.fn(),
     asDateForDatabaseQuery: jest.fn(),

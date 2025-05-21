@@ -2,13 +2,13 @@ import ComponentsModal from "../../../UI/Components/Workflow/ComponentsModal";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
-} from "Common/Types/Workflow/Component";
+} from "../../../Types/Workflow/Component";
 import React from "react";
-import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 import Faker from "../../../Utils/Faker";
 
 /// @dev we use different UUID for (id & title), description, and category to ensure that the component is unique

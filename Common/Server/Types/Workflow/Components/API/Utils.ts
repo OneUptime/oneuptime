@@ -1,11 +1,11 @@
 import { RunOptions } from "../../ComponentCode";
-import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../Types/API/HTTPResponse";
-import URL from "../../Types/API/URL";
-import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
-import JSONFunctions from "../../Types/JSONFunctions";
-import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
+import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../../Types/API/HTTPResponse";
+import URL from "../../../../../Types/API/URL";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../Types/JSON";
+import JSONFunctions from "../../../../../Types/JSONFunctions";
+import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export class ApiComponentUtils {

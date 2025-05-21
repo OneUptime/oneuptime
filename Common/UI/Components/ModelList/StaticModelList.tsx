@@ -1,4 +1,4 @@
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";

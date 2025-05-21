@@ -1,6 +1,6 @@
 import DatabaseService from "../../../../Services/DatabaseService";
 import OnTriggerBaseModel from "./OnTriggerBaseModel";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export default class OnCreateBaseModel<
   TBaseModel extends BaseModel,

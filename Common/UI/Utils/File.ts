@@ -1,5 +1,5 @@
-import Route from "../../../Types/API/Route";
-import ObjectID from "../../../Types/ObjectID";
+import Route from "../../Types/API/Route";
+import ObjectID from "../../Types/ObjectID";
 import { FileRoute } from "../../ServiceRoute";
 
 export default class FileUtil {

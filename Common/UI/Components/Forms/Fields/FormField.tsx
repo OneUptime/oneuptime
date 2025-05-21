@@ -1,5 +1,5 @@
 import Dictionary from "../../../Types/Dictionary";
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import CategoryCheckbox from "../../CategoryCheckbox/Index";
 import CheckboxElement, {
   CategoryCheckboxValue,

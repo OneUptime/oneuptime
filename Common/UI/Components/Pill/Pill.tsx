@@ -2,7 +2,7 @@ import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import Tooltip from "../Tooltip/Tooltip";
-import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../Types/FunctionTypes";
 
 export enum PillSize {
   Small = "10px",
