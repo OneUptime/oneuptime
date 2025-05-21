@@ -4,23 +4,23 @@ import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+} from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import Columns from "../../Types/Database/Columns";
-import { TableColumnMetadata } from "../../Types/Database/TableColumn";
-import TableColumnType from "../../Types/Database/TableColumnType";
-import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Columns from "../../../../Types/Database/Columns";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject } from "../../../../Types/JSON";
 import Permission, {
   PermissionHelper,
   UserPermission,
-} from "../../Types/Permission";
-import Typeof from "../../Types/Typeof";
+} from "../../../../Types/Permission";
+import Typeof from "../../../../Types/Typeof";
 
 export default class QueryPermission {
   @CaptureSpan()

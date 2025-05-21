@@ -6,12 +6,12 @@ import {
 import Response from "../../../Utils/Response";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
-import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
-import ObjectID from "../../Types/ObjectID";
-import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
-import ComponentID from "../../Types/Workflow/ComponentID";
-import WebhookComponents from "../../Types/Workflow/Components/Webhook";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
+import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
+import ComponentID from "../../../../Types/Workflow/ComponentID";
+import WebhookComponents from "../../../../Types/Workflow/Components/Webhook";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class WebhookTrigger extends TriggerCode {

@@ -7,25 +7,25 @@ import Query from "./Query";
 import Select from "./Select";
 import BaseModel, {
   AnalyticsBaseModelType,
-} from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
-import ColumnBillingAccessControl from "../../Types/BaseDatabase/ColumnBillingAccessControl";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+} from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import SubscriptionPlan from "../../Types/Billing/SubscriptionPlan";
-import Columns from "../../Types/Database/Columns";
-import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
-import ObjectID from "../../Types/ObjectID";
+} from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import Columns from "../../../Types/Database/Columns";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   UserPermission,
-} from "../../Types/Permission";
-import UserType from "../../Types/UserType";
+} from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {

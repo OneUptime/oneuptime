@@ -1,4 +1,4 @@
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BaseQuery, {
   OrQuery as BaseQueryOrQuery,
 } from "../../../Types/BaseDatabase/Query";

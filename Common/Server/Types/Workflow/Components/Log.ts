@@ -1,9 +1,9 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../ComponentCode";
-import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
-import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
-import ComponentID from "../../Types/Workflow/ComponentID";
-import LogComponents from "../../Types/Workflow/Components/Log";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
+import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
+import ComponentID from "../../../../Types/Workflow/ComponentID";
+import LogComponents from "../../../../Types/Workflow/Components/Log";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class Log extends ComponentCode {

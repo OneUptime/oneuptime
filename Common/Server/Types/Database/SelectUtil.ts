@@ -2,9 +2,9 @@ import RelationSelect from "./RelationSelect";
 import Select from "./Select";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { JSONObject } from "../../Types/JSON";
-import Typeof from "../../Types/Typeof";
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { JSONObject } from "../../../Types/JSON";
+import Typeof from "../../../Types/Typeof";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 
 export default class SelectUtil {

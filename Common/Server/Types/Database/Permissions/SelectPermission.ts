@@ -3,15 +3,15 @@ import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+} from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import Columns from "../../Types/Database/Columns";
-import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import { PermissionHelper, UserPermission } from "../../Types/Permission";
+} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Columns from "../../../../Types/Database/Columns";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import { PermissionHelper, UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class SelectPermission {

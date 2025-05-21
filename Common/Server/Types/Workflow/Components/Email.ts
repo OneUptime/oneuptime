@@ -1,9 +1,9 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../ComponentCode";
-import BadDataException from "../../../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../../../Types/JSON";
-import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
-import ComponentID from "../../../../../Types/Workflow/ComponentID";
-import Components from "../../../../../Types/Workflow/Components/Email";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
+import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
+import ComponentID from "../../../../Types/Workflow/ComponentID";
+import Components from "../../../../Types/Workflow/Components/Email";
 import nodemailer, { Transporter } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";

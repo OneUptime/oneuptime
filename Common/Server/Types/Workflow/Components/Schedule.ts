@@ -6,14 +6,14 @@ import TriggerCode, {
   InitProps,
   UpdateProps,
 } from "../TriggerCode";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
-import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
-import ObjectID from "../../Types/ObjectID";
-import ComponentMetadata, { Port } from "../../Types/Workflow/Component";
-import ComponentID from "../../Types/Workflow/ComponentID";
-import ScheduleComponents from "../../Types/Workflow/Components/Schedule";
-import Workflow from "../../Models/DatabaseModels/Workflow";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
+import ComponentMetadata, { Port } from "../../../../Types/Workflow/Component";
+import ComponentID from "../../../../Types/Workflow/ComponentID";
+import ScheduleComponents from "../../../../Types/Workflow/Components/Schedule";
+import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class WebhookTrigger extends TriggerCode {

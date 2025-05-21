@@ -1,11 +1,11 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import TablePermission from "./TablePermission";
-import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
-import Permission from "../../Types/Permission";
-import UserType from "../../Types/UserType";
+import Permission from "../../../../Types/Permission";
+import UserType from "../../../../Types/UserType";
 
 export default class PublicPermission {
   @CaptureSpan()

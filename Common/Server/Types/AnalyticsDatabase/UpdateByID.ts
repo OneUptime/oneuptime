@@ -1,5 +1,5 @@
-import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default interface UpdateBy<TBaseModel extends AnalyticsBaseModel> {
   data: TBaseModel;
