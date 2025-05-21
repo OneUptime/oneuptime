@@ -3,3 +3,5 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 
 export default interface CreateBy<TBaseModel extends AnalyticsBaseModel> {
   data: TBaseModel;
+  props: DatabaseCommonInteractionProps;
+}

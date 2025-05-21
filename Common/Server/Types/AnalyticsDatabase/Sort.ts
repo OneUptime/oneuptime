@@ -1,4 +1,4 @@
-import BaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel";
 import CommonSort from "../../Types/BaseDatabase/Sort";
 
 type Sort<TBaseModel extends BaseModel> = CommonSort<TBaseModel>;
