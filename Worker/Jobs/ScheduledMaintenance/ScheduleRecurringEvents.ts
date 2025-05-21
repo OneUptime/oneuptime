@@ -151,23 +151,23 @@ RunCron(
 
         const minutesBetwenScheduledAndStartTime: number =
           OneUptimeDate.getMinutesBetweenTwoDates(
-            eventscheduledTime,
+            firstScheduledTime,
             firstStartTime,
           );
         const minutesBetweenScheduledAndEndTime: number =
           OneUptimeDate.getMinutesBetweenTwoDates(
-            eventscheduledTime,
+            firstScheduledTime,
             firstEndTime,
           );
 
         // set the scheduled time for this event.
         scheduledMaintenanceEvent.createdAt = eventscheduledTime!;
         scheduledMaintenanceEvent.startsAt = OneUptimeDate.addRemoveMinutes(
-          firstScheduledTime,
+          eventscheduledTime,
           minutesBetwenScheduledAndStartTime,
         );
         scheduledMaintenanceEvent.endsAt = OneUptimeDate.addRemoveMinutes(
-          firstScheduledTime,
+          eventscheduledTime,
           minutesBetweenScheduledAndEndTime,
         );
 
