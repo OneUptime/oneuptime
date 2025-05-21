@@ -1,5 +1,5 @@
-import { Gray500 } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
+import { Gray500 } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

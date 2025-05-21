@@ -8,12 +8,12 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 

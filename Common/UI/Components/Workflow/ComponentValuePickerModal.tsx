@@ -2,8 +2,8 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Input from "../Input/Input";
 import Modal, { ModalWidth } from "../Modal/Modal";
 import Pill from "../Pill/Pill";
-import { Black } from "Common/Types/BrandColors";
-import { NodeDataProp, ReturnValue } from "Common/Types/Workflow/Component";
+import { Black } from "../../../Types/BrandColors";
+import { NodeDataProp, ReturnValue } from "../../../Types/Workflow/Component";
 import React, {
   FunctionComponent,
   ReactElement,

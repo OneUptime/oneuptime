@@ -1,16 +1,16 @@
 import Tooltip from "../Tooltip/Tooltip";
-import { Green } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import ObjectID from "Common/Types/ObjectID";
+import { Green } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
+import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
+import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import UptimeEvent from "Common/Utils/Uptime/Event";
+import UptimeEvent from "../../Utils/Uptime/Event";
 
 export type Event = UptimeEvent;
 

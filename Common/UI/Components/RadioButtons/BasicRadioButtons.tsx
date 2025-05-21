@@ -1,4 +1,4 @@
-import ObjectID from "Common/Types/ObjectID";
+import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,

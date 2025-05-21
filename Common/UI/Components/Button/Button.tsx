@@ -1,11 +1,11 @@
-import { KeyboardEventProp } from "../../Types/HtmlEvents";
+import { KeyboardEventProp } from "../../../Types/HtmlEvents";
 import Icon, { SizeProp } from "../Icon/Icon";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import ButtonType from "./ButtonTypes";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Tooltip from "../Tooltip/Tooltip";
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 
 export enum ButtonStyleType {
   PRIMARY,

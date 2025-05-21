@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import User from "../../../Models/DatabaseModels/User";
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import Image from "../Image/Image";
 import Route from "../../../Types/API/Route";
 import BlankProfilePic from "../../Images/users/blank-profile.svg";

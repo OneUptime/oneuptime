@@ -1,14 +1,14 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import Pill from "../Pill/Pill";
 import Tooltip from "../Tooltip/Tooltip";
-import { Green } from "Common/Types/BrandColors";
-import IconProp from "Common/Types/Icon/IconProp";
+import { Green } from "../../../Types/BrandColors";
+import IconProp from "../../../Types/Icon/IconProp";
 import {
   ComponentType,
   NodeDataProp,
   NodeType,
   Port,
-} from "Common/Types/Workflow/Component";
+} from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, useState } from "react";
 import { Connection, Handle, Position } from "reactflow";
 

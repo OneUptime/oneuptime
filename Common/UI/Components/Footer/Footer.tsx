@@ -1,6 +1,6 @@
 import UILink from "../Link/Link";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface FooterLink {

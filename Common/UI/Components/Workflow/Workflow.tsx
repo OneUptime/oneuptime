@@ -3,16 +3,16 @@ import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
 import { loadComponentsAndCategories } from "./Utils";
-import { VoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+import { VoidFunction } from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
   NodeDataProp,
   NodeType,
-} from "Common/Types/Workflow/Component";
+} from "../../../Types/Workflow/Component";
 import React, {
   FunctionComponent,
   useCallback,

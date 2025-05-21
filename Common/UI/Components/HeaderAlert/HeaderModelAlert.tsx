@@ -2,9 +2,9 @@ import API from "../../Utils/API/API";
 import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import HeaderAlert, { HeaderAlertType } from "./HeaderAlert";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

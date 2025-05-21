@@ -1,8 +1,8 @@
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
-import Color from "Common/Types/Color";
-import IconProp from "Common/Types/Icon/IconProp";
+import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,

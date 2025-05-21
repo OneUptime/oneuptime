@@ -9,11 +9,11 @@ import ArgumentsForm from "./ArgumentsForm";
 import ComponentPortViewer from "./ComponentPortViewer";
 import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
 import DocumentationViewer from "./DocumentationViewer";
-import Dictionary from "Common/Types/Dictionary";
-import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import { NodeDataProp } from "Common/Types/Workflow/Component";
+import Dictionary from "../../../Types/Dictionary";
+import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import { NodeDataProp } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

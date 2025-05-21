@@ -1,7 +1,7 @@
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Pill from "../Pill/Pill";
-import { Black } from "Common/Types/BrandColors";
-import { Argument } from "Common/Types/Workflow/Component";
+import { Black } from "../../../Types/BrandColors";
+import { Argument } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

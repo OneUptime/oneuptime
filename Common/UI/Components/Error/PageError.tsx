@@ -2,7 +2,7 @@ import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
 import { IconType } from "../Icon/Icon";
 import Modal from "../Modal/Modal";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

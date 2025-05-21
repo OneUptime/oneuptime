@@ -1,6 +1,6 @@
 import { env } from "../Config";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import PricingPlanType from "Common/Types/PricingPlan";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import PricingPlanType from "../../../Types/PricingPlan";
 
 export default class PricingPlan {
   public static getPlans(): Array<PricingPlanType> {

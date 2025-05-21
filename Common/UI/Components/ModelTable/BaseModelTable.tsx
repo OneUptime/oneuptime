@@ -1,7 +1,7 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import SelectEntityField from "../../Types/SelectEntityField";
+import { GetReactElementFunction } from "../../../Types/FunctionTypes";
+import SelectEntityField from "../../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import GroupBy from "../../Utils/BaseDatabase/GroupBy";
 import ListResult from "../../Utils/BaseDatabase/ListResult";
@@ -48,36 +48,36 @@ import ModelTableColumn from "./Column";
 import Columns from "./Columns";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
-} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+} from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Search from "Common/Types/BaseDatabase/Search";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import Search from "../../../Types/BaseDatabase/Search";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
   PlanType,
-} from "Common/Types/Billing/SubscriptionPlan";
-import { Yellow } from "Common/Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
+} from "../../../Types/Billing/SubscriptionPlan";
+import { Yellow } from "../../../Types/BrandColors";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import {
   ErrorFunction,
   PromiseVoidFunction,
   VoidFunction,
-} from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+} from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
   UserPermission,
-} from "Common/Types/Permission";
-import Typeof from "Common/Types/Typeof";
+} from "../../../Types/Permission";
+import Typeof from "../../../Types/Typeof";
 import React, {
   MutableRefObject,
   ReactElement,

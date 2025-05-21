@@ -1,4 +1,4 @@
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon, { SizeProp } from "../Icon/Icon";
 import ConfirmModal, {
@@ -7,10 +7,10 @@ import ConfirmModal, {
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import SimpleLogViewer from "../SimpleLogViewer/SimpleLogViewer";
-import { Green, Red } from "Common/Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import GenericObject from "Common/Types/GenericObject";
-import IconProp from "Common/Types/Icon/IconProp";
+import { Green, Red } from "../../../Types/BrandColors";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import GenericObject from "../../../Types/GenericObject";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
 
 export interface BulkActionFailed<T extends GenericObject> {

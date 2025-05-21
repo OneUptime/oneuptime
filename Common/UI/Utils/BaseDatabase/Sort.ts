@@ -1,7 +1,7 @@
-import AnalyticsDataModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { JSONObject } from "Common/Types/JSON";
+import AnalyticsDataModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { JSONObject } from "../../../Types/JSON";
 
 type Sort<TBaseModel extends AnalyticsDataModel | BaseModel | JSONObject> = {
   [P in keyof TBaseModel]?: SortOrder;

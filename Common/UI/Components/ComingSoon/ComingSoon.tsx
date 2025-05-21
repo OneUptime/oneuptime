@@ -1,5 +1,5 @@
 import EmptyState from "../EmptyState/EmptyState";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -1,21 +1,21 @@
 import Field from "./Types/Field";
 import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import FormValues from "./Types/FormValues";
-import Hostname from "Common/Types/API/Hostname";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import Color from "Common/Types/Color";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import Domain from "Common/Types/Domain";
-import Email from "Common/Types/Email";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import Exception from "Common/Types/Exception/Exception";
-import GenericObject from "Common/Types/GenericObject";
-import { JSONObject } from "Common/Types/JSON";
-import Phone from "Common/Types/Phone";
-import Port from "Common/Types/Port";
-import Typeof from "Common/Types/Typeof";
+import Hostname from "../../../Types/API/Hostname";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import Color from "../../../Types/Color";
+import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
+import Domain from "../../../Types/Domain";
+import Email from "../../../Types/Email";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import GenericObject from "../../../Types/GenericObject";
+import { JSONObject } from "../../../Types/JSON";
+import Phone from "../../../Types/Phone";
+import Port from "../../../Types/Port";
+import Typeof from "../../../Types/Typeof";
 
 export default class Validation {
   public static validateLength<T extends GenericObject>(

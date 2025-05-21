@@ -1,4 +1,4 @@
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
@@ -12,8 +12,8 @@ import Pagination from "../Pagination/Pagination";
 import TableBody from "./TableBody";
 import TableHeader from "./TableHeader";
 import Columns from "./Types/Columns";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import GenericObject from "Common/Types/GenericObject";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 

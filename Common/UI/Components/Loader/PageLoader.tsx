@@ -1,5 +1,5 @@
 import Loader, { LoaderType } from "./Loader";
-import { VeryLightGray } from "Common/Types/BrandColors";
+import { VeryLightGray } from "../../../Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

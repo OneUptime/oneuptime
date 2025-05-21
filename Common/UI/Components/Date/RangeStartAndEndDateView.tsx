@@ -1,13 +1,13 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "Common/Types/Time/TimeRange";
-import OneUptimeDate from "Common/Types/Date";
-import IconProp from "Common/Types/Icon/IconProp";
-import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
+import OneUptimeDate from "../../../Types/Date";
+import IconProp from "../../../Types/Icon/IconProp";
+import { GetReactElementFunction } from "../../UI/Types/FunctionTypes";
 import HeaderAlert, {
   HeaderAlertType,
-} from "Common/UI/Components/HeaderAlert/HeaderAlert";
-import ColorSwatch from "Common/Types/ColorSwatch";
+} from "../../UI/Components/HeaderAlert/HeaderAlert";
+import ColorSwatch from "../../../Types/ColorSwatch";
 import RangeStartAndEndDateEdit from "./RangeStartAndEndDateEdit";
 import Modal from "../Modal/Modal";
 

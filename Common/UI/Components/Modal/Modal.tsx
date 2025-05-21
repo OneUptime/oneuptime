@@ -4,8 +4,8 @@ import Icon, { IconType, SizeProp, ThickProp } from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
 import ModalFooter from "./ModalFooter";
-import { VeryLightGray } from "Common/Types/BrandColors";
-import IconProp from "Common/Types/Icon/IconProp";
+import { VeryLightGray } from "../../../Types/BrandColors";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum ModalWidth {

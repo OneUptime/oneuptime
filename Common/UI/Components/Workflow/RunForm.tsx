@@ -2,8 +2,8 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormValues from "../Forms/Types/FormValues";
 import { componentInputTypeToFormFieldType } from "./Utils";
-import { JSONObject } from "Common/Types/JSON";
-import { Argument, NodeDataProp } from "Common/Types/Workflow/Component";
+import { JSONObject } from "../../../Types/JSON";
+import { Argument, NodeDataProp } from "../../../Types/Workflow/Component";
 import React, {
   FunctionComponent,
   ReactElement,

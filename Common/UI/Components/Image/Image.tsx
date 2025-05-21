@@ -1,8 +1,8 @@
 // Taiwind
-import Route from "Common/Types/API/Route";
-import URLFromProject from "Common/Types/API/URL";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import File from "Common/Models/DatabaseModels/File";
+import Route from "../../../Types/API/Route";
+import URLFromProject from "../../../Types/API/URL";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import File from "../../Models/DatabaseModels/File";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

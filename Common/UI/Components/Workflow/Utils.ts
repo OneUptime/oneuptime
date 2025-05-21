@@ -1,14 +1,14 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import IconProp from "Common/Types/Icon/IconProp";
-import Typeof from "Common/Types/Typeof";
+import IconProp from "../../../Types/Icon/IconProp";
+import Typeof from "../../../Types/Typeof";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentInputType,
-} from "Common/Types/Workflow/Component";
-import Components, { Categories } from "Common/Types/Workflow/Components";
-import BaseModelComponentFactory from "Common/Types/Workflow/Components/BaseModel";
-import Entities from "Common/Models/DatabaseModels/Index";
+} from "../../../Types/Workflow/Component";
+import Components, { Categories } from "../../../Types/Workflow/Components";
+import BaseModelComponentFactory from "../../../Types/Workflow/Components/BaseModel";
+import Entities from "../../Models/DatabaseModels/Index";
 import { ConditionOperator } from "../../../Types/Workflow/Components/Condition";
 
 type LoadComponentsAndCategoriesFunction = () => {

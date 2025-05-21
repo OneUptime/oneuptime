@@ -1,6 +1,6 @@
 import NumberUtil from "../../Utils/Number";
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
 

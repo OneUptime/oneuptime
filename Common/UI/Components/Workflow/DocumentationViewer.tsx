@@ -3,11 +3,11 @@ import API from "../../Utils/API/API";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ObjectID from "Common/Types/ObjectID";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import ObjectID from "../../../Types/ObjectID";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 

@@ -1,5 +1,5 @@
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
-import Text from "Common/Types/Text";
+import Text from "../../../Types/Text";
 import React, {
   FunctionComponent,
   ReactElement,

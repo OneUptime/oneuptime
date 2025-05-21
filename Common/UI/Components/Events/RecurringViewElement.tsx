@@ -1,5 +1,5 @@
-import EventInterval from "Common/Types/Events/EventInterval";
-import Recurring from "Common/Types/Events/Recurring";
+import EventInterval from "../../../Types/Events/EventInterval";
+import Recurring from "../../../Types/Events/Recurring";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

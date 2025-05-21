@@ -1,5 +1,5 @@
 import Button, { ButtonStyleType } from "../Button/Button";
-import GenericObject from "Common/Types/GenericObject";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<TGenericObject extends GenericObject> {

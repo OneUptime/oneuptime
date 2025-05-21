@@ -2,13 +2,13 @@ import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Pill from "../Pill/Pill";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { VeryLightGray } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
-import OneUptimeDate from "Common/Types/Date";
-import IconProp from "Common/Types/Icon/IconProp";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import { VeryLightGray } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
+import OneUptimeDate from "../../../Types/Date";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum TimelineItemType {

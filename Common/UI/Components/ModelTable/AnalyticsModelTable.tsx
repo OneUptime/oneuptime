@@ -7,11 +7,11 @@ import Sort from "../../Utils/BaseDatabase/Sort";
 import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
-} from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import NotImplementedException from "Common/Types/Exception/NotImplementedException";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+} from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import NotImplementedException from "../../../Types/Exception/NotImplementedException";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<TBaseModel extends AnalyticsBaseModel>

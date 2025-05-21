@@ -1,8 +1,8 @@
-import { Blue500 } from "Common/Types/BrandColors";
-import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
-import Color from "Common/Types/Color";
-import OneUptimeDate from "Common/Types/Date";
-import StartAndEndTime from "Common/Types/Time/StartAndEndTime";
+import { Blue500 } from "../../../Types/BrandColors";
+import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
+import Color from "../../../Types/Color";
+import OneUptimeDate from "../../../Types/Date";
+import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
 import moment from "moment-timezone";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {

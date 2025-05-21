@@ -12,7 +12,7 @@ import NumberFilter from "./NumberFilter";
 import TextFilter from "./TextFilter";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
-import GenericObject from "Common/Types/GenericObject";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {

@@ -1,8 +1,8 @@
 // Tailwind
 import { Logger } from "../../Utils/Logger";
 import Icon from "../Icon/Icon";
-import OneUptimeDate from "Common/Types/Date";
-import IconProp from "Common/Types/Icon/IconProp";
+import OneUptimeDate from "../../../Types/Date";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,

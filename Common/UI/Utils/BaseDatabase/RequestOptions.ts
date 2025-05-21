@@ -1,5 +1,5 @@
-import URL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
+import URL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
 
 export default interface RequestOptions {
   requestHeaders?: Dictionary<string> | undefined;

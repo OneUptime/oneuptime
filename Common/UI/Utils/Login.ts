@@ -2,12 +2,12 @@ import { DASHBOARD_URL } from "../Config";
 import Analytics from "../Utils/Analytics";
 import Navigation from "../Utils/Navigation";
 import UserUtil from "../Utils/User";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Email from "Common/Types/Email";
-import { JSONObject } from "Common/Types/JSON";
-import Name from "Common/Types/Name";
-import ObjectID from "Common/Types/ObjectID";
-import User from "Common/Models/DatabaseModels/User";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Email from "../../../Types/Email";
+import { JSONObject } from "../../../Types/JSON";
+import Name from "../../../Types/Name";
+import ObjectID from "../../../Types/ObjectID";
+import User from "../../Models/DatabaseModels/User";
 
 export default abstract class LoginUtil {
   public static login(value: JSONObject): void {

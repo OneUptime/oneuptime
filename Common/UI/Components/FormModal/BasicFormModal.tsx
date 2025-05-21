@@ -6,7 +6,7 @@ import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
 } from "../Forms/BasicForm";
 import Modal from "../Modal/Modal";
-import GenericObject from "Common/Types/GenericObject";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {

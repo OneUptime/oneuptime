@@ -18,14 +18,14 @@ import {
   FluentIngestRoute,
   IncomingRequestIngestRoute,
   OpenTelemetryIngestRoute,
-} from "Common/ServiceRoute";
-import Hostname from "Common/Types/API/Hostname";
-import Protocol from "Common/Types/API/Protocol";
-import URL from "Common/Types/API/URL";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import Dictionary from "Common/Types/Dictionary";
-import { JSONObject } from "Common/Types/JSON";
-import Version from "Common/Types/Version";
+} from "../../ServiceRoute";
+import Hostname from "../../../Types/API/Hostname";
+import Protocol from "../../../Types/API/Protocol";
+import URL from "../../../Types/API/URL";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
+import Dictionary from "../../../Types/Dictionary";
+import { JSONObject } from "../../../Types/JSON";
+import Version from "../../../Types/Version";
 
 type GetAllEnvVarsFunction = () => JSONObject;
 

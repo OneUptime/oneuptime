@@ -9,15 +9,15 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Input from "../Input/Input";
 import StaticModelList from "../ModelList/StaticModelList";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import URL from "Common/Types/API/URL";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import { JSONArray } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import URL from "../../../Types/API/URL";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import { JSONArray } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

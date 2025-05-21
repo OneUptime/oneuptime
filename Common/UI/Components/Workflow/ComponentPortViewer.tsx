@@ -1,5 +1,5 @@
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import { Port } from "Common/Types/Workflow/Component";
+import { Port } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

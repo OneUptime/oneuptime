@@ -1,6 +1,6 @@
 import { ButtonStyleType } from "../../Button/Button";
 import { CardButtonSchema } from "../Card";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 
 type GetButtonFunctionType = () => CardButtonSchema;
 

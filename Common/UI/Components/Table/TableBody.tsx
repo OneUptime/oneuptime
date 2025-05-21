@@ -1,7 +1,7 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
-import GenericObject from "Common/Types/GenericObject";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import { Droppable, DroppableProvided } from "react-beautiful-dnd";
 

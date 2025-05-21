@@ -1,10 +1,10 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import Log from "Common/Models/AnalyticsModels/Log";
-import LogSeverity from "Common/Types/Log/LogSeverity";
-import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
+import JSONFunctions from "../../../Types/JSONFunctions";
+import Log from "../../Models/AnalyticsModels/Log";
+import LogSeverity from "../../../Types/Log/LogSeverity";
+import TelemetryService from "../../Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {

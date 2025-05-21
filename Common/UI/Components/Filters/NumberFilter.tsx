@@ -2,7 +2,7 @@ import Input, { InputType } from "../Input/Input";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
-import GenericObject from "Common/Types/GenericObject";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {

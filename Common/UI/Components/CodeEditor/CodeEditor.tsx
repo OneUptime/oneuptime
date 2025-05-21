@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import CodeType from "Common/Types/Code/CodeType";
+import CodeType from "../../../Types/Code/CodeType";
 import React, {
   FunctionComponent,
   ReactElement,

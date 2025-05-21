@@ -1,6 +1,6 @@
-import Timezone from "Common/Types/Timezone";
+import Timezone from "../../../Types/Timezone";
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate from "../../../Types/Date";
 
 export default class TimezoneUtil {
   public static getTimezoneDropdownOptions(): DropdownOption[] {

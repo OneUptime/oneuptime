@@ -1,8 +1,8 @@
-import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
+import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Icon, { SizeProp } from "../Icon/Icon";
 import Image from "../Image/Image";
-import Route from "Common/Types/API/Route";
-import IconProp from "Common/Types/Icon/IconProp";
+import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,

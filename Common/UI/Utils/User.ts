@@ -1,16 +1,16 @@
 import { IDENTITY_URL } from "../Config";
 import LocalStorage from "./LocalStorage";
-import URL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
-import Email from "Common/Types/Email";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
-import Name from "Common/Types/Name";
-import ObjectID from "Common/Types/ObjectID";
-import Timezone from "Common/Types/Timezone";
-import API from "Common/Utils/API";
+import URL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
+import Email from "../../../Types/Email";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
+import Name from "../../../Types/Name";
+import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
+import API from "../../Utils/API";
 import Cookie from "./Cookie";
-import CookieName from "Common/Types/CookieName";
+import CookieName from "../../../Types/CookieName";
 import SessionStorage from "./SessionStorage";
 
 export default class UserUtil {

@@ -15,7 +15,7 @@ import {
   WebTracerProvider,
 } from "@opentelemetry/sdk-trace-web";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
-import URL from "Common/Types/API/URL";
+import URL from "../../../Types/API/URL";
 
 export default class Telemetry {
   public static init(data: { serviceName: string }): void {

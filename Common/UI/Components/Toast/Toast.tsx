@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Icon from "../Icon/Icon";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 
 export enum ToastType {
   DANGER,

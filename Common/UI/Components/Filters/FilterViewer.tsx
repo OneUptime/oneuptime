@@ -9,12 +9,12 @@ import FilterViewerItem from "./FilterViewerItem";
 import FiltersForm from "./FiltersForm";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Search from "Common/Types/BaseDatabase/Search";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import GenericObject from "Common/Types/GenericObject";
-import IconProp from "Common/Types/Icon/IconProp";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import Search from "../../../Types/BaseDatabase/Search";
+import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
+import GenericObject from "../../../Types/GenericObject";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {

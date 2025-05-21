@@ -1,4 +1,4 @@
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 import { jwtDecode } from "jwt-decode";
 
 export default class JWTToken {

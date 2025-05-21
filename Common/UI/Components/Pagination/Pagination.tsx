@@ -1,7 +1,7 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,

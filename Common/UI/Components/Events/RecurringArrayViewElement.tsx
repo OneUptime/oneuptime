@@ -1,4 +1,4 @@
-import Recurring from "Common/Types/Events/Recurring";
+import Recurring from "../../../Types/Events/Recurring";
 import React, { FunctionComponent, ReactElement } from "react";
 import RecurringViewElement from "./RecurringViewElement";
 

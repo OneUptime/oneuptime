@@ -1,6 +1,6 @@
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

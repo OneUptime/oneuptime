@@ -3,12 +3,12 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "../Icon/Icon";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import CommonURL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
-import MimeType from "Common/Types/File/MimeType";
-import IconProp from "Common/Types/Icon/IconProp";
-import FileModel from "Common/Models/DatabaseModels/File";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import CommonURL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
+import MimeType from "../../../Types/File/MimeType";
+import IconProp from "../../../Types/Icon/IconProp";
+import FileModel from "../../Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
   ReactElement,

@@ -1,5 +1,5 @@
 import BarLabel from "./BarLabel";
-import Color from "Common/Types/Color";
+import Color from "../../../Types/Color";
 import React, {
   FunctionComponent,
   MouseEventHandler,

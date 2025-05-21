@@ -1,7 +1,7 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Input, { InputType } from "../Input/Input";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import OneUptimeDate from "Common/Types/Date";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import OneUptimeDate from "../../../Types/Date";
 import React, { ReactElement, useEffect } from "react";
 
 export enum StartAndEndDateType {

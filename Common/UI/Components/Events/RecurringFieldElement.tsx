@@ -1,10 +1,10 @@
 import DropdownUtil from "../../Utils/Dropdown";
 import Dropdown, { DropdownValue } from "../Dropdown/Dropdown";
 import Input, { InputType } from "../Input/Input";
-import EventInterval from "Common/Types/Events/EventInterval";
-import Recurring from "Common/Types/Events/Recurring";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Typeof from "Common/Types/Typeof";
+import EventInterval from "../../../Types/Events/EventInterval";
+import Recurring from "../../../Types/Events/Recurring";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import Typeof from "../../../Types/Typeof";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {

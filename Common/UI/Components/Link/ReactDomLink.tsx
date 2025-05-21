@@ -1,4 +1,4 @@
-import Route from "Common/Types/API/Route";
+import Route from "../../../Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Link as DomLink } from "react-router-dom";
 

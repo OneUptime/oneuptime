@@ -1,9 +1,9 @@
 import Icon from "../Icon/Icon";
 import UILink from "../Link/Link";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import IconProp from "Common/Types/Icon/IconProp";
-import Link from "Common/Types/Link";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import IconProp from "../../../Types/Icon/IconProp";
+import Link from "../../../Types/Link";
 import React, { FunctionComponent, ReactElement } from "react";
 
 interface ComponentProps {

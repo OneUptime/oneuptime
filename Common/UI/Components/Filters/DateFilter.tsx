@@ -3,8 +3,8 @@ import StartAndEndDate, { StartAndEndDateType } from "../Date/StartAndEndDate";
 import FieldType from "../Types/FieldType";
 import Filter from "./Types/Filter";
 import FilterData from "./Types/FilterData";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import GenericObject from "Common/Types/GenericObject";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {

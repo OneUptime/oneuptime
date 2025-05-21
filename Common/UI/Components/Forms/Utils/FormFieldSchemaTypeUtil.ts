@@ -1,4 +1,4 @@
-import FieldType from "../../Types/FieldType";
+import FieldType from "../../../Types/FieldType";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 
 export default class FormFieldSchemaTypeUtil {

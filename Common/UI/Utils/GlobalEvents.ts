@@ -1,4 +1,4 @@
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "../../../Types/JSON";
 
 export default class GlobalEvents {
   public static addEventListener(

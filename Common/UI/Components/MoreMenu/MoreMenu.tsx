@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import IconProp from "../../../Types/Icon/IconProp";
-import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
+import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import Button, { ButtonStyleType } from "../Button/Button";
 
 export interface ComponentProps {

@@ -1,10 +1,10 @@
 import { AgnosticRouteMatch } from "@remix-run/router";
-import Hostname from "Common/Types/API/Hostname";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ObjectID from "Common/Types/ObjectID";
+import Hostname from "../../../Types/API/Hostname";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import ObjectID from "../../../Types/ObjectID";
 import {
   Location,
   NavigateFunction,

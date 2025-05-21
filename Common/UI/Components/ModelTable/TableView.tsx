@@ -17,7 +17,7 @@ import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import { FormType } from "../Forms/ModelForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
-import { GetReactElementArrayFunction } from "../../Types/FunctionTypes";
+import { GetReactElementArrayFunction } from "../../../Types/FunctionTypes";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";

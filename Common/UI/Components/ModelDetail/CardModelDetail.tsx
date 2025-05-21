@@ -11,13 +11,13 @@ import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import IconProp from "Common/Types/Icon/IconProp";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IconProp from "../../../Types/Icon/IconProp";
 import {
   PermissionHelper,
   UserPermission,
   UserTenantAccessPermission,
-} from "Common/Types/Permission";
+} from "../../../Types/Permission";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

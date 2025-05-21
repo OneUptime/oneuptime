@@ -1,9 +1,9 @@
-import URL from "Common/Types/API/URL";
-import Dictionary from "Common/Types/Dictionary";
-import Email from "Common/Types/Email";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import Typeof from "Common/Types/Typeof";
+import URL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
+import Email from "../../../Types/Email";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
+import Typeof from "../../../Types/Typeof";
 
 export default class LocalStorage {
   public static setItem(key: string, value: JSONValue | Email | URL): void {

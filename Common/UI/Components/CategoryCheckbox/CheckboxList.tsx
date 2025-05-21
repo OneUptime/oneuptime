@@ -1,7 +1,7 @@
 import CheckboxElement from "../Checkbox/Checkbox";
 import { CategoryCheckboxOption } from "./CategoryCheckboxTypes";
-import GenericObject from "Common/Types/GenericObject";
-import { JSONObject } from "Common/Types/JSON";
+import GenericObject from "../../../Types/GenericObject";
+import { JSONObject } from "../../../Types/JSON";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export type CategoryCheckboxValue = string | number | boolean;

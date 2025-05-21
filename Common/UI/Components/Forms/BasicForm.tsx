@@ -15,14 +15,14 @@ import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import Validation from "./Validation";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
-import { VoidFunction } from "Common/Types/FunctionTypes";
-import GenericObject from "Common/Types/GenericObject";
-import HashedString from "Common/Types/HashedString";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import Typeof from "Common/Types/Typeof";
+import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
+import { VoidFunction } from "../../../Types/FunctionTypes";
+import GenericObject from "../../../Types/GenericObject";
+import HashedString from "../../../Types/HashedString";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
+import Typeof from "../../../Types/Typeof";
 import { FormikErrors, FormikProps } from "formik";
 import React, {
   ForwardRefExoticComponent,

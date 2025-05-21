@@ -3,9 +3,9 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import GenericObject from "Common/Types/GenericObject";
-import IconProp from "Common/Types/Icon/IconProp";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import GenericObject from "../../../Types/GenericObject";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
 
 export interface ComponentProps<T extends GenericObject> {

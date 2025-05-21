@@ -1,5 +1,5 @@
 import { AnalyticsHost, AnalyticsKey } from "../Config";
-import Analytics from "Common/Utils/Analytics";
+import Analytics from "../../Utils/Analytics";
 
 const UiAnalytics: Analytics = new Analytics(AnalyticsHost, AnalyticsKey);
 

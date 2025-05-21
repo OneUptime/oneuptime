@@ -1,4 +1,4 @@
-import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Field from "../Detail/Field";
@@ -9,7 +9,7 @@ import FilterData from "../Filters/Types/FilterData";
 import Pagination from "../Pagination/Pagination";
 import ListBody from "./ListBody";
 import { ListDetailProps } from "./ListRow";
-import GenericObject from "Common/Types/GenericObject";
+import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 

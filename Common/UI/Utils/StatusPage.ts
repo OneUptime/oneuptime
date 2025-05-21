@@ -4,13 +4,13 @@ import {
 } from "../Components/CategoryCheckbox/CategoryCheckboxTypes";
 import { CategoryCheckboxOptionsAndCategories } from "../Components/CategoryCheckbox/Index";
 import ModelAPI, { ListResult } from "../Utils/ModelAPI/ModelAPI";
-import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ObjectID from "Common/Types/ObjectID";
-import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
-import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import URL from "../../../Types/API/URL";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import ObjectID from "../../../Types/ObjectID";
+import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
+import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import DropdownUtil from "./Dropdown";
-import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
+import StatusPageEventType from "../../../Types/StatusPage/StatusPageEventType";
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
 
 export default class StatusPageUtil {

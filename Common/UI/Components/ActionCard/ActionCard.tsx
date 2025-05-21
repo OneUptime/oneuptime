@@ -1,7 +1,7 @@
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useState } from "react";
 
 export interface ConfirmAction {

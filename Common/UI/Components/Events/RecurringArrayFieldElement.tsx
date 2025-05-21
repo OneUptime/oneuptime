@@ -1,6 +1,6 @@
-import EventInterval from "Common/Types/Events/EventInterval";
-import Recurring from "Common/Types/Events/Recurring";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import EventInterval from "../../../Types/Events/EventInterval";
+import Recurring from "../../../Types/Events/Recurring";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import RecurringFieldElement from "./RecurringFieldElement";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";

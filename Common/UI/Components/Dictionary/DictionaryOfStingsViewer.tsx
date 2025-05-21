@@ -1,4 +1,4 @@
-import Dictionary from "Common/Types/Dictionary";
+import Dictionary from "../../../Types/Dictionary";
 import React, {
   FunctionComponent,
   ReactElement,

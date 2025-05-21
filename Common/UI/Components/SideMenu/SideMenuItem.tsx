@@ -2,8 +2,8 @@ import Navigation from "../../Utils/Navigation";
 import Badge, { BadgeType } from "../Badge/Badge";
 import Icon from "../Icon/Icon";
 import UILink from "../Link/Link";
-import IconProp from "Common/Types/Icon/IconProp";
-import Link from "Common/Types/Link";
+import IconProp from "../../../Types/Icon/IconProp";
+import Link from "../../../Types/Link";
 import React, { FunctionComponent } from "react";
 
 export interface ComponentProps {

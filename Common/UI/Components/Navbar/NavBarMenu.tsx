@@ -1,5 +1,5 @@
 import Link from "../Link/Link";
-import URL from "Common/Types/API/URL";
+import URL from "../../../Types/API/URL";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

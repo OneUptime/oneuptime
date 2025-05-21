@@ -2,16 +2,16 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import Icon, { SizeProp } from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
-import Dictionary from "Common/Types/Dictionary";
-import IconProp from "Common/Types/Icon/IconProp";
+import Dictionary from "../../../Types/Dictionary";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
-import NumberUtil from "Common/Utils/Number";
-import BooleanUtil from "Common/Utils/Boolean";
+import NumberUtil from "../../Utils/Number";
+import BooleanUtil from "../../Utils/Boolean";
 
 export enum ValueType {
   Text = "Text",

@@ -1,5 +1,5 @@
-import { VeryLightGray } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
+import { VeryLightGray } from "../../../Types/BrandColors";
+import Color from "../../../Types/Color";
 import React, { FunctionComponent } from "react";
 import BarLoader from "react-spinners/BarLoader";
 import BeatLoader from "react-spinners/BeatLoader";

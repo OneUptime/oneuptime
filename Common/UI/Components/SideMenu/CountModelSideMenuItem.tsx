@@ -3,10 +3,10 @@ import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import { BadgeType } from "../Badge/Badge";
 import SideMenuItem from "./SideMenuItem";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import Link from "Common/Types/Link";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
+import Link from "../../../Types/Link";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

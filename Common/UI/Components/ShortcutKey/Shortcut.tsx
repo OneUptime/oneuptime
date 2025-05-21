@@ -1,4 +1,4 @@
-import Char from "Common/Types/Char";
+import Char from "../../../Types/Char";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

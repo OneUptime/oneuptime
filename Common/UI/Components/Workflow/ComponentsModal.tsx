@@ -8,7 +8,7 @@ import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
   NodeType,
-} from "Common/Types/Workflow/Component";
+} from "../../../Types/Workflow/Component";
 import React, {
   FunctionComponent,
   ReactElement,

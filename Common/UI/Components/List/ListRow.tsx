@@ -4,8 +4,8 @@ import Detail from "../Detail/Detail";
 import Field from "../Detail/Field";
 import Icon, { ThickProp } from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
-import GenericObject from "Common/Types/GenericObject";
-import IconProp from "Common/Types/Icon/IconProp";
+import GenericObject from "../../../Types/GenericObject";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useState } from "react";
 import { Draggable, DraggableProvided } from "react-beautiful-dnd";
 

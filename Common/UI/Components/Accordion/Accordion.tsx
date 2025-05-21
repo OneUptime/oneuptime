@@ -1,6 +1,6 @@
 import Icon, { ThickProp } from "../Icon/Icon";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,

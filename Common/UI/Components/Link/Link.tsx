@@ -1,7 +1,7 @@
 import Navigation from "../../Utils/Navigation";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import { JSONObject } from "../../../Types/JSON";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -1,5 +1,5 @@
 import Loader, { LoaderType } from "../Loader/Loader";
-import { VeryLightGray } from "Common/Types/BrandColors";
+import { VeryLightGray } from "../../../Types/BrandColors";
 import React, { ReactElement } from "react";
 
 const CompactLoader: () => JSX.Element = (): ReactElement => {

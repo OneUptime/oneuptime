@@ -3,11 +3,11 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
-import ObjectID from "Common/Types/ObjectID";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
