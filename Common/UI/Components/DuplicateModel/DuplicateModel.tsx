@@ -7,7 +7,7 @@ import Card from "../Card/Card";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import { ModelField } from "../Forms/ModelForm";
 import ConfirmModal from "../Modal/ConfirmModal";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";

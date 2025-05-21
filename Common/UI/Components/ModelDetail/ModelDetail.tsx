@@ -8,7 +8,7 @@ import DetailField from "../Detail/Field";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "../Loader/Loader";
 import Field from "./Field";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";

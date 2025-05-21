@@ -1,7 +1,7 @@
 import { ButtonStyleType } from "../Button/Button";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
-import IconProp from "../../../Types/Icon/IconProp";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 interface ActionButtonSchema<T extends GenericObject> {
   title: string;

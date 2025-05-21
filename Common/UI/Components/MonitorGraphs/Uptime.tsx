@@ -4,9 +4,9 @@ import DayUptimeGraph, { BarChartRule, Event } from "../Graphs/DayUptimeGraph";
 import UptimeUtil from "./UptimeUtil";
 import Color from "../../../Types/Color";
 import CommonMonitorEvent from "../../Utils/Uptime/MonitorEvent";
-import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
-import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import StatusPageHistoryChartBarColorRule from "../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import React, {
   FunctionComponent,
   ReactElement,

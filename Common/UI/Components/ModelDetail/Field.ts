@@ -1,6 +1,6 @@
 import Select from "../../Utils/BaseDatabase/Select";
 import { FieldBase } from "../Detail/Field";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 export default interface Field<TBaseModel extends BaseModel>
   extends FieldBase<TBaseModel> {

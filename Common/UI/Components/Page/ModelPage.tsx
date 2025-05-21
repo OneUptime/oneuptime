@@ -1,7 +1,7 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Page from "./Page";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import Link from "../../../Types/Link";
 import ObjectID from "../../../Types/ObjectID";

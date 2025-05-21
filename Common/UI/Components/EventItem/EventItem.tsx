@@ -2,7 +2,7 @@ import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import Pill from "../Pill/Pill";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { VeryLightGray } from "../../../Types/BrandColors";

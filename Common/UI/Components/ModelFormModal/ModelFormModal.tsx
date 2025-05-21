@@ -8,7 +8,7 @@ import ModelForm, {
 } from "../Forms/ModelForm";
 import FormValues from "../Forms/Types/FormValues";
 import Modal, { ModalWidth } from "../Modal/Modal";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";

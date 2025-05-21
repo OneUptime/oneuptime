@@ -2,7 +2,7 @@ import Icon from "../../Icon/Icon";
 import Link from "../../Link/Link";
 import Route from "../../../Types/API/Route";
 import Color from "../../../Types/Color";
-import IconProp from "../../../Types/Icon/IconProp";
+import IconProp from "../../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

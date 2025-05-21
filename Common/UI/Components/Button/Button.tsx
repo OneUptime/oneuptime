@@ -1,4 +1,4 @@
-import { KeyboardEventProp } from "../../../Types/HtmlEvents";
+import { KeyboardEventProp } from "../../Types/HtmlEvents";
 import Icon, { SizeProp } from "../Icon/Icon";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import ButtonType from "./ButtonTypes";

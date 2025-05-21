@@ -11,7 +11,7 @@ import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   PermissionHelper,

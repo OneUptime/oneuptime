@@ -2,7 +2,7 @@ import API from "../../Utils/API/API";
 import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import HeaderAlert, { HeaderAlertType } from "./HeaderAlert";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
