@@ -1,8 +1,8 @@
-import Faker from "../../../Utils/Faker";
-import Project from "../../../Models/DatabaseModels/Project";
+import Faker from "../../../../Utils/Faker";
+import Project from "../../../../Models/DatabaseModels/Project";
 import SubscriptionPlan, {
   PlanType,
-} from "../../../Types/Billing/SubscriptionPlan";
+} from "../../../../Types/Billing/SubscriptionPlan";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectService from "../../../../Server/Services/ProjectService";
 

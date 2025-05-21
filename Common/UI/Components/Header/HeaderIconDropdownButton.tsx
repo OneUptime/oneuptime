@@ -1,4 +1,4 @@
-import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
 import Icon, { SizeProp } from "../Icon/Icon";
 import Image from "../Image/Image";
 import Route from "../../../Types/API/Route";

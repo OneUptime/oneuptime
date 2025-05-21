@@ -2,14 +2,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import StartAndEndDate, {
   StartAndEndDateType,
-} from "../../UI/Components/Date/StartAndEndDate";
+} from "../../../UI/Components/Date/StartAndEndDate";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import TimeRange from "../../../Types/Time/TimeRange";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
-} from "../../UI/Components/Dropdown/Dropdown";
-import DropdownUtil from "../../UI/Utils/Dropdown";
+} from "../../../UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "../../../UI/Utils/Dropdown";
 
 export interface ComponentProps {
   value?: RangeStartAndEndDateTime | undefined;

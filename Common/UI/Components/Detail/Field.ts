@@ -1,4 +1,4 @@
-import AlignItem from "../../../Types/AlignItem";
+import AlignItem from "../../Types/AlignItem";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import FieldType from "../Types/FieldType";
 import { Size } from "./FieldLabel";

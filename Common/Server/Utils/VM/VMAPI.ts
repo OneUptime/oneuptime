@@ -1,13 +1,13 @@
 import { IsolatedVMHostname } from "../../../Server/EnvironmentConfig";
 import ClusterKeyAuthorization from "../../Middleware/ClusterKeyAuthorization";
-import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../Types/API/HTTPResponse";
-import Protocol from "../../Types/API/Protocol";
-import Route from "../../Types/API/Route";
-import URL from "../../Types/API/URL";
-import ReturnResult from "../../Types/IsolatedVM/ReturnResult";
-import { JSONObject, JSONValue } from "../../Types/JSON";
-import API from "../../Utils/API";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Protocol from "../../../Types/API/Protocol";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
+import API from "../../../Utils/API";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class VMUtil {

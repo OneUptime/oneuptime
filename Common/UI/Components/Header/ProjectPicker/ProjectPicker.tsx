@@ -4,7 +4,7 @@ import CreateNewProjectButton from "./CreateNewProjectButton";
 import ProjectPickerMenu from "./ProjectPickerMenu";
 import ProjectPickerMenuItem from "./ProjectPickerMenuItem";
 import IconProp from "../../../../Types/Icon/IconProp";
-import Project from "../../../Models/DatabaseModels/Project";
+import Project from "../../../../Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,

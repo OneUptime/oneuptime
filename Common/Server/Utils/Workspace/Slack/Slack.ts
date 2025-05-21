@@ -1,8 +1,8 @@
-import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
-import HTTPResponse from "../../Types/API/HTTPResponse";
-import URL from "../../Types/API/URL";
-import { JSONObject } from "../../Types/JSON";
-import API from "../../Utils/API";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import URL from "../../../../Types/API/URL";
+import { JSONObject } from "../../../../Types/JSON";
+import API from "../../../../Utils/API";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
   WorkspaceDateTimePickerBlock,

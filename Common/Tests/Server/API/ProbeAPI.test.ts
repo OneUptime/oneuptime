@@ -8,9 +8,9 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import { describe, expect, it } from "@jest/globals";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
-import PositiveNumber from "Common/Types/PositiveNumber";
-import Probe from "Common/Models/DatabaseModels/Probe";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import Probe from "../../../Models/DatabaseModels/Probe";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {

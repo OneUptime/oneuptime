@@ -1,5 +1,5 @@
-import ObjectID from "Common/Types/ObjectID";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import ObjectID from "../../../../Types/ObjectID";
+import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 
 export default class TeamMemberTestService {
   public static generateRandomTeamMember(data: {

@@ -10,8 +10,8 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import NumberUtil from "../../Utils/Number";
-import BooleanUtil from "../../Utils/Boolean";
+import NumberUtil from "../../../Utils/Number";
+import BooleanUtil from "../../../Utils/Boolean";
 
 export enum ValueType {
   Text = "Text",

@@ -1,8 +1,8 @@
 import Navigation from "../../../Utils/Navigation";
 import Icon from "../../Icon/Icon";
-import Route from "../../../Types/API/Route";
+import Route from "../../../../Types/API/Route";
 import IconProp from "../../../../Types/Icon/IconProp";
-import Project from "../../../Models/DatabaseModels/Project";
+import Project from "../../../../Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

@@ -1,6 +1,6 @@
-import ObjectID from "Common/Types/ObjectID";
-import Faker from "Common/Utils/Faker";
-import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ObjectID from "../../../../Types/ObjectID";
+import Faker from "../../../../Utils/Faker";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "../../../../Types/Date";
 
 export default class ScheduledMaintenanceTestService {

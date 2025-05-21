@@ -7,10 +7,10 @@ import { DropdownOption } from "../../Dropdown/Dropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
 import FormValues from "./FormValues";
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Route from "../../../Types/API/Route";
-import URL from "../../../Types/API/URL";
-import MimeType from "../../../Types/File/MimeType";
+import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "../../../../Types/API/Route";
+import URL from "../../../../Types/API/URL";
+import MimeType from "../../../../Types/File/MimeType";
 import { ReactElement } from "react";
 
 export enum FormFieldStyleType {

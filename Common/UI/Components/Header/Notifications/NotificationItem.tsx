@@ -1,6 +1,6 @@
 import CircularIconImage from "../../Icon/CircularIconImage";
 import Icon from "../../Icon/Icon";
-import OneUptimeDate from "../../../Types/Date";
+import OneUptimeDate from "../../../../Types/Date";
 import IconProp from "../../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 

@@ -1,9 +1,9 @@
-import AlignItem from "../../../Types/AlignItem";
-import SelectEntityField from "../../../Types/SelectEntityField";
+import AlignItem from "../../Types/AlignItem";
+import SelectEntityField from "../../Types/SelectEntityField";
 import FieldType from "../Types/FieldType";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import IconProp from "../../../../Types/Icon/IconProp";
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { ReactElement } from "react";
 

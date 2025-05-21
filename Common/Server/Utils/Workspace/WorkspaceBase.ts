@@ -20,7 +20,7 @@ import WorkspaceMessagePayload, {
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import logger from "../Logger";
-import URL from "../../Types/API/URL";
+import URL from "../../../Types/API/URL";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export interface WorkspaceThread {

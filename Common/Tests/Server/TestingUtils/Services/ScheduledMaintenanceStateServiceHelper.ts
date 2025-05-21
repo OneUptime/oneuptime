@@ -1,6 +1,6 @@
-import { Black, Yellow } from "Common/Types/BrandColors";
-import ObjectID from "Common/Types/ObjectID";
-import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import { Black, Yellow } from "../../../../Types/BrandColors";
+import ObjectID from "../../../..//Types/ObjectID";
+import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
 
 export default class ScheduledMaintenanceStateTestService {
   public static generateScheduledState(data: {

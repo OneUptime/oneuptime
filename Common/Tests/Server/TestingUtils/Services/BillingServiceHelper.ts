@@ -6,12 +6,12 @@ import {
   MeteredSubscription,
   Subscription,
 } from "./Types";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import Email from "Common/Types/Email";
-import ProductType from "Common/Types/MeteredPlan/ProductType";
-import ObjectID from "Common/Types/ObjectID";
+import Email from "../../../../Types/Email";
+import ProductType from "../../../../Types/MeteredPlan/ProductType";
+import ObjectID from "../../../../Types/ObjectID";
 import { Stripe } from "stripe";
 import Faker from "../../../../Utils/Faker";
+import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 
