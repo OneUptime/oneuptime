@@ -1,7 +1,7 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
-import SelectEntityField from "../../../Types/SelectEntityField";
+import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import GroupBy from "../../Utils/BaseDatabase/GroupBy";
 import ListResult from "../../Utils/BaseDatabase/ListResult";
@@ -48,10 +48,10 @@ import ModelTableColumn from "./Column";
 import Columns from "./Columns";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
-} from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+} from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";

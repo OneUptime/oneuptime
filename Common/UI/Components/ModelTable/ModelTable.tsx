@@ -6,10 +6,10 @@ import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import { FormType, ModelField } from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
-import { AnalyticsBaseModelType } from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { AnalyticsBaseModelType } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel, {
   DatabaseBaseModelType,
-} from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";

@@ -8,7 +8,7 @@ import ComponentMetadata, {
 } from "../../../Types/Workflow/Component";
 import Components, { Categories } from "../../../Types/Workflow/Components";
 import BaseModelComponentFactory from "../../../Types/Workflow/Components/BaseModel";
-import Entities from "../../Models/DatabaseModels/Index";
+import Entities from "../../../Models/DatabaseModels/Index";
 import { ConditionOperator } from "../../../Types/Workflow/Components/Condition";
 
 type LoadComponentsAndCategoriesFunction = () => {

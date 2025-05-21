@@ -47,7 +47,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
-import API from "../../../Utils/API";
+import API from "../../Utils/API";
 import { Stream } from "node:stream";
 import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";

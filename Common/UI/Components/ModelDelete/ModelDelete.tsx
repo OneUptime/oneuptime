@@ -3,7 +3,7 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { ButtonStyleType } from "../Button/Button";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
