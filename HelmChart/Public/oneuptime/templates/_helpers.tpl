@@ -552,7 +552,9 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   template:
     metadata:
       labels:
