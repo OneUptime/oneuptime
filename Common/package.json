@@ -77,7 +77,6 @@
         "airtable": "^0.12.2",
         "axios": "^1.7.2",
         "bullmq": "^5.3.3",
-        "Common": "file:../Common",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "cron-parser": "^4.8.1",
