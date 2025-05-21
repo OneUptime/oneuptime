@@ -1,7 +1,7 @@
-import PullRequest from "../../Types/CodeRepository/PullRequest";
-import PullRequestState from "../../Types/CodeRepository/PullRequestState";
-import BadDataException from "../../Types/Exception/BadDataException";
-import NotImplementedException from "../../Types/Exception/NotImplementedException";
+import PullRequest from "../../../../Types/CodeRepository/PullRequest";
+import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotImplementedException from "../../../../Types/Exception/NotImplementedException";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class HostedCodeRepository {
