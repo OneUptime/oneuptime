@@ -18,7 +18,9 @@ spec:
   {{- if $.Values.deployment.incomingRequestIngest.replicaCount }}
   replicas: {{ $.Values.deployment.incomingRequestIngest.replicaCount }}
   {{- else }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:

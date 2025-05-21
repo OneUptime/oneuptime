@@ -18,7 +18,9 @@ spec:
   {{- if $.Values.deployment.openTelemetryIngest.replicaCount }}
   replicas: {{ $.Values.deployment.openTelemetryIngest.replicaCount }}
   {{- else }}
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:
