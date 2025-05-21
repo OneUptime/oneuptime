@@ -4,7 +4,7 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import Link from "../Link/Link";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState, useEffect } from "react";
 
 export interface ComponentProps {
   title: string;
@@ -13,7 +13,7 @@ export interface ComponentProps {
   activeRoute?: undefined | Route;
   exact?: boolean;
   children?: undefined | ReactElement | Array<ReactElement>;
-  isRenderedOnMobile?: boolean;
+  isRenderedOnMobile?: boolean; // Passed by NavBar.tsx
   onMouseOver?: (() => void) | undefined;
   onClick?: (() => void) | undefined;
   onMouseLeave?: (() => void) | undefined;
@@ -23,6 +23,8 @@ export interface ComponentProps {
 const NavBarItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [isMobileSubmenuOpen, setIsMobileSubmenuOpen] = useState<boolean>(false);
+
   const activeRoute: Route | undefined = props.activeRoute || props.route;
   const isActive: boolean = Boolean(
     activeRoute &&
