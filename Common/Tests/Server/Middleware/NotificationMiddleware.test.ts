@@ -1,4 +1,3 @@
-import { flatten } from "lodash";
 import NotificationMiddleware from "../../../Server/Middleware/NotificationMiddleware";
 // Types
 import {
