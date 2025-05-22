@@ -55,7 +55,7 @@ function CaptureSpan(data?: {
       }
 
       const spanAttributes: { [key: string]: any } =
-        JSONFunctions?.flattenObject({
+        JSONFunctions.flattenObject({
           ...functionArguments,
           ...data?.attributes,
         }) as { [key: string]: any };
