@@ -1,3 +1,4 @@
+import { flatten } from "lodash";
 import NotificationMiddleware from "../../../Server/Middleware/NotificationMiddleware";
 // Types
 import {
@@ -24,6 +25,7 @@ jest.mock("../../../Server/Utils/JsonWebToken", () => {
 jest.mock("../../../Types/JSONFunctions", () => {
   return {
     deserialize: jest.fn(),
+    flattenObject: jest.fn().mockReturnValue({}),
   };
 });
 
