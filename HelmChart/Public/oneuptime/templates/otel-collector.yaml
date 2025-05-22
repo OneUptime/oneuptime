@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.otelCollector.replicaCount }}
   replicas: {{ $.Values.deployment.otelCollector.replicaCount }}
   {{- else }}
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}

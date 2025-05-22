@@ -17,7 +17,7 @@ spec:
   {{- if $val.replicaCount }}
   replicas: {{ $val.replicaCount }}
   {{- else }}
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
