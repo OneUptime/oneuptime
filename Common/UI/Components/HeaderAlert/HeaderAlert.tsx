@@ -73,7 +73,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
           props.onClick && props.onClick();
         }}
       >
-        <div className="flex ">
+        <div className="flex">
           <div className={`flex-shrink-0 mt-0.5 ${textColor}`}>
             <Icon
               icon={props.icon}
@@ -82,7 +82,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
             />
           </div>
           <div className="ml-1 flex-1 md:flex md:justify-between">
-            <p className={`text-sm font-semibold ${textColor}`}>
+            <p className={`text-sm font-semibold ${textColor} hidden md:block`}>
               {props.title}
             </p>
           </div>
