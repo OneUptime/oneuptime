@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.serverMonitorIngest.replicaCount }}
   replicas: {{ $.Values.deployment.serverMonitorIngest.replicaCount }}
   {{- else }}
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}

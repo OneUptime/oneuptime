@@ -14,7 +14,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "docs"  }}
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   template:
