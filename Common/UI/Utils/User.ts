@@ -8,7 +8,7 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Timezone from "../../Types/Timezone";
-import API from "../../Utils/API";
+import API from "../Utils/API/API";
 import Cookie from "./Cookie";
 import CookieName from "../../Types/CookieName";
 import SessionStorage from "./SessionStorage";

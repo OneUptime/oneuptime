@@ -20,7 +20,7 @@ import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import Project from "../../../Models/DatabaseModels/Project";
 import Query from "../../../Types/BaseDatabase/Query";
-import API from "../../../Utils/API";
+import API from "../API/API";
 
 export class ModelAPIHttpResponse<
   TBaseModel extends BaseModel,

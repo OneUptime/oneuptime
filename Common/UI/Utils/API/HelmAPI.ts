@@ -1,5 +1,5 @@
 import { HELM_HOSTNAME, HTTP_PROTOCOL } from "../../Config";
-import API from "../../../Utils/API";
+import API from "../API/API";
 
 class HelmAPI extends API {
   public constructor() {
