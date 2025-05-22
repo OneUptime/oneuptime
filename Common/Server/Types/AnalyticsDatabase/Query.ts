@@ -1,4 +1,3 @@
-
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import CommonQuery from "../../../Types/BaseDatabase/Query";
 

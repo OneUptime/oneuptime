@@ -2,7 +2,10 @@ import TraceMonitorResponse from "../../../../Types/Monitor/TraceMonitor/TraceMo
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import { CheckOn, CriteriaFilter } from "../../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+} from "../../../../Types/Monitor/CriteriaFilter";
 
 export default class TraceMonitorCriteria {
   @CaptureSpan()

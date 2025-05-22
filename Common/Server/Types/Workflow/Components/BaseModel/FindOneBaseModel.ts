@@ -7,7 +7,9 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
 import Text from "../../../../../Types/Text";
-import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
+import ComponentMetadata, {
+  Port,
+} from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 

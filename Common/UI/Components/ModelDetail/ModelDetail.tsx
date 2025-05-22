@@ -12,7 +12,10 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
-import { PromiseVoidFunction, VoidFunction } from "../../../Types/FunctionTypes";
+import {
+  PromiseVoidFunction,
+  VoidFunction,
+} from "../../../Types/FunctionTypes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../Types/Permission";

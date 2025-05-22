@@ -16,7 +16,6 @@ import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType
 import OneUptimeDate from "../../../../Types/Date";
 import GenericObject from "../../../../Types/GenericObject";
 
-
 function expectStatement(actual: Statement, expected: Statement): void {
   expect(actual.query).toBe(expected.query);
   expect(actual.query_params).toStrictEqual(expected.query_params);

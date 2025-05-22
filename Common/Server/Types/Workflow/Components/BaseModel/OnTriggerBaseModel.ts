@@ -14,7 +14,9 @@ import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
 import ObjectID from "../../../../../Types/ObjectID";
 import Text from "../../../../../Types/Text";
-import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
+import ComponentMetadata, {
+  Port,
+} from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";

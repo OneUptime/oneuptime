@@ -20,12 +20,12 @@ import {
   OpenTelemetryIngestRoute,
 } from "../ServiceRoute";
 import Hostname from "../Types/API/Hostname";
-import Protocol from"../Types/API/Protocol";
-import URL from"../Types/API/URL";
-import SubscriptionPlan from"../Types/Billing/SubscriptionPlan";
-import Dictionary from"../Types/Dictionary";
-import { JSONObject } from"../Types/JSON";
-import Version from"../Types/Version";
+import Protocol from "../Types/API/Protocol";
+import URL from "../Types/API/URL";
+import SubscriptionPlan from "../Types/Billing/SubscriptionPlan";
+import Dictionary from "../Types/Dictionary";
+import { JSONObject } from "../Types/JSON";
+import Version from "../Types/Version";
 
 type GetAllEnvVarsFunction = () => JSONObject;
 

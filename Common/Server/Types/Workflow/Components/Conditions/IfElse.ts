@@ -3,7 +3,9 @@ import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ReturnResult from "../../../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
-import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
+import ComponentMetadata, {
+  Port,
+} from "../../../../../Types/Workflow/Component";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import Components, {
   ConditionOperator,

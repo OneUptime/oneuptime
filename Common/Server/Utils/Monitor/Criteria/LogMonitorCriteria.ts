@@ -1,7 +1,10 @@
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import { CheckOn, CriteriaFilter } from "../../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+} from "../../../../Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "../../../../Types/Monitor/LogMonitor/LogMonitorResponse";
 
 export default class LogMonitorCriteria {

@@ -8,7 +8,9 @@ import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import Text from "../../../../../Types/Text";
-import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
+import ComponentMetadata, {
+  Port,
+} from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 
 export default class DeleteManyBaseModel<

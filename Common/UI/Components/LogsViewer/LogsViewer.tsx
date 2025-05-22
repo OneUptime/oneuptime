@@ -4,7 +4,10 @@ import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import FiltersForm from "../Filters/FiltersForm";
 import FieldType from "../Types/FieldType";
 import LogItem from "./LogItem";
-import { PromiseVoidFunction, VoidFunction } from "../../../Types/FunctionTypes";
+import {
+  PromiseVoidFunction,
+  VoidFunction,
+} from "../../../Types/FunctionTypes";
 import Log from "../../../Models/AnalyticsModels/Log";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import React, { FunctionComponent, ReactElement, Ref } from "react";

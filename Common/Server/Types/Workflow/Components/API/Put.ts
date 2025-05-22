@@ -6,7 +6,9 @@ import URL from "../../../../../Types/API/URL";
 import Dictionary from "../../../../../Types/Dictionary";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
-import ComponentMetadata, { Port } from "../../../../../Types/Workflow/Component";
+import ComponentMetadata, {
+  Port,
+} from "../../../../../Types/Workflow/Component";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import APIComponents from "../../../../../Types/Workflow/Components/API";
 import API from "../../../../../Utils/API";

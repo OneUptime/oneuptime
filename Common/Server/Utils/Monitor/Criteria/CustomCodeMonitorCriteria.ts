@@ -1,5 +1,8 @@
 import CompareCriteria from "./CompareCriteria";
-import { CheckOn, CriteriaFilter } from "../../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+} from "../../../../Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "../../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
