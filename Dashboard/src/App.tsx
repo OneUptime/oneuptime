@@ -25,6 +25,7 @@ import {
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
 import PageComponentProps from "./Pages/PageComponentProps";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 
 // Lazy load route components
 const InitRoutes = lazy(() => import("./Routes/InitRoutes"));
@@ -204,7 +205,7 @@ const App: () => JSX.Element = () => {
     >
       <UseTimezoneInitElement />
       <ToastLayout />
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<PageLoader isVisible={true} />}>
         <Routes>
           <PageRoute
             path="/*"
