@@ -1,38 +1,6 @@
 import ToastLayout from "Common/UI/Components/Toast/ToastInit";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
-import ActiveIncidents from "./Pages/Global/NewIncidents";
-import ProjectInvitations from "./Pages/Global/ProjectInvitations";
-// User Profile
-import UserProfileOverview from "./Pages/Global/UserProfile/Index";
-import UserProfilePassword from "./Pages/Global/UserProfile/Password";
-import UserProfilePicture from "./Pages/Global/UserProfile/Picture";
-// Pages
-import Home from "./Pages/Home/Home";
-import NotOperationalMonitors from "./Pages/Home/NotOperationalMonitors";
-import HomeActiveAlerts from "./Pages/Home/ActiveAlerts";
-import OngoingScheduledEvents from "./Pages/Home/OngoingScheduledMaintenance";
-import Logout from "./Pages/Logout/Logout";
-import Sso from "./Pages/Onboarding/SSO";
-import Welcome from "./Pages/Onboarding/Welcome";
-import PageComponentProps from "./Pages/PageComponentProps";
-import PageNotFound from "./Pages/PageNotFound/PageNotFound";
-import SettingsDangerZone from "./Pages/Settings/DangerZone";
-import AICopilotRoutes from "./Routes/AICopilotRoutes";
-import IncidentsRoutes from "./Routes/IncidentsRoutes";
-//Routes
-import InitRoutes from "./Routes/InitRoutes";
-import MonitorGroupRoutes from "./Routes/MonitorGroupRoutes";
-import DashboardRoutes from "./Routes/DashboardRoutes";
-import MonitorsRoutes from "./Routes/MonitorsRoutes";
-import OnCallDutyRoutes from "./Routes/OnCallDutyRoutes";
-import ScheduledMaintenanceEventsRoutes from "./Routes/ScheduleMaintenaceEventsRoutes";
-import ServiceCatalogRoutes from "./Routes/ServiceCatalogRoutes";
-import SettingsRoutes from "./Routes/SettingsRoutes";
-import StatusPagesRoutes from "./Routes/StatusPagesRoutes";
-import TelemetryRoutes from "./Routes/TelemetryRoutes";
-import UserSettingsRoutes from "./Routes/UserSettingsRoutes";
-import WorkflowRoutes from "./Routes/WorkflowRoutes";
 import EventName from "./Utils/EventName";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
@@ -47,7 +15,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Project from "Common/Models/DatabaseModels/Project";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import {
   Route as PageRoute,
   Routes,
@@ -56,8 +24,39 @@ import {
   useParams,
 } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
-import UseTwoFactorAuth from "./Pages/Global/UserProfile/TwoFactorAuth";
-import AlertsRoutes from "./Routes/AlertRoutes";
+import PageComponentProps from "./Pages/PageComponentProps";
+
+// Lazy load route components
+const InitRoutes = lazy(() => import("./Routes/InitRoutes"));
+const Welcome = lazy(() => import("./Pages/Onboarding/Welcome"));
+const Home = lazy(() => import("./Pages/Home/Home"));
+const Sso = lazy(() => import("./Pages/Onboarding/SSO"));
+const NotOperationalMonitors = lazy(() => import("./Pages/Home/NotOperationalMonitors"));
+const HomeActiveAlerts = lazy(() => import("./Pages/Home/ActiveAlerts"));
+const OngoingScheduledEvents = lazy(() => import("./Pages/Home/OngoingScheduledMaintenance"));
+const TelemetryRoutes = lazy(() => import("./Routes/TelemetryRoutes"));
+const MonitorsRoutes = lazy(() => import("./Routes/MonitorsRoutes"));
+const WorkflowRoutes = lazy(() => import("./Routes/WorkflowRoutes"));
+const StatusPagesRoutes = lazy(() => import("./Routes/StatusPagesRoutes"));
+const DashboardRoutes = lazy(() => import("./Routes/DashboardRoutes"));
+const ServiceCatalogRoutes = lazy(() => import("./Routes/ServiceCatalogRoutes"));
+const AICopilotRoutes = lazy(() => import("./Routes/AICopilotRoutes"));
+const IncidentsRoutes = lazy(() => import("./Routes/IncidentsRoutes"));
+const AlertsRoutes = lazy(() => import("./Routes/AlertRoutes"));
+const ScheduledMaintenanceEventsRoutes = lazy(() => import("./Routes/ScheduleMaintenaceEventsRoutes"));
+const SettingsRoutes = lazy(() => import("./Routes/SettingsRoutes"));
+const SettingsDangerZone = lazy(() => import("./Pages/Settings/DangerZone"));
+const OnCallDutyRoutes = lazy(() => import("./Routes/OnCallDutyRoutes"));
+const Logout = lazy(() => import("./Pages/Logout/Logout"));
+const UserProfilePicture = lazy(() => import("./Pages/Global/UserProfile/Picture"));
+const UserProfileOverview = lazy(() => import("./Pages/Global/UserProfile/Index"));
+const UserProfilePassword = lazy(() => import("./Pages/Global/UserProfile/Password"));
+const UseTwoFactorAuth = lazy(() => import("./Pages/Global/UserProfile/TwoFactorAuth"));
+const ProjectInvitations = lazy(() => import("./Pages/Global/ProjectInvitations"));
+const ActiveIncidents = lazy(() => import("./Pages/Global/NewIncidents"));
+const UserSettingsRoutes = lazy(() => import("./Routes/UserSettingsRoutes"));
+const MonitorGroupRoutes = lazy(() => import("./Routes/MonitorGroupRoutes"));
+const PageNotFound = lazy(() => import("./Pages/PageNotFound/PageNotFound"));
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -205,290 +204,291 @@ const App: () => JSX.Element = () => {
     >
       <UseTimezoneInitElement />
       <ToastLayout />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
+          <PageRoute
+            path="/*"
+            element={
+              <InitRoutes
+                {...commonPageProps}
+                projects={projects}
+                isLoading={isLoading}
+              />
+            }
+          />
 
-      <Routes>
-        <PageRoute
-          path="/*"
-          element={
-            <InitRoutes
-              {...commonPageProps}
-              projects={projects}
-              isLoading={isLoading}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.WELCOME]?.toString() || ""}
+            element={
+              <Welcome
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.WELCOME] as Route}
+                onClickShowProjectModal={() => {
+                  setShowProjectModal(true);
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.WELCOME]?.toString() || ""}
-          element={
-            <Welcome
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.WELCOME] as Route}
-              onClickShowProjectModal={() => {
-                setShowProjectModal(true);
-              }}
-            />
-          }
-        />
+          {/* Home */}
 
-        {/* Home */}
+          <PageRoute
+            path={RouteMap[PageMap.HOME]?.toString() || ""}
+            element={
+              <Home
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.HOME] as Route}
+                projects={projects}
+                isLoadingProjects={isLoading}
+              />
+            }
+          />
+          <PageRoute
+            path={RouteMap[PageMap.PROJECT_SSO]?.toString() || ""}
+            element={
+              <Sso
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.PROJECT_SSO] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.HOME]?.toString() || ""}
-          element={
-            <Home
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.HOME] as Route}
-              projects={projects}
-              isLoadingProjects={isLoading}
-            />
-          }
-        />
-        <PageRoute
-          path={RouteMap[PageMap.PROJECT_SSO]?.toString() || ""}
-          element={
-            <Sso
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.PROJECT_SSO] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={
+              RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS]?.toString() || ""
+            }
+            element={
+              <NotOperationalMonitors
+                {...commonPageProps}
+                pageRoute={
+                  RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route
+                }
+              />
+            }
+          />
 
-        <PageRoute
-          path={
-            RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS]?.toString() || ""
-          }
-          element={
-            <NotOperationalMonitors
-              {...commonPageProps}
-              pageRoute={
-                RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route
-              }
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.HOME_ACTIVE_ALERTS]?.toString() || ""}
+            element={
+              <HomeActiveAlerts
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.HOME_ACTIVE_ALERTS]?.toString() || ""}
-          element={
-            <HomeActiveAlerts
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={
+              RouteMap[
+                PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+              ]?.toString() ||
+              "" ||
+              ""
+            }
+            element={
+              <OngoingScheduledEvents
+                {...commonPageProps}
+                pageRoute={
+                  RouteMap[
+                    PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                  ] as Route
+                }
+              />
+            }
+          />
+          {/* Telemetry */}
+          <PageRoute
+            path={RouteMap[PageMap.TELEMETRY_ROOT]?.toString() || ""}
+            element={<TelemetryRoutes {...commonPageProps} />}
+          />
 
-        <PageRoute
-          path={
-            RouteMap[
-              PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-            ]?.toString() ||
-            "" ||
-            ""
-          }
-          element={
-            <OngoingScheduledEvents
-              {...commonPageProps}
-              pageRoute={
-                RouteMap[
-                  PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                ] as Route
-              }
-            />
-          }
-        />
-        {/* Telemetry */}
-        <PageRoute
-          path={RouteMap[PageMap.TELEMETRY_ROOT]?.toString() || ""}
-          element={<TelemetryRoutes {...commonPageProps} />}
-        />
+          {/* Monitors */}
+          <PageRoute
+            path={RouteMap[PageMap.MONITORS_ROOT]?.toString() || ""}
+            element={<MonitorsRoutes {...commonPageProps} />}
+          />
 
-        {/* Monitors */}
-        <PageRoute
-          path={RouteMap[PageMap.MONITORS_ROOT]?.toString() || ""}
-          element={<MonitorsRoutes {...commonPageProps} />}
-        />
+          {/* Workflows  */}
+          <PageRoute
+            path={RouteMap[PageMap.WORKFLOWS_ROOT]?.toString() || ""}
+            element={<WorkflowRoutes {...commonPageProps} />}
+          />
 
-        {/* Workflows  */}
-        <PageRoute
-          path={RouteMap[PageMap.WORKFLOWS_ROOT]?.toString() || ""}
-          element={<WorkflowRoutes {...commonPageProps} />}
-        />
+          {/* Status Pages */}
+          <PageRoute
+            path={RouteMap[PageMap.STATUS_PAGES_ROOT]?.toString() || ""}
+            element={<StatusPagesRoutes {...commonPageProps} />}
+          />
 
-        {/* Status Pages */}
-        <PageRoute
-          path={RouteMap[PageMap.STATUS_PAGES_ROOT]?.toString() || ""}
-          element={<StatusPagesRoutes {...commonPageProps} />}
-        />
+          {/* Dashboards */}
+          <PageRoute
+            path={RouteMap[PageMap.DASHBOARDS_ROOT]?.toString() || ""}
+            element={<DashboardRoutes {...commonPageProps} />}
+          />
 
-        {/* Dashboards */}
-        <PageRoute
-          path={RouteMap[PageMap.DASHBOARDS_ROOT]?.toString() || ""}
-          element={<DashboardRoutes {...commonPageProps} />}
-        />
+          {/* Service Catalog */}
+          <PageRoute
+            path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ""}
+            element={<ServiceCatalogRoutes {...commonPageProps} />}
+          />
 
-        {/* Service Catalog */}
-        <PageRoute
-          path={RouteMap[PageMap.SERVICE_CATALOG_ROOT]?.toString() || ""}
-          element={<ServiceCatalogRoutes {...commonPageProps} />}
-        />
+          {/** Reliability Copilot */}
+          <PageRoute
+            path={RouteMap[PageMap.AI_COPILOT_ROOT]?.toString() || ""}
+            element={<AICopilotRoutes {...commonPageProps} />}
+          />
 
-        {/** Reliability Copilot */}
-        <PageRoute
-          path={RouteMap[PageMap.AI_COPILOT_ROOT]?.toString() || ""}
-          element={<AICopilotRoutes {...commonPageProps} />}
-        />
+          {/* Incidents */}
+          <PageRoute
+            path={RouteMap[PageMap.INCIDENTS_ROOT]?.toString() || ""}
+            element={<IncidentsRoutes {...commonPageProps} />}
+          />
 
-        {/* Incidents */}
-        <PageRoute
-          path={RouteMap[PageMap.INCIDENTS_ROOT]?.toString() || ""}
-          element={<IncidentsRoutes {...commonPageProps} />}
-        />
+          {/* Incidents */}
+          <PageRoute
+            path={RouteMap[PageMap.ALERTS_ROOT]?.toString() || ""}
+            element={<AlertsRoutes {...commonPageProps} />}
+          />
 
-        {/* Incidents */}
-        <PageRoute
-          path={RouteMap[PageMap.ALERTS_ROOT]?.toString() || ""}
-          element={<AlertsRoutes {...commonPageProps} />}
-        />
+          {/* Scheduled Events */}
 
-        {/* Scheduled Events */}
+          <PageRoute
+            path={
+              RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_ROOT]?.toString() ||
+              ""
+            }
+            element={<ScheduledMaintenanceEventsRoutes {...commonPageProps} />}
+          />
 
-        <PageRoute
-          path={
-            RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS_ROOT]?.toString() ||
-            ""
-          }
-          element={<ScheduledMaintenanceEventsRoutes {...commonPageProps} />}
-        />
+          {/* Settings Routes */}
 
-        {/* Settings Routes */}
+          <PageRoute
+            path={RouteMap[PageMap.SETTINGS_ROOT]?.toString() || ""}
+            element={<SettingsRoutes {...commonPageProps} />}
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.SETTINGS_ROOT]?.toString() || ""}
-          element={<SettingsRoutes {...commonPageProps} />}
-        />
+          {/* As this one has dependencies with the selected project and etc, we need to put it here for now. */}
+          <PageRoute
+            path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString() || ""}
+            element={
+              <SettingsDangerZone
+                onProjectDeleted={async () => {
+                  setSelectedProject(null);
+                  setProjects([]);
+                  await fetchProjects();
+                  Navigation.navigate(RouteMap[PageMap.INIT]!);
+                }}
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.SETTINGS_DANGERZONE] as Route}
+              />
+            }
+          />
 
-        {/* As this one has dependencies with the selected project and etc, we need to put it here for now. */}
-        <PageRoute
-          path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString() || ""}
-          element={
-            <SettingsDangerZone
-              onProjectDeleted={async () => {
-                setSelectedProject(null);
-                setProjects([]);
-                await fetchProjects();
-                Navigation.navigate(RouteMap[PageMap.INIT]!);
-              }}
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.SETTINGS_DANGERZONE] as Route}
-            />
-          }
-        />
+          {/* On-Call Duty */}
 
-        {/* On-Call Duty */}
+          <PageRoute
+            path={RouteMap[PageMap.ON_CALL_DUTY_ROOT]?.toString() || ""}
+            element={<OnCallDutyRoutes {...commonPageProps} />}
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.ON_CALL_DUTY_ROOT]?.toString() || ""}
-          element={<OnCallDutyRoutes {...commonPageProps} />}
-        />
+          {/* Misc Routes */}
+          <PageRoute
+            path={RouteMap[PageMap.LOGOUT]?.toString() || ""}
+            element={
+              <Logout
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.LOGOUT] as Route}
+              />
+            }
+          />
 
-        {/* Misc Routes */}
-        <PageRoute
-          path={RouteMap[PageMap.LOGOUT]?.toString() || ""}
-          element={
-            <Logout
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.LOGOUT] as Route}
-            />
-          }
-        />
+          {/* Global Routes */}
+          <PageRoute
+            path={RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() || ""}
+            element={
+              <UserProfilePicture
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.USER_PROFILE_PICTURE] as Route}
+              />
+            }
+          />
 
-        {/* Global Routes */}
-        <PageRoute
-          path={RouteMap[PageMap.USER_PROFILE_PICTURE]?.toString() || ""}
-          element={
-            <UserProfilePicture
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.USER_PROFILE_PICTURE] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.USER_PROFILE_OVERVIEW]?.toString() || ""}
+            element={
+              <UserProfileOverview
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.USER_PROFILE_OVERVIEW] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.USER_PROFILE_OVERVIEW]?.toString() || ""}
-          element={
-            <UserProfileOverview
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.USER_PROFILE_OVERVIEW] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.USER_PROFILE_PASSWORD]?.toString() || ""}
+            element={
+              <UserProfilePassword
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.USER_PROFILE_PASSWORD]?.toString() || ""}
-          element={
-            <UserProfilePassword
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.USER_PROFILE_PASSWORD] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.USER_TWO_FACTOR_AUTH]?.toString() || ""}
+            element={
+              <UseTwoFactorAuth
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.USER_TWO_FACTOR_AUTH]?.toString() || ""}
-          element={
-            <UseTwoFactorAuth
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.USER_TWO_FACTOR_AUTH] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() || ""}
+            element={
+              <ProjectInvitations
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.PROJECT_INVITATIONS] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() || ""}
-          element={
-            <ProjectInvitations
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.PROJECT_INVITATIONS] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.NEW_INCIDENTS]?.toString() || ""}
+            element={
+              <ActiveIncidents
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.NEW_INCIDENTS] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.NEW_INCIDENTS]?.toString() || ""}
-          element={
-            <ActiveIncidents
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.NEW_INCIDENTS] as Route}
-            />
-          }
-        />
+          {/* User Settings */}
 
-        {/* User Settings */}
+          <PageRoute
+            path={RouteMap[PageMap.USER_SETTINGS_ROOT]?.toString() || ""}
+            element={<UserSettingsRoutes {...commonPageProps} />}
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.USER_SETTINGS_ROOT]?.toString() || ""}
-          element={<UserSettingsRoutes {...commonPageProps} />}
-        />
+          {/** Monitor Groups */}
 
-        {/** Monitor Groups */}
+          <PageRoute
+            path={RouteMap[PageMap.MONITOR_GROUPS_ROOT]?.toString() || ""}
+            element={<MonitorGroupRoutes {...commonPageProps} />}
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.MONITOR_GROUPS_ROOT]?.toString() || ""}
-          element={<MonitorGroupRoutes {...commonPageProps} />}
-        />
-
-        {/* 👇️ only match this when no other routes match */}
-        <PageRoute
-          path="*"
-          element={
-            <PageNotFound
-              {...commonPageProps}
-              pageRoute={RouteMap[PageMap.LOGOUT] as Route}
-            />
-          }
-        />
-      </Routes>
+          {/* 👇️ only match this when no other routes match */}
+          <PageRoute
+            path="*"
+            element={
+              <PageNotFound
+                {...commonPageProps}
+                pageRoute={RouteMap[PageMap.LOGOUT] as Route}
+              />
+            }
+          />
+        </Routes>
+      </Suspense>
     </MasterPage>
   );
 };
