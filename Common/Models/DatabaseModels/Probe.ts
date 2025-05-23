@@ -30,12 +30,18 @@ import {
   ManyToOne,
 } from "typeorm";
 import Label from "./Label";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 
 export enum ProbeConnectionStatus {
   Connected = "connected",
   Disconnected = "disconnected",
 }
 
+@EnableDocumentation()
+@EnableWorkflow({
+  read: true
+})
 @TableBillingAccessControl({
   create: PlanType.Growth,
   read: PlanType.Free,
