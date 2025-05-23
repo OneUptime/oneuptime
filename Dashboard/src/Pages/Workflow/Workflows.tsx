@@ -188,7 +188,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 description: true,
               },
               title: "Description",
-              type: FieldType.Text,
+              type: FieldType.LongText,
             },
             {
               field: {
