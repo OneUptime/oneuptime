@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import Button, { ButtonStyleType } from "../Button/Button";
 
 export interface ComponentProps {
     text: string;
@@ -9,24 +10,26 @@ const LongTextViewer: FunctionComponent<ComponentProps> = (
     props: ComponentProps,
 ): ReactElement => {
     const [showFullText, setShowFullText] = useState<boolean>(false);
-    const characterLimit = 300;
-    
+    const characterLimit = 100;
+
     const shouldTruncate = !props.disableTruncation && props.text.length > characterLimit;
-    const displayText = shouldTruncate && !showFullText 
-        ? `${props.text.substring(0, characterLimit)}...` 
+    const displayText = shouldTruncate && !showFullText
+        ? `${props.text.substring(0, characterLimit)}...`
         : props.text;
 
     return (
         <div className="max-w-2xl break-words">
             <div className="whitespace-pre-wrap">{displayText}</div>
-            
+
             {shouldTruncate && (
-                <button 
-                    onClick={() => setShowFullText(!showFullText)}
-                    className="text-blue-600 hover:text-blue-800 text-sm mt-1 focus:outline-none"
-                >
-                    {showFullText ? 'Show less' : 'Show more'}
-                </button>
+                <Button
+                    className="-mt-1 -ml-3"
+                    onClick={() => {
+                        return setShowFullText(!showFullText);
+                    }}
+                    title={showFullText ? "Show less" : "Show more"}
+                    buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                />
             )}
         </div>
     );
