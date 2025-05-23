@@ -148,9 +148,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                       ) : (
                         column.noValueMessage || "0%"
                       )
-                    ): column.type === FieldType.LongText ? (
+                    ) : column.type === FieldType.LongText ? (
                       props.item[column.key] ? (
-                        <LongTextViewer text={props.item[column.key] as string} />
+                        <LongTextViewer
+                          text={props.item[column.key] as string}
+                        />
                       ) : (
                         column.noValueMessage || ""
                       )

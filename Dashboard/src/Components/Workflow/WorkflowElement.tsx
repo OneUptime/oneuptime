@@ -13,16 +13,16 @@ export interface ComponentProps {
 const WorkflowElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (
-    props.workflow._id
-  ) {
+  if (props.workflow._id) {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     return (
       <AppLink
         onNavigateComplete={props.onNavigateComplete}
         className="hover:underline"
         to={
-          new Route(`/dashboard/${projectId?.toString()}/workflows/${props.workflow._id}`)
+          new Route(
+            `/dashboard/${projectId?.toString()}/workflows/${props.workflow._id}`,
+          )
         }
       >
         <span>{props.workflow.name}</span>

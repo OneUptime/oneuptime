@@ -40,7 +40,7 @@ export enum ProbeConnectionStatus {
 
 @EnableDocumentation()
 @EnableWorkflow({
-  read: true
+  read: true,
 })
 @TableBillingAccessControl({
   create: PlanType.Growth,
