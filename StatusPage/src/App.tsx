@@ -1,22 +1,4 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
-import ForgotPassword from "./Pages/Accounts/ForgotPassword";
-// Accounts.
-import Login from "./Pages/Accounts/Login";
-// Logout.
-import Logout from "./Pages/Accounts/Logout";
-import ResetPassword from "./Pages/Accounts/ResetPassword";
-import Sso from "./Pages/Accounts/SSO";
-import AnnouncementDetail from "./Pages/Announcement/Detail";
-import AnnouncementList from "./Pages/Announcement/List";
-import IncidentDetail from "./Pages/Incidents/Detail";
-import IncidentList from "./Pages/Incidents/List";
-import PageNotFound from "./Pages/NotFound/PageNotFound";
-import Overview from "./Pages/Overview/Overview";
-import ScheduledEventDetail from "./Pages/ScheduledEvent/Detail";
-import ScheduledEventList from "./Pages/ScheduledEvent/List";
-import EmailSubscribe from "./Pages/Subscribe/EmailSubscribe";
-import SMSSubscribe from "./Pages/Subscribe/SmsSubscribe";
-import UpdateSubscription from "./Pages/Subscribe/UpdateSubscription";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import StatusPageUtil from "./Utils/StatusPage";
@@ -25,8 +7,9 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import {
   Route as PageRoute,
   Routes,
@@ -34,7 +17,65 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import ConfirmSubscription from "./Pages/Subscribe/ConfirmSubscription";
+import { SubscribePageProps } from "./Pages/Subscribe/SubscribePageUtils";
+import {ComponentProps as ForgotPasswordComponentProps} from "./Pages/Accounts/ForgotPassword";
+import {ComponentProps as LoginComponentProps} from "./Pages/Accounts/Login";
+import {ComponentProps as ResetPasswordComponentProps} from "./Pages/Accounts/ResetPassword";
+ import {ComponentProps as SsoComponentProps} from "./Pages/Accounts/SSO";
+import PageComponentProps from "./Pages/PageComponentProps";
+
+// Lazy load components
+const ForgotPassword: React.LazyExoticComponent<React.FunctionComponent<ForgotPasswordComponentProps>> = lazy(() => {
+  return import("./Pages/Accounts/ForgotPassword");
+});
+const Login: React.LazyExoticComponent<React.FunctionComponent<LoginComponentProps>> = lazy(() => {
+  return import("./Pages/Accounts/Login");
+});
+const Logout: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/Accounts/Logout");
+});
+const ResetPassword: React.LazyExoticComponent<React.FunctionComponent<ResetPasswordComponentProps>> = lazy(() => {
+  return import("./Pages/Accounts/ResetPassword");
+});
+const Sso: React.LazyExoticComponent<React.FunctionComponent<SsoComponentProps>> = lazy(() => {
+  return import("./Pages/Accounts/SSO");
+});
+const AnnouncementDetail: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/Announcement/Detail");
+});
+const AnnouncementList: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/Announcement/List");
+});
+const IncidentDetail: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/Incidents/Detail");
+});
+const IncidentList: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/Incidents/List");
+});
+const PageNotFound: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/NotFound/PageNotFound");
+});
+const Overview: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/Overview/Overview");
+});
+const ScheduledEventDetail: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/ScheduledEvent/Detail");
+});
+const ScheduledEventList: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/ScheduledEvent/List");
+});
+const EmailSubscribe: React.LazyExoticComponent<React.FunctionComponent<SubscribePageProps>> = lazy(() => {
+  return import("./Pages/Subscribe/EmailSubscribe");
+});
+const SMSSubscribe: React.LazyExoticComponent<React.FunctionComponent<SubscribePageProps>> = lazy(() => {
+  return import("./Pages/Subscribe/SmsSubscribe");
+});
+const UpdateSubscription: React.LazyExoticComponent<React.FunctionComponent<SubscribePageProps>> = lazy(() => {
+  return import("./Pages/Subscribe/UpdateSubscription");
+});
+const ConfirmSubscription: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+  return import("./Pages/Subscribe/ConfirmSubscription");
+});
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
@@ -70,12 +111,10 @@ const App: () => JSX.Element = () => {
     setIsPreview(preview);
   }, []);
 
-  // js.
   const [javascript, setJavaScript] = useState<string | null>(null);
 
   const onPageLoadComplete: VoidFunction = (): void => {
     if (javascript) {
-      // run custom javascipt.
       new Function(javascript)();
     }
   };
@@ -188,447 +227,456 @@ const App: () => JSX.Element = () => {
         );
       }}
     >
-      <Routes>
-        {/* Live */}
+      <Suspense fallback={<PageLoader isVisible={true} />}>
+        <Routes>
+          {/* Live */}
+          <PageRoute
+            path={RouteMap[PageMap.OVERVIEW]?.toString() || ""}
+            element={
+              <Overview
+                pageRoute={RouteMap[PageMap.OVERVIEW] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.OVERVIEW]?.toString() || ""}
-          element={
-            <Overview
-              pageRoute={RouteMap[PageMap.OVERVIEW] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.LOGIN]?.toString() || ""}
+            element={
+              <Login
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
+                hasEnabledSSOConfig={hasEnabledSSO}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.LOGIN]?.toString() || ""}
-          element={
-            <Login
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-              forceSSO={forceSSO}
-              hasEnabledSSOConfig={hasEnabledSSO}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.SSO]?.toString() || ""}
+            element={
+              <Sso
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.SSO]?.toString() || ""}
-          element={
-            <Sso
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ""}
+            element={
+              <ResetPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ""}
-          element={
-            <ResetPassword
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-              forceSSO={forceSSO}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ""}
+            element={
+              <ForgotPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ""}
-          element={
-            <ForgotPassword
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-              forceSSO={forceSSO}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.SCHEDULED_EVENT_DETAIL]?.toString() || ""}
+            element={
+              <ScheduledEventDetail
+                pageRoute={RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.SCHEDULED_EVENT_DETAIL]?.toString() || ""}
-          element={
-            <ScheduledEventDetail
-              pageRoute={RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.SCHEDULED_EVENT_LIST]?.toString() || ""}
+            element={
+              <ScheduledEventList
+                pageRoute={RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.SCHEDULED_EVENT_LIST]?.toString() || ""}
-          element={
-            <ScheduledEventList
-              pageRoute={RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.INCIDENT_DETAIL]?.toString() || ""}
+            element={
+              <IncidentDetail
+                pageRoute={RouteMap[PageMap.INCIDENT_DETAIL] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.INCIDENT_DETAIL]?.toString() || ""}
-          element={
-            <IncidentDetail
-              pageRoute={RouteMap[PageMap.INCIDENT_DETAIL] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.INCIDENT_LIST]?.toString() || ""}
+            element={
+              <IncidentList
+                pageRoute={RouteMap[PageMap.INCIDENT_LIST] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.INCIDENT_LIST]?.toString() || ""}
-          element={
-            <IncidentList
-              pageRoute={RouteMap[PageMap.INCIDENT_LIST] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.ANNOUNCEMENT_DETAIL]?.toString() || ""}
+            element={
+              <AnnouncementDetail
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.ANNOUNCEMENT_DETAIL]?.toString() || ""}
-          element={
-            <AnnouncementDetail
-              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.ANNOUNCEMENT_LIST]?.toString() || ""}
+            element={
+              <AnnouncementList
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.ANNOUNCEMENT_LIST]?.toString() || ""}
-          element={
-            <AnnouncementList
-              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.SUBSCRIBE_EMAIL]?.toString() || ""}
+            element={
+              <EmailSubscribe
+                pageRoute={RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.SUBSCRIBE_EMAIL]?.toString() || ""}
-          element={
-            <EmailSubscribe
-              pageRoute={RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route}
-              allowSubscribersToChooseResources={
-                allowSubscribersToChooseResources
-              }
-              allowSubscribersToChooseEventTypes={
-                allowSubscriberToChooseEventTypes
-              }
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              enableEmailSubscribers={enableEmailSubscribers}
-              enableSMSSubscribers={enableSMSSubscribers}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.SUBSCRIBE_SMS]?.toString() || ""}
+            element={
+              <SMSSubscribe
+                pageRoute={RouteMap[PageMap.SUBSCRIBE_SMS] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.SUBSCRIBE_SMS]?.toString() || ""}
-          element={
-            <SMSSubscribe
-              pageRoute={RouteMap[PageMap.SUBSCRIBE_SMS] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              allowSubscribersToChooseResources={
-                allowSubscribersToChooseResources
-              }
-              allowSubscribersToChooseEventTypes={
-                allowSubscriberToChooseEventTypes
-              }
-              enableEmailSubscribers={enableEmailSubscribers}
-              enableSMSSubscribers={enableSMSSubscribers}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.UPDATE_SUBSCRIPTION]?.toString() || ""}
+            element={
+              <UpdateSubscription
+                pageRoute={RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.UPDATE_SUBSCRIPTION]?.toString() || ""}
-          element={
-            <UpdateSubscription
-              pageRoute={RouteMap[PageMap.UPDATE_SUBSCRIPTION] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              allowSubscribersToChooseResources={
-                allowSubscribersToChooseResources
-              }
-              allowSubscribersToChooseEventTypes={
-                allowSubscriberToChooseEventTypes
-              }
-              enableEmailSubscribers={enableEmailSubscribers}
-              enableSMSSubscribers={enableSMSSubscribers}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.CONFIRM_SUBSCRIPTION]?.toString() || ""}
+            element={
+              <ConfirmSubscription
+                pageRoute={RouteMap[PageMap.CONFIRM_SUBSCRIPTION] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.CONFIRM_SUBSCRIPTION]?.toString() || ""}
-          element={
-            <ConfirmSubscription
-              pageRoute={RouteMap[PageMap.CONFIRM_SUBSCRIPTION] as Route}
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-            />
-          }
-        />
+          {/* Preview */}
 
-        {/* Preview */}
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_OVERVIEW]?.toString() || ""}
+            element={
+              <Overview
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.PREVIEW_OVERVIEW] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_OVERVIEW]?.toString() || ""}
-          element={
-            <Overview
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_OVERVIEW] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL]?.toString() || ""}
+            element={
+              <EmailSubscribe
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL]?.toString() || ""}
-          element={
-            <EmailSubscribe
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route}
-              allowSubscribersToChooseResources={
-                allowSubscribersToChooseResources
-              }
-              allowSubscribersToChooseEventTypes={
-                allowSubscriberToChooseEventTypes
-              }
-              enableEmailSubscribers={enableEmailSubscribers}
-              enableSMSSubscribers={enableSMSSubscribers}
-            />
-          }
-        />
+          <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION]?.toString() || ""
+            }
+            element={
+              <UpdateSubscription
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION] as Route
+                }
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION]?.toString() || ""}
-          element={
-            <UpdateSubscription
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_UPDATE_SUBSCRIPTION] as Route}
-              allowSubscribersToChooseResources={
-                allowSubscribersToChooseResources
-              }
-              allowSubscribersToChooseEventTypes={
-                allowSubscriberToChooseEventTypes
-              }
-              enableEmailSubscribers={enableEmailSubscribers}
-              enableSMSSubscribers={enableSMSSubscribers}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS]?.toString() || ""}
+            element={
+              <SMSSubscribe
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS]?.toString() || ""}
-          element={
-            <SMSSubscribe
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              allowSubscribersToChooseEventTypes={
-                allowSubscriberToChooseEventTypes
-              }
-              pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route}
-              allowSubscribersToChooseResources={
-                allowSubscribersToChooseResources
-              }
-              enableEmailSubscribers={enableEmailSubscribers}
-              enableSMSSubscribers={enableSMSSubscribers}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_LOGOUT]?.toString() || ""}
+            element={<Logout />}
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_LOGOUT]?.toString() || ""}
-          element={<Logout />}
-        />
+          <PageRoute
+            path={RouteMap[PageMap.LOGOUT]?.toString() || ""}
+            element={<Logout />}
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.LOGOUT]?.toString() || ""}
-          element={<Logout />}
-        />
+          <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL]?.toString() || ""
+            }
+            element={
+              <ScheduledEventDetail
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route
+                }
+              />
+            }
+          />
 
-        <PageRoute
-          path={
-            RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL]?.toString() || ""
-          }
-          element={
-            <ScheduledEventDetail
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={
-                RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route
-              }
-            />
-          }
-        />
+          <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST]?.toString() || ""
+            }
+            element={
+              <ScheduledEventList
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route
+                }
+              />
+            }
+          />
 
-        <PageRoute
-          path={
-            RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST]?.toString() || ""
-          }
-          element={
-            <ScheduledEventList
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={
-                RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route
-              }
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL]?.toString() || ""}
+            element={
+              <IncidentDetail
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL]?.toString() || ""}
-          element={
-            <IncidentDetail
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_INCIDENT_LIST]?.toString() || ""}
+            element={
+              <IncidentList
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_INCIDENT_LIST]?.toString() || ""}
-          element={
-            <IncidentList
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL]?.toString() || ""
+            }
+            element={
+              <AnnouncementDetail
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route
+                }
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL]?.toString() || ""}
-          element={
-            <AnnouncementDetail
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST]?.toString() || ""}
+            element={
+              <AnnouncementList
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST]?.toString() || ""}
-          element={
-            <AnnouncementList
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_LOGIN]?.toString() || ""}
+            element={
+              <Login
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
+                hasEnabledSSOConfig={hasEnabledSSO}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_LOGIN]?.toString() || ""}
-          element={
-            <Login
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-              forceSSO={forceSSO}
-              hasEnabledSSOConfig={hasEnabledSSO}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_RESET_PASSWORD]?.toString() || ""}
+            element={
+              <ResetPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_RESET_PASSWORD]?.toString() || ""}
-          element={
-            <ResetPassword
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-              forceSSO={forceSSO}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_FORGOT_PASSWORD]?.toString() || ""}
+            element={
+              <ForgotPassword
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+                forceSSO={forceSSO}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_FORGOT_PASSWORD]?.toString() || ""}
-          element={
-            <ForgotPassword
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-              forceSSO={forceSSO}
-            />
-          }
-        />
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_SSO]?.toString() || ""}
+            element={
+              <Sso
+                statusPageName={statusPageName}
+                logoFileId={new ObjectID(statusPageLogoFileId)}
+              />
+            }
+          />
 
-        <PageRoute
-          path={RouteMap[PageMap.PREVIEW_SSO]?.toString() || ""}
-          element={
-            <Sso
-              statusPageName={statusPageName}
-              logoFileId={new ObjectID(statusPageLogoFileId)}
-            />
-          }
-        />
+          <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]?.toString() || ""
+            }
+            element={
+              <ConfirmSubscription
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
+                }
+              />
+            }
+          />
 
-        <PageRoute
-          path={
-            RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION]?.toString() || ""
-          }
-          element={
-            <ConfirmSubscription
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={
-                RouteMap[PageMap.PREVIEW_CONFIRM_SUBSCRIPTION] as Route
-              }
-            />
-          }
-        />
+          {/* 👇️ only match this when no other routes match */}
 
-        {/* 👇️ only match this when no other routes match */}
-
-        <PageRoute
-          path="*"
-          element={
-            <PageNotFound
-              onLoadComplete={() => {
-                onPageLoadComplete();
-              }}
-              pageRoute={RouteMap[PageMap.NOT_FOUND] as Route}
-            />
-          }
-        />
-      </Routes>
+          <PageRoute
+            path="*"
+            element={
+              <PageNotFound
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.NOT_FOUND] as Route}
+              />
+            }
+          />
+        </Routes>
+      </Suspense>
     </MasterPage>
   );
 };
