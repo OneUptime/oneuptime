@@ -18,62 +18,94 @@ import {
   useParams,
 } from "react-router-dom";
 import { SubscribePageProps } from "./Pages/Subscribe/SubscribePageUtils";
-import {ComponentProps as ForgotPasswordComponentProps} from "./Pages/Accounts/ForgotPassword";
-import {ComponentProps as LoginComponentProps} from "./Pages/Accounts/Login";
-import {ComponentProps as ResetPasswordComponentProps} from "./Pages/Accounts/ResetPassword";
- import {ComponentProps as SsoComponentProps} from "./Pages/Accounts/SSO";
+import { ComponentProps as ForgotPasswordComponentProps } from "./Pages/Accounts/ForgotPassword";
+import { ComponentProps as LoginComponentProps } from "./Pages/Accounts/Login";
+import { ComponentProps as ResetPasswordComponentProps } from "./Pages/Accounts/ResetPassword";
+import { ComponentProps as SsoComponentProps } from "./Pages/Accounts/SSO";
 import PageComponentProps from "./Pages/PageComponentProps";
 
 // Lazy load components
-const ForgotPassword: React.LazyExoticComponent<React.FunctionComponent<ForgotPasswordComponentProps>> = lazy(() => {
+const ForgotPassword: React.LazyExoticComponent<
+  React.FunctionComponent<ForgotPasswordComponentProps>
+> = lazy(() => {
   return import("./Pages/Accounts/ForgotPassword");
 });
-const Login: React.LazyExoticComponent<React.FunctionComponent<LoginComponentProps>> = lazy(() => {
+const Login: React.LazyExoticComponent<
+  React.FunctionComponent<LoginComponentProps>
+> = lazy(() => {
   return import("./Pages/Accounts/Login");
 });
 const Logout: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/Accounts/Logout");
 });
-const ResetPassword: React.LazyExoticComponent<React.FunctionComponent<ResetPasswordComponentProps>> = lazy(() => {
+const ResetPassword: React.LazyExoticComponent<
+  React.FunctionComponent<ResetPasswordComponentProps>
+> = lazy(() => {
   return import("./Pages/Accounts/ResetPassword");
 });
-const Sso: React.LazyExoticComponent<React.FunctionComponent<SsoComponentProps>> = lazy(() => {
+const Sso: React.LazyExoticComponent<
+  React.FunctionComponent<SsoComponentProps>
+> = lazy(() => {
   return import("./Pages/Accounts/SSO");
 });
-const AnnouncementDetail: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const AnnouncementDetail: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/Announcement/Detail");
 });
-const AnnouncementList: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const AnnouncementList: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/Announcement/List");
 });
-const IncidentDetail: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const IncidentDetail: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/Incidents/Detail");
 });
-const IncidentList: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const IncidentList: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/Incidents/List");
 });
-const PageNotFound: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const PageNotFound: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/NotFound/PageNotFound");
 });
-const Overview: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const Overview: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/Overview/Overview");
 });
-const ScheduledEventDetail: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const ScheduledEventDetail: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/ScheduledEvent/Detail");
 });
-const ScheduledEventList: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const ScheduledEventList: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/ScheduledEvent/List");
 });
-const EmailSubscribe: React.LazyExoticComponent<React.FunctionComponent<SubscribePageProps>> = lazy(() => {
+const EmailSubscribe: React.LazyExoticComponent<
+  React.FunctionComponent<SubscribePageProps>
+> = lazy(() => {
   return import("./Pages/Subscribe/EmailSubscribe");
 });
-const SMSSubscribe: React.LazyExoticComponent<React.FunctionComponent<SubscribePageProps>> = lazy(() => {
+const SMSSubscribe: React.LazyExoticComponent<
+  React.FunctionComponent<SubscribePageProps>
+> = lazy(() => {
   return import("./Pages/Subscribe/SmsSubscribe");
 });
-const UpdateSubscription: React.LazyExoticComponent<React.FunctionComponent<SubscribePageProps>> = lazy(() => {
+const UpdateSubscription: React.LazyExoticComponent<
+  React.FunctionComponent<SubscribePageProps>
+> = lazy(() => {
   return import("./Pages/Subscribe/UpdateSubscription");
 });
-const ConfirmSubscription: React.LazyExoticComponent<React.FunctionComponent<PageComponentProps>> = lazy(() => {
+const ConfirmSubscription: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
   return import("./Pages/Subscribe/ConfirmSubscription");
 });
 
