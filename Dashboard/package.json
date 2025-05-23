@@ -47,6 +47,7 @@
         "@types/node": "^16.11.35",
         "@types/react": "^18.2.38",
         "@types/react-dom": "^18.0.4",
+        "compression-webpack-plugin": "^11.1.0",
         "cross-env": "^7.0.3",
         "css-loader": "^6.8.1",
         "nodemon": "^2.0.20",
@@ -56,6 +57,7 @@
         "ts-loader": "^9.5.1",
         "ts-node": "^10.9.1",
         "webpack": "^5.76.0",
-        "webpack-bundle-analyzer": "^4.10.1"
+        "webpack-bundle-analyzer": "^4.10.1",
+        "webpack-cli": "^6.0.1"
     }
 }

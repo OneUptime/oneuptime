@@ -197,11 +197,9 @@ const init: InitFunction = async (
 
     app.use(`/${appName}`, ExpressStatic("/usr/src/app/public"));
 
-    app.get(
-      `/${appName}/dist/bundle.js`,
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        res.sendFile("/usr/src/app/public/dist/bundle.js");
-      },
+    app.use(
+      `/${appName}/dist`,
+      ExpressStatic("/usr/src/app/public/dist")
     );
 
     app.get(
