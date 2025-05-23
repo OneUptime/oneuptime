@@ -286,7 +286,6 @@ RunCron(
                     event.startsAt!,
                   ),
                   eventTitle: event.title || "",
-                  eventDescription: event.description || "",
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
                     statuspage.subscriberEmailNotificationFooterText || "",

@@ -26,38 +26,158 @@ import {
 import useAsyncEffect from "use-async-effect";
 import PageComponentProps from "./Pages/PageComponentProps";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-
+import { RoutesProps } from "./Types/RoutesProps";
 // Lazy load route components
-const InitRoutes = lazy(() => import("./Routes/InitRoutes"));
-const Welcome = lazy(() => import("./Pages/Onboarding/Welcome"));
-const Home = lazy(() => import("./Pages/Home/Home"));
-const Sso = lazy(() => import("./Pages/Onboarding/SSO"));
-const NotOperationalMonitors = lazy(() => import("./Pages/Home/NotOperationalMonitors"));
-const HomeActiveAlerts = lazy(() => import("./Pages/Home/ActiveAlerts"));
-const OngoingScheduledEvents = lazy(() => import("./Pages/Home/OngoingScheduledMaintenance"));
-const TelemetryRoutes = lazy(() => import("./Routes/TelemetryRoutes"));
-const MonitorsRoutes = lazy(() => import("./Routes/MonitorsRoutes"));
-const WorkflowRoutes = lazy(() => import("./Routes/WorkflowRoutes"));
-const StatusPagesRoutes = lazy(() => import("./Routes/StatusPagesRoutes"));
-const DashboardRoutes = lazy(() => import("./Routes/DashboardRoutes"));
-const ServiceCatalogRoutes = lazy(() => import("./Routes/ServiceCatalogRoutes"));
-const AICopilotRoutes = lazy(() => import("./Routes/AICopilotRoutes"));
-const IncidentsRoutes = lazy(() => import("./Routes/IncidentsRoutes"));
-const AlertsRoutes = lazy(() => import("./Routes/AlertRoutes"));
-const ScheduledMaintenanceEventsRoutes = lazy(() => import("./Routes/ScheduleMaintenaceEventsRoutes"));
-const SettingsRoutes = lazy(() => import("./Routes/SettingsRoutes"));
-const SettingsDangerZone = lazy(() => import("./Pages/Settings/DangerZone"));
-const OnCallDutyRoutes = lazy(() => import("./Routes/OnCallDutyRoutes"));
-const Logout = lazy(() => import("./Pages/Logout/Logout"));
-const UserProfilePicture = lazy(() => import("./Pages/Global/UserProfile/Picture"));
-const UserProfileOverview = lazy(() => import("./Pages/Global/UserProfile/Index"));
-const UserProfilePassword = lazy(() => import("./Pages/Global/UserProfile/Password"));
-const UseTwoFactorAuth = lazy(() => import("./Pages/Global/UserProfile/TwoFactorAuth"));
-const ProjectInvitations = lazy(() => import("./Pages/Global/ProjectInvitations"));
-const ActiveIncidents = lazy(() => import("./Pages/Global/NewIncidents"));
-const UserSettingsRoutes = lazy(() => import("./Routes/UserSettingsRoutes"));
-const MonitorGroupRoutes = lazy(() => import("./Routes/MonitorGroupRoutes"));
-const PageNotFound = lazy(() => import("./Pages/PageNotFound/PageNotFound"));
+const InitRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<RoutesProps>
+> = lazy(() => {
+  return import("./Routes/InitRoutes");
+});
+const Welcome: React.LazyExoticComponent<React.FunctionComponent<any>> = lazy(
+  () => {
+    return import("./Pages/Onboarding/Welcome");
+  },
+);
+const Home: React.LazyExoticComponent<React.FunctionComponent<any>> = lazy(
+  () => {
+    return import("./Pages/Home/Home");
+  },
+);
+const Sso: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Onboarding/SSO");
+});
+const NotOperationalMonitors: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Home/NotOperationalMonitors");
+});
+const HomeActiveAlerts: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Home/ActiveAlerts");
+});
+const OngoingScheduledEvents: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Home/OngoingScheduledMaintenance");
+});
+const TelemetryRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/TelemetryRoutes");
+});
+const MonitorsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/MonitorsRoutes");
+});
+const WorkflowRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/WorkflowRoutes");
+});
+const StatusPagesRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/StatusPagesRoutes");
+});
+const DashboardRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/DashboardRoutes");
+});
+const ServiceCatalogRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/ServiceCatalogRoutes");
+});
+const AICopilotRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/AICopilotRoutes");
+});
+const IncidentsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/IncidentsRoutes");
+});
+const AlertsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/AlertRoutes");
+});
+const ScheduledMaintenanceEventsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/ScheduleMaintenaceEventsRoutes");
+});
+const SettingsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/SettingsRoutes");
+});
+const SettingsDangerZone: React.LazyExoticComponent<
+  React.FunctionComponent<any>
+> = lazy(() => {
+  return import("./Pages/Settings/DangerZone");
+});
+const OnCallDutyRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/OnCallDutyRoutes");
+});
+const Logout: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Logout/Logout");
+});
+const UserProfilePicture: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/UserProfile/Picture");
+});
+const UserProfileOverview: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/UserProfile/Index");
+});
+const UserProfilePassword: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/UserProfile/Password");
+});
+const UseTwoFactorAuth: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/UserProfile/TwoFactorAuth");
+});
+const ProjectInvitations: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/ProjectInvitations");
+});
+const ActiveIncidents: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Global/NewIncidents");
+});
+const UserSettingsRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/UserSettingsRoutes");
+});
+const MonitorGroupRoutes: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Routes/MonitorGroupRoutes");
+});
+const PageNotFound: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/PageNotFound/PageNotFound");
+});
 
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());

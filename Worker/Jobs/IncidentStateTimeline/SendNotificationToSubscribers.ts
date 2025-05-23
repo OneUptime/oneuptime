@@ -97,7 +97,6 @@ RunCron(
         select: {
           _id: true,
           title: true,
-          description: true,
           projectId: true,
           monitors: {
             _id: true,
@@ -285,7 +284,6 @@ RunCron(
                   resourcesAffected: resourcesAffected || "None",
                   incidentSeverity: incident.incidentSeverity?.name || " - ",
                   incidentTitle: incident.title || "",
-                  incidentDescription: incident.description || "",
 
                   incidentState: incidentStateTimeline.incidentState.name,
                   unsubscribeUrl: unsubscribeUrl,
