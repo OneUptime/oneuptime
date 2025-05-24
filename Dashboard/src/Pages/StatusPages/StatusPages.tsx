@@ -77,7 +77,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {
@@ -115,7 +115,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

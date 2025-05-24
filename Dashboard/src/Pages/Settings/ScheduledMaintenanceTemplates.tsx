@@ -437,7 +437,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
               templateDescription: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
         columns={[
@@ -453,7 +453,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
               templateDescription: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

@@ -85,7 +85,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
       />

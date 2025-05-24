@@ -94,7 +94,7 @@ const OnCallDutyPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {
@@ -130,7 +130,7 @@ const OnCallDutyPage: FunctionComponent<
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

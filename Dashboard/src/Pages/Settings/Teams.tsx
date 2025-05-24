@@ -68,7 +68,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
         columns={[
@@ -85,7 +85,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
       />

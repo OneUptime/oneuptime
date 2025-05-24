@@ -97,7 +97,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
               templateDescription: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
         columns={[
@@ -113,7 +113,7 @@ const ScheduledMaintenanceNoteTemplates: FunctionComponent<
               templateDescription: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
       />

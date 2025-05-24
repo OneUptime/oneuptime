@@ -57,7 +57,7 @@ const IncidentSeverityPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
 
             getElement: (item: IncidentSeverity): ReactElement => {
               return (

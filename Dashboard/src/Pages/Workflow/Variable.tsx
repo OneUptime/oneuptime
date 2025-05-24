@@ -89,7 +89,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {
@@ -120,7 +120,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

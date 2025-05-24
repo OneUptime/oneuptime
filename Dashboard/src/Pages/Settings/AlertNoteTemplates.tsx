@@ -112,7 +112,7 @@ const AlertNoteTemplates: FunctionComponent<PageComponentProps> = (
               templateDescription: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
       />

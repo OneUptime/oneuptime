@@ -40,7 +40,8 @@ const TextFilter: TextFilterFunction = <T extends GenericObject>(
       filter.type === FieldType.Port ||
       filter.type === FieldType.URL ||
       filter.type === FieldType.ObjectID ||
-      filter.type === FieldType.Text)
+      filter.type === FieldType.Text ||
+      filter.type === FieldType.LongText)
   ) {
     return (
       <Input

@@ -103,7 +103,7 @@ const ServiceCatalogPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {
@@ -145,7 +145,7 @@ const ServiceCatalogPage: FunctionComponent<
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

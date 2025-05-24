@@ -206,7 +206,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
             field: {
               description: true,
             },
@@ -234,7 +234,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
 
             title: "Description",
             noValueMessage: "-",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

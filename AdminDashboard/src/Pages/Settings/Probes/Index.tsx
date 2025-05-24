@@ -152,7 +152,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
         ]}
         columns={[
@@ -173,7 +173,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {

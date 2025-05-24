@@ -82,7 +82,7 @@ const IncidentsPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
 
             getElement: (item: IncidentState): ReactElement => {
               return (

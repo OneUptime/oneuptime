@@ -57,7 +57,7 @@ const AlertSeverityPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
 
             getElement: (item: AlertSeverity): ReactElement => {
               return (

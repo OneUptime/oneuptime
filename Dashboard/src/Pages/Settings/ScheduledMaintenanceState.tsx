@@ -90,7 +90,7 @@ const ScheduledMaintenancesPage: FunctionComponent<
               description: true,
             },
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
 
             getElement: (item: ScheduledMaintenanceState): ReactElement => {
               return (

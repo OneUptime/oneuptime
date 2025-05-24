@@ -213,7 +213,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
           {
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
             field: {
               description: true,
             },
@@ -254,7 +254,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             noValueMessage: "-",
             title: "Description",
-            type: FieldType.Text,
+            type: FieldType.LongText,
           },
           {
             field: {
