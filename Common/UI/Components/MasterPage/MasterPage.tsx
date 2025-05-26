@@ -1,5 +1,6 @@
 import PageError from "../Error/PageError";
 import PageLoader from "../Loader/PageLoader";
+import OfflineIndicator from "../Offline/OfflineIndicator";
 import TopSection from "../TopSection/TopSection";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -19,6 +20,11 @@ export interface ComponentProps {
 const MasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  
+  const [isOnline, setIsOnline] = React.useState(true);
+
+  
+
   if (props.isLoading) {
     return (
       <React.Fragment>
@@ -37,7 +43,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
 
   return (
     <React.Fragment>
-      <div className={props.className}>
+      {isOnline && <div className={props.className}>
         <div className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}>
           <TopSection
             hideHeader={props.hideHeader}
@@ -50,7 +56,10 @@ const MasterPage: FunctionComponent<ComponentProps> = (
         {props.children}
 
         {props.footer && props.footer}
-      </div>
+      </div>}
+      <OfflineIndicator 
+        onOnlineOfflineChange={(isOnline) => setIsOnline(isOnline)}
+      />
     </React.Fragment>
   );
 };
