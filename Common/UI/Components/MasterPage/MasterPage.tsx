@@ -20,10 +20,7 @@ export interface ComponentProps {
 const MasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  
   const [isOnline, setIsOnline] = React.useState(true);
-
-  
 
   if (props.isLoading) {
     return (
@@ -43,22 +40,28 @@ const MasterPage: FunctionComponent<ComponentProps> = (
 
   return (
     <React.Fragment>
-      {isOnline && <div className={props.className}>
-        <div className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}>
-          <TopSection
-            hideHeader={props.hideHeader}
-            className={props.topSectionClassName}
-            header={props.header}
-            navbar={props.navBar}
-          />
+      {isOnline && (
+        <div className={props.className}>
+          <div
+            className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
+          >
+            <TopSection
+              hideHeader={props.hideHeader}
+              className={props.topSectionClassName}
+              header={props.header}
+              navbar={props.navBar}
+            />
+          </div>
+
+          {props.children}
+
+          {props.footer && props.footer}
         </div>
-
-        {props.children}
-
-        {props.footer && props.footer}
-      </div>}
-      <OfflineIndicator 
-        onOnlineOfflineChange={(isOnline) => setIsOnline(isOnline)}
+      )}
+      <OfflineIndicator
+        onOnlineOfflineChange={(isOnline: boolean) => {
+          return setIsOnline(isOnline);
+        }}
       />
     </React.Fragment>
   );

@@ -1,49 +1,52 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ReactElement } from "react";
 import EmptyState from "../EmptyState/EmptyState";
 import IconProp from "../../../Types/Icon/IconProp";
+import { VoidFunction } from "../../../Types/FunctionTypes";
 
 interface OfflineIndicatorProps {
-    onOnlineOfflineChange?: (isOnline: boolean) => void;
+  onOnlineOfflineChange?: (isOnline: boolean) => void;
 }
 
-const OfflineIndicator = ({ onOnlineOfflineChange }: OfflineIndicatorProps) => {
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
+type OfflineIndicatorComponent = React.FC<OfflineIndicatorProps>;
 
-    useEffect(() => {
-        const handleOnline = () => {
-            setIsOnline(true);
-            onOnlineOfflineChange?.(true);
-        };
-        
-        const handleOffline = () => {
-            setIsOnline(false);
-            onOnlineOfflineChange?.(false);
-        };
+const OfflineIndicator: OfflineIndicatorComponent = ({ onOnlineOfflineChange }: OfflineIndicatorProps): ReactElement => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-        window.addEventListener("online", handleOnline);
-        window.addEventListener("offline", handleOffline);
-        
-        // Call with initial state
-        onOnlineOfflineChange?.(navigator.onLine);
+  useEffect(() => {
+    const handleOnline: VoidFunction = () => {
+      setIsOnline(true);
+      onOnlineOfflineChange?.(true);
+    };
 
-        return () => {
-            window.removeEventListener("online", handleOnline);
-            window.removeEventListener("offline", handleOffline);
-        };
-    }, [onOnlineOfflineChange]);
+    const handleOffline: VoidFunction = () => {
+      setIsOnline(false);
+      onOnlineOfflineChange?.(false);
+    };
 
-    return (
-        <div>
-            {!isOnline && (
-                <EmptyState
-                    id="offline-indicator"
-                    title="You are offline"
-                    description="Please check your internet connection."
-                    icon={IconProp.NoSignal}
-                />
-            )}
-        </div>
-    );
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Call with initial state
+    onOnlineOfflineChange?.(navigator.onLine);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [onOnlineOfflineChange]);
+
+  return (
+    <div>
+      {!isOnline && (
+        <EmptyState
+          id="offline-indicator"
+          title="You are offline"
+          description="Please check your internet connection."
+          icon={IconProp.NoSignal}
+        />
+      )}
+    </div>
+  );
 };
 
 export default OfflineIndicator;
