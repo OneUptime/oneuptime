@@ -2,9 +2,10 @@
 
 ## 1. Introduction
 *   Briefly explains that the Microsoft Teams integration allows users to:
-    *   Receive real-time alerts and notifications from OneUptime directly in Microsoft Teams channels and chats.
-    *   Interact with OneUptime (e.g., acknowledge or resolve alerts) from within Microsoft Teams.
-    *   Streamline incident management workflows by bringing communication and action into one place.
+    *   Receive real-time alerts and notifications from OneUptime directly in Microsoft Teams channels and chats for various project activities.
+    *   **Perform key actions** like acknowledging/resolving alerts and incidents, or updating scheduled maintenance statuses, directly from interactive cards within Microsoft Teams.
+    *   Streamline incident management, alert response, and operational workflows by bringing communication and action into one place.
+    *   *Note: To perform actions from Teams, your Teams user must be linked to your OneUptime user account for the respective project.*
 
 ## 2. Prerequisites
 *   An active Azure account with permissions to:
@@ -116,19 +117,66 @@
         *   This will redirect you to Microsoft Teams to grant admin consent for the app to be installed into your Teams organization and for the project-level (bot) permissions.
         *   You may need to sign in with a Microsoft account that has administrative privileges in your Teams organization.
     *   **Link Your User Account (if prompted or necessary):**
-        *   After the project-level connection is successful, you might be prompted to connect your individual OneUptime user account to your Microsoft Teams user account.
+        *   After the project-level connection is successful, you might be prompted to connect your individual OneUptime user account to your Microsoft Teams user account. This is **required** to perform actions from Teams.
         *   If not automatically redirected, or if you need to connect other users, click **Connect my User Account**.
         *   This will initiate a user consent flow. Sign in with your Microsoft account.
+    *   Once the connection is established, you can configure notification rules for specific modules (Alerts, Incidents, Scheduled Maintenance) to start receiving messages in Teams.
 
 ## 4. Using the Integration
+
+### 4.1 General
 *   **Receiving Notifications:**
-    *   Once configured, OneUptime can send notifications for alerts, incidents, and other events to specified Microsoft Teams channels.
-    *   Configure which notifications are sent to Teams in your Project Settings > **Notification Settings** within OneUptime.
-*   **Interacting with Messages:**
-    *   Alert notifications sent to Teams may include interactive buttons.
-    *   **Acknowledge Alert:** Click this button on an alert card to acknowledge the alert in OneUptime.
-    *   **Resolve Alert:** Click this button on an alert card to resolve the alert in OneUptime.
-    *   Other interactions might be available depending on the type of notification.
+    *   Once configured, OneUptime can send notifications for alerts, incidents, scheduled maintenance events, and on-call duty policy changes to specified Microsoft Teams channels.
+    *   Automated notifications are configured by setting up **Notification Rules** on dedicated pages for each module (Alerts, Incidents, Scheduled Maintenance).
+*   **Interactive Cards:**
+    *   Many notifications are sent as interactive Adaptive Cards, allowing you to perform actions directly from Teams.
+*   **User Account Linking Requirement:**
+    *   To perform actions (e.g., Acknowledge, Resolve) from an interactive card in Teams, your Microsoft Teams user account must be linked to your OneUptime user account for the respective project.
+    *   If you attempt an action without a linked account, the card will be replaced with a message prompting you to link your account, along with a button to navigate to the OneUptime settings page.
+
+### 4.2 Alerts
+*   **Notifications:**
+    *   Receive notifications when new alerts are created or when their status changes.
+    *   To configure which alerts trigger notifications in Microsoft Teams, navigate to **Project Settings > Alerts > Microsoft Teams Connections**. Here you can define specific rules for sending notifications.
+*   **Available Actions from Teams:**
+    *   **Acknowledge:** Click this button to acknowledge the alert in OneUptime. This action requires your Teams user to be linked to a OneUptime user.
+    *   **Resolve:** Click this button to resolve the alert in OneUptime. This action requires your Teams user to be linked to a OneUptime user.
+    *   **View Alert:** Opens a link to the alert details page in the OneUptime dashboard.
+    *   **Execute On Call Policy:** (If applicable) This action (if implemented) would allow viewing and triggering on-call policies. Requires a linked user.
+    *   **Change Alert State:** (If applicable) This action (if implemented) would allow changing the alert's state. Requires a linked user.
+    *   **Add Note:** (If applicable) This action (if implemented) would allow adding a note to the alert. Requires a linked user.
+
+### 4.3 Incidents
+*   **Notifications:**
+    *   Receive notifications for new incidents, incident state changes (e.g., Identified, Acknowledged, Resolved), severity updates, and when notes are added.
+    *   To configure which incidents trigger notifications in Microsoft Teams, navigate to **Project Settings > Incidents > Microsoft Teams Connections**. Here you can define specific rules for sending notifications.
+*   **Available Actions from Teams:**
+    *   **Acknowledge:** Click this button to acknowledge the incident in OneUptime. Requires a linked user.
+    *   **Resolve:** Click this button to resolve the incident in OneUptime. Requires a linked user.
+    *   **View Incident:** Opens a link to the incident details page in the OneUptime dashboard.
+    *   **Execute On Call Policy:** (If applicable) This action (if implemented) would allow viewing and triggering on-call policies. Requires a linked user.
+    *   **Change Incident State:** (If applicable) This action (if implemented) would allow changing the incident's current state. Requires a linked user.
+    *   **Add Note:** (If applicable) This action (if implemented) would allow adding a note to the incident. Requires a linked user.
+
+### 4.4 Scheduled Maintenance
+*   **Notifications:**
+    *   Receive notifications when scheduled maintenance events are created, when they are about to start, when they are ongoing, and when they are completed. Notifications for new notes or status changes can also be configured.
+    *   To configure which scheduled maintenance events trigger notifications in Microsoft Teams, navigate to **Project Settings > Scheduled Maintenance > Microsoft Teams Connections**. Here you can define specific rules for sending notifications.
+*   **Available Actions from Teams:**
+    *   **Mark as Ongoing:** Click this button to update the event's status to "Ongoing" in OneUptime. Requires a linked user.
+    *   **Mark as Completed:** Click this button to update the event's status to "Completed" in OneUptime. Requires a linked user.
+    *   **View Scheduled Maintenance:** Opens a link to the event details page in the OneUptime dashboard.
+    *   **Change Scheduled Maintenance State:** (If applicable) This action (if implemented) would allow changing the event's state. Requires a linked user.
+    *   **Add Note:** (If applicable) This action (if implemented) would allow adding a note to the event. Requires a linked user.
+
+### 4.5 On-Call Duty Policies
+*   **Notifications:**
+    *   Receive notifications for upcoming on-call shift reminders.
+    *   Receive notifications for escalations if an alert or incident is not acknowledged by the primary on-call person.
+    *   *(Configuration for these notifications is typically managed within the On-Call Duty Policy settings themselves in OneUptime, rather than a dedicated "Microsoft Teams Connections" page for this module.)*
+*   **Available Actions from Teams:**
+    *   **View Schedule:** Opens a link to the on-call duty schedules page in the OneUptime dashboard.
+    *   *(Note: Most interactions with on-call schedules, like overrides or viewing full calendars, are typically done within the OneUptime dashboard. Teams notifications primarily serve as reminders and links to the relevant schedules. Interactive actions for on-call duty policies from Teams are minimal at this stage.)*
 
 ## 5. Troubleshooting
 *   **Incorrect Redirect URIs:**
@@ -145,6 +193,10 @@
 *   **Client Secret Issues:**
     *   Ensure the correct client secret **Value** (not the Secret ID) was copied and set as `MS_TEAMS_APP_CLIENT_SECRET` in OneUptime.
     *   If the secret has expired, create a new one in Azure and update the OneUptime configuration.
+*   **Card Replaced with 'Account Not Linked' Message:**
+    *   If you click an action button (e.g., "Acknowledge", "Resolve") on an interactive card and your Microsoft Teams account is not linked to a OneUptime user for that specific project, the card will be replaced with a message.
+    *   This new card will state "Account Not Linked" and explain that your Teams account must be linked to a OneUptime user to perform the action.
+    *   It will include a button, **"Link Account in OneUptime Settings"**, which will take you to the OneUptime settings page where you can connect your user account to Microsoft Teams for that project.
 
 ## 6. Disconnecting the Integration
 
@@ -155,6 +207,24 @@
     *   **Remove App Registration:** Deleting the App Registration in Azure Active Directory will completely disable the integration.
     *   **Remove Bot Service:** If you created an Azure Bot Service resource, deleting it will stop bot functionalities.
     *   **Uninstall App in Teams:** Microsoft Teams administrators can uninstall or block the app directly from the Teams admin center or from the "Manage your apps" section for users.
+
+## 7. Advanced / Customization (Optional)
+*   **Custom Adaptive Cards:**
+    *   If you are developing custom Adaptive Cards to be sent via OneUptime's bot or wish to create your own cards that interact with OneUptime's Teams integration, note the payload structure for `Action.Execute` types.
+    *   The `data` payload for such actions should include:
+        *   `actionModule`: A string identifying the OneUptime module (e.g., "alert", "incident", "scheduledMaintenance").
+        *   `actionName`: A string identifying the specific action to be performed (e.g., "acknowledge", "resolve", "addNote").
+        *   Additional module-specific identifiers (e.g., `alertId`, `incidentId`, `scheduledMaintenanceId`, `projectId`).
+    *   Example `data` payload for an "Acknowledge Alert" action:
+        ```json
+        {
+          "actionModule": "alert",
+          "actionName": "acknowledge",
+          "alertId": "your_alert_id_here",
+          "projectId": "your_project_id_here"
+        }
+        ```
+    *   This structure allows OneUptime's backend to correctly route and process the action from your custom card.
 
 ---
 *This outline provides a comprehensive guide. Specific details or screenshots should be added where appropriate in the final document.*

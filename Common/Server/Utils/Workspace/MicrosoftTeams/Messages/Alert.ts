@@ -24,29 +24,16 @@ export default class MicrosoftTeamsAlertMessages {
       throw new BadDataException("Project ID is required");
     }
 
-    // MicrosoftTeams.
-
     const blockMicrosoftTeams: Array<WorkspaceMessageBlock> = [];
-
-    // add divider.
 
     const dividerBlock: WorkspacePayloadDivider = {
       _type: "WorkspacePayloadDivider",
     };
-
     blockMicrosoftTeams.push(dividerBlock);
-
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge alert
-    // Resolve data.
-    // Change Alert State.
-    // Add Note.
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 
-    // view data.
+    // view data - This is an Action.OpenUrl
     const viewAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "🔗 View Alert",
@@ -54,99 +41,102 @@ export default class MicrosoftTeamsAlertMessages {
         data.projectId!,
         data.alertId!,
       ),
-      value: data.alertId?.toString() || "", // For URL buttons, value might not be used or could be a fallback.
-      actionId: MicrosoftTeamsActionType.ViewAlert, // This likely translates to an Action.OpenUrl
+      value: data.alertId?.toString() || "", 
+      actionId: MicrosoftTeamsActionType.ViewAlert, 
     };
-
     buttons.push(viewAlertButton);
 
-    // execute on call.
-    // This button's actionId suggests it might trigger another flow, possibly opening a task module or another card.
-    // For Action.Execute, the 'data' payload would be crucial if it were handled by MicrosoftTeamsAlertActions.
-    // For now, assuming it's handled differently based on its ActionType.
+    // execute on call - Assumed to be Action.Execute
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
-      value: JSON.stringify({ alertId: data.alertId.toString(), projectId: data.projectId.toString() }), // Example if it needed data
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "executeOnCallPolicy", // Or map from MicrosoftTeamsActionType.ViewExecuteAlertOnCallPolicy string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewExecuteAlertOnCallPolicy,
     };
-
     buttons.push(executeOnCallButton);
 
-    // acknowledge data.
-    // For this to work with MicrosoftTeamsAlertActions, the downstream card generator must:
-    // 1. Use "Action.Execute" as the type.
-    // 2. Set the "id" of Action.Execute to "acknowledgeAlert" (or the string value of MicrosoftTeamsActionType.AcknowledgeAlert).
-    // 3. Parse the JSON string in "value" and use it as the "data" object for Action.Execute.
+    // acknowledge data - Action.Execute
     const acknowledgeAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "👀 Acknowledge", // Keep title short for cards
-      value: JSON.stringify({ alertId: data.alertId.toString(), projectId: data.projectId.toString() }),
-      actionId: MicrosoftTeamsActionType.AcknowledgeAlert, // This should map to "acknowledgeAlert"
+      title: "👀 Acknowledge", 
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "acknowledge", // Or map from MicrosoftTeamsActionType.AcknowledgeAlert string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
+      actionId: MicrosoftTeamsActionType.AcknowledgeAlert, 
     };
-
     buttons.push(acknowledgeAlertButton);
 
-    // resolve data.
-    // Similar to Acknowledge, the card generator must ensure this becomes an Action.Execute
-    // with id "resolveAlert" and the parsed 'value' as its 'data'.
+    // resolve data - Action.Execute
     const resolveAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "✅ Resolve", // Keep title short for cards
-      value: JSON.stringify({ alertId: data.alertId.toString(), projectId: data.projectId.toString() }),
-      actionId: MicrosoftTeamsActionType.ResolveAlert, // This should map to "resolveAlert"
+      title: "✅ Resolve", 
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "resolve", // Or map from MicrosoftTeamsActionType.ResolveAlert string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
+      actionId: MicrosoftTeamsActionType.ResolveAlert, 
     };
-
     buttons.push(resolveAlertButton);
 
-    // change alert state.
-    // Assuming this is handled differently, similar to executeOnCallButton.
+    // change alert state - Assumed to be Action.Execute
     const changeAlertStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Alert State",
-      value: JSON.stringify({ alertId: data.alertId.toString(), projectId: data.projectId.toString() }), // Example if it needed data
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "changeAlertState", // Or map from MicrosoftTeamsActionType.ViewChangeAlertState string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewChangeAlertState,
     };
-
     buttons.push(changeAlertStateButton);
 
-    // add note.
-    // Assuming this is handled differently.
+    // add note - Assumed to be Action.Execute
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
-      value: JSON.stringify({ alertId: data.alertId.toString(), projectId: data.projectId.toString() }), // Example if it needed data
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "addNote", // Or map from MicrosoftTeamsActionType.ViewAddAlertNote string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewAddAlertNote,
     };
-
     buttons.push(addNoteButton);
 
     const workspacePayloadButtons: WorkspacePayloadButtons = {
       buttons: buttons,
       _type: "WorkspacePayloadButtons",
     };
-
     blockMicrosoftTeams.push(workspacePayloadButtons);
 
     return blockMicrosoftTeams;
   }
 }
 // Important Note for downstream Adaptive Card generator:
-// The 'Acknowledge' and 'Resolve' buttons (and potentially others if they use Action.Execute)
+// The buttons intended for Action.Execute (Acknowledge, Resolve, etc.)
 // are defined here with `actionId` and a JSON string in the `value` field.
 // The service that converts these WorkspaceMessagePayloadButton objects into
 // Microsoft Teams Adaptive Card actions needs to:
-// 1. For buttons intended as Action.Execute (like Acknowledge, Resolve):
+// 1. For buttons intended as Action.Execute:
 //    - Set the Adaptive Card action `type` to "Action.Execute".
-//    - Set the Adaptive Card action `id` to the string value of `WorkspaceMessagePayloadButton.actionId`
-//      (e.g., "acknowledgeAlert", "resolveAlert").
+//    - Set the Adaptive Card action `id` to the string value of `WorkspaceMessagePayloadButton.actionId`.
 //    - Parse the JSON string from `WorkspaceMessagePayloadButton.value` and use the resulting
-//      object as the `data` field for the Adaptive Card `Action.Execute`.
+//      object as the `data` field for the Adaptive Card `Action.Execute`. This data now includes
+//      `actionModule` and `actionName` which can be used for routing in the backend.
 // 2. For buttons intended as Action.OpenUrl (like View Alert):
 //    - Set the Adaptive Card action `type` to "Action.OpenUrl".
 //    - Set the Adaptive Card action `url` to `WorkspaceMessagePayloadButton.url`.
-// 3. Other action types (e.g., Action.Submit, Action.ShowCard) would need similar considerations
-//    based on the properties of `WorkspaceMessagePayloadButton` and the desired Adaptive Card output.
-// The current `WorkspaceMessagePayloadButton` type might need to be enhanced with a dedicated `data: JSONObject`
-// field and a `buttonType: 'Action.Execute' | 'Action.OpenUrl'` field for clarity and type safety if this
-// intermediate representation is heavily used for generating complex cards.
+// Consider enhancing WorkspaceMessagePayloadButton for better type safety if this pattern is common.
