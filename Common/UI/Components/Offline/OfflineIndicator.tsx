@@ -9,7 +9,9 @@ interface OfflineIndicatorProps {
 
 type OfflineIndicatorComponent = React.FC<OfflineIndicatorProps>;
 
-const OfflineIndicator: OfflineIndicatorComponent = ({ onOnlineOfflineChange }: OfflineIndicatorProps): ReactElement => {
+const OfflineIndicator: OfflineIndicatorComponent = ({
+  onOnlineOfflineChange,
+}: OfflineIndicatorProps): ReactElement => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
