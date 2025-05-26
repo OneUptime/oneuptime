@@ -5,6 +5,7 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
 import axios from "axios";
 import http from "http";
 import https from "https";
+import crypto from "crypto";
 import vm, { Context } from "node:vm";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -31,6 +32,7 @@ export default class VMRunner {
       http: http,
       https: https,
       axios: axios,
+      crypto: crypto,
       setTimeout: setTimeout,
       clearTimeout: clearTimeout,
       setInterval: setInterval,

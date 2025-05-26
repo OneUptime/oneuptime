@@ -104,6 +104,15 @@ let booleanSecret = {{monitorSecrets.BooleanSecret}};
 console.log(stringSecret); 
 ```
 
+### Modules available in the script
+- `browser`: You can use this module to interact with the browser. It is a Playwright Browser object that allows you to create new pages, close pages, and perform other browser-related actions.
+- `page`: You can use this module to interact with the browser. It is a Playwright Page object that allows you to perform actions like clicking buttons, filling forms, and taking screenshots.
+- `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
+- `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
+- `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
+- `http`: You can use this module to make HTTP requests. It is a built-in Node.js module that provides an HTTP client and server.
+- `https`: You can use this module to make HTTPS requests. It is a built-in Node.js module that provides an HTTPS client and server.
+
 ### Things to consider
 
 - You only have `page` object available in the context of the script. This is from Playwright Page class. You can use it to run all the interactions with the browser.

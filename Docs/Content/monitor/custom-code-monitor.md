@@ -49,10 +49,17 @@ let booleanSecret = {{monitorSecrets.BooleanSecret}};
 console.log(stringSecret); 
 ```
 
+
+### Modules available in the script
+- `axios`: You can use this module to make HTTP requests. It is a promise-based HTTP client for the browser and Node.js.
+- `crypto`: You can use this module to perform cryptographic operations. It is a built-in Node.js module that provides cryptographic functionality that includes a set of wrappers for OpenSSL's hash, HMAC, cipher, decipher, sign, and verify functions.
+- `console.log`: You can use this module to log data to the console. This is useful for debugging purposes.
+- `http`: You can use this module to make HTTP requests. It is a built-in Node.js module that provides an HTTP client and server.
+- `https`: You can use this module to make HTTPS requests. It is a built-in Node.js module that provides an HTTPS client and server.
+
 ### Things to consider
 
 - You can use `console.log` to log the data in the console. This will be available in the logs section of the monitor (Probes > View Logs).
 - You can return the data from the script using the `return` statement. 
 - This is a JavaScript script, so you can use all the JavaScript features in the script.
-- You can use `axios` module to make HTTP requests in the script. You can use it to make API calls from the script.
 - Timeout for the script is 2 minutes. If the script takes more than 2 mins, it will be terminated.
