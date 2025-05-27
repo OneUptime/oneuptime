@@ -4,8 +4,6 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 
-
-
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import Sort from "../../../Types/BaseDatabase/Sort";
