@@ -1,6 +1,5 @@
 import SelectFormFields from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
-import Select from "../../Utils/BaseDatabase/Select";
 import ModelAPI, {
   ListResult,
   ModelAPIHttpResponse,
@@ -46,6 +45,7 @@ import Permission, {
 import Typeof from "../../../Types/Typeof";
 import React, { MutableRefObject, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
+import Select from "../../../Types/BaseDatabase/Select";
 
 export enum FormType {
   Create,

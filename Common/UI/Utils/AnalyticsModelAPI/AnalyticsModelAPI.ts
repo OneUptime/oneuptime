@@ -1,11 +1,11 @@
 import { FormType } from "../../Components/Forms/ModelForm";
 import { APP_API_URL } from "../../Config";
 import API from "../API/API";
-import GroupBy from "../BaseDatabase/GroupBy";
-import BaseListResult from "../BaseDatabase/ListResult";
-import RequestOptions from "../BaseDatabase/RequestOptions";
-import Select from "../BaseDatabase/Select";
-import Sort from "../BaseDatabase/Sort";
+import GroupBy from "../../../Types/BaseDatabase/GroupBy";
+import BaseListResult from "../../../Types/BaseDatabase/ListResult";
+import RequestOptions from "../API/RequestOptions";
+import Select from "../../../Types/BaseDatabase/Select";
+import Sort from "../../../Types/BaseDatabase/Sort";
 import Navigation from "../Navigation";
 import ProjectUtil from "../Project";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";

@@ -1,5 +1,4 @@
 import API from "../../Utils/API/API";
-import Select from "../../Utils/BaseDatabase/Select";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
@@ -21,6 +20,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../Types/Permission";
 import React, { ReactElement, useEffect, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
+import Select from "../../../Types/BaseDatabase/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };

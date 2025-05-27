@@ -28,7 +28,7 @@ import { Dictionary } from "lodash";
 import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import ListResult from "../../Utils/BaseDatabase/ListResult";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
 
 export interface ComponentProps {
   logs: Array<Log>;

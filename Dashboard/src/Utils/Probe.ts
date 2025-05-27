@@ -1,7 +1,7 @@
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { APP_API_URL } from "Common/UI/Config";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProjectUtil from "Common/UI/Utils/Project";

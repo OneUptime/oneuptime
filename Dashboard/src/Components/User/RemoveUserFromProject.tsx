@@ -6,7 +6,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, { ReactElement, useState } from "react";
 

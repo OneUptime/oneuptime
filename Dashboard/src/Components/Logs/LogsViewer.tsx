@@ -10,12 +10,12 @@ import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Query from "Common/Types/BaseDatabase/Query";
-import Select from "Common/UI/Utils/BaseDatabase/Select";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import Log from "Common/Models/AnalyticsModels/Log";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
+import Select from "Common/Types/BaseDatabase/Select";
 
 export interface ComponentProps {
   id: string;

@@ -26,7 +26,7 @@ import WorkspaceProjectAuthToken, {
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";

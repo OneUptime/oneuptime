@@ -27,7 +27,7 @@ import { ErrorFunction, PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import NotificationRuleForm from "./NotificationRuleForm/NotificationRuleForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";

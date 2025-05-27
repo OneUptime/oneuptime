@@ -21,7 +21,7 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Select from "Common/UI/Utils/BaseDatabase/Select";
+import Select from "Common/Types/BaseDatabase/Select";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span, {

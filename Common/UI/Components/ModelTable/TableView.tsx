@@ -3,7 +3,6 @@ import TableView from "../../../Models/DatabaseModels/TableView";
 import ObjectID from "../../../Types/ObjectID";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
-import ListResult from "../../Utils/BaseDatabase/ListResult";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -26,6 +25,7 @@ import Query from "../../../Types/BaseDatabase/Query";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Sort from "../../../Types/BaseDatabase/Sort";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
 
 export interface ComponentProps<T extends GenericObject> {
   tableId: string;

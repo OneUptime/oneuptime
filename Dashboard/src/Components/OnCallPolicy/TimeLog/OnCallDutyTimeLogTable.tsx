@@ -25,7 +25,7 @@ import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
 

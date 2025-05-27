@@ -6,7 +6,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import MonitorStatusesElement from "./MonitorStatusesElement";

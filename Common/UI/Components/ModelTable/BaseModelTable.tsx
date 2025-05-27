@@ -3,12 +3,13 @@ import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
-import GroupBy from "../../Utils/BaseDatabase/GroupBy";
-import ListResult from "../../Utils/BaseDatabase/ListResult";
+
+
+
 import Query from "../../../Types/BaseDatabase/Query";
-import RequestOptions from "../../Utils/BaseDatabase/RequestOptions";
-import Select from "../../Utils/BaseDatabase/Select";
-import Sort from "../../Utils/BaseDatabase/Sort";
+import GroupBy from "../../../Types/BaseDatabase/GroupBy";
+import Sort from "../../../Types/BaseDatabase/Sort";
+import Select from "../../../Types/BaseDatabase/Select";
 import { Logger } from "../../Utils/Logger";
 import Navigation from "../../Utils/Navigation";
 import PermissionUtil from "../../Utils/Permission";
@@ -89,6 +90,8 @@ import TableView from "../../../Models/DatabaseModels/TableView";
 import UserPreferences, {
   UserPreferenceType,
 } from "../../../Utils/UserPreferences";
+import RequestOptions from "../../Utils/API/RequestOptions";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
 
 export enum ShowAs {
   Table,

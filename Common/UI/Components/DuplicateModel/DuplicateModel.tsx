@@ -1,5 +1,4 @@
 import API from "../../Utils/API/API";
-import Select from "../../Utils/BaseDatabase/Select";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
@@ -13,6 +12,7 @@ import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement, useState } from "react";
+import Select from "../../../Types/BaseDatabase/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };

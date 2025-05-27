@@ -8,7 +8,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AlertFeed, {
   AlertFeedEventType,
 } from "Common/Models/DatabaseModels/AlertFeed";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -26,6 +25,7 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 
 export interface ComponentProps {
   alertId: ObjectID;

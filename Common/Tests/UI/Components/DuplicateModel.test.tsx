@@ -1,6 +1,5 @@
 import DuplicateModel from "../../../UI/Components/DuplicateModel/DuplicateModel";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
-import Select from "../../../UI/Utils/BaseDatabase/Select";
 import { describe, expect, it, jest } from "@jest/globals";
 import {
   fireEvent,
@@ -17,6 +16,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import React from "react";
 import { act } from "react-test-renderer";
+import Select from "../../../Types/BaseDatabase/Select";
 
 @TableMetaData({
   tableName: "Foo",

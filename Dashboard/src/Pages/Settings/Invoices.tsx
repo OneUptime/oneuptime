@@ -37,7 +37,7 @@ import {
 } from "@stripe/stripe-js";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 
 export interface ComponentProps extends PageComponentProps {}
 

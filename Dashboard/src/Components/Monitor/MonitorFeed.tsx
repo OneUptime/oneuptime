@@ -8,7 +8,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import MonitorFeed, {
   MonitorFeedEventType,
 } from "Common/Models/DatabaseModels/MonitorFeed";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";

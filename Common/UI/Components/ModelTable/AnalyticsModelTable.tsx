@@ -1,9 +1,5 @@
 import ModelAPI from "../../Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import GroupBy from "../../Utils/BaseDatabase/GroupBy";
 import Query from "../../../Types/BaseDatabase/Query";
-import RequestOptions from "../../Utils/BaseDatabase/RequestOptions";
-import Select from "../../Utils/BaseDatabase/Select";
-import Sort from "../../Utils/BaseDatabase/Sort";
 import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
@@ -13,6 +9,10 @@ import NotImplementedException from "../../../Types/Exception/NotImplementedExce
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement } from "react";
+import Select from "../../../Types/BaseDatabase/Select";
+import Sort from "../../../Types/BaseDatabase/Sort";
+import GroupBy from "../../../Types/BaseDatabase/GroupBy";
+import RequestOptions from "../../Utils/API/RequestOptions";
 
 export interface ComponentProps<TBaseModel extends AnalyticsBaseModel>
   extends BaseTableProps<TBaseModel> {

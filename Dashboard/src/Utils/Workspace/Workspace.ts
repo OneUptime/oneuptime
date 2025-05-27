@@ -1,7 +1,7 @@
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 

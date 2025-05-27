@@ -1,6 +1,5 @@
 import API from "../../Utils/API/API";
 import Query from "../../../Types/BaseDatabase/Query";
-import Select from "../../Utils/BaseDatabase/Select";
 import ModelAPI, {
   ListResult,
   RequestOptions,
@@ -19,6 +18,7 @@ import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement, useEffect, useState } from "react";
+import Select from "../../../Types/BaseDatabase/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   id: string;

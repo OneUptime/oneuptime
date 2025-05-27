@@ -12,7 +12,7 @@ import React, {
 import MonitorsTable from "../../../Components/Monitor/MonitorTable";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ListResult from "Common/UI/Utils/BaseDatabase/ListResult";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import API from "Common/UI/Utils/API/API";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";

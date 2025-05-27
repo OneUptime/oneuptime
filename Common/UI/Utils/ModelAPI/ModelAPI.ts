@@ -1,12 +1,11 @@
 import { FormType } from "../../Components/Forms/ModelForm";
 import { APP_API_URL } from "../../Config";
-import GroupBy from "../BaseDatabase/GroupBy";
-import BaseListResult from "../BaseDatabase/ListResult";
-import BaseRequestOptions from "../BaseDatabase/RequestOptions";
-import Select from "../BaseDatabase/Select";
-import Sort from "../BaseDatabase/Sort";
+import GroupBy from "../../../Types/BaseDatabase/GroupBy";
+import BaseListResult from "../../../Types/BaseDatabase/ListResult";
+import Select from "../../../Types/BaseDatabase/Select";
 import Navigation from "../Navigation";
 import ProjectUtil from "../Project";
+import BaseRequestOptions from "../API/RequestOptions";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -21,6 +20,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Project from "../../../Models/DatabaseModels/Project";
 import Query from "../../../Types/BaseDatabase/Query";
 import API from "../API/API";
+import Sort from "../../../Types/BaseDatabase/Sort";
 
 export class ModelAPIHttpResponse<
   TBaseModel extends BaseModel,

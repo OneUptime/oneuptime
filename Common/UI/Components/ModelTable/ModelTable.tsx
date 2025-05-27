@@ -1,7 +1,3 @@
-import GroupBy from "../../Utils/BaseDatabase/GroupBy";
-import Query from "../../../Types/BaseDatabase/Query";
-import Select from "../../Utils/BaseDatabase/Select";
-import Sort from "../../Utils/BaseDatabase/Sort";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
 import { FormType, ModelField } from "../Forms/ModelForm";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
@@ -14,6 +10,10 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement } from "react";
+import Query from "../../../Types/BaseDatabase/Query";
+import GroupBy from "../../../Types/BaseDatabase/GroupBy";
+import Sort from "../../../Types/BaseDatabase/Sort";
+import Select from "../../../Types/BaseDatabase/Select";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
