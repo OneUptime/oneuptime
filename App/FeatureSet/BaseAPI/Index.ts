@@ -576,6 +576,9 @@ import OnCallDutyPolicyTimeLogService, {
   Service as OnCallDutyPolicyTimeLogServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyTimeLogService";
 
+// Open API Spec
+import OpenAPI from "Common/Server/API/OpenAPI";
+
 const BaseAPIFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
@@ -589,6 +592,8 @@ const BaseAPIFeatureSet: FeatureSet = {
         TelemetryAttributeService,
       ).getRouter(),
     );
+
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OpenAPI.getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
