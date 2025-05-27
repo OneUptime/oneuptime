@@ -44,6 +44,7 @@
         "ts-jest": "^28.0.5"
     },
     "dependencies": {
+        "@asteasolutions/zod-to-openapi": "^7.3.2",
         "@bull-board/express": "^5.21.4",
         "@clickhouse/client": "^1.10.1",
         "@elastic/elasticsearch": "^8.12.1",
@@ -134,6 +135,7 @@
         "typeorm-extension": "^2.2.13",
         "universal-cookie": "^7.2.1",
         "use-async-effect": "^2.2.6",
-        "uuid": "^8.3.2"
+        "uuid": "^8.3.2",
+        "zod": "^3.25.30"
     }
 }
