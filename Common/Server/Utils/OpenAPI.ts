@@ -62,11 +62,11 @@ export default class OpenAPIUtil {
 
       // Register the paths in the registry
       for (const path in paths) {
-        if (paths.hasOwnProperty(path)) {
+        if (paths[path]) {
           const methods: Record<string, any> | undefined = paths[path];
           if (typeof methods === "object" && methods !== null) {
             for (const method in methods) {
-              if (methods.hasOwnProperty(method)) {
+              if (methods[method]) {
                 const spec: any = methods[method];
                 registry.registerPath({
                   method: method as any,
@@ -98,7 +98,7 @@ export default class OpenAPIUtil {
 
   public static generateListApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }) {
+  }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     return {
@@ -146,7 +146,7 @@ export default class OpenAPIUtil {
 
   public static generateCountApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }) {
+  }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     return {
@@ -185,7 +185,7 @@ export default class OpenAPIUtil {
 
   public static generateCreateApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }) {
+  }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     return {
@@ -233,7 +233,7 @@ export default class OpenAPIUtil {
 
   public static generateGetApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }) {
+  }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     return {
@@ -276,7 +276,7 @@ export default class OpenAPIUtil {
 
   public static generateUpdateApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }) {
+  }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     return {
@@ -338,7 +338,7 @@ export default class OpenAPIUtil {
 
   public static generateDeleteApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }) {
+  }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     return {
