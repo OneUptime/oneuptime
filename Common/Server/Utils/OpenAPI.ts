@@ -1,55 +1,93 @@
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
+  
 } from "@asteasolutions/zod-to-openapi";
-import { JSONObject } from "../../Types/JSON";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
+import { JSONObject } from "../../Types/JSON";
 
 export default class OpenAPIUtil {
-  public static generateOpenAPISpec(): string {
-    const registry = new OpenAPIRegistry();
-    
+  public static generateOpenAPISpec(): JSONObject {
+    const registry: OpenAPIRegistry = new OpenAPIRegistry();
+
     // Register schemas and paths for all models
     for (const ModelClass of Models) {
-      if (typeof ModelClass === 'function') {
-        const model = new ModelClass();
-        const modelName = model.constructor.name;
-        
-        // Register schema for the model
-        // Note: In a real implementation, you would need to convert your model schema to OpenAPI schema
-        
-        // Register API endpoints for this model
-        const basePath = `/api/${modelName.toLowerCase()}`;
-        
-        const paths: JSONObject = {};
-        
-        // List endpoint
+      
+        const model: DatabaseBaseModel = new ModelClass();
+        const modelName: string = model.constructor.name;
+        const basePath: string = `/api/${modelName.toLowerCase()}`;
+        // Use a plain object for paths
+        const paths: Record<string, Record<string, any>> = {};
+
+        // List endpoints (POST and GET)
+        paths[`${basePath}/get-list`] = {
+          post: this.generateListApiSpec({ modelType: ModelClass }),
+          get: this.generateListApiSpec({ modelType: ModelClass }),
+        };
+        // Count endpoint
+        paths[`${basePath}/count`] = {
+          post: this.generateCountApiSpec({ modelType: ModelClass }),
+        };
+        // Create endpoint
         paths[basePath] = {
-          get: this.genenerateListApiSpec({ modelType: ModelClass }),
-          post: this.generateCreateApiSpec({ modelType: ModelClass })
+          post: this.generateCreateApiSpec({ modelType: ModelClass }),
         };
-        
-        // Single item endpoints
-        paths[`${basePath}/{id}`] = {
+        // Get item endpoints (POST and GET)
+        paths[`${basePath}/{id}/get-item`] = {
+          post: this.generateGetApiSpec({ modelType: ModelClass }),
           get: this.generateGetApiSpec({ modelType: ModelClass }),
-          put: this.generateUpdateApiSpec({ modelType: ModelClass }),
-          delete: this.generateDeleteApiSpec({ modelType: ModelClass })
         };
-        
+        // Update endpoints (PUT, POST, GET)
+        if (!paths[`${basePath}/{id}`]) {
+          paths[`${basePath}/{id}`] = {};
+        }
+
+        paths[`${basePath}/{id}`]!["put"] = this.generateUpdateApiSpec({
+          modelType: ModelClass,
+        });
+        paths[`${basePath}/{id}/update-item`] = {
+          post: this.generateUpdateApiSpec({ modelType: ModelClass }),
+          get: this.generateUpdateApiSpec({ modelType: ModelClass }),
+        };
+        // Delete endpoints (DELETE, POST, GET)
+        if (!paths[`${basePath}/{id}`]) {
+          paths[`${basePath}/{id}`] = {};
+        }
+        paths[`${basePath}/{id}`]!["delete"] = this.generateDeleteApiSpec({
+          modelType: ModelClass,
+        });
+        paths[`${basePath}/{id}/delete-item`] = {
+          post: this.generateDeleteApiSpec({ modelType: ModelClass }),
+          get: this.generateDeleteApiSpec({ modelType: ModelClass }),
+        };
+
+
         // Register the paths in the registry
         for (const path in paths) {
           if (paths.hasOwnProperty(path)) {
-            registry.registerPath(path, paths[path]);
+            const methods: Record<string, any> | undefined = paths[path];
+            if (typeof methods === "object" && methods !== null) {
+              for (const method in methods) {
+                if (methods.hasOwnProperty(method)) {
+                  const spec: any = methods[method];
+                  registry.registerPath({
+                    method: method as any,
+                    path,
+                    ...spec,
+                  });
+                }
+              }
+            }
           }
         }
-      }
+      
     }
 
-    const generator = new OpenApiGeneratorV3(registry.definitions);
-    const components = generator.generateComponents();
+    const generator: OpenApiGeneratorV3 = new OpenApiGeneratorV3(registry.definitions);
+    const components: Pick<any, "components"> = generator.generateComponents();
 
-    return JSON.stringify({
+    return {
       openapi: "3.0.0",
       info: {
         title: "API Documentation",
@@ -57,37 +95,142 @@ export default class OpenAPIUtil {
         description: "API documentation generated from models",
       },
       components: components,
-    }, null, 2);
-
+    } as unknown as JSONObject;
   }
 
-  public static genenerateListApiSpec(data: {
+  public static generateListApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
   }) {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
-
-    // Here you would generate the list API spec based on the model
-    // This is a placeholder implementation
-    const listApiSpec: JSONObject = {
+    return {
       summary: `List ${model.constructor.name}`,
       description: `Endpoint to list all ${model.constructor.name} items`,
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                query: { type: "object" },
+                select: { type: "object" },
+                sort: { type: "object" },
+                groupBy: { type: "object" },
+              },
+            },
+          },
+        },
+      },
       responses: {
         "200": {
           description: "Successful response",
           content: {
             "application/json": {
               schema: {
-                type: "array",
-                items: { $ref: `#/components/schemas/${model.constructor.name}` },
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      $ref: `#/components/schemas/${model.constructor.name}`,
+                    },
+                  },
+                  count: { type: "number" },
+                },
               },
             },
           },
         },
       },
     };
+  }
 
-    return listApiSpec;
+  public static generateCountApiSpec(data: {
+    modelType: new () => DatabaseBaseModel;
+  }) {
+    const modelType: new () => DatabaseBaseModel = data.modelType;
+    const model: DatabaseBaseModel = new modelType();
+    return {
+      summary: `Count ${model.constructor.name}`,
+      description: `Endpoint to count ${model.constructor.name} items`,
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                query: { type: "object" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Successful response",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  count: { type: "number" },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  public static generateCreateApiSpec(data: {
+    modelType: new () => DatabaseBaseModel;
+  }) {
+    const modelType: new () => DatabaseBaseModel = data.modelType;
+    const model: DatabaseBaseModel = new modelType();
+    return {
+      summary: `Create ${model.constructor.name}`,
+      description: `Endpoint to create a new ${model.constructor.name}`,
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                data: {
+                  $ref: `#/components/schemas/${model.constructor.name}Input`,
+                },
+                miscDataProps: { type: "object" },
+              },
+              required: ["data"],
+            },
+          },
+        },
+      },
+      responses: {
+        "201": {
+          description: "Created successfully",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${model.constructor.name}`,
+                  },
+                },
+              },
+            },
+          },
+        },
+        "400": {
+          description: "Bad request",
+        },
+      },
+    };
   }
 
   public static generateGetApiSpec(data: {
@@ -95,8 +238,7 @@ export default class OpenAPIUtil {
   }) {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
-    
-    const getApiSpec: JSONObject = {
+    return {
       summary: `Get ${model.constructor.name}`,
       description: `Endpoint to retrieve a single ${model.constructor.name} by ID`,
       parameters: [
@@ -106,10 +248,10 @@ export default class OpenAPIUtil {
           required: true,
           schema: {
             type: "string",
-            format: "uuid"
+            format: "uuid",
           },
-          description: `ID of the ${model.constructor.name} to retrieve`
-        }
+          description: `ID of the ${model.constructor.name} to retrieve`,
+        },
       ],
       responses: {
         "200": {
@@ -117,57 +259,21 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${model.constructor.name}`
-              }
-            }
-          }
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${model.constructor.name}`,
+                  },
+                },
+              },
+            },
+          },
         },
         "404": {
-          description: "Resource not found"
-        }
-      }
-    };
-    
-    return getApiSpec;
-  }
-
-  public static generateCreateApiSpec(data: {
-    modelType: new () => DatabaseBaseModel;
-  }) {
-    const modelType: new () => DatabaseBaseModel = data.modelType;
-    const model: DatabaseBaseModel = new modelType();
-    
-    const createApiSpec: JSONObject = {
-      summary: `Create ${model.constructor.name}`,
-      description: `Endpoint to create a new ${model.constructor.name}`,
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              $ref: `#/components/schemas/${model.constructor.name}Input`
-            }
-          }
-        }
-      },
-      responses: {
-        "201": {
-          description: "Created successfully",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: `#/components/schemas/${model.constructor.name}`
-              }
-            }
-          }
+          description: "Resource not found",
         },
-        "400": {
-          description: "Bad request"
-        }
-      }
+      },
     };
-    
-    return createApiSpec;
   }
 
   public static generateUpdateApiSpec(data: {
@@ -175,8 +281,7 @@ export default class OpenAPIUtil {
   }) {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
-    
-    const updateApiSpec: JSONObject = {
+    return {
       summary: `Update ${model.constructor.name}`,
       description: `Endpoint to update an existing ${model.constructor.name}`,
       parameters: [
@@ -186,20 +291,26 @@ export default class OpenAPIUtil {
           required: true,
           schema: {
             type: "string",
-            format: "uuid"
+            format: "uuid",
           },
-          description: `ID of the ${model.constructor.name} to update`
-        }
+          description: `ID of the ${model.constructor.name} to update`,
+        },
       ],
       requestBody: {
         required: true,
         content: {
           "application/json": {
             schema: {
-              $ref: `#/components/schemas/${model.constructor.name}UpdateInput`
-            }
-          }
-        }
+              type: "object",
+              properties: {
+                data: {
+                  $ref: `#/components/schemas/${model.constructor.name}UpdateInput`,
+                },
+              },
+              required: ["data"],
+            },
+          },
+        },
       },
       responses: {
         "200": {
@@ -207,21 +318,24 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${model.constructor.name}`
-              }
-            }
-          }
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${model.constructor.name}`,
+                  },
+                },
+              },
+            },
+          },
         },
         "404": {
-          description: "Resource not found"
+          description: "Resource not found",
         },
         "400": {
-          description: "Bad request"
-        }
-      }
+          description: "Bad request",
+        },
+      },
     };
-    
-    return updateApiSpec;
   }
 
   public static generateDeleteApiSpec(data: {
@@ -229,8 +343,7 @@ export default class OpenAPIUtil {
   }) {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
-    
-    const deleteApiSpec: JSONObject = {
+    return {
       summary: `Delete ${model.constructor.name}`,
       description: `Endpoint to delete a ${model.constructor.name}`,
       parameters: [
@@ -240,21 +353,19 @@ export default class OpenAPIUtil {
           required: true,
           schema: {
             type: "string",
-            format: "uuid"
+            format: "uuid",
           },
-          description: `ID of the ${model.constructor.name} to delete`
-        }
+          description: `ID of the ${model.constructor.name} to delete`,
+        },
       ],
       responses: {
         "204": {
-          description: "Deleted successfully"
+          description: "Deleted successfully",
         },
         "404": {
-          description: "Resource not found"
-        }
-      }
+          description: "Resource not found",
+        },
+      },
     };
-    
-    return deleteApiSpec;
   }
 }

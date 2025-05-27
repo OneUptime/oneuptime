@@ -5,6 +5,7 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import { JSONObject } from "../../Types/JSON";
+import OpenAPIUtil from "../Utils/OpenAPI";
 
 export interface StatusAPIOptions {
   readyCheck: () => Promise<void>;
@@ -15,14 +16,11 @@ export interface StatusAPIOptions {
 }
 
 export default class OpenAPI {
-
-
   public static getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
     router.get("/openapi", (req: ExpressRequest, res: ExpressResponse) => {
-      const openAPISpec: JSONObject = OpenAPI.generateOpenAPISpec();
-
+      const openAPISpec: JSONObject = OpenAPIUtil.generateOpenAPISpec();
       return Response.sendJsonObjectResponse(req, res, openAPISpec);
     });
 

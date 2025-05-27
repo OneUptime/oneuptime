@@ -41,66 +41,60 @@ export class ModelSchema {
         continue;
       }
       let zodType: any;
-      switch (column.type) {
-        case TableColumnType.ObjectID:
-          zodType = z.string();
-          break;
-        case TableColumnType.Date:
-          zodType = z.date();
-          break;
-        case TableColumnType.Version:
-        case TableColumnType.Number:
-        case TableColumnType.PositiveNumber:
-          zodType = z.number();
-          break;
-        case TableColumnType.Email:
-          zodType = z.string().email();
-          break;
-        case TableColumnType.HashedString:
-        case TableColumnType.Slug:
-        case TableColumnType.ShortText:
-        case TableColumnType.LongText:
-        case TableColumnType.Phone:
-          zodType = z.string();
-          break;
-        case TableColumnType.Boolean:
-          zodType = z.boolean();
-          break;
-        case TableColumnType.JSON:
-          zodType = z.any();
-          break;
-        case TableColumnType.EntityArray:
-          const entityArrayType: (new () => DatabaseBaseModel) | undefined =
-            column.modelType;
-          if (!entityArrayType) {
-            throw new Error(`Entity type is not defined for column ${key}`);
-          }
-          const schemaArray: ModelSchemaType = ModelSchema.getModelSchema({
-            modelType: entityArrayType,
-          });
-          zodType = z.array(
-            z.lazy(() => {
-              return schemaArray;
-            })
-          );
-          break;
-        case TableColumnType.Entity:
-          const entityType: (new () => DatabaseBaseModel) | undefined =
-            column.modelType;
+      if (column.type === TableColumnType.ObjectID) {
+        zodType = z.string();
+      } else if (column.type === TableColumnType.Date) {
+        zodType = z.date();
+      } else if (
+        column.type === TableColumnType.Version ||
+        column.type === TableColumnType.Number ||
+        column.type === TableColumnType.PositiveNumber
+      ) {
+        zodType = z.number();
+      } else if (column.type === TableColumnType.Email) {
+        zodType = z.string().email();
+      } else if (
+        column.type === TableColumnType.HashedString ||
+        column.type === TableColumnType.Slug ||
+        column.type === TableColumnType.ShortText ||
+        column.type === TableColumnType.LongText ||
+        column.type === TableColumnType.Phone
+      ) {
+        zodType = z.string();
+      } else if (column.type === TableColumnType.Boolean) {
+        zodType = z.boolean();
+      } else if (column.type === TableColumnType.JSON) {
+        zodType = z.any();
+      } else if (column.type === TableColumnType.EntityArray) {
+        const entityArrayType: (new () => DatabaseBaseModel) | undefined =
+          column.modelType;
+        if (!entityArrayType) {
+          throw new Error(`Entity type is not defined for column ${key}`);
+        }
+        const schemaArray: ModelSchemaType = ModelSchema.getModelSchema({
+          modelType: entityArrayType,
+        });
+        zodType = z.array(
+          z.lazy(() => {
+            return schemaArray;
+          }),
+        );
+      } else if (column.type === TableColumnType.Entity) {
+        const entityType: (new () => DatabaseBaseModel) | undefined =
+          column.modelType;
 
-          if (!entityType) {
-            throw new Error(`Entity type is not defined for column ${key}`);
-          }
+        if (!entityType) {
+          throw new Error(`Entity type is not defined for column ${key}`);
+        }
 
-          const schema: ModelSchemaType = ModelSchema.getModelSchema({
-            modelType: entityType,
-          });
-          zodType = z.lazy(() => {
-            return schema;
-          });
-          break;
-        default:
-          zodType = z.any();
+        const schema: ModelSchemaType = ModelSchema.getModelSchema({
+          modelType: entityType,
+        });
+        zodType = z.lazy(() => {
+          return schema;
+        });
+      } else {
+        zodType = z.any();
       }
 
       if (column.required) {
@@ -138,7 +132,9 @@ export class ModelSchema {
       type: "object",
     };
 
-    const schema: ModelSchemaType = z.object(shape).openapi(model.tableName!, openApiKeyValue);
+    const schema: ModelSchemaType = z
+      .object(shape)
+      .openapi(model.tableName!, openApiKeyValue);
     return schema;
   }
 }
