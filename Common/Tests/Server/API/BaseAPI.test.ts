@@ -102,8 +102,17 @@ jest.mock("../../../Server/Services/ProjectService", () => {
 });
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
+  enum ConfigLogLevel {
+    DEBUG = "debug",
+    INFO = "info",
+    WARN = "warn",
+    ERROR = "error",
+  }
   return {
     IsBillingEnabled: true,
+    LogLevel: ConfigLogLevel.INFO, // Or any other appropriate default for tests
+    ConfigLogLevel: ConfigLogLevel,
+    DisableTelemetry: true,
   };
 });
 
