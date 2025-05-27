@@ -37,9 +37,6 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from "typeorm";
-import ModelSchemaUtil, {
-  ModelSchemaType,
-} from "../../../Utils/Schema/ModelSchema";
 
 export type DbTypes =
   | string
@@ -199,79 +196,6 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getTableColumns(): Columns {
     return new Columns(Object.keys(getTableColumns(this)));
-  }
-
-  public getSchema(): ModelSchemaType {
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(this);
-
-    const shape: Record<string, any> = {};
-
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-      let zodType: any;
-      switch (column.type) {
-        case TableColumnType.ObjectID:
-          zodType = ModelSchemaUtil.string();
-          break;
-        case TableColumnType.Date:
-          zodType = ModelSchemaUtil.date();
-          break;
-        case TableColumnType.Version:
-        case TableColumnType.Number:
-        case TableColumnType.PositiveNumber:
-          zodType = ModelSchemaUtil.number();
-          break;
-        case TableColumnType.Email:
-          zodType = ModelSchemaUtil.string().email();
-          break;
-        case TableColumnType.HashedString:
-        case TableColumnType.Slug:
-        case TableColumnType.ShortText:
-        case TableColumnType.LongText:
-        case TableColumnType.Phone:
-          zodType = ModelSchemaUtil.string();
-          break;
-        case TableColumnType.Boolean:
-          zodType = ModelSchemaUtil.boolean();
-          break;
-        case TableColumnType.JSON:
-          zodType = ModelSchemaUtil.any();
-          break;
-        case TableColumnType.EntityArray:
-          zodType = ModelSchemaUtil.array(ModelSchemaUtil.any());
-          break;
-        case TableColumnType.Entity:
-          zodType = ModelSchemaUtil.any();
-          break;
-        default:
-          zodType = ModelSchemaUtil.any();
-      }
-
-      if (column.required) {
-        // leave as is
-      } else {
-        zodType = zodType.optional();
-      }
-
-      // add title and description to the schema
-      if (column.title) {
-        zodType = zodType.describe(column.title);
-      }
-
-      if (column.description) {
-        zodType = zodType.openapi({
-          description: column.description,
-        });
-      }
-
-      shape[key] = zodType;
-    }
-
-    const schema: ModelSchemaType = ModelSchemaUtil.object(shape);
-    return schema;
   }
 
   public canQueryMultiTenant(): boolean {

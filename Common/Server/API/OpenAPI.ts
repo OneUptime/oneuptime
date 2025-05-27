@@ -4,7 +4,6 @@ import Express, {
   ExpressRouter,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../Types/JSON";
 
 export interface StatusAPIOptions {
@@ -16,15 +15,12 @@ export interface StatusAPIOptions {
 }
 
 export default class OpenAPI {
-  @CaptureSpan()
-  public static generateOpenAPISpec(): JSONObject {
-    return {};
-  }
+
 
   public static getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
-    router.get("/open-api", (req: ExpressRequest, res: ExpressResponse) => {
+    router.get("/openapi", (req: ExpressRequest, res: ExpressResponse) => {
       const openAPISpec: JSONObject = OpenAPI.generateOpenAPISpec();
 
       return Response.sendJsonObjectResponse(req, res, openAPISpec);
