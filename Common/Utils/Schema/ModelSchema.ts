@@ -7,6 +7,7 @@ import {
 } from "../../Types/Database/TableColumn";
 import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 
 extendZodWithOpenApi(z);
 
@@ -136,5 +137,76 @@ export class ModelSchema {
       .object(shape)
       .openapi(model.tableName!, openApiKeyValue);
     return schema;
+  }
+
+  public static getSortableTypes(): Array<TableColumnType> {
+    return [
+      TableColumnType.VeryLongText,
+      TableColumnType.Slug,
+      TableColumnType.ShortText,
+      TableColumnType.LongText,
+      TableColumnType.Number,
+      TableColumnType.Date,
+      TableColumnType.Boolean,
+      TableColumnType.Description,
+      TableColumnType.ObjectID,
+    ];
+  }
+
+  public static getQueryModelSchema(data: {
+    modelType: new () => DatabaseBaseModel;
+  }): ModelSchemaType {
+    const modelType: new () => DatabaseBaseModel = data.modelType;
+    const model: DatabaseBaseModel = new modelType();
+
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+
+    const shape: Record<string, any> = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
+
+      if (column.type === TableColumnType.EntityArray) {
+        continue; // skip entity arrays
+      }
+
+      shape[key] = z.any().optional();
+    }
+
+    return z.object(shape);
+  }
+
+  public static getSortModelSchema(data: {
+    modelType: new () => DatabaseBaseModel;
+  }): ModelSchemaType {
+    const modelType: new () => DatabaseBaseModel = data.modelType;
+    const model: DatabaseBaseModel = new modelType();
+
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+
+    const shape: Record<string, any> = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
+      
+
+      const isSortable: boolean =  
+        ModelSchema.getSortableTypes().includes(column.type);
+
+      if (!isSortable) {
+        continue;
+      }
+
+      shape[key] = z.enum([SortOrder.Ascending, SortOrder.Descending]).optional();
+
+    }
+
+    return z.object(shape);
   }
 }
