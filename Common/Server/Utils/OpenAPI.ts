@@ -1,7 +1,6 @@
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
-  
 } from "@asteasolutions/zod-to-openapi";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
@@ -13,78 +12,77 @@ export default class OpenAPIUtil {
 
     // Register schemas and paths for all models
     for (const ModelClass of Models) {
-      
-        const model: DatabaseBaseModel = new ModelClass();
-        const modelName: string = model.constructor.name;
-        const basePath: string = `/api/${modelName.toLowerCase()}`;
-        // Use a plain object for paths
-        const paths: Record<string, Record<string, any>> = {};
+      const model: DatabaseBaseModel = new ModelClass();
+      const modelName: string = model.constructor.name;
+      const basePath: string = `/api/${modelName.toLowerCase()}`;
+      // Use a plain object for paths
+      const paths: Record<string, Record<string, any>> = {};
 
-        // List endpoints (POST and GET)
-        paths[`${basePath}/get-list`] = {
-          post: this.generateListApiSpec({ modelType: ModelClass }),
-          get: this.generateListApiSpec({ modelType: ModelClass }),
-        };
-        // Count endpoint
-        paths[`${basePath}/count`] = {
-          post: this.generateCountApiSpec({ modelType: ModelClass }),
-        };
-        // Create endpoint
-        paths[basePath] = {
-          post: this.generateCreateApiSpec({ modelType: ModelClass }),
-        };
-        // Get item endpoints (POST and GET)
-        paths[`${basePath}/{id}/get-item`] = {
-          post: this.generateGetApiSpec({ modelType: ModelClass }),
-          get: this.generateGetApiSpec({ modelType: ModelClass }),
-        };
-        // Update endpoints (PUT, POST, GET)
-        if (!paths[`${basePath}/{id}`]) {
-          paths[`${basePath}/{id}`] = {};
-        }
+      // List endpoints (POST and GET)
+      paths[`${basePath}/get-list`] = {
+        post: this.generateListApiSpec({ modelType: ModelClass }),
+        get: this.generateListApiSpec({ modelType: ModelClass }),
+      };
+      // Count endpoint
+      paths[`${basePath}/count`] = {
+        post: this.generateCountApiSpec({ modelType: ModelClass }),
+      };
+      // Create endpoint
+      paths[basePath] = {
+        post: this.generateCreateApiSpec({ modelType: ModelClass }),
+      };
+      // Get item endpoints (POST and GET)
+      paths[`${basePath}/{id}/get-item`] = {
+        post: this.generateGetApiSpec({ modelType: ModelClass }),
+        get: this.generateGetApiSpec({ modelType: ModelClass }),
+      };
+      // Update endpoints (PUT, POST, GET)
+      if (!paths[`${basePath}/{id}`]) {
+        paths[`${basePath}/{id}`] = {};
+      }
 
-        paths[`${basePath}/{id}`]!["put"] = this.generateUpdateApiSpec({
-          modelType: ModelClass,
-        });
-        paths[`${basePath}/{id}/update-item`] = {
-          post: this.generateUpdateApiSpec({ modelType: ModelClass }),
-          get: this.generateUpdateApiSpec({ modelType: ModelClass }),
-        };
-        // Delete endpoints (DELETE, POST, GET)
-        if (!paths[`${basePath}/{id}`]) {
-          paths[`${basePath}/{id}`] = {};
-        }
-        paths[`${basePath}/{id}`]!["delete"] = this.generateDeleteApiSpec({
-          modelType: ModelClass,
-        });
-        paths[`${basePath}/{id}/delete-item`] = {
-          post: this.generateDeleteApiSpec({ modelType: ModelClass }),
-          get: this.generateDeleteApiSpec({ modelType: ModelClass }),
-        };
+      paths[`${basePath}/{id}`]!["put"] = this.generateUpdateApiSpec({
+        modelType: ModelClass,
+      });
+      paths[`${basePath}/{id}/update-item`] = {
+        post: this.generateUpdateApiSpec({ modelType: ModelClass }),
+        get: this.generateUpdateApiSpec({ modelType: ModelClass }),
+      };
+      // Delete endpoints (DELETE, POST, GET)
+      if (!paths[`${basePath}/{id}`]) {
+        paths[`${basePath}/{id}`] = {};
+      }
+      paths[`${basePath}/{id}`]!["delete"] = this.generateDeleteApiSpec({
+        modelType: ModelClass,
+      });
+      paths[`${basePath}/{id}/delete-item`] = {
+        post: this.generateDeleteApiSpec({ modelType: ModelClass }),
+        get: this.generateDeleteApiSpec({ modelType: ModelClass }),
+      };
 
-
-        // Register the paths in the registry
-        for (const path in paths) {
-          if (paths.hasOwnProperty(path)) {
-            const methods: Record<string, any> | undefined = paths[path];
-            if (typeof methods === "object" && methods !== null) {
-              for (const method in methods) {
-                if (methods.hasOwnProperty(method)) {
-                  const spec: any = methods[method];
-                  registry.registerPath({
-                    method: method as any,
-                    path,
-                    ...spec,
-                  });
-                }
+      // Register the paths in the registry
+      for (const path in paths) {
+        if (paths.hasOwnProperty(path)) {
+          const methods: Record<string, any> | undefined = paths[path];
+          if (typeof methods === "object" && methods !== null) {
+            for (const method in methods) {
+              if (methods.hasOwnProperty(method)) {
+                const spec: any = methods[method];
+                registry.registerPath({
+                  method: method as any,
+                  path,
+                  ...spec,
+                });
               }
             }
           }
         }
-      
+      }
     }
 
-    const generator: OpenApiGeneratorV3 = new OpenApiGeneratorV3(registry.definitions);
+    const generator: OpenApiGeneratorV3 = new OpenApiGeneratorV3(
+      registry.definitions,
+    );
     const components: Pick<any, "components"> = generator.generateComponents();
 
     return {
