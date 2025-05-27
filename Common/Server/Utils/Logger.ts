@@ -1,8 +1,9 @@
-import { ConfigLogLevel, LogLevel } from "../EnvironmentConfig";
+import { LogLevel } from "../EnvironmentConfig";
 import OneUptimeTelemetry, { TelemetryLogger } from "./Telemetry";
 import { SeverityNumber } from "@opentelemetry/api-logs";
 import Exception from "../../Types/Exception/Exception";
 import { JSONObject } from "../../Types/JSON";
+import ConfigLogLevel from "../Types/ConfigLogLevel";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 

@@ -25,6 +25,8 @@ import { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import ConfigLogLevel from "../../../Server/Types/ConfigLogLevel";
+
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -102,12 +104,6 @@ jest.mock("../../../Server/Services/ProjectService", () => {
 });
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
-  enum ConfigLogLevel {
-    DEBUG = "debug",
-    INFO = "info",
-    WARN = "warn",
-    ERROR = "error",
-  }
   return {
     IsBillingEnabled: true,
     LogLevel: ConfigLogLevel.INFO, // Or any other appropriate default for tests

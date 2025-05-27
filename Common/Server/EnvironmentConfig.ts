@@ -14,14 +14,7 @@ import { JSONObject } from "../Types/JSON";
 import ObjectID from "../Types/ObjectID";
 import Port from "../Types/Port";
 import Hostname from "../Types/API/Hostname";
-
-export enum ConfigLogLevel {
-  INFO = "INFO",
-  WARN = "WARN",
-  ERROR = "ERROR",
-  DEBUG = "DEBUG",
-  OFF = "OFF",
-}
+import ConfigLogLevel from "./Types/ConfigLogLevel";
 
 export const getAllEnvVars: () => JSONObject = (): JSONObject => {
   return process.env;
