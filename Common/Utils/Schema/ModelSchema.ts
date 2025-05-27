@@ -153,6 +153,8 @@ export class ModelSchema {
     ];
   }
 
+
+
   public static getQueryModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -205,6 +207,45 @@ export class ModelSchema {
 
       shape[key] = z.enum([SortOrder.Ascending, SortOrder.Descending]).optional();
 
+    }
+
+    return z.object(shape);
+  }
+
+  public static getSelectModelSchema(data: {
+    modelType: new () => DatabaseBaseModel;
+    isNested?: boolean;
+  }): ModelSchemaType {
+    const modelType: new () => DatabaseBaseModel = data.modelType;
+    const model: DatabaseBaseModel = new modelType();
+
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+
+    const shape: Record<string, any> = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
+
+      // if its entity array or entity then you can select nested properties
+      if (
+        !data.isNested &&
+        column.modelType && (
+        column.type === TableColumnType.EntityArray ||
+        column.type === TableColumnType.Entity
+        )
+      ) {
+        // can only do one level of nesting
+        shape[key] = this.getSelectModelSchema({
+          modelType: column.modelType as new () => DatabaseBaseModel,
+          isNested: true,
+        });
+        continue;
+      }
+
+      shape[key] = z.boolean().optional();
     }
 
     return z.object(shape);
