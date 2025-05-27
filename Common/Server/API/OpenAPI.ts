@@ -16,7 +16,6 @@ export interface StatusAPIOptions {
 }
 
 export default class OpenAPI {
-  
   @CaptureSpan()
   public static generateOpenAPISpec(): JSONObject {
     return {};
@@ -26,11 +25,9 @@ export default class OpenAPI {
     const router: ExpressRouter = Express.getRouter();
 
     router.get("/open-api", (req: ExpressRequest, res: ExpressResponse) => {
-
       const openAPISpec: JSONObject = OpenAPI.generateOpenAPISpec();
 
       return Response.sendJsonObjectResponse(req, res, openAPISpec);
-
     });
 
     return router;

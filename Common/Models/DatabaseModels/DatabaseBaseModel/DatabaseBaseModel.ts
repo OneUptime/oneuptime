@@ -37,6 +37,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from "typeorm";
+import { z } from "zod";
 
 export type DbTypes =
   | string
@@ -50,6 +51,18 @@ export type DbTypes =
   | ObjectID
   | JSONArray
   | Buffer;
+
+type ModelSchema = z.ZodObject<
+  Record<string, any>,
+  "strip",
+  z.ZodTypeAny,
+  {
+    [x: string]: any;
+  },
+  {
+    [x: string]: any;
+  }
+>;
 
 export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
@@ -196,6 +209,67 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public getTableColumns(): Columns {
     return new Columns(Object.keys(getTableColumns(this)));
+  }
+
+  public getSchema(): ModelSchema {
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(this);
+
+    const shape: Record<string, any> = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
+      let zodType: any;
+      switch (column.type) {
+        case TableColumnType.ObjectID:
+          zodType = z.string();
+          break;
+        case TableColumnType.Date:
+          zodType = z.date();
+          break;
+        case TableColumnType.Version:
+        case TableColumnType.Number:
+        case TableColumnType.PositiveNumber:
+          zodType = z.number();
+          break;
+        case TableColumnType.Email:
+          zodType = z.string().email();
+          break;
+        case TableColumnType.HashedString:
+        case TableColumnType.Slug:
+        case TableColumnType.ShortText:
+        case TableColumnType.LongText:
+        case TableColumnType.Phone:
+          zodType = z.string();
+          break;
+        case TableColumnType.Boolean:
+          zodType = z.boolean();
+          break;
+        case TableColumnType.JSON:
+          zodType = z.any();
+          break;
+        case TableColumnType.EntityArray:
+          zodType = z.array(z.any());
+          break;
+        case TableColumnType.Entity:
+          zodType = z.any();
+          break;
+        default:
+          zodType = z.any();
+      }
+      if (column.required) {
+        // leave as is
+      } else {
+        zodType = zodType.optional();
+      }
+
+      shape[key] = zodType;
+    }
+
+    const schema: ModelSchema = z.object(shape);
+    return schema;
   }
 
   public canQueryMultiTenant(): boolean {
