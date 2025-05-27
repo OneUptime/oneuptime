@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { AppVersion, ServerName } from "./Utils/Config";
 import logger from "@oneuptime/common/Server/Utils/Logger";
+import MCPService from "./Service/MCP";
 
 // Create server instance
 const server: McpServer = new McpServer({
@@ -12,6 +13,8 @@ const server: McpServer = new McpServer({
     tools: {},
   },
 });
+
+MCPService.addToolsToServer({ server });
 
 async function main(): Promise<void> {
   const transport: StdioServerTransport = new StdioServerTransport();

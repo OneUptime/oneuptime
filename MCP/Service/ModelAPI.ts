@@ -77,7 +77,7 @@ export default class ModelAPI {
       const apiPath: Route | null = model.getCrudApiPath();
       if (!apiPath) {
         throw new BadDataException(
-          "This model does not support create or update operations."
+          "This model does not support create or update operations.",
         );
       }
 
@@ -96,7 +96,7 @@ export default class ModelAPI {
       {
         data: data.data,
       },
-      this.getCommonHeaders(data.requestOptions)
+      this.getCommonHeaders(data.requestOptions),
     );
 
     if (result.isSuccess()) {
@@ -121,7 +121,7 @@ export default class ModelAPI {
       const apiPath: Route | null = data.model.getCrudApiPath();
       if (!apiPath) {
         throw new BadDataException(
-          "This model does not support create or update operations."
+          "This model does not support create or update operations.",
         );
       }
 
@@ -145,14 +145,14 @@ export default class ModelAPI {
         apiUrl,
         {
           data: JSONFunctions.serialize(
-            BaseModel.toJSON(data.model, data.modelType)
+            BaseModel.toJSON(data.model, data.modelType),
           ),
           miscDataProps: data.miscDataProps || {},
         },
         {
           ...this.getCommonHeaders(data.requestOptions),
           ...(data.requestOptions?.requestHeaders || {}),
-        }
+        },
       );
 
     if (apiResult.isSuccess() && apiResult instanceof HTTPResponse) {
@@ -188,7 +188,7 @@ export default class ModelAPI {
     const apiPath: Route | null = model.getCrudApiPath();
     if (!apiPath) {
       throw new BadDataException(
-        "This model does not support list operations."
+        "This model does not support list operations.",
       );
     }
 
@@ -202,12 +202,12 @@ export default class ModelAPI {
 
     if (!apiUrl) {
       throw new BadDataException(
-        "This model does not support list operations."
+        "This model does not support list operations.",
       );
     }
 
     const headers: Dictionary<string> = this.getCommonHeaders(
-      data.requestOptions
+      data.requestOptions,
     );
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
@@ -224,13 +224,13 @@ export default class ModelAPI {
         {
           limit: data.limit.toString(),
           skip: data.skip.toString(),
-        }
+        },
       );
 
     if (result.isSuccess()) {
       const list: Array<TBaseModel> = BaseModel.fromJSONArray(
         result.data as JSONArray,
-        data.modelType
+        data.modelType,
       );
 
       return {
@@ -255,7 +255,7 @@ export default class ModelAPI {
     const apiPath: Route | null = model.getCrudApiPath();
     if (!apiPath) {
       throw new BadDataException(
-        "This model does not support list operations."
+        "This model does not support list operations.",
       );
     }
 
@@ -269,12 +269,12 @@ export default class ModelAPI {
 
     if (!apiUrl) {
       throw new BadDataException(
-        "This model does not support count operations."
+        "This model does not support count operations.",
       );
     }
 
     const headers: Dictionary<string> = this.getCommonHeaders(
-      data.requestOptions
+      data.requestOptions,
     );
 
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -284,7 +284,7 @@ export default class ModelAPI {
         {
           query: JSONFunctions.serialize(data.query as JSONObject),
         },
-        headers
+        headers,
       );
 
     if (result.isSuccess()) {
@@ -299,7 +299,7 @@ export default class ModelAPI {
   }
 
   public static getCommonHeaders(
-    requestOptions?: RequestOptions
+    requestOptions?: RequestOptions,
   ): Dictionary<string> {
     let headers: Dictionary<string> = {};
 
@@ -359,13 +359,13 @@ export default class ModelAPI {
         {
           select: JSONFunctions.serialize(data.select as JSONObject) || {},
         },
-        this.getCommonHeaders(data.requestOptions)
+        this.getCommonHeaders(data.requestOptions),
       );
 
     if (result.isSuccess()) {
       const baseModel: TBaseModel = BaseModel.fromJSONObject(
         result.data as JSONObject,
-        data.modelType
+        data.modelType,
       );
 
       return baseModel;
@@ -384,7 +384,7 @@ export default class ModelAPI {
     const apiPath: Route | null = new data.modelType().getCrudApiPath();
     if (!apiPath) {
       throw new BadDataException(
-        "This model does not support delete operations."
+        "This model does not support delete operations.",
       );
     }
 
@@ -394,7 +394,7 @@ export default class ModelAPI {
 
     if (!apiUrl) {
       throw new BadDataException(
-        "This model does not support delete operations."
+        "This model does not support delete operations.",
       );
     }
 
@@ -403,7 +403,7 @@ export default class ModelAPI {
         HTTPMethod.DELETE,
         apiUrl,
         undefined,
-        this.getCommonHeaders(data.requestOptions)
+        this.getCommonHeaders(data.requestOptions),
       );
 
     if (result.isSuccess()) {
@@ -418,11 +418,11 @@ export default class ModelAPI {
   private static checkStatusCode<TBaseModel extends BaseModel>(
     result:
       | HTTPResponse<TBaseModel | JSONObject | JSONArray | Array<TBaseModel>>
-      | HTTPErrorResponse
+      | HTTPErrorResponse,
   ): void {
     if (result.statusCode === 406) {
       throw new BadDataException(
-        "The request was not acceptable. Please check the data you are sending."
+        "The request was not acceptable. Please check the data you are sending.",
       );
     }
   }
