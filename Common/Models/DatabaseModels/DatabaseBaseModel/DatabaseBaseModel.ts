@@ -250,7 +250,6 @@ export default class DatabaseBaseModel extends BaseEntity {
           zodType = ModelSchemaUtil.any();
       }
 
-
       if (column.required) {
         // leave as is
       } else {
@@ -264,7 +263,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
       if (column.description) {
         zodType = zodType.openapi({
-          description: column.description
+          description: column.description,
         });
       }
 
@@ -293,7 +292,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getColumnBillingAccessControl(
-    columnName: string
+    columnName: string,
   ): ColumnBillingAccessControl {
     const dictionary: Dictionary<ColumnBillingAccessControl> =
       getColumnBillingAccessControlForAllColumns(this);
@@ -301,7 +300,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getColumnAccessControlFor(
-    columnName: string
+    columnName: string,
   ): ColumnAccessControl | null {
     return this.getColumnAccessControlForAllColumns()[columnName] || null;
   }
@@ -345,7 +344,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public doesPermissionHaveConditions(
-    permission: Permission
+    permission: Permission,
   ): JSONObject | null {
     return this.isPermissionIf[permission]
       ? (this.isPermissionIf[permission] as JSONObject)
@@ -435,7 +434,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   }
 
   public getColumnValue(
-    columnName: string
+    columnName: string,
   ): JSONValue | DatabaseBaseModel | Array<DatabaseBaseModel> | null {
     if (getTableColumn(this, columnName) && (this as any)[columnName]) {
       return (this as any)[columnName] as JSONValue;
@@ -446,7 +445,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public setColumnValue(
     columnName: string,
-    value: JSONValue | DatabaseBaseModel | Array<DatabaseBaseModel>
+    value: JSONValue | DatabaseBaseModel | Array<DatabaseBaseModel>,
   ): void {
     if (getTableColumn(this, columnName)) {
       return ((this as any)[columnName] = value as any);
@@ -460,30 +459,30 @@ export default class DatabaseBaseModel extends BaseEntity {
   public isEntityColumn(columnName: string): boolean {
     const tableColumnType: TableColumnMetadata = getTableColumn(
       this,
-      columnName
+      columnName,
     );
 
     if (!tableColumnType) {
       throw new BadDataException(
-        "TableColumnMetadata not found for " + columnName + " column"
+        "TableColumnMetadata not found for " + columnName + " column",
       );
     }
 
     return Boolean(
       tableColumnType.type === TableColumnType.Entity ||
-        tableColumnType.type === TableColumnType.EntityArray
+        tableColumnType.type === TableColumnType.EntityArray,
     );
   }
 
   public isHashedStringColumn(columnName: string): boolean {
     const tableColumnType: TableColumnMetadata = getTableColumn(
       this,
-      columnName
+      columnName,
     );
 
     if (!tableColumnType) {
       throw new BadDataException(
-        "TableColumnMetadata not found for " + columnName + " column"
+        "TableColumnMetadata not found for " + columnName + " column",
       );
     }
 
@@ -493,7 +492,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   public isFileColumn(columnName: string): boolean {
     const tableColumnType: TableColumnMetadata = getTableColumn(
       this,
-      columnName
+      columnName,
     );
 
     if (!tableColumnType || !tableColumnType.modelType) {
@@ -531,7 +530,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public hasCreatePermissions(
     userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
-    columnName?: string
+    columnName?: string,
   ): boolean {
     let modelPermission: Array<Permission> = this.createRecordPermissions;
 
@@ -545,7 +544,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
     return ModelPermission.hasPermissions(
       userProjectPermissions,
-      modelPermission
+      modelPermission,
     );
   }
 
@@ -583,7 +582,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public hasReadPermissions(
     userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
-    columnName?: string
+    columnName?: string,
   ): boolean {
     let modelPermission: Array<Permission> = this.readRecordPermissions;
 
@@ -597,23 +596,23 @@ export default class DatabaseBaseModel extends BaseEntity {
 
     return ModelPermission.hasPermissions(
       userProjectPermissions,
-      modelPermission
+      modelPermission,
     );
   }
 
   public hasDeletePermissions(
-    userProjectPermissions: UserTenantAccessPermission | Array<Permission>
+    userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
   ): boolean {
     const modelPermission: Array<Permission> = this.deleteRecordPermissions;
     return ModelPermission.hasPermissions(
       userProjectPermissions,
-      modelPermission
+      modelPermission,
     );
   }
 
   public hasUpdatePermissions(
     userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
-    columnName?: string
+    columnName?: string,
   ): boolean {
     let modelPermission: Array<Permission> = this.updateRecordPermissions;
 
@@ -627,7 +626,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
     return ModelPermission.hasPermissions(
       userProjectPermissions,
-      modelPermission
+      modelPermission,
     );
   }
 
@@ -637,7 +636,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static toJSON(
     model: DatabaseBaseModel,
-    modelType: DatabaseBaseModelType
+    modelType: DatabaseBaseModelType,
   ): JSONObject {
     const json: JSONObject = this.toJSONObject(model, modelType);
     return JSONFunctions.serialize(json);
@@ -645,7 +644,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static toJSONObject(
     model: DatabaseBaseModel,
-    modelType: DatabaseBaseModelType
+    modelType: DatabaseBaseModelType,
   ): JSONObject {
     const json: JSONObject = {};
 
@@ -668,7 +667,7 @@ export default class DatabaseBaseModel extends BaseEntity {
         ) {
           (json as any)[key] = this.toJSONObject(
             (model as any)[key],
-            tableColumnMetadata.modelType
+            tableColumnMetadata.modelType,
           );
         } else if (
           (model as any)[key] &&
@@ -679,7 +678,7 @@ export default class DatabaseBaseModel extends BaseEntity {
         ) {
           (json as any)[key] = this.toJSONObjectArray(
             (model as any)[key] as Array<DatabaseBaseModel>,
-            tableColumnMetadata.modelType
+            tableColumnMetadata.modelType,
           );
         } else {
           (json as any)[key] = (model as any)[key];
@@ -692,7 +691,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static toJSONObjectArray(
     list: Array<DatabaseBaseModel>,
-    modelType: DatabaseBaseModelType
+    modelType: DatabaseBaseModelType,
   ): JSONArray {
     const array: JSONArray = [];
 
@@ -705,7 +704,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static toJSONArray(
     list: Array<DatabaseBaseModel>,
-    modelType: DatabaseBaseModelType
+    modelType: DatabaseBaseModelType,
   ): JSONArray {
     const array: JSONArray = [];
 
@@ -718,7 +717,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   private static _fromJSON<T extends DatabaseBaseModel>(
     json: JSONObject | T,
-    type: { new (): T }
+    type: { new (): T },
   ): T {
     if (json instanceof DatabaseBaseModel) {
       return json;
@@ -746,7 +745,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
           (baseModel as any)[key] = this.fromJSON(
             json[key] as JSONObject,
-            tableColumnMetadata.modelType
+            tableColumnMetadata.modelType,
           );
         } else if (
           json[key] &&
@@ -759,7 +758,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
           (baseModel as any)[key] = this.fromJSONArray(
             json[key] as JSONArray,
-            tableColumnMetadata.modelType
+            tableColumnMetadata.modelType,
           );
         } else {
           (baseModel as any)[key] = json[key];
@@ -772,7 +771,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static fromJSON<T extends DatabaseBaseModel>(
     json: JSONObject | JSONArray | DatabaseBaseModel | Array<DatabaseBaseModel>,
-    type: { new (): T }
+    type: { new (): T },
   ): T | Array<T> {
     if (Array.isArray(json)) {
       const arr: Array<T> = [];
@@ -798,7 +797,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static fromJSONObject<T extends DatabaseBaseModel>(
     json: JSONObject | T,
-    type: { new (): T }
+    type: { new (): T },
   ): T {
     if (json instanceof DatabaseBaseModel) {
       return json;
@@ -809,7 +808,7 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   public static fromJSONArray<T extends DatabaseBaseModel>(
     json: Array<JSONObject | T>,
-    type: { new (): T }
+    type: { new (): T },
   ): Array<T> {
     const arr: Array<T> = [];
 
