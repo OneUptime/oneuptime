@@ -23,7 +23,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@oneuptime/common": "^7.0.4260"
+    "@oneuptime/common": "^7.0.4263"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
