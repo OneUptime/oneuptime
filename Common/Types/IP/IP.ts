@@ -82,7 +82,7 @@ export default class IP extends DatabaseProperty {
 
     if (
       octets.length !== 4 ||
-      octets.some((octet) => {
+      octets.some((octet: number) => {
         return isNaN(octet) || octet < 0 || octet > 255;
       })
     ) {
