@@ -180,7 +180,7 @@ export default class IP extends DatabaseProperty {
   }
 
   public static override toDatabase(
-    value: IP | FindOperator<IP>
+    value: IP | FindOperator<IP>,
   ): string | null {
     if (value) {
       if (typeof value === "string") {

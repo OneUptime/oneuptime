@@ -281,8 +281,7 @@ const App: () => JSX.Element = () => {
             }
           />
 
-
-           <PageRoute
+          <PageRoute
             path={RouteMap[PageMap.FORBIDDEN]?.toString() || ""}
             element={
               <PageForbidden
@@ -349,8 +348,6 @@ const App: () => JSX.Element = () => {
               />
             }
           />
-
-         
 
           <PageRoute
             path={RouteMap[PageMap.SCHEDULED_EVENT_LIST]?.toString() || ""}
@@ -656,7 +653,7 @@ const App: () => JSX.Element = () => {
             }
           />
 
-           <PageRoute
+          <PageRoute
             path={RouteMap[PageMap.PREVIEW_FORBIDDEN]?.toString() || ""}
             element={
               <PageForbidden
@@ -667,7 +664,6 @@ const App: () => JSX.Element = () => {
               />
             }
           />
-
 
           <PageRoute
             path={RouteMap[PageMap.PREVIEW_LOGIN]?.toString() || ""}
@@ -729,7 +725,6 @@ const App: () => JSX.Element = () => {
             }
           />
 
-         
           {/* 👇️ only match this when no other routes match */}
 
           <PageRoute
