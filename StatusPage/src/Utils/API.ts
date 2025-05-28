@@ -22,4 +22,12 @@ export default class API extends BaseAPI {
         : "/login",
     );
   }
+
+  public static override getForbiddenRoute(): Route {
+    return new Route(
+      StatusPageUtil.isPreviewPage()
+        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/forbidden`
+        : "/forbidden",
+    );
+  }
 }

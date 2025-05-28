@@ -96,6 +96,7 @@ class BaseAPI extends API {
   ): HTTPErrorResponse | APIException {
     // 405 Status - Tenant not found. If Project was deleted.
     // 401 Status - User is not logged in.
+    // 403 Status - Forbidden. If the IP address is not whitelisted (for example).
     if (
       error instanceof HTTPErrorResponse &&
       (error.statusCode === 401 || error.statusCode === 405)
@@ -115,11 +116,24 @@ class BaseAPI extends API {
       }
     }
 
+    if (
+      error instanceof HTTPErrorResponse &&
+      error.statusCode === 403 &&
+      Navigation.getCurrentRoute().toString() !==
+        this.getForbiddenRoute().toString()
+    ) {
+      Navigation.navigate(this.getForbiddenRoute(), { forceNavigate: true });
+    }
+
     return error;
   }
 
   protected static getLoginRoute(): Route {
     return new Route("/accounts/login");
+  }
+
+  protected static getForbiddenRoute(): Route {
+    return new Route("/accounts/forbidden");
   }
 
   public static getFriendlyMessage(
