@@ -346,7 +346,7 @@ export class Service extends DatabaseService<StatusPage> {
         }
       }
 
-      // get status page by id. 
+      // get status page by id.
       const statusPage: StatusPage | null = await this.findOneById({
         id: statusPageId,
         props: {
@@ -359,40 +359,37 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-  
       if (statusPage && statusPage.isPublicStatusPage) {
         return true;
       }
 
-      if(statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
-        const ipWhitelist: Array<string> =
-          statusPage.ipWhitelist?.split("\n");
+      if (statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
+        const ipWhitelist: Array<string> = statusPage.ipWhitelist?.split("\n");
 
-          const ipAccessedFrom: string | undefined =
+        const ipAccessedFrom: string | undefined =
           req.headers["x-forwarded-for"]?.toString() ||
-          req.headers["x-real-ip"]?.toString()  ||
+          req.headers["x-real-ip"]?.toString() ||
           req.socket.remoteAddress ||
           req.ip ||
           req.ips[0];
 
-          if(!ipAccessedFrom) {
-            logger.error("IP address not found in request.");
-            return false;
-          }
+        if (!ipAccessedFrom) {
+          logger.error("IP address not found in request.");
+          return false;
+        }
 
-          const isIPWhitelisted: boolean = IP.isInWhitelist({
-            ip: ipAccessedFrom,
-            whitelist: ipWhitelist,
-          });
+        const isIPWhitelisted: boolean = IP.isInWhitelist({
+          ip: ipAccessedFrom,
+          whitelist: ipWhitelist,
+        });
 
-          if (isIPWhitelisted) {
-            return true;
-          } else {
-            logger.error(
-              `IP ${ipAccessedFrom} is not whitelisted for status page ${statusPageId.toString()}.`,
-            );
-            return false;
-          }
+        if (isIPWhitelisted) {
+          return true;
+        }
+        logger.error(
+          `IP ${ipAccessedFrom} is not whitelisted for status page ${statusPageId.toString()}.`,
+        );
+        return false;
       }
 
       // if it does not have public access, check if this user has access.
@@ -412,8 +409,6 @@ export class Service extends DatabaseService<StatusPage> {
       if (items.length > 0) {
         return true;
       }
-
-
     } catch (err) {
       logger.error(err);
     }
