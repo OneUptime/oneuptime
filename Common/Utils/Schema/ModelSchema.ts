@@ -153,7 +153,6 @@ export class ModelSchema {
     ];
   }
 
-
   public static getQueryModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -170,8 +169,7 @@ export class ModelSchema {
         continue;
       }
 
-      // There are these query operators. 
-
+      // There are these query operators.
     }
 
     return z.object(shape);

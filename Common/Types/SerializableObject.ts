@@ -15,5 +15,4 @@ export default class SerializableObject {
   public fromJSON(json: JSONObject): SerializableObject {
     return SerializableObject.fromJSON(json);
   }
-
 }

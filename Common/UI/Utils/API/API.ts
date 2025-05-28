@@ -17,7 +17,6 @@ import {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import API from "../../../Utils/API";
-import Cookies from "universal-cookie";
 
 class BaseAPI extends API {
   public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
@@ -103,10 +102,7 @@ class BaseAPI extends API {
     ) {
       const loginRoute: Route = this.getLoginRoute();
 
-      User.clear();
-      const cookies: Cookies = new Cookies();
-      cookies.remove("admin-data", { path: "/" });
-      cookies.remove("data", { path: "/" });
+      User.logout();
 
       if (Navigation.getQueryStringByName("token")) {
         Navigation.navigate(loginRoute.addRouteParam("sso", "true"), {
