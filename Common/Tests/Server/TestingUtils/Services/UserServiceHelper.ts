@@ -10,8 +10,8 @@ export interface UserData {
   email?: Email;
 }
 
-export default class UserTestService {
-  public static async genrateAndSaveRandomUser(
+export class UserTestService {
+  public static async generateAndSaveRandomUser(
     data: UserData | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<User> {

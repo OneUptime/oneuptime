@@ -10,7 +10,7 @@ import "../TestingUtils/Init";
 import ProjectServiceHelper from "../TestingUtils/Services/ProjectServiceHelper";
 import TeamMemberServiceHelper from "../TestingUtils/Services/TeamMemberServiceHelper";
 import TeamServiceHelper from "../TestingUtils/Services/TeamServiceHelper";
-import UserServiceHelper from "../TestingUtils/Services/UserServiceHelper";
+import { UserTestService as UserServiceHelper } from "../TestingUtils/Services/UserServiceHelper";
 import { describe, expect, it } from "@jest/globals";
 import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
@@ -40,7 +40,7 @@ describe("TeamMemberService", () => {
 
   describe("create tests", () => {
     it("should create a new team member", async () => {
-      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+      const user: User = await UserServiceHelper.generateAndSaveRandomUser(
         null,
         {
           isRoot: true,
@@ -80,7 +80,7 @@ describe("TeamMemberService", () => {
 
     describe("onBeforeCreate", () => {
       it("should throw exception if the user limit for a project is reached", async () => {
-        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -122,7 +122,7 @@ describe("TeamMemberService", () => {
 
         // create another team member
 
-        const user2: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user2: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -143,7 +143,7 @@ describe("TeamMemberService", () => {
 
         // add one more user.
 
-        const user3: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user3: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -166,7 +166,7 @@ describe("TeamMemberService", () => {
       });
 
       it("should throw exception if the user has already been invited", async () => {
-        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -220,7 +220,7 @@ describe("TeamMemberService", () => {
             Promise.resolve(new HTTPResponse<EmptyResponseData>(200, {}, {})),
           );
 
-        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -267,7 +267,7 @@ describe("TeamMemberService", () => {
           );
 
         // create project.
-        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -384,7 +384,7 @@ describe("TeamMemberService", () => {
     it("should update team member", async () => {
       // (1) create new team membe
 
-      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+      const user: User = await UserServiceHelper.generateAndSaveRandomUser(
         null,
         {
           isRoot: true,
@@ -591,7 +591,7 @@ describe("TeamMemberService", () => {
 
     describe("onBeforeDelete", () => {
       it("should throw error when one member and team has at least one member requirement", async () => {
-        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -617,7 +617,7 @@ describe("TeamMemberService", () => {
 
         // another user.
 
-        const user2: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user2: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -654,7 +654,7 @@ describe("TeamMemberService", () => {
       });
 
       it("should not delete when shouldHaveAtLeastOneMember is true and member has not accepted invitation", async () => {
-        const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+        const user: User = await UserServiceHelper.generateAndSaveRandomUser(
           null,
           {
             isRoot: true,
@@ -739,7 +739,7 @@ describe("TeamMemberService", () => {
       // make findBy to return 4 team members: 1 normal, 2 with the same id and 1 without a user ID
       // total should be 2 unique team members
 
-      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+      const user: User = await UserServiceHelper.generateAndSaveRandomUser(
         null,
         {
           isRoot: true,
@@ -838,7 +838,7 @@ describe("TeamMemberService", () => {
       // team B members: user2 & user3
       // team C members: user 3
 
-      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+      const user: User = await UserServiceHelper.generateAndSaveRandomUser(
         null,
         {
           isRoot: true,
@@ -965,7 +965,7 @@ describe("TeamMemberService", () => {
       // team B members: user2 & user3
       // team C members: user 3
 
-      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+      const user: User = await UserServiceHelper.generateAndSaveRandomUser(
         null,
         {
           isRoot: true,
@@ -1229,7 +1229,7 @@ describe("TeamMemberService", () => {
       // spy on update project
       jest.spyOn(ProjectService, "updateOneById");
 
-      const user: User = await UserServiceHelper.genrateAndSaveRandomUser(
+      const user: User = await UserServiceHelper.generateAndSaveRandomUser(
         null,
         {
           isRoot: true,

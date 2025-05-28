@@ -197,7 +197,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       onCreate.createBy.data.projectId!,
     );
 
-    ProjectUserService.refreshProjectUsersByProject({
+    await ProjectUserService.refreshProjectUsersByProject({
       projectId: onCreate.createBy.data.projectId!,
     }).catch((err: Error) => {
       logger.error(err);
@@ -247,7 +247,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         );
       }
 
-      ProjectUserService.refreshProjectUsersByProject({
+      await ProjectUserService.refreshProjectUsersByProject({
         projectId: item.projectId!,
       }).catch((err: Error) => {
         logger.error(err);
@@ -336,7 +336,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       );
 
       // refresh project users.
-      ProjectUserService.refreshProjectUsersByProject({
+      await ProjectUserService.refreshProjectUsersByProject({
         projectId: item.projectId!,
       }).catch((err: Error) => {
         logger.error(err);
