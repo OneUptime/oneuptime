@@ -370,11 +370,18 @@ export class Service extends DatabaseService<StatusPage> {
         }
 
         const isIPWhitelisted: boolean = IP.isInWhitelist({
-          ip: ipAccessedFrom,
+          ips: ipAccessedFrom?.split(",").map((i: string)=>{
+            return i.trim();
+          }) || [],
           whitelist: ipWhitelist,
         });
 
         if (!isIPWhitelisted) {
+
+          logger.error(
+            `IP address ${ipAccessedFrom} is not whitelisted for status page ${statusPageId.toString()}.`,
+          );
+
           return {
             hasReadAccess: false,
             error: new ForbiddenException(

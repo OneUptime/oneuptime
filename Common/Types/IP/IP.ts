@@ -13,62 +13,64 @@ export default class IP extends DatabaseProperty {
   }
 
   public static isInWhitelist(data: {
-    ip: string;
+    ips: Array<string>;
     whitelist: string[];
   }): boolean {
-    // If whitelist is empty, return false
-    if (!data.whitelist || data.whitelist.length === 0) {
-      return false;
-    }
-
-    // Check if IP is valid
-    if (!IP.isIP(data.ip)) {
-      throw new BadDataException("Invalid IP address");
-    }
-
-    // Check each whitelist entry
-    for (const entry of data.whitelist) {
-      // Skip empty entries
-      if (!entry || entry.trim() === "") {
-        continue;
+    for (const ip of data.ips) {
+      // If whitelist is empty, return false
+      if (!data.whitelist || data.whitelist.length === 0) {
+        return false;
       }
 
-      // Direct IP match
-      if (entry === data.ip) {
-        return true;
+      // Check if IP is valid
+      if (!IP.isIP(ip)) {
+        throw new BadDataException("Invalid IP address");
       }
 
-      // CIDR notation check (IPv4 only for now)
-      if (entry.includes("/") && IP.isIPv4(data.ip)) {
-        try {
-          const [network, prefixStr] = entry.split("/");
-
-          if (!network || !prefixStr) {
-            continue;
-          }
-
-          if (!IP.isIPv4(network)) {
-            continue;
-          }
-
-          const prefix: number = parseInt(prefixStr, 10);
-          if (isNaN(prefix) || prefix < 0 || prefix > 32) {
-            continue;
-          }
-
-          // Convert IPs to integers for comparison
-          const ipInt: number = this._ipv4ToInt(data.ip);
-          const networkInt: number = this._ipv4ToInt(network);
-
-          // Create mask from prefix
-          const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
-
-          // Check if IP is in network
-          if ((ipInt & mask) === (networkInt & mask)) {
-            return true;
-          }
-        } catch (error) {
+      // Check each whitelist entry
+      for (const entry of data.whitelist) {
+        // Skip empty entries
+        if (!entry || entry.trim() === "") {
           continue;
+        }
+
+        // Direct IP match
+        if (entry === ip) {
+          return true;
+        }
+
+        // CIDR notation check (IPv4 only for now)
+        if (entry.includes("/") && IP.isIPv4(ip)) {
+          try {
+            const [network, prefixStr] = entry.split("/");
+
+            if (!network || !prefixStr) {
+              continue;
+            }
+
+            if (!IP.isIPv4(network)) {
+              continue;
+            }
+
+            const prefix: number = parseInt(prefixStr, 10);
+            if (isNaN(prefix) || prefix < 0 || prefix > 32) {
+              continue;
+            }
+
+            // Convert IPs to integers for comparison
+            const ipInt: number = this._ipv4ToInt(ip);
+            const networkInt: number = this._ipv4ToInt(network);
+
+            // Create mask from prefix
+            const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
+
+            // Check if IP is in network
+            if ((ipInt & mask) === (networkInt & mask)) {
+              return true;
+            }
+          } catch (error) {
+            continue;
+          }
         }
       }
     }
@@ -178,7 +180,7 @@ export default class IP extends DatabaseProperty {
   }
 
   public static override toDatabase(
-    value: IP | FindOperator<IP>,
+    value: IP | FindOperator<IP>
   ): string | null {
     if (value) {
       if (typeof value === "string") {
