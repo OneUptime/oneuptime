@@ -22,10 +22,14 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.LOGIN]: new Route(`/login`),
   [PageMap.SSO]: new Route(`/sso`),
+  
   [PageMap.LOGOUT]: new Route(`/logout`),
   [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
   [PageMap.RESET_PASSWORD]: new Route(`/reset-password/:token`),
 
+  // forbidden page
+  [PageMap.FORBIDDEN]: new Route(`/forbidden`),
+  
   [PageMap.PREVIEW_OVERVIEW]: new Route(
     `/status-page/${RouteParams.StatusPageId}`,
   ),
@@ -49,6 +53,11 @@ const RouteMap: Dictionary<Route> = {
   ),
   [PageMap.PREVIEW_RSS]: new Route(
     `/status-page/${RouteParams.StatusPageId}/rss`,
+  ),
+
+  // preview forbidden page
+  [PageMap.PREVIEW_FORBIDDEN]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/forbidden`,
   ),
 
   [PageMap.PREVIEW_SUBSCRIBE_EMAIL]: new Route(

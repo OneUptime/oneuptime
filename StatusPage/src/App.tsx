@@ -109,6 +109,13 @@ const ConfirmSubscription: React.LazyExoticComponent<
   return import("./Pages/Subscribe/ConfirmSubscription");
 });
 
+// forbidden page
+const PageForbidden: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/Forbidden/Forbidden");
+});
+
 const App: () => JSX.Element = () => {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
@@ -286,6 +293,8 @@ const App: () => JSX.Element = () => {
             }
           />
 
+
+
           <PageRoute
             path={RouteMap[PageMap.SSO]?.toString() || ""}
             element={
@@ -323,6 +332,19 @@ const App: () => JSX.Element = () => {
             element={
               <ScheduledEventDetail
                 pageRoute={RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
+
+
+           <PageRoute
+            path={RouteMap[PageMap.FORBIDDEN]?.toString() || ""}
+            element={
+              <PageForbidden
+                pageRoute={RouteMap[PageMap.FORBIDDEN] as Route}
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
@@ -693,6 +715,23 @@ const App: () => JSX.Element = () => {
               />
             }
           />
+
+           <PageRoute
+            path={
+              RouteMap[PageMap.PREVIEW_FORBIDDEN]?.toString() || ""
+            }
+            element={
+              <PageForbidden
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_FORBIDDEN] as Route
+                }
+              />
+            }
+          />
+
 
           {/* 👇️ only match this when no other routes match */}
 
