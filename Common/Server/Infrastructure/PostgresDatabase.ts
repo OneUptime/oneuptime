@@ -67,7 +67,7 @@ export default class Database {
       return await connectToDatabase();
     } catch (err) {
       logger.error("Postgres Database Connection Failed");
-      logger.trace(err);
+      logger.error(err);
       throw err;
     }
   }
