@@ -9,6 +9,16 @@ import UniversalCookies, { CookieSetOptions } from "universal-cookie";
 import CookieName from "../../Types/CookieName";
 
 export default class Cookie {
+
+  public static clearAllCookies(): void {
+    const cookies: UniversalCookies = new UniversalCookies();
+    
+    // Remove all cookies defined in CookieName enum
+    Object.values(CookieName).forEach((cookieName: string) => {
+      cookies.remove(cookieName, { path: '/' });
+    });
+  }
+
   public static setItem(
     key: CookieName | string,
     value: JSONValue | Email | URL,

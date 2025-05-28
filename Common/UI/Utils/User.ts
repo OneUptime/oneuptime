@@ -174,6 +174,7 @@ export default class UserUtil {
     await API.post(URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"));
     LocalStorage.clear();
     SessionStorage.clear();
+    Cookie.clearAllCookies();
   }
 
   public static getUtmParams(): Dictionary<string> {
