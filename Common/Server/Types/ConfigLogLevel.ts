@@ -1,4 +1,4 @@
- enum ConfigLogLevel {
+enum ConfigLogLevel {
   INFO = "INFO",
   WARN = "WARN",
   ERROR = "ERROR",

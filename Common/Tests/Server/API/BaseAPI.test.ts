@@ -27,7 +27,6 @@ import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import ConfigLogLevel from "../../../Server/Types/ConfigLogLevel";
 
-
 jest.mock("../../../Server/Utils/Express", () => {
   return {
     getRouter: () => {
