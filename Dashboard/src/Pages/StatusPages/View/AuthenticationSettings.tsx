@@ -55,7 +55,7 @@ const StatusPageDelete: FunctionComponent<
         cardProps={{
           title: "IP Whitelist",
           description:
-            "IP Whitelist for this status page. This will only apply if the status page is not visible to public. ",
+            "IP Whitelist for this status page. If the status page is public then only IP addresses in this whitelist will be able to access the status page. If the status page is not public then only users who are registered as Private Users and who have access from the IP addresses in this whitelist will be able to access the status page.",
         }}
         editButtonText="Edit IP Whitelist"
         isEditable={true}

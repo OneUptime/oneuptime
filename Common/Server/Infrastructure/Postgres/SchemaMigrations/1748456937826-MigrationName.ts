@@ -1,16 +1,15 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class MigrationName1748456937826 implements MigrationInterface {
-    public name = 'MigrationName1748456937826'
+  public name = "MigrationName1748456937826";
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "StatusPage" ADD "ipWhitelist" text`);
-        
-    }
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`ALTER TABLE "StatusPage" ADD "ipWhitelist" text`);
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-       
-        await queryRunner.query(`ALTER TABLE "StatusPage" DROP COLUMN "ipWhitelist"`);
-    }
-
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `ALTER TABLE "StatusPage" DROP COLUMN "ipWhitelist"`,
+    );
+  }
 }

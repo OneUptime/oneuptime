@@ -7,6 +7,7 @@ enum ExceptionCode {
   WebRequestException = 6,
   BadDataException = 400,
   BadRequestException = 400,
+  ForbiddenException = 403,
   UnabletoReachServerException = 415,
   ServerException = 500,
   NotAuthorizedException = 403,

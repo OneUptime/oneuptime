@@ -34,10 +34,8 @@ import {
 import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
-import CommonAPI from "./CommonAPI";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ArrayUtil from "../../Utils/Array";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -90,6 +88,7 @@ import Protocol from "../../Types/API/Protocol";
 import DatabaseConfig from "../DatabaseConfig";
 import { FileRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
+import ForbiddenException from "../../Types/Exception/ForbiddenException";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -658,26 +657,19 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
+          const statusPageId: ObjectID = new ObjectID(
             req.params["statusPageId"] as string,
           );
 
-          if (
-            !(await this.service.hasReadAccess(
-              objectId,
-              await CommonAPI.getDatabaseCommonInteractionProps(req),
-              req,
-            ))
-          ) {
-            throw new NotAuthenticatedException(
-              "You are not authenticated to access this status page",
-            );
-          }
+          await this.checkHasReadAccess({
+            statusPageId: statusPageId,
+            req: req,
+          });
 
           const resources: Array<StatusPageResource> =
             await StatusPageResourceService.findBy({
               query: {
-                statusPageId: objectId,
+                statusPageId: statusPageId,
               },
               select: {
                 _id: true,
@@ -729,17 +721,10 @@ export default class StatusPageAPI extends BaseAPI<
             throw new BadDataException("Status Page or Resource not found");
           }
 
-          if (
-            !(await this.service.hasReadAccess(
-              statusPageId,
-              await CommonAPI.getDatabaseCommonInteractionProps(req),
-              req,
-            ))
-          ) {
-            throw new NotAuthenticatedException(
-              "You are not authenticated to access this status page",
-            );
-          }
+          await this.checkHasReadAccess({
+            statusPageId: statusPageId,
+            req: req,
+          });
 
           // get start and end date from request body.
           // if no end date is provided then it will be current date.
@@ -1022,21 +1007,14 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
+          const statusPageId: ObjectID = new ObjectID(
             req.params["statusPageId"] as string,
           );
 
-          if (
-            !(await this.service.hasReadAccess(
-              objectId,
-              await CommonAPI.getDatabaseCommonInteractionProps(req),
-              req,
-            ))
-          ) {
-            throw new NotAuthenticatedException(
-              "You are not authenticated to access this status page",
-            );
-          }
+          await this.checkHasReadAccess({
+            statusPageId: statusPageId,
+            req: req,
+          });
 
           const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
           const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -1051,7 +1029,7 @@ export default class StatusPageAPI extends BaseAPI<
             statusPageGroups,
             monitorsInGroup,
           } = await this.getStatusPageResourcesAndTimelines({
-            statusPageId: objectId,
+            statusPageId: statusPageId,
             startDateForMonitorTimeline: startDate,
             endDateForMonitorTimeline: endDate,
           });
@@ -1198,7 +1176,7 @@ export default class StatusPageAPI extends BaseAPI<
           if (statusPage.showAnnouncementsOnStatusPage) {
             activeAnnouncements = await StatusPageAnnouncementService.findBy({
               query: {
-                statusPages: objectId as any,
+                statusPages: statusPageId as any,
                 showAnnouncementAt: QueryHelper.lessThan(today),
                 endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
                 projectId: statusPage.projectId!,
@@ -1259,7 +1237,7 @@ export default class StatusPageAPI extends BaseAPI<
                   currentScheduledMaintenanceState: {
                     isOngoingState: true,
                   } as any,
-                  statusPages: objectId as any,
+                  statusPages: statusPageId as any,
                   projectId: statusPage.projectId!,
                   isVisibleOnStatusPage: true,
                 },
@@ -1285,7 +1263,7 @@ export default class StatusPageAPI extends BaseAPI<
                   currentScheduledMaintenanceState: {
                     isScheduledState: true,
                   } as any,
-                  statusPages: objectId as any,
+                  statusPages: statusPageId as any,
                   projectId: statusPage.projectId!,
                   isVisibleOnStatusPage: true,
                 },
@@ -1381,7 +1359,7 @@ export default class StatusPageAPI extends BaseAPI<
           const statusPageHistoryChartBarColorRules: Array<StatusPageHistoryChartBarColorRule> =
             await StatusPageHistoryChartBarColorRuleService.findBy({
               query: {
-                statusPageId: objectId,
+                statusPageId: statusPageId,
               },
               select: {
                 _id: true,
@@ -1557,7 +1535,6 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getIncidents(
             objectId,
             null,
-            await CommonAPI.getDatabaseCommonInteractionProps(req),
             req,
           );
 
@@ -1582,7 +1559,7 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
             objectId,
             null,
-            await CommonAPI.getDatabaseCommonInteractionProps(req),
+
             req,
           );
 
@@ -1607,7 +1584,7 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getAnnouncements(
             objectId,
             null,
-            await CommonAPI.getDatabaseCommonInteractionProps(req),
+
             req,
           );
 
@@ -1636,7 +1613,6 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getIncidents(
             objectId,
             incidentId,
-            await CommonAPI.getDatabaseCommonInteractionProps(req),
             req,
           );
 
@@ -1665,7 +1641,7 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getScheduledMaintenanceEvents(
             objectId,
             scheduledMaintenanceId,
-            await CommonAPI.getDatabaseCommonInteractionProps(req),
+
             req,
           );
 
@@ -1694,7 +1670,7 @@ export default class StatusPageAPI extends BaseAPI<
           const response: JSONObject = await this.getAnnouncements(
             objectId,
             announcementId,
-            await CommonAPI.getDatabaseCommonInteractionProps(req),
+
             req,
           );
 
@@ -1710,14 +1686,12 @@ export default class StatusPageAPI extends BaseAPI<
   public async getScheduledMaintenanceEvents(
     statusPageId: ObjectID,
     scheduledMaintenanceId: ObjectID | null,
-    props: DatabaseCommonInteractionProps,
     req: ExpressRequest,
   ): Promise<JSONObject> {
-    if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
-      throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page",
-      );
-    }
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -2028,14 +2002,12 @@ export default class StatusPageAPI extends BaseAPI<
   public async getAnnouncements(
     statusPageId: ObjectID,
     announcementId: ObjectID | null,
-    props: DatabaseCommonInteractionProps,
     req: ExpressRequest,
   ): Promise<JSONObject> {
-    if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
-      throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page",
-      );
-    }
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -2142,28 +2114,22 @@ export default class StatusPageAPI extends BaseAPI<
 
   @CaptureSpan()
   public async manageExistingSubscription(req: ExpressRequest): Promise<void> {
-    const objectId: ObjectID = new ObjectID(
+    const statusPageId: ObjectID = new ObjectID(
       req.params["statusPageId"] as string,
     );
 
-    logger.debug(`Managing Existing Subscription for Status Page: ${objectId}`);
+    logger.debug(
+      `Managing Existing Subscription for Status Page: ${statusPageId}`,
+    );
 
-    if (
-      !(await this.service.hasReadAccess(
-        objectId,
-        await CommonAPI.getDatabaseCommonInteractionProps(req),
-        req,
-      ))
-    ) {
-      logger.debug(`No read access to status page with ID: ${objectId}`);
-      throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page",
-      );
-    }
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
-        _id: objectId.toString(),
+        _id: statusPageId.toString(),
       },
       select: {
         _id: true,
@@ -2180,13 +2146,13 @@ export default class StatusPageAPI extends BaseAPI<
     });
 
     if (!statusPage) {
-      logger.debug(`Status page not found with ID: ${objectId}`);
+      logger.debug(`Status page not found with ID: ${statusPageId}`);
       throw new BadDataException("Status Page not found");
     }
 
     if (!statusPage.showSubscriberPageOnStatusPage) {
       logger.debug(
-        `Subscriber page not enabled for status page with ID: ${objectId}`,
+        `Subscriber page not enabled for status page with ID: ${statusPageId}`,
       );
       throw new BadDataException(
         "Subscribes not enabled for this status page.",
@@ -2200,7 +2166,7 @@ export default class StatusPageAPI extends BaseAPI<
       !statusPage.enableEmailSubscribers
     ) {
       logger.debug(
-        `Email subscribers not enabled for status page with ID: ${objectId}`,
+        `Email subscribers not enabled for status page with ID: ${statusPageId}`,
       );
       throw new BadDataException(
         "Email subscribers not enabled for this status page.",
@@ -2209,7 +2175,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
-        `SMS subscribers not enabled for status page with ID: ${objectId}`,
+        `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
       );
       throw new BadDataException(
         "SMS subscribers not enabled for this status page.",
@@ -2223,7 +2189,7 @@ export default class StatusPageAPI extends BaseAPI<
       !req.body.data["subscriberPhone"]
     ) {
       logger.debug(
-        `No email or phone provided for subscription to status page with ID: ${objectId}`,
+        `No email or phone provided for subscription to status page with ID: ${statusPageId}`,
       );
       throw new BadDataException(
         "Email or phone is required to subscribe to this status page.",
@@ -2245,7 +2211,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           subscriberEmail: email,
-          statusPageId: objectId,
+          statusPageId: statusPageId,
         },
         select: {
           _id: true,
@@ -2262,7 +2228,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           subscriberPhone: phone,
-          statusPageId: objectId,
+          statusPageId: statusPageId,
         },
         select: {
           _id: true,
@@ -2291,7 +2257,7 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     const statusPageURL: string =
-      await StatusPageService.getStatusPageURL(objectId);
+      await StatusPageService.getStatusPageURL(statusPageId);
 
     const manageUrlink: string = StatusPageSubscriberService.getUnsubscribeLink(
       URL.fromString(statusPageURL),
@@ -2300,7 +2266,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     const statusPages: Array<StatusPage> =
       await StatusPageSubscriberService.getStatusPagesToSendNotification([
-        objectId,
+        statusPageId,
       ]);
 
     for (const statusPage of statusPages) {
@@ -2375,18 +2341,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     logger.debug(`Subscribing to status page with ID: ${objectId}`);
 
-    if (
-      !(await this.service.hasReadAccess(
-        objectId,
-        await CommonAPI.getDatabaseCommonInteractionProps(req),
-        req,
-      ))
-    ) {
-      logger.debug(`No read access to status page with ID: ${objectId}`);
-      throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page",
-      );
-    }
+    await this.checkHasReadAccess({
+      statusPageId: objectId,
+      req: req,
+    });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -2612,17 +2570,10 @@ export default class StatusPageAPI extends BaseAPI<
       req.params["statusPageId"] as string,
     );
 
-    if (
-      !(await this.service.hasReadAccess(
-        objectId,
-        await CommonAPI.getDatabaseCommonInteractionProps(req),
-        req,
-      ))
-    ) {
-      throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page",
-      );
-    }
+    await this.checkHasReadAccess({
+      statusPageId: objectId,
+      req: req,
+    });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -2675,14 +2626,12 @@ export default class StatusPageAPI extends BaseAPI<
   public async getIncidents(
     statusPageId: ObjectID,
     incidentId: ObjectID | null,
-    props: DatabaseCommonInteractionProps,
     req: ExpressRequest,
   ): Promise<JSONObject> {
-    if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
-      throw new NotAuthenticatedException(
-        "You are not authenticated to access this status page",
-      );
-    }
+    await this.checkHasReadAccess({
+      statusPageId: statusPageId,
+      req: req,
+    });
 
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -3234,5 +3183,27 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsOnStatusPage,
       monitorsInGroup,
     };
+  }
+
+  public async checkHasReadAccess(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<void> {
+    const accessResult: {
+      hasReadAccess: boolean;
+      error?: NotAuthenticatedException | ForbiddenException;
+    } = await this.service.hasReadAccess({
+      statusPageId: data.statusPageId,
+      req: data.req,
+    });
+
+    if (!accessResult.hasReadAccess) {
+      throw (
+        accessResult.error ||
+        new NotAuthenticatedException(
+          "You are not authenticated to access this status page",
+        )
+      );
+    }
   }
 }
