@@ -293,8 +293,6 @@ const App: () => JSX.Element = () => {
             }
           />
 
-
-
           <PageRoute
             path={RouteMap[PageMap.SSO]?.toString() || ""}
             element={
@@ -339,8 +337,7 @@ const App: () => JSX.Element = () => {
             }
           />
 
-
-           <PageRoute
+          <PageRoute
             path={RouteMap[PageMap.FORBIDDEN]?.toString() || ""}
             element={
               <PageForbidden
@@ -716,22 +713,17 @@ const App: () => JSX.Element = () => {
             }
           />
 
-           <PageRoute
-            path={
-              RouteMap[PageMap.PREVIEW_FORBIDDEN]?.toString() || ""
-            }
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_FORBIDDEN]?.toString() || ""}
             element={
               <PageForbidden
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
-                pageRoute={
-                  RouteMap[PageMap.PREVIEW_FORBIDDEN] as Route
-                }
+                pageRoute={RouteMap[PageMap.PREVIEW_FORBIDDEN] as Route}
               />
             }
           />
-
 
           {/* 👇️ only match this when no other routes match */}
 

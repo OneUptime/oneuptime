@@ -9,14 +9,34 @@ import {
 import Navigation from "Common/UI/Utils/Navigation";
 
 // Lazy load page components
-const ForbiddenPage = lazy(() => import("./Pages/Forbidden"));
-const ForgotPasswordPage = lazy(() => import("./Pages/ForgotPassword"));
-const LoginPage = lazy(() => import("./Pages/Login"));
-const LoginWithSSO = lazy(() => import("./Pages/LoginWithSSO"));
-const NotFound = lazy(() => import("./Pages/NotFound"));
-const RegisterPage = lazy(() => import("./Pages/Register"));
-const ResetPasswordPage = lazy(() => import("./Pages/ResetPassword"));
-const VerifyEmail = lazy(() => import("./Pages/VerifyEmail"));
+const ForbiddenPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/Forbidden");
+});
+const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/ForgotPassword");
+  },
+);
+const LoginPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/Login");
+});
+const LoginWithSSO: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/LoginWithSSO");
+});
+const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/NotFound");
+});
+const RegisterPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/Register");
+});
+const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
+  () => {
+    return import("./Pages/ResetPassword");
+  },
+);
+const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+  return import("./Pages/VerifyEmail");
+});
 
 function App(): ReactElement {
   Navigation.setNavigateHook(useNavigate());
@@ -40,7 +60,10 @@ function App(): ReactElement {
             element={<ResetPasswordPage />}
           />
           <Route path="/accounts/register" element={<RegisterPage />} />
-          <Route path="/accounts/verify-email/:token" element={<VerifyEmail />} />
+          <Route
+            path="/accounts/verify-email/:token"
+            element={<VerifyEmail />}
+          />
           {/* 👇️ only match this when no other routes match */}
           <Route path="*" element={<NotFound />} />
         </Routes>
