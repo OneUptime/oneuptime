@@ -281,6 +281,19 @@ const App: () => JSX.Element = () => {
             }
           />
 
+
+           <PageRoute
+            path={RouteMap[PageMap.FORBIDDEN]?.toString() || ""}
+            element={
+              <PageForbidden
+                pageRoute={RouteMap[PageMap.FORBIDDEN] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+              />
+            }
+          />
+
           <PageRoute
             path={RouteMap[PageMap.LOGIN]?.toString() || ""}
             element={
@@ -337,17 +350,7 @@ const App: () => JSX.Element = () => {
             }
           />
 
-          <PageRoute
-            path={RouteMap[PageMap.FORBIDDEN]?.toString() || ""}
-            element={
-              <PageForbidden
-                pageRoute={RouteMap[PageMap.FORBIDDEN] as Route}
-                onLoadComplete={() => {
-                  onPageLoadComplete();
-                }}
-              />
-            }
-          />
+         
 
           <PageRoute
             path={RouteMap[PageMap.SCHEDULED_EVENT_LIST]?.toString() || ""}
@@ -653,6 +656,19 @@ const App: () => JSX.Element = () => {
             }
           />
 
+           <PageRoute
+            path={RouteMap[PageMap.PREVIEW_FORBIDDEN]?.toString() || ""}
+            element={
+              <PageForbidden
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                pageRoute={RouteMap[PageMap.PREVIEW_FORBIDDEN] as Route}
+              />
+            }
+          />
+
+
           <PageRoute
             path={RouteMap[PageMap.PREVIEW_LOGIN]?.toString() || ""}
             element={
@@ -713,18 +729,7 @@ const App: () => JSX.Element = () => {
             }
           />
 
-          <PageRoute
-            path={RouteMap[PageMap.PREVIEW_FORBIDDEN]?.toString() || ""}
-            element={
-              <PageForbidden
-                onLoadComplete={() => {
-                  onPageLoadComplete();
-                }}
-                pageRoute={RouteMap[PageMap.PREVIEW_FORBIDDEN] as Route}
-              />
-            }
-          />
-
+         
           {/* 👇️ only match this when no other routes match */}
 
           <PageRoute

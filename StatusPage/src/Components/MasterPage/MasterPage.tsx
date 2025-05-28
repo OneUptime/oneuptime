@@ -74,13 +74,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       const logoutRoute: Route = props.isPreview
         ? RouteUtil.populateRouteParams(
-            RouteMap[PageMap.PREVIEW_LOGOUT]!,
-            statusPageId,
-          )
+          RouteMap[PageMap.PREVIEW_LOGOUT]!,
+          statusPageId,
+        )
         : RouteUtil.populateRouteParams(
-            RouteMap[PageMap.LOGOUT]!,
-            statusPageId,
-          );
+          RouteMap[PageMap.LOGOUT]!,
+          statusPageId,
+        );
 
       const decodedtoken: JSONWebTokenData | null = JSONWebToken.decode(
         token,
@@ -115,13 +115,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         Navigation.navigate(
           !props.isPreview
             ? RouteUtil.populateRouteParams(
-                RouteMap[PageMap.OVERVIEW]!,
-                statusPageId,
-              )
+              RouteMap[PageMap.OVERVIEW]!,
+              statusPageId,
+            )
             : RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PREVIEW_OVERVIEW]!,
-                statusPageId,
-              ),
+              RouteMap[PageMap.PREVIEW_OVERVIEW]!,
+              statusPageId,
+            ),
           { forceNavigate: true },
         );
       }
@@ -240,7 +240,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     Navigation.getCurrentRoute().toString().includes("login") ||
     Navigation.getCurrentRoute().toString().includes("forgot-password") ||
     Navigation.getCurrentRoute().toString().includes("reset-password") ||
-    Navigation.getCurrentRoute().toString().includes("sso")
+    Navigation.getCurrentRoute().toString().includes("sso") ||
+    Navigation.getCurrentRoute().toString().includes("forbidden")
   ) {
     return <>{props.children}</>;
   }
