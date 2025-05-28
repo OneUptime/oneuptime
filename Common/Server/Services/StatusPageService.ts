@@ -86,7 +86,7 @@ export class Service extends DatabaseService<StatusPage> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<StatusPage>
+    createBy: CreateBy<StatusPage>,
   ): Promise<OnCreate<StatusPage>> {
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
@@ -95,12 +95,12 @@ export class Service extends DatabaseService<StatusPage> {
     // if the project is on the free plan, then only allow 1 status page.
     if (IsBillingEnabled) {
       const currentPlan: CurrentPlan = await ProjectService.getCurrentPlan(
-        createBy.data.projectId
+        createBy.data.projectId,
       );
 
       if (currentPlan.isSubscriptionUnpaid) {
         throw new BadDataException(
-          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more status pages."
+          "Your subscription is unpaid. Please update your payment method and pay all the outstanding invoices to add more status pages.",
         );
       }
 
@@ -116,7 +116,7 @@ export class Service extends DatabaseService<StatusPage> {
 
         if (statusPageCount.toNumber() >= AllowedStatusPageCountInFreePlan) {
           throw new BadDataException(
-            `You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.`
+            `You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.`,
           );
         }
       }
@@ -169,7 +169,7 @@ export class Service extends DatabaseService<StatusPage> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<StatusPage>,
-    createdItem: StatusPage
+    createdItem: StatusPage,
   ): Promise<StatusPage> {
     // add owners.
 
@@ -188,7 +188,7 @@ export class Service extends DatabaseService<StatusPage> {
         (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
-        onCreate.createBy.props
+        onCreate.createBy.props,
       );
     }
 
@@ -256,7 +256,7 @@ export class Service extends DatabaseService<StatusPage> {
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          }
+          },
         );
 
         if (!isUserAlreadyAdded) {
@@ -275,7 +275,7 @@ export class Service extends DatabaseService<StatusPage> {
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -313,12 +313,12 @@ export class Service extends DatabaseService<StatusPage> {
   @CaptureSpan()
   public async getStatusPageLinkInDashboard(
     projectId: ObjectID,
-    statusPageId: ObjectID
+    statusPageId: ObjectID,
   ): Promise<URL> {
     const dahboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dahboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/status-pages/${statusPageId.toString()}`
+      `/${projectId.toString()}/status-pages/${statusPageId.toString()}`,
     );
   }
 
@@ -364,7 +364,7 @@ export class Service extends DatabaseService<StatusPage> {
           return {
             hasReadAccess: false,
             error: new ForbiddenException(
-              "Unable to verify IP address for status page access."
+              "Unable to verify IP address for status page access.",
             ),
           };
         }
@@ -378,7 +378,7 @@ export class Service extends DatabaseService<StatusPage> {
           return {
             hasReadAccess: false,
             error: new ForbiddenException(
-              `Your IP address ${ipAccessedFrom} is blocked from accessing this status page.`
+              `Your IP address ${ipAccessedFrom} is blocked from accessing this status page.`,
             ),
           };
         }
@@ -393,13 +393,13 @@ export class Service extends DatabaseService<StatusPage> {
       // token decode.
       const token: string | undefined = CookieUtil.getCookieFromExpressRequest(
         req,
-        CookieUtil.getUserTokenKey(statusPageId)
+        CookieUtil.getUserTokenKey(statusPageId),
       );
 
       if (token) {
         try {
           const decoded: JSONWebTokenData = JSONWebToken.decode(
-            token as string
+            token as string,
           );
 
           if (decoded.statusPageId?.toString() === statusPageId.toString()) {
@@ -438,7 +438,7 @@ export class Service extends DatabaseService<StatusPage> {
     return {
       hasReadAccess: false,
       error: new NotAuthenticatedException(
-        "You do not have access to this status page. Please login to view the status page."
+        "You do not have access to this status page. Please login to view the status page.",
       ),
     };
   }
@@ -506,7 +506,7 @@ export class Service extends DatabaseService<StatusPage> {
           props: {
             isRoot: true,
           },
-        })
+        }),
       );
 
       // sort monitorStatusTimelines by createdAt.
@@ -517,7 +517,7 @@ export class Service extends DatabaseService<StatusPage> {
           }
 
           return b.createdAt!.getTime() - a.createdAt!.getTime();
-        }
+        },
       );
     }
 
@@ -598,7 +598,7 @@ export class Service extends DatabaseService<StatusPage> {
 
   @CaptureSpan()
   protected override async onBeforeUpdate(
-    updateBy: UpdateBy<StatusPage>
+    updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
     // is enabling SMS subscribers.
 
@@ -622,7 +622,7 @@ export class Service extends DatabaseService<StatusPage> {
 
         if (!isSMSEnabled) {
           throw new BadDataException(
-            "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings."
+            "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
           );
         }
       }
@@ -654,13 +654,13 @@ export class Service extends DatabaseService<StatusPage> {
         const reportRecurringInterval: Recurring | undefined =
           Recurring.fromJSON(
             (updateBy.data.reportRecurringInterval as Recurring) ||
-              statusPage.reportRecurringInterval
+              statusPage.reportRecurringInterval,
           );
 
         if (rerportStartDate && reportRecurringInterval) {
           const nextReportDate: Date = Recurring.getNextDate(
             rerportStartDate,
-            reportRecurringInterval
+            reportRecurringInterval,
           );
           updateBy.data.sendNextReportBy = nextReportDate;
         }
@@ -707,12 +707,12 @@ export class Service extends DatabaseService<StatusPage> {
 
     type SendEmailFunction = (
       email: Email,
-      unsubscribeUrl: URL | null
+      unsubscribeUrl: URL | null,
     ) => Promise<void>;
 
     const sendEmail: SendEmailFunction = async (
       email: Email,
-      unsubscribeUrl: URL | null
+      unsubscribeUrl: URL | null,
     ): Promise<void> => {
       // send email here.
 
@@ -743,10 +743,10 @@ export class Service extends DatabaseService<StatusPage> {
         },
         {
           mailServer: ProjectSMTPConfigService.toEmailServer(
-            statuspage.smtpConfig
+            statuspage.smtpConfig,
           ),
           projectId: statuspage.projectId,
-        }
+        },
       ).catch((err: Error) => {
         logger.error(err);
       });
@@ -763,7 +763,7 @@ export class Service extends DatabaseService<StatusPage> {
         {
           isRoot: true,
           ignoreHooks: true,
-        }
+        },
       );
 
     for (const subscriber of subscribers) {
@@ -781,13 +781,13 @@ export class Service extends DatabaseService<StatusPage> {
         const unsubscribeUrl: string =
           StatusPageSubscriberService.getUnsubscribeLink(
             URL.fromString(statusPageURL),
-            subscriber.id!
+            subscriber.id!,
           ).toString();
 
         if (subscriber.subscriberEmail) {
           await sendEmail(
             subscriber.subscriberEmail,
-            URL.fromString(unsubscribeUrl)
+            URL.fromString(unsubscribeUrl),
           );
         }
 
@@ -874,7 +874,7 @@ export class Service extends DatabaseService<StatusPage> {
       if (resource.monitorGroupId) {
         const groupId: string = resource.monitorGroupId.toString();
         monitorIdsForThisResource = monitorIdsForThisResource.concat(
-          monitors.monitorsInGroup[groupId] || []
+          monitors.monitorsInGroup[groupId] || [],
         );
       }
 
@@ -888,14 +888,14 @@ export class Service extends DatabaseService<StatusPage> {
       const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
         timelineForThisResource,
         resource.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
-        statusPage.downtimeMonitorStatuses!
+        statusPage.downtimeMonitorStatuses!,
       );
       const downtime: {
         totalDowntimeInSeconds: number;
         totalSecondsInTimePeriod: number;
       } = UptimeUtil.getTotalDowntimeInSeconds(
         timelineForThisResource,
-        statusPage.downtimeMonitorStatuses!
+        statusPage.downtimeMonitorStatuses!,
       );
 
       const reportItem: StatusPageReportItem = {
@@ -908,7 +908,7 @@ export class Service extends DatabaseService<StatusPage> {
         uptimePercentAsString: `${uptimePercent}%`,
         downtimeInHoursAndMinutes:
           OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-            Math.ceil(downtime.totalDowntimeInSeconds / 60)
+            Math.ceil(downtime.totalDowntimeInSeconds / 60),
           ),
       };
 
@@ -927,7 +927,7 @@ export class Service extends DatabaseService<StatusPage> {
       totalSecondsInTimePeriod: number;
     } = UptimeUtil.getTotalDowntimeInSeconds(
       timeline,
-      statusPage.downtimeMonitorStatuses!
+      statusPage.downtimeMonitorStatuses!,
     );
 
     return {
@@ -938,7 +938,7 @@ export class Service extends DatabaseService<StatusPage> {
       resources: reportItems,
       totalDowntimeInHoursAndMinutes:
         OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-          Math.ceil(totalDowntimeInSeconds.totalDowntimeInSeconds / 60)
+          Math.ceil(totalDowntimeInSeconds.totalDowntimeInSeconds / 60),
         ),
     };
   }
@@ -951,7 +951,7 @@ export class Service extends DatabaseService<StatusPage> {
     const today: Date = OneUptimeDate.getCurrentDate();
 
     const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      data.historyDays || 14
+      data.historyDays || 14,
     );
 
     const incidentCount: PositiveNumber = await IncidentService.countBy({
@@ -1096,7 +1096,7 @@ export class Service extends DatabaseService<StatusPage> {
     return statusPageResources.sort(
       (a: StatusPageResource, b: StatusPageResource) => {
         return a.order! - b.order!;
-      }
+      },
     );
   }
 }
