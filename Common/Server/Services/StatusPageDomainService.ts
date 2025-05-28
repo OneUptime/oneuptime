@@ -19,6 +19,8 @@ import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
 import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { StatusPageCNameRecord } from "../EnvironmentConfig";
+import DNSUtil from "../../Utils/DNSUtil";
 
 export class Service extends DatabaseService<StatusPageDomain> {
   public constructor() {
@@ -335,6 +337,32 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
         return true;
       }
+
+      if(StatusPageCNameRecord){
+        // check if cname record is set and if it matches StatusPageCNameRecord
+
+        const cnameRecord: string | undefined =
+          await DNSUtil.getCnameRecord({domain: fullDomain});
+
+        if (cnameRecord && cnameRecord.trim().toLocaleLowerCase() === StatusPageCNameRecord.trim().toLocaleLowerCase()) {
+          logger.debug(
+            `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`,
+          );
+
+          await this.updateCnameStatusForStatusPageDomain({
+            domain: fullDomain,
+            cnameStatus: true,
+          });
+
+          return true;
+        }
+
+        logger.debug(
+          `CNAME record for ${fullDomain} does not match the expected record: ${StatusPageCNameRecord}`,
+        );
+      }
+
+      
 
       await this.updateCnameStatusForStatusPageDomain({
         domain: fullDomain,
