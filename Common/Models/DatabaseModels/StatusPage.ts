@@ -2196,5 +2196,5 @@ export default class StatusPage extends BaseModel {
     update: PlanType.Scale,
     create: PlanType.Free,
   })
-  public ipWhitelist?: boolean = undefined;
+  public ipWhitelist?: string = undefined;
 }

@@ -57,6 +57,7 @@ import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import IP from "../../Types/IP/IP";
 
 export interface StatusPageReportItem {
   resourceName: string;
@@ -345,20 +346,51 @@ export class Service extends DatabaseService<StatusPage> {
         }
       }
 
-      const count: PositiveNumber = await this.countBy({
-        query: {
-          _id: statusPageId.toString(),
-          isPublicStatusPage: true,
-        },
-        skip: 0,
-        limit: 1,
+      // get status page by id. 
+      const statusPage: StatusPage | null = await this.findOneById({
+        id: statusPageId,
         props: {
           isRoot: true,
         },
+        select: {
+          _id: true,
+          isPublicStatusPage: true,
+          ipWhitelist: true,
+        },
       });
 
-      if (count.positiveNumber > 0) {
+  
+      if (statusPage && statusPage.isPublicStatusPage) {
         return true;
+      }
+
+      if(statusPage?.ipWhitelist && statusPage.ipWhitelist.length > 0) {
+        const ipWhitelist: Array<string> =
+          statusPage.ipWhitelist?.split("\n");
+
+          const ipAccessedFrom: string | undefined =
+          req.socket.remoteAddress ||
+          req.ip ||
+          req.ips[0];
+
+          if(!ipAccessedFrom) {
+            logger.error("IP address not found in request.");
+            return false;
+          }
+
+          const isIPWhitelisted: boolean = IP.isInWhitelist({
+            ip: ipAccessedFrom,
+            whitelist: ipWhitelist,
+          });
+
+          if (isIPWhitelisted) {
+            return true;
+          } else {
+            logger.error(
+              `IP ${ipAccessedFrom} is not whitelisted for status page ${statusPageId.toString()}.`,
+            );
+            return false;
+          }
       }
 
       // if it does not have public access, check if this user has access.
@@ -378,6 +410,8 @@ export class Service extends DatabaseService<StatusPage> {
       if (items.length > 0) {
         return true;
       }
+
+
     } catch (err) {
       logger.error(err);
     }
