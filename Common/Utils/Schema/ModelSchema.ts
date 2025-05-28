@@ -153,6 +153,7 @@ export class ModelSchema {
     ];
   }
 
+
   public static getQueryModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -169,11 +170,8 @@ export class ModelSchema {
         continue;
       }
 
-      if (column.type === TableColumnType.EntityArray) {
-        continue; // skip entity arrays
-      }
+      // There are these query operators. 
 
-      shape[key] = z.any().optional();
     }
 
     return z.object(shape);
