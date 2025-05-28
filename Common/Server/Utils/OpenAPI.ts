@@ -83,7 +83,7 @@ export default class OpenAPIUtil {
     const generator: OpenApiGeneratorV3 = new OpenApiGeneratorV3(
       registry.definitions,
     );
-    
+
     const components: Pick<any, "components"> = generator.generateComponents();
 
     return {

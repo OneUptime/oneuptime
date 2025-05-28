@@ -13,7 +13,7 @@ export default class IP extends DatabaseProperty {
   }
 
   public static isInWhitelist(data: {
-    ip: string; 
+    ip: string;
     whitelist: string[];
   }): boolean {
     // If whitelist is empty, return false
@@ -29,7 +29,7 @@ export default class IP extends DatabaseProperty {
     // Check each whitelist entry
     for (const entry of data.whitelist) {
       // Skip empty entries
-      if (!entry || entry.trim() === '') {
+      if (!entry || entry.trim() === "") {
         continue;
       }
 
@@ -37,32 +37,32 @@ export default class IP extends DatabaseProperty {
       if (entry === data.ip) {
         return true;
       }
-      
-      // CIDR notation check (IPv4 only for now)
-      if (entry.includes('/') && IP.isIPv4(data.ip)) {
-        try {
-          const [network, prefixStr] = entry.split('/');
 
-          if(!network || !prefixStr) {
+      // CIDR notation check (IPv4 only for now)
+      if (entry.includes("/") && IP.isIPv4(data.ip)) {
+        try {
+          const [network, prefixStr] = entry.split("/");
+
+          if (!network || !prefixStr) {
             continue;
           }
 
           if (!IP.isIPv4(network)) {
             continue;
           }
-          
-          const prefix = parseInt(prefixStr, 10);
+
+          const prefix: number = parseInt(prefixStr, 10);
           if (isNaN(prefix) || prefix < 0 || prefix > 32) {
             continue;
           }
-          
+
           // Convert IPs to integers for comparison
-          const ipInt = this._ipv4ToInt(data.ip);
-          const networkInt = this._ipv4ToInt(network);
-          
+          const ipInt: number = this._ipv4ToInt(data.ip);
+          const networkInt: number = this._ipv4ToInt(network);
+
           // Create mask from prefix
-          const mask = ~((1 << (32 - prefix)) - 1) >>> 0;
-          
+          const mask: number = ~((1 << (32 - prefix)) - 1) >>> 0;
+
           // Check if IP is in network
           if ((ipInt & mask) === (networkInt & mask)) {
             return true;
@@ -78,16 +78,23 @@ export default class IP extends DatabaseProperty {
 
   // Helper method to convert IPv4 to integer
   private static _ipv4ToInt(ip: string): number {
-    const octets = ip.split('.').map(Number);
+    const octets: number[] = ip.split(".").map(Number);
 
-    if (octets.length !== 4 || octets.some(octet => isNaN(octet) || octet < 0 || octet > 255)) {
+    if (
+      octets.length !== 4 ||
+      octets.some((octet) => {
+        return isNaN(octet) || octet < 0 || octet > 255;
+      })
+    ) {
       throw new BadDataException("Invalid IPv4 address");
     }
 
-    return ((octets[0]! << 24) >>> 0) + 
-           ((octets[1]! << 16) >>> 0) + 
-           ((octets[2]! << 8) >>> 0) + 
-            octets[3]!;
+    return (
+      ((octets[0]! << 24) >>> 0) +
+      ((octets[1]! << 16) >>> 0) +
+      ((octets[2]! << 8) >>> 0) +
+      octets[3]!
+    );
   }
 
   public set ip(value: string) {

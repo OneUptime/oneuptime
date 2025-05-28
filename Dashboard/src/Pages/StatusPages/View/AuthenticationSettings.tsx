@@ -54,7 +54,8 @@ const StatusPageDelete: FunctionComponent<
         name="Status Page > IP Whitelist"
         cardProps={{
           title: "IP Whitelist",
-          description: "IP Whitelist for this status page. This will only apply if the status page is not visible to public. ",
+          description:
+            "IP Whitelist for this status page. This will only apply if the status page is not visible to public. ",
         }}
         editButtonText="Edit IP Whitelist"
         isEditable={true}
@@ -66,7 +67,8 @@ const StatusPageDelete: FunctionComponent<
             title: "IP Whitelist",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Please enter the IP addresses or CIDR ranges to whitelist. One per line. This can be IPv4 or IPv6 addresses.",
+            placeholder:
+              "Please enter the IP addresses or CIDR ranges to whitelist. One per line. This can be IPv4 or IPv6 addresses.",
           },
         ]}
         modelDetailProps={{
@@ -80,7 +82,8 @@ const StatusPageDelete: FunctionComponent<
               },
               fieldType: FieldType.LongText,
               title: "IP Whitelist",
-              placeholder: "No IP addresses or CIDR ranges whitelisted. This will allow all IP addresses to access the status page.",
+              placeholder:
+                "No IP addresses or CIDR ranges whitelisted. This will allow all IP addresses to access the status page.",
             },
           ],
           modelId: modelId,

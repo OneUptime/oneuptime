@@ -369,6 +369,8 @@ export class Service extends DatabaseService<StatusPage> {
           statusPage.ipWhitelist?.split("\n");
 
           const ipAccessedFrom: string | undefined =
+          req.headers["x-forwarded-for"]?.toString() ||
+          req.headers["x-real-ip"]?.toString()  ||
           req.socket.remoteAddress ||
           req.ip ||
           req.ips[0];

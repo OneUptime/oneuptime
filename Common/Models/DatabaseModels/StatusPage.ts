@@ -2159,7 +2159,6 @@ export default class StatusPage extends BaseModel {
   })
   public showSubscriberPageOnStatusPage?: boolean = undefined;
 
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -2185,7 +2184,8 @@ export default class StatusPage extends BaseModel {
     required: false,
     type: TableColumnType.VeryLongText,
     title: "IP Whitelist",
-    description: "IP Whitelist for this Status Page. One IP per line. Only used if the status page is private.",
+    description:
+      "IP Whitelist for this Status Page. One IP per line. Only used if the status page is private.",
   })
   @Column({
     type: ColumnType.VeryLongText,
