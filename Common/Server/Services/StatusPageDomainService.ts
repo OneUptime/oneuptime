@@ -22,7 +22,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { StatusPageCNameRecord } from "../EnvironmentConfig";
 import Domain from "../Types/Domain";
 
-
 export class Service extends DatabaseService<StatusPageDomain> {
   public constructor() {
     super(StatusPageDomain);
@@ -304,84 +303,21 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       logger.debug("Checking for CNAME " + fullDomain + " with token " + token);
 
-      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(
-          URL.fromString(
-            "http://" +
-              fullDomain +
-              "/status-page-api/cname-verification/" +
-              token,
-          ),
-        );
-
-      logger.debug("CNAME verification result");
-      logger.debug(result);
-
-      if (result.isSuccess()) {
-        await this.updateCnameStatusForStatusPageDomain({
-          domain: fullDomain,
-          cnameStatus: true,
-        });
-
-        return true;
-      }
-
-      // try with https
-
-      const resultHttps: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(
-          URL.fromString(
-            "https://" +
-              fullDomain +
-              "/status-page-api/cname-verification/" +
-              token,
-          ),
-        );
-
-      logger.debug("CNAME verification result for https");
-      logger.debug(resultHttps);
-
-      if (resultHttps.isSuccess()) {
-        await this.updateCnameStatusForStatusPageDomain({
-          domain: fullDomain,
-          cnameStatus: true,
-        });
-
-        return true;
-      }
-
-      if (StatusPageCNameRecord) {
-        // check if cname record is set and if it matches StatusPageCNameRecord
-
-        const cnameRecords: Array<string> = await Domain.getCnameRecords({
-          domain: fullDomain,
-        });
-
-        let cnameRecord: string | undefined = undefined;
-        if (cnameRecords.length > 0) {
-          cnameRecord = cnameRecords[0]; // take the first record.
-        }
-
-        if(!cnameRecord) {
-          logger.debug(
-            `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
-          );
-          await this.updateCnameStatusForStatusPageDomain({
-            domain: fullDomain,
-            cnameStatus: false,
-          });
-          return false;
-        }
-
-        if (
-          cnameRecord &&
-          cnameRecord.trim().toLocaleLowerCase() ===
-            StatusPageCNameRecord.trim().toLocaleLowerCase()
-        ) {
-          logger.debug(
-            `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`,
+      try {
+        const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get(
+            URL.fromString(
+              "http://" +
+                fullDomain +
+                "/status-page-api/cname-verification/" +
+                token,
+            ),
           );
 
+        logger.debug("CNAME verification result");
+        logger.debug(result);
+
+        if (result.isSuccess()) {
           await this.updateCnameStatusForStatusPageDomain({
             domain: fullDomain,
             cnameStatus: true,
@@ -389,10 +325,88 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
           return true;
         }
+      } catch (err) {
+        logger.debug("Failed checking for CNAME " + fullDomain);
+        logger.debug(err);
+      }
 
-        logger.debug(
-          `CNAME record for ${fullDomain} does not match the expected record: ${StatusPageCNameRecord}`,
-        );
+      // try with https
+
+      try {
+        const resultHttps: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get(
+            URL.fromString(
+              "https://" +
+                fullDomain +
+                "/status-page-api/cname-verification/" +
+                token,
+            ),
+          );
+
+        logger.debug("CNAME verification result for https");
+        logger.debug(resultHttps);
+
+        if (resultHttps.isSuccess()) {
+          await this.updateCnameStatusForStatusPageDomain({
+            domain: fullDomain,
+            cnameStatus: true,
+          });
+
+          return true;
+        }
+      } catch (err) {
+        logger.debug("Failed checking for CNAME " + fullDomain);
+        logger.debug(err);
+      }
+
+      try {
+        if (StatusPageCNameRecord) {
+          // check if cname record is set and if it matches StatusPageCNameRecord
+
+          const cnameRecords: Array<string> = await Domain.getCnameRecords({
+            domain: fullDomain,
+          });
+
+          let cnameRecord: string | undefined = undefined;
+          if (cnameRecords.length > 0) {
+            cnameRecord = cnameRecords[0]; // take the first record.
+          }
+
+          if (!cnameRecord) {
+            logger.debug(
+              `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
+            );
+            await this.updateCnameStatusForStatusPageDomain({
+              domain: fullDomain,
+              cnameStatus: false,
+            });
+            return false;
+          }
+
+          if (
+            cnameRecord &&
+            cnameRecord.trim().toLocaleLowerCase() ===
+              StatusPageCNameRecord.trim().toLocaleLowerCase()
+          ) {
+            logger.debug(
+              `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`,
+            );
+
+            await this.updateCnameStatusForStatusPageDomain({
+              domain: fullDomain,
+              cnameStatus: true,
+            });
+
+            return true;
+          }
+
+          logger.debug(
+            `CNAME record for ${fullDomain} is ${cnameRecord} and it does not match the expected record: ${StatusPageCNameRecord}`,
+          );
+        }
+      } catch (err) {
+        logger.debug("Failed checking for CNAME " + fullDomain);
+        logger.debug(err);
       }
 
       await this.updateCnameStatusForStatusPageDomain({

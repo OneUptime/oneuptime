@@ -17,9 +17,7 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (createBy.data.domain) {
-
       let domain: string | undefined = undefined;
-
 
       if (createBy.data.domain instanceof Domain) {
         domain = createBy.data.domain.toString();

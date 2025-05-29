@@ -6,7 +6,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 
 export default class Domain extends DomainCommon {
-
   @CaptureSpan()
   public static getCnameRecords(data: { domain: string }): Promise<string[]> {
     return new Promise(
@@ -20,7 +19,9 @@ export default class Domain extends DomainCommon {
               resolve(addresses);
             } else {
               reject(
-                new BadDataException("No CNAME record found for domain: " + data.domain),
+                new BadDataException(
+                  "No CNAME record found for domain: " + data.domain,
+                ),
               );
             }
           },
