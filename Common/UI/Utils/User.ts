@@ -172,7 +172,6 @@ export default class UserUtil {
   }
 
   public static logout(): void {
-  
     LocalStorage.clear();
     SessionStorage.clear();
     Cookie.clearAllCookies();

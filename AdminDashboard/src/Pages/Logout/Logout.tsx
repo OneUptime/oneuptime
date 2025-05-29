@@ -16,7 +16,7 @@ const Logout: FunctionComponent = (): ReactElement => {
 
   const logout: PromiseVoidFunction = async (): Promise<void> => {
     UiAnalytics.logout();
-    await UserUtil.logout();
+    UserUtil.logout();
     Navigation.navigate(ACCOUNTS_URL);
   };
 

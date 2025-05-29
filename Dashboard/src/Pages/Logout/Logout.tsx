@@ -18,7 +18,7 @@ const Logout: FunctionComponent<PageComponentProps> = (): ReactElement => {
   useAsyncEffect(async () => {
     try {
       UiAnalytics.logout();
-      await UserUtil.logout();
+      UserUtil.logout();
       Navigation.navigate(ACCOUNTS_URL);
     } catch (err: unknown) {
       if (err instanceof Error) {
