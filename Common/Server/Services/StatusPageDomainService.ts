@@ -48,8 +48,19 @@ export class Service extends DatabaseService<StatusPageDomain> {
       );
     }
 
+    if (createBy.data.subdomain) {
+      // trim and lowercase the subdomain.
+      createBy.data.subdomain = createBy.data.subdomain.trim().toLowerCase();
+    }
+
     if (domain) {
-      createBy.data.fullDomain = createBy.data.subdomain + "." + domain.domain;
+      createBy.data.fullDomain = (
+        createBy.data.subdomain +
+        "." +
+        domain.domain?.toString()
+      )
+        .toLowerCase()
+        .trim();
     }
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();

@@ -16,6 +16,12 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    if (createBy.data.domain) {
+      createBy.data.domain.domain = createBy.data.domain.domain
+        .trim()
+        .toLowerCase();
+    }
+
     createBy.data.domainVerificationText =
       "oneuptime-verification-" + Text.generateRandomText(20);
     return Promise.resolve({ createBy, carryForward: null });
