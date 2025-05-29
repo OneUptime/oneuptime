@@ -4,10 +4,17 @@ import WebsiteMonitor from "./Monitors/MonitorTypes/WebsiteMonitor";
 import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import Port from "Common/Types/Port";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 export default class OnlineCheck {
   // burn domain names into the code to see if this probe is online.
   public static async canProbeMonitorWebsiteMonitors(): Promise<boolean> {
+    if (!IsBillingEnabled) {
+      // if the billing is not enabled which means its non on SaaS but self-hosted.
+      // in this case return true as we don't need to check for online status.
+      return true;
+    }
+
     const websiteNames: Array<string> = [
       "https://google.com",
       "https://facebook.com",
@@ -32,6 +39,12 @@ export default class OnlineCheck {
   }
 
   public static async canProbeMonitorPingMonitors(): Promise<boolean> {
+    if (!IsBillingEnabled) {
+      // if the billing is not enabled which means its non on SaaS but self-hosted.
+      // in this case return true as we don't need to check for online status.
+      return true;
+    }
+
     const domains: Array<string> = [
       "google.com",
       "facebook.com",
@@ -56,6 +69,12 @@ export default class OnlineCheck {
   }
 
   public static async canProbeMonitorPortMonitors(): Promise<boolean> {
+    if (!IsBillingEnabled) {
+      // if the billing is not enabled which means its non on SaaS but self-hosted.
+      // in this case return true as we don't need to check for online status.
+      return true;
+    }
+
     const domains: Array<string> = [
       "google.com",
       "facebook.com",
