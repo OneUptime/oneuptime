@@ -10,7 +10,7 @@ enum ExceptionCode {
   ForbiddenException = 403,
   UnabletoReachServerException = 415,
   ServerException = 500,
-  NotAuthorizedException = 403,
+  NotAuthorizedException = 422,
   NotAuthenticatedException = 401,
   PaymentRequiredException = 402,
   NotFoundException = 404,

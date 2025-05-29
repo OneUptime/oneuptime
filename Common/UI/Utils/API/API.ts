@@ -119,11 +119,10 @@ class BaseAPI extends API {
     if (
       error instanceof HTTPErrorResponse &&
       error.statusCode === 403 &&
-      this.getForbiddenRoute() && 
       Navigation.getCurrentRoute().toString() !==
-        this.getForbiddenRoute()?.toString()
+        this.getForbiddenRoute().toString()
     ) {
-      Navigation.navigate(this.getForbiddenRoute()!, { forceNavigate: true });
+      Navigation.navigate(this.getForbiddenRoute(), { forceNavigate: true });
     }
 
     return error;
@@ -133,8 +132,8 @@ class BaseAPI extends API {
     return new Route("/accounts/login");
   }
 
-  protected static getForbiddenRoute(): Route | null {
-    return null; 
+  protected static getForbiddenRoute(): Route {
+    return new Route("/accounts/forbidden");
   }
 
   public static getFriendlyMessage(
