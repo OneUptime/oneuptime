@@ -513,9 +513,9 @@ export class Service extends DatabaseService<Model> {
 
     let feedInfoInMarkdown: string = `#### 🌎 Monitor Created: 
           
-**${createdItem.name || "No name provided."}**:
+**${createdItem.name?.trim() || "No name provided."}**:
 
-${createdItem.description || "No description provided."}
+${createdItem.description?.trim() || "No description provided."}
     
 `;
 

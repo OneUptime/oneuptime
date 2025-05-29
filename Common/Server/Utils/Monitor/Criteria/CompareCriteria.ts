@@ -173,7 +173,7 @@ export default class CompareCriteria {
 
   @CaptureSpan()
   public static convertToNumber(
-    threshold: string | number | undefined,
+    threshold: string | number | undefined
   ): number | null {
     if (threshold === undefined || threshold === null) {
       return null;
@@ -312,6 +312,18 @@ export default class CompareCriteria {
       }
 
       return null;
+    }
+
+    // check equalto and not equal to
+    const equalToOrNotEqualToResult: string | null =
+      CompareCriteria.checkEqualToOrNotEqualTo({
+        value: data.value,
+        threshold: data.threshold,
+        criteriaFilter: data.criteriaFilter,
+      });
+      
+    if (equalToOrNotEqualToResult) {
+      return equalToOrNotEqualToResult;
     }
 
     return null;
