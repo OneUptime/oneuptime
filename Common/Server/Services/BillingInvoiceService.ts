@@ -10,7 +10,9 @@ import Model, {
   InvoiceStatus,
 } from "../../Models/DatabaseModels/BillingInvoice";
 import Project from "../../Models/DatabaseModels/Project";
-import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
+import SubscriptionStatus, {
+  SubscriptionStatusUtil,
+} from "../../Types/Billing/SubscriptionStatus";
 import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger from "../Utils/Logger";
@@ -101,8 +103,8 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (
-      meteredSubscriptionState === SubscriptionStatus.Canceled ||
-      subscriptionState === SubscriptionStatus.Canceled
+      SubscriptionStatusUtil.isSubscriptionInactive(meteredSubscriptionState) ||
+      SubscriptionStatusUtil.isSubscriptionInactive(subscriptionState)
     ) {
       // check if all invoices are paid. If yes, then reactivate the subscription.
 

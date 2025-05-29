@@ -6,6 +6,7 @@ enum SubscriptionStatus {
   PastDue = "past_due",
   Canceled = "canceled",
   Unpaid = "unpaid",
+  Expired = "expired",
 }
 
 export class SubscriptionStatusUtil {
