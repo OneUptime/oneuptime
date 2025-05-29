@@ -12,6 +12,7 @@ import API from "../Utils/API/API";
 import Cookie from "./Cookie";
 import CookieName from "../../Types/CookieName";
 import SessionStorage from "./SessionStorage";
+import { Logger } from "./Logger";
 
 export default class UserUtil {
   public static setProfilePicId(id: ObjectID | null): void {
@@ -170,11 +171,18 @@ export default class UserUtil {
     return Boolean(this.getEmail());
   }
 
-  public static async logout(): Promise<void> {
-    await API.post(URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"));
+  public static logout(): void {
+  
     LocalStorage.clear();
     SessionStorage.clear();
     Cookie.clearAllCookies();
+
+    API.post(URL.fromString(IDENTITY_URL.toString()).addRoute("/logout")).catch(
+      (err: Error) => {
+        Logger.error("Error during logout:");
+        Logger.error(err.message);
+      },
+    );
   }
 
   public static getUtmParams(): Dictionary<string> {
