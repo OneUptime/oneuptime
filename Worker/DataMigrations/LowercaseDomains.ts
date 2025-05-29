@@ -5,6 +5,7 @@ import DomainModel from "Common/Models/DatabaseModels/Domain";
 import Domain from "Common/Types/Domain";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import StatusPageDomainService from "Common/Server/Services/StatusPageDomainService";
+import logger from "Common/Server/Utils/Logger";
 
 export default class LowercaseDomains extends DataMigrationBase {
   public constructor() {
@@ -26,38 +27,43 @@ export default class LowercaseDomains extends DataMigrationBase {
     });
 
     for (const domain of domains) {
-      let domainString: string | undefined = undefined;
+      try {
+        let domainString: string | undefined = undefined;
 
-      if (domain.domain instanceof Domain) {
-        domainString = domain.domain.domain;
+        if (domain.domain instanceof Domain) {
+          domainString = domain.domain.domain;
+        }
+
+        // if string
+
+        if (typeof domain.domain === "string") {
+          domainString = domain.domain;
+        }
+
+        // Lowercase the domain
+        if (!domainString) {
+          continue;
+        }
+
+        domainString = domainString.toLowerCase().trim();
+
+        // Update the domain
+
+        await DomainService.updateOneBy({
+          query: {
+            _id: domain._id,
+          },
+          data: {
+            domain: new Domain(domainString),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.error("Error updating domain:");
+        logger.error(err);
       }
-
-      // if string
-
-      if (typeof domain.domain === "string") {
-        domainString = domain.domain;
-      }
-
-      // Lowercase the domain
-      if (!domainString) {
-        continue;
-      }
-
-      domainString = domainString.toLowerCase().trim();
-
-      // Update the domain
-
-      await DomainService.updateOneBy({
-        query: {
-          _id: domain._id,
-        },
-        data: {
-          domain: new Domain(domainString),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
     }
 
     // now get status page domains and lowercase them as well
@@ -77,17 +83,22 @@ export default class LowercaseDomains extends DataMigrationBase {
       });
 
     for (const statusPageDomain of statusPageDomains) {
-      // update one by one
-      await StatusPageDomainService.updateOneById({
-        id: statusPageDomain.id!,
-        data: {
-          fullDomain: statusPageDomain.fullDomain?.toLowerCase().trim() || "",
-          subdomain: statusPageDomain.subdomain?.toLowerCase().trim() || "",
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      try {
+        // update one by one
+        await StatusPageDomainService.updateOneById({
+          id: statusPageDomain.id!,
+          data: {
+            fullDomain: statusPageDomain.fullDomain?.toLowerCase().trim() || "",
+            subdomain: statusPageDomain.subdomain?.toLowerCase().trim() || "",
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.error("Error updating status page domain:");
+        logger.error(err);
+      }
     }
   }
 

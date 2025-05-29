@@ -11,7 +11,7 @@ export default class Domain extends DatabaseProperty {
   public set domain(v: string) {
     const isValid: boolean = Domain.isValidDomain(v);
     if (!isValid) {
-      throw new BadDataException("Domain is not in valid format.");
+      throw new BadDataException("Domain " + v + " is not in valid format.");
     }
     this._domain = v;
   }
