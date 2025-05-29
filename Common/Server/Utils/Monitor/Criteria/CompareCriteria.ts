@@ -173,7 +173,7 @@ export default class CompareCriteria {
 
   @CaptureSpan()
   public static convertToNumber(
-    threshold: string | number | undefined
+    threshold: string | number | undefined,
   ): number | null {
     if (threshold === undefined || threshold === null) {
       return null;
@@ -321,7 +321,7 @@ export default class CompareCriteria {
         threshold: data.threshold,
         criteriaFilter: data.criteriaFilter,
       });
-      
+
     if (equalToOrNotEqualToResult) {
       return equalToOrNotEqualToResult;
     }

@@ -39,7 +39,30 @@ RunCron(
         },
       });
 
-    for (const executionLog of stuckExecutions) {
+    // check for executing logs more than 3 hours ago and mark them as timed out.
+    const stuckExecutingLogs: Array<OnCallDutyPolicyExecutionLog> =
+      await OnCallDutyPolicyExecutionLogService.findBy({
+        query: {
+          status: OnCallDutyPolicyStatus.Executing,
+          createdAt: QueryHelper.lessThan(OneUptimeDate.getSomeHoursAgo(3)),
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const totalStuckExecutions: Array<OnCallDutyPolicyExecutionLog> = [
+      ...stuckExecutions,
+      ...stuckExecutingLogs,
+    ];
+
+    for (const executionLog of totalStuckExecutions) {
       await OnCallDutyPolicyExecutionLogService.updateOneById({
         id: executionLog.id!,
         data: {
