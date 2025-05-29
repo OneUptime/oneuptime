@@ -14,13 +14,14 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import API from "../../Utils/API";
 import AcmeCertificate from "../../Models/DatabaseModels/AcmeCertificate";
-import Domain from "../../Models/DatabaseModels/Domain";
+import DomainModel from "../../Models/DatabaseModels/Domain";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import AcmeCertificateService from "./AcmeCertificateService";
 import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { StatusPageCNameRecord } from "../EnvironmentConfig";
-import DNSUtil from "../../Utils/DNSUtil";
+import Domain from "../Types/Domain";
+
 
 export class Service extends DatabaseService<StatusPageDomain> {
   public constructor() {
@@ -31,7 +32,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPageDomain>,
   ): Promise<OnCreate<StatusPageDomain>> {
-    const domain: Domain | null = await DomainService.findOneBy({
+    const domain: DomainModel | null = await DomainService.findOneBy({
       query: {
         _id:
           createBy.data.domainId?.toString() || createBy.data.domain?._id || "",
@@ -143,7 +144,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
               });
 
             if (!fetchedStatusPageDomain) {
-              throw new BadDataException("Domain not found");
+              throw new BadDataException("DomainModel not found");
             }
 
             statusPageDomain = fetchedStatusPageDomain;
@@ -352,9 +353,25 @@ export class Service extends DatabaseService<StatusPageDomain> {
       if (StatusPageCNameRecord) {
         // check if cname record is set and if it matches StatusPageCNameRecord
 
-        const cnameRecord: string | undefined = await DNSUtil.getCnameRecord({
+        const cnameRecords: Array<string> = await Domain.getCnameRecords({
           domain: fullDomain,
         });
+
+        let cnameRecord: string | undefined = undefined;
+        if (cnameRecords.length > 0) {
+          cnameRecord = cnameRecords[0]; // take the first record.
+        }
+
+        if(!cnameRecord) {
+          logger.debug(
+            `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
+          );
+          await this.updateCnameStatusForStatusPageDomain({
+            domain: fullDomain,
+            cnameStatus: false,
+          });
+          return false;
+        }
 
         if (
           cnameRecord &&
@@ -402,7 +419,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     domain: StatusPageDomain,
   ): Promise<void> {
     if (!domain.id) {
-      throw new BadDataException("Domain ID is required");
+      throw new BadDataException("DomainModel ID is required");
     }
 
     const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
@@ -420,7 +437,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
     });
 
     if (!statusPageDomain) {
-      throw new BadDataException("Domain not found");
+      throw new BadDataException("DomainModel not found");
     }
 
     logger.debug(
@@ -566,7 +583,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
           },
         });
 
-        logger.debug(`Domain removed from greenlock: ${domain}`);
+        logger.debug(`DomainModel removed from greenlock: ${domain}`);
       },
     });
   }
