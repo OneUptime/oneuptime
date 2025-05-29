@@ -17,9 +17,21 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (createBy.data.domain) {
-      createBy.data.domain.domain = createBy.data.domain.domain
-        .trim()
-        .toLowerCase();
+
+      let domain: string | undefined = undefined;
+
+
+      if (createBy.data.domain instanceof Domain) {
+        domain = createBy.data.domain.toString();
+      } else if (typeof createBy.data.domain === "string") {
+        domain = createBy.data.domain;
+      } else {
+        throw new BadDataException(
+          "Domain must be a string or an instance of Domain.",
+        );
+      }
+
+      createBy.data.domain = new Domain(domain.trim().toLowerCase());
     }
 
     createBy.data.domainVerificationText =
