@@ -53,15 +53,13 @@ RUN sed -i "s/\"version\": \".*\"/\"version\": \"$APP_VERSION\"/g" /usr/src/Comm
 RUN npm install
 COPY ./Common /usr/src/Common
 
+# Create a non-root user and group
+RUN groupadd -g 10001 probeuser && \
+    useradd -u 10001 -g probeuser -m -s /bin/bash probeuser
 
-
-
-
-
-
-
-
-
+# Ensure proper permissions for app directories
+RUN mkdir -p /usr/src/app && \
+    chown -R probeuser:probeuser /usr/src/app /usr/src/Common /tmp/npm
 
 ENV PRODUCTION=true
 
@@ -72,6 +70,9 @@ RUN npx playwright install --with-deps
 # Install app dependencies
 COPY ./Probe/package*.json /usr/src/app/
 RUN npm install
+
+# Switch to non-root user
+USER probeuser
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
@@ -84,4 +85,11 @@ RUN npm run compile
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
+
+# Note: In your Kubernetes manifest, set securityContext:
+#   securityContext:
+#     runAsUser: 10001
+#     runAsGroup: 10001
+#     fsGroup: 10001
+# This ensures the pod runs as the non-root user created above.
 
