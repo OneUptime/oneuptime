@@ -7,6 +7,7 @@ import {
   useParams,
 } from "react-router-dom";
 import Navigation from "Common/UI/Utils/Navigation";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 
 // Lazy load page components
 const ForbiddenPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
@@ -45,7 +46,7 @@ function App(): ReactElement {
 
   return (
     <div className="m-auto h-screen">
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<PageLoader isVisible={true} />}>
         <Routes>
           <Route path="/accounts" element={<LoginPage />} />
           <Route path="/accounts/login" element={<LoginPage />} />
