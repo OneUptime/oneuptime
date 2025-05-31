@@ -20,29 +20,20 @@ export default class MicrosoftTeamsIncidentMessages {
       throw new BadDataException("Incident ID is required");
     }
 
-    // MicrosoftTeams.
+    if (!data.projectId) {
+        throw new BadDataException("Project ID is required");
+    }
 
     const blockMicrosoftTeams: Array<WorkspaceMessageBlock> = [];
-
-    // add divider.
 
     const dividerBlock: WorkspacePayloadDivider = {
       _type: "WorkspacePayloadDivider",
     };
-
     blockMicrosoftTeams.push(dividerBlock);
-
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge incident
-    // Resolve data.
-    // Change Incident State.
-    // Add Note.
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 
-    // view data.
+    // view data - This is an Action.OpenUrl
     const viewIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "🔗 View Incident",
@@ -50,69 +41,102 @@ export default class MicrosoftTeamsIncidentMessages {
         data.projectId!,
         data.incidentId!,
       ),
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewIncident,
+      value: data.incidentId?.toString() || "", 
+      actionId: MicrosoftTeamsActionType.ViewIncident, 
     };
-
     buttons.push(viewIncidentButton);
 
-    // execute on call.
+    // execute on call - Assumed to be Action.Execute
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
-      value: data.incidentId?.toString() || "",
+      value: JSON.stringify({ 
+        actionModule: "incident", 
+        actionName: "executeOnCallPolicy", // Or map from MicrosoftTeamsActionType.ViewExecuteIncidentOnCallPolicy
+        incidentId: data.incidentId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewExecuteIncidentOnCallPolicy,
     };
-
     buttons.push(executeOnCallButton);
 
-    // acknowledge data.
+    // acknowledge data - Action.Execute
     const acknowledgeIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "👀 Acknowledge Incident",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.AcknowledgeIncident,
+      title: "👀 Acknowledge", 
+      value: JSON.stringify({ 
+        actionModule: "incident", 
+        actionName: "acknowledge", // Or map from MicrosoftTeamsActionType.AcknowledgeIncident
+        incidentId: data.incidentId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
+      actionId: MicrosoftTeamsActionType.AcknowledgeIncident, 
     };
-
     buttons.push(acknowledgeIncidentButton);
 
-    // resolve data.
+    // resolve data - Action.Execute
     const resolveIncidentButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "✅ Resolve Incident",
-      value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ResolveIncident,
+      title: "✅ Resolve", 
+      value: JSON.stringify({ 
+        actionModule: "incident", 
+        actionName: "resolve", // Or map from MicrosoftTeamsActionType.ResolveIncident
+        incidentId: data.incidentId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
+      actionId: MicrosoftTeamsActionType.ResolveIncident, 
     };
-
     buttons.push(resolveIncidentButton);
 
-    // change incident state.
+    // change incident state - Assumed to be Action.Execute
     const changeIncidentStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Incident State",
-      value: data.incidentId?.toString() || "",
+      value: JSON.stringify({ 
+        actionModule: "incident", 
+        actionName: "changeIncidentState", // Or map from MicrosoftTeamsActionType.ViewChangeIncidentState
+        incidentId: data.incidentId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewChangeIncidentState,
     };
-
     buttons.push(changeIncidentStateButton);
 
-    // add note.
+    // add note - Assumed to be Action.Execute
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
-      value: data.incidentId?.toString() || "",
+      value: JSON.stringify({ 
+        actionModule: "incident", 
+        actionName: "addNote", // Or map from MicrosoftTeamsActionType.ViewAddIncidentNote
+        incidentId: data.incidentId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewAddIncidentNote,
     };
-
     buttons.push(addNoteButton);
 
     const workspacePayloadButtons: WorkspacePayloadButtons = {
       buttons: buttons,
       _type: "WorkspacePayloadButtons",
     };
-
     blockMicrosoftTeams.push(workspacePayloadButtons);
 
     return blockMicrosoftTeams;
   }
 }
+// Important Note for downstream Adaptive Card generator:
+// The buttons intended for Action.Execute (Acknowledge, Resolve, etc.)
+// are defined here with `actionId` and a JSON string in the `value` field.
+// The service that converts these WorkspaceMessagePayloadButton objects into
+// Microsoft Teams Adaptive Card actions needs to:
+// 1. For buttons intended as Action.Execute:
+//    - Set the Adaptive Card action `type` to "Action.Execute".
+//    - Set the Adaptive Card action `id` to the string value of `WorkspaceMessagePayloadButton.actionId`.
+//    - Parse the JSON string from `WorkspaceMessagePayloadButton.value` and use the resulting
+//      object as the `data` field for the Adaptive Card `Action.Execute`. This data now includes
+//      `actionModule` and `actionName` which can be used for routing in the backend.
+// 2. For buttons intended as Action.OpenUrl (like View Incident):
+//    - Set the Adaptive Card action `type` to "Action.OpenUrl".
+//    - Set the Adaptive Card action `url` to `WorkspaceMessagePayloadButton.url`.
+// Consider enhancing WorkspaceMessagePayloadButton for better type safety if this pattern is common.

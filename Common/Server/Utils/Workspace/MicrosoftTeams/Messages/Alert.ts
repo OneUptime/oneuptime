@@ -20,29 +20,20 @@ export default class MicrosoftTeamsAlertMessages {
       throw new BadDataException("Alert ID is required");
     }
 
-    // MicrosoftTeams.
+    if (!data.projectId) {
+      throw new BadDataException("Project ID is required");
+    }
 
     const blockMicrosoftTeams: Array<WorkspaceMessageBlock> = [];
-
-    // add divider.
 
     const dividerBlock: WorkspacePayloadDivider = {
       _type: "WorkspacePayloadDivider",
     };
-
     blockMicrosoftTeams.push(dividerBlock);
-
-    // now add buttons.
-    // View data.
-    // Execute On Call
-    // Acknowledge alert
-    // Resolve data.
-    // Change Alert State.
-    // Add Note.
 
     const buttons: Array<WorkspaceMessagePayloadButton> = [];
 
-    // view data.
+    // view data - This is an Action.OpenUrl
     const viewAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "🔗 View Alert",
@@ -50,69 +41,102 @@ export default class MicrosoftTeamsAlertMessages {
         data.projectId!,
         data.alertId!,
       ),
-      value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewAlert,
+      value: data.alertId?.toString() || "", 
+      actionId: MicrosoftTeamsActionType.ViewAlert, 
     };
-
     buttons.push(viewAlertButton);
 
-    // execute on call.
+    // execute on call - Assumed to be Action.Execute
     const executeOnCallButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
-      value: data.alertId?.toString() || "",
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "executeOnCallPolicy", // Or map from MicrosoftTeamsActionType.ViewExecuteAlertOnCallPolicy string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewExecuteAlertOnCallPolicy,
     };
-
     buttons.push(executeOnCallButton);
 
-    // acknowledge data.
+    // acknowledge data - Action.Execute
     const acknowledgeAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "👀 Acknowledge Alert",
-      value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.AcknowledgeAlert,
+      title: "👀 Acknowledge", 
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "acknowledge", // Or map from MicrosoftTeamsActionType.AcknowledgeAlert string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
+      actionId: MicrosoftTeamsActionType.AcknowledgeAlert, 
     };
-
     buttons.push(acknowledgeAlertButton);
 
-    // resolve data.
+    // resolve data - Action.Execute
     const resolveAlertButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "✅ Resolve Alert",
-      value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ResolveAlert,
+      title: "✅ Resolve", 
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "resolve", // Or map from MicrosoftTeamsActionType.ResolveAlert string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
+      actionId: MicrosoftTeamsActionType.ResolveAlert, 
     };
-
     buttons.push(resolveAlertButton);
 
-    // change alert state.
+    // change alert state - Assumed to be Action.Execute
     const changeAlertStateButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Alert State",
-      value: data.alertId?.toString() || "",
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "changeAlertState", // Or map from MicrosoftTeamsActionType.ViewChangeAlertState string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewChangeAlertState,
     };
-
     buttons.push(changeAlertStateButton);
 
-    // add note.
+    // add note - Assumed to be Action.Execute
     const addNoteButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
-      value: data.alertId?.toString() || "",
+      value: JSON.stringify({ 
+        actionModule: "alert", 
+        actionName: "addNote", // Or map from MicrosoftTeamsActionType.ViewAddAlertNote string value
+        alertId: data.alertId.toString(), 
+        projectId: data.projectId.toString() 
+      }),
       actionId: MicrosoftTeamsActionType.ViewAddAlertNote,
     };
-
     buttons.push(addNoteButton);
 
     const workspacePayloadButtons: WorkspacePayloadButtons = {
       buttons: buttons,
       _type: "WorkspacePayloadButtons",
     };
-
     blockMicrosoftTeams.push(workspacePayloadButtons);
 
     return blockMicrosoftTeams;
   }
 }
+// Important Note for downstream Adaptive Card generator:
+// The buttons intended for Action.Execute (Acknowledge, Resolve, etc.)
+// are defined here with `actionId` and a JSON string in the `value` field.
+// The service that converts these WorkspaceMessagePayloadButton objects into
+// Microsoft Teams Adaptive Card actions needs to:
+// 1. For buttons intended as Action.Execute:
+//    - Set the Adaptive Card action `type` to "Action.Execute".
+//    - Set the Adaptive Card action `id` to the string value of `WorkspaceMessagePayloadButton.actionId`.
+//    - Parse the JSON string from `WorkspaceMessagePayloadButton.value` and use the resulting
+//      object as the `data` field for the Adaptive Card `Action.Execute`. This data now includes
+//      `actionModule` and `actionName` which can be used for routing in the backend.
+// 2. For buttons intended as Action.OpenUrl (like View Alert):
+//    - Set the Adaptive Card action `type` to "Action.OpenUrl".
+//    - Set the Adaptive Card action `url` to `WorkspaceMessagePayloadButton.url`.
+// Consider enhancing WorkspaceMessagePayloadButton for better type safety if this pattern is common.

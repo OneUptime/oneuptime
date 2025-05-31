@@ -1,0 +1,107 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.20/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.20",
+  "version": "1.0.0",
+  "id": "%MICROSOFT-APP-ID%",
+  "developer": {
+    "name": "Publisher Name",
+    "websiteUrl": "https://example.com/your-website",
+    "privacyUrl": "https://example.com/privacy",
+    "termsOfUseUrl": "https://example.com/terms-of-use"
+  },
+  "name": {
+    "short": "YourApp (Short Name)",
+    "full": "Your Application Full Name"
+  },
+  "description": {
+    "short": "Short description of your Teams bot.",
+    "full": "Full description of your Teams bot, including its purpose and features."
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "#FFFFFF",
+  "bots": [
+    {
+      "botId": "%BOT-ID%",
+      "scopes": [
+        "personal",
+        "team",
+        "groupchat"
+      ],
+      "commandLists": [
+        {
+          "scopes": [
+            "personal",
+            "team",
+            "groupchat"
+          ],
+          "commands": [
+            {
+              "title": "help",
+              "description": "Shows help information"
+            }
+          ]
+        }
+      ],
+      "supportsFiles": false,
+      "isNotificationOnly": false
+    }
+  ],
+  "composeExtensions": [
+    {
+      "botId": "%BOT-ID%",
+      "commands": [
+        {
+          "id": "searchCmd",
+          "type": "query",
+          "title": "Search",
+          "description": "Search for information",
+          "initialRun": true,
+          "parameters": [
+            {
+              "name": "searchQuery",
+              "title": "Search Query",
+              "description": "Enter your search query"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "*.example.com",
+    "example.com"
+  ],
+  "webApplicationInfo": {
+    "id": "%AZURE-AD-APP-ID%",
+    "resource": "api://example.com/%AZURE-AD-APP-ID%"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "type": "Application",
+          "name": "Team.ReadBasic.All"
+        },
+        {
+          "type": "Application",
+          "name": "Channel.ReadBasic.All"
+        },
+        {
+          "type": "Application",
+          "name": "Chat.ReadWrite.All"
+        },
+        {
+          "type": "Application",
+          "name": "User.Read.All"
+        }
+      ]
+    }
+  }
+}
