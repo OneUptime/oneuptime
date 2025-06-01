@@ -128,17 +128,25 @@ export class ModelSchema {
       shape[key] = zodType;
     }
 
-    const openApiKeyValue: Dictionary<any> = {
-      name: model.tableName,
-      title: model.singularName,
-      pluralTitle: model.pluralName,
-      description: model.tableDescription || "",
-      type: "object",
-    };
+    // const openApiKeyValue: Dictionary<any> = {
+    //   name: model.tableName,
+    //   title: model.singularName,
+    //   pluralTitle: model.pluralName,
+    //   description: model.tableDescription || "",
+    //   type: "object",
+    // };
 
     const schema: ModelSchemaType = z
-      .object(shape)
-      .openapi(model.tableName!, openApiKeyValue);
+      .object(shape);
+  
+      logger.debug(
+        `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
+          shape,
+          null,
+          2,
+        )}`,
+      );
+
     return schema;
   }
 

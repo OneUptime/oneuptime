@@ -12,6 +12,7 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "ejs";
+import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 
 const APP_NAME: string = "api";
 
@@ -96,6 +97,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Add default routes to the app
     await App.addDefaultRoutes();
+
+    // Generate OpenAPI spec (this automatically saves it to cache)
+    OpenAPIUtil.generateOpenAPISpec();
+    
   } catch (err) {
     logger.error("App Init Failed:");
     logger.error(err);
