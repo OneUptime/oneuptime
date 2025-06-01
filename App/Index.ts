@@ -100,7 +100,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Generate OpenAPI spec (this automatically saves it to cache)
     OpenAPIUtil.generateOpenAPISpec();
-    
   } catch (err) {
     logger.error("App Init Failed:");
     logger.error(err);

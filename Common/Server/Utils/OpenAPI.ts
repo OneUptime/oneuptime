@@ -15,7 +15,7 @@ export default class OpenAPIUtil {
     // check if the cache is already in LocalCache
     const cachedSpec: JSONValue | undefined = LocalCache.getJSON(
       "openapi",
-      "spec"
+      "spec",
     );
 
     if (cachedSpec) {
@@ -38,14 +38,14 @@ export default class OpenAPIUtil {
 
       if (!model.enableDocumentation) {
         logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`
+          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`,
         );
         continue;
       }
 
       if (!model.crudApiPath) {
         logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`
+          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`,
         );
         continue;
       }
@@ -81,7 +81,7 @@ export default class OpenAPIUtil {
     }
 
     const generator: OpenApiGeneratorV3 = new OpenApiGeneratorV3(
-      registry.definitions
+      registry.definitions,
     );
 
     const spec: JSONObject = generator.generateDocument({
@@ -89,7 +89,8 @@ export default class OpenAPIUtil {
       info: {
         title: "OneUptime OpenAPI Specification",
         version: "1.0.0",
-        description: "OpenAPI specification for OneUptime. This document describes the API endpoints, request and response formats, and other details necessary for developers to interact with the OneUptime API.",
+        description:
+          "OpenAPI specification for OneUptime. This document describes the API endpoints, request and response formats, and other details necessary for developers to interact with the OneUptime API.",
       },
       servers: [
         {
@@ -97,7 +98,7 @@ export default class OpenAPIUtil {
           description: "API Server",
         },
       ],
-    }) as unknown as  JSONObject;
+    }) as unknown as JSONObject;
 
     LocalCache.setJSON("openapi", "spec", spec as JSONObject);
 
@@ -111,8 +112,6 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-
-
 
     data.registry.registerPath({
       method: "get",
@@ -404,7 +403,7 @@ export default class OpenAPIUtil {
 
   private static registerModelSchemas(
     registry: OpenAPIRegistry,
-    model: DatabaseBaseModel
+    model: DatabaseBaseModel,
   ): void {
     const tableName: string = model.tableName || "UnknownModel";
     const modelSchema: ModelSchemaType = ModelSchema.getModelSchema({
