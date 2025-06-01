@@ -8,14 +8,14 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
 import LocalCache from "../Infrastructure/LocalCache";
+import { Host, HttpProtocol } from "../EnvironmentConfig";
 
 export default class OpenAPIUtil {
   public static generateOpenAPISpec(): JSONObject {
-
     // check if the cache is already in LocalCache
     const cachedSpec: JSONValue | undefined = LocalCache.getJSON(
       "openapi",
-      "spec",
+      "spec"
     );
 
     if (cachedSpec) {
@@ -24,143 +24,99 @@ export default class OpenAPIUtil {
     }
 
     const registry: OpenAPIRegistry = new OpenAPIRegistry();
-   
 
     // Register schemas and paths for all models
     for (const ModelClass of Models) {
       const model: DatabaseBaseModel = new ModelClass();
-      const modelName: string | null = model.tableName; 
+      const modelName: string | null = model.tableName;
 
-      if(!modelName) {
-        continue; 
+      if (!modelName) {
+        continue;
       }
 
       // check if enable documentation is enabled
 
       if (!model.enableDocumentation) {
         logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`,
+          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`
         );
         continue;
       }
 
-      if(!model.crudApiPath) {
+      if (!model.crudApiPath) {
         logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`,
+          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`
         );
         continue;
       }
-      
-      const basePath: string = model.crudApiPath.toString(); 
 
       // register the model schema
       OpenAPIUtil.registerModelSchemas(registry, model);
-      
-      // Use a plain object for paths
-      const paths: Record<string, Record<string, any>> = {};
 
-      // List endpoints (POST and GET)
-      paths[`${basePath}/get-list`] = {
-        post: this.generateListApiSpec({ modelType: ModelClass }),
-        get: this.generateListApiSpec({ modelType: ModelClass }),
-      };
-      // Count endpoint
-      paths[`${basePath}/count`] = {
-        post: this.generateCountApiSpec({ modelType: ModelClass }),
-      };
-      // Create endpoint
-      paths[basePath] = {
-        post: this.generateCreateApiSpec({ modelType: ModelClass }),
-      };
-      // Get item endpoints (POST and GET)
-      paths[`${basePath}/{id}/get-item`] = {
-        post: this.generateGetApiSpec({ modelType: ModelClass }),
-        get: this.generateGetApiSpec({ modelType: ModelClass }),
-      };
-      // Update endpoints (PUT, POST, GET)
-      if (!paths[`${basePath}/{id}`]) {
-        paths[`${basePath}/{id}`] = {};
-      }
+      this.generateListApiSpec({
+        modelType: ModelClass,
+        registry,
+      });
 
-
-      paths[`${basePath}/{id}/update-item`] = {
-        post: this.generateUpdateApiSpec({ modelType: ModelClass }),
-        get: this.generateUpdateApiSpec({ modelType: ModelClass }),
-      };
-
-      // Delete endpoints (DELETE, POST, GET)
-      if (!paths[`${basePath}/{id}`]) {
-        paths[`${basePath}/{id}`] = {};
-      }
-
-
-      paths[`${basePath}/{id}/delete-item`] = {
-        post: this.generateDeleteApiSpec({ modelType: ModelClass }),
-        get: this.generateDeleteApiSpec({ modelType: ModelClass }),
-      };
-
-      // Register the paths in the registry
-      for (const path in paths) {
-        if (paths[path]) {
-          const methods: Record<string, any> | undefined = paths[path];
-          if (typeof methods === "object" && methods !== null) {
-            for (const method in methods) {
-              if (methods[method]) {
-                const spec: any = methods[method];
-                registry.registerPath({
-                  method: method.toLowerCase(), 
-                  path,
-                  ...spec,
-                });
-              }
-            }
-          }
-        }
-      }
+      this.generateCountApiSpec({
+        modelType: ModelClass,
+        registry,
+      });
+      this.generateCreateApiSpec({
+        modelType: ModelClass,
+        registry,
+      });
+      this.generateGetApiSpec({
+        modelType: ModelClass,
+        registry,
+      });
+      this.generateUpdateApiSpec({
+        modelType: ModelClass,
+        registry,
+      });
+      this.generateDeleteApiSpec({
+        modelType: ModelClass,
+        registry,
+      });
     }
 
     const generator: OpenApiGeneratorV3 = new OpenApiGeneratorV3(
-      registry.definitions,
+      registry.definitions
     );
 
-    const components: Pick<any, "components"> = generator.generateComponents();
-    
-
-    logger.debug(
-      "OpenAPI components and paths generated successfully",
-    );
-
-    logger.debug(
-      JSON.stringify({...components}, null, 2),
-    );
-
-    const openApiSpec: JSONObject =  {
+    const spec: JSONObject = generator.generateDocument({
       openapi: "3.0.0",
       info: {
-        title: "API Documentation",
+        title: "OneUptime API",
         version: "1.0.0",
-        description: "API documentation generated from models",
+        description: "API documentation for OneUptime",
       },
-      ...components,
-    } as unknown as JSONObject;
+      servers: [
+        {
+          url: `${HttpProtocol.toString()}://${Host.toString()}/api`,
+          description: "OneUptime API Server",
+        },
+      ],
+    }) as unknown as  JSONObject;
 
-    LocalCache.setJSON(
-      "openapi",
-      "spec",
-      openApiSpec,
-    );
+    LocalCache.setJSON("openapi", "spec", spec as JSONObject);
 
-    return openApiSpec;
-
+    return spec;
   }
 
   public static generateListApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }): JSONObject {
+    registry: OpenAPIRegistry;
+  }): void {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    return {
+
+    
+
+    data.registry.registerPath({
+      method: "get",
+      path: `${model.crudApiPath}/get-list`,
       summary: `List ${tableName}`,
       description: `Endpoint to list all ${tableName} items`,
       requestBody: {
@@ -200,16 +156,19 @@ export default class OpenAPIUtil {
           },
         },
       },
-    };
+    });
   }
 
   public static generateCountApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }): JSONObject {
+    registry: OpenAPIRegistry;
+  }): void {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    return {
+    data.registry.registerPath({
+      method: "get",
+      path: `${model.crudApiPath}/count`,
       summary: `Count ${tableName}`,
       description: `Endpoint to count ${tableName} items`,
       requestBody: {
@@ -240,16 +199,19 @@ export default class OpenAPIUtil {
           },
         },
       },
-    };
+    });
   }
 
   public static generateCreateApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }): JSONObject {
+    registry: OpenAPIRegistry;
+  }): void {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    return {
+    data.registry.registerPath({
+      method: "post",
+      path: `${model.crudApiPath}`,
       summary: `Create ${tableName}`,
       description: `Endpoint to create a new ${tableName}`,
       requestBody: {
@@ -289,16 +251,19 @@ export default class OpenAPIUtil {
           description: "Bad request",
         },
       },
-    };
+    });
   }
 
   public static generateGetApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }): JSONObject {
+    registry: OpenAPIRegistry;
+  }): void {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    return {
+    data.registry.registerPath({
+      method: "get",
+      path: `${model.crudApiPath}/{id}`,
       summary: `Get ${tableName}`,
       description: `Endpoint to retrieve a single ${tableName} by ID`,
       parameters: [
@@ -333,16 +298,19 @@ export default class OpenAPIUtil {
           description: "Resource not found",
         },
       },
-    };
+    });
   }
 
   public static generateUpdateApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }): JSONObject {
+    registry: OpenAPIRegistry;
+  }): void {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    return {
+    data.registry.registerPath({
+      method: "put",
+      path: `${model.crudApiPath}/{id}`,
       summary: `Update ${tableName}`,
       description: `Endpoint to update an existing ${tableName}`,
       parameters: [
@@ -395,16 +363,20 @@ export default class OpenAPIUtil {
         "400": {
           description: "Bad request",
         },
-         },
-    };
+      },
+    });
   }
+
   public static generateDeleteApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
-  }): JSONObject {
+    registry: OpenAPIRegistry;
+  }): void {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
-    return {
+    data.registry.registerPath({
+      method: "delete",
+      path: `${model.crudApiPath}/{id}`,
       summary: `Delete ${tableName}`,
       description: `Endpoint to delete a ${tableName}`,
       parameters: [
@@ -427,7 +399,7 @@ export default class OpenAPIUtil {
           description: "Resource not found",
         },
       },
-    };
+    });
   }
 
   private static registerModelSchemas(
@@ -440,7 +412,4 @@ export default class OpenAPIUtil {
     });
     registry.register(tableName, modelSchema);
   }
-
-
 }
-      
