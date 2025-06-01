@@ -159,9 +159,10 @@ export default class OpenAPIUtil {
   }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownModel";
     return {
-      summary: `List ${model.constructor.name}`,
-      description: `Endpoint to list all ${model.constructor.name} items`,
+      summary: `List ${tableName}`,
+      description: `Endpoint to list all ${tableName} items`,
       requestBody: {
         required: false,
         content: {
@@ -189,7 +190,7 @@ export default class OpenAPIUtil {
                   data: {
                     type: "array",
                     items: {
-                      $ref: `#/components/schemas/${model.constructor.name}`,
+                      $ref: `#/components/schemas/${tableName}`,
                     },
                   },
                   count: { type: "number" },
@@ -207,9 +208,10 @@ export default class OpenAPIUtil {
   }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownModel";
     return {
-      summary: `Count ${model.constructor.name}`,
-      description: `Endpoint to count ${model.constructor.name} items`,
+      summary: `Count ${tableName}`,
+      description: `Endpoint to count ${tableName} items`,
       requestBody: {
         required: false,
         content: {
@@ -246,9 +248,10 @@ export default class OpenAPIUtil {
   }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownModel";
     return {
-      summary: `Create ${model.constructor.name}`,
-      description: `Endpoint to create a new ${model.constructor.name}`,
+      summary: `Create ${tableName}`,
+      description: `Endpoint to create a new ${tableName}`,
       requestBody: {
         required: true,
         content: {
@@ -257,7 +260,7 @@ export default class OpenAPIUtil {
               type: "object",
               properties: {
                 data: {
-                  $ref: `#/components/schemas/${model.constructor.name}Input`,
+                  $ref: `#/components/schemas/${tableName}Input`,
                 },
                 miscDataProps: { type: "object" },
               },
@@ -275,7 +278,7 @@ export default class OpenAPIUtil {
                 type: "object",
                 properties: {
                   data: {
-                    $ref: `#/components/schemas/${model.constructor.name}`,
+                    $ref: `#/components/schemas/${tableName}`,
                   },
                 },
               },
@@ -294,9 +297,10 @@ export default class OpenAPIUtil {
   }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownModel";
     return {
-      summary: `Get ${model.constructor.name}`,
-      description: `Endpoint to retrieve a single ${model.constructor.name} by ID`,
+      summary: `Get ${tableName}`,
+      description: `Endpoint to retrieve a single ${tableName} by ID`,
       parameters: [
         {
           name: "id",
@@ -306,7 +310,7 @@ export default class OpenAPIUtil {
             type: "string",
             format: "uuid",
           },
-          description: `ID of the ${model.constructor.name} to retrieve`,
+          description: `ID of the ${tableName} to retrieve`,
         },
       ],
       responses: {
@@ -318,7 +322,7 @@ export default class OpenAPIUtil {
                 type: "object",
                 properties: {
                   data: {
-                    $ref: `#/components/schemas/${model.constructor.name}`,
+                    $ref: `#/components/schemas/${tableName}`,
                   },
                 },
               },
@@ -337,9 +341,10 @@ export default class OpenAPIUtil {
   }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownModel";
     return {
-      summary: `Update ${model.constructor.name}`,
-      description: `Endpoint to update an existing ${model.constructor.name}`,
+      summary: `Update ${tableName}`,
+      description: `Endpoint to update an existing ${tableName}`,
       parameters: [
         {
           name: "id",
@@ -349,7 +354,7 @@ export default class OpenAPIUtil {
             type: "string",
             format: "uuid",
           },
-          description: `ID of the ${model.constructor.name} to update`,
+          description: `ID of the ${tableName} to update`,
         },
       ],
       requestBody: {
@@ -360,7 +365,7 @@ export default class OpenAPIUtil {
               type: "object",
               properties: {
                 data: {
-                  $ref: `#/components/schemas/${model.constructor.name}UpdateInput`,
+                  $ref: `#/components/schemas/${tableName}UpdateInput`,
                 },
               },
               required: ["data"],
@@ -377,7 +382,7 @@ export default class OpenAPIUtil {
                 type: "object",
                 properties: {
                   data: {
-                    $ref: `#/components/schemas/${model.constructor.name}`,
+                    $ref: `#/components/schemas/${tableName}`,
                   },
                 },
               },
@@ -398,9 +403,10 @@ export default class OpenAPIUtil {
   }): JSONObject {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownModel";
     return {
-      summary: `Delete ${model.constructor.name}`,
-      description: `Endpoint to delete a ${model.constructor.name}`,
+      summary: `Delete ${tableName}`,
+      description: `Endpoint to delete a ${tableName}`,
       parameters: [
         {
           name: "id",
@@ -410,7 +416,7 @@ export default class OpenAPIUtil {
             type: "string",
             format: "uuid",
           },
-          description: `ID of the ${model.constructor.name} to delete`,
+          description: `ID of the ${tableName} to delete`,
         },
       ],
       responses: {
