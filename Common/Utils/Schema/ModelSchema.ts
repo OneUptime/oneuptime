@@ -8,6 +8,7 @@ import {
 import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import logger from "../../Server/Utils/Logger";
 
 extendZodWithOpenApi(z);
 
@@ -70,7 +71,8 @@ export class ModelSchema {
         const entityArrayType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;
         if (!entityArrayType) {
-          throw new Error(`Entity type is not defined for column ${key}`);
+          logger.debug(`Entity type is not defined for column ${key}`);
+          continue; 
         }
         const schemaArray: ModelSchemaType = ModelSchema.getModelSchema({
           modelType: entityArrayType,
@@ -85,7 +87,8 @@ export class ModelSchema {
           column.modelType;
 
         if (!entityType) {
-          throw new Error(`Entity type is not defined for column ${key}`);
+           logger.debug(`Entity type is not defined for column ${key}`);
+          continue; 
         }
 
         const schema: ModelSchemaType = ModelSchema.getModelSchema({

@@ -5,16 +5,44 @@ import {
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
 import { JSONObject } from "../../Types/JSON";
+import logger from "./Logger";
+import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
 
 export default class OpenAPIUtil {
   public static generateOpenAPISpec(): JSONObject {
     const registry: OpenAPIRegistry = new OpenAPIRegistry();
+   
 
     // Register schemas and paths for all models
     for (const ModelClass of Models) {
       const model: DatabaseBaseModel = new ModelClass();
-      const modelName: string = model.constructor.name;
-      const basePath: string = `/api/${modelName.toLowerCase()}`;
+      const modelName: string | null = model.tableName; 
+
+      if(!modelName) {
+        continue; 
+      }
+
+      // check if enable documentation is enabled
+
+      if (!model.enableDocumentation) {
+        logger.debug(
+          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`,
+        );
+        continue;
+      }
+
+      if(!model.crudApiPath) {
+        logger.debug(
+          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`,
+        );
+        continue;
+      }
+      
+      const basePath: string = model.crudApiPath.toString(); 
+
+      // register the model schema
+      OpenAPIUtil.registerModelSchemas(registry, model);
+      
       // Use a plain object for paths
       const paths: Record<string, Record<string, any>> = {};
 
@@ -41,20 +69,18 @@ export default class OpenAPIUtil {
         paths[`${basePath}/{id}`] = {};
       }
 
-      paths[`${basePath}/{id}`]!["put"] = this.generateUpdateApiSpec({
-        modelType: ModelClass,
-      });
+
       paths[`${basePath}/{id}/update-item`] = {
         post: this.generateUpdateApiSpec({ modelType: ModelClass }),
         get: this.generateUpdateApiSpec({ modelType: ModelClass }),
       };
+
       // Delete endpoints (DELETE, POST, GET)
       if (!paths[`${basePath}/{id}`]) {
         paths[`${basePath}/{id}`] = {};
       }
-      paths[`${basePath}/{id}`]!["delete"] = this.generateDeleteApiSpec({
-        modelType: ModelClass,
-      });
+
+
       paths[`${basePath}/{id}/delete-item`] = {
         post: this.generateDeleteApiSpec({ modelType: ModelClass }),
         get: this.generateDeleteApiSpec({ modelType: ModelClass }),
@@ -69,7 +95,7 @@ export default class OpenAPIUtil {
               if (methods[method]) {
                 const spec: any = methods[method];
                 registry.registerPath({
-                  method: method as any,
+                  method: method, 
                   path,
                   ...spec,
                 });
@@ -86,6 +112,14 @@ export default class OpenAPIUtil {
 
     const components: Pick<any, "components"> = generator.generateComponents();
 
+    logger.debug(
+      "OpenAPI components generated successfully",
+    );
+
+    logger.debug(
+      JSON.stringify(components, null, 2),
+    );
+
     return {
       openapi: "3.0.0",
       info: {
@@ -93,7 +127,7 @@ export default class OpenAPIUtil {
         version: "1.0.0",
         description: "API documentation generated from models",
       },
-      components: components,
+      ...components
     } as unknown as JSONObject;
   }
 
@@ -333,10 +367,9 @@ export default class OpenAPIUtil {
         "400": {
           description: "Bad request",
         },
-      },
+         },
     };
   }
-
   public static generateDeleteApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
   }): JSONObject {
@@ -367,4 +400,18 @@ export default class OpenAPIUtil {
       },
     };
   }
+
+  private static registerModelSchemas(
+    registry: OpenAPIRegistry,
+    model: DatabaseBaseModel
+  ): void {
+    const tableName: string = model.tableName || "UnknownModel";
+    const modelSchema: ModelSchemaType = ModelSchema.getModelSchema({
+      modelType: model.constructor as new () => DatabaseBaseModel,
+    });
+    registry.register(tableName, modelSchema);
+  }
+
+
 }
+      
