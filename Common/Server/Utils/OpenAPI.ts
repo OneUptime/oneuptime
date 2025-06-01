@@ -87,14 +87,14 @@ export default class OpenAPIUtil {
     const spec: JSONObject = generator.generateDocument({
       openapi: "3.0.0",
       info: {
-        title: "OneUptime API",
+        title: "OneUptime OpenAPI Specification",
         version: "1.0.0",
-        description: "API documentation for OneUptime",
+        description: "OpenAPI specification for OneUptime. This document describes the API endpoints, request and response formats, and other details necessary for developers to interact with the OneUptime API.",
       },
       servers: [
         {
-          url: `${HttpProtocol.toString()}://${Host.toString()}/api`,
-          description: "OneUptime API Server",
+          url: `${HttpProtocol.toString()}${Host.toString()}/api`,
+          description: "API Server",
         },
       ],
     }) as unknown as  JSONObject;
@@ -112,7 +112,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
 
-    
+
 
     data.registry.registerPath({
       method: "get",
