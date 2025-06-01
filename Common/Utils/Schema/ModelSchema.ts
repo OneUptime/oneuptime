@@ -40,101 +40,84 @@ export class ModelSchema {
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
-        continue;
+      continue;
       }
       let zodType: any;
       if (column.type === TableColumnType.ObjectID) {
-        zodType = z.string();
+      zodType = z.string().openapi({ type: "string", example: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' });
       } else if (column.type === TableColumnType.Date) {
-        zodType = z.date();
-      } else if (
-        column.type === TableColumnType.Version ||
-        column.type === TableColumnType.Number ||
-        column.type === TableColumnType.PositiveNumber
-      ) {
-        zodType = z.number();
-      } else if (column.type === TableColumnType.Email) {
-        zodType = z.string().email();
-      } else if (
-        column.type === TableColumnType.HashedString ||
-        column.type === TableColumnType.Slug ||
-        column.type === TableColumnType.ShortText ||
-        column.type === TableColumnType.LongText ||
-        column.type === TableColumnType.Phone
-      ) {
-        zodType = z.string();
-      } else if (column.type === TableColumnType.Boolean) {
-        zodType = z.boolean();
-      } else if (column.type === TableColumnType.JSON) {
-        zodType = z.any();
-      } else if (column.type === TableColumnType.EntityArray) {
-        const entityArrayType: (new () => DatabaseBaseModel) | undefined =
-          column.modelType;
-        if (!entityArrayType) {
-          logger.debug(`Entity type is not defined for column ${key}`);
-          continue; 
+      zodType = z.date().openapi({ type: "string", format: "date-time", example: '2023-01-15T12:30:00.000Z' });
+        } else if (
+      column.type === TableColumnType.Version ||
+      column.type === TableColumnType.Number ||
+      column.type === TableColumnType.PositiveNumber
+        ) {
+      zodType = z.number().openapi({ type: "number", example: 42 });
+        } else if (column.type === TableColumnType.Email) {
+      zodType = z.string().email().openapi({ type: "string", format: "email", example: 'user@example.com' });
+        } else if (column.type === TableColumnType.HashedString) {
+      zodType = z.string().openapi({ type: "string", example: 'hashed_string_value' });
+        } else if (column.type === TableColumnType.Slug) {
+      zodType = z.string().openapi({ type: "string", example: 'example-slug-value' });
+        } else if (column.type === TableColumnType.ShortText) {
+      zodType = z.string().openapi({ type: "string", example: 'Example short text' });
+        } else if (column.type === TableColumnType.LongText) {
+      zodType = z.string().openapi({ type: "string", example: 'This is an example of longer text content that might be stored in this field.' });
+        } else if (column.type === TableColumnType.Phone) {
+      zodType = z.string().openapi({ type: "string", example: '+1-555-123-4567' });
+        } else if (column.type === TableColumnType.Boolean) {
+      zodType = z.boolean().openapi({ type: "boolean", example: true });
+        } else if (column.type === TableColumnType.JSON) {
+      zodType = z.any().openapi({ type: "object", example: { key: 'value', nested: { data: 123 } } });
+        } else if (column.type === TableColumnType.EntityArray) {
+      const entityArrayType: (new () => DatabaseBaseModel) | undefined =
+        column.modelType;
+      if (!entityArrayType) {
+        logger.debug(`Entity type is not defined for column ${key}`);
+        continue; 
+      }
+      const schemaArray: ModelSchemaType = ModelSchema.getModelSchema({
+        modelType: entityArrayType,
+      });
+      zodType = z.array(
+        z.lazy(() => {
+        return schemaArray;
+        }),
+      ).openapi({ type: "array", example: [{ id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' }] });
+        } else if (column.type === TableColumnType.Entity) {
+      const entityType: (new () => DatabaseBaseModel) | undefined =
+        column.modelType;
+
+      if (!entityType) {
+         logger.debug(`Entity type is not defined for column ${key}`);
+        continue; 
+      }
+
+      const schema: ModelSchemaType = ModelSchema.getModelSchema({
+        modelType: entityType,
+      });
+      zodType = z.lazy(() => {
+        return schema;
+      }).openapi({ type: "object", example: { id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx' } });
+        } else {
+      zodType = z.any().openapi({ type: "null", example: null });
         }
-        const schemaArray: ModelSchemaType = ModelSchema.getModelSchema({
-          modelType: entityArrayType,
-        });
-        zodType = z.array(
-          z.lazy(() => {
-            return schemaArray;
-          }),
-        );
-      } else if (column.type === TableColumnType.Entity) {
-        const entityType: (new () => DatabaseBaseModel) | undefined =
-          column.modelType;
 
-        if (!entityType) {
-           logger.debug(`Entity type is not defined for column ${key}`);
-          continue; 
+        if (column.required) {
+      // leave as is
+        } else {
+      zodType = zodType.optional();
         }
 
-        const schema: ModelSchemaType = ModelSchema.getModelSchema({
-          modelType: entityType,
-        });
-        zodType = z.lazy(() => {
-          return schema;
-        });
-      } else {
-        zodType = z.any();
-      }
+        // add title and description to the schema
+        if (column.title) {
+      zodType = zodType.describe(column.title);
+        }
 
-      if (column.required) {
-        // leave as is
-      } else {
-        zodType = zodType.optional();
-      }
 
-      // add title and description to the schema
-      if (column.title) {
-        zodType = zodType.describe(column.title);
-      }
-
-      const openApiKeyValue: Dictionary<any> = {};
-
-      // add title and description to OpenAPI schema
-      if (column.title) {
-        openApiKeyValue["title"] = column.title;
-      }
-
-      if (column.description) {
-        openApiKeyValue["description"] = column.description;
-      }
-
-      zodType = zodType.openapi(openApiKeyValue);
 
       shape[key] = zodType;
     }
-
-    // const openApiKeyValue: Dictionary<any> = {
-    //   name: model.tableName,
-    //   title: model.singularName,
-    //   pluralTitle: model.pluralName,
-    //   description: model.tableDescription || "",
-    //   type: "object",
-    // };
 
     const schema: ModelSchemaType = z
       .object(shape);
