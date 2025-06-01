@@ -4,12 +4,25 @@ import {
 } from "@asteasolutions/zod-to-openapi";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
+import LocalCache from "../Infrastructure/LocalCache";
 
 export default class OpenAPIUtil {
   public static generateOpenAPISpec(): JSONObject {
+
+    // check if the cache is already in LocalCache
+    const cachedSpec: JSONValue | undefined = LocalCache.getJSON(
+      "openapi",
+      "spec",
+    );
+
+    if (cachedSpec) {
+      logger.debug("Returning cached OpenAPI spec");
+      return cachedSpec as JSONObject;
+    }
+
     const registry: OpenAPIRegistry = new OpenAPIRegistry();
    
 
@@ -95,7 +108,7 @@ export default class OpenAPIUtil {
               if (methods[method]) {
                 const spec: any = methods[method];
                 registry.registerPath({
-                  method: method, 
+                  method: method.toLowerCase(), 
                   path,
                   ...spec,
                 });
@@ -111,24 +124,34 @@ export default class OpenAPIUtil {
     );
 
     const components: Pick<any, "components"> = generator.generateComponents();
+    
 
     logger.debug(
-      "OpenAPI components generated successfully",
+      "OpenAPI components and paths generated successfully",
     );
 
     logger.debug(
-      JSON.stringify(components, null, 2),
+      JSON.stringify({...components}, null, 2),
     );
 
-    return {
+    const openApiSpec: JSONObject =  {
       openapi: "3.0.0",
       info: {
         title: "API Documentation",
         version: "1.0.0",
         description: "API documentation generated from models",
       },
-      ...components
+      ...components,
     } as unknown as JSONObject;
+
+    LocalCache.setJSON(
+      "openapi",
+      "spec",
+      openApiSpec,
+    );
+
+    return openApiSpec;
+
   }
 
   public static generateListApiSpec(data: {
