@@ -7,6 +7,7 @@ enum SubscriptionStatus {
   Canceled = "canceled",
   Unpaid = "unpaid",
   Expired = "expired",
+  Paused = "paused",
 }
 
 export class SubscriptionStatusUtil {
@@ -19,7 +20,8 @@ export class SubscriptionStatusUtil {
 
     return (
       status === SubscriptionStatus.Active ||
-      status === SubscriptionStatus.Trialing
+      status === SubscriptionStatus.Trialing ||
+      status === SubscriptionStatus.PastDue
     );
   }
 
