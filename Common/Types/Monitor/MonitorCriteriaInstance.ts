@@ -12,7 +12,7 @@ import {
   FilterType,
   EvaluateOverTimeType,
   CriteriaFilterUtil,
-  CriteriaFilterSchema
+  CriteriaFilterSchema,
 } from "./CriteriaFilter";
 import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
 import MonitorType from "./MonitorType";

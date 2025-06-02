@@ -11,7 +11,7 @@ export interface CriteriaAlert {
   onCallPolicyIds?: Array<ObjectID> | undefined;
 }
 
-export const CriteriaAlertSchema: ZodSchema  = Zod.object({
+export const CriteriaAlertSchema: ZodSchema = Zod.object({
   title: Zod.string(),
   description: Zod.string(),
   alertSeverityId: Zod.any().optional(),
