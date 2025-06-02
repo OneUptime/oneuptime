@@ -33,17 +33,15 @@ export class SubscriptionStatusUtil {
 
   public static isSubscriptionOverdue(
     status?: SubscriptionStatus | undefined,
-  ): boolean { 
+  ): boolean {
     if (!status) {
       return false;
     }
 
-    return (
-      status === SubscriptionStatus.PastDue
-    );
+    return status === SubscriptionStatus.PastDue;
   }
 
-  // is subscription canclled. 
+  // is subscription canclled.
   public static isSubscriptionCancelled(
     status?: SubscriptionStatus | undefined,
   ): boolean {

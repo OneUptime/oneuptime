@@ -52,7 +52,7 @@ export default class ProjectUtil {
         data.paymentProviderSubscriptionStatus,
       );
 
-      const isSubscriptionOverdue: boolean =
+    const isSubscriptionOverdue: boolean =
       SubscriptionStatusUtil.isSubscriptionOverdue(
         data.paymentProviderMeteredSubscriptionStatus,
       ) ||
