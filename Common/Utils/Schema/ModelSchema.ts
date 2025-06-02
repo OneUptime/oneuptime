@@ -43,8 +43,13 @@ export class ModelSchema {
           format: "date-time",
           example: "2023-01-15T12:30:00.000Z",
         });
+      } else if (column.type === TableColumnType.VeryLongText) {
+        zodType = z.string().openapi({
+          type: "string",
+          example:
+            "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
+        });
       } else if (
-        column.type === TableColumnType.Version ||
         column.type === TableColumnType.Number ||
         column.type === TableColumnType.PositiveNumber
       ) {
@@ -77,6 +82,122 @@ export class ModelSchema {
         zodType = z
           .string()
           .openapi({ type: "string", example: "+1-555-123-4567" });
+      } else if (column.type === TableColumnType.Version) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "1.0.0",
+        });
+      } else if (column.type === TableColumnType.Password) {
+        zodType = z.string().openapi({
+          type: "string",
+          format: "password",
+          example: "••••••••",
+        });
+      } else if (column.type === TableColumnType.Name) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "John Doe",
+        });
+      } else if (column.type === TableColumnType.Description) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "This is a description of the item",
+        });
+      } else if (column.type === TableColumnType.File) {
+        zodType = z.any().openapi({
+          type: "string",
+          format: "binary",
+        });
+      } else if (column.type === TableColumnType.Buffer) {
+        zodType = z.any().openapi({
+          type: "string",
+          format: "binary",
+        });
+      } else if (column.type === TableColumnType.ShortURL) {
+        zodType = z.string().url().openapi({
+          type: "string",
+          example: "https://short.url/abc123",
+        });
+      } else if (column.type === TableColumnType.Markdown) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "# Heading\n\nThis is **markdown** content",
+        });
+      } else if (column.type === TableColumnType.Domain) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "example.com",
+        });
+      } else if (column.type === TableColumnType.LongURL) {
+        zodType = z.string().url().openapi({
+          type: "string",
+          example: "https://www.example.com/path/to/resource?param=value",
+        });
+      } else if (column.type === TableColumnType.OTP) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "123456",
+        });
+      } else if (column.type === TableColumnType.HTML) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "<div><h1>Title</h1><p>Content</p></div>",
+        });
+      } else if (column.type === TableColumnType.JavaScript) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "function example() { return true; }",
+        });
+      } else if (column.type === TableColumnType.CSS) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "body { color: #333; margin: 0; }",
+        });
+      } else if (column.type === TableColumnType.Array) {
+        zodType = z.array(z.any()).openapi({
+          type: "array",
+          example: ["item1", "item2", "item3"],
+        });
+      } else if (column.type === TableColumnType.SmallPositiveNumber) {
+        zodType = z.number().int().nonnegative().openapi({
+          type: "integer",
+          example: 5,
+        });
+      } else if (column.type === TableColumnType.BigPositiveNumber) {
+        zodType = z.number().nonnegative().openapi({
+          type: "number",
+          example: 1000000,
+        });
+      } else if (column.type === TableColumnType.SmallNumber) {
+        zodType = z.number().int().openapi({
+          type: "integer",
+          example: 10,
+        });
+      } else if (column.type === TableColumnType.BigNumber) {
+        zodType = z.number().openapi({
+          type: "number",
+          example: 1000000,
+        });
+      } else if (column.type === TableColumnType.Permission) {
+        zodType = z.any().openapi({
+          type: "object",
+          example: { read: true, write: false, delete: false },
+        });
+      } else if (column.type === TableColumnType.CustomFieldType) {
+        zodType = z.any().openapi({
+          type: "object",
+          example: { type: "text", required: true },
+        });
+      } else if (column.type === TableColumnType.MonitorType) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "HTTP",
+        });
+      } else if (column.type === TableColumnType.WorkflowStatus) {
+        zodType = z.string().openapi({
+          type: "string",
+          example: "In Progress",
+        });
       } else if (column.type === TableColumnType.Boolean) {
         zodType = z.boolean().openapi({ type: "boolean", example: true });
       } else if (column.type === TableColumnType.JSON) {
@@ -98,7 +219,7 @@ export class ModelSchema {
           .array(
             z.lazy(() => {
               return schemaArray;
-            }),
+            })
           )
           .openapi({
             type: "array",
@@ -148,8 +269,8 @@ export class ModelSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2,
-      )}`,
+        2
+      )}`
     );
 
     return schema;
@@ -208,7 +329,7 @@ export class ModelSchema {
       }
 
       const isSortable: boolean = ModelSchema.getSortableTypes().includes(
-        column.type,
+        column.type
       );
 
       if (!isSortable) {
