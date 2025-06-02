@@ -2,6 +2,7 @@ import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export default class Name extends DatabaseProperty {
   private _title: string = "";
@@ -82,5 +83,19 @@ export default class Name extends DatabaseProperty {
     }
 
     return null;
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.Name),
+      value: Zod.string().openapi({
+        type: "string",
+        example: "John Doe",
+      }),
+    }).openapi({
+      type: "object",
+      description: "Name object",
+      example: { _type: ObjectType.Name, value: "John Doe" },
+    });
   }
 }

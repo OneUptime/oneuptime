@@ -4,6 +4,7 @@ import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export default class ObjectID extends DatabaseProperty {
   private _id: string = "";
@@ -109,5 +110,19 @@ export default class ObjectID extends DatabaseProperty {
 
   public static fromString(id: string): ObjectID {
     return new ObjectID(id);
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.ObjectID),
+      value: Zod.string().openapi({
+        type: "string",
+        example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      }),
+    }).openapi({
+      type: "object",
+      description: "ObjectID object",
+      example: { _type: ObjectType.ObjectID, value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+    });
   }
 }

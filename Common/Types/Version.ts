@@ -2,6 +2,7 @@ import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export default class Version extends DatabaseProperty {
   private _version: string = "";
@@ -62,5 +63,19 @@ export default class Version extends DatabaseProperty {
     }
 
     return null;
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.Version),
+      value: Zod.string().openapi({
+        type: "string",
+        example: "1.0.0",
+      }),
+    }).openapi({
+      type: "object",
+      description: "Version object",
+      example: { _type: ObjectType.Version, value: "1.0.0" },
+    });
   }
 }

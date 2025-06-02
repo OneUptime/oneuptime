@@ -6,6 +6,7 @@ import ObjectID from "../ObjectID";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorCriteriaType {
   monitorCriteriaInstanceArray: Array<MonitorCriteriaInstance>;
@@ -178,5 +179,23 @@ export default class MonitorCriteria extends DatabaseProperty {
 
   public override toString(): string {
     return JSON.stringify(this.toJSON());
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.MonitorCriteria),
+      value: Zod.object({
+        monitorCriteriaInstanceArray: Zod.array(Zod.any()), // Could be improved with MonitorCriteriaInstance.getSchema()
+      }).openapi({
+        type: "object",
+        example: {
+          monitorCriteriaInstanceArray: [],
+        },
+      }),
+    }).openapi({
+      type: "object",
+      description: "MonitorCriteria object",
+      example: { _type: ObjectType.MonitorCriteria, value: { monitorCriteriaInstanceArray: [] } },
+    });
   }
 }

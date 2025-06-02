@@ -16,6 +16,7 @@ import {
 import { CriteriaIncident } from "./CriteriaIncident";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorCriteriaInstanceType {
   monitorStatusId: ObjectID | undefined;
@@ -1016,6 +1017,41 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }) as any;
 
     return monitorCriteriaInstance;
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.MonitorCriteriaInstance),
+      value: Zod.object({
+        id: Zod.string(),
+        monitorStatusId: Zod.any(),
+        filterCondition: Zod.any(),
+        filters: Zod.array(Zod.any()),
+        incidents: Zod.array(Zod.any()),
+        alerts: Zod.array(Zod.any()),
+        name: Zod.string(),
+        description: Zod.string(),
+        changeMonitorStatus: Zod.boolean().optional(),
+        createIncidents: Zod.boolean().optional(),
+        createAlerts: Zod.boolean().optional(),
+      }).openapi({
+        type: "object",
+        example: {
+          id: "id",
+          monitorStatusId: "statusId",
+          filterCondition: "All",
+          filters: [],
+          incidents: [],
+          alerts: [],
+          name: "Criteria Name",
+          description: "Description",
+        },
+      }),
+    }).openapi({
+      type: "object",
+      description: "MonitorCriteriaInstance object",
+      example: { _type: ObjectType.MonitorCriteriaInstance, value: { id: "id", monitorStatusId: "statusId", filterCondition: "All", filters: [], incidents: [], alerts: [], name: "Criteria Name", description: "Description" } },
+    });
   }
 
   public static isValid(_json: JSONObject): boolean {

@@ -3,6 +3,7 @@ import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 const nonBusinessEmailDomains: Array<string> = [
   "gmail",
@@ -122,5 +123,20 @@ export default class Email extends DatabaseProperty {
     }
 
     return null;
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.Email),
+      value: Zod.string().email().openapi({
+        type: "string",
+        format: "email",
+        example: "user@example.com",
+      }),
+    }).openapi({
+      type: "object",
+      description: "Email object",
+      example: { _type: ObjectType.Email, value: "user@example.com" },
+    });
   }
 }

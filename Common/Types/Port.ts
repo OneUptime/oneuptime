@@ -4,6 +4,7 @@ import { JSONObject, ObjectType } from "./JSON";
 import PositiveNumber from "./PositiveNumber";
 import Typeof from "./Typeof";
 import { FindOperator } from "typeorm/find-options/FindOperator";
+import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export default class Port extends DatabaseProperty {
   private _port: PositiveNumber = new PositiveNumber(0);
@@ -88,5 +89,19 @@ export default class Port extends DatabaseProperty {
 
   public toNumber(): number {
     return this.port.toNumber();
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.Port),
+      value: Zod.number().int().min(0).max(65535).openapi({
+        type: "number",
+        example: 8080,
+      }),
+    }).openapi({
+      type: "object",
+      description: "Port object",
+      example: { _type: ObjectType.Port, value: 8080 },
+    });
   }
 }

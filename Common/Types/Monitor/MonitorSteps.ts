@@ -6,6 +6,7 @@ import ObjectID from "../ObjectID";
 import MonitorStep from "./MonitorStep";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorStepsType {
   monitorStepsInstanceArray: Array<MonitorStep>;
@@ -191,5 +192,25 @@ export default class MonitorSteps extends DatabaseProperty {
 
   public override toString(): string {
     return JSON.stringify(this.toJSON());
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.MonitorSteps),
+      value: Zod.object({
+        monitorStepsInstanceArray: Zod.array(Zod.any()),
+        defaultMonitorStatusId: Zod.string().optional(),
+      }).openapi({
+        type: "object",
+        example: {
+          monitorStepsInstanceArray: [],
+          defaultMonitorStatusId: undefined,
+        },
+      }),
+    }).openapi({
+      type: "object",
+      description: "MonitorSteps object",
+      example: { _type: ObjectType.MonitorSteps, value: { monitorStepsInstanceArray: [], defaultMonitorStatusId: undefined } },
+    });
   }
 }

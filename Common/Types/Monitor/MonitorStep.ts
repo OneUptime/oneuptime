@@ -23,6 +23,7 @@ import MonitorStepTraceMonitor, {
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "./MonitorStepMetricMonitor";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface MonitorStepType {
   id: string;
@@ -423,6 +424,40 @@ export default class MonitorStep extends DatabaseProperty {
     }
 
     return monitorStep;
+  }
+
+  public static override getSchema(): ZodSchema {
+    return Zod.object({
+      _type: Zod.literal(ObjectType.MonitorStep),
+      value: Zod.object({
+        id: Zod.string(),
+        monitorDestination: Zod.any().optional(),
+        monitorCriteria: Zod.any(),
+        requestType: Zod.any(),
+        requestHeaders: Zod.any().optional(),
+        requestBody: Zod.string().optional(),
+        doNotFollowRedirects: Zod.boolean().optional(),
+        monitorDestinationPort: Zod.any().optional(),
+        customCode: Zod.string().optional(),
+        screenSizeTypes: Zod.any().optional(),
+        browserTypes: Zod.any().optional(),
+        logMonitor: Zod.any().optional(),
+        traceMonitor: Zod.any().optional(),
+        metricMonitor: Zod.any().optional(),
+      }).openapi({
+        type: "object",
+        example: {
+          id: "stepId",
+          monitorDestination: undefined,
+          monitorCriteria: {},
+          requestType: "GET",
+        },
+      }),
+    }).openapi({
+      type: "object",
+      description: "MonitorStep object",
+      example: { _type: ObjectType.MonitorStep, value: { id: "stepId", monitorDestination: undefined, monitorCriteria: {}, requestType: "GET" } },
+    });
   }
 
   public isValid(): boolean {
