@@ -198,7 +198,7 @@ export default class MonitorSteps extends DatabaseProperty {
     return Zod.object({
       _type: Zod.literal(ObjectType.MonitorSteps),
       value: Zod.object({
-        monitorStepsInstanceArray: Zod.array(Zod.any()),
+        monitorStepsInstanceArray: Zod.array(MonitorStep.getSchema()),
         defaultMonitorStatusId: Zod.string().optional(),
       }).openapi({
         type: "object",

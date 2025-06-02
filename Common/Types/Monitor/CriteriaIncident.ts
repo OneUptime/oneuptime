@@ -1,4 +1,5 @@
 import ObjectID from "../ObjectID";
+import Zod from '../../Utils/Schema/Zod';
 
 export interface CriteriaIncident {
   title: string;
@@ -9,3 +10,13 @@ export interface CriteriaIncident {
   id: string;
   onCallPolicyIds?: Array<ObjectID> | undefined;
 }
+
+export const CriteriaIncidentSchema = Zod.object({
+  title: Zod.string(),
+  description: Zod.string(),
+  incidentSeverityId: Zod.any().optional(),
+  autoResolveIncident: Zod.boolean().optional(),
+  remediationNotes: Zod.string().optional(),
+  id: Zod.string(),
+  onCallPolicyIds: Zod.array(Zod.any()).optional(),
+});
