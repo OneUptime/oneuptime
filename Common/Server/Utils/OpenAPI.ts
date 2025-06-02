@@ -304,20 +304,12 @@ export default class OpenAPIUtil {
   public static getDefaultApiHeaders(): Array<JSONObject> {
     return [
       {
-        name: "Content-Type",
-        in: "header",
-        required: true,
-        schema: { type: "string" },
-        description: "Content type of the request",
-        example: "application/json",
-      },
-      {
         name: "APIKey",
         in: "header",
         required: true,
         schema: { type: "string" },
         description: "API key for authentication",
-        example: "{{apiKey}}",
+        example: "your-api-key-here",
       },
     ];
   }
