@@ -221,7 +221,7 @@ export default class OpenAPIUtil {
               type: "object",
               properties: {
                 data: {
-                  $ref: `#/components/schemas/${tableName}Input`,
+                  $ref: `#/components/schemas/${tableName}`,
                 },
                 miscDataProps: { type: "object" },
               },
@@ -355,7 +355,7 @@ export default class OpenAPIUtil {
               type: "object",
               properties: {
                 data: {
-                  $ref: `#/components/schemas/${tableName}UpdateInput`,
+                  $ref: `#/components/schemas/${tableName}`,
                 },
               },
               required: ["data"],
