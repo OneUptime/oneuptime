@@ -5,21 +5,19 @@ import { JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import ObjectID from "../ObjectID";
 import Typeof from "../Typeof";
-import { CriteriaAlert } from "./CriteriaAlert";
+import { CriteriaAlert, CriteriaAlertSchema } from "./CriteriaAlert";
 import {
   CheckOn,
   CriteriaFilter,
   FilterType,
   EvaluateOverTimeType,
   CriteriaFilterUtil,
+  CriteriaFilterSchema
 } from "./CriteriaFilter";
-import { CriteriaIncident } from "./CriteriaIncident";
+import { CriteriaIncident, CriteriaIncidentSchema } from "./CriteriaIncident";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
-import { CriteriaFilterSchema } from "./CriteriaFilter";
-import { CriteriaIncidentSchema } from "./CriteriaIncident";
-import { CriteriaAlertSchema } from "./CriteriaAlert";
 
 export interface MonitorCriteriaInstanceType {
   monitorStatusId: ObjectID | undefined;

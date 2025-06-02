@@ -1,4 +1,4 @@
-import Zod from "../../Utils/Schema/Zod";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
@@ -182,7 +182,7 @@ export class CriteriaFilterUtil {
   }
 }
 
-export const CriteriaFilterSchema = Zod.object({
+export const CriteriaFilterSchema: ZodSchema = Zod.object({
   checkOn: Zod.string(),
   serverMonitorOptions: Zod.object({
     diskPath: Zod.string().optional(),

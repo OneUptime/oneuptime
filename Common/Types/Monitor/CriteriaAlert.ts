@@ -1,5 +1,5 @@
 import ObjectID from "../ObjectID";
-import Zod from "../../Utils/Schema/Zod";
+import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
 
 export interface CriteriaAlert {
   title: string;
@@ -11,7 +11,7 @@ export interface CriteriaAlert {
   onCallPolicyIds?: Array<ObjectID> | undefined;
 }
 
-export const CriteriaAlertSchema = Zod.object({
+export const CriteriaAlertSchema: ZodSchema  = Zod.object({
   title: Zod.string(),
   description: Zod.string(),
   alertSeverityId: Zod.any().optional(),
