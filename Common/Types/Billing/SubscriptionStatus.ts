@@ -30,6 +30,34 @@ export class SubscriptionStatusUtil {
   ): boolean {
     return !SubscriptionStatusUtil.isSubscriptionActive(status);
   }
+
+  public static isSubscriptionOverdue(
+    status?: SubscriptionStatus | undefined,
+  ): boolean { 
+    if (!status) {
+      return false;
+    }
+
+    return (
+      status === SubscriptionStatus.PastDue
+    );
+  }
+
+  // is subscription canclled. 
+  public static isSubscriptionCancelled(
+    status?: SubscriptionStatus | undefined,
+  ): boolean {
+    if (!status) {
+      return false;
+    }
+
+    return (
+      status === SubscriptionStatus.Canceled ||
+      status === SubscriptionStatus.Unpaid ||
+      status === SubscriptionStatus.Expired ||
+      status === SubscriptionStatus.IncompleteExpired
+    );
+  }
 }
 
 export default SubscriptionStatus;

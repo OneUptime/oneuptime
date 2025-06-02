@@ -37,7 +37,7 @@ export default class ProjectUtil {
     return null;
   }
 
-  public static setIsSubscriptionInactive(data: {
+  public static setIsSubscriptionInactiveOrOverdue(data: {
     paymentProviderMeteredSubscriptionStatus: SubscriptionStatus;
     paymentProviderSubscriptionStatus: SubscriptionStatus;
   }): boolean {
@@ -52,13 +52,26 @@ export default class ProjectUtil {
         data.paymentProviderSubscriptionStatus,
       );
 
+      const isSubscriptionOverdue: boolean =
+      SubscriptionStatusUtil.isSubscriptionOverdue(
+        data.paymentProviderMeteredSubscriptionStatus,
+      ) ||
+      SubscriptionStatusUtil.isSubscriptionOverdue(
+        data.paymentProviderSubscriptionStatus,
+      );
+
     // save this to local storage
     LocalStorage.setItem(
       currentProjectId?.toString() + "_isSubscriptionInactive",
       isSubscriptionInactive,
     );
 
-    return isSubscriptionInactive;
+    LocalStorage.setItem(
+      currentProjectId?.toString() + "_isSubscriptionOverdue",
+      isSubscriptionOverdue,
+    );
+
+    return isSubscriptionInactive || isSubscriptionOverdue;
   }
 
   public static isSubscriptionInactive(): boolean {
