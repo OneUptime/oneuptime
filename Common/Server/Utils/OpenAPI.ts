@@ -167,7 +167,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
-    
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
@@ -212,7 +212,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
-    
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
@@ -266,7 +266,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
-    
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/{id}`,
@@ -329,7 +329,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
-    
+
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
