@@ -197,7 +197,7 @@ export default class ApiMonitor {
           "Request was tried " +
           options.currentRetryCount +
           " times and it timed out.";
-        apiResponse.isOnline = true;
+        apiResponse.isOnline = false;
         apiResponse.isTimeout = true;
       }
 

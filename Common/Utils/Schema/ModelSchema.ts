@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
+import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import {
   getTableColumns,
@@ -9,22 +8,11 @@ import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../../Server/Utils/Logger";
+import DatabaseProperty from "../../Types/Database/DatabaseProperty";
+import Color from "../../Types/Color";
+import BadDataException from "../../Types/Exception/BadDataException";
 
-extendZodWithOpenApi(z);
-
-export default z;
-
-export type ModelSchemaType = z.ZodObject<
-  Record<string, any>,
-  "strip",
-  z.ZodTypeAny,
-  {
-    [x: string]: any;
-  },
-  {
-    [x: string]: any;
-  }
->;
+export type ModelSchemaType = ZodSchema;
 
 export class ModelSchema {
   public static getModelSchema(data: {
@@ -109,7 +97,7 @@ export class ModelSchema {
           .array(
             z.lazy(() => {
               return schemaArray;
-            }),
+            })
           )
           .openapi({
             type: "array",
@@ -159,8 +147,8 @@ export class ModelSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2,
-      )}`,
+        2
+      )}`
     );
 
     return schema;
@@ -219,7 +207,7 @@ export class ModelSchema {
       }
 
       const isSortable: boolean = ModelSchema.getSortableTypes().includes(
-        column.type,
+        column.type
       );
 
       if (!isSortable) {
@@ -270,5 +258,19 @@ export class ModelSchema {
     }
 
     return z.object(shape);
+  }
+
+  public static getSchemaForDatabaseProperty(
+    databasePropertyType: new () => DatabaseProperty
+  ): ModelSchemaType {
+    const dbProperty: DatabaseProperty = new databasePropertyType();
+
+    if (dbProperty instanceof Color) {
+      return Color.getSchema();
+    }
+
+    throw new BadDataException(
+      `Schema for database property type ${databasePropertyType.name} is not implemented.`
+    );
   }
 }

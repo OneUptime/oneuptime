@@ -1,8 +1,10 @@
+import { ZodSchema } from "zod";
 import NotImplementedException from "../Exception/NotImplementedException";
 import { JSONArray, JSONObject } from "../JSON";
 import SerializableObject from "../SerializableObject";
 import { FindOperator } from "typeorm";
 import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
+
 
 export default class DatabaseProperty extends SerializableObject {
   public constructor() {
@@ -51,4 +53,12 @@ export default class DatabaseProperty extends SerializableObject {
       },
     };
   }
+
+  public static getSchema(): ZodSchema {
+    throw new NotImplementedException(
+      
+    );
+  }
+
+
 }

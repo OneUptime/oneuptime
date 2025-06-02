@@ -192,7 +192,7 @@ export default class WebsiteMonitor {
           "Request was tried " +
           options.currentRetryCount +
           " times and it timed out.";
-        probeWebsiteResponse.isOnline = true;
+        probeWebsiteResponse.isOnline = false;
         probeWebsiteResponse.isTimeout = true;
 
         return probeWebsiteResponse;
