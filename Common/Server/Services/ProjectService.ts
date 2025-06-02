@@ -71,6 +71,7 @@ import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import URL from "../../Types/API/URL";
 import Exception from "../../Types/Exception/Exception";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DatabaseConfig from "../DatabaseConfig";
 
 export interface CurrentPlan {
   plan: PlanType | null;
@@ -1414,6 +1415,18 @@ export class ProjectService extends DatabaseService<Model> {
       ]),
     };
   }
+
+    @CaptureSpan()
+  public async getProjectLinkInDashboard(
+    projectId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}`,
+    );
+  }
+
 
   @CaptureSpan()
   public async isSMSNotificationsEnabled(

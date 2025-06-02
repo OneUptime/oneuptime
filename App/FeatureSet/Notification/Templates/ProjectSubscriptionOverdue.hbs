@@ -1,0 +1,30 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=("Your OneUptime Project Subscription is overdue") }}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Project Name:" text=projectName }}
+{{> DetailBoxField title="Project ID:" text=projectId }}
+{{> DetailBoxField title="Subscription Status:" text="Overdue" }}
+{{> DetailBoxField title="Details:" text="Some of your invoices are unpaid. Please pay the invoices to avoid deactivation of this project." }}
+{{> DetailBoxEnd this }}
+
+
+{{> InfoBlock info="You can pay the outstanding invoices by clicking on the link below - "}}
+
+{{> ButtonBlock buttonUrl=dashboardLink buttonText="View on Dashboard"}}
+
+{{> InfoBlock info="You can also copy and paste this link:"}}
+{{> InfoBlock info=dashboardLink}}
+
+{{> InfoBlock info="You have been sent this email because you are the owner of this project."}}
+
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

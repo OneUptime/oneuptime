@@ -55,6 +55,8 @@ enum EmailTemplateType {
   UserCurrentlyOnOnCallRoster = "UserCurrentlyOnOnCallRoster.hbs",
   UserNextOnOnCallRoster = "UserNextOnOnCallRoster.hbs",
   UserNoLongerActiveOnOnCallRoster = "UserNoLongerActiveOnOnCallRoster.hbs",
+
+  ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
 }
 
 export default EmailTemplateType;
