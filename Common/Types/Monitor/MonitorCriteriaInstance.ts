@@ -17,9 +17,9 @@ import { CriteriaIncident } from "./CriteriaIncident";
 import MonitorType from "./MonitorType";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../../Utils/Schema/Zod";
-import { CriteriaFilterSchema } from './CriteriaFilter';
-import { CriteriaIncidentSchema } from './CriteriaIncident';
-import { CriteriaAlertSchema } from './CriteriaAlert';
+import { CriteriaFilterSchema } from "./CriteriaFilter";
+import { CriteriaIncidentSchema } from "./CriteriaIncident";
+import { CriteriaAlertSchema } from "./CriteriaAlert";
 
 export interface MonitorCriteriaInstanceType {
   monitorStatusId: ObjectID | undefined;
@@ -1053,7 +1053,19 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }).openapi({
       type: "object",
       description: "MonitorCriteriaInstance object",
-      example: { _type: ObjectType.MonitorCriteriaInstance, value: { id: "id", monitorStatusId: "statusId", filterCondition: "All", filters: [], incidents: [], alerts: [], name: "Criteria Name", description: "Description" } },
+      example: {
+        _type: ObjectType.MonitorCriteriaInstance,
+        value: {
+          id: "id",
+          monitorStatusId: "statusId",
+          filterCondition: "All",
+          filters: [],
+          incidents: [],
+          alerts: [],
+          name: "Criteria Name",
+          description: "Description",
+        },
+      },
     });
   }
 

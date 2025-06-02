@@ -15,6 +15,6 @@ export type ZodSchema = z.ZodObject<
   }
 >;
 
-const Zod: typeof z = z; 
+const Zod: typeof z = z;
 
 export default Zod;

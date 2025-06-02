@@ -5,7 +5,6 @@ import SerializableObject from "../SerializableObject";
 import { FindOperator } from "typeorm";
 import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
 
-
 export default class DatabaseProperty extends SerializableObject {
   public constructor() {
     super();
@@ -55,10 +54,6 @@ export default class DatabaseProperty extends SerializableObject {
   }
 
   public static getSchema(): ZodSchema {
-    throw new NotImplementedException(
-      
-    );
+    throw new NotImplementedException();
   }
-
-
 }

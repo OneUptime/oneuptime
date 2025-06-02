@@ -122,7 +122,10 @@ export default class ObjectID extends DatabaseProperty {
     }).openapi({
       type: "object",
       description: "ObjectID object",
-      example: { _type: ObjectType.ObjectID, value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+      example: {
+        _type: ObjectType.ObjectID,
+        value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      },
     });
   }
 }

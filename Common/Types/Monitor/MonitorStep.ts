@@ -456,7 +456,15 @@ export default class MonitorStep extends DatabaseProperty {
     }).openapi({
       type: "object",
       description: "MonitorStep object",
-      example: { _type: ObjectType.MonitorStep, value: { id: "stepId", monitorDestination: undefined, monitorCriteria: {}, requestType: "GET" } },
+      example: {
+        _type: ObjectType.MonitorStep,
+        value: {
+          id: "stepId",
+          monitorDestination: undefined,
+          monitorCriteria: {},
+          requestType: "GET",
+        },
+      },
     });
   }
 

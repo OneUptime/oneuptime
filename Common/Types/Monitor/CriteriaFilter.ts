@@ -1,4 +1,4 @@
-import Zod from '../../Utils/Schema/Zod';
+import Zod from "../../Utils/Schema/Zod";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",

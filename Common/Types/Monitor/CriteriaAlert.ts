@@ -1,5 +1,5 @@
 import ObjectID from "../ObjectID";
-import Zod from '../../Utils/Schema/Zod';
+import Zod from "../../Utils/Schema/Zod";
 
 export interface CriteriaAlert {
   title: string;

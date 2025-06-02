@@ -185,7 +185,9 @@ export default class MonitorCriteria extends DatabaseProperty {
     return Zod.object({
       _type: Zod.literal(ObjectType.MonitorCriteria),
       value: Zod.object({
-        monitorCriteriaInstanceArray: Zod.array(MonitorCriteriaInstance.getSchema()),
+        monitorCriteriaInstanceArray: Zod.array(
+          MonitorCriteriaInstance.getSchema(),
+        ),
       }).openapi({
         type: "object",
         example: {
@@ -195,7 +197,10 @@ export default class MonitorCriteria extends DatabaseProperty {
     }).openapi({
       type: "object",
       description: "MonitorCriteria object",
-      example: { _type: ObjectType.MonitorCriteria, value: { monitorCriteriaInstanceArray: [] } },
+      example: {
+        _type: ObjectType.MonitorCriteria,
+        value: { monitorCriteriaInstanceArray: [] },
+      },
     });
   }
 }

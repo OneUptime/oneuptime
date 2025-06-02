@@ -34,9 +34,10 @@ export class ModelSchema {
           type: "string",
           example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         });
-      } if (column.type === TableColumnType.Color) {
+      }
+      if (column.type === TableColumnType.Color) {
         zodType = Color.getSchema();
-      }  else if (column.type === TableColumnType.Date) {
+      } else if (column.type === TableColumnType.Date) {
         zodType = z.date().openapi({
           type: "string",
           format: "date-time",
@@ -97,7 +98,7 @@ export class ModelSchema {
           .array(
             z.lazy(() => {
               return schemaArray;
-            })
+            }),
           )
           .openapi({
             type: "array",
@@ -147,8 +148,8 @@ export class ModelSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     return schema;
@@ -207,7 +208,7 @@ export class ModelSchema {
       }
 
       const isSortable: boolean = ModelSchema.getSortableTypes().includes(
-        column.type
+        column.type,
       );
 
       if (!isSortable) {

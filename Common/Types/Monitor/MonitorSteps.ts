@@ -210,7 +210,13 @@ export default class MonitorSteps extends DatabaseProperty {
     }).openapi({
       type: "object",
       description: "MonitorSteps object",
-      example: { _type: ObjectType.MonitorSteps, value: { monitorStepsInstanceArray: [], defaultMonitorStatusId: undefined } },
+      example: {
+        _type: ObjectType.MonitorSteps,
+        value: {
+          monitorStepsInstanceArray: [],
+          defaultMonitorStatusId: undefined,
+        },
+      },
     });
   }
 }
