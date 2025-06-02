@@ -8,9 +8,7 @@ import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../../Server/Utils/Logger";
-import DatabaseProperty from "../../Types/Database/DatabaseProperty";
 import Color from "../../Types/Color";
-import BadDataException from "../../Types/Exception/BadDataException";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -36,7 +34,9 @@ export class ModelSchema {
           type: "string",
           example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         });
-      } else if (column.type === TableColumnType.Date) {
+      } if (column.type === TableColumnType.Color) {
+        zodType = Color.getSchema();
+      }  else if (column.type === TableColumnType.Date) {
         zodType = z.date().openapi({
           type: "string",
           format: "date-time",
@@ -258,19 +258,5 @@ export class ModelSchema {
     }
 
     return z.object(shape);
-  }
-
-  public static getSchemaForDatabaseProperty(
-    databasePropertyType: new () => DatabaseProperty
-  ): ModelSchemaType {
-    const dbProperty: DatabaseProperty = new databasePropertyType();
-
-    if (dbProperty instanceof Color) {
-      return Color.getSchema();
-    }
-
-    throw new BadDataException(
-      `Schema for database property type ${databasePropertyType.name} is not implemented.`
-    );
   }
 }
