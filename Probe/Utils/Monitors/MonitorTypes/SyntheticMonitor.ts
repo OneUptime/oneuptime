@@ -104,7 +104,7 @@ export default class SyntheticMonitor {
         const endTime: [number, number] = process.hrtime(startTime);
 
         const executionTimeInMS: number =
-          (endTime[0] * 1000000000 + endTime[1]) / 1000000;
+          Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000);
 
         scriptResult.executionTimeInMS = executionTimeInMS;
 

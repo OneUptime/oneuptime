@@ -96,7 +96,7 @@ export default class PortMonitor {
           socket.connect(port.toNumber(), hostAddress, () => {
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
-              (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+              Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
             );
 
             logger.debug(

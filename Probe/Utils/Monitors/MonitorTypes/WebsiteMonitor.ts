@@ -81,7 +81,7 @@ export default class WebsiteMonitor {
 
       const endTime: [number, number] = process.hrtime(startTime);
       const responseTimeInMS: PositiveNumber = new PositiveNumber(
-        (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+        Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
       );
 
       // if response time is greater than 10 seconds then give it one more try

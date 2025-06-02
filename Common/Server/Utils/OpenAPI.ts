@@ -336,7 +336,6 @@ export default class OpenAPIUtil {
       description: `Endpoint to update an existing ${tableName}`,
       parameters: [
         ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
-        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
