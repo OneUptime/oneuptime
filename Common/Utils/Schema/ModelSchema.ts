@@ -35,7 +35,7 @@ export class ModelSchema {
           type: "string",
           example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         });
-      }else if (column.type === TableColumnType.Color) {
+      } else if (column.type === TableColumnType.Color) {
         zodType = Color.getSchema();
       } else if (column.type === TableColumnType.Date) {
         zodType = z.date().openapi({
@@ -156,8 +156,8 @@ export class ModelSchema {
       } else if (column.type === TableColumnType.Array) {
         zodType = z.array(z.any()).openapi({
           type: "array",
-          items: { 
-            type: "string" 
+          items: {
+            type: "string",
           },
           example: ["item1", "item2", "item3"],
         });
@@ -221,19 +221,18 @@ export class ModelSchema {
               return ModelSchema.getModelSchema({
                 modelType: entityArrayType as new () => DatabaseBaseModel,
               });
-            })
+            }),
           )
           .openapi({
             type: "array",
             items: {
               type: "object",
               properties: {
-                id: { type: "string" }
-              }
+                id: { type: "string" },
+              },
             },
             example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
           });
-            
       } else if (column.type === TableColumnType.Entity) {
         const entityType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;
@@ -278,8 +277,8 @@ export class ModelSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     return schema;
@@ -338,7 +337,7 @@ export class ModelSchema {
       }
 
       const isSortable: boolean = ModelSchema.getSortableTypes().includes(
-        column.type
+        column.type,
       );
 
       if (!isSortable) {

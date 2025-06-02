@@ -45,8 +45,9 @@ export default class CustomCodeMonitor {
 
         const endTime: [number, number] = process.hrtime(startTime);
 
-        const executionTimeInMS: number =
-          Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000);
+        const executionTimeInMS: number = Math.ceil(
+          (endTime[0] * 1000000000 + endTime[1]) / 1000000,
+        );
 
         scriptResult.executionTimeInMS = executionTimeInMS;
 

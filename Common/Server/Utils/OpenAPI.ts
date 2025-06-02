@@ -266,7 +266,7 @@ export default class OpenAPIUtil {
       summary: `Get ${tableName}`,
       description: `Endpoint to retrieve a single ${tableName} by ID`,
       parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
           name: "id",
           in: "path",
@@ -309,7 +309,7 @@ export default class OpenAPIUtil {
         required: true,
         schema: { type: "string" },
         description: "Content type of the request",
-        example: "application/json"
+        example: "application/json",
       },
       {
         name: "APIKey",
@@ -317,8 +317,8 @@ export default class OpenAPIUtil {
         required: true,
         schema: { type: "string" },
         description: "API key for authentication",
-        example: "{{apiKey}}"
-      }
+        example: "{{apiKey}}",
+      },
     ];
   }
 
@@ -335,7 +335,7 @@ export default class OpenAPIUtil {
       summary: `Update ${tableName}`,
       description: `Endpoint to update an existing ${tableName}`,
       parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
           name: "id",
           in: "path",
@@ -402,7 +402,7 @@ export default class OpenAPIUtil {
       summary: `Delete ${tableName}`,
       description: `Endpoint to delete a ${tableName}`,
       parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
           name: "id",
           in: "path",
