@@ -98,6 +98,8 @@ import "./Jobs/Monitor/DeleteMonitorLogOlderThan24Hours";
 
 import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 
+import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
+
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import JobDictionary from "./Utils/JobDictionary";

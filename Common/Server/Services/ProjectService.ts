@@ -1416,17 +1416,14 @@ export class ProjectService extends DatabaseService<Model> {
     };
   }
 
-    @CaptureSpan()
-  public async getProjectLinkInDashboard(
-    projectId: ObjectID,
-  ): Promise<URL> {
+  @CaptureSpan()
+  public async getProjectLinkInDashboard(projectId: ObjectID): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}`,
     );
   }
-
 
   @CaptureSpan()
   public async isSMSNotificationsEnabled(

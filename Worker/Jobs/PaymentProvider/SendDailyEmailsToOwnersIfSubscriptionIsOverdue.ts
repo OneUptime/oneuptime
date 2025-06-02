@@ -13,9 +13,8 @@ import User from "Common/Models/DatabaseModels/User";
 import MailService from "Common/Server/Services/MailService";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 
-
 RunCron(
-  "PaymentProvider:CheckSubscriptionStatus",
+  "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
   { schedule: IsDevelopment ? EVERY_MINUTE : EVERY_DAY, runOnStartup: false },
   async () => {
     // get all projects.
@@ -66,7 +65,7 @@ RunCron(
     for (const project of allPastDueProjects) {
       try {
         const projectOwners: Array<User> = await ProjectService.getOwners(
-          project.id!
+          project.id!,
         );
 
         if (!projectOwners || projectOwners.length === 0) {
@@ -94,14 +93,14 @@ RunCron(
                 projectName: project.name || "Project",
                 projectId: project.id?.toString() || "",
                 dashboardLink: ProjectService.getProjectLinkInDashboard(
-                  project.id!
+                  project.id!,
                 ).toString(),
               },
               subject: "[Action Required] OneUptime subscription is past due.",
             },
             {
               projectId: project.id!,
-            }
+            },
           ).catch((err: Error) => {
             logger.error(err);
           });
@@ -115,5 +114,5 @@ RunCron(
         });
       }
     }
-  }
+  },
 );
