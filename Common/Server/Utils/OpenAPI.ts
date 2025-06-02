@@ -112,12 +112,13 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
+    const singularModelName: string = model.singularName || tableName;
 
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/get-list`,
-      summary: `List ${tableName}`,
-      description: `Endpoint to list all ${tableName} items`,
+      summary: `List ${singularModelName}`,
+      description: `Endpoint to list all ${singularModelName} items`,
       requestBody: {
         required: false,
         content: {
@@ -165,11 +166,13 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
+    const singularModelName: string = model.singularName || tableName;
+    
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
-      summary: `Count ${tableName}`,
-      description: `Endpoint to count ${tableName} items`,
+      summary: `Count ${singularModelName}`,
+      description: `Endpoint to count ${singularModelName} items`,
       requestBody: {
         required: false,
         content: {
@@ -208,11 +211,13 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
+    const singularModelName: string = model.singularName || tableName;
+    
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
-      summary: `Create ${tableName}`,
-      description: `Endpoint to create a new ${tableName}`,
+      summary: `Create ${singularModelName}`,
+      description: `Endpoint to create a new ${singularModelName}`,
       requestBody: {
         required: true,
         content: {
@@ -260,11 +265,13 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
+    const singularModelName: string = model.singularName || tableName;
+    
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/{id}`,
-      summary: `Get ${tableName}`,
-      description: `Endpoint to retrieve a single ${tableName} by ID`,
+      summary: `Get ${singularModelName}`,
+      description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       parameters: [
         ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
@@ -275,7 +282,7 @@ export default class OpenAPIUtil {
             type: "string",
             format: "uuid",
           },
-          description: `ID of the ${tableName} to retrieve`,
+          description: `ID of the ${singularModelName} to retrieve`,
         },
       ],
       responses: {
@@ -321,11 +328,13 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
+    const singularModelName: string = model.singularName || tableName;
+    
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
-      summary: `Update ${tableName}`,
-      description: `Endpoint to update an existing ${tableName}`,
+      summary: `Update ${singularModelName}`,
+      description: `Endpoint to update an existing ${singularModelName}`,
       parameters: [
         ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
@@ -336,7 +345,7 @@ export default class OpenAPIUtil {
             type: "string",
             format: "uuid",
           },
-          description: `ID of the ${tableName} to update`,
+          description: `ID of the ${singularModelName} to update`,
         },
       ],
       requestBody: {
@@ -388,11 +397,12 @@ export default class OpenAPIUtil {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
+    const singularModelName: string = model.singularName || tableName;
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
-      summary: `Delete ${tableName}`,
-      description: `Endpoint to delete a ${tableName}`,
+      summary: `Delete ${singularModelName}`,
+      description: `Endpoint to delete a ${singularModelName}`,
       parameters: [
         ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
@@ -403,7 +413,7 @@ export default class OpenAPIUtil {
             type: "string",
             format: "uuid",
           },
-          description: `ID of the ${tableName} to delete`,
+          description: `ID of the ${singularModelName} to delete`,
         },
       ],
       responses: {
