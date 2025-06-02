@@ -156,6 +156,9 @@ export class ModelSchema {
       } else if (column.type === TableColumnType.Array) {
         zodType = z.array(z.any()).openapi({
           type: "array",
+          items: { 
+            type: "string" 
+          },
           example: ["item1", "item2", "item3"],
         });
       } else if (column.type === TableColumnType.SmallPositiveNumber) {
@@ -212,19 +215,25 @@ export class ModelSchema {
           logger.debug(`Entity type is not defined for column ${key}`);
           continue;
         }
-        const schemaArray: ModelSchemaType = ModelSchema.getModelSchema({
-          modelType: entityArrayType,
-        });
         zodType = z
           .array(
             z.lazy(() => {
-              return schemaArray;
+              return ModelSchema.getModelSchema({
+                modelType: entityArrayType as new () => DatabaseBaseModel,
+              });
             })
           )
           .openapi({
             type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" }
+              }
+            },
             example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
           });
+            
       } else if (column.type === TableColumnType.Entity) {
         const entityType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;

@@ -114,7 +114,7 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
 
     data.registry.registerPath({
-      method: "get",
+      method: "post",
       path: `${model.crudApiPath}/get-list`,
       summary: `List ${tableName}`,
       description: `Endpoint to list all ${tableName} items`,
@@ -166,7 +166,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     data.registry.registerPath({
-      method: "get",
+      method: "post",
       path: `${model.crudApiPath}/count`,
       summary: `Count ${tableName}`,
       description: `Endpoint to count ${tableName} items`,
@@ -261,7 +261,7 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     data.registry.registerPath({
-      method: "get",
+      method: "post",
       path: `${model.crudApiPath}/{id}`,
       summary: `Get ${tableName}`,
       description: `Endpoint to retrieve a single ${tableName} by ID`,
