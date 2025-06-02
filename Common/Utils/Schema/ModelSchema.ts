@@ -29,13 +29,13 @@ export class ModelSchema {
         continue;
       }
       let zodType: any;
+
       if (column.type === TableColumnType.ObjectID) {
         zodType = z.string().openapi({
           type: "string",
           example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         });
-      }
-      if (column.type === TableColumnType.Color) {
+      }else if (column.type === TableColumnType.Color) {
         zodType = Color.getSchema();
       } else if (column.type === TableColumnType.Date) {
         zodType = z.date().openapi({

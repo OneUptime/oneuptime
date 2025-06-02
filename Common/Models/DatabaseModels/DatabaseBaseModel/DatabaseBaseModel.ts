@@ -61,7 +61,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   public _id?: string = undefined;
 
   @TableColumn({
-    title: "Created",
+    title: "Created At",
     type: TableColumnType.Date,
     description: "Date and Time when the object was created.",
   })
@@ -71,7 +71,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   public createdAt?: Date = undefined;
 
   @TableColumn({
-    title: "Updated",
+    title: "Updated At",
     type: TableColumnType.Date,
     description: "Date and Time when the object was updated.",
   })
@@ -81,7 +81,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   public updatedAt?: Date = undefined;
 
   @TableColumn({
-    title: "Deleted",
+    title: "Deleted At",
     type: TableColumnType.Date,
     description: "Date and Time when the object was deleted.",
   })
