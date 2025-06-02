@@ -266,6 +266,7 @@ export default class OpenAPIUtil {
       summary: `Get ${tableName}`,
       description: `Endpoint to retrieve a single ${tableName} by ID`,
       parameters: [
+        ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
         {
           name: "id",
           in: "path",
@@ -300,6 +301,27 @@ export default class OpenAPIUtil {
     });
   }
 
+  public static getDefaultApiHeaders(): Array<JSONObject> {
+    return [
+      {
+        name: "Content-Type",
+        in: "header",
+        required: true,
+        schema: { type: "string" },
+        description: "Content type of the request",
+        example: "application/json"
+      },
+      {
+        name: "APIKey",
+        in: "header",
+        required: true,
+        schema: { type: "string" },
+        description: "API key for authentication",
+        example: "{{apiKey}}"
+      }
+    ];
+  }
+
   public static generateUpdateApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
     registry: OpenAPIRegistry;
@@ -313,6 +335,8 @@ export default class OpenAPIUtil {
       summary: `Update ${tableName}`,
       description: `Endpoint to update an existing ${tableName}`,
       parameters: [
+        ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
@@ -379,6 +403,7 @@ export default class OpenAPIUtil {
       summary: `Delete ${tableName}`,
       description: `Endpoint to delete a ${tableName}`,
       parameters: [
+        ...OpenAPIUtil.getDefaultApiHeaders() as Array<any>,
         {
           name: "id",
           in: "path",
