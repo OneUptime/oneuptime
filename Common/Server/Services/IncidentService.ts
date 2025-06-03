@@ -1932,6 +1932,55 @@ ${incidentSeverity.name}
 
     return incident.incidentNumber ? Number(incident.incidentNumber) : null;
   }
+
+  /**
+   * Ensures the currentIncidentStateId of the incident matches the latest timeline entry.
+   */
+  public async refreshIncidentCurrentStatus(incidentId: ObjectID): Promise<void> {
+    const incident = await this.findOneById({
+      id: incidentId,
+      select: {
+        _id: true,
+        projectId: true,
+        currentIncidentStateId: true,
+      },
+      props: { isRoot: true },
+    });
+    if (!incident || !incident.projectId) {
+      return;
+    }
+    const latestTimeline = await IncidentStateTimelineService.findOneBy({
+      query: {
+        incidentId: incident.id!,
+        projectId: incident.projectId,
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      select: {
+        incidentStateId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (
+      latestTimeline &&
+      latestTimeline.incidentStateId &&
+      incident.currentIncidentStateId?.toString() !== latestTimeline.incidentStateId.toString()
+    ) {
+      await this.updateOneBy({
+        query: { _id: incident.id!.toString() },
+        data: {
+          currentIncidentStateId: latestTimeline.incidentStateId,
+        },
+        props: { isRoot: true },
+      });
+      logger.info(
+        `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`
+      );
+    }
+  }
 }
 
 export default new Service();
