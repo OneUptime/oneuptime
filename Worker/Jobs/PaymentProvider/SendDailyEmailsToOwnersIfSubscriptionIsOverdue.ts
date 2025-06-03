@@ -92,9 +92,9 @@ RunCron(
               vars: {
                 projectName: project.name || "Project",
                 projectId: project.id?.toString() || "",
-                dashboardLink: (await ProjectService.getProjectLinkInDashboard(
-                  project.id!,
-                )).toString(),
+                dashboardLink: (
+                  await ProjectService.getProjectLinkInDashboard(project.id!)
+                ).toString(),
               },
               subject: "[Action Required] OneUptime subscription is past due.",
             },
