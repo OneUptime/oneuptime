@@ -4,6 +4,8 @@ import "./Jobs/Announcement/SendNotificationToSubscribers";
 import "./Jobs/HardDelete/HardDeleteItemsInDatabase";
 // Incidents
 import "./Jobs/Incident/SendNotificationToSubscribers";
+import "./Jobs/Incident/KeepCurrentStateConsistent";
+
 // Incident Owners
 import "./Jobs/IncidentOwners/SendCreatedResourceNotification";
 import "./Jobs/IncidentOwners/SendNotePostedNotification";
@@ -18,6 +20,7 @@ import "./Jobs/AlertOwners/SendCreatedResourceNotification";
 import "./Jobs/AlertOwners/SendNotePostedNotification";
 import "./Jobs/AlertOwners/SendOwnerAddedNotification";
 import "./Jobs/AlertOwners/SendStateChangeNotification";
+import "./Jobs/Alert/KeepCurrentStateConsistent";
 
 // Incident Notes
 import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
@@ -43,6 +46,7 @@ import "./Jobs/ScheduledMaintenance/ChangeStateToOngoing";
 import "./Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
 import "./Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import "./Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
+import "./Jobs/ScheduledMaintenance/KeepCurrentStateConsistent";
 
 // Scheduled Event Owners
 import "./Jobs/ScheduledMaintenanceOwners/SendCreatedResourceNotification";
