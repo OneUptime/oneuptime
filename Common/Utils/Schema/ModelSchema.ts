@@ -9,8 +9,29 @@ import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/Dat
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../../Server/Utils/Logger";
 import Color from "../../Types/Color";
+import { z as ZodTypes } from "zod";
 
 export type ModelSchemaType = ZodSchema;
+
+// Type for schema examples
+type SchemaExample = Record<string, unknown>;
+
+// Type for operator examples in OpenAPI format
+type OperatorExample = {
+  properties: Record<string, {
+    type: string;
+    enum?: string[];
+    items?: { type: string };
+  }>;
+  required: string[];
+  example: Record<string, unknown>;
+};
+
+// Type for shape objects using Zod's type inference
+type ShapeRecord = Record<string, ZodTypes.ZodTypeAny>;
+
+// Type for schema method functions
+type SchemaMethodFunction = (data: { modelType: new () => DatabaseBaseModel }) => ModelSchemaType;
 
 export class ModelSchema {
   public static getModelSchema(data: {
@@ -21,14 +42,14 @@ export class ModelSchema {
 
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
 
-    const shape: Record<string, any> = {};
+    const shape: ShapeRecord = {};
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
         continue;
       }
-      let zodType: any;
+      let zodType: ZodTypes.ZodTypeAny;
 
       if (column.type === TableColumnType.ObjectID) {
         zodType = z.string().openapi({
@@ -306,7 +327,7 @@ export class ModelSchema {
 
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
 
-    const shape: Record<string, any> = {};
+    const shape: ShapeRecord = {};
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -326,24 +347,22 @@ export class ModelSchema {
         this.getOperatorSchema(operatorType, column.type)
       );
 
-      let columnSchema: any;
-      if (operatorSchemas.length === 1) {
+      let columnSchema: ZodTypes.ZodTypeAny;
+      if (operatorSchemas.length === 1 && operatorSchemas[0]) {
         columnSchema = operatorSchemas[0].optional();
+      } else if (operatorSchemas.length > 1) {
+        columnSchema = z.union(operatorSchemas as [ZodTypes.ZodTypeAny, ZodTypes.ZodTypeAny, ...ZodTypes.ZodTypeAny[]]).optional();
       } else {
-        columnSchema = z.union(operatorSchemas as [any, any, ...any[]]).optional();
+        // Fallback for empty operators array
+        columnSchema = z.any().optional();
       }
 
       // Add OpenAPI documentation for query operators
       const operatorExamples = this.getQueryOperatorExamples(column.type, validOperators);
       columnSchema = columnSchema.openapi({
         type: "object",
-        description: `Query operators for ${key} field of type ${column.type}`,
-        oneOf: operatorExamples.map(example => ({
-          type: "object",
-          properties: example.properties,
-          required: example.required,
-          example: example.example
-        }))
+        description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(', ')}`,
+        example: operatorExamples.length > 0 && operatorExamples[0] ? operatorExamples[0].example : {}
       });
 
       shape[key] = columnSchema;
@@ -410,7 +429,7 @@ export class ModelSchema {
     }
   }
 
-  private static getOperatorSchema(operatorType: string, columnType: TableColumnType): any {
+  private static getOperatorSchema(operatorType: string, columnType: TableColumnType): ZodTypes.ZodTypeAny {
     const baseValue = this.getBaseValueSchemaForColumnType(columnType);
     
     switch (operatorType) {
@@ -464,7 +483,7 @@ export class ModelSchema {
     }
   }
 
-  private static getBaseValueSchemaForColumnType(columnType: TableColumnType): any {
+  private static getBaseValueSchemaForColumnType(columnType: TableColumnType): ZodTypes.ZodTypeAny {
     switch (columnType) {
       case TableColumnType.ObjectID:
         return z.string();
@@ -542,7 +561,7 @@ export class ModelSchema {
 
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
 
-    const shape: Record<string, any> = {};
+    const shape: ShapeRecord = {};
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -586,7 +605,7 @@ export class ModelSchema {
 
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
 
-    const shape: Record<string, any> = {};
+    const shape: ShapeRecord = {};
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -628,8 +647,8 @@ export class ModelSchema {
     });
   }
 
-  private static getQueryOperatorExamples(columnType: TableColumnType, validOperators: Array<string>): Array<any> {
-    const examples: Array<any> = [];
+  private static getQueryOperatorExamples(columnType: TableColumnType, validOperators: Array<string>): Array<OperatorExample> {
+    const examples: Array<OperatorExample> = [];
     
     for (const operator of validOperators) {
       switch (operator) {
@@ -789,7 +808,7 @@ export class ModelSchema {
     }
   }
 
-  private static getExampleValueForColumn(columnType: TableColumnType, isSecondValue: boolean = false): any {
+  private static getExampleValueForColumn(columnType: TableColumnType, isSecondValue: boolean = false): unknown {
     switch (columnType) {
       case TableColumnType.ObjectID:
         return isSecondValue ? "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" : "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -824,7 +843,7 @@ export class ModelSchema {
     }
   }
 
-  private static getQuerySchemaExample(_tableName: string): any {
+  private static getQuerySchemaExample(_tableName: string): SchemaExample {
     return {
       name: {
         _type: "Search",
@@ -841,14 +860,14 @@ export class ModelSchema {
     };
   }
 
-  private static getSortSchemaExample(): any {
+  private static getSortSchemaExample(): SchemaExample {
     return {
       name: "Ascending",
       createdAt: "Descending"
     };
   }
 
-  private static getSelectSchemaExample(): any {
+  private static getSelectSchemaExample(): SchemaExample {
     return {
       id: true,
       name: true,
@@ -865,13 +884,13 @@ export class ModelSchema {
     includedFields?: string[];
     schemaType: 'create' | 'read' | 'update' | 'delete';
     description: string;
-    example: any;
+    example: SchemaExample;
     makeOptional?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-    const shape: Record<string, any> = {};
+    const shape: ShapeRecord = {};
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -889,7 +908,7 @@ export class ModelSchema {
         continue;
       }
 
-      let zodType: any = this.getZodTypeForColumn(column, key, data.schemaType);
+      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column, key, data.schemaType);
 
       // Make fields optional if specified
       if (data.makeOptional) {
@@ -927,8 +946,8 @@ export class ModelSchema {
     column: TableColumnMetadata, 
     key: string, 
     schemaType: 'create' | 'read' | 'update' | 'delete'
-  ): any {
-    let zodType: any;
+  ): ZodTypes.ZodTypeAny {
+    let zodType: ZodTypes.ZodTypeAny;
 
     if (column.type === TableColumnType.ObjectID) {
       zodType = z.string().openapi({
@@ -1117,7 +1136,7 @@ export class ModelSchema {
       }
 
       // Use the appropriate schema method based on the operation type
-      let schemaMethod: any;
+      let schemaMethod: SchemaMethodFunction;
       switch (schemaType) {
         case 'create':
           schemaMethod = ModelSchema.getCreateModelSchema;
@@ -1250,7 +1269,7 @@ export class ModelSchema {
     });
   }
 
-  private static getCreateSchemaExample(): any {
+  private static getCreateSchemaExample(): SchemaExample {
     return {
       name: "John Doe",
       email: "john@example.com", 
@@ -1258,7 +1277,7 @@ export class ModelSchema {
     };
   }
 
-  private static getReadSchemaExample(): any {
+  private static getReadSchemaExample(): SchemaExample {
     return {
       _id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
       name: "John Doe",
@@ -1270,14 +1289,14 @@ export class ModelSchema {
     };
   }
 
-  private static getUpdateSchemaExample(): any {
+  private static getUpdateSchemaExample(): SchemaExample {
     return {
       name: "Jane Doe",
       email: "jane@example.com"
     };
   }
 
-  private static getDeleteSchemaExample(): any {
+  private static getDeleteSchemaExample(): SchemaExample {
     return {
       _id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
     };
