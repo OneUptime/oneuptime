@@ -314,10 +314,224 @@ export class ModelSchema {
         continue;
       }
 
-      // There are these query operators.
+      // Get valid operators for this column type
+      const validOperators = this.getValidOperatorsForColumnType(column.type);
+      
+      if (validOperators.length === 0) {
+        continue;
+      }
+
+      // Create a union type of all valid operators for this column
+      const operatorSchemas = validOperators.map(operatorType => 
+        this.getOperatorSchema(operatorType, column.type)
+      );
+
+      let columnSchema: any;
+      if (operatorSchemas.length === 1) {
+        columnSchema = operatorSchemas[0].optional();
+      } else {
+        columnSchema = z.union(operatorSchemas as [any, any, ...any[]]).optional();
+      }
+
+      // Add OpenAPI documentation for query operators
+      const operatorExamples = this.getQueryOperatorExamples(column.type, validOperators);
+      columnSchema = columnSchema.openapi({
+        type: "object",
+        description: `Query operators for ${key} field of type ${column.type}`,
+        oneOf: operatorExamples.map(example => ({
+          type: "object",
+          properties: example.properties,
+          required: example.required,
+          example: example.example
+        }))
+      });
+
+      shape[key] = columnSchema;
     }
 
-    return z.object(shape);
+    const schema = z.object(shape).openapi({
+      type: "object",
+      description: `Query schema for ${model.tableName || 'model'} model. Each field can use various operators based on its data type.`,
+      example: this.getQuerySchemaExample(model.tableName || 'model')
+    });
+
+    return schema;
+  }
+
+  private static getValidOperatorsForColumnType(columnType: TableColumnType): Array<string> {
+    const commonOperators = ["EqualTo", "NotEqual", "IsNull", "NotNull", "EqualToOrNull"];
+    
+    switch (columnType) {
+      case TableColumnType.ObjectID:
+      case TableColumnType.Email:
+      case TableColumnType.Phone:
+      case TableColumnType.HashedString:
+      case TableColumnType.Slug:
+        return [...commonOperators, "Includes"];
+        
+      case TableColumnType.ShortText:
+      case TableColumnType.LongText:
+      case TableColumnType.VeryLongText:
+      case TableColumnType.Name:
+      case TableColumnType.Description:
+      case TableColumnType.Domain:
+      case TableColumnType.Markdown:
+        return [...commonOperators, "Search", "Includes"];
+        
+      case TableColumnType.Number:
+      case TableColumnType.PositiveNumber:
+      case TableColumnType.SmallNumber:
+      case TableColumnType.SmallPositiveNumber:
+      case TableColumnType.BigNumber:
+      case TableColumnType.BigPositiveNumber:
+        return [...commonOperators, "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual", "InBetween"];
+        
+      case TableColumnType.Date:
+        return [...commonOperators, "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual", "InBetween"];
+        
+      case TableColumnType.Boolean:
+        return commonOperators;
+        
+      case TableColumnType.JSON:
+      case TableColumnType.Array:
+        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
+        
+      case TableColumnType.Entity:
+      case TableColumnType.EntityArray:
+        return ["EqualTo", "NotEqual", "IsNull", "NotNull", "Includes"];
+        
+      case TableColumnType.Color:
+      case TableColumnType.File:
+      case TableColumnType.Buffer:
+        return commonOperators;
+        
+      default:
+        return commonOperators;
+    }
+  }
+
+  private static getOperatorSchema(operatorType: string, columnType: TableColumnType): any {
+    const baseValue = this.getBaseValueSchemaForColumnType(columnType);
+    
+    switch (operatorType) {
+      case "EqualTo":
+      case "NotEqual":
+      case "EqualToOrNull":
+        return z.object({
+          _type: z.literal(operatorType),
+          value: baseValue
+        });
+        
+      case "GreaterThan":
+      case "LessThan":
+      case "GreaterThanOrEqual":
+      case "LessThanOrEqual":
+        return z.object({
+          _type: z.literal(operatorType),
+          value: baseValue
+        });
+        
+      case "Search":
+        return z.object({
+          _type: z.literal("Search"),
+          value: z.string()
+        });
+        
+      case "InBetween":
+        return z.object({
+          _type: z.literal("InBetween"),
+          startValue: baseValue,
+          endValue: baseValue
+        });
+        
+      case "IsNull":
+      case "NotNull":
+        return z.object({
+          _type: z.literal(operatorType)
+        });
+        
+      case "Includes":
+        return z.object({
+          _type: z.literal("Includes"),
+          value: z.array(baseValue)
+        });
+        
+      default:
+        return z.object({
+          _type: z.literal(operatorType),
+          value: baseValue
+        });
+    }
+  }
+
+  private static getBaseValueSchemaForColumnType(columnType: TableColumnType): any {
+    switch (columnType) {
+      case TableColumnType.ObjectID:
+        return z.string();
+        
+      case TableColumnType.Email:
+        return z.string().email();
+        
+      case TableColumnType.Phone:
+      case TableColumnType.HashedString:
+      case TableColumnType.Slug:
+      case TableColumnType.ShortText:
+      case TableColumnType.LongText:
+      case TableColumnType.VeryLongText:
+      case TableColumnType.Name:
+      case TableColumnType.Description:
+      case TableColumnType.Domain:
+      case TableColumnType.Markdown:
+      case TableColumnType.HTML:
+      case TableColumnType.JavaScript:
+      case TableColumnType.CSS:
+      case TableColumnType.LongURL:
+      case TableColumnType.ShortURL:
+      case TableColumnType.OTP:
+      case TableColumnType.Password:
+      case TableColumnType.Version:
+        return z.string();
+        
+      case TableColumnType.Number:
+      case TableColumnType.PositiveNumber:
+      case TableColumnType.SmallNumber:
+      case TableColumnType.SmallPositiveNumber:
+      case TableColumnType.BigNumber:
+      case TableColumnType.BigPositiveNumber:
+        return z.number();
+        
+      case TableColumnType.Date:
+        return z.date();
+        
+      case TableColumnType.Boolean:
+        return z.boolean();
+        
+      case TableColumnType.JSON:
+      case TableColumnType.Array:
+      case TableColumnType.Permission:
+      case TableColumnType.CustomFieldType:
+        return z.any();
+        
+      case TableColumnType.Color:
+        return Color.getSchema();
+        
+      case TableColumnType.Entity:
+        return z.string(); // Entity IDs are typically strings
+        
+      case TableColumnType.EntityArray:
+        return z.array(z.string()); // Array of entity IDs
+        
+      case TableColumnType.File:
+      case TableColumnType.Buffer:
+        return z.any();
+        
+      case TableColumnType.MonitorType:
+      case TableColumnType.WorkflowStatus:
+        return z.string();
+        
+      default:
+        return z.string();
+    }
   }
 
   public static getSortModelSchema(data: {
@@ -346,10 +560,21 @@ export class ModelSchema {
 
       shape[key] = z
         .enum([SortOrder.Ascending, SortOrder.Descending])
-        .optional();
+        .optional()
+        .openapi({
+          type: "string",
+          enum: [SortOrder.Ascending, SortOrder.Descending],
+          description: `Sort order for ${key} field`,
+          example: SortOrder.Ascending
+        });
     }
 
-    return z.object(shape);
+    return z.object(shape).openapi({
+      type: "object",
+      description: `Sort schema for ${model.tableName || 'model'} model. Only sortable fields are included.`,
+      example: this.getSortSchemaExample(),
+      additionalProperties: false
+    });
   }
 
   public static getSelectModelSchema(data: {
@@ -380,13 +605,256 @@ export class ModelSchema {
         shape[key] = this.getSelectModelSchema({
           modelType: column.modelType as new () => DatabaseBaseModel,
           isNested: true,
+        }).openapi({
+          type: "object",
+          description: `Select fields for nested ${key} entity`,
+          example: { id: true, name: true }
         });
         continue;
       }
 
-      shape[key] = z.boolean().optional();
+      shape[key] = z.boolean().optional().openapi({
+        type: "boolean",
+        description: `Select ${key} field in the response`,
+        example: true
+      });
     }
 
-    return z.object(shape);
+    return z.object(shape).openapi({
+      type: "object",
+      description: `Select schema for ${model.tableName || 'model'} model. Set fields to true to include them in the response.`,
+      example: this.getSelectSchemaExample(),
+      additionalProperties: false
+    });
+  }
+
+  private static getQueryOperatorExamples(columnType: TableColumnType, validOperators: Array<string>): Array<any> {
+    const examples: Array<any> = [];
+    
+    for (const operator of validOperators) {
+      switch (operator) {
+        case "EqualTo":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["EqualTo"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "EqualTo", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "NotEqual":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["NotEqual"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "NotEqual", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "Search":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["Search"] },
+              value: { type: "string" }
+            },
+            required: ["_type", "value"],
+            example: { _type: "Search", value: "search term" }
+          });
+          break;
+        case "GreaterThan":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["GreaterThan"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "GreaterThan", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "LessThan":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["LessThan"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "LessThan", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "GreaterThanOrEqual":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["GreaterThanOrEqual"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "GreaterThanOrEqual", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "LessThanOrEqual":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["LessThanOrEqual"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "LessThanOrEqual", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "EqualToOrNull":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["EqualToOrNull"] },
+              value: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "value"],
+            example: { _type: "EqualToOrNull", value: this.getExampleValueForColumn(columnType) }
+          });
+          break;
+        case "InBetween":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["InBetween"] },
+              startValue: { type: this.getOpenAPITypeForColumn(columnType) },
+              endValue: { type: this.getOpenAPITypeForColumn(columnType) }
+            },
+            required: ["_type", "startValue", "endValue"],
+            example: { 
+              _type: "InBetween", 
+              startValue: this.getExampleValueForColumn(columnType),
+              endValue: this.getExampleValueForColumn(columnType, true)
+            }
+          });
+          break;
+        case "IsNull":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["IsNull"] }
+            },
+            required: ["_type"],
+            example: { _type: "IsNull" }
+          });
+          break;
+        case "NotNull":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["NotNull"] }
+            },
+            required: ["_type"],
+            example: { _type: "NotNull" }
+          });
+          break;
+        case "Includes":
+          examples.push({
+            properties: {
+              _type: { type: "string", enum: ["Includes"] },
+              value: { 
+                type: "array",
+                items: { type: this.getOpenAPITypeForColumn(columnType) }
+              }
+            },
+            required: ["_type", "value"],
+            example: { 
+              _type: "Includes", 
+              value: [this.getExampleValueForColumn(columnType), this.getExampleValueForColumn(columnType, true)]
+            }
+          });
+          break;
+      }
+    }
+    
+    return examples;
+  }
+
+  private static getOpenAPITypeForColumn(columnType: TableColumnType): string {
+    switch (columnType) {
+      case TableColumnType.Number:
+      case TableColumnType.PositiveNumber:
+      case TableColumnType.SmallNumber:
+      case TableColumnType.SmallPositiveNumber:
+      case TableColumnType.BigNumber:
+      case TableColumnType.BigPositiveNumber:
+        return "number";
+      case TableColumnType.Boolean:
+        return "boolean";
+      case TableColumnType.Date:
+        return "string";
+      case TableColumnType.JSON:
+      case TableColumnType.Array:
+        return "object";
+      default:
+        return "string";
+    }
+  }
+
+  private static getExampleValueForColumn(columnType: TableColumnType, isSecondValue: boolean = false): any {
+    switch (columnType) {
+      case TableColumnType.ObjectID:
+        return isSecondValue ? "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" : "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+      case TableColumnType.Email:
+        return isSecondValue ? "jane@example.com" : "john@example.com";
+      case TableColumnType.Phone:
+        return isSecondValue ? "+1-555-987-6543" : "+1-555-123-4567";
+      case TableColumnType.Number:
+      case TableColumnType.PositiveNumber:
+        return isSecondValue ? 100 : 50;
+      case TableColumnType.SmallNumber:
+        return isSecondValue ? 20 : 10;
+      case TableColumnType.SmallPositiveNumber:
+        return isSecondValue ? 25 : 15;
+      case TableColumnType.BigNumber:
+        return isSecondValue ? 2000000 : 1000000;
+      case TableColumnType.BigPositiveNumber:
+        return isSecondValue ? 2500000 : 1500000;
+      case TableColumnType.Date:
+        return isSecondValue ? "2023-12-31T23:59:59.000Z" : "2023-01-01T00:00:00.000Z";
+      case TableColumnType.Boolean:
+        return isSecondValue ? false : true;
+      case TableColumnType.ShortText:
+      case TableColumnType.Name:
+        return isSecondValue ? "Jane Doe" : "John Doe";
+      case TableColumnType.Description:
+        return isSecondValue ? "Second example description" : "Example description";
+      case TableColumnType.Domain:
+        return isSecondValue ? "example.org" : "example.com";
+      default:
+        return isSecondValue ? "example_value_2" : "example_value_1";
+    }
+  }
+
+  private static getQuerySchemaExample(_tableName: string): any {
+    return {
+      name: {
+        _type: "Search",
+        value: "john"
+      },
+      email: {
+        _type: "EqualTo", 
+        value: "john@example.com"
+      },
+      createdAt: {
+        _type: "GreaterThan",
+        value: "2023-01-01T00:00:00.000Z"
+      }
+    };
+  }
+
+  private static getSortSchemaExample(): any {
+    return {
+      name: "Ascending",
+      createdAt: "Descending"
+    };
+  }
+
+  private static getSelectSchemaExample(): any {
+    return {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      updatedAt: false
+    };
   }
 }
