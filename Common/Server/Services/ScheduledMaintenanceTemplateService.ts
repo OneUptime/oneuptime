@@ -234,12 +234,20 @@ export class Service extends DatabaseService<Model> {
           );
         }
 
-        // now get next interval time.
+        // check if firstEventScheduledAt is in the future, and if yes return that.
+        if (OneUptimeDate.isInTheFuture(firstEventScheduledAt)) {
+          // if it is in the future, then we do not need to change the next scheduled time.
+          newTemplate.scheduleNextEventAt = firstEventScheduledAt;
+        } else {
+          // if it is not in the future, then we need to calculate the next scheduled time.
 
-        newTemplate.scheduleNextEventAt = this.getNextEventTime({
-          dateAndTime: firstEventScheduledAt,
-          recurringInterval: recurringInterval,
-        });
+          // now get next interval time.
+
+          newTemplate.scheduleNextEventAt = this.getNextEventTime({
+            dateAndTime: firstEventScheduledAt,
+            recurringInterval: recurringInterval,
+          });
+        }
       }
     }
 
