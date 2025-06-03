@@ -1117,7 +1117,7 @@ export class ModelSchema {
       }
 
       // Use the appropriate schema method based on the operation type
-      let schemaMethod;
+      let schemaMethod: any;
       switch (schemaType) {
         case 'create':
           schemaMethod = ModelSchema.getCreateModelSchema;
