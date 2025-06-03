@@ -114,6 +114,11 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
+    // Use schema names that are already registered
+    const querySchemaName = `${tableName}QuerySchema`;
+    const selectSchemaName = `${tableName}SelectSchema`;
+    const sortSchemaName = `${tableName}SortSchema`;
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/get-list`,
@@ -126,10 +131,18 @@ export default class OpenAPIUtil {
             schema: {
               type: "object",
               properties: {
-                query: { type: "object" },
-                select: { type: "object" },
-                sort: { type: "object" },
-                groupBy: { type: "object" },
+                query: { $ref: `#/components/schemas/${querySchemaName}` },
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
+                sort: { $ref: `#/components/schemas/${sortSchemaName}` },
+                groupBy: { 
+                  type: "object",
+                  description: "Group by fields. Keys are field names, values are aggregation functions.",
+                  additionalProperties: {
+                    type: "string",
+                    enum: ["count", "sum", "avg", "min", "max"]
+                  },
+                  example: { "status": "count", "priority": "count" }
+                },
               },
             },
           },
@@ -169,6 +182,9 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
+    // Use schema name that is already registered
+    const querySchemaName = `${tableName}QuerySchema`;
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
@@ -181,7 +197,7 @@ export default class OpenAPIUtil {
             schema: {
               type: "object",
               properties: {
-                query: { type: "object" },
+                query: { $ref: `#/components/schemas/${querySchemaName}` },
               },
             },
           },
@@ -215,6 +231,9 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
+    // Use schema name that is already registered
+    const selectSchemaName = `${tableName}SelectSchema`;
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
@@ -230,7 +249,12 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${tableName}`,
                 },
-                miscDataProps: { type: "object" },
+                miscDataProps: { 
+                  type: "object",
+                  description: "Additional data properties for creation",
+                  additionalProperties: true
+                },
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
@@ -308,6 +332,9 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
+    // Use schema name that is already registered
+    const selectSchemaName = `${tableName}SelectSchema`;
+
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/{id}`,
@@ -326,6 +353,19 @@ export default class OpenAPIUtil {
           description: `ID of the ${singularModelName} to retrieve`,
         },
       ],
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
+              },
+            },
+          },
+        },
+      },
       responses: {
         "200": {
           description: "Successful response",
@@ -369,6 +409,9 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
+    // Use schema name that is already registered
+    const selectSchemaName = `${tableName}SelectSchema`;
+
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
@@ -397,6 +440,7 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${tableName}`,
                 },
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
@@ -468,5 +512,24 @@ export default class OpenAPIUtil {
       modelType: model.constructor as new () => DatabaseBaseModel,
     });
     registry.register(tableName, modelSchema);
+
+    // Register query, select, and sort schemas
+    const querySchemaName = `${tableName}QuerySchema`;
+    const selectSchemaName = `${tableName}SelectSchema`;
+    const sortSchemaName = `${tableName}SortSchema`;
+
+    const querySchema = ModelSchema.getQueryModelSchema({ 
+      modelType: model.constructor as new () => DatabaseBaseModel 
+    });
+    const selectSchema = ModelSchema.getSelectModelSchema({ 
+      modelType: model.constructor as new () => DatabaseBaseModel 
+    });
+    const sortSchema = ModelSchema.getSortModelSchema({ 
+      modelType: model.constructor as new () => DatabaseBaseModel 
+    });
+
+    registry.register(querySchemaName, querySchema);
+    registry.register(selectSchemaName, selectSchema);
+    registry.register(sortSchemaName, sortSchema);
   }
 }
