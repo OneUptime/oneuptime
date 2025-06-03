@@ -1467,5 +1467,54 @@ ${labels
       },
     );
   }
+
+  /**
+   * Ensures the currentScheduledMaintenanceStateId of the scheduled maintenance matches the latest timeline entry.
+   */
+  public async refreshScheduledMaintenanceCurrentStatus(scheduledMaintenanceId: ObjectID): Promise<void> {
+    const scheduledMaintenance = await this.findOneById({
+      id: scheduledMaintenanceId,
+      select: {
+        _id: true,
+        projectId: true,
+        currentScheduledMaintenanceStateId: true,
+      },
+      props: { isRoot: true },
+    });
+    if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
+      return;
+    }
+    const latestTimeline = await ScheduledMaintenanceStateTimelineService.findOneBy({
+      query: {
+        scheduledMaintenanceId: scheduledMaintenance.id!,
+        projectId: scheduledMaintenance.projectId,
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      select: {
+        scheduledMaintenanceStateId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (
+      latestTimeline &&
+      latestTimeline.scheduledMaintenanceStateId &&
+      scheduledMaintenance.currentScheduledMaintenanceStateId?.toString() !== latestTimeline.scheduledMaintenanceStateId.toString()
+    ) {
+      await this.updateOneBy({
+        query: { _id: scheduledMaintenance.id!.toString() },
+        data: {
+          currentScheduledMaintenanceStateId: latestTimeline.scheduledMaintenanceStateId,
+        },
+        props: { isRoot: true },
+      });
+      logger.info(
+        `Updated ScheduledMaintenance ${scheduledMaintenance.id} current state to ${latestTimeline.scheduledMaintenanceStateId}`
+      );
+    }
+  }
 }
 export default new Service();

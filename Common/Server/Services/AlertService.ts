@@ -1338,5 +1338,54 @@ ${alertSeverity.name}
 
     return alert;
   }
+
+  /**
+   * Ensures the currentAlertStateId of the alert matches the latest timeline entry.
+   */
+  public async refreshAlertCurrentStatus(alertId: ObjectID): Promise<void> {
+    const alert = await this.findOneById({
+      id: alertId,
+      select: {
+        _id: true,
+        projectId: true,
+        currentAlertStateId: true,
+      },
+      props: { isRoot: true },
+    });
+    if (!alert || !alert.projectId) {
+      return;
+    }
+    const latestTimeline = await AlertStateTimelineService.findOneBy({
+      query: {
+        alertId: alert.id!,
+        projectId: alert.projectId,
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      select: {
+        alertStateId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (
+      latestTimeline &&
+      latestTimeline.alertStateId &&
+      alert.currentAlertStateId?.toString() !== latestTimeline.alertStateId.toString()
+    ) {
+      await this.updateOneBy({
+        query: { _id: alert.id!.toString() },
+        data: {
+          currentAlertStateId: latestTimeline.alertStateId,
+        },
+        props: { isRoot: true },
+      });
+      logger.info(
+        `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`
+      );
+    }
+  }
 }
 export default new Service();

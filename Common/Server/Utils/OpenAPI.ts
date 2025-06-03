@@ -155,6 +155,7 @@ export default class OpenAPIUtil {
             },
           },
         },
+         ...this.getGenericStatusResponseSchema(),
       },
     });
   }
@@ -200,6 +201,7 @@ export default class OpenAPIUtil {
             },
           },
         },
+         ...this.getGenericStatusResponseSchema(),
       },
     });
   }
@@ -251,12 +253,43 @@ export default class OpenAPIUtil {
             },
           },
         },
-        "400": {
-          description: "Bad request",
-        },
+        ...this.getGenericStatusResponseSchema(),
       },
     });
   }
+
+  public static getGenericStatusResponseSchema(): JSONObject {
+    return {
+      "400": {
+          description: "Bad request. This response indicates that the request was malformed or contained invalid data.",
+        },
+      "401": {
+          description: "Unauthorized. This response indicates that the request requires user authentication.",
+        },
+        "402": {
+          description: "Payment Required. This response indicates that the request requires payment or a valid subscription.",
+        },
+      "403": {
+          description: "Forbidden. This response indicates that the server understood the request, but refuses to authorize it.",
+        },
+        "408": {
+          description: "Request Timeout. This response indicates that the server timed out waiting for the request.",
+        },
+        "405": {
+          description: "Project not found. This response indicates that the requested project does not exist or is not accessible.",
+        },
+        "415": {
+          description: "Unable to reach server. This response indicates that the server is currently unreachable or down.",
+        },
+        "422": {
+          description: "Not authorized. This response indicates that the user does not have permission to access the requested resource.",
+        },
+        "500": {
+          description: "Internal Server Error. This response indicates that the server encountered an unexpected condition that prevented it from fulfilling the request.",
+        }
+      }
+    };
+      
 
   public static generateGetApiSpec(data: {
     modelType: new () => DatabaseBaseModel;
@@ -301,9 +334,7 @@ export default class OpenAPIUtil {
             },
           },
         },
-        "404": {
-          description: "Resource not found",
-        },
+         ...this.getGenericStatusResponseSchema(),
       },
     });
   }
@@ -380,12 +411,7 @@ export default class OpenAPIUtil {
             },
           },
         },
-        "404": {
-          description: "Resource not found",
-        },
-        "400": {
-          description: "Bad request",
-        },
+         ...this.getGenericStatusResponseSchema(),
       },
     });
   }
@@ -417,12 +443,10 @@ export default class OpenAPIUtil {
         },
       ],
       responses: {
-        "204": {
+        "200": {
           description: "Deleted successfully",
         },
-        "404": {
-          description: "Resource not found",
-        },
+         ...this.getGenericStatusResponseSchema(),
       },
     });
   }
