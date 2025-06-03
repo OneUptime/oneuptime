@@ -1471,8 +1471,10 @@ ${labels
   /**
    * Ensures the currentScheduledMaintenanceStateId of the scheduled maintenance matches the latest timeline entry.
    */
-  public async refreshScheduledMaintenanceCurrentStatus(scheduledMaintenanceId: ObjectID): Promise<void> {
-    const scheduledMaintenance = await this.findOneById({
+  public async refreshScheduledMaintenanceCurrentStatus(
+    scheduledMaintenanceId: ObjectID,
+  ): Promise<void> {
+    const scheduledMaintenance: Model | null = await this.findOneById({
       id: scheduledMaintenanceId,
       select: {
         _id: true,
@@ -1484,35 +1486,38 @@ ${labels
     if (!scheduledMaintenance || !scheduledMaintenance.projectId) {
       return;
     }
-    const latestTimeline = await ScheduledMaintenanceStateTimelineService.findOneBy({
-      query: {
-        scheduledMaintenanceId: scheduledMaintenance.id!,
-        projectId: scheduledMaintenance.projectId,
-      },
-      sort: {
-        startsAt: SortOrder.Descending,
-      },
-      select: {
-        scheduledMaintenanceStateId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const latestTimeline: ScheduledMaintenanceStateTimeline | null =
+      await ScheduledMaintenanceStateTimelineService.findOneBy({
+        query: {
+          scheduledMaintenanceId: scheduledMaintenance.id!,
+          projectId: scheduledMaintenance.projectId,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        select: {
+          scheduledMaintenanceStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     if (
       latestTimeline &&
       latestTimeline.scheduledMaintenanceStateId &&
-      scheduledMaintenance.currentScheduledMaintenanceStateId?.toString() !== latestTimeline.scheduledMaintenanceStateId.toString()
+      scheduledMaintenance.currentScheduledMaintenanceStateId?.toString() !==
+        latestTimeline.scheduledMaintenanceStateId.toString()
     ) {
       await this.updateOneBy({
         query: { _id: scheduledMaintenance.id!.toString() },
         data: {
-          currentScheduledMaintenanceStateId: latestTimeline.scheduledMaintenanceStateId,
+          currentScheduledMaintenanceStateId:
+            latestTimeline.scheduledMaintenanceStateId,
         },
         props: { isRoot: true },
       });
       logger.info(
-        `Updated ScheduledMaintenance ${scheduledMaintenance.id} current state to ${latestTimeline.scheduledMaintenanceStateId}`
+        `Updated ScheduledMaintenance ${scheduledMaintenance.id} current state to ${latestTimeline.scheduledMaintenanceStateId}`,
       );
     }
   }

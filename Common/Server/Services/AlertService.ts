@@ -1343,7 +1343,7 @@ ${alertSeverity.name}
    * Ensures the currentAlertStateId of the alert matches the latest timeline entry.
    */
   public async refreshAlertCurrentStatus(alertId: ObjectID): Promise<void> {
-    const alert = await this.findOneById({
+    const alert: Model | null = await this.findOneById({
       id: alertId,
       select: {
         _id: true,
@@ -1355,25 +1355,27 @@ ${alertSeverity.name}
     if (!alert || !alert.projectId) {
       return;
     }
-    const latestTimeline = await AlertStateTimelineService.findOneBy({
-      query: {
-        alertId: alert.id!,
-        projectId: alert.projectId,
-      },
-      sort: {
-        startsAt: SortOrder.Descending,
-      },
-      select: {
-        alertStateId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const latestTimeline: AlertStateTimeline | null =
+      await AlertStateTimelineService.findOneBy({
+        query: {
+          alertId: alert.id!,
+          projectId: alert.projectId,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        select: {
+          alertStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     if (
       latestTimeline &&
       latestTimeline.alertStateId &&
-      alert.currentAlertStateId?.toString() !== latestTimeline.alertStateId.toString()
+      alert.currentAlertStateId?.toString() !==
+        latestTimeline.alertStateId.toString()
     ) {
       await this.updateOneBy({
         query: { _id: alert.id!.toString() },
@@ -1383,7 +1385,7 @@ ${alertSeverity.name}
         props: { isRoot: true },
       });
       logger.info(
-        `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`
+        `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`,
       );
     }
   }

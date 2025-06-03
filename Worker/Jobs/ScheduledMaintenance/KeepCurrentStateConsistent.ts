@@ -39,19 +39,20 @@ RunCron(
             continue;
           }
 
-          const scheduledMaintenances: Array<ScheduledMaintenance> = await ScheduledMaintenanceService.findBy({
-            query: {
-              projectId: project.id,
-            },
-            select: {
-              _id: true,
-            },
-            skip: 0,
-            limit: LIMIT_MAX,
-            props: {
-              isRoot: true,
-            },
-          });
+          const scheduledMaintenances: Array<ScheduledMaintenance> =
+            await ScheduledMaintenanceService.findBy({
+              query: {
+                projectId: project.id,
+              },
+              select: {
+                _id: true,
+              },
+              skip: 0,
+              limit: LIMIT_MAX,
+              props: {
+                isRoot: true,
+              },
+            });
 
           for (const scheduledMaintenance of scheduledMaintenances) {
             try {
@@ -61,21 +62,29 @@ RunCron(
               if (!scheduledMaintenance.id) {
                 continue;
               }
-              await ScheduledMaintenanceService.refreshScheduledMaintenanceCurrentStatus(scheduledMaintenance.id!);
+              await ScheduledMaintenanceService.refreshScheduledMaintenanceCurrentStatus(
+                scheduledMaintenance.id!,
+              );
             } catch (err) {
-              logger.error("Error in ScheduledMaintenance:KeepCurrentStateConsistent job");
+              logger.error(
+                "Error in ScheduledMaintenance:KeepCurrentStateConsistent job",
+              );
               logger.error(err);
               continue;
             }
           }
         } catch (err) {
-          logger.error("Error in ScheduledMaintenance:KeepCurrentStateConsistent job");
+          logger.error(
+            "Error in ScheduledMaintenance:KeepCurrentStateConsistent job",
+          );
           logger.error(err);
           continue;
         }
       }
     } catch (err) {
-      logger.error("Error in ScheduledMaintenance:KeepCurrentStateConsistent job");
+      logger.error(
+        "Error in ScheduledMaintenance:KeepCurrentStateConsistent job",
+      );
       logger.error(err);
     }
   },

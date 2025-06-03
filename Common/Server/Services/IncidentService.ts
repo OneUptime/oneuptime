@@ -1936,8 +1936,10 @@ ${incidentSeverity.name}
   /**
    * Ensures the currentIncidentStateId of the incident matches the latest timeline entry.
    */
-  public async refreshIncidentCurrentStatus(incidentId: ObjectID): Promise<void> {
-    const incident = await this.findOneById({
+  public async refreshIncidentCurrentStatus(
+    incidentId: ObjectID,
+  ): Promise<void> {
+    const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
         _id: true,
@@ -1949,25 +1951,27 @@ ${incidentSeverity.name}
     if (!incident || !incident.projectId) {
       return;
     }
-    const latestTimeline = await IncidentStateTimelineService.findOneBy({
-      query: {
-        incidentId: incident.id!,
-        projectId: incident.projectId,
-      },
-      sort: {
-        startsAt: SortOrder.Descending,
-      },
-      select: {
-        incidentStateId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const latestTimeline: IncidentStateTimeline | null =
+      await IncidentStateTimelineService.findOneBy({
+        query: {
+          incidentId: incident.id!,
+          projectId: incident.projectId,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        select: {
+          incidentStateId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
     if (
       latestTimeline &&
       latestTimeline.incidentStateId &&
-      incident.currentIncidentStateId?.toString() !== latestTimeline.incidentStateId.toString()
+      incident.currentIncidentStateId?.toString() !==
+        latestTimeline.incidentStateId.toString()
     ) {
       await this.updateOneBy({
         query: { _id: incident.id!.toString() },
@@ -1977,7 +1981,7 @@ ${incidentSeverity.name}
         props: { isRoot: true },
       });
       logger.info(
-        `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`
+        `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`,
       );
     }
   }
