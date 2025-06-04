@@ -12,6 +12,7 @@ import Color from "../../Types/Color";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { PermissionHelper } from "../../Types/Permission";
+import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -45,7 +46,7 @@ export class ModelSchema {
    * Format permissions array into a human-readable string for OpenAPI documentation
    */
   private static formatPermissionsForSchema(
-    permissions: Array<Permission> | undefined
+    permissions: Array<Permission> | undefined,
   ): string {
     if (!permissions || permissions.length === 0) {
       return "No permissions required";
@@ -59,17 +60,24 @@ export class ModelSchema {
    */
   private static getColumnPermissionsDescription(
     model: DatabaseBaseModel,
-    key: string
+    key: string,
   ): string {
-    const accessControl = model.getColumnAccessControlForAllColumns()[key];
+    const accessControl: ColumnAccessControl | undefined =
+      model.getColumnAccessControlForAllColumns()[key];
 
     if (!accessControl) {
       return "";
     }
 
-    const createPermissions = this.formatPermissionsForSchema(accessControl.create);
-    const readPermissions = this.formatPermissionsForSchema(accessControl.read);
-    const updatePermissions = this.formatPermissionsForSchema(accessControl.update);
+    const createPermissions: string = this.formatPermissionsForSchema(
+      accessControl.create,
+    );
+    const readPermissions: string = this.formatPermissionsForSchema(
+      accessControl.read,
+    );
+    const updatePermissions: string = this.formatPermissionsForSchema(
+      accessControl.update,
+    );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
   }
@@ -282,7 +290,7 @@ export class ModelSchema {
               return ModelSchema.getModelSchema({
                 modelType: entityArrayType as new () => DatabaseBaseModel,
               });
-            })
+            }),
           )
           .openapi({
             type: "array",
@@ -330,7 +338,8 @@ export class ModelSchema {
       }
 
       // Add permissions description to the schema
-      const permissionsDescription = this.getColumnPermissionsDescription(model, key);
+      const permissionsDescription: string =
+        this.getColumnPermissionsDescription(model, key);
       if (permissionsDescription) {
         zodType = zodType.describe(permissionsDescription);
       }
@@ -344,8 +353,8 @@ export class ModelSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     return schema;
@@ -382,15 +391,19 @@ export class ModelSchema {
       }
 
       // Get valid operators for this column type
-      const validOperators = this.getValidOperatorsForColumnType(column.type);
+      const validOperators: Array<string> = this.getValidOperatorsForColumnType(
+        column.type,
+      );
 
       if (validOperators.length === 0) {
         continue;
       }
 
       // Create a union type of all valid operators for this column
-      const operatorSchemas = validOperators.map((operatorType) =>
-        this.getOperatorSchema(operatorType, column.type)
+      const operatorSchemas: Array<ZodTypes.ZodTypeAny> = validOperators.map(
+        (operatorType: string) => {
+          return this.getOperatorSchema(operatorType, column.type);
+        },
       );
 
       let columnSchema: ZodTypes.ZodTypeAny;
@@ -403,7 +416,7 @@ export class ModelSchema {
               ZodTypes.ZodTypeAny,
               ZodTypes.ZodTypeAny,
               ...ZodTypes.ZodTypeAny[],
-            ]
+            ],
           )
           .optional();
       } else {
@@ -412,10 +425,8 @@ export class ModelSchema {
       }
 
       // Add OpenAPI documentation for query operators
-      const operatorExamples = this.getQueryOperatorExamples(
-        column.type,
-        validOperators
-      );
+      const operatorExamples: Array<OperatorExample> =
+        this.getQueryOperatorExamples(column.type, validOperators);
       columnSchema = columnSchema.openapi({
         type: "object",
         description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(", ")}`,
@@ -428,7 +439,7 @@ export class ModelSchema {
       shape[key] = columnSchema;
     }
 
-    const schema = z.object(shape).openapi({
+    const schema: ModelSchemaType = z.object(shape).openapi({
       type: "object",
       description: `Query schema for ${model.tableName || "model"} model. Each field can use various operators based on its data type.`,
       example: this.getQuerySchemaExample(modelType),
@@ -438,9 +449,9 @@ export class ModelSchema {
   }
 
   private static getValidOperatorsForColumnType(
-    columnType: TableColumnType
+    columnType: TableColumnType,
   ): Array<string> {
-    const commonOperators = [
+    const commonOperators: Array<string> = [
       "EqualTo",
       "NotEqual",
       "IsNull",
@@ -513,9 +524,9 @@ export class ModelSchema {
 
   private static getOperatorSchema(
     operatorType: string,
-    columnType: TableColumnType
+    columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
-    const baseValue = this.getBaseValueSchemaForColumnType(columnType);
+    const baseValue: ZodTypes.ZodTypeAny = this.getBaseValueSchemaForColumnType(columnType);
 
     switch (operatorType) {
       case "EqualTo":
@@ -569,7 +580,7 @@ export class ModelSchema {
   }
 
   private static getBaseValueSchemaForColumnType(
-    columnType: TableColumnType
+    columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
     switch (columnType) {
       case TableColumnType.ObjectID:
@@ -657,7 +668,7 @@ export class ModelSchema {
       }
 
       const isSortable: boolean = ModelSchema.getSortableTypes().includes(
-        column.type
+        column.type,
       );
 
       if (!isSortable) {
@@ -795,7 +806,7 @@ export class ModelSchema {
 
   private static getQueryOperatorExamples(
     columnType: TableColumnType,
-    validOperators: Array<string>
+    validOperators: Array<string>,
   ): Array<OperatorExample> {
     const examples: Array<OperatorExample> = [];
 
@@ -983,7 +994,7 @@ export class ModelSchema {
 
   private static getExampleValueForColumn(
     columnType: TableColumnType,
-    isSecondValue: boolean = false
+    isSecondValue: boolean = false,
   ): unknown {
     switch (columnType) {
       case TableColumnType.ObjectID:
@@ -1010,7 +1021,7 @@ export class ModelSchema {
           ? "2023-12-31T23:59:59.000Z"
           : "2023-01-01T00:00:00.000Z";
       case TableColumnType.Boolean:
-        return isSecondValue ? false : true;
+        return !isSecondValue;
       case TableColumnType.ShortText:
       case TableColumnType.Name:
         return isSecondValue ? "Jane Doe" : "John Doe";
@@ -1026,23 +1037,29 @@ export class ModelSchema {
   }
 
   private static getQuerySchemaExample(
-    modelType: new () => DatabaseBaseModel
+    modelType: new () => DatabaseBaseModel,
   ): SchemaExample {
     const model: DatabaseBaseModel = new modelType();
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
     const example: SchemaExample = {};
 
-    let exampleCount = 0;
-    const maxExamples = 3;
+    let exampleCount: number = 0;
+    const maxExamples: number = 3;
 
     for (const key in columns) {
-      if (exampleCount >= maxExamples) break;
+      if (exampleCount >= maxExamples) {
+        break;
+      }
 
-      const column = columns[key];
-      if (!column) continue;
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
 
-      const validOperators = this.getValidOperatorsForColumnType(column.type);
-      if (validOperators.length === 0) continue;
+      const validOperators: Array<string> = this.getValidOperatorsForColumnType(column.type);
+      if (validOperators.length === 0) {
+        continue;
+      }
 
       // Add example based on column type and available operators
       if (
@@ -1111,11 +1128,11 @@ export class ModelSchema {
   }
 
   private static getSelectSchemaExample(
-    modelType: new () => DatabaseBaseModel
+    modelType: new () => DatabaseBaseModel,
   ): SchemaExample {
     if (!modelType) {
       throw new BadDataException(
-        "Model type is required to generate select schema example."
+        "Model type is required to generate select schema example.",
       );
     }
 
@@ -1124,7 +1141,7 @@ export class ModelSchema {
     const example: SchemaExample = {};
 
     // Add common fields that most models have
-    const commonFields = ["_id", "createdAt", "updatedAt"];
+    const commonFields: Array<string> = ["_id", "createdAt", "updatedAt"];
     for (const field of commonFields) {
       if (columns[field]) {
         example[field] = true;
@@ -1132,12 +1149,14 @@ export class ModelSchema {
     }
 
     // Add first few non-common fields as examples
-    let fieldCount = 0;
-    const maxFields = 5;
+    let fieldCount: number = 0;
+    const maxFields: number = 5;
     for (const key in columns) {
-      if (fieldCount >= maxFields) break;
+      if (fieldCount >= maxFields) {
+        break;
+      }
 
-      const column = columns[key];
+      const column: TableColumnMetadata | undefined = columns[key];
       if (!column || commonFields.includes(key)) {
         continue;
       }
@@ -1158,11 +1177,11 @@ export class ModelSchema {
   }
 
   private static getGroupBySchemaExample(
-    modelType: new () => DatabaseBaseModel
+    modelType: new () => DatabaseBaseModel,
   ): SchemaExample {
     if (!modelType) {
       throw new BadDataException(
-        "Model type is required to generate group by schema example."
+        "Model type is required to generate group by schema example.",
       );
     }
 
@@ -1171,7 +1190,7 @@ export class ModelSchema {
 
     // Find the first suitable field for grouping
     for (const key in columns) {
-      const column = columns[key];
+      const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
         continue;
       }
@@ -1189,7 +1208,7 @@ export class ModelSchema {
 
     // Fallback to any available field
     for (const key in columns) {
-      const column = columns[key];
+      const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
         continue;
       }
@@ -1254,7 +1273,7 @@ export class ModelSchema {
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
         column,
         key,
-        data.schemaType
+        data.schemaType,
       );
 
       // Make fields optional if specified
@@ -1281,8 +1300,8 @@ export class ModelSchema {
       `${data.schemaType} model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     return schema;
@@ -1292,7 +1311,7 @@ export class ModelSchema {
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
     key: string,
-    schemaType: "create" | "read" | "update" | "delete"
+    schemaType: "create" | "read" | "update" | "delete",
   ): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny;
 
@@ -1505,7 +1524,7 @@ export class ModelSchema {
             return schemaMethod({
               modelType: entityArrayType as new () => DatabaseBaseModel,
             });
-          })
+          }),
         )
         .openapi({
           type: "array",
@@ -1562,7 +1581,7 @@ export class ModelSchema {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
     // Auto-generated fields to exclude from create schema
-    const excludedFields = [
+    const excludedFields: Array<string> = [
       "_id",
       "createdAt",
       "updatedAt",
@@ -1595,7 +1614,7 @@ export class ModelSchema {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
     // Auto-generated fields to exclude from update schema (but allow _id for identification)
-    const excludedFields = ["createdAt", "updatedAt", "deletedAt", "version"];
+    const excludedFields: Array<string> = ["createdAt", "updatedAt", "deletedAt", "version"];
 
     return this.buildModelSchema({
       modelType: data.modelType,
@@ -1611,7 +1630,7 @@ export class ModelSchema {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
     // For delete, we typically only need the ID
-    const includedFields = ["_id"];
+    const includedFields: Array<string> = ["_id"];
 
     return this.buildModelSchema({
       modelType: data.modelType,

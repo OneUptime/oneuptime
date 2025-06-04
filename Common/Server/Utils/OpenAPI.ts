@@ -18,12 +18,17 @@ export default class OpenAPIUtil {
    * 1. The permissions array is empty or undefined, OR
    * 2. The permissions array contains Permission.Public or Permission.CurrentUser
    */
-  private static shouldExcludeApiForPermissions(permissions: Array<Permission> | undefined): boolean {
+  private static shouldExcludeApiForPermissions(
+    permissions: Array<Permission> | undefined,
+  ): boolean {
     if (!permissions || permissions.length === 0) {
       return true;
     }
-    
-    return permissions.includes(Permission.Public) || permissions.includes(Permission.CurrentUser);
+
+    return (
+      permissions.includes(Permission.Public) ||
+      permissions.includes(Permission.CurrentUser)
+    );
   }
 
   public static generateOpenAPISpec(): JSONObject {
@@ -130,10 +135,10 @@ export default class OpenAPIUtil {
     const singularModelName: string = model.singularName || tableName;
 
     // Use schema names that are already registered
-    const querySchemaName = `${tableName}QuerySchema`;
-    const selectSchemaName = `${tableName}SelectSchema`;
-    const sortSchemaName = `${tableName}SortSchema`;
-    const groupBySchemaName = `${tableName}GroupBySchema`;
+    const querySchemaName: string = `${tableName}QuerySchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const sortSchemaName: string = `${tableName}SortSchema`;
+    const groupBySchemaName: string = `${tableName}GroupBySchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -191,7 +196,7 @@ export default class OpenAPIUtil {
     const singularModelName: string = model.singularName || tableName;
 
     // Use schema name that is already registered
-    const querySchemaName = `${tableName}QuerySchema`;
+    const querySchemaName: string = `${tableName}QuerySchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -245,9 +250,9 @@ export default class OpenAPIUtil {
     }
 
     // Use schema names that are already registered
-    const createSchemaName = `${tableName}CreateSchema`;
-    const selectSchemaName = `${tableName}SelectSchema`;
-    const readSchemaName = `${tableName}ReadSchema`;
+    const createSchemaName: string = `${tableName}CreateSchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -264,10 +269,10 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
                 },
-                miscDataProps: { 
+                miscDataProps: {
                   type: "object",
                   description: "Additional data properties for creation",
-                  additionalProperties: true
+                  additionalProperties: true,
                 },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
@@ -353,7 +358,7 @@ export default class OpenAPIUtil {
     }
 
     // Use schema name that is already registered
-    const selectSchemaName = `${tableName}SelectSchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -435,9 +440,9 @@ export default class OpenAPIUtil {
     }
 
     // Use schema names that are already registered
-    const updateSchemaName = `${tableName}UpdateSchema`;
-    const selectSchemaName = `${tableName}SelectSchema`;
-    const readSchemaName = `${tableName}ReadSchema`;
+    const updateSchemaName: string = `${tableName}UpdateSchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "put",
@@ -503,12 +508,12 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
-    
+
     // Skip generating delete API if model has no delete permissions or contains Public/CurrentUser permissions
     if (this.shouldExcludeApiForPermissions(model.deleteRecordPermissions)) {
       return;
     }
-    
+
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
@@ -541,8 +546,9 @@ export default class OpenAPIUtil {
     model: DatabaseBaseModel,
   ): void {
     const tableName: string = model.tableName || "UnknownModel";
-    const modelType = model.constructor as new () => DatabaseBaseModel;
-    
+    const modelType: new () => DatabaseBaseModel =
+      model.constructor as new () => DatabaseBaseModel;
+
     // Register the main model schema (for backwards compatibility)
     const modelSchema: ModelSchemaType = ModelSchema.getModelSchema({
       modelType: modelType,
@@ -550,7 +556,12 @@ export default class OpenAPIUtil {
     registry.register(tableName, modelSchema);
 
     // Register operation-specific schemas based on permissions
-    this.registerOperationSpecificSchemas(registry, tableName, modelType, model);
+    this.registerOperationSpecificSchemas(
+      registry,
+      tableName,
+      modelType,
+      model,
+    );
 
     // Register query, select, and sort schemas
     this.registerQuerySchemas(registry, tableName, modelType);
@@ -564,25 +575,33 @@ export default class OpenAPIUtil {
   ): void {
     // Check if model has create permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.createRecordPermissions)) {
-      const createSchema = ModelSchema.getCreateModelSchema({ modelType });
+      const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({
+        modelType,
+      });
       registry.register(`${tableName}CreateSchema`, createSchema);
     }
 
     // Check if model has read permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.readRecordPermissions)) {
-      const readSchema = ModelSchema.getReadModelSchema({ modelType });
+      const readSchema: ModelSchemaType = ModelSchema.getReadModelSchema({
+        modelType,
+      });
       registry.register(`${tableName}ReadSchema`, readSchema);
     }
 
     // Check if model has update permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.updateRecordPermissions)) {
-      const updateSchema = ModelSchema.getUpdateModelSchema({ modelType });
+      const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({
+        modelType,
+      });
       registry.register(`${tableName}UpdateSchema`, updateSchema);
     }
 
     // Check if model has delete permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.deleteRecordPermissions)) {
-      const deleteSchema = ModelSchema.getDeleteModelSchema({ modelType });
+      const deleteSchema: ModelSchemaType = ModelSchema.getDeleteModelSchema({
+        modelType,
+      });
       registry.register(`${tableName}DeleteSchema`, deleteSchema);
     }
   }
@@ -592,22 +611,22 @@ export default class OpenAPIUtil {
     tableName: string,
     modelType: new () => DatabaseBaseModel,
   ): void {
-    const querySchemaName = `${tableName}QuerySchema`;
-    const selectSchemaName = `${tableName}SelectSchema`;
-    const sortSchemaName = `${tableName}SortSchema`;
-    const groupBySchemaName = `${tableName}GroupBySchema`;
+    const querySchemaName: string = `${tableName}QuerySchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const sortSchemaName: string = `${tableName}SortSchema`;
+    const groupBySchemaName: string = `${tableName}GroupBySchema`;
 
-    const querySchema = ModelSchema.getQueryModelSchema({ 
-      modelType: modelType 
+    const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({
+      modelType: modelType,
     });
-    const selectSchema = ModelSchema.getSelectModelSchema({ 
-      modelType: modelType 
+    const selectSchema: ModelSchemaType = ModelSchema.getSelectModelSchema({
+      modelType: modelType,
     });
-    const sortSchema = ModelSchema.getSortModelSchema({ 
-      modelType: modelType 
+    const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({
+      modelType: modelType,
     });
-    const groupBySchema = ModelSchema.getGroupByModelSchema({ 
-      modelType: modelType 
+    const groupBySchema: ModelSchemaType = ModelSchema.getGroupByModelSchema({
+      modelType: modelType,
     });
 
     registry.register(querySchemaName, querySchema);
