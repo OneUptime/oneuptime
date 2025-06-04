@@ -7,8 +7,6 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  project?: any;
-  statusPage?: any;
   isPreviewStatusPage: boolean;
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
@@ -60,7 +58,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                 : (RouteMap[PageMap.SUBSCRIBE_SLACK] as Route),
             ),
           }}
-          icon={IconProp.External}
+          icon={IconProp.Slack}
         />
       ) : (
         <></>

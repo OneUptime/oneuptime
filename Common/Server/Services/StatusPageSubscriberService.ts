@@ -858,7 +858,7 @@ export class Service extends DatabaseService<Model> {
     );
 
     // Create markdown message for Slack
-    const markdownMessage = `## Test Notification - ${statusPageName}
+    const markdownMessage: string = `## Test Notification - ${statusPageName}
 
 **This is a test notification from OneUptime.**
 

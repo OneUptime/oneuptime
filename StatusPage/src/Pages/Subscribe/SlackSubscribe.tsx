@@ -20,7 +20,6 @@ import ModelForm, {
   ModelField,
 } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormValues } from "Common/UI/Components/Forms/Types/FormValues";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -30,7 +29,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import SubscriberUtil from "../../Utils/SubscriberUtil";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
+import SubscriberUtil from "Common/UI/Utils/StatusPage";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 export interface ComponentProps extends SubscribePageProps {}
 
@@ -154,82 +155,88 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
     });
   }
 
-  const getNewSubscriptionContentElement = (): ReactElement => {
-    return (
-      <ModelForm<StatusPageSubscriber>
-        modelType={StatusPageSubscriber}
-        id="slack-form"
-        name="Status Page > Slack Subscribe"
-        fields={fields}
-        createOrUpdateApiUrl={URL.fromString(
-          STATUS_PAGE_API_URL.toString(),
-        ).addRoute(`/subscribe/${id.toString()}`)}
-        requestHeaders={API.getDefaultHeaders(
-          StatusPageUtil.getStatusPageId()!,
-        )}
-        formType={FormType.Create}
-        submitButtonText={"Subscribe"}
-        onBeforeCreate={async (item: StatusPageSubscriber) => {
-          const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
-          if (!id) {
-            throw new BadDataException("Status Page ID is required");
-          }
+  const getNewSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          id="slack-form"
+          name="Status Page > Slack Subscribe"
+          fields={fields}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/subscribe/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders(
+            StatusPageUtil.getStatusPageId()!,
+          )}
+          formType={FormType.Create}
+          submitButtonText={"Subscribe"}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
 
-          item.statusPageId = id;
-          return item;
-        }}
-        onSuccess={() => {
-          setIsSuccess(true);
-        }}
-        maxPrimaryButtonWidth={true}
-      />
-    );
-  };
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
 
-  const getManageExistingSubscriptionContentElement = (): ReactElement => {
-    return (
-      <ModelForm<StatusPageSubscriber>
-        modelType={StatusPageSubscriber}
-        id="slack-manage-form"
-        name="Status Page > Manage Slack Subscription"
-        fields={[
-          {
-            field: {
-              slackIncomingWebhookUrl: true,
+  const getManageExistingSubscriptionContentElement: GetReactElementFunction =
+    (): ReactElement => {
+      return (
+        <ModelForm<StatusPageSubscriber>
+          modelType={StatusPageSubscriber}
+          id="slack-manage-form"
+          name="Status Page > Manage Slack Subscription"
+          fields={[
+            {
+              field: {
+                slackIncomingWebhookUrl: true,
+              },
+              title:
+                "Please enter your Slack webhook URL you have subscribed with",
+              description:
+                "We will send you a manage subscription link to this webhook.",
+              fieldType: FormFieldSchemaType.URL,
+              required: true,
+              placeholder: "https://hooks.slack.com/services/...",
             },
-            title:
-              "Please enter your Slack webhook URL you have subscribed with",
-            description:
-              "We will send you a manage subscription link to this webhook.",
-            fieldType: FormFieldSchemaType.URL,
-            required: true,
-            placeholder: "https://hooks.slack.com/services/...",
-          },
-        ]}
-        createOrUpdateApiUrl={URL.fromString(
-          STATUS_PAGE_API_URL.toString(),
-        ).addRoute(`/manage-subscription/${id.toString()}`)}
-        requestHeaders={API.getDefaultHeaders(
-          StatusPageUtil.getStatusPageId()!,
-        )}
-        formType={FormType.Create}
-        submitButtonText={"Manage Subscription"}
-        onBeforeCreate={async (item: StatusPageSubscriber) => {
-          const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
-          if (!id) {
-            throw new BadDataException("Status Page ID is required");
-          }
+          ]}
+          createOrUpdateApiUrl={URL.fromString(
+            STATUS_PAGE_API_URL.toString(),
+          ).addRoute(`/manage-subscription/${id.toString()}`)}
+          requestHeaders={API.getDefaultHeaders(
+            StatusPageUtil.getStatusPageId()!,
+          )}
+          formType={FormType.Create}
+          submitButtonText={"Manage Subscription"}
+          onBeforeCreate={async (item: StatusPageSubscriber) => {
+            const id: ObjectID = LocalStorage.getItem(
+              "statusPageId",
+            ) as ObjectID;
+            if (!id) {
+              throw new BadDataException("Status Page ID is required");
+            }
 
-          item.statusPageId = id;
-          return item;
-        }}
-        onSuccess={() => {
-          setIsSuccess(true);
-        }}
-        maxPrimaryButtonWidth={true}
-      />
-    );
-  };
+            item.statusPageId = id;
+            return item;
+          }}
+          onSuccess={() => {
+            setIsSuccess(true);
+          }}
+          maxPrimaryButtonWidth={true}
+        />
+      );
+    };
 
   return (
     <Page
@@ -254,8 +261,6 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       ]}
       sideMenu={
         <SubscribeSideMenu
-          project={props.currentProject}
-          statusPage={props.statusPage}
           isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
           enableSlackSubscribers={true}
           enableEmailSubscribers={props.enableEmailSubscribers}
