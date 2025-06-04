@@ -526,7 +526,8 @@ export class ModelSchema {
     operatorType: string,
     columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
-    const baseValue: ZodTypes.ZodTypeAny = this.getBaseValueSchemaForColumnType(columnType);
+    const baseValue: ZodTypes.ZodTypeAny =
+      this.getBaseValueSchemaForColumnType(columnType);
 
     switch (operatorType) {
       case "EqualTo":
@@ -1056,7 +1057,9 @@ export class ModelSchema {
         continue;
       }
 
-      const validOperators: Array<string> = this.getValidOperatorsForColumnType(column.type);
+      const validOperators: Array<string> = this.getValidOperatorsForColumnType(
+        column.type,
+      );
       if (validOperators.length === 0) {
         continue;
       }
@@ -1614,7 +1617,12 @@ export class ModelSchema {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
     // Auto-generated fields to exclude from update schema (but allow _id for identification)
-    const excludedFields: Array<string> = ["createdAt", "updatedAt", "deletedAt", "version"];
+    const excludedFields: Array<string> = [
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+      "version",
+    ];
 
     return this.buildModelSchema({
       modelType: data.modelType,
