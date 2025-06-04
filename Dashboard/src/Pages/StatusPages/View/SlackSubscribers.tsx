@@ -131,18 +131,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
       },
       {
         field: {
-          isSubscriptionConfirmed: true,
-        },
-        title: "Mark as Confirmed",
-        stepId: "subscriber-info",
-        description:
-          "If this option is checked, the subscription will be marked as confirmed.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        defaultValue: true,
-      },
-      {
-        field: {
           sendYouHaveSubscribedMessage: true,
         },
         title: "Send Subscription Notification",

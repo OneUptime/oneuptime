@@ -89,6 +89,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import { FileRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
 export default class StatusPageAPI extends BaseAPI<
   StatusPage,
@@ -495,6 +496,7 @@ export default class StatusPageAPI extends BaseAPI<
             headerHTML: true,
             footerHTML: true,
             enableEmailSubscribers: true,
+            enableSlackSubscribers:   true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             allowSubscribersToChooseResources: true,
@@ -2135,6 +2137,7 @@ export default class StatusPageAPI extends BaseAPI<
         _id: true,
         projectId: true,
         enableEmailSubscribers: true,
+        enableSlackSubscribers: true,
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
@@ -2173,6 +2176,15 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
+    if (req.body.data["subscriberSlack"] && !statusPage.enableSlackSubscribers) {
+      logger.debug(
+        `Slack subscribers not enabled for status page with ID: ${statusPageId}`,
+      );
+      throw new BadDataException(
+        "Slack subscribers not enabled for this status page.",
+      );
+    }
+
     if (req.body.data["subscriberPhone"] && !statusPage.enableSmsSubscribers) {
       logger.debug(
         `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
@@ -2203,6 +2215,11 @@ export default class StatusPageAPI extends BaseAPI<
     const phone: Phone | undefined = req.body.data["subscriberPhone"]
       ? new Phone(req.body.data["subscriberPhone"] as string)
       : undefined;
+
+      const slackIncomingWebhookUrl: string | undefined =
+      req.body.data["subscriberSlack"]
+        ? (req.body.data["subscriberSlack"] as string)
+        : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
@@ -2239,6 +2256,24 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
     }
+
+    if( slackIncomingWebhookUrl) {
+      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`); 
+      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
+        query: {
+          slackIncomingWebhookUrl: slackIncomingWebhookUrl,
+          statusPageId: statusPageId,
+        },
+        select: {
+          _id: true,
+          slackIncomingWebhookUrl: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
 
     if (!statusPageSubscriber) {
       // not found, return bad data
@@ -2325,6 +2360,20 @@ export default class StatusPageAPI extends BaseAPI<
         }).catch((err: Error) => {
           logger.error(err);
         });
+      }
+
+
+      if(slackIncomingWebhookUrl){
+        const slackMessage: string = `You have selected to manage your subscription for the status page: ${statusPage.name}. You can manage your subscription here: ${manageUrlink}`;
+
+        SlackUtil.sendMessageToChannelViaIncomingWebhook({
+          url: URL.fromString(slackIncomingWebhookUrl),
+          text: slackMessage,
+        }
+        ).catch((err: Error) => {
+          logger.error(err);
+        });
+        
       }
 
       logger.debug(

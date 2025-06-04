@@ -198,7 +198,7 @@ export class Service extends DatabaseService<Model> {
     if (isEmailSubscriber && !isSubscriptionConfirmed) {
       data.data.isSubscriptionConfirmed = false;
     } else {
-      data.data.isSubscriptionConfirmed = true; // if the subscriber is not email, then set it to true for SMS subscribers.
+      data.data.isSubscriptionConfirmed = true; // if the subscriber is not email, then set it to true for SMS subscribers / slack subscribers.
     }
     logger.debug(
       `Final Subscription Confirmed: ${data.data.isSubscriptionConfirmed}`,
