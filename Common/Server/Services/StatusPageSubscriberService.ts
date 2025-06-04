@@ -852,7 +852,7 @@ export class Service extends DatabaseService<Model> {
 
     // Create test notification message
     const statusPageName: string = statusPage.pageTitle || statusPage.name || "Status Page";
-    const statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage._id!);
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage.id!);
 
     // Create markdown message for Slack
     const markdownMessage = `## Test Notification - ${statusPageName}
