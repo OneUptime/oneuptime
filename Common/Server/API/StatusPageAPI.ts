@@ -2404,6 +2404,7 @@ export default class StatusPageAPI extends BaseAPI<
         projectId: true,
         enableEmailSubscribers: true,
         enableSmsSubscribers: true,
+        enableSlackSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
         showSubscriberPageOnStatusPage: true,
@@ -2452,9 +2453,19 @@ export default class StatusPageAPI extends BaseAPI<
 
     // if no email or phone, throw error.
 
+    if (req.body.data["subscriberSlack"] && !statusPage.enableSlackSubscribers) {
+      logger.debug(
+        `Slack subscribers not enabled for status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "Slack subscribers not enabled for this status page.",
+      );
+    }
+
     if (
       !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"]
+      !req.body.data["subscriberPhone"] &&
+      !req.body.data["subscriberSlack"]
     ) {
       logger.debug(
         `No email or phone provided for subscription to status page with ID: ${objectId}`,
@@ -2471,6 +2482,11 @@ export default class StatusPageAPI extends BaseAPI<
     const phone: Phone | undefined = req.body.data["subscriberPhone"]
       ? new Phone(req.body.data["subscriberPhone"] as string)
       : undefined;
+
+    const slackIncomingWebhookUrl: string | undefined =
+      req.body.data["subscriberSlack"]
+        ? (req.body.data["subscriberSlack"] as string)
+        : undefined; 
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
@@ -2514,6 +2530,11 @@ export default class StatusPageAPI extends BaseAPI<
     if (phone) {
       logger.debug(`Setting subscriber phone: ${phone}`);
       statusPageSubscriber.subscriberPhone = phone;
+    }
+
+    if (slackIncomingWebhookUrl) {
+      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`);
+      statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(slackIncomingWebhookUrl);
     }
 
     if (
