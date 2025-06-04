@@ -101,6 +101,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.SMS}
         />
+        <SideMenuItem
+          link={{
+            title: "Slack Subscribers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Slack}
+        />
 
         {/* <SideMenuItem
                     link={{

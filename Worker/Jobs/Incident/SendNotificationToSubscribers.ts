@@ -282,22 +282,23 @@ RunCron(
               }
 
               if (subscriber.slackIncomingWebhookUrl) {
-                const slackMessage: string = `🚨 *Incident Alert - ${statusPageName}*
+                // Create markdown message for Slack
+                const markdownMessage: string = `## Incident Alert - ${statusPageName}
 
-*Title:* ${incident.title || ""}
+**Title:** ${incident.title || ""}
 
-*Severity:* ${incident.incidentSeverity?.name || " - "}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
 
-*Resources Affected:* ${resourcesAffectedString}
+**Resources Affected:** ${resourcesAffectedString}
 
-*Description:* ${incident.description || ""}
+**Description:** ${incident.description || ""}
 
-<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-                // send Slack notification here.
+                // send Slack notification with markdown conversion
                 SlackUtil.sendMessageToChannelViaIncomingWebhook({
                   url: subscriber.slackIncomingWebhookUrl,
-                  text: slackMessage,
+                  text: SlackUtil.convertMarkdownToSlack(markdownMessage),
                 }).catch((err: Error) => {
                   logger.error(err);
                 });

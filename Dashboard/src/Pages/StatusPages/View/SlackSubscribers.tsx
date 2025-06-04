@@ -28,6 +28,7 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import SlackWebhookTester from "./SlackWebhookTester";
 
 const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -128,6 +129,12 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
         fieldType: FormFieldSchemaType.URL,
         required: true,
         placeholder: "https://hooks.slack.com/services/...",
+        validation: {
+          pattern: {
+            value: /^https:\/\/hooks\.slack\.com\/services\/.+$/,
+            message: "Please enter a valid Slack incoming webhook URL (https://hooks.slack.com/services/...)",
+          }
+        },
       },
       {
         field: {
@@ -152,6 +159,65 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,
+      },
+      {
+        field: {
+          testWebhook: false,
+        },
+        title: "Test Webhook",
+        stepId: "subscriber-info",
+        description: "Send a test notification to verify the webhook works correctly.",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        required: false,
+        customComponent: (props: {
+          onChange: (value: any) => void;
+          value: any;
+          formValues: FormValues<StatusPageSubscriber>;
+        }): ReactElement => {
+          return (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!props.formValues.slackIncomingWebhookUrl}
+                onClick={() => {
+                  if (!props.formValues.slackIncomingWebhookUrl) {
+                    return;
+                  }
+                  
+                  API.post(
+                    '/api/status-page-subscriber/test-slack-webhook',
+                    {
+                      webhookUrl: props.formValues.slackIncomingWebhookUrl,
+                      statusPageId: modelId.toString(),
+                    },
+                    {},
+                  )
+                    .then(() => {
+                      props.onChange("Test message sent successfully.");
+                    })
+                    .catch((error) => {
+                      props.onChange("Error: " + API.getFriendlyMessage(error));
+                    });
+                }}
+              >
+                Send Test Message
+              </button>
+              {props.value && (
+                <div className="mt-2">
+                  <Alert
+                    type={
+                      props.value.startsWith("Error:")
+                        ? AlertType.DANGER
+                        : AlertType.SUCCESS
+                    }
+                    title={props.value}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        },
       },
       {
         field: {
@@ -255,6 +321,8 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               title="Slack subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
             />
           )}
+          {isSlackSubscribersEnabled && <SlackWebhookTester statusPageId={modelId} />}
+          
           <ModelTable<StatusPageSubscriber>
             modelType={StatusPageSubscriber}
             id="table-slack-subscriber"

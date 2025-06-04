@@ -1380,4 +1380,9 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(apiResult);
     return apiResult;
   }
+
+  @CaptureSpan()
+  public static convertMarkdownToSlack(markdown: string): string {
+    return SlackifyMarkdown(markdown);
+  }
 }

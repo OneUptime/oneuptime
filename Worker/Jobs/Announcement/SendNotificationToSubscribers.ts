@@ -168,10 +168,19 @@ RunCron(
 
 <${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
 
+                // Convert markdown to Slack format and send notification
+                const markdownMessage: string = `## Announcement - ${statusPageName}
+
+**Title:** ${announcement.title || ""}
+
+**Description:** ${announcement.description || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+
                 // send Slack notification here.
                 SlackUtil.sendMessageToChannelViaIncomingWebhook({
                   url: subscriber.slackIncomingWebhookUrl,
-                  text: slackMessage,
+                  text: SlackUtil.convertMarkdownToSlack(markdownMessage),
                 }).catch((err: Error) => {
                   logger.error(err);
                 });

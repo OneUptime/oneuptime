@@ -253,20 +253,21 @@ RunCron(
           }
 
           if (subscriber.slackIncomingWebhookUrl) {
-            const slackMessage: string = `🔧 *Scheduled Maintenance State Update - ${statusPageName}*
+            // Create markdown message for Slack
+            const markdownMessage: string = `## Scheduled Maintenance State Update - ${statusPageName}
 
-*Event:* ${event.title || ""}
+**Event:** ${event.title || ""}
 
-*State Changed To:* ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
+**State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
 
-*Resources Affected:* ${statusPageToResources[statuspage._id!]?.map((r: StatusPageResource) => r.displayName).join(", ") || ""}
+**Resources Affected:** ${statusPageToResources[statuspage._id!]?.map((r: StatusPageResource) => r.displayName).join(", ") || ""}
 
-<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-            // send Slack notification here.
+            // send Slack notification with markdown conversion
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
               url: subscriber.slackIncomingWebhookUrl,
-              text: slackMessage,
+              text: SlackUtil.convertMarkdownToSlack(markdownMessage),
             }).catch((err: Error) => {
               logger.error(err);
             });

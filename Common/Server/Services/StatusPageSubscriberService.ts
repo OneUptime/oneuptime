@@ -31,6 +31,7 @@ import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import NumberUtil from "../../Utils/Number";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -819,6 +820,66 @@ export class Service extends DatabaseService<Model> {
     logger.debug(statusPages);
 
     return statusPages;
+  }
+
+  @CaptureSpan()
+  public async testSlackWebhook(data: {
+    webhookUrl: string;
+    statusPageId: ObjectID;
+  }): Promise<void> {
+    // Validate the webhook URL
+    if (!data.webhookUrl.startsWith("https://hooks.slack.com/services/")) {
+      throw new BadDataException("Invalid Slack webhook URL");
+    }
+
+    // Get status page info
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: data.statusPageId,
+      props: {
+        isRoot: true,
+      },
+      select: {
+        name: true,
+        pageTitle: true,
+        projectId: true,
+        _id: true,
+      },
+    });
+
+    if (!statusPage) {
+      throw new BadDataException("Status page not found");
+    }
+
+    // Create test notification message
+    const statusPageName: string = statusPage.pageTitle || statusPage.name || "Status Page";
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage._id!);
+
+    // Create markdown message for Slack
+    const markdownMessage = `## Test Notification - ${statusPageName}
+
+**This is a test notification from OneUptime.**
+
+You have successfully configured Slack notifications for this status page.
+
+You will receive real-time notifications for:
+- Incidents
+- Scheduled Maintenance Events
+- Status Updates
+- Announcements
+
+[View Status Page](${statusPageURL})`;
+
+    // Send the test notification
+    try {
+      await SlackUtil.sendMessageToChannelViaIncomingWebhook({
+        url: URL.fromString(data.webhookUrl),
+        text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+      });
+    } catch (error) {
+      logger.error("Error sending test Slack notification:");
+      logger.error(error);
+      throw error;
+    }
   }
 }
 export default new Service();

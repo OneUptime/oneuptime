@@ -298,23 +298,24 @@ RunCron(
               })
               .join(", ") || "None";
 
-            const slackMessage = `📝 *Incident Update - ${statusPageName}*
+            // Create markdown message for Slack
+            const markdownMessage = `## Incident Update - ${statusPageName}
 
-*New note has been added to an incident*
+**New note has been added to an incident**
 
-*Incident:* ${incident.title || " - "}
-*Resources Affected:* ${resourcesAffectedText}
-*Severity:* ${incident.incidentSeverity?.name || " - "}
+**Incident:** ${incident.title || " - "}
+**Resources Affected:** ${resourcesAffectedText}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
 
-*Note:*
+**Note:**
 ${incidentPublicNote.note || ""}
 
-<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-            SlackUtil.sendMessageToChannelViaIncomingWebhook(
-              subscriber.slackIncomingWebhookUrl,
-              slackMessage,
-            ).catch((err: Error) => {
+            SlackUtil.sendMessageToChannelViaIncomingWebhook({
+              url: new URL(subscriber.slackIncomingWebhookUrl),
+              text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+            }).catch((err: Error) => {
               logger.error(err);
             });
           }

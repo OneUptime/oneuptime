@@ -43,6 +43,11 @@ const StatusPagesViewSMSSubscribers: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/StatusPages/View/SMSSubscribers");
 });
+const StatusPagesViewSlackSubscribers: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/View/SlackSubscribers");
+});
 const StatusPagesViewWebhookSubscribers: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -480,6 +485,24 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesViewSlackSubscribers
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS
                   ] as Route
                 }
               />
