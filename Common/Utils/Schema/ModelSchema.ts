@@ -11,6 +11,7 @@ import logger from "../../Server/Utils/Logger";
 import Color from "../../Types/Color";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Permission, { PermissionHelper } from "../../Types/Permission";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -40,6 +41,39 @@ type SchemaMethodFunction = (data: {
 }) => ModelSchemaType;
 
 export class ModelSchema {
+  /**
+   * Format permissions array into a human-readable string for OpenAPI documentation
+   */
+  private static formatPermissionsForSchema(
+    permissions: Array<Permission> | undefined
+  ): string {
+    if (!permissions || permissions.length === 0) {
+      return "No permissions required";
+    }
+
+    return PermissionHelper.getPermissionTitles(permissions).join(", ");
+  }
+
+  /**
+   * Get permissions description for a column to add to OpenAPI schema
+   */
+  private static getColumnPermissionsDescription(
+    model: DatabaseBaseModel,
+    key: string
+  ): string {
+    const accessControl = model.getColumnAccessControlForAllColumns()[key];
+
+    if (!accessControl) {
+      return "";
+    }
+
+    const createPermissions = this.formatPermissionsForSchema(accessControl.create);
+    const readPermissions = this.formatPermissionsForSchema(accessControl.read);
+    const updatePermissions = this.formatPermissionsForSchema(accessControl.update);
+
+    return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
+  }
+
   public static getModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -293,6 +327,12 @@ export class ModelSchema {
       // add title and description to the schema
       if (column.title) {
         zodType = zodType.describe(column.title);
+      }
+
+      // Add permissions description to the schema
+      const permissionsDescription = this.getColumnPermissionsDescription(model, key);
+      if (permissionsDescription) {
+        zodType = zodType.describe(permissionsDescription);
       }
 
       shape[key] = zodType;
