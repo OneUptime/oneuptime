@@ -118,6 +118,7 @@ export default class OpenAPIUtil {
     const querySchemaName = `${tableName}QuerySchema`;
     const selectSchemaName = `${tableName}SelectSchema`;
     const sortSchemaName = `${tableName}SortSchema`;
+    const groupBySchemaName = `${tableName}GroupBySchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -134,15 +135,7 @@ export default class OpenAPIUtil {
                 query: { $ref: `#/components/schemas/${querySchemaName}` },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
                 sort: { $ref: `#/components/schemas/${sortSchemaName}` },
-                groupBy: { 
-                  type: "object",
-                  description: "Group by fields. Keys are field names, values are aggregation functions.",
-                  additionalProperties: {
-                    type: "string",
-                    enum: ["count", "sum", "avg", "min", "max"]
-                  },
-                  example: { "status": "count", "priority": "count" }
-                },
+                groupBy: { $ref: `#/components/schemas/${groupBySchemaName}` },
               },
             },
           },
@@ -576,6 +569,7 @@ export default class OpenAPIUtil {
     const querySchemaName = `${tableName}QuerySchema`;
     const selectSchemaName = `${tableName}SelectSchema`;
     const sortSchemaName = `${tableName}SortSchema`;
+    const groupBySchemaName = `${tableName}GroupBySchema`;
 
     const querySchema = ModelSchema.getQueryModelSchema({ 
       modelType: modelType 
@@ -586,9 +580,13 @@ export default class OpenAPIUtil {
     const sortSchema = ModelSchema.getSortModelSchema({ 
       modelType: modelType 
     });
+    const groupBySchema = ModelSchema.getGroupByModelSchema({ 
+      modelType: modelType 
+    });
 
     registry.register(querySchemaName, querySchema);
     registry.register(selectSchemaName, selectSchema);
     registry.register(sortSchemaName, sortSchema);
+    registry.register(groupBySchemaName, groupBySchema);
   }
 }
