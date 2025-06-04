@@ -28,7 +28,6 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
-import SlackWebhookTester from "./SlackWebhookTester";
 
 const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -256,9 +255,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               type={AlertType.DANGER}
               title="Slack subscribers are not enabled for this status page. Please enable it in Subscriber Settings"
             />
-          )}
-          {isSlackSubscribersEnabled && (
-            <SlackWebhookTester statusPageId={modelId} />
           )}
 
           <ModelTable<StatusPageSubscriber>
