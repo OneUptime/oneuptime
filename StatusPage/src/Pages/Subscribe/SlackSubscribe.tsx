@@ -262,7 +262,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       sideMenu={
         <SubscribeSideMenu
           isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
-          enableSlackSubscribers={true}
+          enableSlackSubscribers={props.enableSlackSubscribers}
           enableEmailSubscribers={props.enableEmailSubscribers}
           enableSMSSubscribers={props.enableSMSSubscribers}
         />

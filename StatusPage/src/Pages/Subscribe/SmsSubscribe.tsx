@@ -259,6 +259,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
           enableSMSSubscribers={props.enableSMSSubscribers}
           enableEmailSubscribers={props.enableEmailSubscribers}
+          enableSlackSubscribers={props.enableSlackSubscribers}
         />
       }
     >

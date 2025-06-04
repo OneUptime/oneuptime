@@ -10,7 +10,7 @@ export interface ComponentProps {
   isPreviewStatusPage: boolean;
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
-  enableSlackSubscribers?: boolean;
+  enableSlackSubscribers: boolean;
 }
 
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (

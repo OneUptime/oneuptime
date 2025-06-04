@@ -2198,13 +2198,14 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (
       !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"]
+      !req.body.data["subscriberPhone"] && 
+      !req.body.data["subscriberSlack"]
     ) {
       logger.debug(
-        `No email or phone provided for subscription to status page with ID: ${statusPageId}`,
+        `No email, slack webhook or phone provided for subscription to status page with ID: ${statusPageId}`,
       );
       throw new BadDataException(
-        "Email or phone is required to subscribe to this status page.",
+        "Email, phone or slack webhook is required to subscribe to this status page.",
       );
     }
 
