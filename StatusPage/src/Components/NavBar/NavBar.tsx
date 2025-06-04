@@ -12,6 +12,7 @@ export interface ComponentProps {
   isPrivateStatusPage: boolean;
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
+  enableSlackSubscribers?: boolean;
   showIncidentsOnStatusPage: boolean;
   showAnnouncementsOnStatusPage: boolean;
   showScheduledMaintenanceEventsOnStatusPage: boolean;
@@ -92,7 +93,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       )}
 
       {props.showSubscriberPageOnStatusPage &&
-      (props.enableEmailSubscribers || props.enableSMSSubscribers) ? (
+      (props.enableEmailSubscribers || props.enableSMSSubscribers || props.enableSlackSubscribers) ? (
         <NavBarItem
           id="subscribe-nav-bar-item"
           title="Subscribe"

@@ -31,6 +31,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 
 RunCron(
   "Incident:SendNotificationToSubscribers",
@@ -275,6 +276,28 @@ RunCron(
                     ProjectCallSMSConfigService.toTwilioConfig(
                       statuspage.callSmsConfig,
                     ),
+                }).catch((err: Error) => {
+                  logger.error(err);
+                });
+              }
+
+              if (subscriber.slackIncomingWebhookUrl) {
+                const slackMessage: string = `🚨 *Incident Alert - ${statusPageName}*
+
+*Title:* ${incident.title || ""}
+
+*Severity:* ${incident.incidentSeverity?.name || " - "}
+
+*Resources Affected:* ${resourcesAffectedString}
+
+*Description:* ${incident.description || ""}
+
+<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+
+                // send Slack notification here.
+                SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                  url: subscriber.slackIncomingWebhookUrl,
+                  text: slackMessage,
                 }).catch((err: Error) => {
                   logger.error(err);
                 });

@@ -108,6 +108,11 @@ const ConfirmSubscription: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Subscribe/ConfirmSubscription");
 });
+const SlackSubscribe: React.LazyExoticComponent<
+  React.FunctionComponent<SubscribePageProps>
+> = lazy(() => {
+  return import("./Pages/Subscribe/SlackSubscribe");
+});
 
 // forbidden page
 const PageForbidden: React.LazyExoticComponent<
@@ -137,6 +142,8 @@ const App: () => JSX.Element = () => {
 
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
+  const [enableSlackSubscribers, setenableSlackSubscribers] =
+    useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
   const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>("");
   const [isPrivateStatusPage, setIsPrivateStatusPage] =
@@ -163,6 +170,7 @@ const App: () => JSX.Element = () => {
       isPreview={isPreview}
       enableSMSSubscribers={enableSMSSubscribers}
       enableEmailSubscribers={enableEmailSubscribers}
+      enableSlackSubscribers={enableSlackSubscribers}
       isPrivateStatusPage={isPrivateStatusPage}
       onLoadComplete={(masterpage: JSONObject) => {
         document.title =
@@ -210,6 +218,11 @@ const App: () => JSX.Element = () => {
           "statusPage.enableSmsSubscribers",
         ) as boolean;
 
+        const enableSlackSubscribers: boolean = JSONFunctions.getJSONValueInPath(
+          masterpage || {},
+          "statusPage.enableSlackSubscribers",
+        ) as boolean;
+
         const allowSubscribersToChooseResources: boolean =
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -228,6 +241,7 @@ const App: () => JSX.Element = () => {
         );
 
         setenableSMSSubscribers(enableSMSSubscribers);
+        setenableSlackSubscribers(enableSlackSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
 
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
@@ -425,6 +439,7 @@ const App: () => JSX.Element = () => {
                 }}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />
@@ -445,6 +460,7 @@ const App: () => JSX.Element = () => {
                 }
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />
@@ -465,6 +481,7 @@ const App: () => JSX.Element = () => {
                 }
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />
@@ -477,6 +494,27 @@ const App: () => JSX.Element = () => {
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.SUBSCRIBE_SLACK]?.toString() || ""}
+            element={
+              <SlackSubscribe
+                pageRoute={RouteMap[PageMap.SUBSCRIBE_SLACK] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />
@@ -511,6 +549,7 @@ const App: () => JSX.Element = () => {
                 }
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />
@@ -535,6 +574,7 @@ const App: () => JSX.Element = () => {
                 }
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />
@@ -555,6 +595,28 @@ const App: () => JSX.Element = () => {
                 }
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK]?.toString() || ""}
+            element={
+              <SlackSubscribe
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK] as Route}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
               />
             }
           />

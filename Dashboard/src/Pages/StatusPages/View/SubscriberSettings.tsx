@@ -67,6 +67,13 @@ const StatusPageDelete: FunctionComponent<
               fieldType: FieldType.Boolean,
               title: "Enable SMS Subscribers",
             },
+            {
+              field: {
+                enableSlackSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Slack Subscribers",
+            },
           ],
           modelId: modelId,
         }}

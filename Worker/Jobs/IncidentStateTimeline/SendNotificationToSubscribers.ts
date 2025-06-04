@@ -33,6 +33,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 
 RunCron(
   "IncidentStateTimeline:SendNotificationToSubscribers",
@@ -300,6 +301,31 @@ RunCron(
                 ),
                 projectId: statuspage.projectId,
               },
+            ).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+
+          if (subscriber.slackIncomingWebhookUrl) {
+            // send slack message here.
+            let slackTitle = `🚨 *Incident Status Update - ${statusPageName}*
+
+*Incident:* ${incident.title || " - "}`;
+
+            if (resourcesAffected) {
+              slackTitle += `
+*Resources Affected:* ${resourcesAffected}`;
+            }
+
+            slackTitle += `
+*Severity:* ${incident.incidentSeverity?.name || " - "}
+*Status:* ${incidentStateTimeline.incidentState.name}
+
+<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+
+            SlackUtil.sendMessageToChannelViaIncomingWebhook(
+              subscriber.slackIncomingWebhookUrl,
+              slackTitle,
             ).catch((err: Error) => {
               logger.error(err);
             });

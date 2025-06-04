@@ -33,6 +33,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",
@@ -230,6 +231,26 @@ RunCron(
               customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
                 statuspage.callSmsConfig,
               ),
+            }).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+
+          if (subscriber.slackIncomingWebhookUrl) {
+            const slackMessage: string = `📝 *Scheduled Maintenance Update - ${statusPageName}*
+
+*Event:* ${event.title || ""}
+
+*New Note Added*
+
+*Note:* ${publicNote.note || ""}
+
+<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+
+            // send Slack notification here.
+            SlackUtil.sendMessageToChannelViaIncomingWebhook({
+              url: subscriber.slackIncomingWebhookUrl,
+              text: slackMessage,
             }).catch((err: Error) => {
               logger.error(err);
             });

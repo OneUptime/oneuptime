@@ -16,6 +16,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RSS]: new Route(`/rss`),
   [PageMap.SUBSCRIBE_EMAIL]: new Route(`/subscribe/email`),
   [PageMap.SUBSCRIBE_SMS]: new Route(`/subscribe/sms`),
+  [PageMap.SUBSCRIBE_SLACK]: new Route(`/subscribe/slack`),
   [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
   [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:id`),
   [PageMap.CONFIRM_SUBSCRIPTION]: new Route(`/confirm-subscription/:id`),
@@ -58,14 +59,15 @@ const RouteMap: Dictionary<Route> = {
   // preview forbidden page
   [PageMap.PREVIEW_FORBIDDEN]: new Route(
     `/status-page/${RouteParams.StatusPageId}/forbidden`,
-  ),
-
-  [PageMap.PREVIEW_SUBSCRIBE_EMAIL]: new Route(
+  ),  [PageMap.PREVIEW_SUBSCRIBE_EMAIL]: new Route(
     `/status-page/${RouteParams.StatusPageId}/subscribe/email`,
   ),
-
   [PageMap.PREVIEW_SUBSCRIBE_SMS]: new Route(
     `/status-page/${RouteParams.StatusPageId}/subscribe/sms`,
+  ),
+
+  [PageMap.PREVIEW_SUBSCRIBE_SLACK]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/subscribe/slack`,
   ),
 
   [PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS]: new Route(

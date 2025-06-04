@@ -49,6 +49,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import Label from "../../Models/DatabaseModels/Label";
 import LabelService from "./LabelService";
@@ -249,6 +250,28 @@ export class Service extends DatabaseService<Model> {
               customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
                 statuspage.callSmsConfig,
               ),
+            }).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+
+          if (subscriber.slackIncomingWebhookUrl) {
+            const slackMessage: string = `🔧 *Scheduled Maintenance - ${statusPageName}*
+
+*Event:* ${event.title || ""}
+
+*Scheduled Date:* ${OneUptimeDate.getDateAsFormattedString(event.startsAt!)}
+
+${resourcesAffected ? `*Resources Affected:* ${resourcesAffected}` : ""}
+
+*Description:* ${event.description || ""}
+
+<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+
+            // send Slack notification here.
+            SlackUtil.sendMessageToChannelViaIncomingWebhook({
+              url: subscriber.slackIncomingWebhookUrl,
+              text: slackMessage,
             }).catch((err: Error) => {
               logger.error(err);
             });

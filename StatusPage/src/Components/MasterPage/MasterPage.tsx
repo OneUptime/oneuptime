@@ -45,6 +45,7 @@ export interface ComponentProps {
   isPrivateStatusPage: boolean;
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
+  enableSlackSubscribers?: boolean;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -310,6 +311,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             isPreview={props.isPreview}
             enableEmailSubscribers={props.enableEmailSubscribers}
             enableSMSSubscribers={props.enableSMSSubscribers}
+            enableSlackSubscribers={props.enableSlackSubscribers || false}
             showIncidentsOnStatusPage={
               statusPage?.showIncidentsOnStatusPage || false
             }

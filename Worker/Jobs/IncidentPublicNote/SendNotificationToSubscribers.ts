@@ -33,6 +33,7 @@ import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 
 RunCron(
   "IncidentPublicNote:SendNotificationToSubscribers",
@@ -284,6 +285,35 @@ RunCron(
                 ),
                 projectId: statuspage.projectId,
               },
+            ).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+
+          if (subscriber.slackIncomingWebhookUrl) {
+            // send slack message here.
+            const resourcesAffectedText = statusPageToResources[statuspage._id!]
+              ?.map((r: StatusPageResource) => {
+                return r.displayName;
+              })
+              .join(", ") || "None";
+
+            const slackMessage = `📝 *Incident Update - ${statusPageName}*
+
+*New note has been added to an incident*
+
+*Incident:* ${incident.title || " - "}
+*Resources Affected:* ${resourcesAffectedText}
+*Severity:* ${incident.incidentSeverity?.name || " - "}
+
+*Note:*
+${incidentPublicNote.note || ""}
+
+<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+
+            SlackUtil.sendMessageToChannelViaIncomingWebhook(
+              subscriber.slackIncomingWebhookUrl,
+              slackMessage,
             ).catch((err: Error) => {
               logger.error(err);
             });

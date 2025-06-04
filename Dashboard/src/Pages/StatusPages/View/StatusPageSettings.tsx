@@ -235,6 +235,14 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
+          {
+            field: {
+              enableSlackSubscribers: true,
+            },
+            title: "Enable Slack Subscribers",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
