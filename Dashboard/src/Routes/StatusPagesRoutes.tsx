@@ -501,9 +501,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPagesViewSlackSubscribers
                 {...props}
                 pageRoute={
-                  RouteMap[
-                    PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS
-                  ] as Route
+                  RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route
                 }
               />
             </Suspense>

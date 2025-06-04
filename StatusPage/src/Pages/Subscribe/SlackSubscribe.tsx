@@ -25,7 +25,6 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -171,9 +170,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         formType={FormType.Create}
         submitButtonText={"Subscribe"}
         onBeforeCreate={async (item: StatusPageSubscriber) => {
-          const id: ObjectID = LocalStorage.getItem(
-            "statusPageId",
-          ) as ObjectID;
+          const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
           if (!id) {
             throw new BadDataException("Status Page ID is required");
           }
@@ -200,7 +197,8 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
             field: {
               slackIncomingWebhookUrl: true,
             },
-            title: "Please enter your Slack webhook URL you have subscribed with",
+            title:
+              "Please enter your Slack webhook URL you have subscribed with",
             description:
               "We will send you a manage subscription link to this webhook.",
             fieldType: FormFieldSchemaType.URL,
@@ -217,9 +215,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         formType={FormType.Create}
         submitButtonText={"Manage Subscription"}
         onBeforeCreate={async (item: StatusPageSubscriber) => {
-          const id: ObjectID = LocalStorage.getItem(
-            "statusPageId",
-          ) as ObjectID;
+          const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
           if (!id) {
             throw new BadDataException("Status Page ID is required");
           }

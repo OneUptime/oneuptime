@@ -5,7 +5,10 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import TextInputField from "Common/UI/Components/Forms/Fields/TextInputField";
 import API from "Common/UI/Utils/API/API";
-import { ButtonSize, ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import ObjectID from "Common/Types/ObjectID";
 
 interface SlackWebhookTesterProps {
@@ -19,7 +22,10 @@ const SlackWebhookTester = (props: SlackWebhookTesterProps): ReactElement => {
   const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
 
   const handleTestWebhook = async () => {
-    if (!webhookUrl || !webhookUrl.startsWith("https://hooks.slack.com/services/")) {
+    if (
+      !webhookUrl ||
+      !webhookUrl.startsWith("https://hooks.slack.com/services/")
+    ) {
       setTestResult("Please enter a valid Slack incoming webhook URL");
       setTestSuccess(false);
       return;
@@ -36,13 +42,15 @@ const SlackWebhookTester = (props: SlackWebhookTesterProps): ReactElement => {
           webhookUrl: webhookUrl,
           statusPageId: props.statusPageId.toString(),
         },
-        {}
+        {},
       );
-      setTestResult("Test message sent successfully to Slack. Please check your Slack channel.");
+      setTestResult(
+        "Test message sent successfully to Slack. Please check your Slack channel.",
+      );
       setTestSuccess(true);
     } catch (error) {
       setTestResult(
-        `Failed to send test message: ${API.getFriendlyMessage(error)}`
+        `Failed to send test message: ${API.getFriendlyMessage(error)}`,
       );
       setTestSuccess(false);
     } finally {

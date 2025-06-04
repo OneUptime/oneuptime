@@ -218,10 +218,11 @@ const App: () => JSX.Element = () => {
           "statusPage.enableSmsSubscribers",
         ) as boolean;
 
-        const enableSlackSubscribers: boolean = JSONFunctions.getJSONValueInPath(
-          masterpage || {},
-          "statusPage.enableSlackSubscribers",
-        ) as boolean;
+        const enableSlackSubscribers: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.enableSlackSubscribers",
+          ) as boolean;
 
         const allowSubscribersToChooseResources: boolean =
           JSONFunctions.getJSONValueInPath(

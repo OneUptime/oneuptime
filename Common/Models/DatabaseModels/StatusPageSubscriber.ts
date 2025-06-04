@@ -344,7 +344,8 @@ export default class StatusPageSubscriber extends BaseModel {
     required: false,
     type: TableColumnType.ShortURL,
     title: "Slack Incoming Webhook URL",
-    description: "Slack incoming webhook URL to send notifications to Slack channel",
+    description:
+      "Slack incoming webhook URL to send notifications to Slack channel",
   })
   @Column({
     nullable: true,

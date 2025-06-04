@@ -1382,7 +1382,7 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
-  public static convertMarkdownToSlack(markdown: string): string {
+  public static convertMarkdownToSlackRichText(markdown: string): string {
     return SlackifyMarkdown(markdown);
   }
 }

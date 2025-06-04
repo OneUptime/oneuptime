@@ -260,14 +260,20 @@ RunCron(
 
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
 
-**Resources Affected:** ${statusPageToResources[statuspage._id!]?.map((r: StatusPageResource) => r.displayName).join(", ") || ""}
+**Resources Affected:** ${
+              statusPageToResources[statuspage._id!]
+                ?.map((r: StatusPageResource) => {
+                  return r.displayName;
+                })
+                .join(", ") || ""
+            }
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
             // send Slack notification with markdown conversion
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
               url: subscriber.slackIncomingWebhookUrl,
-              text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+              text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
             }).catch((err: Error) => {
               logger.error(err);
             });

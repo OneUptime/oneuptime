@@ -134,14 +134,15 @@ export default class OpenAPIUtil {
                 query: { $ref: `#/components/schemas/${querySchemaName}` },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
                 sort: { $ref: `#/components/schemas/${sortSchemaName}` },
-                groupBy: { 
+                groupBy: {
                   type: "object",
-                  description: "Group by fields. Keys are field names, values are aggregation functions.",
+                  description:
+                    "Group by fields. Keys are field names, values are aggregation functions.",
                   additionalProperties: {
                     type: "string",
-                    enum: ["count", "sum", "avg", "min", "max"]
+                    enum: ["count", "sum", "avg", "min", "max"],
                   },
-                  example: { "status": "count", "priority": "count" }
+                  example: { status: "count", priority: "count" },
                 },
               },
             },
@@ -232,7 +233,10 @@ export default class OpenAPIUtil {
     const singularModelName: string = model.singularName || tableName;
 
     // Skip generating create API if model has no create permissions
-    if (!model.createRecordPermissions || model.createRecordPermissions.length === 0) {
+    if (
+      !model.createRecordPermissions ||
+      model.createRecordPermissions.length === 0
+    ) {
       return;
     }
 
@@ -256,10 +260,10 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
                 },
-                miscDataProps: { 
+                miscDataProps: {
                   type: "object",
                   description: "Additional data properties for creation",
-                  additionalProperties: true
+                  additionalProperties: true,
                 },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
@@ -417,7 +421,10 @@ export default class OpenAPIUtil {
     const singularModelName: string = model.singularName || tableName;
 
     // Skip generating update API if model has no update permissions
-    if (!model.updateRecordPermissions || model.updateRecordPermissions.length === 0) {
+    if (
+      !model.updateRecordPermissions ||
+      model.updateRecordPermissions.length === 0
+    ) {
       return;
     }
 
@@ -523,7 +530,7 @@ export default class OpenAPIUtil {
   ): void {
     const tableName: string = model.tableName || "UnknownModel";
     const modelType = model.constructor as new () => DatabaseBaseModel;
-    
+
     // Register the main model schema (for backwards compatibility)
     const modelSchema: ModelSchemaType = ModelSchema.getModelSchema({
       modelType: modelType,
@@ -531,7 +538,12 @@ export default class OpenAPIUtil {
     registry.register(tableName, modelSchema);
 
     // Register operation-specific schemas based on permissions
-    this.registerOperationSpecificSchemas(registry, tableName, modelType, model);
+    this.registerOperationSpecificSchemas(
+      registry,
+      tableName,
+      modelType,
+      model,
+    );
 
     // Register query, select, and sort schemas
     this.registerQuerySchemas(registry, tableName, modelType);
@@ -544,7 +556,10 @@ export default class OpenAPIUtil {
     model: DatabaseBaseModel,
   ): void {
     // Check if model has create permissions
-    if (model.createRecordPermissions && model.createRecordPermissions.length > 0) {
+    if (
+      model.createRecordPermissions &&
+      model.createRecordPermissions.length > 0
+    ) {
       const createSchema = ModelSchema.getCreateModelSchema({ modelType });
       registry.register(`${tableName}CreateSchema`, createSchema);
     }
@@ -556,13 +571,19 @@ export default class OpenAPIUtil {
     }
 
     // Check if model has update permissions
-    if (model.updateRecordPermissions && model.updateRecordPermissions.length > 0) {
+    if (
+      model.updateRecordPermissions &&
+      model.updateRecordPermissions.length > 0
+    ) {
       const updateSchema = ModelSchema.getUpdateModelSchema({ modelType });
       registry.register(`${tableName}UpdateSchema`, updateSchema);
     }
 
     // Check if model has delete permissions
-    if (model.deleteRecordPermissions && model.deleteRecordPermissions.length > 0) {
+    if (
+      model.deleteRecordPermissions &&
+      model.deleteRecordPermissions.length > 0
+    ) {
       const deleteSchema = ModelSchema.getDeleteModelSchema({ modelType });
       registry.register(`${tableName}DeleteSchema`, deleteSchema);
     }
@@ -577,14 +598,14 @@ export default class OpenAPIUtil {
     const selectSchemaName = `${tableName}SelectSchema`;
     const sortSchemaName = `${tableName}SortSchema`;
 
-    const querySchema = ModelSchema.getQueryModelSchema({ 
-      modelType: modelType 
+    const querySchema = ModelSchema.getQueryModelSchema({
+      modelType: modelType,
     });
-    const selectSchema = ModelSchema.getSelectModelSchema({ 
-      modelType: modelType 
+    const selectSchema = ModelSchema.getSelectModelSchema({
+      modelType: modelType,
     });
-    const sortSchema = ModelSchema.getSortModelSchema({ 
-      modelType: modelType 
+    const sortSchema = ModelSchema.getSortModelSchema({
+      modelType: modelType,
     });
 
     registry.register(querySchemaName, querySchema);

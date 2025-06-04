@@ -308,25 +308,25 @@ RunCron(
 
           if (subscriber.slackIncomingWebhookUrl) {
             // send slack message here.
-            let slackTitle = `🚨 *Incident Status Update - ${statusPageName}*
+            let slackTitle: string = `🚨 **Incident Status Update - ${statusPageName}**
 
-*Incident:* ${incident.title || " - "}`;
+**Incident:** ${incident.title || " - "}`;
 
             if (resourcesAffected) {
               slackTitle += `
-*Resources Affected:* ${resourcesAffected}`;
+**Resources Affected:** ${resourcesAffected}`;
             }
 
             slackTitle += `
-*Severity:* ${incident.incidentSeverity?.name || " - "}
-*Status:* ${incidentStateTimeline.incidentState.name}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Status:** ${incidentStateTimeline.incidentState.name}
 
-<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-            SlackUtil.sendMessageToChannelViaIncomingWebhook(
-              subscriber.slackIncomingWebhookUrl,
-              slackTitle,
-            ).catch((err: Error) => {
+            SlackUtil.sendMessageToChannelViaIncomingWebhook({
+              url: subscriber.slackIncomingWebhookUrl,
+              text: SlackUtil.convertMarkdownToSlackRichText(slackTitle),
+            }).catch((err: Error) => {
               logger.error(err);
             });
           }

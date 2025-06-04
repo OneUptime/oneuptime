@@ -160,16 +160,8 @@ RunCron(
               }
 
               if (subscriber.slackIncomingWebhookUrl) {
-                const slackMessage: string = `📢 *Announcement - ${statusPageName}*
-
-*Title:* ${announcement.title || ""}
-
-*Description:* ${announcement.description || ""}
-
-<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
-
                 // Convert markdown to Slack format and send notification
-                const markdownMessage: string = `## Announcement - ${statusPageName}
+                const markdownMessage: string = `## 📢 Announcement - ${statusPageName}
 
 **Title:** ${announcement.title || ""}
 
@@ -180,7 +172,9 @@ RunCron(
                 // send Slack notification here.
                 SlackUtil.sendMessageToChannelViaIncomingWebhook({
                   url: subscriber.slackIncomingWebhookUrl,
-                  text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+                  text: SlackUtil.convertMarkdownToSlackRichText(
+                    markdownMessage,
+                  ),
                 }).catch((err: Error) => {
                   logger.error(err);
                 });

@@ -292,11 +292,12 @@ RunCron(
 
           if (subscriber.slackIncomingWebhookUrl) {
             // send slack message here.
-            const resourcesAffectedText = statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "None";
+            const resourcesAffectedText =
+              statusPageToResources[statuspage._id!]
+                ?.map((r: StatusPageResource) => {
+                  return r.displayName;
+                })
+                .join(", ") || "None";
 
             // Create markdown message for Slack
             const markdownMessage = `## Incident Update - ${statusPageName}
@@ -314,7 +315,7 @@ ${incidentPublicNote.note || ""}
 
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
               url: new URL(subscriber.slackIncomingWebhookUrl),
-              text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+              text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
             }).catch((err: Error) => {
               logger.error(err);
             });

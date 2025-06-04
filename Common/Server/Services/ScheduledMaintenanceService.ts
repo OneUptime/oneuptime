@@ -256,22 +256,22 @@ export class Service extends DatabaseService<Model> {
           }
 
           if (subscriber.slackIncomingWebhookUrl) {
-            const slackMessage: string = `🔧 *Scheduled Maintenance - ${statusPageName}*
+            const slackMessage: string = `# 🔧 Scheduled Maintenance - ${statusPageName}
 
-*Event:* ${event.title || ""}
+**Event:** ${event.title || ""}
 
-*Scheduled Date:* ${OneUptimeDate.getDateAsFormattedString(event.startsAt!)}
+**Scheduled Date:** ${OneUptimeDate.getDateAsFormattedString(event.startsAt!)}
 
-${resourcesAffected ? `*Resources Affected:* ${resourcesAffected}` : ""}
+${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
-*Description:* ${event.description || ""}
+**Description:** ${event.description || ""}
 
-<${statusPageURL}|View Status Page> | <${unsubscribeUrl}|Unsubscribe>`;
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
             // send Slack notification here.
             SlackUtil.sendMessageToChannelViaIncomingWebhook({
               url: subscriber.slackIncomingWebhookUrl,
-              text: slackMessage,
+              text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
             }).catch((err: Error) => {
               logger.error(err);
             });

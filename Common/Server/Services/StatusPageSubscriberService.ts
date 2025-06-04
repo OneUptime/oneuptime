@@ -851,8 +851,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Create test notification message
-    const statusPageName: string = statusPage.pageTitle || statusPage.name || "Status Page";
-    const statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage.id!);
+    const statusPageName: string =
+      statusPage.pageTitle || statusPage.name || "Status Page";
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(
+      statusPage.id!,
+    );
 
     // Create markdown message for Slack
     const markdownMessage = `## Test Notification - ${statusPageName}
@@ -873,7 +876,7 @@ You will receive real-time notifications for:
     try {
       await SlackUtil.sendMessageToChannelViaIncomingWebhook({
         url: URL.fromString(data.webhookUrl),
-        text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+        text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
       });
     } catch (error) {
       logger.error("Error sending test Slack notification:");
@@ -882,4 +885,5 @@ You will receive real-time notifications for:
     }
   }
 }
+
 export default new Service();

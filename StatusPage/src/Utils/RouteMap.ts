@@ -59,7 +59,8 @@ const RouteMap: Dictionary<Route> = {
   // preview forbidden page
   [PageMap.PREVIEW_FORBIDDEN]: new Route(
     `/status-page/${RouteParams.StatusPageId}/forbidden`,
-  ),  [PageMap.PREVIEW_SUBSCRIBE_EMAIL]: new Route(
+  ),
+  [PageMap.PREVIEW_SUBSCRIBE_EMAIL]: new Route(
     `/status-page/${RouteParams.StatusPageId}/subscribe/email`,
   ),
   [PageMap.PREVIEW_SUBSCRIBE_SMS]: new Route(

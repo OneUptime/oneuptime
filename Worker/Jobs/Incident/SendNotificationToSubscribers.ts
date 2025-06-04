@@ -283,7 +283,7 @@ RunCron(
 
               if (subscriber.slackIncomingWebhookUrl) {
                 // Create markdown message for Slack
-                const markdownMessage: string = `## Incident Alert - ${statusPageName}
+                const markdownMessage: string = `## 🚨 Incident - ${statusPageName}
 
 **Title:** ${incident.title || ""}
 
@@ -298,7 +298,9 @@ RunCron(
                 // send Slack notification with markdown conversion
                 SlackUtil.sendMessageToChannelViaIncomingWebhook({
                   url: subscriber.slackIncomingWebhookUrl,
-                  text: SlackUtil.convertMarkdownToSlack(markdownMessage),
+                  text: SlackUtil.convertMarkdownToSlackRichText(
+                    markdownMessage,
+                  ),
                 }).catch((err: Error) => {
                   logger.error(err);
                 });
