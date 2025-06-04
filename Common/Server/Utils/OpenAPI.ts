@@ -9,8 +9,23 @@ import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
 import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
+import Permission from "../../Types/Permission";
 
 export default class OpenAPIUtil {
+  /**
+   * Helper method to check if permissions should exclude API generation.
+   * Returns true if:
+   * 1. The permissions array is empty or undefined, OR
+   * 2. The permissions array contains Permission.Public or Permission.CurrentUser
+   */
+  private static shouldExcludeApiForPermissions(permissions: Array<Permission> | undefined): boolean {
+    if (!permissions || permissions.length === 0) {
+      return true;
+    }
+    
+    return permissions.includes(Permission.Public) || permissions.includes(Permission.CurrentUser);
+  }
+
   public static generateOpenAPISpec(): JSONObject {
     // check if the cache is already in LocalCache
     const cachedSpec: JSONValue | undefined = LocalCache.getJSON(
@@ -224,8 +239,8 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
-    // Skip generating create API if model has no create permissions
-    if (!model.createRecordPermissions || model.createRecordPermissions.length === 0) {
+    // Skip generating create API if model has no create permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.createRecordPermissions)) {
       return;
     }
 
@@ -332,6 +347,11 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
+    // Skip generating get API if model has no read permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.readRecordPermissions)) {
+      return;
+    }
+
     // Use schema name that is already registered
     const selectSchemaName = `${tableName}SelectSchema`;
 
@@ -409,8 +429,8 @@ export default class OpenAPIUtil {
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
 
-    // Skip generating update API if model has no update permissions
-    if (!model.updateRecordPermissions || model.updateRecordPermissions.length === 0) {
+    // Skip generating update API if model has no update permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.updateRecordPermissions)) {
       return;
     }
 
@@ -483,6 +503,12 @@ export default class OpenAPIUtil {
     const model: DatabaseBaseModel = new modelType();
     const tableName: string = model.tableName || "UnknownModel";
     const singularModelName: string = model.singularName || tableName;
+    
+    // Skip generating delete API if model has no delete permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.deleteRecordPermissions)) {
+      return;
+    }
+    
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
@@ -536,26 +562,26 @@ export default class OpenAPIUtil {
     modelType: new () => DatabaseBaseModel,
     model: DatabaseBaseModel,
   ): void {
-    // Check if model has create permissions
-    if (model.createRecordPermissions && model.createRecordPermissions.length > 0) {
+    // Check if model has create permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.createRecordPermissions)) {
       const createSchema = ModelSchema.getCreateModelSchema({ modelType });
       registry.register(`${tableName}CreateSchema`, createSchema);
     }
 
-    // Check if model has read permissions
-    if (model.readRecordPermissions && model.readRecordPermissions.length > 0) {
+    // Check if model has read permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.readRecordPermissions)) {
       const readSchema = ModelSchema.getReadModelSchema({ modelType });
       registry.register(`${tableName}ReadSchema`, readSchema);
     }
 
-    // Check if model has update permissions
-    if (model.updateRecordPermissions && model.updateRecordPermissions.length > 0) {
+    // Check if model has update permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.updateRecordPermissions)) {
       const updateSchema = ModelSchema.getUpdateModelSchema({ modelType });
       registry.register(`${tableName}UpdateSchema`, updateSchema);
     }
 
-    // Check if model has delete permissions
-    if (model.deleteRecordPermissions && model.deleteRecordPermissions.length > 0) {
+    // Check if model has delete permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.deleteRecordPermissions)) {
       const deleteSchema = ModelSchema.getDeleteModelSchema({ modelType });
       registry.register(`${tableName}DeleteSchema`, deleteSchema);
     }
