@@ -89,6 +89,16 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
   const fields: Array<ModelField<StatusPageSubscriber>> = [
     {
       field: {
+        slackWorkspaceName: true,
+      },
+      title: "Slack Workspace Name",
+      description: "Enter your Slack workspace name for validation.",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: "my-company-workspace",
+    },
+    {
+      field: {
         slackIncomingWebhookUrl: true,
       },
       title: "Slack Incoming Webhook URL",
@@ -200,15 +210,15 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
           fields={[
             {
               field: {
-                slackIncomingWebhookUrl: true,
+                slackWorkspaceName: true,
               },
               title:
-                "Please enter your Slack webhook URL you have subscribed with",
+                "Please enter your Slack workspace name you have subscribed with",
               description:
-                "We will send you a manage subscription link to this webhook.",
-              fieldType: FormFieldSchemaType.URL,
+                "We will send you a manage subscription link to this workspace.",
+              fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: "https://hooks.slack.com/services/...",
+              placeholder: "my-company-workspace",
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(

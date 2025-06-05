@@ -2202,13 +2202,13 @@ export default class StatusPageAPI extends BaseAPI<
     if (
       !req.body.data["subscriberEmail"] &&
       !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackIncomingWebhookUrl"]
+      (!req.body.data["slackWorkspaceName"])
     ) {
       logger.debug(
-        `No email, slack webhook or phone provided for subscription to status page with ID: ${statusPageId}`,
+        `No email, slack workspace name or phone provided for subscription to status page with ID: ${statusPageId}`,
       );
       throw new BadDataException(
-        "Email, phone or slack webhook is required to subscribe to this status page.",
+        "Email, phone or slack workspace name is required to subscribe to this status page.",
       );
     }
 
@@ -2220,10 +2220,10 @@ export default class StatusPageAPI extends BaseAPI<
       ? new Phone(req.body.data["subscriberPhone"] as string)
       : undefined;
 
-    const slackIncomingWebhookUrl: string | undefined = req.body.data[
-      "slackIncomingWebhookUrl"
+    const slackWorkspaceName: string | undefined = req.body.data[
+      "slackWorkspaceName"
     ]
-      ? (req.body.data["slackIncomingWebhookUrl"] as string)
+      ? (req.body.data["slackWorkspaceName"] as string)
       : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
@@ -2262,15 +2262,16 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
-    if (slackIncomingWebhookUrl) {
-      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`);
+    if (slackWorkspaceName) {
+      logger.debug(`Setting subscriber slack workspace: ${slackWorkspaceName}`);
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
-          slackIncomingWebhookUrl: slackIncomingWebhookUrl,
+          slackWorkspaceName: slackWorkspaceName,
           statusPageId: statusPageId,
         },
         select: {
           _id: true,
+          slackWorkspaceName: true,
           slackIncomingWebhookUrl: true,
         },
         props: {
@@ -2282,16 +2283,18 @@ export default class StatusPageAPI extends BaseAPI<
     if (!statusPageSubscriber) {
       // not found, return bad data
       logger.debug(
-        `Subscriber not found for email: ${email} or phone: ${phone}`,
+        `Subscriber not found for email: ${email}, phone: ${phone}, or slack workspace: ${slackWorkspaceName}`,
       );
 
-      let emailOrPhone: string = "email";
+      let identifierType: string = "email";
       if (phone) {
-        emailOrPhone = "phone";
+        identifierType = "phone";
+      } else if (slackWorkspaceName) {
+        identifierType = "slack workspace name";
       }
 
       throw new BadDataException(
-        `Subscription not found for this status page. Please make sure your ${emailOrPhone} is correct.`,
+        `Subscription not found for this status page. Please make sure your ${identifierType} is correct.`,
       );
     }
 
@@ -2366,11 +2369,11 @@ export default class StatusPageAPI extends BaseAPI<
         });
       }
 
-      if (slackIncomingWebhookUrl) {
+      if (statusPageSubscriber.slackIncomingWebhookUrl) {
         const slackMessage: string = `You have selected to manage your subscription for the status page: ${statusPage.name}. You can manage your subscription here: ${manageUrlink}`;
 
         SlackUtil.sendMessageToChannelViaIncomingWebhook({
-          url: URL.fromString(slackIncomingWebhookUrl),
+          url: statusPageSubscriber.slackIncomingWebhookUrl,
           text: slackMessage,
         }).catch((err: Error) => {
           logger.error(err);
@@ -2455,7 +2458,7 @@ export default class StatusPageAPI extends BaseAPI<
     // if no email or phone, throw error.
 
     if (
-      req.body.data["slackIncomingWebhookUrl"] &&
+      req.body.data["slackWorkspaceName"] &&
       !statusPage.enableSlackSubscribers
     ) {
       logger.debug(
@@ -2469,13 +2472,13 @@ export default class StatusPageAPI extends BaseAPI<
     if (
       !req.body.data["subscriberEmail"] &&
       !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackIncomingWebhookUrl"]
+      !req.body.data["slackWorkspaceName"]
     ) {
       logger.debug(
-        `No email or phone provided for subscription to status page with ID: ${objectId}`,
+        `No email, phone, or slack workspace name provided for subscription to status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Email or phone is required to subscribe to this status page.",
+        "Email, phone or slack workspace name is required to subscribe to this status page.",
       );
     }
 
@@ -2491,6 +2494,12 @@ export default class StatusPageAPI extends BaseAPI<
       "slackIncomingWebhookUrl"
     ]
       ? (req.body.data["slackIncomingWebhookUrl"] as string)
+      : undefined;
+
+    const slackWorkspaceName: string | undefined = req.body.data[
+      "slackWorkspaceName"
+    ]
+      ? (req.body.data["slackWorkspaceName"] as string)
       : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
@@ -2542,6 +2551,11 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
         slackIncomingWebhookUrl,
       );
+    }
+
+    if (slackWorkspaceName) {
+      logger.debug(`Setting subscriber slack workspace name: ${slackWorkspaceName}`);
+      statusPageSubscriber.slackWorkspaceName = slackWorkspaceName;
     }
 
     if (

@@ -120,6 +120,17 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
+          slackWorkspaceName: true,
+        },
+        stepId: "subscriber-info",
+        title: "Slack Workspace Name",
+        description: "Name of the Slack workspace for identification.",
+        fieldType: FormFieldSchemaType.Text,
+        required: true,
+        placeholder: "my-company-workspace",
+      },
+      {
+        field: {
           slackIncomingWebhookUrl: true,
         },
         stepId: "subscriber-info",
@@ -256,6 +267,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             isEditable={true}
             isViewable={false}
             selectMoreFields={{
+              slackWorkspaceName: true,
               slackIncomingWebhookUrl: true,
               isSubscriptionConfirmed: true,
             }}
@@ -297,6 +309,13 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             filters={[
               {
                 field: {
+                  slackWorkspaceName: true,
+                },
+                title: "Slack Workspace Name",
+                type: FieldType.Text,
+              },
+              {
+                field: {
                   slackIncomingWebhookUrl: true,
                 },
                 title: "Slack Webhook URL",
@@ -325,6 +344,13 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               },
             ]}
             columns={[
+              {
+                field: {
+                  slackWorkspaceName: true,
+                },
+                title: "Workspace Name",
+                type: FieldType.Text,
+              },
               {
                 field: {
                   slackIncomingWebhookUrl: true,
