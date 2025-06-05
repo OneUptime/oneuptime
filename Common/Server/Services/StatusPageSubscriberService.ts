@@ -683,6 +683,7 @@ Stay informed about service availability! 🚀`;
         subscriberEmail: true,
         subscriberPhone: true,
         subscriberWebhook: true,
+        slackIncomingWebhookUrl: true,
         isSubscribedToAllResources: true,
         statusPageResources: true,
         isSubscribedToAllEventTypes: true,

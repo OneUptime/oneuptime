@@ -283,9 +283,7 @@ RunCron(
 
               if (subscriber.slackIncomingWebhookUrl) {
                 // Create markdown message for Slack
-                const markdownMessage: string = `## 🚨 Incident - ${statusPageName}
-
-**Title:** ${incident.title || ""}
+                const markdownMessage: string = `## 🚨 Incident - ${incident.title || ""}
 
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 

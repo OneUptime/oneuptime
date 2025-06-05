@@ -256,9 +256,7 @@ export class Service extends DatabaseService<Model> {
           }
 
           if (subscriber.slackIncomingWebhookUrl) {
-            const slackMessage: string = `# 🔧 Scheduled Maintenance - ${statusPageName}
-
-**Event:** ${event.title || ""}
+            const slackMessage: string = `## 🔧 Scheduled Maintenance - ${event.title || ""}
 
 **Scheduled Date:** ${OneUptimeDate.getDateAsFormattedString(event.startsAt!)}
 

@@ -308,9 +308,9 @@ RunCron(
 
           if (subscriber.slackIncomingWebhookUrl) {
             // send slack message here.
-            let slackTitle: string = `🚨 **Incident Status Update - ${statusPageName}**
+            let slackTitle: string = `🚨 ## Incident - ${incident.title || " - "}
 
-**Incident:** ${incident.title || " - "}`;
+`;
 
             if (resourcesAffected) {
               slackTitle += `

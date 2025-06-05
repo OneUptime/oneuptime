@@ -300,11 +300,10 @@ RunCron(
                 .join(", ") || "None";
 
             // Create markdown message for Slack
-            const markdownMessage: string = `## Incident Update - ${statusPageName}
+            const markdownMessage: string = `## Incident - ${incident.title || ""}
 
 **New note has been added to an incident**
 
-**Incident:** ${incident.title || " - "}
 **Resources Affected:** ${resourcesAffectedText}
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 

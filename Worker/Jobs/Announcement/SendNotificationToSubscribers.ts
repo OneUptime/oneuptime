@@ -161,9 +161,7 @@ RunCron(
 
               if (subscriber.slackIncomingWebhookUrl) {
                 // Convert markdown to Slack format and send notification
-                const markdownMessage: string = `## 📢 Announcement - ${statusPageName}
-
-**Title:** ${announcement.title || ""}
+                const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
 
 **Description:** ${announcement.description || ""}
 
