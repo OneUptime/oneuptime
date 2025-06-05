@@ -144,6 +144,7 @@ export class Service extends DatabaseService<Model> {
           ignoreHooks: true,
         },
       });
+
       logger.debug(`Found Subscriber by Phone: ${JSON.stringify(subscriber)}`);
     }
 
@@ -203,6 +204,16 @@ export class Service extends DatabaseService<Model> {
     logger.debug(
       `Final Subscription Confirmed: ${data.data.isSubscriptionConfirmed}`,
     );
+
+    // if slack incoming webhook is provided, then see if it starts with https://hooks.slack.com/services/
+
+    if(data.data.slackIncomingWebhookUrl){
+      logger.debug(`Slack Incoming Webhook URL: ${data.data.slackIncomingWebhookUrl}`);
+      if (!SlackUtil.isValidSlackIncomingWebhookUrl(data.data.slackIncomingWebhookUrl)) {
+        logger.debug("Invalid Slack Incoming Webhook URL.");
+        throw new BadDataException("Invalid Slack Incoming Webhook URL.");
+      }
+    }
 
     data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(
       100000,
@@ -329,6 +340,30 @@ export class Service extends DatabaseService<Model> {
         await this.sendYouHaveSubscribedEmail({
           subscriberId: createdItem.id!,
         });
+      }
+    }
+
+
+    // if slack incoming webhook is provided, then send a message to the slack channel.
+    if (createdItem.slackIncomingWebhookUrl) {
+
+      logger.debug("Sending Slack notification for new subscriber.");
+      const slackMessage: string = `Subscribed to ${statusPageName}:
+**Status Page:** ${statusPageURL}
+
+If you wish to unsubscribe, [click here](${unsubscribeLink})`;
+
+      logger.debug(`Slack Message: ${slackMessage}`);
+      
+      try {
+        await SlackUtil.sendMessageToChannelViaIncomingWebhook({
+          url: URL.fromString(createdItem.slackIncomingWebhookUrl.toString()),
+          text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
+        });
+        logger.debug("Slack notification sent successfully.");
+      } catch (error) {
+        logger.error("Error sending Slack notification:");
+        logger.error(error);
       }
     }
 
