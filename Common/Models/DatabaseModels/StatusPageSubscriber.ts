@@ -327,12 +327,8 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.CreateStatusPageSubscriber,
       Permission.Public,
     ],
-    read: [
-      
-    ],
-    update: [
-      
-    ],
+    read: [],
+    update: [],
   })
   @TableColumn({
     required: false,

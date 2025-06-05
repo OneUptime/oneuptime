@@ -2202,7 +2202,7 @@ export default class StatusPageAPI extends BaseAPI<
     if (
       !req.body.data["subscriberEmail"] &&
       !req.body.data["subscriberPhone"] &&
-      (!req.body.data["slackWorkspaceName"])
+      !req.body.data["slackWorkspaceName"]
     ) {
       logger.debug(
         `No email, slack workspace name or phone provided for subscription to status page with ID: ${statusPageId}`,
@@ -2554,7 +2554,9 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (slackWorkspaceName) {
-      logger.debug(`Setting subscriber slack workspace name: ${slackWorkspaceName}`);
+      logger.debug(
+        `Setting subscriber slack workspace name: ${slackWorkspaceName}`,
+      );
       statusPageSubscriber.slackWorkspaceName = slackWorkspaceName;
     }
 
