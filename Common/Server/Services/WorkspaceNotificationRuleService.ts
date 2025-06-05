@@ -30,6 +30,7 @@ import WorkspaceMessagePayload, {
 import WorkspaceProjectAuthToken, {
   MiscData,
   SlackMiscData,
+  MicrosoftTeamsMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import logger from "../Utils/Logger";
@@ -529,6 +530,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
 
       return userId;
+    }
+
+    if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
+      // Microsoft Teams uses tenant-based authentication, not a bot user ID
+      // Return the team ID which serves as the identifier for the Teams integration
+      const teamId: string = (miscData as MicrosoftTeamsMiscData).teamId;
+
+      if (!teamId) {
+        throw new BadDataException(
+          "Team ID not found in project auth token",
+        );
+      }
+
+      return teamId;
     }
 
     throw new BadDataException("Workspace type not supported");
