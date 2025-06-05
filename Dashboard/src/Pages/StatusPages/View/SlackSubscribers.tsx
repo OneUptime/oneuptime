@@ -272,7 +272,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             query={{
               statusPageId: modelId,
               projectId: ProjectUtil.getCurrentProjectId()!,
-              slackIncomingWebhookUrl: new NotNull(),
+              slackWorkspaceName: new NotNull(),
             }}
             onBeforeCreate={(
               item: StatusPageSubscriber,
