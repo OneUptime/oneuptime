@@ -328,16 +328,10 @@ export default class StatusPageSubscriber extends BaseModel {
       Permission.Public,
     ],
     read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadStatusPageSubscriber,
+      
     ],
     update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.EditStatusPageSubscriber,
+      
     ],
   })
   @TableColumn({

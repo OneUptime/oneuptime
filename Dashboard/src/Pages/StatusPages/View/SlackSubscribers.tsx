@@ -267,8 +267,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
             isEditable={true}
             isViewable={false}
             selectMoreFields={{
-              slackWorkspaceName: true,
-              slackIncomingWebhookUrl: true,
               isSubscriptionConfirmed: true,
             }}
             query={{
@@ -316,13 +314,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               },
               {
                 field: {
-                  slackIncomingWebhookUrl: true,
-                },
-                title: "Slack Webhook URL",
-                type: FieldType.URL,
-              },
-              {
-                field: {
                   isUnsubscribed: true,
                 },
                 title: "Is Unsubscribed",
@@ -350,13 +341,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Workspace Name",
                 type: FieldType.Text,
-              },
-              {
-                field: {
-                  slackIncomingWebhookUrl: true,
-                },
-                title: "Slack Webhook URL",
-                type: FieldType.URL,
               },
               {
                 field: {

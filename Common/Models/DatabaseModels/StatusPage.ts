@@ -1168,7 +1168,7 @@ export default class StatusPage extends BaseModel {
   })
   @ColumnBillingAccessControl({
     read: PlanType.Free,
-    update: PlanType.Growth,
+    update: PlanType.Scale,
     create: PlanType.Free,
   })
   public enableSlackSubscribers?: boolean = undefined;
