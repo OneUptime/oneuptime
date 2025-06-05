@@ -7,13 +7,18 @@ import React, {
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL, MicrosoftTeamsAppClientId } from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsMiscData,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -23,8 +28,7 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import Link from "Common/UI/Components/Link/Link";
-import Route from "Common/Types/API/Route";
+import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -36,6 +40,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [error, setError] = React.useState<ReactElement | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [manifest, setManifest] = React.useState<JSONObject | null>(null);
   const [isUserAccountConnected, setIsUserAccountConnected] =
     React.useState<boolean>(false);
   const [userAuthTokenId, setWorkspaceUserAuthTokenId] =
@@ -59,6 +64,19 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     try {
       setError(null);
       setIsLoading(true);
+
+      // Fetch app manifest
+      if (MicrosoftTeamsAppClientId) {
+        const manifestResponse: HTTPResponse<JSONObject> = await API.get(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            new Route("/api/microsoft-teams/app-manifest"),
+          ),
+        );
+
+        if (manifestResponse.isSuccess()) {
+          setManifest(manifestResponse.data);
+        }
+      }
 
       // check if the project is already connected with Microsoft Teams.
       const projectAuth: ListResult<WorkspaceProjectAuthToken> =
@@ -219,18 +237,43 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   if (!isProjectAccountConnected) {
     cardTitle = `Connect with Microsoft Teams`;
-    cardDescription = `Microsoft Teams integration is fully functional. You can set up notifications through the Workflows feature or manually add webhook URLs.`;
-    cardButtons = [
-      {
-        title: `Learn More About Microsoft Teams Integration`,
-        buttonStyle: ButtonStyleType.PRIMARY,
-        onClick: () => {
-          // Navigate to documentation or workflows
-          window.open('https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook', '_blank');
+    cardDescription = `Connect your Microsoft Teams workspace with OneUptime to get notified about incidents, alerts, and more.`;
+    
+    if (MicrosoftTeamsAppClientId) {
+      const project_install_redirect_uri: string = encodeURIComponent(
+        `${APP_API_URL.toString()}/api/microsoft-teams/auth/${ProjectUtil.getCurrentProjectId()?.toString()}/${UserUtil.getUserId()?.toString()}`,
+      );
+
+      cardButtons = [
+        {
+          title: `Connect to Microsoft Teams`,
+          buttonStyle: ButtonStyleType.PRIMARY,
+          onClick: () => {
+            window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${project_install_redirect_uri}&scope=https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/User.Read&state=${Buffer.from(JSON.stringify({ projectId: ProjectUtil.getCurrentProjectId()?.toString(), userId: UserUtil.getUserId()?.toString() })).toString('base64')}`;
+          },
+          icon: IconProp.Add,
         },
-        icon: IconProp.ExternalLink,
-      },
-    ];
+      ];
+    } else {
+      cardButtons = [
+        {
+          title: `Learn More About Microsoft Teams Integration`,
+          buttonStyle: ButtonStyleType.PRIMARY,
+          onClick: () => {
+            window.open('https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook', '_blank');
+          },
+          icon: IconProp.ExternalLink,
+        },
+      ];
+    }
+  }
+
+  if (!MicrosoftTeamsAppClientId) {
+    return (
+      <MicrosoftTeamsIntegrationDocumentation
+        manifest={manifest || {}}
+      />
+    );
   }
 
   return (
@@ -241,40 +284,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           description={cardDescription}
           buttons={cardButtons}
         />
-        {!isProjectAccountConnected && (
-          <Card
-            title="Manual Setup Instructions"
-            description="You can integrate Microsoft Teams with OneUptime through workflows or by using incoming webhooks."
-          >
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Option 1: Using Workflows</h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  Set up Microsoft Teams notifications through OneUptime Workflows for automatic incident and monitoring alerts.
-                </p>
-                <Link
-                  to={new Route("/dashboard/workflows")}
-                  className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
-                >
-                  Go to Workflows →
-                </Link>
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Option 2: Incoming Webhooks</h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  Create an incoming webhook in your Microsoft Teams channel and use it in your OneUptime integrations.
-                </p>
-                <Link
-                  to={new Route("https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook")}
-                  openInNewTab={true}
-                  className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
-                >
-                  Learn How to Create Webhooks →
-                </Link>
-              </div>
-            </div>
-          </Card>
-        )}
       </div>
     </Fragment>
   );
