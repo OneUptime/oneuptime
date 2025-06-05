@@ -348,13 +348,23 @@ export class Service extends DatabaseService<Model> {
     if (createdItem.slackIncomingWebhookUrl) {
 
       logger.debug("Sending Slack notification for new subscriber.");
-      const slackMessage: string = `Subscribed to ${statusPageName}:
-**Status Page:** ${statusPageURL}
+      const slackMessage: string = `## 📢 New Subscription to ${statusPageName}
 
-If you wish to unsubscribe, [click here](${unsubscribeLink})`;
+**You have successfully subscribed to receive status updates!**
+
+🔗 **Status Page:** [${statusPageName}](${statusPageURL})
+📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
+
+You will receive real-time notifications for:
+• Incidents and outages 
+• Scheduled maintenance events  
+• Service announcements
+• Status updates
+
+Stay informed about service availability! 🚀`;
 
       logger.debug(`Slack Message: ${slackMessage}`);
-      
+
       try {
         await SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(createdItem.slackIncomingWebhookUrl.toString()),
