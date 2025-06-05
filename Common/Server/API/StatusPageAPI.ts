@@ -496,7 +496,7 @@ export default class StatusPageAPI extends BaseAPI<
             headerHTML: true,
             footerHTML: true,
             enableEmailSubscribers: true,
-            enableSlackSubscribers:   true,
+            enableSlackSubscribers: true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             allowSubscribersToChooseResources: true,
@@ -2176,7 +2176,10 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    if (req.body.data["slackIncomingWebhookUrl"] && !statusPage.enableSlackSubscribers) {
+    if (
+      req.body.data["slackIncomingWebhookUrl"] &&
+      !statusPage.enableSlackSubscribers
+    ) {
       logger.debug(
         `Slack subscribers not enabled for status page with ID: ${statusPageId}`,
       );
@@ -2198,7 +2201,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (
       !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"] && 
+      !req.body.data["subscriberPhone"] &&
       !req.body.data["slackIncomingWebhookUrl"]
     ) {
       logger.debug(
@@ -2217,10 +2220,11 @@ export default class StatusPageAPI extends BaseAPI<
       ? new Phone(req.body.data["subscriberPhone"] as string)
       : undefined;
 
-      const slackIncomingWebhookUrl: string | undefined =
-      req.body.data["slackIncomingWebhookUrl"]
-        ? (req.body.data["slackIncomingWebhookUrl"] as string)
-        : undefined;
+    const slackIncomingWebhookUrl: string | undefined = req.body.data[
+      "slackIncomingWebhookUrl"
+    ]
+      ? (req.body.data["slackIncomingWebhookUrl"] as string)
+      : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
@@ -2258,8 +2262,8 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
-    if( slackIncomingWebhookUrl) {
-      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`); 
+    if (slackIncomingWebhookUrl) {
+      logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`);
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           slackIncomingWebhookUrl: slackIncomingWebhookUrl,
@@ -2274,7 +2278,6 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
     }
-
 
     if (!statusPageSubscriber) {
       // not found, return bad data
@@ -2363,18 +2366,15 @@ export default class StatusPageAPI extends BaseAPI<
         });
       }
 
-
-      if(slackIncomingWebhookUrl){
+      if (slackIncomingWebhookUrl) {
         const slackMessage: string = `You have selected to manage your subscription for the status page: ${statusPage.name}. You can manage your subscription here: ${manageUrlink}`;
 
         SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(slackIncomingWebhookUrl),
           text: slackMessage,
-        }
-        ).catch((err: Error) => {
+        }).catch((err: Error) => {
           logger.error(err);
         });
-        
       }
 
       logger.debug(
@@ -2454,7 +2454,10 @@ export default class StatusPageAPI extends BaseAPI<
 
     // if no email or phone, throw error.
 
-    if (req.body.data["slackIncomingWebhookUrl"] && !statusPage.enableSlackSubscribers) {
+    if (
+      req.body.data["slackIncomingWebhookUrl"] &&
+      !statusPage.enableSlackSubscribers
+    ) {
       logger.debug(
         `Slack subscribers not enabled for status page with ID: ${objectId}`,
       );
@@ -2484,10 +2487,11 @@ export default class StatusPageAPI extends BaseAPI<
       ? new Phone(req.body.data["subscriberPhone"] as string)
       : undefined;
 
-    const slackIncomingWebhookUrl: string | undefined =
-      req.body.data["slackIncomingWebhookUrl"]
-        ? (req.body.data["slackIncomingWebhookUrl"] as string)
-        : undefined; 
+    const slackIncomingWebhookUrl: string | undefined = req.body.data[
+      "slackIncomingWebhookUrl"
+    ]
+      ? (req.body.data["slackIncomingWebhookUrl"] as string)
+      : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
 
@@ -2535,7 +2539,9 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (slackIncomingWebhookUrl) {
       logger.debug(`Setting subscriber slack: ${slackIncomingWebhookUrl}`);
-      statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(slackIncomingWebhookUrl);
+      statusPageSubscriber.slackIncomingWebhookUrl = URL.fromString(
+        slackIncomingWebhookUrl,
+      );
     }
 
     if (

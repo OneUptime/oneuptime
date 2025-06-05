@@ -207,9 +207,15 @@ export class Service extends DatabaseService<Model> {
 
     // if slack incoming webhook is provided, then see if it starts with https://hooks.slack.com/services/
 
-    if(data.data.slackIncomingWebhookUrl){
-      logger.debug(`Slack Incoming Webhook URL: ${data.data.slackIncomingWebhookUrl}`);
-      if (!SlackUtil.isValidSlackIncomingWebhookUrl(data.data.slackIncomingWebhookUrl)) {
+    if (data.data.slackIncomingWebhookUrl) {
+      logger.debug(
+        `Slack Incoming Webhook URL: ${data.data.slackIncomingWebhookUrl}`,
+      );
+      if (
+        !SlackUtil.isValidSlackIncomingWebhookUrl(
+          data.data.slackIncomingWebhookUrl,
+        )
+      ) {
         logger.debug("Invalid Slack Incoming Webhook URL.");
         throw new BadDataException("Invalid Slack Incoming Webhook URL.");
       }
@@ -343,10 +349,8 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-
     // if slack incoming webhook is provided, then send a message to the slack channel.
     if (createdItem.slackIncomingWebhookUrl) {
-
       logger.debug("Sending Slack notification for new subscriber.");
       const slackMessage: string = `## 📢 New Subscription to ${statusPageName}
 

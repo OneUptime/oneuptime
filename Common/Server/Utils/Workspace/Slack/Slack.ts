@@ -33,14 +33,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 
 export default class SlackUtil extends WorkspaceBase {
-
   public static isValidSlackIncomingWebhookUrl(
     incomingWebhookUrl: URL,
   ): boolean {
     // check if the URL starts with https://hooks.slack.com/services/
-    return incomingWebhookUrl.toString().startsWith(
-      "https://hooks.slack.com/services/",
-    );
+    return incomingWebhookUrl
+      .toString()
+      .startsWith("https://hooks.slack.com/services/");
   }
 
   @CaptureSpan()

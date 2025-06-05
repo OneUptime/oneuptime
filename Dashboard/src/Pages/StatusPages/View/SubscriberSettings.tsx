@@ -47,7 +47,7 @@ const StatusPageDelete: FunctionComponent<
             required: false,
             placeholder: "Can SMS subscribers subscribe to this status page?",
           },
-          // slack subscribers. 
+          // slack subscribers.
           {
             field: {
               enableSlackSubscribers: true,
