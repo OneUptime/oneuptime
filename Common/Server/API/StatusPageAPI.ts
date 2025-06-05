@@ -2697,6 +2697,7 @@ export default class StatusPageAPI extends BaseAPI<
           isUnsubscribed: true,
           subscriberEmail: true,
           subscriberPhone: true,
+          slackWorkspaceName: true,
           statusPageId: true,
           statusPageResources: true,
           isSubscribedToAllResources: true,

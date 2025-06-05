@@ -125,7 +125,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       showEvenIfPermissionDoesNotExist: true,
       title: "Slack Workspace Name",
-      fieldType: FormFieldSchemaType.Email,
+      fieldType: FormFieldSchemaType.Text,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.slackWorkspaceName);
       },
