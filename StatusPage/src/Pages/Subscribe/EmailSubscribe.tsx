@@ -213,7 +213,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             StatusPageUtil.getStatusPageId()!,
           )}
           formType={FormType.Create}
-          submitButtonText={"Subscribe"}
+          submitButtonText={"Send Management Link"}
           onBeforeCreate={async (item: StatusPageSubscriber) => {
             const id: ObjectID = LocalStorage.getItem(
               "statusPageId",
