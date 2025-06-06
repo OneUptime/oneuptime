@@ -46,6 +46,7 @@ export default class OpenAPIUtil {
     }
 
     const registry: OpenAPIRegistry = new OpenAPIRegistry();
+    const tags: Array<{ name: string; description: string }> = [];
 
     // Register schemas and paths for all models
     for (const ModelClass of Models) {
@@ -71,6 +72,13 @@ export default class OpenAPIUtil {
         );
         continue;
       }
+
+      // Add tag for this model
+      const singularModelName: string = model.singularName || modelName;
+      tags.push({
+        name: singularModelName,
+        description: `API endpoints for ${singularModelName} management`,
+      });
 
       // register the model schema
       OpenAPIUtil.registerModelSchemas(registry, model);
@@ -120,6 +128,7 @@ export default class OpenAPIUtil {
           description: "API Server",
         },
       ],
+      tags: tags.sort((a, b) => a.name.localeCompare(b.name)),
     }) as unknown as JSONObject;
 
     LocalCache.setJSON("openapi", "spec", spec as JSONObject);
@@ -147,6 +156,7 @@ export default class OpenAPIUtil {
       path: `${model.crudApiPath}/get-list`,
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
+      tags: [singularModelName],
       requestBody: {
         required: false,
         content: {
@@ -205,6 +215,7 @@ export default class OpenAPIUtil {
       path: `${model.crudApiPath}/count`,
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
+      tags: [singularModelName],
       requestBody: {
         required: false,
         content: {
@@ -261,6 +272,7 @@ export default class OpenAPIUtil {
       path: `${model.crudApiPath}`,
       summary: `Create ${singularModelName}`,
       description: `Endpoint to create a new ${singularModelName}`,
+      tags: [singularModelName],
       requestBody: {
         required: true,
         content: {
@@ -367,6 +379,7 @@ export default class OpenAPIUtil {
       path: `${model.crudApiPath}/{id}`,
       summary: `Get ${singularModelName}`,
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
+      tags: [singularModelName],
       parameters: [
         ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
@@ -451,6 +464,7 @@ export default class OpenAPIUtil {
       path: `${model.crudApiPath}/{id}`,
       summary: `Update ${singularModelName}`,
       description: `Endpoint to update an existing ${singularModelName}`,
+      tags: [singularModelName],
       parameters: [
         ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
@@ -521,6 +535,7 @@ export default class OpenAPIUtil {
       path: `${model.crudApiPath}/{id}`,
       summary: `Delete ${singularModelName}`,
       description: `Endpoint to delete a ${singularModelName}`,
+      tags: [singularModelName],
       parameters: [
         ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
         {
