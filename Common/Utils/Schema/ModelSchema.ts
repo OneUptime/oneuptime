@@ -29,7 +29,7 @@ export class ModelSchema extends BaseSchema {
     permissions: Array<Permission> | undefined,
   ): string {
     if (!permissions || permissions.length === 0) {
-      return "No permissions required";
+      return "No access - you don't have permission for this operation";
     }
 
     return PermissionHelper.getPermissionTitles(permissions).join(", ");
@@ -72,10 +72,25 @@ export class ModelSchema extends BaseSchema {
 
     const shape: ShapeRecord = {};
 
+    // Get column access control for permission filtering
+    const columnAccessControl: Dictionary<ColumnAccessControl> = model.getColumnAccessControlForAllColumns();
+
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
         continue;
+      }
+
+      // Filter out columns with no permissions (root-only access)
+      const accessControl: ColumnAccessControl | undefined = columnAccessControl[key];
+      if (accessControl) {
+        // Check if column has any permissions defined for read operation (general schema assumes read access)
+        const hasReadPermissions = accessControl.read && accessControl.read.length > 0;
+        
+        // If no read permissions are defined, exclude the column from general schema
+        if (!hasReadPermissions) {
+          continue;
+        }
       }
       let zodType: ZodTypes.ZodTypeAny;
 
@@ -940,6 +955,9 @@ export class ModelSchema extends BaseSchema {
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
     const shape: ShapeRecord = {};
 
+    // Get column access control for permission filtering
+    const columnAccessControl: Dictionary<ColumnAccessControl> = model.getColumnAccessControlForAllColumns();
+
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
       if (!column) {
@@ -954,6 +972,29 @@ export class ModelSchema extends BaseSchema {
       // Only include specified fields if includedFields is provided
       if (data.includedFields && !data.includedFields.includes(key)) {
         continue;
+      }
+
+      // Filter out columns with no permissions (root-only access)
+      const accessControl: ColumnAccessControl | undefined = columnAccessControl[key];
+      if (accessControl) {
+        let hasPermissions = false;
+        
+        // Check if column has any permissions defined for the current operation
+        if (data.schemaType === "create" && accessControl.create && accessControl.create.length > 0) {
+          hasPermissions = true;
+        } else if (data.schemaType === "read" && accessControl.read && accessControl.read.length > 0) {
+          hasPermissions = true;
+        } else if (data.schemaType === "update" && accessControl.update && accessControl.update.length > 0) {
+          hasPermissions = true;
+        } else if (data.schemaType === "delete") {
+          // For delete operations, we don't filter by column permissions
+          hasPermissions = true;
+        }
+        
+        // If no permissions are defined for this operation, exclude the column
+        if (!hasPermissions) {
+          continue;
+        }
       }
 
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
