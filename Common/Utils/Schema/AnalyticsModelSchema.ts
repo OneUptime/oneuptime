@@ -17,9 +17,19 @@ export class AnalyticsModelSchema extends BaseSchema {
 
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
+    // Filter out columns with no read permissions
+    const filteredColumns: Array<AnalyticsTableColumn> = columns.filter((column: AnalyticsTableColumn) => {
+      const accessControl = model.getColumnAccessControlFor(column.key);
+      if (!accessControl) {
+        return false;
+      }
+      const readPermissions: Array<string> = accessControl.read;
+      return readPermissions && readPermissions.length > 0;
+    });
+
     const shape: ShapeRecord = {};
 
-    for (const column of columns) {
+    for (const column of filteredColumns) {
       const key: string = column.key;
       let zodType: ZodTypes.ZodTypeAny;
 
@@ -122,7 +132,7 @@ export class AnalyticsModelSchema extends BaseSchema {
     const schema: AnalyticsModelSchemaType = z.object(shape);
 
     logger.debug(
-      `Analytics model schema for ${model.tableName} created with shape keys: ${Object.keys(shape).join(", ")}`,
+      `Analytics model schema for ${model.tableName} created with shape keys: ${Object.keys(shape).join(", ")} (filtered ${columns.length - filteredColumns.length} columns without read permissions)`,
     );
 
     return schema;
@@ -247,6 +257,16 @@ export class AnalyticsModelSchema extends BaseSchema {
 
       // Skip default value columns in create schema
       if (column.isDefaultValueColumn) {
+        continue;
+      }
+
+      // Filter out columns with no create permissions
+      const accessControl = model.getColumnAccessControlFor(column.key);
+      if (!accessControl) {
+        continue;
+      }
+      const createPermissions: Array<string> = accessControl.create;
+      if (!createPermissions || createPermissions.length === 0) {
         continue;
       }
 
@@ -433,6 +453,16 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
+      // Skip columns with no create permissions
+      const accessControl = model.getColumnAccessControlFor(column.key);
+      if (!accessControl) {
+        continue;
+      }
+      const createPermissions: Array<string> = accessControl.create;
+      if (!createPermissions || createPermissions.length === 0) {
+        continue;
+      }
+
       example[column.key] = this.getExampleValueForColumn(column.type);
       exampleCount++;
     }
@@ -451,6 +481,12 @@ export class AnalyticsModelSchema extends BaseSchema {
     for (const column of columns) {
       if (exampleCount >= maxExamples) {
         break;
+      }
+
+      // Check read permissions for query operations
+      const accessControl = model.getColumnAccessControlFor(column.key);
+      if (!accessControl || !accessControl.read || accessControl.read.length === 0) {
+        continue;
       }
 
       const validOperators = this.getValidOperatorsForColumnType(column.type);
@@ -480,13 +516,22 @@ export class AnalyticsModelSchema extends BaseSchema {
     const model: AnalyticsBaseModel = new modelType();
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
-    // Add common fields
-    const example: SchemaExample = {
-      _id: true,
-      createdAt: true,
-    };
+    // Add common fields (only if they have read permissions)
+    const example: SchemaExample = {};
+    
+    // Check if _id has read permissions
+    const idAccessControl = model.getColumnAccessControlFor("_id");
+    if (idAccessControl && idAccessControl.read && idAccessControl.read.length > 0) {
+      example["_id"] = true;
+    }
+    
+    // Check if createdAt has read permissions
+    const createdAtAccessControl = model.getColumnAccessControlFor("createdAt");
+    if (createdAtAccessControl && createdAtAccessControl.read && createdAtAccessControl.read.length > 0) {
+      example["createdAt"] = true;
+    }
 
-    // Add first few non-system fields
+    // Add first few non-system fields with read permissions
     let fieldCount: number = 0;
     const maxFields: number = 3;
     
@@ -496,8 +541,12 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
 
       if (!["_id", "createdAt", "updatedAt"].includes(column.key)) {
-        example[column.key] = true;
-        fieldCount++;
+        // Check read permissions
+        const accessControl = model.getColumnAccessControlFor(column.key);
+        if (accessControl && accessControl.read && accessControl.read.length > 0) {
+          example[column.key] = true;
+          fieldCount++;
+        }
       }
     }
 
@@ -508,7 +557,7 @@ export class AnalyticsModelSchema extends BaseSchema {
     const model: AnalyticsBaseModel = new modelType();
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
-    // Find first suitable field for grouping
+    // Find first suitable field for grouping with read permissions
     for (const column of columns) {
       const isGroupable: boolean = [
         TableColumnType.Text,
@@ -519,12 +568,22 @@ export class AnalyticsModelSchema extends BaseSchema {
       ].includes(column.type);
 
       if (isGroupable && !["_id", "createdAt", "updatedAt"].includes(column.key)) {
-        return { [column.key]: true };
+        // Check read permissions
+        const accessControl = model.getColumnAccessControlFor(column.key);
+        if (accessControl && accessControl.read && accessControl.read.length > 0) {
+          return { [column.key]: true };
+        }
       }
     }
 
-    // Fallback
-    return { createdAt: true };
+    // Fallback to createdAt if it has read permissions
+    const createdAtAccessControl = model.getColumnAccessControlFor("createdAt");
+    if (createdAtAccessControl && createdAtAccessControl.read && createdAtAccessControl.read.length > 0) {
+      return { ["createdAt"]: true };
+    }
+
+    // Final fallback - return empty object if no columns have read permissions
+    return {};
   }
 
   private static getOperatorSchema(
