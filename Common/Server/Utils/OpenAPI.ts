@@ -4,9 +4,12 @@ import {
 } from "@asteasolutions/zod-to-openapi";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
+import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsModels from "../../Models/AnalyticsModels/Index";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
+import { AnalyticsModelSchema, AnalyticsModelSchemaType } from "../../Utils/Schema/AnalyticsModelSchema";
 import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
@@ -106,6 +109,63 @@ export default class OpenAPIUtil {
       });
       this.generateDeleteApiSpec({
         modelType: ModelClass,
+        registry,
+      });
+    }
+
+    // Register schemas and paths for all Analytics models
+    for (const AnalyticsModelClass of AnalyticsModels) {
+      const analyticsModel: AnalyticsBaseModel = new AnalyticsModelClass();
+      const modelName: string | null = analyticsModel.tableName;
+
+      if (!modelName) {
+        continue;
+      }
+
+      if (!analyticsModel.crudApiPath) {
+        logger.debug(
+          `Skipping OpenAPI documentation for Analytics model ${modelName} as it does not have a CRUD API path defined.`,
+        );
+        continue;
+      }
+
+      // Add tag for this model
+      const singularModelName: string = analyticsModel.singularName || modelName;
+      tags.push({
+        name: singularModelName,
+        description: `API endpoints for ${singularModelName}`,
+      });
+
+      // register the analytics model schema
+      OpenAPIUtil.registerAnalyticsModelSchemas(registry, analyticsModel);
+
+      this.generateAnalyticsListApiSpec({
+        modelType: AnalyticsModelClass,
+        registry,
+      });
+
+      this.generateAnalyticsCountApiSpec({
+        modelType: AnalyticsModelClass,
+        registry,
+      });
+
+      this.generateAnalyticsCreateApiSpec({
+        modelType: AnalyticsModelClass,
+        registry,
+      });
+
+      this.generateAnalyticsGetApiSpec({
+        modelType: AnalyticsModelClass,
+        registry,
+      });
+
+      this.generateAnalyticsUpdateApiSpec({
+        modelType: AnalyticsModelClass,
+        registry,
+      });
+
+      this.generateAnalyticsDeleteApiSpec({
+        modelType: AnalyticsModelClass,
         registry,
       });
     }
@@ -650,5 +710,471 @@ export default class OpenAPIUtil {
     registry.register(selectSchemaName, selectSchema);
     registry.register(sortSchemaName, sortSchema);
     registry.register(groupBySchemaName, groupBySchema);
+  }
+
+  // Analytics-specific methods
+
+  private static registerAnalyticsModelSchemas(
+    registry: OpenAPIRegistry,
+    model: AnalyticsBaseModel,
+  ): void {
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const modelType: new () => AnalyticsBaseModel =
+      model.constructor as new () => AnalyticsBaseModel;
+
+    // Register the main analytics model schema
+    const modelSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getModelSchema({
+      modelType: modelType,
+    });
+    registry.register(tableName, modelSchema);
+
+    // Register operation-specific schemas based on permissions
+    this.registerAnalyticsOperationSpecificSchemas(
+      registry,
+      tableName,
+      modelType,
+      model,
+    );
+
+    // Register query, select, and sort schemas
+    this.registerAnalyticsQuerySchemas(registry, tableName, modelType);
+  }
+
+  private static registerAnalyticsOperationSpecificSchemas(
+    registry: OpenAPIRegistry,
+    tableName: string,
+    modelType: new () => AnalyticsBaseModel,
+    model: AnalyticsBaseModel,
+  ): void {
+    // Check if model has create permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.getCreatePermissions())) {
+      const createSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({
+        modelType,
+      });
+      registry.register(`${tableName}CreateSchema`, createSchema);
+    }
+
+    // Check if model has read permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.getReadPermissions())) {
+      const readSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getModelSchema({
+        modelType,
+      });
+      registry.register(`${tableName}ReadSchema`, readSchema);
+    }
+
+    // Check if model has update permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.getUpdatePermissions())) {
+      const updateSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({
+        modelType,
+      });
+      registry.register(`${tableName}UpdateSchema`, updateSchema);
+    }
+
+    // Check if model has delete permissions and should not exclude API generation
+    if (!this.shouldExcludeApiForPermissions(model.getDeletePermissions())) {
+      const deleteSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getModelSchema({
+        modelType,
+      });
+      registry.register(`${tableName}DeleteSchema`, deleteSchema);
+    }
+  }
+
+  private static registerAnalyticsQuerySchemas(
+    registry: OpenAPIRegistry,
+    tableName: string,
+    modelType: new () => AnalyticsBaseModel,
+  ): void {
+    const querySchemaName: string = `${tableName}QuerySchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const sortSchemaName: string = `${tableName}SortSchema`;
+    const groupBySchemaName: string = `${tableName}GroupBySchema`;
+
+    const querySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getQueryModelSchema({
+      modelType: modelType,
+    });
+    const selectSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSelectModelSchema({
+      modelType: modelType,
+    });
+    const sortSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSortModelSchema({
+      modelType: modelType,
+    });
+    const groupBySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getGroupByModelSchema({
+      modelType: modelType,
+    });
+
+    registry.register(querySchemaName, querySchema);
+    registry.register(selectSchemaName, selectSchema);
+    registry.register(sortSchemaName, sortSchema);
+    registry.register(groupBySchemaName, groupBySchema);
+  }
+
+  // Analytics API generation methods
+  
+  private static generateAnalyticsListApiSpec(data: {
+    modelType: new () => AnalyticsBaseModel;
+    registry: OpenAPIRegistry;
+  }): void {
+    const modelType: new () => AnalyticsBaseModel = data.modelType;
+    const model: AnalyticsBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const singularModelName: string = model.singularName || tableName;
+
+    // Use schema names that are already registered
+    const querySchemaName: string = `${tableName}QuerySchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const sortSchemaName: string = `${tableName}SortSchema`;
+    const groupBySchemaName: string = `${tableName}GroupBySchema`;
+
+    data.registry.registerPath({
+      method: "post",
+      path: `${model.crudApiPath}/get-list`,
+      summary: `List ${singularModelName}`,
+      description: `Endpoint to list all ${singularModelName} items`,
+      tags: [singularModelName],
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                query: { $ref: `#/components/schemas/${querySchemaName}` },
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
+                sort: { $ref: `#/components/schemas/${sortSchemaName}` },
+                groupBy: { $ref: `#/components/schemas/${groupBySchemaName}` },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Successful response",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      $ref: `#/components/schemas/${tableName}`,
+                    },
+                  },
+                  count: { type: "number" },
+                },
+              },
+            },
+          },
+        },
+        ...this.getGenericStatusResponseSchema(),
+      },
+    });
+  }
+
+  private static generateAnalyticsCountApiSpec(data: {
+    modelType: new () => AnalyticsBaseModel;
+    registry: OpenAPIRegistry;
+  }): void {
+    const modelType: new () => AnalyticsBaseModel = data.modelType;
+    const model: AnalyticsBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const singularModelName: string = model.singularName || tableName;
+
+    // Use schema name that is already registered
+    const querySchemaName: string = `${tableName}QuerySchema`;
+
+    data.registry.registerPath({
+      method: "post",
+      path: `${model.crudApiPath}/count`,
+      summary: `Count ${singularModelName}`,
+      description: `Endpoint to count ${singularModelName} items`,
+      tags: [singularModelName],
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                query: { $ref: `#/components/schemas/${querySchemaName}` },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Successful response",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  count: { type: "number" },
+                },
+              },
+            },
+          },
+        },
+        ...this.getGenericStatusResponseSchema(),
+      },
+    });
+  }
+
+  private static generateAnalyticsCreateApiSpec(data: {
+    modelType: new () => AnalyticsBaseModel;
+    registry: OpenAPIRegistry;
+  }): void {
+    const modelType: new () => AnalyticsBaseModel = data.modelType;
+    const model: AnalyticsBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const singularModelName: string = model.singularName || tableName;
+
+    // Skip generating create API if model has no create permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.getCreatePermissions())) {
+      return;
+    }
+
+    // Use schema names that are already registered
+    const createSchemaName: string = `${tableName}CreateSchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const readSchemaName: string = `${tableName}ReadSchema`;
+
+    data.registry.registerPath({
+      method: "post",
+      path: `${model.crudApiPath}`,
+      summary: `Create ${singularModelName}`,
+      description: `Endpoint to create a new ${singularModelName}`,
+      tags: [singularModelName],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                data: {
+                  $ref: `#/components/schemas/${createSchemaName}`,
+                },
+                miscDataProps: {
+                  type: "object",
+                  description: "Additional data properties for creation",
+                  additionalProperties: true,
+                },
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
+              },
+              required: ["data"],
+            },
+          },
+        },
+      },
+      responses: {
+        "201": {
+          description: "Created successfully",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${readSchemaName}`,
+                  },
+                },
+              },
+            },
+          },
+        },
+        ...this.getGenericStatusResponseSchema(),
+      },
+    });
+  }
+
+  private static generateAnalyticsGetApiSpec(data: {
+    modelType: new () => AnalyticsBaseModel;
+    registry: OpenAPIRegistry;
+  }): void {
+    const modelType: new () => AnalyticsBaseModel = data.modelType;
+    const model: AnalyticsBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const singularModelName: string = model.singularName || tableName;
+
+    // Skip generating get API if model has no read permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.getReadPermissions())) {
+      return;
+    }
+
+    // Use schema name that is already registered
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+
+    data.registry.registerPath({
+      method: "post",
+      path: `${model.crudApiPath}/{id}`,
+      summary: `Get ${singularModelName}`,
+      description: `Endpoint to retrieve a single ${singularModelName} by ID`,
+      tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
+            format: "uuid",
+          },
+          description: `ID of the ${singularModelName} to retrieve`,
+        },
+      ],
+      requestBody: {
+        required: false,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Successful response",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${tableName}`,
+                  },
+                },
+              },
+            },
+          },
+        },
+        ...this.getGenericStatusResponseSchema(),
+      },
+    });
+  }
+
+  private static generateAnalyticsUpdateApiSpec(data: {
+    modelType: new () => AnalyticsBaseModel;
+    registry: OpenAPIRegistry;
+  }): void {
+    const modelType: new () => AnalyticsBaseModel = data.modelType;
+    const model: AnalyticsBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const singularModelName: string = model.singularName || tableName;
+
+    // Skip generating update API if model has no update permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.getUpdatePermissions())) {
+      return;
+    }
+
+    // Use schema names that are already registered
+    const updateSchemaName: string = `${tableName}UpdateSchema`;
+    const selectSchemaName: string = `${tableName}SelectSchema`;
+    const readSchemaName: string = `${tableName}ReadSchema`;
+
+    data.registry.registerPath({
+      method: "put",
+      path: `${model.crudApiPath}/{id}`,
+      summary: `Update ${singularModelName}`,
+      description: `Endpoint to update an existing ${singularModelName}`,
+      tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
+            format: "uuid",
+          },
+          description: `ID of the ${singularModelName} to update`,
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                data: {
+                  $ref: `#/components/schemas/${updateSchemaName}`,
+                },
+                select: { $ref: `#/components/schemas/${selectSchemaName}` },
+              },
+              required: ["data"],
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Updated successfully",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${readSchemaName}`,
+                  },
+                },
+              },
+            },
+          },
+        },
+        ...this.getGenericStatusResponseSchema(),
+      },
+    });
+  }
+
+  private static generateAnalyticsDeleteApiSpec(data: {
+    modelType: new () => AnalyticsBaseModel;
+    registry: OpenAPIRegistry;
+  }): void {
+    const modelType: new () => AnalyticsBaseModel = data.modelType;
+    const model: AnalyticsBaseModel = new modelType();
+    const tableName: string = model.tableName || "UnknownAnalyticsModel";
+    const singularModelName: string = model.singularName || tableName;
+
+    // Skip generating delete API if model has no delete permissions or contains Public/CurrentUser permissions
+    if (this.shouldExcludeApiForPermissions(model.getDeletePermissions())) {
+      return;
+    }
+
+    data.registry.registerPath({
+      method: "delete",
+      path: `${model.crudApiPath}/{id}`,
+      summary: `Delete ${singularModelName}`,
+      description: `Endpoint to delete a ${singularModelName}`,
+      tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
+            format: "uuid",
+          },
+          description: `ID of the ${singularModelName} to delete`,
+        },
+      ],
+      responses: {
+        "200": {
+          description: "Deleted successfully",
+        },
+        ...this.getGenericStatusResponseSchema(),
+      },
+    });
   }
 }
