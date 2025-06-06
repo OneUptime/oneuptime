@@ -80,8 +80,8 @@ import {
 @SlugifyColumn("name", "slug")
 @TableMetadata({
   tableName: "ServiceCatalog",
-  singularName: "Service",
-  pluralName: "Services",
+  singularName: "Service in Service Catalog",
+  pluralName: "Services in Service Catalog",
   icon: IconProp.SquareStack,
   tableDescription:
     "Service Catalog is a collection of services that you have in your organization. It can be a collection of services that you are monitoring or services that you are providing to your customers. It can be anything that you want to keep track of.",

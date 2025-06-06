@@ -68,8 +68,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CrudApiEndpoint(new Route("/service-copilot-code-repository"))
 @TableMetadata({
   tableName: "ServiceCopilotCodeRepository",
-  singularName: "Service",
-  pluralName: "Services",
+  singularName: "Service Code Repository for Copilot",
+  pluralName: "Service Code Repositories for Copilot",
   icon: IconProp.SquareStack,
   tableDescription:
     "Add services to your code repository to categorize and manage them easily. This will help copilot understand and generate code.",
