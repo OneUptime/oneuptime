@@ -55,8 +55,8 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyTimeLog",
-  singularName: "User Override",
-  pluralName: "User Overrides",
+  singularName: "On Call Time Log",
+  pluralName: "On Call Time Logs",
   icon: IconProp.Call,
   tableDescription:
     "Manage on-call duty user overrides, for example if the user is on leave you can override the on-call duty policy for that user so all the alerts will be routed to the other user.",
