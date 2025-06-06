@@ -12,8 +12,8 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
     super({
       tableName: "ExceptionItem",
       tableEngine: AnalyticsTableEngine.MergeTree,
-      singularName: "Exception",
-      pluralName: "Exceptions",
+      singularName: "Exception Instance",
+      pluralName: "Exception Instances",
       enableRealtimeEventsOn: {
         create: true,
       },
