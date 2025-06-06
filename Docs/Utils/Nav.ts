@@ -115,6 +115,15 @@ const DocsNav: NavGroup[] = [
       { title: "Deploy LLM Server", url: "/docs/copilot/deploy-llm-server" },
     ],
   },
+  {
+    title: "API Reference",
+    links: [
+      {
+        title: "OneUptime API Reference",
+        url: "/docs/api-reference/api-reference",
+      },
+    ],
+  },
 ];
 
 // Is self hosted install, then...
