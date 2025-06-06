@@ -2,19 +2,13 @@ import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../../Server/Utils/Logger";
 import { z as ZodTypes } from "zod";
+import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
 
 export type AnalyticsModelSchemaType = ZodSchema;
 
-// Type for schema examples
-type SchemaExample = Record<string, unknown>;
-
-// Type for shape record
-type ShapeRecord = Record<string, ZodTypes.ZodTypeAny>;
-
-export class AnalyticsModelSchema {
+export class AnalyticsModelSchema extends BaseSchema {
   public static getModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
   }): AnalyticsModelSchemaType {
@@ -279,37 +273,20 @@ export class AnalyticsModelSchema {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
 
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-    const shape: ShapeRecord = {};
-
-    for (const column of columns) {
-      const key: string = column.key;
-
-      // Get valid operators for this column type
-      const validOperators: Array<string> = this.getValidOperatorsForColumnType(column.type);
-
-      if (validOperators.length === 0) {
-        continue;
-      }
-
-      // Create a simple query operator schema for Analytics models
-      const operatorSchema = z.object({
-        _type: z.enum(["EqualTo", "NotEqual", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual", "Search", "IsNull", "NotNull"] as [string, ...string[]]),
-        value: z.any().optional(),
-      }).optional();
-
-      shape[key] = operatorSchema.openapi({
-        type: "object",
-        description: `Query operators for ${key} field`,
-        example: { _type: "EqualTo", value: this.getExampleValueForColumn(column.type) },
-      });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Query schema for ${model.tableName || "analytics model"}`,
-      example: this.getQuerySchemaExample(modelType),
-      additionalProperties: false,
+    return this.generateQuerySchema({
+      model,
+      tableName: model.tableName || "analytics_model",
+      getColumns: (model: AnalyticsBaseModel) => {
+        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        return columns.map(column => ({ key: column.key, type: column.type }));
+      },
+      getValidOperatorsForColumnType: (columnType: TableColumnType) => 
+        this.getValidOperatorsForColumnType(columnType),
+      getOperatorSchema: (operatorType: string, columnType: TableColumnType) =>
+        this.getOperatorSchema(operatorType, columnType),
+      getQuerySchemaExample: () => this.getQuerySchemaExample(modelType),
+      getExampleValueForColumn: (columnType: TableColumnType) =>
+        this.getExampleValueForColumn(columnType),
     });
   }
 
@@ -319,24 +296,16 @@ export class AnalyticsModelSchema {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
 
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-    const shape: ShapeRecord = {};
-
-    for (const column of columns) {
-      const key: string = column.key;
-      
-      shape[key] = z.literal(true).optional().openapi({
-        type: "boolean",
-        description: `Select ${key} field`,
-        example: true,
-      });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Select schema for ${model.tableName || "analytics model"}`,
-      example: this.getSelectSchemaExample(modelType),
-      additionalProperties: false,
+    return this.generateSelectSchema({
+      model,
+      tableName: model.tableName || "analytics_model",
+      getColumns: (model: AnalyticsBaseModel) => {
+        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        return columns.map(column => ({ key: column.key, type: column.type }));
+      },
+      getSelectSchemaExample: () => this.getSelectSchemaExample(modelType),
+      allowNested: false, // Analytics models typically don't have nested schemas
+      getNestedSchema: () => null,
     });
   }
 
@@ -346,32 +315,14 @@ export class AnalyticsModelSchema {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
 
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-    const shape: ShapeRecord = {};
-
-    for (const column of columns) {
-      const key: string = column.key;
-
-      // Only allow sorting on certain types
-      const isSortable: boolean = this.getSortableTypes().includes(column.type);
-
-      if (!isSortable) {
-        continue;
-      }
-
-      shape[key] = z.enum([SortOrder.Ascending, SortOrder.Descending]).optional().openapi({
-        type: "string",
-        enum: [SortOrder.Ascending, SortOrder.Descending],
-        description: `Sort order for ${key} field`,
-        example: SortOrder.Ascending,
-      });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Sort schema for ${model.tableName || "analytics model"}`,
-      example: { createdAt: SortOrder.Descending },
-      additionalProperties: false,
+    return this.generateSortSchema({
+      model,
+      tableName: model.tableName || "analytics_model",
+      getSortableTypes: () => this.getSortableTypes(),
+      getColumnsForSorting: (model: AnalyticsBaseModel) => {
+        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        return columns.map(column => ({ key: column.key, type: column.type }));
+      },
     });
   }
 
@@ -381,37 +332,21 @@ export class AnalyticsModelSchema {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
 
-    const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-    const shape: ShapeRecord = {};
-
-    for (const column of columns) {
-      const key: string = column.key;
-
-      // Only allow grouping by certain field types
-      const isGroupable: boolean = [
+    return this.generateGroupBySchema({
+      model,
+      tableName: model.tableName || "analytics_model",
+      getColumns: (model: AnalyticsBaseModel) => {
+        const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
+        return columns.map(column => ({ key: column.key, type: column.type }));
+      },
+      getGroupableTypes: () => [
         TableColumnType.Text,
         TableColumnType.ObjectID,
         TableColumnType.Boolean,
         TableColumnType.Date,
         TableColumnType.Number,
-      ].includes(column.type);
-
-      if (!isGroupable) {
-        continue;
-      }
-
-      shape[key] = z.literal(true).optional().openapi({
-        type: "boolean",
-        description: `Group by ${key} field. Only one field can be selected for grouping.`,
-        example: true,
-      });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Group by schema for ${model.tableName || "analytics model"}. Only one field can be set to true for grouping.`,
-      example: this.getGroupBySchemaExample(modelType),
-      additionalProperties: false,
+      ],
+      getGroupBySchemaExample: () => this.getGroupBySchemaExample(modelType),
     });
   }
 
@@ -590,5 +525,78 @@ export class AnalyticsModelSchema {
 
     // Fallback
     return { createdAt: true };
+  }
+
+  private static getOperatorSchema(
+    operatorType: string,
+    columnType: TableColumnType,
+  ): ZodTypes.ZodTypeAny {
+    const baseValue: ZodTypes.ZodTypeAny = this.getBaseValueSchemaForColumnType(columnType);
+
+    switch (operatorType) {
+      case "EqualTo":
+      case "NotEqual":
+        return z.object({
+          _type: z.literal(operatorType),
+          value: baseValue,
+        });
+
+      case "GreaterThan":
+      case "LessThan":
+      case "GreaterThanOrEqual":
+      case "LessThanOrEqual":
+        return z.object({
+          _type: z.literal(operatorType),
+          value: baseValue,
+        });
+
+      case "Search":
+        return z.object({
+          _type: z.literal("Search"),
+          value: z.string(),
+        });
+
+      case "IsNull":
+      case "NotNull":
+        return z.object({
+          _type: z.literal(operatorType),
+        });
+
+      default:
+        return z.object({
+          _type: z.literal(operatorType),
+          value: baseValue.optional(),
+        });
+    }
+  }
+
+  private static getBaseValueSchemaForColumnType(
+    columnType: TableColumnType,
+  ): ZodTypes.ZodTypeAny {
+    switch (columnType) {
+      case TableColumnType.ObjectID:
+      case TableColumnType.Text:
+        return z.string();
+
+      case TableColumnType.Number:
+      case TableColumnType.LongNumber:
+      case TableColumnType.Decimal:
+        return z.number();
+
+      case TableColumnType.Date:
+        return z.date();
+
+      case TableColumnType.Boolean:
+        return z.boolean();
+
+      case TableColumnType.JSON:
+      case TableColumnType.JSONArray:
+      case TableColumnType.ArrayText:
+      case TableColumnType.ArrayNumber:
+        return z.any();
+
+      default:
+        return z.string();
+    }
   }
 }

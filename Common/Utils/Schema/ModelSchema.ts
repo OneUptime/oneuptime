@@ -6,42 +6,22 @@ import {
 } from "../../Types/Database/TableColumn";
 import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../../Server/Utils/Logger";
 import Color from "../../Types/Color";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { PermissionHelper } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
 
 export type ModelSchemaType = ZodSchema;
-
-// Type for schema examples
-type SchemaExample = Record<string, unknown>;
-
-// Type for operator examples in OpenAPI format
-type OperatorExample = {
-  properties: Record<
-    string,
-    {
-      type: string;
-      enum?: string[];
-      items?: { type: string };
-    }
-  >;
-  required: string[];
-  example: Record<string, unknown>;
-};
-
-// Type for shape objects using Zod's type inference
-type ShapeRecord = Record<string, ZodTypes.ZodTypeAny>;
 
 // Type for schema method functions
 type SchemaMethodFunction = (data: {
   modelType: new () => DatabaseBaseModel;
 }) => ModelSchemaType;
 
-export class ModelSchema {
+export class ModelSchema extends BaseSchema {
   /**
    * Format permissions array into a human-readable string for OpenAPI documentation
    */
@@ -380,72 +360,26 @@ export class ModelSchema {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
 
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-
-    const shape: ShapeRecord = {};
-
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      // Get valid operators for this column type
-      const validOperators: Array<string> = this.getValidOperatorsForColumnType(
-        column.type,
-      );
-
-      if (validOperators.length === 0) {
-        continue;
-      }
-
-      // Create a union type of all valid operators for this column
-      const operatorSchemas: Array<ZodTypes.ZodTypeAny> = validOperators.map(
-        (operatorType: string) => {
-          return this.getOperatorSchema(operatorType, column.type);
-        },
-      );
-
-      let columnSchema: ZodTypes.ZodTypeAny;
-      if (operatorSchemas.length === 1 && operatorSchemas[0]) {
-        columnSchema = operatorSchemas[0].optional();
-      } else if (operatorSchemas.length > 1) {
-        columnSchema = z
-          .union(
-            operatorSchemas as [
-              ZodTypes.ZodTypeAny,
-              ZodTypes.ZodTypeAny,
-              ...ZodTypes.ZodTypeAny[],
-            ],
-          )
-          .optional();
-      } else {
-        // Fallback for empty operators array
-        columnSchema = z.any().optional();
-      }
-
-      // Add OpenAPI documentation for query operators
-      const operatorExamples: Array<OperatorExample> =
-        this.getQueryOperatorExamples(column.type, validOperators);
-      columnSchema = columnSchema.openapi({
-        type: "object",
-        description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(", ")}`,
-        example:
-          operatorExamples.length > 0 && operatorExamples[0]
-            ? operatorExamples[0].example
-            : {},
-      });
-
-      shape[key] = columnSchema;
-    }
-
-    const schema: ModelSchemaType = z.object(shape).openapi({
-      type: "object",
-      description: `Query schema for ${model.tableName || "model"} model. Each field can use various operators based on its data type.`,
-      example: this.getQuerySchemaExample(modelType),
+    return this.generateQuerySchema({
+      model,
+      tableName: model.tableName || "model",
+      getColumns: (model: DatabaseBaseModel) => {
+        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+        return Object.keys(columns)
+          .map(key => {
+            const column = columns[key];
+            return column ? { key, type: column.type } : null;
+          })
+          .filter(col => col !== null) as Array<{ key: string; type: any }>;
+      },
+      getValidOperatorsForColumnType: (columnType: TableColumnType) => 
+        this.getValidOperatorsForColumnType(columnType),
+      getOperatorSchema: (operatorType: string, columnType: TableColumnType) =>
+        this.getOperatorSchema(operatorType, columnType),
+      getQuerySchemaExample: () => this.getQuerySchemaExample(modelType),
+      getExampleValueForColumn: (columnType: TableColumnType) =>
+        this.getExampleValueForColumn(columnType),
     });
-
-    return schema;
   }
 
   private static getValidOperatorsForColumnType(
@@ -658,40 +592,19 @@ export class ModelSchema {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
 
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-
-    const shape: ShapeRecord = {};
-
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      const isSortable: boolean = ModelSchema.getSortableTypes().includes(
-        column.type,
-      );
-
-      if (!isSortable) {
-        continue;
-      }
-
-      shape[key] = z
-        .enum([SortOrder.Ascending, SortOrder.Descending])
-        .optional()
-        .openapi({
-          type: "string",
-          enum: [SortOrder.Ascending, SortOrder.Descending],
-          description: `Sort order for ${key} field`,
-          example: SortOrder.Ascending,
-        });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Sort schema for ${model.tableName || "model"} model. Only sortable fields are included.`,
-      example: this.getSortSchemaExample(),
-      additionalProperties: false,
+    return this.generateSortSchema({
+      model,
+      tableName: model.tableName || "model",
+      getSortableTypes: () => this.getSortableTypes(),
+      getColumnsForSorting: (model: DatabaseBaseModel) => {
+        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+        return Object.keys(columns)
+          .map(key => {
+            const column = columns[key];
+            return column ? { key, type: column.type } : null;
+          })
+          .filter(col => col !== null) as Array<{ key: string; type: any }>;
+      },
     });
   }
 
@@ -702,50 +615,32 @@ export class ModelSchema {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
 
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-
-    const shape: ShapeRecord = {};
-
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      // if its entity array or entity then you can select nested properties
-      if (
-        !data.isNested &&
-        column.modelType &&
-        (column.type === TableColumnType.EntityArray ||
-          column.type === TableColumnType.Entity)
-      ) {
-        // can only do one level of nesting
-        shape[key] = this.getSelectModelSchema({
-          modelType: column.modelType as new () => DatabaseBaseModel,
-          isNested: true,
-        }).openapi({
-          type: "object",
-          description: `Select fields for nested ${key} entity`,
-          example: { id: true, name: true },
-        });
-        continue;
-      }
-
-      shape[key] = z
-        .boolean()
-        .optional()
-        .openapi({
-          type: "boolean",
-          description: `Select ${key} field in the response`,
-          example: true,
-        });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Select schema for ${model.tableName || "model"} model. Set fields to true to include them in the response.`,
-      example: this.getSelectSchemaExample(modelType),
-      additionalProperties: false,
+    return this.generateSelectSchema({
+      model,
+      tableName: model.tableName || "model",
+      getColumns: (model: DatabaseBaseModel) => {
+        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+        return Object.keys(columns)
+          .map(key => {
+            const column = columns[key];
+            return column ? { key, type: column.type } : null;
+          })
+          .filter(col => col !== null) as Array<{ key: string; type?: any }>;
+      },
+      getSelectSchemaExample: () => this.getSelectSchemaExample(modelType),
+      allowNested: !data.isNested,
+      getNestedSchema: (key: string, model: DatabaseBaseModel) => {
+        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+        const column = columns[key];
+        if (column && column.modelType && 
+            (column.type === TableColumnType.EntityArray || column.type === TableColumnType.Entity)) {
+          return this.getSelectModelSchema({
+            modelType: column.modelType as new () => DatabaseBaseModel,
+            isNested: true,
+          });
+        }
+        return null;
+      },
     });
   }
 
@@ -755,18 +650,19 @@ export class ModelSchema {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
 
-    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-
-    const shape: ShapeRecord = {};
-
-    for (const key in columns) {
-      const column: TableColumnMetadata | undefined = columns[key];
-      if (!column) {
-        continue;
-      }
-
-      // Only allow grouping by certain field types that make sense for aggregation
-      const isGroupable: boolean = [
+    return this.generateGroupBySchema({
+      model,
+      tableName: model.tableName || "model",
+      getColumns: (model: DatabaseBaseModel) => {
+        const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+        return Object.keys(columns)
+          .map(key => {
+            const column = columns[key];
+            return column ? { key, type: column.type } : null;
+          })
+          .filter(col => col !== null) as Array<{ key: string; type: any }>;
+      },
+      getGroupableTypes: () => [
         TableColumnType.ShortText,
         TableColumnType.LongText,
         TableColumnType.Name,
@@ -781,216 +677,9 @@ export class ModelSchema {
         TableColumnType.SmallPositiveNumber,
         TableColumnType.BigNumber,
         TableColumnType.BigPositiveNumber,
-      ].includes(column.type);
-
-      if (!isGroupable) {
-        continue;
-      }
-
-      shape[key] = z
-        .literal(true)
-        .optional()
-        .openapi({
-          type: "boolean",
-          description: `Group by ${key} field. Only one field can be selected for grouping.`,
-          example: true,
-        });
-    }
-
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Group by schema for ${model.tableName || "model"} model. Only one field can be set to true for grouping.`,
-      example: this.getGroupBySchemaExample(modelType),
-      additionalProperties: false,
+      ],
+      getGroupBySchemaExample: () => this.getGroupBySchemaExample(modelType),
     });
-  }
-
-  private static getQueryOperatorExamples(
-    columnType: TableColumnType,
-    validOperators: Array<string>,
-  ): Array<OperatorExample> {
-    const examples: Array<OperatorExample> = [];
-
-    for (const operator of validOperators) {
-      switch (operator) {
-        case "EqualTo":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["EqualTo"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "EqualTo",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "NotEqual":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["NotEqual"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "NotEqual",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "Search":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["Search"] },
-              value: { type: "string" },
-            },
-            required: ["_type", "value"],
-            example: { _type: "Search", value: "search term" },
-          });
-          break;
-        case "GreaterThan":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["GreaterThan"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "GreaterThan",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "LessThan":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["LessThan"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "LessThan",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "GreaterThanOrEqual":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["GreaterThanOrEqual"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "GreaterThanOrEqual",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "LessThanOrEqual":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["LessThanOrEqual"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "LessThanOrEqual",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "EqualToOrNull":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["EqualToOrNull"] },
-              value: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "EqualToOrNull",
-              value: this.getExampleValueForColumn(columnType),
-            },
-          });
-          break;
-        case "InBetween":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["InBetween"] },
-              startValue: { type: this.getOpenAPITypeForColumn(columnType) },
-              endValue: { type: this.getOpenAPITypeForColumn(columnType) },
-            },
-            required: ["_type", "startValue", "endValue"],
-            example: {
-              _type: "InBetween",
-              startValue: this.getExampleValueForColumn(columnType),
-              endValue: this.getExampleValueForColumn(columnType, true),
-            },
-          });
-          break;
-        case "IsNull":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["IsNull"] },
-            },
-            required: ["_type"],
-            example: { _type: "IsNull" },
-          });
-          break;
-        case "NotNull":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["NotNull"] },
-            },
-            required: ["_type"],
-            example: { _type: "NotNull" },
-          });
-          break;
-        case "Includes":
-          examples.push({
-            properties: {
-              _type: { type: "string", enum: ["Includes"] },
-              value: {
-                type: "array",
-                items: { type: this.getOpenAPITypeForColumn(columnType) },
-              },
-            },
-            required: ["_type", "value"],
-            example: {
-              _type: "Includes",
-              value: [
-                this.getExampleValueForColumn(columnType),
-                this.getExampleValueForColumn(columnType, true),
-              ],
-            },
-          });
-          break;
-      }
-    }
-
-    return examples;
-  }
-
-  private static getOpenAPITypeForColumn(columnType: TableColumnType): string {
-    switch (columnType) {
-      case TableColumnType.Number:
-      case TableColumnType.PositiveNumber:
-      case TableColumnType.SmallNumber:
-      case TableColumnType.SmallPositiveNumber:
-      case TableColumnType.BigNumber:
-      case TableColumnType.BigPositiveNumber:
-        return "number";
-      case TableColumnType.Boolean:
-        return "boolean";
-      case TableColumnType.Date:
-        return "string";
-      case TableColumnType.JSON:
-      case TableColumnType.Array:
-        return "object";
-      default:
-        return "string";
-    }
   }
 
   private static getExampleValueForColumn(
@@ -1122,12 +811,6 @@ export class ModelSchema {
     }
 
     return example;
-  }
-
-  private static getSortSchemaExample(): SchemaExample {
-    return {
-      createdAt: "Descending",
-    };
   }
 
   private static getSelectSchemaExample(
