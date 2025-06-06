@@ -65,17 +65,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setError(null);
       setIsLoading(true);
 
-      // Fetch app manifest
-      if (MicrosoftTeamsAppClientId) {
-        const manifestResponse: HTTPResponse<JSONObject> = await API.get(
-          URL.fromString(APP_API_URL.toString()).addRoute(
-            new Route("/api/microsoft-teams/app-manifest"),
-          ),
-        );
+      // Always fetch app manifest (even if client ID is not set yet)
+      // Users need to see this manifest to create their Microsoft Teams app
+      const manifestResponse: HTTPResponse<JSONObject> = await API.get(
+        URL.fromString(APP_API_URL.toString()).addRoute(
+          new Route("/api/microsoft-teams/app-manifest"),
+        ),
+      );
 
-        if (manifestResponse.isSuccess()) {
-          setManifest(manifestResponse.data);
-        }
+      if (manifestResponse.isSuccess()) {
+        setManifest(manifestResponse.data);
       }
 
       // check if the project is already connected with Microsoft Teams.
@@ -268,7 +267,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   }
 
-  if (!MicrosoftTeamsAppClientId) {
+  if (!MicrosoftTeamsAppClientId || MicrosoftTeamsAppClientId === 'YOUR_MICROSOFT_TEAMS_APP_CLIENT_ID') {
     return (
       <MicrosoftTeamsIntegrationDocumentation
         manifest={manifest || {}}

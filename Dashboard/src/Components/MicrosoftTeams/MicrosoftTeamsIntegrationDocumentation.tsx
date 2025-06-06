@@ -10,19 +10,40 @@ export interface ComponentProps {
 const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // If manifest is empty or incomplete, show a loading message
+  const manifestContent = Object.keys(props.manifest).length > 0 
+    ? JSON.stringify(props.manifest, null, 2)
+    : 'Loading manifest... Please refresh the page if this persists.';
+
   const markdownText: string = `
 
-##### Step 1: Since this is a self hosted install, you need to create a Microsoft Teams App with this manifest. 
+##### Step 1: Create a Microsoft Teams App with this manifest
 
-Please create a Microsoft Teams App with the following manifest. You can do this by going to https://dev.teams.microsoft.com/apps and creating a new app. 
+Since this is a self-hosted install, you need to create a Microsoft Teams App with the manifest below.
+
+1. Go to [https://dev.teams.microsoft.com/apps](https://dev.teams.microsoft.com/apps)
+2. Click "New app" 
+3. Choose "Import app package" or "Upload a custom app"
+4. Use the manifest below (download as a JSON file or copy the content)
+
+**Important:** Before using this manifest, replace \`YOUR_MICROSOFT_TEAMS_APP_CLIENT_ID\` with your actual Microsoft Teams App Client ID from the Azure portal.
 
 \`\`\`json
-${JSON.stringify(props.manifest, null, 2)}
+${manifestContent}
 \`\`\`
 
-##### Step 2: Add these env variables to your OneUptime server
+##### Step 2: Get your Microsoft Teams App credentials
 
-If you are using Docker Compose then, 
+After creating the app in the Teams Developer Portal:
+
+1. Note the **App ID** (this will be your \`MICROSOFT_TEAMS_APP_CLIENT_ID\`)
+2. Go to Azure Portal > App registrations > find your app
+3. Get the **Client Secret** from "Certificates & secrets" section
+4. Note the **Tenant ID** from the app overview
+
+##### Step 3: Add these environment variables to your OneUptime server
+
+If you are using Docker Compose, add these to your \`.env\` file:
 
 \`\`\`bash
 MICROSOFT_TEAMS_APP_CLIENT_ID=YOUR_MICROSOFT_TEAMS_APP_CLIENT_ID

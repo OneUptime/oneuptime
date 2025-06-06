@@ -48,12 +48,13 @@ export default class MicrosoftTeamsAPI {
         const ServerDomain: string = new URL(HttpProtocol, Host).hostname.toString();
 
         // replace placeholders in the manifest with actual values.
+        // If client ID is not set, use placeholder text to guide users
         let manifestInString: string = JSON.stringify(
           MicrosoftTeamsAppManifest,
         )
           .replace(/{{SERVER_URL}}/g, ServerURL.toString())
           .replace(/{{SERVER_DOMAIN}}/g, ServerDomain)
-          .replace(/{{MICROSOFT_TEAMS_APP_CLIENT_ID}}/g, MicrosoftTeamsAppClientId || "");
+          .replace(/{{MICROSOFT_TEAMS_APP_CLIENT_ID}}/g, MicrosoftTeamsAppClientId || "YOUR_MICROSOFT_TEAMS_APP_CLIENT_ID");
 
         // convert it back to json.
         const manifest: JSONObject = JSON.parse(manifestInString);
