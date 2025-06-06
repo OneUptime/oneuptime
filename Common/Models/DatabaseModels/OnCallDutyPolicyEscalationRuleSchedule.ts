@@ -53,8 +53,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyEscalationRuleSchedule",
-  singularName: "On-Call Duty Escalation Rule Schedule",
-  pluralName: "On-Call Duty Escalation Rule Schedules",
+  singularName: "Schedule's On-Call Duty Escalation Rule",
+  pluralName: "Schedule's On-Call Duty Escalation Rules",
   icon: IconProp.Calendar,
   tableDescription:
     "Manage schedules for on-call duty policy escalation rules.",
