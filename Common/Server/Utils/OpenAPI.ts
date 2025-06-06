@@ -77,7 +77,7 @@ export default class OpenAPIUtil {
       const singularModelName: string = model.singularName || modelName;
       tags.push({
         name: singularModelName,
-        description: `API endpoints for ${singularModelName} management`,
+        description: model.tableDescription || `API endpoints for ${singularModelName}`,
       });
 
       // register the model schema
