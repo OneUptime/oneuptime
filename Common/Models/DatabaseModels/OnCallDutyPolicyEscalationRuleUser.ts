@@ -52,8 +52,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TableMetadata({
   tableName: "OnCallDutyPolicyEscalationRuleUser",
-  singularName: "On-Call Duty Escalation Rule",
-  pluralName: "On-Call Duty Esdcalation Rules",
+  singularName: "User's On-Call Duty Escalation Rule",
+  pluralName: "User's On-Call Duty Esdcalation Rules",
   icon: IconProp.Call,
   tableDescription:
     "Manage on-call duty escalation rule for the on-call policy.",
