@@ -26,8 +26,10 @@ export default class OpenAPIUtil {
     }
 
     return (
-      permissions.includes(Permission.Public) ||
-      permissions.includes(Permission.CurrentUser)
+      permissions.length > 0 &&
+      permissions.every(permission => 
+      permission === Permission.Public || permission === Permission.CurrentUser
+      )
     );
   }
 
