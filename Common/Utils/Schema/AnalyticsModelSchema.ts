@@ -18,14 +18,16 @@ export class AnalyticsModelSchema extends BaseSchema {
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
     // Filter out columns with no read permissions
-    const filteredColumns: Array<AnalyticsTableColumn> = columns.filter((column: AnalyticsTableColumn) => {
-      const accessControl = model.getColumnAccessControlFor(column.key);
-      if (!accessControl) {
-        return false;
-      }
-      const readPermissions: Array<string> = accessControl.read;
-      return readPermissions && readPermissions.length > 0;
-    });
+    const filteredColumns: Array<AnalyticsTableColumn> = columns.filter(
+      (column: AnalyticsTableColumn) => {
+        const accessControl = model.getColumnAccessControlFor(column.key);
+        if (!accessControl) {
+          return false;
+        }
+        const readPermissions: Array<string> = accessControl.read;
+        return readPermissions && readPermissions.length > 0;
+      },
+    );
 
     const shape: ShapeRecord = {};
 
@@ -92,7 +94,10 @@ export class AnalyticsModelSchema extends BaseSchema {
           },
           example: ["item1", "item2", "item3"],
         });
-      } else if (column.type === TableColumnType.NestedModel && column.nestedModel) {
+      } else if (
+        column.type === TableColumnType.NestedModel &&
+        column.nestedModel
+      ) {
         // Handle nested models recursively
         const nestedShape: ShapeRecord = {};
         for (const nestedColumn of column.nestedModel.tableColumns) {
@@ -105,7 +110,9 @@ export class AnalyticsModelSchema extends BaseSchema {
         }
         zodType = z.object(nestedShape).openapi({
           type: "object",
-          example: this.generateNestedModelExample(column.nestedModel.tableColumns),
+          example: this.generateNestedModelExample(
+            column.nestedModel.tableColumns,
+          ),
         });
       } else {
         // Default fallback
@@ -138,7 +145,9 @@ export class AnalyticsModelSchema extends BaseSchema {
     return schema;
   }
 
-  private static getZodTypeForColumn(column: AnalyticsTableColumn): ZodTypes.ZodTypeAny {
+  private static getZodTypeForColumn(
+    column: AnalyticsTableColumn,
+  ): ZodTypes.ZodTypeAny {
     switch (column.type) {
       case TableColumnType.ObjectID:
         return z.string().openapi({
@@ -201,7 +210,9 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
   }
 
-  private static generateNestedModelExample(columns: Array<AnalyticsTableColumn>): Record<string, unknown> {
+  private static generateNestedModelExample(
+    columns: Array<AnalyticsTableColumn>,
+  ): Record<string, unknown> {
     const example: Record<string, unknown> = {};
     for (const column of columns) {
       switch (column.type) {
@@ -250,7 +261,7 @@ export class AnalyticsModelSchema extends BaseSchema {
 
     for (const column of columns) {
       const key: string = column.key;
-      
+
       if (excludedFields.includes(key)) {
         continue;
       }
@@ -271,7 +282,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
 
       const zodType = this.getZodTypeForColumn(column);
-      
+
       if (column.required) {
         shape[key] = zodType;
       } else {
@@ -298,15 +309,25 @@ export class AnalyticsModelSchema extends BaseSchema {
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map(column => ({ key: column.key, type: column.type }));
+        return columns.map((column) => {
+          return { key: column.key, type: column.type };
+        });
       },
-      getValidOperatorsForColumnType: (columnType: TableColumnType) => 
-        this.getValidOperatorsForColumnType(columnType),
-      getOperatorSchema: (operatorType: string, columnType: TableColumnType) =>
-        this.getOperatorSchema(operatorType, columnType),
-      getQuerySchemaExample: () => this.getQuerySchemaExample(modelType),
-      getExampleValueForColumn: (columnType: TableColumnType) =>
-        this.getExampleValueForColumn(columnType),
+      getValidOperatorsForColumnType: (columnType: TableColumnType) => {
+        return this.getValidOperatorsForColumnType(columnType);
+      },
+      getOperatorSchema: (
+        operatorType: string,
+        columnType: TableColumnType,
+      ) => {
+        return this.getOperatorSchema(operatorType, columnType);
+      },
+      getQuerySchemaExample: () => {
+        return this.getQuerySchemaExample(modelType);
+      },
+      getExampleValueForColumn: (columnType: TableColumnType) => {
+        return this.getExampleValueForColumn(columnType);
+      },
     });
   }
 
@@ -321,11 +342,17 @@ export class AnalyticsModelSchema extends BaseSchema {
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map(column => ({ key: column.key, type: column.type }));
+        return columns.map((column) => {
+          return { key: column.key, type: column.type };
+        });
       },
-      getSelectSchemaExample: () => this.getSelectSchemaExample(modelType),
+      getSelectSchemaExample: () => {
+        return this.getSelectSchemaExample(modelType);
+      },
       allowNested: false, // Analytics models typically don't have nested schemas
-      getNestedSchema: () => null,
+      getNestedSchema: () => {
+        return null;
+      },
     });
   }
 
@@ -338,10 +365,14 @@ export class AnalyticsModelSchema extends BaseSchema {
     return this.generateSortSchema({
       model,
       tableName: model.tableName || "analytics_model",
-      getSortableTypes: () => this.getSortableTypes(),
+      getSortableTypes: () => {
+        return this.getSortableTypes();
+      },
       getColumnsForSorting: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map(column => ({ key: column.key, type: column.type }));
+        return columns.map((column) => {
+          return { key: column.key, type: column.type };
+        });
       },
     });
   }
@@ -357,16 +388,22 @@ export class AnalyticsModelSchema extends BaseSchema {
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map(column => ({ key: column.key, type: column.type }));
+        return columns.map((column) => {
+          return { key: column.key, type: column.type };
+        });
       },
-      getGroupableTypes: () => [
-        TableColumnType.Text,
-        TableColumnType.ObjectID,
-        TableColumnType.Boolean,
-        TableColumnType.Date,
-        TableColumnType.Number,
-      ],
-      getGroupBySchemaExample: () => this.getGroupBySchemaExample(modelType),
+      getGroupableTypes: () => {
+        return [
+          TableColumnType.Text,
+          TableColumnType.ObjectID,
+          TableColumnType.Boolean,
+          TableColumnType.Date,
+          TableColumnType.Number,
+        ];
+      },
+      getGroupBySchemaExample: () => {
+        return this.getGroupBySchemaExample(modelType);
+      },
     });
   }
 
@@ -382,16 +419,36 @@ export class AnalyticsModelSchema extends BaseSchema {
     ];
   }
 
-  private static getValidOperatorsForColumnType(columnType: TableColumnType): Array<string> {
+  private static getValidOperatorsForColumnType(
+    columnType: TableColumnType,
+  ): Array<string> {
     switch (columnType) {
       case TableColumnType.Text:
         return ["EqualTo", "NotEqual", "Search", "IsNull", "NotNull"];
       case TableColumnType.Number:
       case TableColumnType.LongNumber:
       case TableColumnType.Decimal:
-        return ["EqualTo", "NotEqual", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual", "IsNull", "NotNull"];
+        return [
+          "EqualTo",
+          "NotEqual",
+          "GreaterThan",
+          "LessThan",
+          "GreaterThanOrEqual",
+          "LessThanOrEqual",
+          "IsNull",
+          "NotNull",
+        ];
       case TableColumnType.Date:
-        return ["EqualTo", "NotEqual", "GreaterThan", "LessThan", "GreaterThanOrEqual", "LessThanOrEqual", "IsNull", "NotNull"];
+        return [
+          "EqualTo",
+          "NotEqual",
+          "GreaterThan",
+          "LessThan",
+          "GreaterThanOrEqual",
+          "LessThanOrEqual",
+          "IsNull",
+          "NotNull",
+        ];
       case TableColumnType.Boolean:
         return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
       case TableColumnType.ObjectID:
@@ -407,7 +464,9 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
   }
 
-  private static getExampleValueForColumn(columnType: TableColumnType): unknown {
+  private static getExampleValueForColumn(
+    columnType: TableColumnType,
+  ): unknown {
     switch (columnType) {
       case TableColumnType.ObjectID:
         return "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
@@ -435,7 +494,9 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
   }
 
-  private static getCreateSchemaExample(modelType: new () => AnalyticsBaseModel): SchemaExample {
+  private static getCreateSchemaExample(
+    modelType: new () => AnalyticsBaseModel,
+  ): SchemaExample {
     const model: AnalyticsBaseModel = new modelType();
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
     const example: SchemaExample = {};
@@ -449,7 +510,10 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
 
       // Skip system fields and default value columns
-      if (["_id", "createdAt", "updatedAt"].includes(column.key) || column.isDefaultValueColumn) {
+      if (
+        ["_id", "createdAt", "updatedAt"].includes(column.key) ||
+        column.isDefaultValueColumn
+      ) {
         continue;
       }
 
@@ -470,7 +534,9 @@ export class AnalyticsModelSchema extends BaseSchema {
     return example;
   }
 
-  private static getQuerySchemaExample(modelType: new () => AnalyticsBaseModel): SchemaExample {
+  private static getQuerySchemaExample(
+    modelType: new () => AnalyticsBaseModel,
+  ): SchemaExample {
     const model: AnalyticsBaseModel = new modelType();
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
     const example: SchemaExample = {};
@@ -485,7 +551,11 @@ export class AnalyticsModelSchema extends BaseSchema {
 
       // Check read permissions for query operations
       const accessControl = model.getColumnAccessControlFor(column.key);
-      if (!accessControl || !accessControl.read || accessControl.read.length === 0) {
+      if (
+        !accessControl ||
+        !accessControl.read ||
+        accessControl.read.length === 0
+      ) {
         continue;
       }
 
@@ -512,29 +582,39 @@ export class AnalyticsModelSchema extends BaseSchema {
     return example;
   }
 
-  private static getSelectSchemaExample(modelType: new () => AnalyticsBaseModel): SchemaExample {
+  private static getSelectSchemaExample(
+    modelType: new () => AnalyticsBaseModel,
+  ): SchemaExample {
     const model: AnalyticsBaseModel = new modelType();
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
     // Add common fields (only if they have read permissions)
     const example: SchemaExample = {};
-    
+
     // Check if _id has read permissions
     const idAccessControl = model.getColumnAccessControlFor("_id");
-    if (idAccessControl && idAccessControl.read && idAccessControl.read.length > 0) {
+    if (
+      idAccessControl &&
+      idAccessControl.read &&
+      idAccessControl.read.length > 0
+    ) {
       example["_id"] = true;
     }
-    
+
     // Check if createdAt has read permissions
     const createdAtAccessControl = model.getColumnAccessControlFor("createdAt");
-    if (createdAtAccessControl && createdAtAccessControl.read && createdAtAccessControl.read.length > 0) {
+    if (
+      createdAtAccessControl &&
+      createdAtAccessControl.read &&
+      createdAtAccessControl.read.length > 0
+    ) {
       example["createdAt"] = true;
     }
 
     // Add first few non-system fields with read permissions
     let fieldCount: number = 0;
     const maxFields: number = 3;
-    
+
     for (const column of columns) {
       if (fieldCount >= maxFields) {
         break;
@@ -543,7 +623,11 @@ export class AnalyticsModelSchema extends BaseSchema {
       if (!["_id", "createdAt", "updatedAt"].includes(column.key)) {
         // Check read permissions
         const accessControl = model.getColumnAccessControlFor(column.key);
-        if (accessControl && accessControl.read && accessControl.read.length > 0) {
+        if (
+          accessControl &&
+          accessControl.read &&
+          accessControl.read.length > 0
+        ) {
           example[column.key] = true;
           fieldCount++;
         }
@@ -553,7 +637,9 @@ export class AnalyticsModelSchema extends BaseSchema {
     return example;
   }
 
-  private static getGroupBySchemaExample(modelType: new () => AnalyticsBaseModel): SchemaExample {
+  private static getGroupBySchemaExample(
+    modelType: new () => AnalyticsBaseModel,
+  ): SchemaExample {
     const model: AnalyticsBaseModel = new modelType();
     const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
 
@@ -567,10 +653,17 @@ export class AnalyticsModelSchema extends BaseSchema {
         TableColumnType.Number,
       ].includes(column.type);
 
-      if (isGroupable && !["_id", "createdAt", "updatedAt"].includes(column.key)) {
+      if (
+        isGroupable &&
+        !["_id", "createdAt", "updatedAt"].includes(column.key)
+      ) {
         // Check read permissions
         const accessControl = model.getColumnAccessControlFor(column.key);
-        if (accessControl && accessControl.read && accessControl.read.length > 0) {
+        if (
+          accessControl &&
+          accessControl.read &&
+          accessControl.read.length > 0
+        ) {
           return { [column.key]: true };
         }
       }
@@ -578,7 +671,11 @@ export class AnalyticsModelSchema extends BaseSchema {
 
     // Fallback to createdAt if it has read permissions
     const createdAtAccessControl = model.getColumnAccessControlFor("createdAt");
-    if (createdAtAccessControl && createdAtAccessControl.read && createdAtAccessControl.read.length > 0) {
+    if (
+      createdAtAccessControl &&
+      createdAtAccessControl.read &&
+      createdAtAccessControl.read.length > 0
+    ) {
       return { ["createdAt"]: true };
     }
 
@@ -590,7 +687,8 @@ export class AnalyticsModelSchema extends BaseSchema {
     operatorType: string,
     columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
-    const baseValue: ZodTypes.ZodTypeAny = this.getBaseValueSchemaForColumnType(columnType);
+    const baseValue: ZodTypes.ZodTypeAny =
+      this.getBaseValueSchemaForColumnType(columnType);
 
     switch (operatorType) {
       case "EqualTo":

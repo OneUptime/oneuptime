@@ -73,7 +73,8 @@ export class ModelSchema extends BaseSchema {
     const shape: ShapeRecord = {};
 
     // Get column access control for permission filtering
-    const columnAccessControl: Dictionary<ColumnAccessControl> = model.getColumnAccessControlForAllColumns();
+    const columnAccessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -82,11 +83,13 @@ export class ModelSchema extends BaseSchema {
       }
 
       // Filter out columns with no permissions (root-only access)
-      const accessControl: ColumnAccessControl | undefined = columnAccessControl[key];
+      const accessControl: ColumnAccessControl | undefined =
+        columnAccessControl[key];
       if (accessControl) {
         // Check if column has any permissions defined for read operation (general schema assumes read access)
-        const hasReadPermissions = accessControl.read && accessControl.read.length > 0;
-        
+        const hasReadPermissions =
+          accessControl.read && accessControl.read.length > 0;
+
         // If no read permissions are defined, exclude the column from general schema
         if (!hasReadPermissions) {
           continue;
@@ -381,19 +384,29 @@ export class ModelSchema extends BaseSchema {
       getColumns: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map(key => {
+          .map((key) => {
             const column = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter(col => col !== null) as Array<{ key: string; type: any }>;
+          .filter((col) => {
+            return col !== null;
+          }) as Array<{ key: string; type: any }>;
       },
-      getValidOperatorsForColumnType: (columnType: TableColumnType) => 
-        this.getValidOperatorsForColumnType(columnType),
-      getOperatorSchema: (operatorType: string, columnType: TableColumnType) =>
-        this.getOperatorSchema(operatorType, columnType),
-      getQuerySchemaExample: () => this.getQuerySchemaExample(modelType),
-      getExampleValueForColumn: (columnType: TableColumnType) =>
-        this.getExampleValueForColumn(columnType),
+      getValidOperatorsForColumnType: (columnType: TableColumnType) => {
+        return this.getValidOperatorsForColumnType(columnType);
+      },
+      getOperatorSchema: (
+        operatorType: string,
+        columnType: TableColumnType,
+      ) => {
+        return this.getOperatorSchema(operatorType, columnType);
+      },
+      getQuerySchemaExample: () => {
+        return this.getQuerySchemaExample(modelType);
+      },
+      getExampleValueForColumn: (columnType: TableColumnType) => {
+        return this.getExampleValueForColumn(columnType);
+      },
     });
   }
 
@@ -610,15 +623,19 @@ export class ModelSchema extends BaseSchema {
     return this.generateSortSchema({
       model,
       tableName: model.tableName || "model",
-      getSortableTypes: () => this.getSortableTypes(),
+      getSortableTypes: () => {
+        return this.getSortableTypes();
+      },
       getColumnsForSorting: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map(key => {
+          .map((key) => {
             const column = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter(col => col !== null) as Array<{ key: string; type: any }>;
+          .filter((col) => {
+            return col !== null;
+          }) as Array<{ key: string; type: any }>;
       },
     });
   }
@@ -636,19 +653,27 @@ export class ModelSchema extends BaseSchema {
       getColumns: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map(key => {
+          .map((key) => {
             const column = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter(col => col !== null) as Array<{ key: string; type?: any }>;
+          .filter((col) => {
+            return col !== null;
+          }) as Array<{ key: string; type?: any }>;
       },
-      getSelectSchemaExample: () => this.getSelectSchemaExample(modelType),
+      getSelectSchemaExample: () => {
+        return this.getSelectSchemaExample(modelType);
+      },
       allowNested: !data.isNested,
       getNestedSchema: (key: string, model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         const column = columns[key];
-        if (column && column.modelType && 
-            (column.type === TableColumnType.EntityArray || column.type === TableColumnType.Entity)) {
+        if (
+          column &&
+          column.modelType &&
+          (column.type === TableColumnType.EntityArray ||
+            column.type === TableColumnType.Entity)
+        ) {
           return this.getSelectModelSchema({
             modelType: column.modelType as new () => DatabaseBaseModel,
             isNested: true,
@@ -671,29 +696,35 @@ export class ModelSchema extends BaseSchema {
       getColumns: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map(key => {
+          .map((key) => {
             const column = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter(col => col !== null) as Array<{ key: string; type: any }>;
+          .filter((col) => {
+            return col !== null;
+          }) as Array<{ key: string; type: any }>;
       },
-      getGroupableTypes: () => [
-        TableColumnType.ShortText,
-        TableColumnType.LongText,
-        TableColumnType.Name,
-        TableColumnType.Email,
-        TableColumnType.Slug,
-        TableColumnType.ObjectID,
-        TableColumnType.Boolean,
-        TableColumnType.Date,
-        TableColumnType.Number,
-        TableColumnType.PositiveNumber,
-        TableColumnType.SmallNumber,
-        TableColumnType.SmallPositiveNumber,
-        TableColumnType.BigNumber,
-        TableColumnType.BigPositiveNumber,
-      ],
-      getGroupBySchemaExample: () => this.getGroupBySchemaExample(modelType),
+      getGroupableTypes: () => {
+        return [
+          TableColumnType.ShortText,
+          TableColumnType.LongText,
+          TableColumnType.Name,
+          TableColumnType.Email,
+          TableColumnType.Slug,
+          TableColumnType.ObjectID,
+          TableColumnType.Boolean,
+          TableColumnType.Date,
+          TableColumnType.Number,
+          TableColumnType.PositiveNumber,
+          TableColumnType.SmallNumber,
+          TableColumnType.SmallPositiveNumber,
+          TableColumnType.BigNumber,
+          TableColumnType.BigPositiveNumber,
+        ];
+      },
+      getGroupBySchemaExample: () => {
+        return this.getGroupBySchemaExample(modelType);
+      },
     });
   }
 
@@ -956,7 +987,8 @@ export class ModelSchema extends BaseSchema {
     const shape: ShapeRecord = {};
 
     // Get column access control for permission filtering
-    const columnAccessControl: Dictionary<ColumnAccessControl> = model.getColumnAccessControlForAllColumns();
+    const columnAccessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
 
     for (const key in columns) {
       const column: TableColumnMetadata | undefined = columns[key];
@@ -975,22 +1007,35 @@ export class ModelSchema extends BaseSchema {
       }
 
       // Filter out columns with no permissions (root-only access)
-      const accessControl: ColumnAccessControl | undefined = columnAccessControl[key];
+      const accessControl: ColumnAccessControl | undefined =
+        columnAccessControl[key];
       if (accessControl) {
         let hasPermissions = false;
-        
+
         // Check if column has any permissions defined for the current operation
-        if (data.schemaType === "create" && accessControl.create && accessControl.create.length > 0) {
+        if (
+          data.schemaType === "create" &&
+          accessControl.create &&
+          accessControl.create.length > 0
+        ) {
           hasPermissions = true;
-        } else if (data.schemaType === "read" && accessControl.read && accessControl.read.length > 0) {
+        } else if (
+          data.schemaType === "read" &&
+          accessControl.read &&
+          accessControl.read.length > 0
+        ) {
           hasPermissions = true;
-        } else if (data.schemaType === "update" && accessControl.update && accessControl.update.length > 0) {
+        } else if (
+          data.schemaType === "update" &&
+          accessControl.update &&
+          accessControl.update.length > 0
+        ) {
           hasPermissions = true;
         } else if (data.schemaType === "delete") {
           // For delete operations, we don't filter by column permissions
           hasPermissions = true;
         }
-        
+
         // If no permissions are defined for this operation, exclude the column
         if (!hasPermissions) {
           continue;

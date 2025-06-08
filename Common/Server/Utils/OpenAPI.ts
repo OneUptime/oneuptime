@@ -9,7 +9,10 @@ import AnalyticsModels from "../../Models/AnalyticsModels/Index";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
-import { AnalyticsModelSchema, AnalyticsModelSchemaType } from "../../Utils/Schema/AnalyticsModelSchema";
+import {
+  AnalyticsModelSchema,
+  AnalyticsModelSchemaType,
+} from "../../Utils/Schema/AnalyticsModelSchema";
 import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
@@ -30,9 +33,12 @@ export default class OpenAPIUtil {
 
     return (
       permissions.length > 0 &&
-      permissions.every(permission => 
-      permission === Permission.Public || permission === Permission.CurrentUser
-      )
+      permissions.every((permission) => {
+        return (
+          permission === Permission.Public ||
+          permission === Permission.CurrentUser
+        );
+      })
     );
   }
 
@@ -80,7 +86,8 @@ export default class OpenAPIUtil {
       const singularModelName: string = model.singularName || modelName;
       tags.push({
         name: singularModelName,
-        description: model.tableDescription || `API endpoints for ${singularModelName}`,
+        description:
+          model.tableDescription || `API endpoints for ${singularModelName}`,
       });
 
       // register the model schema
@@ -130,7 +137,8 @@ export default class OpenAPIUtil {
       }
 
       // Add tag for this model
-      const singularModelName: string = analyticsModel.singularName || modelName;
+      const singularModelName: string =
+        analyticsModel.singularName || modelName;
       tags.push({
         name: singularModelName,
         description: `API endpoints for ${singularModelName}`,
@@ -188,7 +196,9 @@ export default class OpenAPIUtil {
           description: "API Server",
         },
       ],
-      tags: tags.sort((a, b) => a.name.localeCompare(b.name)),
+      tags: tags.sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      }),
     }) as unknown as JSONObject;
 
     LocalCache.setJSON("openapi", "spec", spec as JSONObject);
@@ -723,9 +733,10 @@ export default class OpenAPIUtil {
       model.constructor as new () => AnalyticsBaseModel;
 
     // Register the main analytics model schema
-    const modelSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getModelSchema({
-      modelType: modelType,
-    });
+    const modelSchema: AnalyticsModelSchemaType =
+      AnalyticsModelSchema.getModelSchema({
+        modelType: modelType,
+      });
     registry.register(tableName, modelSchema);
 
     // Register operation-specific schemas based on permissions
@@ -748,33 +759,37 @@ export default class OpenAPIUtil {
   ): void {
     // Check if model has create permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.getCreatePermissions())) {
-      const createSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({
-        modelType,
-      });
+      const createSchema: AnalyticsModelSchemaType =
+        AnalyticsModelSchema.getCreateModelSchema({
+          modelType,
+        });
       registry.register(`${tableName}CreateSchema`, createSchema);
     }
 
     // Check if model has read permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.getReadPermissions())) {
-      const readSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getModelSchema({
-        modelType,
-      });
+      const readSchema: AnalyticsModelSchemaType =
+        AnalyticsModelSchema.getModelSchema({
+          modelType,
+        });
       registry.register(`${tableName}ReadSchema`, readSchema);
     }
 
     // Check if model has update permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.getUpdatePermissions())) {
-      const updateSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({
-        modelType,
-      });
+      const updateSchema: AnalyticsModelSchemaType =
+        AnalyticsModelSchema.getCreateModelSchema({
+          modelType,
+        });
       registry.register(`${tableName}UpdateSchema`, updateSchema);
     }
 
     // Check if model has delete permissions and should not exclude API generation
     if (!this.shouldExcludeApiForPermissions(model.getDeletePermissions())) {
-      const deleteSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getModelSchema({
-        modelType,
-      });
+      const deleteSchema: AnalyticsModelSchemaType =
+        AnalyticsModelSchema.getModelSchema({
+          modelType,
+        });
       registry.register(`${tableName}DeleteSchema`, deleteSchema);
     }
   }
@@ -789,18 +804,22 @@ export default class OpenAPIUtil {
     const sortSchemaName: string = `${tableName}SortSchema`;
     const groupBySchemaName: string = `${tableName}GroupBySchema`;
 
-    const querySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getQueryModelSchema({
-      modelType: modelType,
-    });
-    const selectSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSelectModelSchema({
-      modelType: modelType,
-    });
-    const sortSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSortModelSchema({
-      modelType: modelType,
-    });
-    const groupBySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getGroupByModelSchema({
-      modelType: modelType,
-    });
+    const querySchema: AnalyticsModelSchemaType =
+      AnalyticsModelSchema.getQueryModelSchema({
+        modelType: modelType,
+      });
+    const selectSchema: AnalyticsModelSchemaType =
+      AnalyticsModelSchema.getSelectModelSchema({
+        modelType: modelType,
+      });
+    const sortSchema: AnalyticsModelSchemaType =
+      AnalyticsModelSchema.getSortModelSchema({
+        modelType: modelType,
+      });
+    const groupBySchema: AnalyticsModelSchemaType =
+      AnalyticsModelSchema.getGroupByModelSchema({
+        modelType: modelType,
+      });
 
     registry.register(querySchemaName, querySchema);
     registry.register(selectSchemaName, selectSchema);
@@ -809,7 +828,7 @@ export default class OpenAPIUtil {
   }
 
   // Analytics API generation methods
-  
+
   private static generateAnalyticsListApiSpec(data: {
     modelType: new () => AnalyticsBaseModel;
     registry: OpenAPIRegistry;

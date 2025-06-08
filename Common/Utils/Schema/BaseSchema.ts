@@ -132,7 +132,9 @@ export abstract class BaseSchema {
 
     for (const column of columns) {
       const key: string = column.key;
-      const isGroupable: boolean = data.getGroupableTypes().includes(column.type);
+      const isGroupable: boolean = data
+        .getGroupableTypes()
+        .includes(column.type);
 
       if (!isGroupable) {
         continue;
@@ -164,7 +166,10 @@ export abstract class BaseSchema {
     tableName?: string;
     getColumns: (model: T) => Array<{ key: string; type: any }>;
     getValidOperatorsForColumnType: (columnType: any) => Array<string>;
-    getOperatorSchema?: (operatorType: string, columnType: any) => ZodTypes.ZodTypeAny;
+    getOperatorSchema?: (
+      operatorType: string,
+      columnType: any,
+    ) => ZodTypes.ZodTypeAny;
     getQuerySchemaExample: (model: T) => SchemaExample;
     getExampleValueForColumn: (columnType: any) => unknown;
   }): BaseSchemaType {
@@ -175,7 +180,9 @@ export abstract class BaseSchema {
       const key: string = column.key;
 
       // Get valid operators for this column type
-      const validOperators: Array<string> = data.getValidOperatorsForColumnType(column.type);
+      const validOperators: Array<string> = data.getValidOperatorsForColumnType(
+        column.type,
+      );
 
       if (validOperators.length === 0) {
         continue;
@@ -208,16 +215,21 @@ export abstract class BaseSchema {
         }
       } else {
         // Use simple operator schema (for AnalyticsModelSchema)
-        columnSchema = z.object({
-          _type: z.enum(validOperators as [string, ...string[]]),
-          value: z.any().optional(),
-        }).optional();
+        columnSchema = z
+          .object({
+            _type: z.enum(validOperators as [string, ...string[]]),
+            value: z.any().optional(),
+          })
+          .optional();
       }
 
       columnSchema = columnSchema.openapi({
         type: "object",
         description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(", ")}`,
-        example: { _type: "EqualTo", value: data.getExampleValueForColumn(column.type) },
+        example: {
+          _type: "EqualTo",
+          value: data.getExampleValueForColumn(column.type),
+        },
       });
 
       shape[key] = columnSchema;
@@ -237,14 +249,23 @@ export abstract class BaseSchema {
   protected static generateCreateSchema<T>(data: {
     model: T;
     tableName?: string;
-    getColumns: (model: T) => Array<{ key: string; type?: any; required?: boolean; isDefaultValueColumn?: boolean }>;
+    getColumns: (model: T) => Array<{
+      key: string;
+      type?: any;
+      required?: boolean;
+      isDefaultValueColumn?: boolean;
+    }>;
     getZodTypeForColumn: (column: any) => ZodTypes.ZodTypeAny;
     getCreateSchemaExample: (model: T) => SchemaExample;
     excludedFields?: Array<string>;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
     const columns = data.getColumns(data.model);
-    const excludedFields = data.excludedFields || ["_id", "createdAt", "updatedAt"];
+    const excludedFields = data.excludedFields || [
+      "_id",
+      "createdAt",
+      "updatedAt",
+    ];
 
     for (const column of columns) {
       const key: string = column.key;
@@ -278,7 +299,10 @@ export abstract class BaseSchema {
   /**
    * Helper method to generate common example values for different data types
    */
-  protected static getCommonExampleValue(dataType: string, isSecondValue: boolean = false): unknown {
+  protected static getCommonExampleValue(
+    dataType: string,
+    isSecondValue: boolean = false,
+  ): unknown {
     switch (dataType.toLowerCase()) {
       case "objectid":
       case "id":
@@ -293,9 +317,11 @@ export abstract class BaseSchema {
         return isSecondValue ? 100 : 42;
       case "date":
       case "datetime":
-        return isSecondValue ? "2023-12-31T23:59:59.000Z" : "2023-01-15T12:30:00.000Z";
+        return isSecondValue
+          ? "2023-12-31T23:59:59.000Z"
+          : "2023-01-15T12:30:00.000Z";
       case "boolean":
-        return isSecondValue ? false : true;
+        return !isSecondValue;
       case "json":
       case "object":
         return isSecondValue ? { key2: "value2" } : { key: "value" };
@@ -323,7 +349,9 @@ export abstract class BaseSchema {
 
     // Add common fields that exist
     for (const field of commonFields) {
-      const hasField = columns.some(col => col.key === field);
+      const hasField = columns.some((col) => {
+        return col.key === field;
+      });
       if (hasField) {
         example[field] = true;
       }
@@ -337,9 +365,11 @@ export abstract class BaseSchema {
           break;
         }
 
-        if (!commonFields.includes(column.key) && 
-            column.type && 
-            data.priorityFieldTypes.includes(column.type)) {
+        if (
+          !commonFields.includes(column.key) &&
+          column.type &&
+          data.priorityFieldTypes.includes(column.type)
+        ) {
           example[column.key] = true;
           fieldCount++;
         }
@@ -359,11 +389,17 @@ export abstract class BaseSchema {
     excludeFields?: Array<string>;
   }): SchemaExample {
     const columns = data.getColumns(data.model);
-    const excludeFields = data.excludeFields || ["_id", "createdAt", "updatedAt"];
+    const excludeFields = data.excludeFields || [
+      "_id",
+      "createdAt",
+      "updatedAt",
+    ];
 
     // Find first suitable field for grouping
     for (const column of columns) {
-      const isGroupable: boolean = data.getGroupableTypes().includes(column.type);
+      const isGroupable: boolean = data
+        .getGroupableTypes()
+        .includes(column.type);
 
       if (isGroupable && !excludeFields.includes(column.key)) {
         return { [column.key]: true };
