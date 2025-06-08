@@ -101,7 +101,8 @@ export class AnalyticsModelSchema extends BaseSchema {
         // Handle nested models recursively
         const nestedShape: ShapeRecord = {};
         for (const nestedColumn of column.nestedModel.tableColumns) {
-          const nestedZodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(nestedColumn);
+          const nestedZodType: ZodTypes.ZodTypeAny =
+            this.getZodTypeForColumn(nestedColumn);
           if (nestedColumn.required) {
             nestedShape[nestedColumn.key] = nestedZodType;
           } else {
@@ -559,7 +560,9 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
-      const validOperators: Array<string> = this.getValidOperatorsForColumnType(column.type);
+      const validOperators: Array<string> = this.getValidOperatorsForColumnType(
+        column.type,
+      );
       if (validOperators.length === 0) {
         continue;
       }
@@ -602,7 +605,8 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
 
     // Check if createdAt has read permissions
-    const createdAtAccessControl: any = model.getColumnAccessControlFor("createdAt");
+    const createdAtAccessControl: any =
+      model.getColumnAccessControlFor("createdAt");
     if (
       createdAtAccessControl &&
       createdAtAccessControl.read &&
@@ -670,7 +674,8 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
 
     // Fallback to createdAt if it has read permissions
-    const createdAtAccessControl: any = model.getColumnAccessControlFor("createdAt");
+    const createdAtAccessControl: any =
+      model.getColumnAccessControlFor("createdAt");
     if (
       createdAtAccessControl &&
       createdAtAccessControl.read &&
