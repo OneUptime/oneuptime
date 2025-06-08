@@ -87,7 +87,7 @@ export class ModelSchema extends BaseSchema {
         columnAccessControl[key];
       if (accessControl) {
         // Check if column has any permissions defined for read operation (general schema assumes read access)
-        const hasReadPermissions =
+        const hasReadPermissions: boolean =
           accessControl.read && accessControl.read.length > 0;
 
         // If no read permissions are defined, exclude the column from general schema
@@ -384,11 +384,11 @@ export class ModelSchema extends BaseSchema {
       getColumns: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map((key) => {
-            const column = columns[key];
+          .map((key: string) => {
+            const column: TableColumnMetadata | undefined = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter((col) => {
+          .filter((col: { key: string; type: any } | null) => {
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -629,11 +629,11 @@ export class ModelSchema extends BaseSchema {
       getColumnsForSorting: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map((key) => {
-            const column = columns[key];
+          .map((key: string) => {
+            const column: TableColumnMetadata | undefined = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter((col) => {
+          .filter((col: { key: string; type: any } | null) => {
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -653,11 +653,11 @@ export class ModelSchema extends BaseSchema {
       getColumns: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map((key) => {
-            const column = columns[key];
+          .map((key: string) => {
+            const column: TableColumnMetadata | undefined = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter((col) => {
+          .filter((col: { key: string; type: any } | null) => {
             return col !== null;
           }) as Array<{ key: string; type?: any }>;
       },
@@ -667,7 +667,7 @@ export class ModelSchema extends BaseSchema {
       allowNested: !data.isNested,
       getNestedSchema: (key: string, model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
-        const column = columns[key];
+        const column: TableColumnMetadata | undefined = columns[key];
         if (
           column &&
           column.modelType &&
@@ -696,11 +696,11 @@ export class ModelSchema extends BaseSchema {
       getColumns: (model: DatabaseBaseModel) => {
         const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
         return Object.keys(columns)
-          .map((key) => {
-            const column = columns[key];
+          .map((key: string) => {
+            const column: TableColumnMetadata | undefined = columns[key];
             return column ? { key, type: column.type } : null;
           })
-          .filter((col) => {
+          .filter((col: { key: string; type: any } | null) => {
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -1010,7 +1010,7 @@ export class ModelSchema extends BaseSchema {
       const accessControl: ColumnAccessControl | undefined =
         columnAccessControl[key];
       if (accessControl) {
-        let hasPermissions = false;
+        let hasPermissions: boolean = false;
 
         // Check if column has any permissions defined for the current operation
         if (

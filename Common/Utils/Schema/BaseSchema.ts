@@ -40,7 +40,7 @@ export abstract class BaseSchema {
     getColumnsForSorting: (model: T) => Array<{ key: string; type: any }>;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
-    const columns = data.getColumnsForSorting(data.model);
+    const columns: Array<{ key: string; type: any }> = data.getColumnsForSorting(data.model);
 
     for (const column of columns) {
       const key: string = column.key;
@@ -81,14 +81,14 @@ export abstract class BaseSchema {
     getNestedSchema?: (key: string, model: T) => ZodTypes.ZodTypeAny | null;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
-    const columns = data.getColumns(data.model);
+    const columns: Array<{ key: string; type?: any }> = data.getColumns(data.model);
 
     for (const column of columns) {
       const key: string = column.key;
 
       // Handle nested schemas if allowed and available
       if (data.allowNested && data.getNestedSchema) {
-        const nestedSchema = data.getNestedSchema(key, data.model);
+        const nestedSchema: ZodTypes.ZodTypeAny | null = data.getNestedSchema(key, data.model);
         if (nestedSchema) {
           shape[key] = nestedSchema.openapi({
             type: "object",
@@ -128,7 +128,7 @@ export abstract class BaseSchema {
     getGroupBySchemaExample: (model: T) => SchemaExample;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
-    const columns = data.getColumns(data.model);
+    const columns: Array<{ key: string; type: any }> = data.getColumns(data.model);
 
     for (const column of columns) {
       const key: string = column.key;
@@ -174,7 +174,7 @@ export abstract class BaseSchema {
     getExampleValueForColumn: (columnType: any) => unknown;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
-    const columns = data.getColumns(data.model);
+    const columns: Array<{ key: string; type: any }> = data.getColumns(data.model);
 
     for (const column of columns) {
       const key: string = column.key;
@@ -260,8 +260,8 @@ export abstract class BaseSchema {
     excludedFields?: Array<string>;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
-    const columns = data.getColumns(data.model);
-    const excludedFields = data.excludedFields || [
+    const columns: Array<{ key: string; type?: any; required?: boolean; isDefaultValueColumn?: boolean }> = data.getColumns(data.model);
+    const excludedFields: Array<string> = data.excludedFields || [
       "_id",
       "createdAt",
       "updatedAt",
@@ -279,7 +279,7 @@ export abstract class BaseSchema {
         continue;
       }
 
-      const zodType = data.getZodTypeForColumn(column);
+      const zodType: ZodTypes.ZodTypeAny = data.getZodTypeForColumn(column);
 
       if (column.required) {
         shape[key] = zodType;
@@ -342,14 +342,14 @@ export abstract class BaseSchema {
     maxFields?: number;
     priorityFieldTypes?: Array<any>;
   }): SchemaExample {
-    const columns = data.getColumns(data.model);
+    const columns: Array<{ key: string; type?: any }> = data.getColumns(data.model);
     const example: SchemaExample = {};
-    const commonFields = data.commonFields || ["_id", "createdAt", "updatedAt"];
-    const maxFields = data.maxFields || 5;
+    const commonFields: Array<string> = data.commonFields || ["_id", "createdAt", "updatedAt"];
+    const maxFields: number = data.maxFields || 5;
 
     // Add common fields that exist
     for (const field of commonFields) {
-      const hasField = columns.some((col) => {
+      const hasField: boolean = columns.some((col: { key: string; type?: any }) => {
         return col.key === field;
       });
       if (hasField) {
@@ -358,7 +358,7 @@ export abstract class BaseSchema {
     }
 
     // Add priority fields if specified
-    let fieldCount = 0;
+    let fieldCount: number = 0;
     if (data.priorityFieldTypes) {
       for (const column of columns) {
         if (fieldCount >= maxFields) {
@@ -388,8 +388,8 @@ export abstract class BaseSchema {
     getGroupableTypes: () => Array<any>;
     excludeFields?: Array<string>;
   }): SchemaExample {
-    const columns = data.getColumns(data.model);
-    const excludeFields = data.excludeFields || [
+    const columns: Array<{ key: string; type: any }> = data.getColumns(data.model);
+    const excludeFields: Array<string> = data.excludeFields || [
       "_id",
       "createdAt",
       "updatedAt",

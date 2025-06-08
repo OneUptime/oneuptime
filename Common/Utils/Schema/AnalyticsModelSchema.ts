@@ -20,7 +20,7 @@ export class AnalyticsModelSchema extends BaseSchema {
     // Filter out columns with no read permissions
     const filteredColumns: Array<AnalyticsTableColumn> = columns.filter(
       (column: AnalyticsTableColumn) => {
-        const accessControl = model.getColumnAccessControlFor(column.key);
+        const accessControl: any = model.getColumnAccessControlFor(column.key);
         if (!accessControl) {
           return false;
         }
@@ -101,7 +101,7 @@ export class AnalyticsModelSchema extends BaseSchema {
         // Handle nested models recursively
         const nestedShape: ShapeRecord = {};
         for (const nestedColumn of column.nestedModel.tableColumns) {
-          const nestedZodType = this.getZodTypeForColumn(nestedColumn);
+          const nestedZodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(nestedColumn);
           if (nestedColumn.required) {
             nestedShape[nestedColumn.key] = nestedZodType;
           } else {
@@ -272,7 +272,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
 
       // Filter out columns with no create permissions
-      const accessControl = model.getColumnAccessControlFor(column.key);
+      const accessControl: any = model.getColumnAccessControlFor(column.key);
       if (!accessControl) {
         continue;
       }
@@ -281,7 +281,7 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
-      const zodType = this.getZodTypeForColumn(column);
+      const zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column);
 
       if (column.required) {
         shape[key] = zodType;
@@ -309,7 +309,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column) => {
+        return columns.map((column: AnalyticsTableColumn) => {
           return { key: column.key, type: column.type };
         });
       },
@@ -342,7 +342,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column) => {
+        return columns.map((column: AnalyticsTableColumn) => {
           return { key: column.key, type: column.type };
         });
       },
@@ -370,7 +370,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       },
       getColumnsForSorting: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column) => {
+        return columns.map((column: AnalyticsTableColumn) => {
           return { key: column.key, type: column.type };
         });
       },
@@ -388,7 +388,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       tableName: model.tableName || "analytics_model",
       getColumns: (model: AnalyticsBaseModel) => {
         const columns: Array<AnalyticsTableColumn> = model.getTableColumns();
-        return columns.map((column) => {
+        return columns.map((column: AnalyticsTableColumn) => {
           return { key: column.key, type: column.type };
         });
       },
@@ -518,7 +518,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
 
       // Skip columns with no create permissions
-      const accessControl = model.getColumnAccessControlFor(column.key);
+      const accessControl: any = model.getColumnAccessControlFor(column.key);
       if (!accessControl) {
         continue;
       }
@@ -550,7 +550,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
 
       // Check read permissions for query operations
-      const accessControl = model.getColumnAccessControlFor(column.key);
+      const accessControl: any = model.getColumnAccessControlFor(column.key);
       if (
         !accessControl ||
         !accessControl.read ||
@@ -559,7 +559,7 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
-      const validOperators = this.getValidOperatorsForColumnType(column.type);
+      const validOperators: Array<string> = this.getValidOperatorsForColumnType(column.type);
       if (validOperators.length === 0) {
         continue;
       }
@@ -592,7 +592,7 @@ export class AnalyticsModelSchema extends BaseSchema {
     const example: SchemaExample = {};
 
     // Check if _id has read permissions
-    const idAccessControl = model.getColumnAccessControlFor("_id");
+    const idAccessControl: any = model.getColumnAccessControlFor("_id");
     if (
       idAccessControl &&
       idAccessControl.read &&
@@ -602,7 +602,7 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
 
     // Check if createdAt has read permissions
-    const createdAtAccessControl = model.getColumnAccessControlFor("createdAt");
+    const createdAtAccessControl: any = model.getColumnAccessControlFor("createdAt");
     if (
       createdAtAccessControl &&
       createdAtAccessControl.read &&
@@ -622,7 +622,7 @@ export class AnalyticsModelSchema extends BaseSchema {
 
       if (!["_id", "createdAt", "updatedAt"].includes(column.key)) {
         // Check read permissions
-        const accessControl = model.getColumnAccessControlFor(column.key);
+        const accessControl: any = model.getColumnAccessControlFor(column.key);
         if (
           accessControl &&
           accessControl.read &&
@@ -658,7 +658,7 @@ export class AnalyticsModelSchema extends BaseSchema {
         !["_id", "createdAt", "updatedAt"].includes(column.key)
       ) {
         // Check read permissions
-        const accessControl = model.getColumnAccessControlFor(column.key);
+        const accessControl: any = model.getColumnAccessControlFor(column.key);
         if (
           accessControl &&
           accessControl.read &&
@@ -670,7 +670,7 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
 
     // Fallback to createdAt if it has read permissions
-    const createdAtAccessControl = model.getColumnAccessControlFor("createdAt");
+    const createdAtAccessControl: any = model.getColumnAccessControlFor("createdAt");
     if (
       createdAtAccessControl &&
       createdAtAccessControl.read &&

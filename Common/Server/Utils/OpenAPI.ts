@@ -33,7 +33,7 @@ export default class OpenAPIUtil {
 
     return (
       permissions.length > 0 &&
-      permissions.every((permission) => {
+      permissions.every((permission: Permission) => {
         return (
           permission === Permission.Public ||
           permission === Permission.CurrentUser
@@ -196,7 +196,7 @@ export default class OpenAPIUtil {
           description: "API Server",
         },
       ],
-      tags: tags.sort((a, b) => {
+      tags: tags.sort((a: any, b: any) => {
         return a.name.localeCompare(b.name);
       }),
     }) as unknown as JSONObject;
