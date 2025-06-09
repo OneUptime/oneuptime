@@ -1,28 +1,30 @@
 import OpenAPI from "Common/Server/Utils/OpenAPI";
 import fs from "fs";
 import { validate, ValidationResult } from "@readme/openapi-parser";
+import { JSONObject } from "Common/Types/JSON";
+import Logger from "Common/Server/Utils/Logger";
 
 async function generateOpenAPISpec(): Promise<void> {
-  const spec = OpenAPI.generateOpenAPISpec();
+  const spec: JSONObject = OpenAPI.generateOpenAPISpec();
 
-  const outputPath = "./openapi.json";
+  const outputPath: string = "./openapi.json";
   fs.writeFileSync(outputPath, JSON.stringify(spec, null, 2), "utf8");
 
   const validationResult: ValidationResult = await validate(outputPath);
 
   if (validationResult.valid) {
-    console.log("OpenAPI spec is valid.");
+    Logger.info("OpenAPI spec is valid.");
   } else {
     throw validationResult.errors;
   }
 
   // Write the OpenAPI spec to a file
 
-  console.log(`OpenAPI spec generated and saved to ${outputPath}`);
+  Logger.info(`OpenAPI spec generated and saved to ${outputPath}`);
 }
 
-generateOpenAPISpec().catch((error) => {
-  console.error("Error generating OpenAPI spec:");
-  console.error(error);
+generateOpenAPISpec().catch((error: Error) => {
+  Logger.error("Error generating OpenAPI spec:");
+  Logger.error(error);
   process.exit(1);
 });
