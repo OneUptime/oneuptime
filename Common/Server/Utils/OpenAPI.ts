@@ -201,6 +201,26 @@ export default class OpenAPIUtil {
       }),
     }) as unknown as JSONObject;
 
+    // Add security schemes and global security requirement
+    if (!spec["components"]) {
+      spec["components"] = {};
+    }
+    
+    (spec["components"] as JSONObject)["securitySchemes"] = {
+      ApiKeyAuth: {
+        type: "apiKey",
+        in: "header",
+        name: "APIKey",
+        description: "API key for authentication. Required for all API requests.",
+      },
+    };
+
+    spec["security"] = [
+      {
+        ApiKeyAuth: [],
+      },
+    ];
+
     LocalCache.setJSON("openapi", "spec", spec as JSONObject);
 
     return spec;
@@ -227,6 +247,9 @@ export default class OpenAPIUtil {
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+      ],
       requestBody: {
         required: false,
         content: {
@@ -286,6 +309,9 @@ export default class OpenAPIUtil {
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+      ],
       requestBody: {
         required: false,
         content: {
@@ -850,6 +876,9 @@ export default class OpenAPIUtil {
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+      ],
       requestBody: {
         required: false,
         content: {
@@ -909,6 +938,9 @@ export default class OpenAPIUtil {
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
+      parameters: [
+        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+      ],
       requestBody: {
         required: false,
         content: {
