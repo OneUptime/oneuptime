@@ -41,6 +41,7 @@
         "jest-environment-jsdom": "^29.7.0",
         "jest-mock-extended": "^3.0.5",
         "react-test-renderer": "^18.2.0",
+        "sass": "^1.89.2",
         "ts-jest": "^28.0.5"
     },
     "dependencies": {
