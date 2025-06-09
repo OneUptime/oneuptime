@@ -71,8 +71,13 @@ settings:
 
     // Install terraform-plugin-codegen-openapi if not present
     Logger.info("📦 Installing terraform-plugin-codegen-openapi...");
+    const goPath = execSync("go env GOPATH", { encoding: "utf8" }).trim();
+    const tfplugigenPath = path.join(goPath, "bin", "tfplugingen-openapi");
+    
     try {
-      execSync("which tfplugingen-openapi", { stdio: "pipe" });
+      if (!fs.existsSync(tfplugigenPath)) {
+        throw new Error("tfplugingen-openapi not found");
+      }
       Logger.info("✅ terraform-plugin-codegen-openapi already installed");
     } catch {
       Logger.info("📥 Installing terraform-plugin-codegen-openapi...");
@@ -83,7 +88,7 @@ settings:
 
     // Generate Terraform provider
     Logger.info("🏗️ Generating Terraform provider...");
-    const generateCommand: string = `tfplugingen-openapi generate --config ${configPath} --output ${outputDir} ${openApiSpecPath}`;
+    const generateCommand: string = `"${tfplugigenPath}" generate --config ${configPath} --output ${outputDir} ${openApiSpecPath}`;
     
     try {
       execSync(generateCommand, { stdio: "inherit" });
