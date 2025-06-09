@@ -2,6 +2,7 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
+import type { ParameterObject, ReferenceObject } from "@asteasolutions/zod-to-openapi/dist/types";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -196,7 +197,7 @@ export default class OpenAPIUtil {
           description: "API Server",
         },
       ],
-      tags: tags.sort((a: any, b: any) => {
+      tags: tags.sort((a: { name: string; description: string }, b: { name: string; description: string }) => {
         return a.name.localeCompare(b.name);
       }),
     }) as unknown as JSONObject;
@@ -248,7 +249,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
       ],
       requestBody: {
         required: false,
@@ -310,7 +311,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
       ],
       requestBody: {
         required: false,
@@ -477,7 +478,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
@@ -523,7 +524,7 @@ export default class OpenAPIUtil {
     });
   }
 
-  public static getDefaultApiHeaders(): Array<JSONObject> {
+  public static getDefaultApiHeaders(): Array<ParameterObject | ReferenceObject> {
     return [
       {
         name: "APIKey",
@@ -562,7 +563,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
@@ -633,7 +634,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
@@ -877,7 +878,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
       ],
       requestBody: {
         required: false,
@@ -939,7 +940,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
       ],
       requestBody: {
         required: false,
@@ -1065,7 +1066,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
@@ -1137,7 +1138,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
@@ -1208,7 +1209,7 @@ export default class OpenAPIUtil {
       description: `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],
       parameters: [
-        ...(OpenAPIUtil.getDefaultApiHeaders() as Array<any>),
+        ...OpenAPIUtil.getDefaultApiHeaders(),
         {
           name: "id",
           in: "path",
