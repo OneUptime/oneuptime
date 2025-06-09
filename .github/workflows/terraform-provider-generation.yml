@@ -36,7 +36,7 @@ jobs:
 
       - name: Install root dependencies
         run: npm install
-        
+
       - name: Install Script dependencies
         run: cd Scripts && npm install
 
@@ -45,7 +45,7 @@ jobs:
 
       - name: Verify provider generation
         run: |
-          PROVIDER_DIR="./terraform-provider-oneuptime"
+          PROVIDER_DIR="./Terraform"
           
           # Check if provider directory was created
           if [ ! -d "$PROVIDER_DIR" ]; then
@@ -78,7 +78,7 @@ jobs:
 
       - name: Test Go build
         run: |
-          PROVIDER_DIR="./terraform-provider-oneuptime"
+          PROVIDER_DIR="./Terraform"
           if [ -d "$PROVIDER_DIR" ] && [ -f "$PROVIDER_DIR/go.mod" ]; then
             cd "$PROVIDER_DIR"
             echo "🔨 Testing Go build..."
@@ -92,8 +92,8 @@ jobs:
       - name: Upload Terraform provider as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-provider-oneuptime
-          path: ./terraform-provider-oneuptime/
+          name: Terraform
+          path: ./Terraform/
           retention-days: 30
 
       - name: Comment PR with provider info (on PR)
@@ -104,7 +104,7 @@ jobs:
             const fs = require('fs');
             const path = require('path');
             
-            const providerDir = './terraform-provider-oneuptime';
+            const providerDir = './Terraform';
             let comment = '## 🏗️ Terraform Provider Generation Results\n\n';
             
             if (fs.existsSync(providerDir)) {
@@ -125,7 +125,7 @@ jobs:
               comment += `- 📦 **Go Files:** ${goFiles}\n`;
               comment += `- 📄 **Go Module:** ${hasGoMod ? '✅ Created' : '❌ Missing'}\n`;
               comment += `- 📚 **Documentation:** ${hasReadme ? '✅ Created' : '❌ Missing'}\n`;
-              comment += `- 📁 **Output Directory:** \`terraform-provider-oneuptime/\`\n\n`;
+              comment += `- 📁 **Output Directory:** \`Terraform/\`\n\n`;
               comment += 'The generated Terraform provider is available as an artifact in this workflow run.\n\n';
               comment += '### Next Steps\n';
               comment += '1. Download the provider artifact\n';

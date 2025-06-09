@@ -16,7 +16,7 @@ async function generateTerraformProvider(): Promise<void> {
   await generateOpenAPISpec();
 
   const openApiSpecPath: string = "./openapi.json";
-  const outputDir: string = "./terraform-provider-oneuptime";
+  const outputDir: string = "./Terraform";
   const configPath: string = "./generator_config.yml";
 
   try {
@@ -49,7 +49,7 @@ async function generateTerraformProvider(): Promise<void> {
       version: "1.0",
       generator: "terraform-provider",
       output_dir: outputDir,
-      package_name: "github.com/oneuptime/terraform-provider-oneuptime",
+      package_name: "github.com/oneuptime/Terraform",
       provider_name: "oneuptime",
     };
 
@@ -502,9 +502,9 @@ go test -v ./...
 ### Installing the Provider Locally
 
 \`\`\`bash
-go build -o terraform-provider-oneuptime
+go build -o Terraform
 mkdir -p ~/.terraform.d/plugins/local/oneuptime/oneuptime/1.0.0/darwin_amd64/
-cp terraform-provider-oneuptime ~/.terraform.d/plugins/local/oneuptime/oneuptime/1.0.0/darwin_amd64/
+cp Terraform ~/.terraform.d/plugins/local/oneuptime/oneuptime/1.0.0/darwin_amd64/
 \`\`\`
 
 ## Contributing

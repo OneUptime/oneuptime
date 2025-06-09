@@ -43,7 +43,7 @@ echo "🏗️ Generating Terraform provider..."
 npm run generate-terraform-provider
 
 # Validate generation
-PROVIDER_DIR="./terraform-provider-oneuptime"
+PROVIDER_DIR="./Terraform"
 
 if [ ! -d "$PROVIDER_DIR" ]; then
     echo "❌ Provider directory was not created"
