@@ -171,20 +171,35 @@ export default tseslint.config(
       "no-var": "error",
       "object-curly-spacing": ["error", "always"],
       "no-unneeded-ternary": "error",
-      "@typescript-eslint/ban-types": [
+      "@typescript-eslint/no-restricted-types": [
         "error",
         {
           types: {
-            String: true,
-            Boolean: true,
-            Number: true,
-            Symbol: false,
-            "{}": true,
-            Object: true,
-            object: true,
-            Function: true,
-          },
-          extendDefaults: true,
+            String: {
+              message: "Use 'string' instead of 'String'",
+              fixWith: "string"
+            },
+            Boolean: {
+              message: "Use 'boolean' instead of 'Boolean'",
+              fixWith: "boolean"
+            },
+            Number: {
+              message: "Use 'number' instead of 'Number'",
+              fixWith: "number"
+            },
+            "{}": {
+              message: "Use 'Record<string, unknown>' instead of '{}'"
+            },
+            Object: {
+              message: "Use 'Record<string, unknown>' instead of 'Object'"
+            },
+            object: {
+              message: "Use 'Record<string, unknown>' instead of 'object'"
+            },
+            Function: {
+              message: "Use a specific function type instead of 'Function'"
+            }
+          }
         },
       ],
     },
