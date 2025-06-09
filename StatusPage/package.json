@@ -4,9 +4,9 @@
   "private": false,
   "scripts": {
     "dev": "npx nodemon",
-    "build": "webpack build --mode=production",
-    "dev-build": "webpack build --mode=development",
-    "analyze": "cross-env analyze=true webpack build --mode=production",
+    "build": "NODE_ENV=production node esbuild.config.js",
+    "dev-build": "NODE_ENV=development node esbuild.config.js",
+    "analyze": "analyze=true NODE_ENV=production node esbuild.config.js",
     "test": "",
     "compile": "tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
@@ -29,16 +29,11 @@
   },
   "dependencies": {
     "Common": "file:../Common",
-    "css-loader": "^6.11.0",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "file-loader": "^6.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.23.1",
-    "sass-loader": "^13.3.3",
-    "style-loader": "^3.3.4",
-    "ts-loader": "^9.5.1",
     "use-async-effect": "^2.2.6"
   },
   "devDependencies": {
@@ -46,10 +41,8 @@
     "@types/react": "^18.2.38",
     "@types/react-dom": "^18.0.4",
     "@types/react-router-dom": "^5.3.3",
-    "cross-env": "^7.0.3",
     "nodemon": "^2.0.20",
-    "ts-node": "^10.9.1",
-    "webpack": "^5.76.0",
-    "webpack-bundle-analyzer": "^4.10.1"
+    "sass": "^1.89.1",
+    "ts-node": "^10.9.1"
   }
 }

@@ -23,7 +23,6 @@ export default tseslint.config(
       "**/playwright-coverage/",
       "**/playwright-screenshots/",
       "**/playwright-videos",
-      "**/webpack.config.js", // TODO: Remove this ignore
       "**/service-worker.js", // TODO: Remove this ignore
       "**/Static/", // TODO: Remove this ignore
       "**/*.js" // TODO: Remove this ignore

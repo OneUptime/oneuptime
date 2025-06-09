@@ -3,12 +3,12 @@
     "version": "0.1.0",
     "private": false,
     "scripts": {
-        "dev-build": "webpack build --mode=development",
+        "dev-build": "NODE_ENV=development node esbuild.config.js",
         "dev": "npx nodemon",
-        "build": "webpack build --mode=production",
-        "analyze": "cross-env analyze=true webpack build --mode=production",
+        "build": "NODE_ENV=production node esbuild.config.js",        
+        "analyze": "analyze=true NODE_ENV=production node esbuild.config.js",
         "test": "react-app-rewired test",
-        "eject": "webpack eject",
+        "eject": "echo 'esbuild does not require eject'",
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "start": "node --require ts-node/register Serve.ts",
@@ -34,28 +34,19 @@
         "Common": "file:../Common",
         "dotenv": "^16.4.5",
         "ejs": "^3.1.10",
-        "file-loader": "^6.2.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-router-dom": "^6.23.0",
         "reactflow": "^11.11.2",
         "stripe": "^11.0.0",
-        "style-loader": "^3.3.4",
         "use-async-effect": "^2.2.6"
     },
     "devDependencies": {
         "@types/node": "^16.11.35",
         "@types/react": "^18.2.38",
         "@types/react-dom": "^18.0.4",
-        "cross-env": "^7.0.3",
-        "css-loader": "^6.8.1",
         "nodemon": "^2.0.20",
-        "react-app-rewired": "^2.2.1",
-        "sass": "^1.51.0",
-        "sass-loader": "^12.6.0",
-        "ts-loader": "^9.5.1",
-        "ts-node": "^10.9.1",
-        "webpack": "^5.76.0",
-        "webpack-bundle-analyzer": "^4.10.1"
+        "sass": "^1.89.1",
+        "ts-node": "^10.9.1"
     }
 }
