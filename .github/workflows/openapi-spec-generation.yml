@@ -1,0 +1,105 @@
+name: OpenAPI Spec Generation
+
+on:
+  pull_request: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+
+jobs:
+  generate-openapi-spec:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: 'npm'
+
+      - name: Install Common dependencies
+        run: cd Common && npm install
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Generate OpenAPI specification
+        run: npm run generate-openapi-spec
+
+      - name: Check if OpenAPI spec was generated
+        run: |
+          if [ -f "./openapi.json" ]; then
+            echo "✅ OpenAPI spec file generated successfully"
+            echo "📄 File size: $(du -h ./openapi.json | cut -f1)"
+            echo "📊 Spec contains $(jq '.paths | length' ./openapi.json) API paths"
+            echo "🏷️  API version: $(jq -r '.info.version' ./openapi.json)"
+            echo "📝 API title: $(jq -r '.info.title' ./openapi.json)"
+          else
+            echo "❌ OpenAPI spec file was not generated"
+            exit 1
+          fi
+
+      - name: Validate OpenAPI spec format
+        run: |
+          # Check if the file is valid JSON
+          if jq empty ./openapi.json; then
+            echo "✅ OpenAPI spec is valid JSON"
+          else
+            echo "❌ OpenAPI spec is not valid JSON"
+            exit 1
+          fi
+          
+          # Check if it has required OpenAPI fields
+          if jq -e '.openapi and .info and .paths' ./openapi.json > /dev/null; then
+            echo "✅ OpenAPI spec has required fields"
+          else
+            echo "❌ OpenAPI spec missing required fields (openapi, info, paths)"
+            exit 1
+          fi
+
+      - name: Upload OpenAPI spec as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: ./openapi.json
+          retention-days: 30
+
+      - name: Comment PR with spec info (on PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = './openapi.json';
+            
+            if (fs.existsSync(path)) {
+              const spec = JSON.parse(fs.readFileSync(path, 'utf8'));
+              const pathCount = Object.keys(spec.paths || {}).length;
+              const version = spec.info?.version || 'Unknown';
+              const title = spec.info?.title || 'Unknown';
+              
+              const comment = `## 📋 OpenAPI Spec Generation Results
+              
+              ✅ **OpenAPI specification generated successfully!**
+              
+              **Details:**
+              - 📝 **Title:** ${title}
+              - 🏷️ **Version:** ${version}
+              - 🛣️ **API Paths:** ${pathCount}
+              - 📄 **File Size:** ${(fs.statSync(path).size / 1024).toFixed(2)} KB
+              
+              The generated OpenAPI specification is available as an artifact in this workflow run.`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
