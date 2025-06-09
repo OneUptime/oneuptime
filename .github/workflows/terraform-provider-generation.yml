@@ -1,0 +1,145 @@
+name: Terraform Provider Generation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-terraform-provider:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install Common dependencies
+        run: cd Common && npm install
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Generate OpenAPI specification
+        run: npm run generate-openapi-spec
+
+      - name: Generate Terraform provider
+        run: npm run generate-terraform-provider
+
+      - name: Verify provider generation
+        run: |
+          PROVIDER_DIR="./terraform-provider-oneuptime"
+          
+          # Check if provider directory was created
+          if [ ! -d "$PROVIDER_DIR" ]; then
+            echo "❌ Terraform provider directory not created"
+            exit 1
+          fi
+          echo "✅ Provider directory created: $PROVIDER_DIR"
+          
+          # Count generated files
+          GO_FILES=$(find "$PROVIDER_DIR" -name "*.go" | wc -l)
+          echo "📊 Generated Go files: $GO_FILES"
+          
+          if [ "$GO_FILES" -eq 0 ]; then
+            echo "❌ No Go files were generated"
+            exit 1
+          fi
+          
+          # Check for essential files
+          if [ -f "$PROVIDER_DIR/go.mod" ]; then
+            echo "✅ Go module file created"
+          fi
+          
+          if [ -f "$PROVIDER_DIR/README.md" ]; then
+            echo "✅ Documentation created"
+          fi
+          
+          # Show directory structure for debugging
+          echo "📁 Provider directory structure:"
+          ls -la "$PROVIDER_DIR" || true
+
+      - name: Test Go build
+        run: |
+          PROVIDER_DIR="./terraform-provider-oneuptime"
+          if [ -d "$PROVIDER_DIR" ] && [ -f "$PROVIDER_DIR/go.mod" ]; then
+            cd "$PROVIDER_DIR"
+            echo "🔨 Testing Go build..."
+            go mod tidy
+            go build -v ./...
+            echo "✅ Go build successful"
+          else
+            echo "⚠️ Cannot test build - missing go.mod or provider directory"
+          fi
+
+      - name: Upload Terraform provider as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-provider-oneuptime
+          path: ./terraform-provider-oneuptime/
+          retention-days: 30
+
+      - name: Comment PR with provider info (on PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const providerDir = './terraform-provider-oneuptime';
+            let comment = '## 🏗️ Terraform Provider Generation Results\n\n';
+            
+            if (fs.existsSync(providerDir)) {
+              let goFiles = 0;
+              try {
+                goFiles = require('child_process')
+                  .execSync(`find ${providerDir} -name "*.go" | wc -l`, {encoding: 'utf8'})
+                  .trim();
+              } catch (e) {
+                goFiles = 'Unknown';
+              }
+              
+              const hasGoMod = fs.existsSync(path.join(providerDir, 'go.mod'));
+              const hasReadme = fs.existsSync(path.join(providerDir, 'README.md'));
+              
+              comment += '✅ **Terraform provider generated successfully!**\n\n';
+              comment += '**Generation Details:**\n';
+              comment += `- 📦 **Go Files:** ${goFiles}\n`;
+              comment += `- 📄 **Go Module:** ${hasGoMod ? '✅ Created' : '❌ Missing'}\n`;
+              comment += `- 📚 **Documentation:** ${hasReadme ? '✅ Created' : '❌ Missing'}\n`;
+              comment += `- 📁 **Output Directory:** \`terraform-provider-oneuptime/\`\n\n`;
+              comment += 'The generated Terraform provider is available as an artifact in this workflow run.\n\n';
+              comment += '### Next Steps\n';
+              comment += '1. Download the provider artifact\n';
+              comment += '2. Test the provider with your Terraform configurations\n';
+              comment += '3. Build and install the provider locally\n';
+              comment += '4. Publish to the Terraform Registry when ready\n';
+            } else {
+              comment += '❌ **Terraform provider generation failed!**\n\n';
+              comment += 'Please check the workflow logs for details.\n';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
