@@ -1,4 +1,3 @@
-import NestedModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/NestedModel";
 import TableColumnType from "../AnalyticsDatabase/TableColumnType";
 import { ColumnAccessControl } from "../BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../BaseDatabase/ColumnBillingAccessControl";
@@ -104,25 +103,8 @@ export default class AnalyticsTableColumn {
     this._accessControl = v;
   }
 
-  private _nestedModel?: NestedModel | undefined;
-  public get nestedModel(): NestedModel | undefined {
-    return this._nestedModel;
-  }
-  public set nestedModel(v: NestedModel | undefined) {
-    this._nestedModel = v;
-  }
-
-  private _nestedModelType?: { new (): NestedModel } | undefined;
-  public get nestedModelType(): { new (): NestedModel } | undefined {
-    return this._nestedModelType;
-  }
-  public set nestedModelType(v: { new (): NestedModel } | undefined) {
-    this._nestedModelType = v;
-  }
-
   public constructor(data: {
     key: string;
-    nestedModelType?: { new (): NestedModel } | undefined;
     title: string;
     description: string;
     required: boolean;
@@ -136,9 +118,6 @@ export default class AnalyticsTableColumn {
       | (() => Date | string | number | boolean)
       | undefined;
   }) {
-    if (data.type === TableColumnType.NestedModel && !data.nestedModelType) {
-      throw new Error("NestedModel is required when type is NestedModel");
-    }
 
     this.accessControl = data.accessControl;
     this.key = data.key;
@@ -152,9 +131,5 @@ export default class AnalyticsTableColumn {
     this.billingAccessControl = data.billingAccessControl;
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;
-    if (data.nestedModelType) {
-      this.nestedModel = new data.nestedModelType();
-      this.nestedModelType = data.nestedModelType;
-    }
   }
 }

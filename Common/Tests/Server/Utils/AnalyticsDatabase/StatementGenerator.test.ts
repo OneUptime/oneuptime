@@ -8,7 +8,6 @@ import StatementGenerator from "../../../../Server/Utils/AnalyticsDatabase/State
 import logger from "../../../../Server/Utils/Logger";
 import "../../TestingUtils/Init";
 import AnalyticsBaseModel from "../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import NestedModel from "../../../../Models/AnalyticsModels/AnalyticsBaseModel/NestedModel";
 import Route from "../../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../../Types/AnalyticsDatabase/TableColumn";
@@ -238,53 +237,6 @@ describe("StatementGenerator", () => {
       );
     });
 
-    test("should support nested models", () => {
-      class TestNestedModel extends NestedModel {
-        public constructor() {
-          super({
-            tableColumns: [
-              new AnalyticsTableColumn({
-                key: "nested_column_1",
-                title: "<title>",
-                description: "<description>",
-                required: true,
-                type: TableColumnType.Text,
-              }),
-              new AnalyticsTableColumn({
-                key: "nested_column_2",
-                title: "<title>",
-                description: "<description>",
-                required: false,
-                type: TableColumnType.Number,
-              }),
-            ],
-          });
-        }
-      }
-
-      const statement: Statement = generator.toColumnsCreateStatement([
-        new AnalyticsTableColumn({
-          key: "column_1",
-          title: "<title>",
-          description: "<description>",
-          required: true,
-          type: TableColumnType.Text,
-        }),
-        new AnalyticsTableColumn({
-          key: "column_2",
-          title: "<title>",
-          description: "<description>",
-          required: false,
-          type: TableColumnType.NestedModel,
-          nestedModelType: TestNestedModel,
-        }),
-      ]);
-
-      expectStatement(
-        statement,
-        SQL`column_1 String, column_2 Nullable(Nested) (nested_column_1 String, nested_column_2 Nullable(Int32))`,
-      );
-    });
 
     test("should not add NULL|NOT NULL to Array types", () => {
       const statement: Statement = generator.toColumnsCreateStatement([

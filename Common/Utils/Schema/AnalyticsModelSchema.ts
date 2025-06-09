@@ -94,27 +94,6 @@ export class AnalyticsModelSchema extends BaseSchema {
           },
           example: ["item1", "item2", "item3"],
         });
-      } else if (
-        column.type === TableColumnType.NestedModel &&
-        column.nestedModel
-      ) {
-        // Handle nested models recursively
-        const nestedShape: ShapeRecord = {};
-        for (const nestedColumn of column.nestedModel.tableColumns) {
-          const nestedZodType: ZodTypes.ZodTypeAny =
-            this.getZodTypeForColumn(nestedColumn);
-          if (nestedColumn.required) {
-            nestedShape[nestedColumn.key] = nestedZodType;
-          } else {
-            nestedShape[nestedColumn.key] = nestedZodType.optional();
-          }
-        }
-        zodType = z.object(nestedShape).openapi({
-          type: "object",
-          example: this.generateNestedModelExample(
-            column.nestedModel.tableColumns,
-          ),
-        });
       } else {
         // Default fallback
         zodType = z.any().openapi({

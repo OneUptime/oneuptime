@@ -53,12 +53,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const whereStatement: Statement = this.toWhereStatement(updateBy.query);
 
     /* eslint-disable prettier/prettier */
-        const statement: Statement = SQL`
-            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${this.model.tableName
+    const statement: Statement = SQL`
+            ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
+              this.model.tableName
             }
-            UPDATE `.append(setStatement).append(SQL`
-            WHERE TRUE `).append(whereStatement);
-        /* eslint-enable prettier/prettier */
+            UPDATE `
+      .append(setStatement)
+      .append(
+        SQL`
+            WHERE TRUE `
+      )
+      .append(whereStatement);
+    /* eslint-enable prettier/prettier */
 
     logger.debug(`${this.model.tableName} Update Statement`);
     logger.debug(statement);
@@ -67,31 +73,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public getColumnNames(
-    tableColumns: Array<AnalyticsTableColumn>,
+    tableColumns: Array<AnalyticsTableColumn>
   ): Array<string> {
     const columnNames: Array<string> = [];
     for (const column of tableColumns) {
-      if (column.type === TableColumnType.NestedModel) {
-        // Example of nested model query:
-
-        /**
-                 * 
-                 * INSERT INTO opentelemetry_spans (trace_id, span_id, attributes.key, attributes.value) VALUES 
-                    ('trace1', 'span1', ['key1', 'key2'], ['value1', 'value2']),
-                    ('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
-                 */
-
-        // Nested Model Support.
-        const nestedModelColumnNames: Array<string> = this.getColumnNames(
-          column.nestedModel!.tableColumns,
-        );
-
-        for (const nestedModelColumnName of nestedModelColumnNames) {
-          columnNames.push(`${column.key}.${nestedModelColumnName}`);
-        }
-      } else {
-        columnNames.push(column.key);
-      }
+      columnNames.push(column.key);
     }
 
     return columnNames;
@@ -135,7 +121,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     const columnNames: Array<string> = this.getColumnNames(
-      this.model.getTableColumns(),
+      this.model.getTableColumns()
     );
 
     const records: Array<Record> = [];
@@ -168,45 +154,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const record: Record = [];
 
     for (const column of item.getTableColumns()) {
-      if (column.type === TableColumnType.NestedModel) {
-        // Nested Model Support.
-
-        // THis is very werid, but the output should work in a query like this:
-
-        /**
-                 * 
-                 * INSERT INTO opentelemetry_spans (trace_id, span_id, attributes.key, attributes.value) VALUES 
-                    ('trace1', 'span1', ['key1', 'key2'], ['value1', 'value2']),
-                    ('trace2', 'span2', ['keyA', 'keyB'], ['valueA', 'valueB']);
-                 */
-
-        for (const subColumn of column.nestedModel!.tableColumns) {
-          const subRecord: Record = [];
-
-          for (const nestedModelItem of item.getColumnValue(
-            column.key,
-          ) as Array<CommonModel>) {
-            const value: RecordValue = this.sanitizeValue(
-              nestedModelItem.getColumnValue(subColumn.key),
-              subColumn,
-              {
-                isNestedModel: true,
-              },
-            );
-
-            subRecord.push(value);
-          }
-
-          record.push(subRecord);
-        }
-      } else {
+     
         const value: RecordValue | undefined = this.sanitizeValue(
           item.getColumnValue(column.key),
-          column,
+          column
         );
 
         record.push(value);
-      }
+      
     }
 
     return record;
@@ -222,7 +177,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     column: AnalyticsTableColumn,
     options?: {
       isNestedModel?: boolean;
-    },
+    }
   ): RecordValue {
     if (!value && value !== 0 && value !== false) {
       if (options?.isNestedModel) {
@@ -247,7 +202,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     if (column.type === TableColumnType.Date && value instanceof Date) {
       value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
-        value as Date,
+        value as Date
       )}')`;
     }
 
@@ -319,7 +274,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           SQL` = ${{
             value,
             type: column.type,
-          }}`,
+          }}`
         );
       }
     }
@@ -354,56 +309,56 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           SQL`AND ${key} ILIKE ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof NotEqual) {
         whereStatement.append(
           SQL`AND ${key} != ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof GreaterThan) {
         whereStatement.append(
           SQL`AND ${key} > ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof LessThan) {
         whereStatement.append(
           SQL`AND ${key} < ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof LessThanOrEqual) {
         whereStatement.append(
           SQL`AND ${key} <= ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof LessThanOrNull) {
         whereStatement.append(
           SQL`AND (${key} <= ${{
             value: value,
             type: tableColumn.type,
-          }} OR ${key} IS NULL)`,
+          }} OR ${key} IS NULL)`
         );
       } else if (value instanceof GreaterThanOrNull) {
         whereStatement.append(
           SQL`AND (${key} >= ${{
             value: value,
             type: tableColumn.type,
-          }} OR ${key} IS NULL)`,
+          }} OR ${key} IS NULL)`
         );
       } else if (value instanceof GreaterThanOrEqual) {
         whereStatement.append(
           SQL`AND ${key} >= ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof InBetween) {
         whereStatement.append(
@@ -413,14 +368,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }} AND ${key} <= ${{
             value: value.endValue,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof Includes) {
         whereStatement.append(
           SQL`AND ${key} IN ${{
             value: value,
             type: tableColumn.type,
-          }}`,
+          }}`
         );
       } else if (value instanceof IsNull) {
         if (tableColumn.type === TableColumnType.Text) {
@@ -448,7 +403,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) = ${{
                 value: flatValue[objKey] as string,
                 type: TableColumnType.Text,
-              }}`,
+              }}`
             );
             continue;
           }
@@ -461,7 +416,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) = ${{
                 value: flatValue[objKey] as number,
                 type: TableColumnType.Number,
-              }}`,
+              }}`
             );
             continue;
           }
@@ -474,14 +429,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) = ${{
                 value: flatValue[objKey] as any,
                 type: TableColumnType.Boolean,
-              }}`,
+              }}`
             );
             continue;
           }
         }
       } else {
         whereStatement.append(
-          SQL`AND ${key} = ${{ value, type: tableColumn.type }}`,
+          SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
         );
       }
     }
@@ -514,7 +469,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         {
           [SortOrder.Ascending]: SQL`ASC`,
           [SortOrder.Descending]: SQL`DESC`,
-        }[value],
+        }[value]
       );
     }
 
@@ -565,7 +520,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     });
 
     selectStatement.append(
-      `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`,
+      `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`
     );
 
     const columns: Array<string> = [
@@ -575,7 +530,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
       const groupByStatement: Statement = this.toGroupByStatement(
-        aggregateBy.groupBy,
+        aggregateBy.groupBy
       );
       selectStatement.append(SQL`, `).append(groupByStatement);
 
@@ -602,7 +557,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   @CaptureSpan()
   public async toRenameColumnStatement(
     oldColumnName: string,
-    newColumnName: string,
+    newColumnName: string
   ): Promise<Statement> {
     const statement: string = `ALTER TABLE ${
       this.database.getDatasourceOptions().database
@@ -614,7 +569,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public toColumnsCreateStatement(
-    tableColumns: Array<AnalyticsTableColumn>,
+    tableColumns: Array<AnalyticsTableColumn>
   ): Statement {
     const columns: Statement = new Statement();
 
@@ -625,16 +580,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         columns.append(SQL`, `);
       }
 
-      let nestedModelColumns: Statement | null = null;
 
-      if (column.type === TableColumnType.NestedModel) {
-        nestedModelColumns = SQL`(`
-          .append(
-            this.toColumnsCreateStatement(column.nestedModel!.tableColumns),
-          )
-          .append(SQL`)`);
-      }
-
+     
       // special case - ClickHouse does not support using an a query parameter
       // to specify the column name when creating the table
       const keyStatement: string = column.key;
@@ -647,19 +594,16 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ? this.toColumnType(column.type)
             : SQL`Nullable(`
                 .append(this.toColumnType(column.type))
-                .append(SQL`)`),
+                .append(SQL`)`)
         );
 
-      if (nestedModelColumns) {
-        columns.append(SQL` `).append(nestedModelColumns);
-      }
     }
 
     return columns;
   }
 
   public toTableColumnType(
-    clickhouseType: string,
+    clickhouseType: string
   ): TableColumnType | undefined {
     return {
       String: TableColumnType.Text,
@@ -672,7 +616,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       "Array(String)": TableColumnType.ArrayText,
       "Array(Int32)": TableColumnType.ArrayNumber,
       JSON: TableColumnType.JSON, //JSONArray is also JSON
-      Nested: TableColumnType.NestedModel,
       Bool: TableColumnType.Boolean,
     }[clickhouseType];
   }
@@ -687,7 +630,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.Date]: SQL`DateTime`,
       [TableColumnType.JSON]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
       [TableColumnType.JSONArray]: SQL`String`, // we use JSON as a string because ClickHouse has really good JSON support for string types
-      [TableColumnType.NestedModel]: SQL`Nested`,
       [TableColumnType.ArrayNumber]: SQL`Array(Int32)`,
       [TableColumnType.ArrayText]: SQL`Array(String)`,
       [TableColumnType.LongNumber]: SQL`Int128`,
@@ -711,7 +653,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
               this.model.tableName
             } ADD COLUMN IF NOT EXISTS `.append(
-      this.toColumnsCreateStatement([column]),
+      this.toColumnsCreateStatement([column])
     );
 
     logger.debug(`${this.model.tableName} Add Column Statement`);
@@ -733,7 +675,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public toTableCreateStatement(): Statement {
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const columnsStatement: Statement = this.toColumnsCreateStatement(
-      this.model.tableColumns,
+      this.model.tableColumns
     );
 
     // special case - ClickHouse does not support using a query parameter
@@ -749,7 +691,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       .append(
         SQL`
             )
-            ENGINE = `,
+            ENGINE = `
       )
       .append(tableEngineStatement).append(`
         PARTITION BY (${partitionKey})

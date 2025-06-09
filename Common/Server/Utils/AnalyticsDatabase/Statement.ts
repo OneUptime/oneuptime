@@ -169,7 +169,6 @@ export class Statement implements BaseQueryParams {
       [TableColumnType.Decimal]: "Double",
       [TableColumnType.Date]: "DateTime",
       [TableColumnType.JSON]: "JSON",
-      [TableColumnType.NestedModel]: "Nested",
       [TableColumnType.ArrayNumber]: "Array(Int32)",
       [TableColumnType.ArrayText]: "Array(String)",
       [TableColumnType.LongNumber]: "Int128",

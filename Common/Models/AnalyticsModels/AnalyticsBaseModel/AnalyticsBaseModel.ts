@@ -140,13 +140,6 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.crudApiPath = data.crudApiPath;
     this.enableRealtimeEventsOn = data.enableRealtimeEventsOn;
     this.partitionKey = data.partitionKey;
-
-    // initialize Arrays.
-    for (const column of this.tableColumns) {
-      if (column.type === TableColumnType.NestedModel) {
-        this.setColumnValue(column.key, []);
-      }
-    }
   }
 
   private _enableWorkflowOn: EnableWorkflowOn | undefined;
