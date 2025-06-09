@@ -21,6 +21,7 @@ import Version from "../../Types/Version";
 import Name from "../../Types/Name";
 import IP from "../../Types/IP/IP";
 import Port from "../../Types/Port";
+import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -109,6 +110,8 @@ export class ModelSchema extends BaseSchema {
         zodType = ObjectID.getSchema();
       } else if (column.type === TableColumnType.Color) {
         zodType = Color.getSchema();
+      } else if (column.type === TableColumnType.MonitorSteps) {
+        zodType = MonitorSteps.getSchema();
       } else if (column.type === TableColumnType.Date) {
         zodType = z.date().openapi({
           type: "string",
@@ -1098,6 +1101,8 @@ export class ModelSchema extends BaseSchema {
       zodType = ObjectID.getSchema();
     } else if (column.type === TableColumnType.Port) {
       zodType = Port.getSchema();
+    } else if (column.type === TableColumnType.MonitorSteps) {
+      zodType = MonitorSteps.getSchema();
     } else if (column.type === TableColumnType.IP) {
       zodType = IP.getSchema();
     } else if (column.type === TableColumnType.Color) {

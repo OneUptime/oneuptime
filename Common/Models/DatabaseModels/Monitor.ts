@@ -531,7 +531,7 @@ export default class Monitor extends BaseModel {
     ],
   })
   @TableColumn({
-    type: TableColumnType.JSON,
+    type: TableColumnType.MonitorSteps,
     required: false,
     title: "Monitor Steps",
     description: "What would you like to monitor and what is the criteria?",

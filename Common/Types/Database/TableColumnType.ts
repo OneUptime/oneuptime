@@ -14,6 +14,7 @@ enum ColumnType {
   ShortURL = "Short URL",
   Markdown = "Markdown",
   Domain = "Domain",
+  MonitorSteps = "Monitor Steps",
   LongURL = "URL",
   ShortText = "Text",
   OTP = "One Time Password",
