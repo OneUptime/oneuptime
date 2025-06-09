@@ -533,14 +533,7 @@ export default class OpenAPIUtil {
     ParameterObject | ReferenceObject
   > {
     return [
-      {
-        name: "APIKey",
-        in: "header",
-        required: true,
-        schema: { type: "string" },
-        description: "API key for authentication",
-        example: "your-api-key-here",
-      },
+      
     ];
   }
 
