@@ -207,19 +207,6 @@ export default class CommonModel {
         return;
       }
 
-      if (recordValue instanceof Array) {
-        if (recordValue.length > 0 && column.nestedModelType) {
-          json[column.key] = CommonModel.toJSONArray(
-            recordValue as Array<CommonModel>,
-            column.nestedModelType,
-          );
-        } else {
-          json[column.key] = recordValue;
-        }
-
-        return;
-      }
-
       json[column.key] = recordValue;
     });
 
