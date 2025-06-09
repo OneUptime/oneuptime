@@ -237,7 +237,6 @@ describe("StatementGenerator", () => {
       );
     });
 
-
     test("should not add NULL|NOT NULL to Array types", () => {
       const statement: Statement = generator.toColumnsCreateStatement([
         new AnalyticsTableColumn({

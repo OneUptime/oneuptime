@@ -73,7 +73,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public getColumnNames(
-    tableColumns: Array<AnalyticsTableColumn>
+    tableColumns: Array<AnalyticsTableColumn>,
   ): Array<string> {
     const columnNames: Array<string> = [];
     for (const column of tableColumns) {
@@ -121,7 +121,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     }
 
     const columnNames: Array<string> = this.getColumnNames(
-      this.model.getTableColumns()
+      this.model.getTableColumns(),
     );
 
     const records: Array<Record> = [];
@@ -154,14 +154,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     const record: Record = [];
 
     for (const column of item.getTableColumns()) {
-     
-        const value: RecordValue | undefined = this.sanitizeValue(
-          item.getColumnValue(column.key),
-          column
-        );
+      const value: RecordValue | undefined = this.sanitizeValue(
+        item.getColumnValue(column.key),
+        column,
+      );
 
-        record.push(value);
-      
+      record.push(value);
     }
 
     return record;
@@ -177,7 +175,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     column: AnalyticsTableColumn,
     options?: {
       isNestedModel?: boolean;
-    }
+    },
   ): RecordValue {
     if (!value && value !== 0 && value !== false) {
       if (options?.isNestedModel) {
@@ -202,7 +200,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     if (column.type === TableColumnType.Date && value instanceof Date) {
       value = `parseDateTimeBestEffortOrNull('${OneUptimeDate.toString(
-        value as Date
+        value as Date,
       )}')`;
     }
 
@@ -274,7 +272,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           SQL` = ${{
             value,
             type: column.type,
-          }}`
+          }}`,
         );
       }
     }
@@ -309,56 +307,56 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           SQL`AND ${key} ILIKE ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof NotEqual) {
         whereStatement.append(
           SQL`AND ${key} != ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof GreaterThan) {
         whereStatement.append(
           SQL`AND ${key} > ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof LessThan) {
         whereStatement.append(
           SQL`AND ${key} < ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof LessThanOrEqual) {
         whereStatement.append(
           SQL`AND ${key} <= ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof LessThanOrNull) {
         whereStatement.append(
           SQL`AND (${key} <= ${{
             value: value,
             type: tableColumn.type,
-          }} OR ${key} IS NULL)`
+          }} OR ${key} IS NULL)`,
         );
       } else if (value instanceof GreaterThanOrNull) {
         whereStatement.append(
           SQL`AND (${key} >= ${{
             value: value,
             type: tableColumn.type,
-          }} OR ${key} IS NULL)`
+          }} OR ${key} IS NULL)`,
         );
       } else if (value instanceof GreaterThanOrEqual) {
         whereStatement.append(
           SQL`AND ${key} >= ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof InBetween) {
         whereStatement.append(
@@ -368,14 +366,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           }} AND ${key} <= ${{
             value: value.endValue,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof Includes) {
         whereStatement.append(
           SQL`AND ${key} IN ${{
             value: value,
             type: tableColumn.type,
-          }}`
+          }}`,
         );
       } else if (value instanceof IsNull) {
         if (tableColumn.type === TableColumnType.Text) {
@@ -403,7 +401,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) = ${{
                 value: flatValue[objKey] as string,
                 type: TableColumnType.Text,
-              }}`
+              }}`,
             );
             continue;
           }
@@ -416,7 +414,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) = ${{
                 value: flatValue[objKey] as number,
                 type: TableColumnType.Number,
-              }}`
+              }}`,
             );
             continue;
           }
@@ -429,14 +427,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) = ${{
                 value: flatValue[objKey] as any,
                 type: TableColumnType.Boolean,
-              }}`
+              }}`,
             );
             continue;
           }
         }
       } else {
         whereStatement.append(
-          SQL`AND ${key} = ${{ value, type: tableColumn.type }}`
+          SQL`AND ${key} = ${{ value, type: tableColumn.type }}`,
         );
       }
     }
@@ -469,7 +467,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         {
           [SortOrder.Ascending]: SQL`ASC`,
           [SortOrder.Descending]: SQL`DESC`,
-        }[value]
+        }[value],
       );
     }
 
@@ -520,7 +518,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     });
 
     selectStatement.append(
-      `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`
+      `${aggregationMethod}(${aggregateBy.aggregateColumnName.toString()}) as ${aggregateBy.aggregateColumnName.toString()}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregateBy.aggregationTimestampColumnName.toString()}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregateBy.aggregationTimestampColumnName.toString()}`,
     );
 
     const columns: Array<string> = [
@@ -530,7 +528,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
       const groupByStatement: Statement = this.toGroupByStatement(
-        aggregateBy.groupBy
+        aggregateBy.groupBy,
       );
       selectStatement.append(SQL`, `).append(groupByStatement);
 
@@ -557,7 +555,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   @CaptureSpan()
   public async toRenameColumnStatement(
     oldColumnName: string,
-    newColumnName: string
+    newColumnName: string,
   ): Promise<Statement> {
     const statement: string = `ALTER TABLE ${
       this.database.getDatasourceOptions().database
@@ -569,7 +567,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   public toColumnsCreateStatement(
-    tableColumns: Array<AnalyticsTableColumn>
+    tableColumns: Array<AnalyticsTableColumn>,
   ): Statement {
     const columns: Statement = new Statement();
 
@@ -580,8 +578,6 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         columns.append(SQL`, `);
       }
 
-
-     
       // special case - ClickHouse does not support using an a query parameter
       // to specify the column name when creating the table
       const keyStatement: string = column.key;
@@ -594,16 +590,15 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ? this.toColumnType(column.type)
             : SQL`Nullable(`
                 .append(this.toColumnType(column.type))
-                .append(SQL`)`)
+                .append(SQL`)`),
         );
-
     }
 
     return columns;
   }
 
   public toTableColumnType(
-    clickhouseType: string
+    clickhouseType: string,
   ): TableColumnType | undefined {
     return {
       String: TableColumnType.Text,
@@ -653,7 +648,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             ALTER TABLE ${this.database.getDatasourceOptions().database!}.${
               this.model.tableName
             } ADD COLUMN IF NOT EXISTS `.append(
-      this.toColumnsCreateStatement([column])
+      this.toColumnsCreateStatement([column]),
     );
 
     logger.debug(`${this.model.tableName} Add Column Statement`);
@@ -675,7 +670,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public toTableCreateStatement(): Statement {
     const databaseName: string = this.database.getDatasourceOptions().database!;
     const columnsStatement: Statement = this.toColumnsCreateStatement(
-      this.model.tableColumns
+      this.model.tableColumns,
     );
 
     // special case - ClickHouse does not support using a query parameter
@@ -691,7 +686,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       .append(
         SQL`
             )
-            ENGINE = `
+            ENGINE = `,
       )
       .append(tableEngineStatement).append(`
         PARTITION BY (${partitionKey})

@@ -2,7 +2,10 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from "@asteasolutions/zod-to-openapi";
-import type { ParameterObject, ReferenceObject } from "@asteasolutions/zod-to-openapi/dist/types";
+import type {
+  ParameterObject,
+  ReferenceObject,
+} from "@asteasolutions/zod-to-openapi/dist/types";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../Models/DatabaseModels/Index";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -197,22 +200,28 @@ export default class OpenAPIUtil {
           description: "API Server",
         },
       ],
-      tags: tags.sort((a: { name: string; description: string }, b: { name: string; description: string }) => {
-        return a.name.localeCompare(b.name);
-      }),
+      tags: tags.sort(
+        (
+          a: { name: string; description: string },
+          b: { name: string; description: string },
+        ) => {
+          return a.name.localeCompare(b.name);
+        },
+      ),
     }) as unknown as JSONObject;
 
     // Add security schemes and global security requirement
     if (!spec["components"]) {
       spec["components"] = {};
     }
-    
+
     (spec["components"] as JSONObject)["securitySchemes"] = {
       ApiKeyAuth: {
         type: "apiKey",
         in: "header",
         name: "APIKey",
-        description: "API key for authentication. Required for all API requests.",
+        description:
+          "API key for authentication. Required for all API requests.",
       },
     };
 
@@ -248,9 +257,7 @@ export default class OpenAPIUtil {
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
-      parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders(),
-      ],
+      parameters: [...OpenAPIUtil.getDefaultApiHeaders()],
       requestBody: {
         required: false,
         content: {
@@ -310,9 +317,7 @@ export default class OpenAPIUtil {
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
-      parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders(),
-      ],
+      parameters: [...OpenAPIUtil.getDefaultApiHeaders()],
       requestBody: {
         required: false,
         content: {
@@ -524,7 +529,9 @@ export default class OpenAPIUtil {
     });
   }
 
-  public static getDefaultApiHeaders(): Array<ParameterObject | ReferenceObject> {
+  public static getDefaultApiHeaders(): Array<
+    ParameterObject | ReferenceObject
+  > {
     return [
       {
         name: "APIKey",
@@ -877,9 +884,7 @@ export default class OpenAPIUtil {
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
-      parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders(),
-      ],
+      parameters: [...OpenAPIUtil.getDefaultApiHeaders()],
       requestBody: {
         required: false,
         content: {
@@ -939,9 +944,7 @@ export default class OpenAPIUtil {
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
-      parameters: [
-        ...OpenAPIUtil.getDefaultApiHeaders(),
-      ],
+      parameters: [...OpenAPIUtil.getDefaultApiHeaders()],
       requestBody: {
         required: false,
         content: {

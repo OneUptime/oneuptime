@@ -118,7 +118,6 @@ export default class AnalyticsTableColumn {
       | (() => Date | string | number | boolean)
       | undefined;
   }) {
-
     this.accessControl = data.accessControl;
     this.key = data.key;
     this.title = data.title;

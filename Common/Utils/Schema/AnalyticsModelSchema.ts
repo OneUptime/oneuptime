@@ -190,43 +190,6 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
   }
 
-  private static generateNestedModelExample(
-    columns: Array<AnalyticsTableColumn>,
-  ): Record<string, unknown> {
-    const example: Record<string, unknown> = {};
-    for (const column of columns) {
-      switch (column.type) {
-        case TableColumnType.ObjectID:
-          example[column.key] = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
-          break;
-        case TableColumnType.Date:
-          example[column.key] = "2023-01-15T12:30:00.000Z";
-          break;
-        case TableColumnType.Text:
-          example[column.key] = "Example text";
-          break;
-        case TableColumnType.Number:
-          example[column.key] = 42;
-          break;
-        case TableColumnType.Boolean:
-          example[column.key] = true;
-          break;
-        case TableColumnType.JSON:
-          example[column.key] = { key: "value" };
-          break;
-        case TableColumnType.ArrayText:
-          example[column.key] = ["item1", "item2"];
-          break;
-        case TableColumnType.ArrayNumber:
-          example[column.key] = [1, 2, 3];
-          break;
-        default:
-          example[column.key] = "example_value";
-      }
-    }
-    return example;
-  }
-
   public static getCreateModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
   }): AnalyticsModelSchemaType {
@@ -328,10 +291,6 @@ export class AnalyticsModelSchema extends BaseSchema {
       },
       getSelectSchemaExample: () => {
         return this.getSelectSchemaExample(modelType);
-      },
-      allowNested: false, // Analytics models typically don't have nested schemas
-      getNestedSchema: () => {
-        return null;
       },
     });
   }
