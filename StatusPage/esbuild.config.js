@@ -1,4 +1,4 @@
-const { createConfig, build, watch } = require('../Scripts/esbuild-config');
+const { createConfig, build, watch } = require('Common/UI/esbuild-config');
 
 const config = createConfig({
   serviceName: 'StatusPage',
