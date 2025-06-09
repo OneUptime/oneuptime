@@ -23,7 +23,7 @@ async function generateTerraformProvider(): Promise<void> {
     // Check if OpenAPI spec exists
     if (!fs.existsSync(openApiSpecPath)) {
       throw new Error(
-        "OpenAPI specification file not found. Please run 'npm run generate-openapi-spec' first."
+        "OpenAPI specification file not found. Please run 'npm run generate-openapi-spec' first.",
       );
     }
 
@@ -82,7 +82,7 @@ settings:
     const tfplugigenPath: string = path.join(
       goPath,
       "bin",
-      "tfplugingen-openapi"
+      "tfplugingen-openapi",
     );
 
     try {
@@ -96,7 +96,7 @@ settings:
         "go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest",
         {
           stdio: "inherit",
-        }
+        },
       );
     }
 
@@ -110,7 +110,7 @@ settings:
     } catch (error: any) {
       Logger.error("❌ Provider generation failed with tfplugingen-openapi");
       Logger.info(
-        "🔄 Trying alternative approach with direct Go generation..."
+        "🔄 Trying alternative approach with direct Go generation...",
       );
 
       // Fallback: Create a basic provider structure manually
@@ -143,7 +143,7 @@ settings:
 async function createBasicProviderStructure(
   outputDir: string,
   config: GeneratorConfig,
-  spec: any
+  spec: any,
 ): Promise<void> {
   Logger.info("🔨 Creating basic provider structure...");
 
@@ -372,7 +372,7 @@ async function validateProviderGeneration(outputDir: string): Promise<void> {
 
 async function ensureGoModule(
   outputDir: string,
-  config: GeneratorConfig
+  config: GeneratorConfig,
 ): Promise<void> {
   const goModPath: string = path.join(outputDir, "go.mod");
 
@@ -396,7 +396,7 @@ require (
 
 async function createProviderDocumentation(
   outputDir: string,
-  spec: any
+  spec: any,
 ): Promise<void> {
   const readmePath: string = path.join(outputDir, "README.md");
   const apiVersion: string = spec.info?.version || "1.0.0";
