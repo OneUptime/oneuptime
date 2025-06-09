@@ -67,7 +67,7 @@ export default class ProjectMiddleware {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const tenantId: ObjectID | null = this.getProjectId(req);
+      let tenantId: ObjectID | null = this.getProjectId(req);
 
       const apiKey: ObjectID | null = this.getApiKey(req);
 
@@ -81,18 +81,26 @@ export default class ProjectMiddleware {
 
       let apiKeyModel: ApiKey | null = null;
 
-      if (tenantId) {
+      if (apiKey) {
         apiKeyModel = await ApiKeyService.findOneBy({
           query: {
-            projectId: tenantId,
             apiKey: apiKey,
             expiresAt: QueryHelper.greaterThan(OneUptimeDate.getCurrentDate()),
           },
           select: {
             _id: true,
+            projectId: true,
           },
           props: { isRoot: true },
         });
+
+        tenantId = apiKeyModel?.projectId || null; 
+
+        if(!tenantId) {
+          throw new BadDataException(
+            "Project ID not found for the provided API Key.",
+          );
+        }
 
         if (apiKeyModel) {
           (req as OneUptimeRequest).userType = UserType.API;
