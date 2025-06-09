@@ -13,6 +13,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { PermissionHelper } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
+import ObjectID from "../../Types/ObjectID";
+import Email from "../../Types/Email";
+import Phone from "../../Types/Phone";
+import Domain from "../../Types/Domain";
+import Version from "../../Types/Version";
+import Name from "../../Types/Name";
+import IP from "../../Types/IP/IP";
+import Port from "../../Types/Port";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -26,7 +34,7 @@ export class ModelSchema extends BaseSchema {
    * Format permissions array into a human-readable string for OpenAPI documentation
    */
   private static formatPermissionsForSchema(
-    permissions: Array<Permission> | undefined,
+    permissions: Array<Permission> | undefined
   ): string {
     if (!permissions || permissions.length === 0) {
       return "No access - you don't have permission for this operation";
@@ -40,7 +48,7 @@ export class ModelSchema extends BaseSchema {
    */
   private static getColumnPermissionsDescription(
     model: DatabaseBaseModel,
-    key: string,
+    key: string
   ): string {
     const accessControl: ColumnAccessControl | undefined =
       model.getColumnAccessControlForAllColumns()[key];
@@ -50,13 +58,13 @@ export class ModelSchema extends BaseSchema {
     }
 
     const createPermissions: string = this.formatPermissionsForSchema(
-      accessControl.create,
+      accessControl.create
     );
     const readPermissions: string = this.formatPermissionsForSchema(
-      accessControl.read,
+      accessControl.read
     );
     const updatePermissions: string = this.formatPermissionsForSchema(
-      accessControl.update,
+      accessControl.update
     );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
@@ -98,10 +106,7 @@ export class ModelSchema extends BaseSchema {
       let zodType: ZodTypes.ZodTypeAny;
 
       if (column.type === TableColumnType.ObjectID) {
-        zodType = z.string().openapi({
-          type: "string",
-          example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        });
+        zodType = ObjectID.getSchema();
       } else if (column.type === TableColumnType.Color) {
         zodType = Color.getSchema();
       } else if (column.type === TableColumnType.Date) {
@@ -122,11 +127,7 @@ export class ModelSchema extends BaseSchema {
       ) {
         zodType = z.number().openapi({ type: "number", example: 42 });
       } else if (column.type === TableColumnType.Email) {
-        zodType = z.string().email().openapi({
-          type: "string",
-          format: "email",
-          example: "user@example.com",
-        });
+        zodType = Email.getSchema();
       } else if (column.type === TableColumnType.HashedString) {
         zodType = z
           .string()
@@ -146,14 +147,9 @@ export class ModelSchema extends BaseSchema {
             "This is an example of longer text content that might be stored in this field.",
         });
       } else if (column.type === TableColumnType.Phone) {
-        zodType = z
-          .string()
-          .openapi({ type: "string", example: "+1-555-123-4567" });
+        zodType = Phone.getSchema();
       } else if (column.type === TableColumnType.Version) {
-        zodType = z.string().openapi({
-          type: "string",
-          example: "1.0.0",
-        });
+        zodType = Version.getSchema();
       } else if (column.type === TableColumnType.Password) {
         zodType = z.string().openapi({
           type: "string",
@@ -161,10 +157,7 @@ export class ModelSchema extends BaseSchema {
           example: "••••••••",
         });
       } else if (column.type === TableColumnType.Name) {
-        zodType = z.string().openapi({
-          type: "string",
-          example: "John Doe",
-        });
+        zodType = Name.getSchema();
       } else if (column.type === TableColumnType.Description) {
         zodType = z.string().openapi({
           type: "string",
@@ -191,10 +184,11 @@ export class ModelSchema extends BaseSchema {
           example: "# Heading\n\nThis is **markdown** content",
         });
       } else if (column.type === TableColumnType.Domain) {
-        zodType = z.string().openapi({
-          type: "string",
-          example: "example.com",
-        });
+        zodType = Domain.getSchema();
+      } else if (column.type === TableColumnType.Port) {
+        zodType = Port.getSchema();
+      } else if (column.type === TableColumnType.IP) {
+        zodType = IP.getSchema();
       } else if (column.type === TableColumnType.LongURL) {
         zodType = z.string().url().openapi({
           type: "string",
@@ -288,7 +282,7 @@ export class ModelSchema extends BaseSchema {
               return ModelSchema.getModelSchema({
                 modelType: entityArrayType as new () => DatabaseBaseModel,
               });
-            }),
+            })
           )
           .openapi({
             type: "array",
@@ -351,8 +345,8 @@ export class ModelSchema extends BaseSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2,
-      )}`,
+        2
+      )}`
     );
 
     return schema;
@@ -397,7 +391,7 @@ export class ModelSchema extends BaseSchema {
       },
       getOperatorSchema: (
         operatorType: string,
-        columnType: TableColumnType,
+        columnType: TableColumnType
       ) => {
         return this.getOperatorSchema(operatorType, columnType);
       },
@@ -411,7 +405,7 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getValidOperatorsForColumnType(
-    columnType: TableColumnType,
+    columnType: TableColumnType
   ): Array<string> {
     const commonOperators: Array<string> = [
       "EqualTo",
@@ -486,7 +480,7 @@ export class ModelSchema extends BaseSchema {
 
   private static getOperatorSchema(
     operatorType: string,
-    columnType: TableColumnType,
+    columnType: TableColumnType
   ): ZodTypes.ZodTypeAny {
     const baseValue: ZodTypes.ZodTypeAny =
       this.getBaseValueSchemaForColumnType(columnType);
@@ -543,24 +537,38 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getBaseValueSchemaForColumnType(
-    columnType: TableColumnType,
+    columnType: TableColumnType
   ): ZodTypes.ZodTypeAny {
     switch (columnType) {
       case TableColumnType.ObjectID:
-        return z.string();
+        return ObjectID.getSchema();
 
       case TableColumnType.Email:
-        return z.string().email();
+        return Email.getSchema();
 
       case TableColumnType.Phone:
+        return Phone.getSchema();
+
+      case TableColumnType.Name:
+        return Name.getSchema();
+
+      case TableColumnType.Domain:
+        return Domain.getSchema();
+
+      case TableColumnType.Version:
+        return Version.getSchema();
+
+      case TableColumnType.IP:
+        return IP.getSchema();
+      case TableColumnType.Port:
+        return Port.getSchema();
+
       case TableColumnType.HashedString:
       case TableColumnType.Slug:
       case TableColumnType.ShortText:
       case TableColumnType.LongText:
       case TableColumnType.VeryLongText:
-      case TableColumnType.Name:
       case TableColumnType.Description:
-      case TableColumnType.Domain:
       case TableColumnType.Markdown:
       case TableColumnType.HTML:
       case TableColumnType.JavaScript:
@@ -569,7 +577,6 @@ export class ModelSchema extends BaseSchema {
       case TableColumnType.ShortURL:
       case TableColumnType.OTP:
       case TableColumnType.Password:
-      case TableColumnType.Version:
         return z.string();
 
       case TableColumnType.Number:
@@ -730,7 +737,7 @@ export class ModelSchema extends BaseSchema {
 
   private static getExampleValueForColumn(
     columnType: TableColumnType,
-    isSecondValue: boolean = false,
+    isSecondValue: boolean = false
   ): unknown {
     switch (columnType) {
       case TableColumnType.ObjectID:
@@ -773,7 +780,7 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getQuerySchemaExample(
-    modelType: new () => DatabaseBaseModel,
+    modelType: new () => DatabaseBaseModel
   ): SchemaExample {
     const model: DatabaseBaseModel = new modelType();
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
@@ -793,7 +800,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       const validOperators: Array<string> = this.getValidOperatorsForColumnType(
-        column.type,
+        column.type
       );
       if (validOperators.length === 0) {
         continue;
@@ -860,11 +867,11 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getSelectSchemaExample(
-    modelType: new () => DatabaseBaseModel,
+    modelType: new () => DatabaseBaseModel
   ): SchemaExample {
     if (!modelType) {
       throw new BadDataException(
-        "Model type is required to generate select schema example.",
+        "Model type is required to generate select schema example."
       );
     }
 
@@ -909,11 +916,11 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getGroupBySchemaExample(
-    modelType: new () => DatabaseBaseModel,
+    modelType: new () => DatabaseBaseModel
   ): SchemaExample {
     if (!modelType) {
       throw new BadDataException(
-        "Model type is required to generate group by schema example.",
+        "Model type is required to generate group by schema example."
       );
     }
 
@@ -1045,7 +1052,7 @@ export class ModelSchema extends BaseSchema {
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
         column,
         key,
-        data.schemaType,
+        data.schemaType
       );
 
       // Make fields optional if specified
@@ -1072,8 +1079,8 @@ export class ModelSchema extends BaseSchema {
       `${data.schemaType} model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2,
-      )}`,
+        2
+      )}`
     );
 
     return schema;
@@ -1083,15 +1090,16 @@ export class ModelSchema extends BaseSchema {
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
     key: string,
-    schemaType: "create" | "read" | "update" | "delete",
+    schemaType: "create" | "read" | "update" | "delete"
   ): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny;
 
     if (column.type === TableColumnType.ObjectID) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      });
+      zodType = ObjectID.getSchema();
+    } else if (column.type === TableColumnType.Port) {
+      zodType = Port.getSchema();
+    } else if (column.type === TableColumnType.IP) {
+      zodType = IP.getSchema();
     } else if (column.type === TableColumnType.Color) {
       zodType = Color.getSchema();
     } else if (column.type === TableColumnType.Date) {
@@ -1112,11 +1120,7 @@ export class ModelSchema extends BaseSchema {
     ) {
       zodType = z.number().openapi({ type: "number", example: 42 });
     } else if (column.type === TableColumnType.Email) {
-      zodType = z.string().email().openapi({
-        type: "string",
-        format: "email",
-        example: "user@example.com",
-      });
+      zodType = Email.getSchema();
     } else if (column.type === TableColumnType.HashedString) {
       zodType = z
         .string()
@@ -1136,14 +1140,9 @@ export class ModelSchema extends BaseSchema {
           "This is an example of longer text content that might be stored in this field.",
       });
     } else if (column.type === TableColumnType.Phone) {
-      zodType = z
-        .string()
-        .openapi({ type: "string", example: "+1-555-123-4567" });
+      zodType = Phone.getSchema();
     } else if (column.type === TableColumnType.Version) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "1.0.0",
-      });
+      zodType = Version.getSchema();
     } else if (column.type === TableColumnType.Password) {
       zodType = z.string().openapi({
         type: "string",
@@ -1151,10 +1150,7 @@ export class ModelSchema extends BaseSchema {
         example: "••••••••",
       });
     } else if (column.type === TableColumnType.Name) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "John Doe",
-      });
+      zodType = Name.getSchema();
     } else if (column.type === TableColumnType.Description) {
       zodType = z.string().openapi({
         type: "string",
@@ -1181,10 +1177,7 @@ export class ModelSchema extends BaseSchema {
         example: "# Heading\n\nThis is **markdown** content",
       });
     } else if (column.type === TableColumnType.Domain) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "example.com",
-      });
+      zodType = Domain.getSchema();
     } else if (column.type === TableColumnType.LongURL) {
       zodType = z.string().url().openapi({
         type: "string",
@@ -1296,7 +1289,7 @@ export class ModelSchema extends BaseSchema {
             return schemaMethod({
               modelType: entityArrayType as new () => DatabaseBaseModel,
             });
-          }),
+          })
         )
         .openapi({
           type: "array",

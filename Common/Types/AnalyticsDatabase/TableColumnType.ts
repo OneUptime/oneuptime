@@ -10,6 +10,8 @@ enum ColumnType {
   ArrayNumber = "Array of Numbers",
   ArrayText = "Array of Text",
   LongNumber = "Long Number",
+  IP = "IP",
+  Port = "Port",
 }
 
 export default ColumnType;

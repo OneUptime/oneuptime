@@ -38,6 +38,8 @@ enum ColumnType {
   CustomFieldType = "Custom Field Type",
   MonitorType = "Monitor Type",
   WorkflowStatus = "Workflow Status",
+  IP = "IP",
+  Port = "Port",
 }
 
 export default ColumnType;

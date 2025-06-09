@@ -5,6 +5,8 @@ import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/
 import logger from "../../Server/Utils/Logger";
 import { z as ZodTypes } from "zod";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
+import IP from "../../Types/IP/IP";
+import Port from "../../Types/Port";
 
 export type AnalyticsModelSchemaType = ZodSchema;
 
@@ -94,6 +96,10 @@ export class AnalyticsModelSchema extends BaseSchema {
           },
           example: ["item1", "item2", "item3"],
         });
+      } else if (column.type === TableColumnType.IP) {
+        zodType = IP.getSchema();
+      } else if (column.type === TableColumnType.Port) {
+        zodType = Port.getSchema();
       } else {
         // Default fallback
         zodType = z.any().openapi({
@@ -182,6 +188,10 @@ export class AnalyticsModelSchema extends BaseSchema {
           items: { type: "string" },
           example: ["item1", "item2"],
         });
+      case TableColumnType.IP:
+        return IP.getSchema();
+      case TableColumnType.Port:
+        return Port.getSchema();
       default:
         return z.any().openapi({
           type: "string",
@@ -338,6 +348,8 @@ export class AnalyticsModelSchema extends BaseSchema {
           TableColumnType.Boolean,
           TableColumnType.Date,
           TableColumnType.Number,
+          TableColumnType.IP,
+          TableColumnType.Port,
         ];
       },
       getGroupBySchemaExample: () => {
@@ -355,6 +367,8 @@ export class AnalyticsModelSchema extends BaseSchema {
       TableColumnType.Boolean,
       TableColumnType.ObjectID,
       TableColumnType.Decimal,
+      TableColumnType.IP,
+      TableColumnType.Port,
     ];
   }
 
@@ -398,6 +412,19 @@ export class AnalyticsModelSchema extends BaseSchema {
       case TableColumnType.ArrayText:
       case TableColumnType.ArrayNumber:
         return ["IsNull", "NotNull"];
+      case TableColumnType.IP:
+        return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
+      case TableColumnType.Port:
+        return [
+          "EqualTo",
+          "NotEqual",
+          "GreaterThan",
+          "LessThan",
+          "GreaterThanOrEqual",
+          "LessThanOrEqual",
+          "IsNull",
+          "NotNull",
+        ];
       default:
         return ["EqualTo", "NotEqual", "IsNull", "NotNull"];
     }
@@ -428,6 +455,10 @@ export class AnalyticsModelSchema extends BaseSchema {
         return ["item1", "item2"];
       case TableColumnType.ArrayNumber:
         return [1, 2, 3];
+      case TableColumnType.IP:
+        return "192.168.1.1";
+      case TableColumnType.Port:
+        return 8080;
       default:
         return "example_value";
     }
@@ -593,6 +624,8 @@ export class AnalyticsModelSchema extends BaseSchema {
         TableColumnType.Boolean,
         TableColumnType.Date,
         TableColumnType.Number,
+        TableColumnType.IP,
+        TableColumnType.Port,
       ].includes(column.type);
 
       if (
@@ -694,6 +727,12 @@ export class AnalyticsModelSchema extends BaseSchema {
       case TableColumnType.ArrayText:
       case TableColumnType.ArrayNumber:
         return z.any();
+
+      case TableColumnType.IP:
+        return IP.getSchema();
+
+      case TableColumnType.Port:
+        return Port.getSchema();
 
       default:
         return z.string();
