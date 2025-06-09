@@ -4,7 +4,7 @@ import { validate, ValidationResult } from "@readme/openapi-parser";
 import { JSONObject } from "Common/Types/JSON";
 import Logger from "Common/Server/Utils/Logger";
 
-async function generateOpenAPISpec(): Promise<void> {
+export async function generateOpenAPISpec(): Promise<void> {
   const spec: JSONObject = OpenAPI.generateOpenAPISpec();
 
   const outputPath: string = "./openapi.json";

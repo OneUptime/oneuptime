@@ -36,9 +36,9 @@ jobs:
 
       - name: Install root dependencies
         run: npm install
-
-      - name: Generate OpenAPI specification
-        run: npm run generate-openapi-spec
+        
+      - name: Install Script dependencies
+        run: cd Scripts && npm install
 
       - name: Generate Terraform provider
         run: npm run generate-terraform-provider
