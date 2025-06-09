@@ -8,9 +8,7 @@ async function generateOpenAPISpec(): Promise<void> {
   const outputPath = "./openapi.json";
   fs.writeFileSync(outputPath, JSON.stringify(spec, null, 2), "utf8");
 
-  const validationResult: ValidationResult = await validate(
-    outputPath
-  );
+  const validationResult: ValidationResult = await validate(outputPath);
 
   if (validationResult.valid) {
     console.log("OpenAPI spec is valid.");
@@ -19,8 +17,6 @@ async function generateOpenAPISpec(): Promise<void> {
   }
 
   // Write the OpenAPI spec to a file
-
-  
 
   console.log(`OpenAPI spec generated and saved to ${outputPath}`);
 }
