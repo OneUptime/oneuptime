@@ -19,7 +19,9 @@ async function generateTerraformProvider(): Promise<void> {
   try {
     // Check if OpenAPI spec exists
     if (!fs.existsSync(openApiSpecPath)) {
-      throw new Error("OpenAPI specification file not found. Please run 'npm run generate-openapi-spec' first.");
+      throw new Error(
+        "OpenAPI specification file not found. Please run 'npm run generate-openapi-spec' first.",
+      );
     }
 
     Logger.info("🔍 Found OpenAPI specification");
@@ -71,9 +73,15 @@ settings:
 
     // Install terraform-plugin-codegen-openapi if not present
     Logger.info("📦 Installing terraform-plugin-codegen-openapi...");
-    const goPath = execSync("go env GOPATH", { encoding: "utf8" }).trim();
-    const tfplugigenPath = path.join(goPath, "bin", "tfplugingen-openapi");
-    
+    const goPath: string = execSync("go env GOPATH", {
+      encoding: "utf8",
+    }).trim();
+    const tfplugigenPath: string = path.join(
+      goPath,
+      "bin",
+      "tfplugingen-openapi",
+    );
+
     try {
       if (!fs.existsSync(tfplugigenPath)) {
         throw new Error("tfplugingen-openapi not found");
@@ -81,22 +89,27 @@ settings:
       Logger.info("✅ terraform-plugin-codegen-openapi already installed");
     } catch {
       Logger.info("📥 Installing terraform-plugin-codegen-openapi...");
-      execSync("go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest", {
-        stdio: "inherit",
-      });
+      execSync(
+        "go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest",
+        {
+          stdio: "inherit",
+        },
+      );
     }
 
     // Generate Terraform provider
     Logger.info("🏗️ Generating Terraform provider...");
     const generateCommand: string = `"${tfplugigenPath}" generate --config ${configPath} --output ${outputDir} ${openApiSpecPath}`;
-    
+
     try {
       execSync(generateCommand, { stdio: "inherit" });
       Logger.info("✅ Terraform provider generated successfully");
     } catch (error: any) {
       Logger.error("❌ Provider generation failed with tfplugingen-openapi");
-      Logger.info("🔄 Trying alternative approach with direct Go generation...");
-      
+      Logger.info(
+        "🔄 Trying alternative approach with direct Go generation...",
+      );
+
       // Fallback: Create a basic provider structure manually
       await createBasicProviderStructure(outputDir, generatorConfig, spec);
     }
@@ -117,7 +130,6 @@ settings:
 
     Logger.info("🎉 Terraform provider generation completed!");
     Logger.info(`📁 Provider location: ${outputDir}`);
-
   } catch (error: any) {
     Logger.error("❌ Error generating Terraform provider:");
     Logger.error(error.message || error);
@@ -128,16 +140,16 @@ settings:
 async function createBasicProviderStructure(
   outputDir: string,
   config: GeneratorConfig,
-  spec: any
+  spec: any,
 ): Promise<void> {
   Logger.info("🔨 Creating basic provider structure...");
-  
+
   // Create output directory
   fs.mkdirSync(outputDir, { recursive: true });
 
   // Extract API info from spec
   const apiVersion: string = spec?.info?.version || "dev";
-  
+
   // Create main.go using config information
   const mainGoContent: string = `package main
 
@@ -180,8 +192,10 @@ func main() {
   fs.mkdirSync(providerDir, { recursive: true });
 
   // Create provider.go using config and spec information
-  const providerName = config.provider_name;
-  const providerDisplayName = (spec?.info?.title || "OneUptime").replace(/[^a-zA-Z0-9]/g, ''); // Remove spaces and special chars for Go struct names
+  const providerName: string = config.provider_name;
+  const providerDisplayName: string = (
+    spec?.info?.title || "OneUptime"
+  ).replace(/[^a-zA-Z0-9]/g, ""); // Remove spaces and special chars for Go struct names
   const providerGoContent: string = `package provider
 
 import (
@@ -256,7 +270,7 @@ func (p *${providerDisplayName}Provider) Configure(ctx context.Context, req prov
 	// with Terraform configuration value if set.
 
 	apiKey := os.Getenv("${providerName.toUpperCase()}_API_KEY")
-	baseUrl := "${spec?.servers?.[0]?.url || 'https://oneuptime.com/api'}"
+	baseUrl := "${spec?.servers?.[0]?.url || "https://oneuptime.com/api"}"
 
 	if !data.ApiKey.IsNull() {
 		apiKey = data.ApiKey.ValueString()
@@ -330,7 +344,7 @@ async function validateProviderGeneration(outputDir: string): Promise<void> {
 
   // Check for Go files
   const goFiles: string[] = [];
-  const findGoFiles = (dir: string): void => {
+  const findGoFiles: (dir: string) => void = (dir: string): void => {
     const items: string[] = fs.readdirSync(dir);
     for (const item of items) {
       const fullPath: string = path.join(dir, item);
@@ -353,12 +367,15 @@ async function validateProviderGeneration(outputDir: string): Promise<void> {
   Logger.info("✅ Provider validation passed");
 }
 
-async function ensureGoModule(outputDir: string, config: GeneratorConfig): Promise<void> {
+async function ensureGoModule(
+  outputDir: string,
+  config: GeneratorConfig,
+): Promise<void> {
   const goModPath: string = path.join(outputDir, "go.mod");
-  
+
   if (!fs.existsSync(goModPath)) {
     Logger.info("📦 Creating go.mod file...");
-    
+
     const goModContent: string = `module ${config.package_name}
 
 go 1.21
@@ -374,7 +391,10 @@ require (
   }
 }
 
-async function createProviderDocumentation(outputDir: string, spec: any): Promise<void> {
+async function createProviderDocumentation(
+  outputDir: string,
+  spec: any,
+): Promise<void> {
   const readmePath: string = path.join(outputDir, "README.md");
   const apiVersion: string = spec.info?.version || "1.0.0";
   const apiTitle: string = spec.info?.title || "OneUptime API";
