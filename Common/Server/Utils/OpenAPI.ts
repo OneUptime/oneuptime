@@ -532,9 +532,7 @@ export default class OpenAPIUtil {
   public static getDefaultApiHeaders(): Array<
     ParameterObject | ReferenceObject
   > {
-    return [
-      
-    ];
+    return [];
   }
 
   public static generateUpdateApiSpec(data: {

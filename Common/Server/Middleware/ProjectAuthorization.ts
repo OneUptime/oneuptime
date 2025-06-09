@@ -94,9 +94,9 @@ export default class ProjectMiddleware {
           props: { isRoot: true },
         });
 
-        tenantId = apiKeyModel?.projectId || null; 
+        tenantId = apiKeyModel?.projectId || null;
 
-        if(!tenantId) {
+        if (!tenantId) {
           throw new BadDataException(
             "Project ID not found for the provided API Key.",
           );
