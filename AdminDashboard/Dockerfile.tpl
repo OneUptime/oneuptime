@@ -67,13 +67,13 @@ RUN npm install
 #   - 3158:  AdminDashboard
 EXPOSE 3158
 
-RUN npm i -D webpack-cli
+
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 RUN mkdir /usr/src/app/dev-env
 RUN touch /usr/src/app/dev-env/.env
-RUN npm i -D webpack-dev-server
+
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source

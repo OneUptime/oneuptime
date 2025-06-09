@@ -69,12 +69,12 @@ RUN npm install
 #   - 3003:  accounts
 EXPOSE 3003
 
-RUN npm i -D webpack-cli
+
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 RUN mkdir /usr/src/app/dev-env
 RUN touch /usr/src/app/dev-env/.env
-RUN npm i -D webpack-dev-server
+
 
 #Run the app
 CMD [ "npm", "run", "dev" ]
