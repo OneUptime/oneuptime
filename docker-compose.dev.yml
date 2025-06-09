@@ -48,7 +48,7 @@ services:
 
     accounts:
         ports: 
-            - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}' # ws port for webpack
+            - '${ACCOUNTS_PORT}:${ACCOUNTS_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: accounts
@@ -71,7 +71,7 @@ services:
 
     dashboard:
         ports: 
-            - '${DASHBOARD_PORT}:${DASHBOARD_PORT}' # ws port for webpack
+            - '${DASHBOARD_PORT}:${DASHBOARD_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: dashboard
@@ -95,7 +95,7 @@ services:
 
     admin-dashboard:
         ports: 
-            - '${ADMIN_DASHBOARD_PORT}:${ADMIN_DASHBOARD_PORT}' # ws port for webpack
+            - '${ADMIN_DASHBOARD_PORT}:${ADMIN_DASHBOARD_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: admin-dashboard
@@ -118,7 +118,7 @@ services:
 
     status-page:
         ports: 
-            - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}' # ws port for webpack
+            - '${STATUS_PAGE_PORT}:${STATUS_PAGE_PORT}'
         extends:
             file: ./docker-compose.base.yml
             service: status-page
