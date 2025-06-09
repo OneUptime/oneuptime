@@ -130,7 +130,10 @@ async function createBasicProviderStructure(
   // Create output directory
   fs.mkdirSync(outputDir, { recursive: true });
 
-  // Create main.go
+  // Extract API info from spec
+  const apiVersion: string = spec?.info?.version || "dev";
+  
+  // Create main.go using config information
   const mainGoContent: string = `package main
 
 import (
@@ -139,11 +142,11 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/oneuptime/terraform-provider-oneuptime/internal/provider"
+	"${config.package_name}/internal/provider"
 )
 
 var (
-	version string = "dev"
+	version string = "${apiVersion}"
 )
 
 func main() {
@@ -153,7 +156,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/oneuptime/oneuptime",
+		Address: "registry.terraform.io/${config.provider_name}/${config.provider_name}",
 		Debug:   debug,
 	}
 
@@ -171,7 +174,9 @@ func main() {
   const providerDir: string = path.join(outputDir, "internal", "provider");
   fs.mkdirSync(providerDir, { recursive: true });
 
-  // Create provider.go
+  // Create provider.go using config and spec information
+  const providerName = config.provider_name;
+  const providerDisplayName = (spec?.info?.title || "OneUptime").replace(/[^a-zA-Z0-9]/g, ''); // Remove spaces and special chars for Go struct names
   const providerGoContent: string = `package provider
 
 import (
@@ -180,46 +185,47 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var _ provider.Provider = &OneUptimeProvider{}
+var _ provider.Provider = &${providerDisplayName}Provider{}
 
-type OneUptimeProvider struct {
+type ${providerDisplayName}Provider struct {
 	version string
 }
 
-type OneUptimeProviderModel struct {
+type ${providerDisplayName}ProviderModel struct {
 	ApiKey  types.String \`tfsdk:"api_key"\`
 	BaseUrl types.String \`tfsdk:"base_url"\`
 }
 
-func (p *OneUptimeProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "oneuptime"
+func (p *${providerDisplayName}Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "${providerName}"
 	resp.Version = p.version
 }
 
-func (p *OneUptimeProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *${providerDisplayName}Provider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"api_key": schema.StringAttribute{
-				MarkdownDescription: "OneUptime API Key",
+				MarkdownDescription: "${providerDisplayName} API Key",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"base_url": schema.StringAttribute{
-				MarkdownDescription: "OneUptime API Base URL",
+				MarkdownDescription: "${providerDisplayName} API Base URL",
 				Optional:            true,
 			},
 		},
 	}
 }
 
-func (p *OneUptimeProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data OneUptimeProviderModel
+func (p *${providerDisplayName}Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data ${providerDisplayName}ProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -230,10 +236,10 @@ func (p *OneUptimeProvider) Configure(ctx context.Context, req provider.Configur
 	// Configuration values are now available.
 	if data.ApiKey.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
-			nil,
-			"Unknown OneUptime API Key",
-			"The provider cannot create the OneUptime API client as there is an unknown configuration value for the OneUptime API key. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the ONEUPTIME_API_KEY environment variable.",
+			path.Root("api_key"),
+			"Unknown ${providerDisplayName} API Key",
+			"The provider cannot create the ${providerDisplayName} API client as there is an unknown configuration value for the ${providerDisplayName} API key. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the ${providerName.toUpperCase()}_API_KEY environment variable.",
 		)
 	}
 
@@ -244,8 +250,8 @@ func (p *OneUptimeProvider) Configure(ctx context.Context, req provider.Configur
 	// Default values to environment variables, but override
 	// with Terraform configuration value if set.
 
-	apiKey := os.Getenv("ONEUPTIME_API_KEY")
-	baseUrl := "https://oneuptime.com/api"
+	apiKey := os.Getenv("${providerName.toUpperCase()}_API_KEY")
+	baseUrl := "${spec?.servers?.[0]?.url || 'https://oneuptime.com/api'}"
 
 	if !data.ApiKey.IsNull() {
 		apiKey = data.ApiKey.ValueString()
@@ -260,9 +266,9 @@ func (p *OneUptimeProvider) Configure(ctx context.Context, req provider.Configur
 
 	if apiKey == "" {
 		resp.Diagnostics.AddAttributeError(
-			nil,
-			"Missing OneUptime API Key",
-			"The provider requires a OneUptime API key. Set the api_key attribute in the provider configuration or use the ONEUPTIME_API_KEY environment variable.",
+			path.Root("api_key"),
+			"Missing ${providerDisplayName} API Key",
+			"The provider requires a ${providerDisplayName} API key. Set the api_key attribute in the provider configuration or use the ${providerName.toUpperCase()}_API_KEY environment variable.",
 		)
 	}
 
@@ -270,7 +276,7 @@ func (p *OneUptimeProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	// Create a new OneUptime client using the configuration values
+	// Create a new ${providerDisplayName} client using the configuration values
 	client := &http.Client{}
 	
 	// Example client configuration would go here
@@ -278,19 +284,19 @@ func (p *OneUptimeProvider) Configure(ctx context.Context, req provider.Configur
 	_ = apiKey
 	_ = baseUrl
 
-	// Make the OneUptime client available during DataSource and Resource
+	// Make the ${providerDisplayName} client available during DataSource and Resource
 	// type Configure methods.
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
 
-func (p *OneUptimeProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *${providerDisplayName}Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		// Add your resources here
 	}
 }
 
-func (p *OneUptimeProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *${providerDisplayName}Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		// Add your data sources here
 	}
@@ -298,7 +304,7 @@ func (p *OneUptimeProvider) DataSources(ctx context.Context) []func() datasource
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &OneUptimeProvider{
+		return &${providerDisplayName}Provider{
 			version: version,
 		}
 	}
