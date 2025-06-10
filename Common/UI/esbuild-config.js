@@ -134,7 +134,7 @@ function createConfig(options) {
     platform: 'browser',
     target: 'es2017',
     sourcemap: isDev ? 'inline' : false,
-    minify: !isDev,
+    minify: false,
     splitting: false, // IIFE format doesn't support splitting
     publicPath,
     define: {
