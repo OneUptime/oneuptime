@@ -1,4 +1,4 @@
 // eslint-disable-next-line @typescript-eslint/no-restricted-types
-type GenericObject = Object;
+type GenericObject = object;
 
 export default GenericObject;

@@ -92,6 +92,7 @@ RunCron(
         logger.error(
           `Error refreshing current user and handoff time for schedule: ${onCallSchedule.id?.toString()}`,
         );
+        logger.error(err);
       }
     }
 
