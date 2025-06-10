@@ -125,18 +125,22 @@ export default class OTelIngestService {
 
     const newDbMetric: Metric = Metric.fromJSON(
       dbMetric.toJSON(),
-      Metric,
+      Metric
     ) as Metric;
 
-    newDbMetric.startTimeUnixNano = datapoint["startTimeUnixNano"] as number;
-    newDbMetric.startTime = OneUptimeDate.fromUnixNano(
-      datapoint["startTimeUnixNano"] as number,
-    );
+    if (datapoint["startTimeUnixNano"]) {
+      newDbMetric.startTimeUnixNano = datapoint["startTimeUnixNano"] as number;
+      newDbMetric.startTime = OneUptimeDate.fromUnixNano(
+        datapoint["startTimeUnixNano"] as number
+      );
+    }
 
-    newDbMetric.timeUnixNano = datapoint["timeUnixNano"] as number;
-    newDbMetric.time = OneUptimeDate.fromUnixNano(
-      datapoint["timeUnixNano"] as number,
-    );
+    if (datapoint["timeUnixNano"]) {
+      newDbMetric.timeUnixNano = datapoint["timeUnixNano"] as number;
+      newDbMetric.time = OneUptimeDate.fromUnixNano(
+        datapoint["timeUnixNano"] as number
+      );
+    }
 
     if (Object.keys(datapoint).includes("asInt")) {
       newDbMetric.value = datapoint["asInt"] as number;
