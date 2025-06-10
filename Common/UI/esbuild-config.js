@@ -139,7 +139,6 @@ function createConfig(options) {
     publicPath,
     define: {
       'process.env.NODE_ENV': JSON.stringify(isDev ? 'development' : 'production'),
-      ...readEnvFile('/usr/src/app/dev-env/.env'),
       ...additionalDefines,
     },
     external: ['react-native-sqlite-storage', ...additionalExternal],

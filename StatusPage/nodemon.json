@@ -4,13 +4,11 @@
     "ignore": [
         "./public/**",
         "./public/dist/**",
-        "./dev-env/*",
-        "./dev-env/.env",
         "./build/*",
         "./build/**",
         "./build/dist/*",
         "./build/dist/**",
         "../Common/Server/**"
     ],
-    "exec": "printenv > /usr/src/app/dev-env/.env && echo 'HOST=localhost' >> /usr/src/app/dev-env/.env && echo 'USE_HTTPS=false' >> /usr/src/app/dev-env/.env && npm run dev-build && npm run start"
+    "exec": " npm run dev-build && npm run start"
 }

@@ -71,8 +71,7 @@ EXPOSE 3106
 
 
 {{ if eq .Env.ENVIRONMENT "development" }}
-RUN mkdir /usr/src/app/dev-env
-RUN touch /usr/src/app/dev-env/.env
+
 
 #Run the app
 CMD [ "npm", "run", "dev" ]
