@@ -4,7 +4,7 @@
     "private": false,
     "dependencies": {
         "Common": "file:../Common",
-        "dotenv": "^16.4.5",
+        
         "ejs": "^3.1.10",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -42,7 +42,7 @@
         "@types/react-dom": "^18.0.4",
         "@types/react-router-dom": "^5.3.3",
         "nodemon": "^2.0.20",
-        "sass": "^1.89.1",
+       
         "ts-node": "^10.9.1"
     }
 }
