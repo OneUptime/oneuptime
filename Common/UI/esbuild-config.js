@@ -130,12 +130,12 @@ function createConfig(options) {
     entryPoints: [entryPoint],
     bundle: true,
     outdir,
-    format: 'iife',
+    format: 'esm', // Changed from 'iife' to 'esm' to support splitting
     platform: 'browser',
     target: 'es2017',
     sourcemap: isDev ? 'inline' : false,
     minify: false,
-    splitting: false, // IIFE format doesn't support splitting
+    splitting: true, // Now supported with ESM format
     publicPath,
     define: {
       'process.env.NODE_ENV': JSON.stringify(isDev ? 'development' : 'production'),
