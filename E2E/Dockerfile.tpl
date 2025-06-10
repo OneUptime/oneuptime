@@ -58,6 +58,7 @@ RUN npm install
 COPY ./E2E /usr/src/app
 
 RUN npm run compile
-
+# Set permission to write logs and cache in case container run as non root
+RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
 #Run the app
 CMD [ "npm", "test" ]
