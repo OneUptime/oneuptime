@@ -26,7 +26,7 @@ describe("OrderedSateList", () => {
 
   it("should render all components", () => {
     render(<OrderedStatesList {...defaultProps} />);
-    expect(screen.getByText("item 1")).toBeInTheDocument;
+    expect(screen.getByText("item 1")).toBeInTheDocument();
   });
   it("renders Item components for each item in data prop", () => {
     const props: ComponentProps<ItemData> = {

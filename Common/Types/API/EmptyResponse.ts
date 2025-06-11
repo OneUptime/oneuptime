@@ -1,3 +1,4 @@
 import { JSONObject } from "../JSON";
 
-export default interface EmptyResponseData extends JSONObject {}
+type EmptyResponseData = JSONObject;
+export default EmptyResponseData;

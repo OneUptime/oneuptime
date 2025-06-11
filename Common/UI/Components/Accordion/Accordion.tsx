@@ -41,14 +41,16 @@ const Accordion: FunctionComponent<ComponentProps> = (
   }, [props.title]);
 
   useEffect(() => {
-    props.onClick && props.onClick();
-
-    if (isOpen) {
-      props.onOpen && props.onOpen();
+    if (props.onClick) {
+      props.onClick();
     }
 
-    if (!isOpen) {
-      props.onClose && props.onClose();
+    if (isOpen && props.onOpen) {
+      props.onOpen();
+    }
+
+    if (!isOpen && props.onClose) {
+      props.onClose();
     }
   }, [isOpen]);
 
