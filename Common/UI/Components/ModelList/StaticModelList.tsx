@@ -177,9 +177,9 @@ const StaticModelList: <TBaseModel extends BaseModel>(
   return (
     <DragDropContext
       onDragEnd={(result: DropResult) => {
-        result.destination?.index &&
-          props.onDragDrop &&
+        if (result.destination?.index && props.onDragDrop) {
           props.onDragDrop(result.draggableId, result.destination.index);
+        }
       }}
     >
       {getComponent()}

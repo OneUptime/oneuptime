@@ -95,10 +95,11 @@ const ModelFormModal: <TBaseModel extends BaseModel>(
             }}
             initialValues={props.initialValues}
             onSuccess={(data: TBaseModel) => {
-              props.onSuccess &&
+              if (props.onSuccess) {
                 props.onSuccess(
                   BaseModel.fromJSONObject(data as TBaseModel, props.modelType),
                 );
+              }
             }}
             onError={(error: string) => {
               setError(error);

@@ -37,8 +37,9 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             onDataChanged={(data: MetricAliasData) => {
               props.onBlur?.();
               props.onFocus?.();
-              props.onChange &&
+              if (props.onChange) {
                 props.onChange({ ...props.data, metricAliasData: data });
+              }
             }}
             isFormula={false}
           />
@@ -49,8 +50,9 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             onDataChanged={(data: MetricQueryData) => {
               props.onBlur?.();
               props.onFocus?.();
-              props.onChange &&
+              if (props.onChange) {
                 props.onChange({ ...props.data, metricQueryData: data });
+              }
             }}
             metricTypes={props.metricTypes}
             telemetryAttributes={props.telemetryAttributes}

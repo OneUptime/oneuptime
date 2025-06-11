@@ -254,9 +254,9 @@ const Table: TableFunction = <T extends GenericObject>(
       )}
       <DragDropContext
         onDragEnd={(result: DropResult) => {
-          result.destination?.index &&
-            props.onDragDrop &&
+          if (result.destination?.index && props.onDragDrop) {
             props.onDragDrop(result.draggableId, result.destination.index);
+          }
         }}
       >
         <div className="-my-2 overflow-x-auto -mx-6">
@@ -282,8 +282,9 @@ const Table: TableFunction = <T extends GenericObject>(
                     props.onBulkClearAllItems?.();
                   }}
                   onAllItemsOnThePageSelected={() => {
-                    props.onBulkSelectItemsOnCurrentPage &&
+                    if (props.onBulkSelectItemsOnCurrentPage) {
                       props.onBulkSelectItemsOnCurrentPage();
+                    }
                   }}
                   isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
                   hasTableItems={props.data.length > 0}

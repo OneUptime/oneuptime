@@ -116,7 +116,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
       <div role="icon">
         <svg
           onClick={() => {
-            onClick && onClick();
+            if (onClick) {
+              onClick();
+            }
           }}
           className={`${textColor} ${sizeClassName} ${strokeWidth} ${className}`}
           style={color ? { color: color.toString(), ...style } : { ...style }}

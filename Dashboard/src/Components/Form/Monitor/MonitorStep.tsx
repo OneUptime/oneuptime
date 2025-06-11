@@ -398,8 +398,9 @@ return {
                 }
 
                 setDestinationInputValue(value);
-                props.onChange &&
+                if (props.onChange) {
                   props.onChange(MonitorStep.clone(monitorStep));
+                }
               }}
             />
           </div>
@@ -415,8 +416,9 @@ return {
                 onChange={(value: string) => {
                   const port: Port = new Port(value);
                   monitorStep.setPort(port);
-                  props.onChange &&
+                  if (props.onChange) {
                     props.onChange(MonitorStep.clone(monitorStep));
+                  }
                 }}
               />
             </div>
@@ -445,8 +447,9 @@ return {
                   monitorStep.setRequestType(
                     (value?.toString() as HTTPMethod) || HTTPMethod.GET,
                   );
-                  props.onChange &&
+                  if (props.onChange) {
                     props.onChange(MonitorStep.clone(monitorStep));
+                  }
                 }}
               />
             </div>
@@ -506,8 +509,9 @@ return {
                   initialValue={monitorStep.data?.requestHeaders || {}}
                   onChange={(value: Dictionary<string>) => {
                     monitorStep.setRequestHeaders(value);
-                    props.onChange &&
+                    if (props.onChange) {
                       props.onChange(MonitorStep.clone(monitorStep));
+                    }
                   }}
                 />
               </div>
@@ -563,8 +567,9 @@ return {
                     }
 
                     monitorStep.setRequestBody(value);
-                    props.onChange &&
+                    if (props.onChange) {
                       props.onChange(MonitorStep.clone(monitorStep));
+                    }
                   }}
                 />
               </div>
@@ -581,8 +586,9 @@ return {
                   description="Please check this if you do not want to follow redirects."
                   onChange={(value: boolean) => {
                     monitorStep.setDoNotFollowRedirects(value);
-                    props.onChange &&
+                    if (props.onChange) {
                       props.onChange(MonitorStep.clone(monitorStep));
+                    }
                   }}
                 />
               </div>
@@ -688,8 +694,9 @@ return {
               type={CodeType.JavaScript}
               onChange={(value: string) => {
                 monitorStep.setCustomCode(value);
-                props.onChange &&
+                if (props.onChange) {
                   props.onChange(MonitorStep.clone(monitorStep));
+                }
               }}
               placeholder={codeEditorPlaceholder}
             />
@@ -710,8 +717,9 @@ return {
               initialValue={props.value?.data?.browserTypes || []}
               onChange={(values: Array<CategoryCheckboxValue>) => {
                 monitorStep.setBrowserTypes(values as Array<BrowserType>);
-                props.onChange &&
+                if (props.onChange) {
                   props.onChange(MonitorStep.clone(monitorStep));
+                }
               }}
             />
           </div>
@@ -731,8 +739,9 @@ return {
               initialValue={props.value?.data?.screenSizeTypes || []}
               onChange={(values: Array<CategoryCheckboxValue>) => {
                 monitorStep.setScreenSizeTypes(values as Array<ScreenSizeType>);
-                props.onChange &&
+                if (props.onChange) {
                   props.onChange(MonitorStep.clone(monitorStep));
+                }
               }}
             />
           </div>

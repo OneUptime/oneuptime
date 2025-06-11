@@ -69,7 +69,7 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 });
 
 // Type assertion for the mocked Navigation module
-const MockedNavigation = Navigation as jest.Mocked<typeof Navigation>;
+const MockedNavigation: jest.Mocked<typeof Navigation> = Navigation as jest.Mocked<typeof Navigation>;
 
 describe("DuplicateModel", () => {
   const fieldsToDuplicate: Select<TestModel> = {};

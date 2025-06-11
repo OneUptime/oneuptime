@@ -58,7 +58,7 @@ const FormField: <T extends GenericObject>(
   type onChangeFunction = (value: JSONValue) => void;
 
   const onChange: onChangeFunction = (value: JSONValue): void => {
-    props.field.onChange &&
+    if (props.field.onChange) {
       props.field.onChange(
         value,
         props.currentValues,
@@ -66,6 +66,7 @@ const FormField: <T extends GenericObject>(
           props.setFormValues?.(newFormValues);
         },
       );
+    }
   };
 
   type GetFieldTypeFunction = (fieldType: FormFieldSchemaType) => string;
