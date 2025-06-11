@@ -13,7 +13,6 @@ import AnalyticsTableEngine from "../../../../Types/AnalyticsDatabase/AnalyticsT
 import AnalyticsTableColumn from "../../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import OneUptimeDate from "../../../../Types/Date";
-import GenericObject from "../../../../Types/GenericObject";
 
 function expectStatement(actual: Statement, expected: Statement): void {
   expect(actual.query).toBe(expected.query);
