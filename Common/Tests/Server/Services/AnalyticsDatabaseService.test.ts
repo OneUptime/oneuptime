@@ -82,12 +82,12 @@ describe("AnalyticsDatabaseService", () => {
 
     test("should return count statement", () => {
       const statement: Statement = service.toCountStatement({
-        query: "<query>" as GenericObject,
-        props: "<props>" as GenericObject,
+        query: { field: "value" } as GenericObject,
+        props: { prop: "test" } as GenericObject,
       });
 
       expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
-        "<query>",
+        { field: "value" },
       );
 
       expect(logger.debug).toHaveBeenCalledTimes(2);
@@ -111,8 +111,8 @@ describe("AnalyticsDatabaseService", () => {
 
     test("optionally adds LIMIT", () => {
       const statement: Statement = service.toCountStatement({
-        query: "<query>" as GenericObject,
-        props: "<props>" as GenericObject,
+        query: { field: "value" } as GenericObject,
+        props: { prop: "test" } as GenericObject,
         limit: 123,
       });
 
@@ -132,8 +132,8 @@ describe("AnalyticsDatabaseService", () => {
 
     test("optionally adds OFFSET", () => {
       const statement: Statement = service.toCountStatement({
-        query: "<query>" as GenericObject,
-        props: "<props>" as GenericObject,
+        query: { field: "value" } as GenericObject,
+        props: { prop: "test" } as GenericObject,
         skip: 123,
       });
 
@@ -177,22 +177,22 @@ describe("AnalyticsDatabaseService", () => {
 
     test("should return find statement", () => {
       const { statement, columns } = service.toFindStatement({
-        select: "<select>" as GenericObject,
-        query: "<query>" as GenericObject,
-        props: "<props>" as GenericObject,
-        sort: "<sort>" as GenericObject,
+        select: { columns: ["col1", "col2"] } as GenericObject,
+        query: { field: "value" } as GenericObject,
+        props: { prop: "test" } as GenericObject,
+        sort: { field: "asc" } as GenericObject,
         limit: 123,
         skip: 234,
       });
 
       expect(service.statementGenerator.toSelectStatement).toBeCalledWith(
-        "<select>",
+        { columns: ["col1", "col2"] },
       );
       expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
-        "<query>",
+        { field: "value" },
       );
       expect(service.statementGenerator.toSortStatement).toBeCalledWith(
-        "<sort>",
+        { field: "asc" },
       );
 
       expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
@@ -213,46 +213,46 @@ describe("AnalyticsDatabaseService", () => {
       });
       expect(columns).toStrictEqual(["<column-1>", "<column-2>"]);
     });
+  });
 
-    describe("toDeleteStatement", () => {
-      beforeEach(() => {
-        service.statementGenerator.toWhereStatement = jest.fn(() => {
-          return SQL`<where-statement>`;
-        });
-        jest.spyOn(logger, "debug").mockImplementation(() => {
-          return undefined!;
-        });
+  describe("toDeleteStatement", () => {
+    beforeEach(() => {
+      service.statementGenerator.toWhereStatement = jest.fn(() => {
+        return SQL`<where-statement>`;
       });
-
-      afterEach(() => {
-        jest.restoreAllMocks();
+      jest.spyOn(logger, "debug").mockImplementation(() => {
+        return undefined!;
       });
+    });
 
-      test("should return delete statement", () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("should return delete statement", () => {
         const statement: Statement = service.toDeleteStatement({
-          query: "<query>" as GenericObject,
-          props: "<props>" as GenericObject,
+          query: { field: "value" } as GenericObject,
+          props: { prop: "test" } as GenericObject,
         });
 
-        expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
-          "<query>",
-        );
+      expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
+        { field: "value" },
+      );
 
-        expect(logger.debug).toHaveBeenCalledTimes(2);
-        expect(logger.debug).toHaveBeenNthCalledWith(
-          1,
-          "<table-name> Delete Statement",
-        );
-        expect(logger.debug).toHaveBeenNthCalledWith(2, statement);
+      expect(logger.debug).toHaveBeenCalledTimes(2);
+      expect(logger.debug).toHaveBeenNthCalledWith(
+        1,
+        "<table-name> Delete Statement",
+      );
+      expect(logger.debug).toHaveBeenNthCalledWith(2, statement);
 
-        expect(statement.query).toBe(
-          "ALTER TABLE {p0:Identifier}.{p1:Identifier}\n" +
-            "DELETE WHERE TRUE <where-statement>",
-        );
-        expect(statement.query_params).toStrictEqual({
-          p0: "oneuptime",
-          p1: "<table-name>",
-        });
+      expect(statement.query).toBe(
+        "ALTER TABLE {p0:Identifier}.{p1:Identifier}\n" +
+          "DELETE WHERE TRUE <where-statement>",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: "oneuptime",
+        p1: "<table-name>",
       });
     });
   });
