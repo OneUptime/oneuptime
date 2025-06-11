@@ -76,7 +76,7 @@ export default class CommonModel {
       if (column.type === TableColumnType.JSON && typeof value === "string") {
         try {
           value = JSONFunctions.parse(value);
-        } catch (e) {
+        } catch {
           value = {};
         }
       }
@@ -91,7 +91,7 @@ export default class CommonModel {
           if (!Array.isArray(value)) {
             throw new BadDataException("Not an array");
           }
-        } catch (e) {
+        } catch {
           value = [];
         }
       }
