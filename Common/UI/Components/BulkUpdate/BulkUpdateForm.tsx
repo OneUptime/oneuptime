@@ -225,7 +225,9 @@ const BulkUpdateForm: <T extends GenericObject>(
                               totalItems: props.selectedItems,
                             });
                             setActionInProgress(true);
-                            props.onActionStart && props.onActionStart();
+                            if (props.onActionStart) {
+                              props.onActionStart();
+                            }
                           },
                           onBulkActionEnd: () => {
                             setActionInProgress(false);
@@ -290,7 +292,9 @@ const BulkUpdateForm: <T extends GenericObject>(
           submitButtonText="Close"
           onSubmit={() => {
             setShowProgressInfoModal(false);
-            props.onActionEnd && props.onActionEnd();
+            if (props.onActionEnd) {
+              props.onActionEnd();
+            }
           }}
         />
       )}
