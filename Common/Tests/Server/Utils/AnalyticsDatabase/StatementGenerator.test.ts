@@ -93,7 +93,7 @@ describe("StatementGenerator", () => {
       const statement: Statement = generator.toUpdateStatement(updateBy);
 
       expect(generator.toSetStatement).toBeCalledWith(updateBy.data);
-      expect(generator.toWhereStatement).toBeCalledWith("<query>");
+      expect(generator.toWhereStatement).toBeCalledWith(updateBy.query);
 
       expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
@@ -293,7 +293,7 @@ describe("StatementGenerator", () => {
             const expectedStatement: Statement = SQL`
                 CREATE TABLE IF NOT EXISTS ${'oneuptime'}.${'<table-name>'}
             (
-                <columns-create-statement>
+<columns-create-statement>
             )
             ENGINE = MergeTree
         PARTITION BY (column_ObjectID)

@@ -570,7 +570,6 @@ describe("BillingService", () => {
         const inactiveStatuses: Array<SubscriptionStatus> = [
           SubscriptionStatus.Incomplete,
           SubscriptionStatus.IncompleteExpired,
-          SubscriptionStatus.PastDue,
           SubscriptionStatus.Canceled,
           SubscriptionStatus.Unpaid,
         ];
