@@ -292,8 +292,7 @@ describe("StatementGenerator", () => {
       /* eslint-disable prettier/prettier */
             const expectedStatement: Statement = SQL`
                 CREATE TABLE IF NOT EXISTS ${'oneuptime'}.${'<table-name>'}
-            (
-<columns-create-statement>
+            (\n<columns-create-statement>
             )
             ENGINE = MergeTree
         PARTITION BY (column_ObjectID)
