@@ -6,6 +6,7 @@ import {
 } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import Response from "../Utils/Response";
+import logger from "../Utils/Logger";
 import { OnCallInputRequest } from "../../Types/Call/CallRequest";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -61,6 +62,7 @@ export default class NotificationMiddleware {
         JSONWebToken.decodeJsonPayload(token),
       );
     } catch (e) {
+      logger.error(e);
       return Response.sendErrorResponse(
         req,
         res,

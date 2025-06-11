@@ -8,6 +8,7 @@ import URL from "../../../Types/API/URL";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import API from "../../../Utils/API";
+import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 export default class VMUtil {
@@ -57,6 +58,7 @@ export default class VMUtil {
         valueToReplaceInPlace = JSON.stringify(valueToReplaceInPlace);
         didStringify = true;
       } catch (err) {
+        logger.error(err);
         return valueToReplaceInPlace;
       }
     }
@@ -104,6 +106,7 @@ export default class VMUtil {
       try {
         valueToReplaceInPlace = JSON.parse(valueToReplaceInPlace);
       } catch (err) {
+        logger.error(err);
         return valueToReplaceInPlace;
       }
     }

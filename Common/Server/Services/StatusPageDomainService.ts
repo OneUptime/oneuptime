@@ -237,6 +237,7 @@ export class Service extends DatabaseService<StatusPageDomain> {
 
       return true;
     } catch (err) {
+      logger.error(err);
       return false;
     }
   }

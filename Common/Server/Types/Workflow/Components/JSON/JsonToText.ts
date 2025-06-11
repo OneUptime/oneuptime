@@ -2,6 +2,7 @@ import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
+import logger from "../../../../Utils/Logger";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
@@ -74,6 +75,7 @@ export default class JsonToText extends ComponentCode {
         executePort: successPort,
       });
     } catch (err) {
+      logger.error(err);
       options.log("JSON is not in the correct format.");
       return Promise.resolve({
         returnValues: {},

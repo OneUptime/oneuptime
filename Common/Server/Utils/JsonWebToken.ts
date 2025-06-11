@@ -10,6 +10,7 @@ import Timezone from "../../Types/Timezone";
 import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import User from "../../Models/DatabaseModels/User";
 import jwt from "jsonwebtoken";
+import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
 class JSONWebToken {
@@ -119,6 +120,7 @@ class JSONWebToken {
         isGlobalLogin: Boolean(decoded["isGlobalLogin"]),
       };
     } catch (e) {
+      logger.error(e);
       throw new BadDataException("AccessToken is invalid or expired");
     }
   }

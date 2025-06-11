@@ -228,6 +228,7 @@ export default class StatusPageAPI extends BaseAPI<
           try {
             statusPageId = new ObjectID(statusPageIdOrDomain);
           } catch (err) {
+            logger.error(err);
             return Response.sendErrorResponse(
               req,
               res,

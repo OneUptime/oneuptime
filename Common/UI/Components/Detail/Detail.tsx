@@ -306,7 +306,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
               "Cant format json for field: " +
                 field.title +
                 " with value: " +
-                data,
+                data +
+                " Error: " +
+                e,
             );
           }
         }

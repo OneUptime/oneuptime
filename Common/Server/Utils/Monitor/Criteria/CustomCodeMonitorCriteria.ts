@@ -4,6 +4,7 @@ import {
   CriteriaFilter,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import CustomCodeMonitorResponse from "../../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class CustomCodeMonitoringCriteria {
@@ -78,6 +79,7 @@ export default class CustomCodeMonitoringCriteria {
           thresholdAsNumber = parseFloat(threshold.toString());
         }
       } catch (err) {
+        logger.error(err);
         thresholdAsNumber = null;
       }
 

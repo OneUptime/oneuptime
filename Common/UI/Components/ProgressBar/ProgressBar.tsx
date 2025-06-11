@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { Logger } from "../../Utils/Logger";
 
 export enum ProgressBarSize {
   Small = "small",
@@ -29,6 +30,7 @@ const ProgressBar: FunctionComponent<ComponentProps> = (
     try {
       percent = (props.count * 100) / props.totalCount;
     } catch (err) {
+      Logger.error(err as Error);
       // do nothing.
     }
 

@@ -7,6 +7,7 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import Typeof from "../../Types/Typeof";
 import UniversalCookies, { CookieSetOptions } from "universal-cookie";
 import CookieName from "../../Types/CookieName";
+import { Logger } from "./Logger";
 
 export default class Cookie {
   public static clearAllCookies(): void {
@@ -64,6 +65,7 @@ export default class Cookie {
       }
       return value;
     } catch (err) {
+      Logger.error(err as string);
       return value;
     }
   }
