@@ -2,7 +2,7 @@ import Button, { ButtonStyleType } from "../Button/Button";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 
-export interface ComponentProps<TGenericObject extends GenericObject> {
+export interface ComponentProps<TGenericObject extends GenericObject | string> {
   items: Array<TGenericObject>;
   getEachElement: (element: TGenericObject) => ReactElement;
   noItemsMessage: string | undefined;
