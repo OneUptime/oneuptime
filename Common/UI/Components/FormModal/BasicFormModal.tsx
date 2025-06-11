@@ -56,7 +56,7 @@ const BasicFormModal: <T extends GenericObject>(
               setIsLoading(isFormLoading);
             }}
             onSubmit={(data: T) => {
-              props.onSubmit && props.onSubmit(data);
+              props.onSubmit?.(data);
             }}
           />
         )}

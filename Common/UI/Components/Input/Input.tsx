@@ -195,7 +195,7 @@ const Input: FunctionComponent<ComponentProps> = (
             props.onEnterPress
               ? (event: any) => {
                   if (event.key === "Enter") {
-                    props.onEnterPress && props.onEnterPress();
+                    props.onEnterPress?.();
                   }
                 }
               : undefined

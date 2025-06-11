@@ -111,10 +111,10 @@ const List: ListFunction = <T extends GenericObject>(
             onFilterRefreshClick={props.onFilterRefreshClick}
             filters={props.filters || []}
             onFilterModalClose={() => {
-              props.onFilterModalClose && props.onFilterModalClose();
+              props.onFilterModalClose?.();
             }}
             onFilterModalOpen={() => {
-              props.onFilterModalOpen && props.onFilterModalOpen();
+              props.onFilterModalOpen?.();
             }}
             singularLabel={props.singularLabel}
             pluralLabel={props.pluralLabel}

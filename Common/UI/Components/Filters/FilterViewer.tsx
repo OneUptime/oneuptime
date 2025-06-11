@@ -399,7 +399,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
               <Button
                 onClick={() => {
                   changeFilterData({});
-                  props.onFilterModalClose && props.onFilterModalClose();
+                  props.onFilterModalClose?.();
                 }}
                 className="font-medium text-gray-900"
                 icon={IconProp.Close}
@@ -421,7 +421,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
           } by the following criteria:`}
           submitButtonText={`Apply Filters`}
           onClose={() => {
-            props.onFilterModalClose && props.onFilterModalClose();
+            props.onFilterModalClose?.();
           }}
           onSubmit={() => {
             setTempFilterDataForModal({});
@@ -430,7 +430,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
                 ...tempFilterDataForModal,
               });
             }
-            props.onFilterModalClose && props.onFilterModalClose();
+            props.onFilterModalClose?.();
           }}
         >
           <FiltersForm

@@ -724,7 +724,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                         }
                         buttonStyle={ButtonStyleType.NORMAL}
                         onClick={() => {
-                          props.onCancel && props.onCancel();
+                          props.onCancel?.();
                         }}
                       />
                     </div>

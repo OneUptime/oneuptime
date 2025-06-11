@@ -34,7 +34,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         hideSubmitButton={true}
         initialValues={props.initialValue}
         onChange={(values: FormValues<CriteriaIncident>) => {
-          props.onChange && props.onChange(values as CriteriaIncident);
+          props.onChange?.(values as CriteriaIncident);
         }}
         disableAutofocus={true}
         fields={[

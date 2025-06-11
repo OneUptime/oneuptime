@@ -63,7 +63,7 @@ const FormField: <T extends GenericObject>(
         value,
         props.currentValues,
         (newFormValues: FormValues<T>) => {
-          props.setFormValues && props.setFormValues(newFormValues);
+          props.setFormValues?.(newFormValues);
         },
       );
   };
@@ -340,7 +340,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
               }}
               onEnterPress={() => {
-                props.submitForm && props.submitForm();
+                props.submitForm?.();
               }}
               initialValue={
                 props.currentValues &&
@@ -675,7 +675,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
               }}
               onEnterPress={() => {
-                props.submitForm && props.submitForm();
+                props.submitForm?.();
               }}
               onBlur={() => {
                 props.setFieldTouched(props.fieldName, true);

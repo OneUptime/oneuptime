@@ -67,7 +67,7 @@ const IDGenerator: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 const generatedID: ObjectID = ObjectID.generate();
                 setValue(generatedID);
-                props.onChange && props.onChange(generatedID);
+                props.onChange?.(generatedID);
               }}
             />
           </div>

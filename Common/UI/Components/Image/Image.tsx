@@ -38,7 +38,7 @@ const Image: FunctionComponent<ComponentProps> = (
     return (
       <img
         onClick={() => {
-          props.onClick && props.onClick();
+          props.onClick?.();
         }}
         data-testid={props["data-testid"]}
         alt={props.alt}

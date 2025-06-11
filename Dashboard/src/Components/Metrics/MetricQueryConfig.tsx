@@ -63,7 +63,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               onClick={() => {
                 props.onBlur?.();
                 props.onFocus?.();
-                return props.onRemove && props.onRemove();
+                return props.onRemove?.();
               }}
               buttonSize={ButtonSize.Small}
               buttonStyle={ButtonStyleType.DANGER_OUTLINE}

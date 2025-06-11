@@ -33,7 +33,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
         modelType: props.modelType,
         id: props.modelId,
       });
-      props.onDeleteSuccess && props.onDeleteSuccess();
+      props.onDeleteSuccess?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
       setShowErrorModal(true);

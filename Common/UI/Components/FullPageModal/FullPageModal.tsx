@@ -15,7 +15,7 @@ const FullPageModal: FunctionComponent<ComponentProps> = (
       <div
         className="margin-50 align-right"
         onClick={() => {
-          props.onClose && props.onClose();
+          props.onClose?.();
         }}
       >
         <Icon

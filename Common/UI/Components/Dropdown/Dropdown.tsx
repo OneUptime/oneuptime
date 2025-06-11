@@ -133,20 +133,20 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         "relative mt-2 mb-1 rounded-md w-full overflow-visible"
       }`}
       onClick={() => {
-        props.onClick && props.onClick();
-        props.onFocus && props.onFocus();
+        props.onClick?.();
+        props.onFocus?.();
       }}
     >
       <Select
         onBlur={() => {
-          props.onBlur && props.onBlur();
+          props.onBlur?.();
         }}
         data-testid={props.dataTestId}
         tabIndex={props.tabIndex}
         isMulti={props.isMultiSelect}
         value={value || null}
         onFocus={() => {
-          props.onFocus && props.onFocus();
+          props.onFocus?.();
         }}
         classNames={{
           control: (
@@ -182,27 +182,26 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 option as Array<DropdownOption>;
               setValue(value);
 
-              props.onChange &&
-                props.onChange(
-                  value.map((i: DropdownOption) => {
-                    return i.value;
-                  }),
-                );
+              props.onChange?.(
+                value.map((i: DropdownOption) => {
+                  return i.value;
+                }),
+              );
             } else {
               const value: DropdownOption = option as DropdownOption;
               setValue(value);
-              props.onChange && props.onChange(value.value);
+              props.onChange?.(value.value);
             }
           }
 
           if (option === null && props.isMultiSelect) {
             setValue([]);
-            props.onChange && props.onChange([]);
+            props.onChange?.([]);
           }
 
           if (option === null && !props.isMultiSelect) {
             setValue(undefined);
-            props.onChange && props.onChange(null);
+            props.onChange?.(null);
           }
         }}
       />

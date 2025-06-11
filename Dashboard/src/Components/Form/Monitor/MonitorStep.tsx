@@ -599,7 +599,7 @@ return {
             }
             onMonitorStepLogMonitorChanged={(value: MonitorStepLogMonitor) => {
               monitorStep.setLogMonitor(value);
-              props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+              props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
@@ -616,7 +616,7 @@ return {
             }
             onChange={(value: MonitorStepMetricMonitor) => {
               monitorStep.setMetricMonitor(value);
-              props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+              props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
         </div>
@@ -633,7 +633,7 @@ return {
               value: MonitorStepTraceMonitor,
             ) => {
               monitorStep.setTraceMonitor(value);
-              props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+              props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
             telemetryServices={telemetryServices}
@@ -777,7 +777,7 @@ return {
           value={monitorStep?.data?.monitorCriteria}
           onChange={(value: MonitorCriteria) => {
             monitorStep.setMonitorCriteria(value);
-            props.onChange && props.onChange(MonitorStep.clone(monitorStep));
+            props.onChange?.(MonitorStep.clone(monitorStep));
           }}
         />
       </div>

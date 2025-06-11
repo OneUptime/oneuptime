@@ -70,7 +70,7 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
       <div
         className={`cursor-pointer ${bgColor}-50 hover:${bgColor}-200 mr-2 ml-2 p-1 h-7 pl-2 pr-2 rounded-full ${props.className}`}
         onClick={() => {
-          props.onClick && props.onClick();
+          props.onClick?.();
         }}
       >
         <div className="flex">

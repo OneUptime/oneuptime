@@ -232,11 +232,11 @@ const Table: TableFunction = <T extends GenericObject>(
         <BulkUpdateForm
           buttons={props.bulkActions.buttons}
           onClearSelectionClick={() => {
-            props.onBulkClearAllItems && props.onBulkClearAllItems();
+            props.onBulkClearAllItems?.();
             setIsAllItemsSelected(false);
           }}
           onSelectAllClick={() => {
-            props.onBulkSelectAllItems && props.onBulkSelectAllItems();
+            props.onBulkSelectAllItems?.();
             setIsAllItemsSelected(true);
           }}
           selectedItems={bulkSelectedItems}
@@ -247,7 +247,7 @@ const Table: TableFunction = <T extends GenericObject>(
           onActionEnd={() => {
             setIsAllItemsSelected(false);
             setBulkSelectedItems([]);
-            props.onBulkActionEnd && props.onBulkActionEnd();
+            props.onBulkActionEnd?.();
           }}
           itemToString={props.bulkItemToString}
         />
@@ -279,7 +279,7 @@ const Table: TableFunction = <T extends GenericObject>(
                   isBulkActionsEnabled={isBulkActionsEnabled}
                   onAllItemsDeselected={() => {
                     setIsAllItemsSelected(false);
-                    props.onBulkClearAllItems && props.onBulkClearAllItems();
+                    props.onBulkClearAllItems?.();
                   }}
                   onAllItemsOnThePageSelected={() => {
                     props.onBulkSelectItemsOnCurrentPage &&

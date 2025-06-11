@@ -94,7 +94,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
             </div>
           )}
 
-          {props.customElement && props.customElement(model)}
+          {props.customElement?.(model)}
         </div>
 
         {props.onDelete && (
@@ -104,7 +104,7 @@ const StaticModelList: <TBaseModel extends BaseModel>(
               buttonStyle={ButtonStyleType.OUTLINE}
               title="Delete"
               onClick={() => {
-                props.onDelete && props.onDelete(model);
+                props.onDelete?.(model);
               }}
             />
           </div>

@@ -17,9 +17,7 @@ const ColorInput: FunctionComponent<ComponentProps> = (
     <div
       className={`flex ${props.className}`}
       onClick={() => {
-        if (props.onClick) {
-          props.onClick();
-        }
+        props.onClick?.();
       }}
       data-testid={props.dataTestId}
     >
