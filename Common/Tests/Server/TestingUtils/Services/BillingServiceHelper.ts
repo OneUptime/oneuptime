@@ -26,7 +26,9 @@ const mockIsBillingEnabled: MockIsBillingEnabledFunction = async (
       IsBillingEnabled: value,
     };
   });
-  const { BillingService } = await import("../../../../Server/Services/BillingService");
+  const { BillingService } = await import(
+    "../../../../Server/Services/BillingService"
+  );
   return new BillingService();
 };
 
