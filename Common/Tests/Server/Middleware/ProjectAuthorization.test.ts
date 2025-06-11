@@ -170,7 +170,7 @@ describe("ProjectMiddleware", () => {
     test("should throw BadDataException when getProjectId returns null", async () => {
       // Mock ApiKeyService.findOneBy to return null first
       getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue(null);
-      
+
       const spyFindOneBy: jest.SpyInstance = getJestSpyOn(
         GlobalConfigService,
         "findOneBy",

@@ -29,7 +29,7 @@ import EmptyResponseData from "../../../Types/API/EmptyResponse";
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
 // Mock ProjectUserService to prevent connection termination
-const mockRefreshProjectUsersByProject = jest.fn().mockResolvedValue(undefined);
+const mockRefreshProjectUsersByProject: jest.Mock<any, any> = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("../../../Server/Services/ProjectUserService", () => {
   return {
