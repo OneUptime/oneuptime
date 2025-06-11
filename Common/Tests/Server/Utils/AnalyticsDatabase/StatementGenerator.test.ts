@@ -72,8 +72,8 @@ describe("StatementGenerator", () => {
     beforeEach(() => {
       updateBy = {
         data: new TestModel(),
-        query: "<query>" as GenericObject,
-        props: "<props>" as GenericObject,
+        query: {},
+        props: {},
       };
       generator.toSetStatement = jest.fn(() => {
         return SQL`<set-statement>`;
