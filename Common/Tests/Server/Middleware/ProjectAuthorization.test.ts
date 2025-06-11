@@ -238,6 +238,7 @@ describe("ProjectMiddleware", () => {
         },
         select: {
           _id: true,
+          projectId: true,
         },
         props: { isRoot: true },
       });

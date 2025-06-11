@@ -297,6 +297,7 @@ describe("StatementGenerator", () => {
             )
             ENGINE = MergeTree
         PARTITION BY (column_ObjectID)
+        
             PRIMARY KEY (${'column_ObjectID'})
             ORDER BY (${'column_ObjectID'})
             `;

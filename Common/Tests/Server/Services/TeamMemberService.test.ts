@@ -28,6 +28,13 @@ import EmptyResponseData from "../../../Types/API/EmptyResponse";
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
+// Mock ProjectUserService to prevent connection termination
+jest.mock("../../../Server/Services/ProjectUserService", () => {
+  return {
+    refreshProjectUsersByProject: jest.fn().mockResolvedValue(undefined),
+  };
+});
+
 describe("TeamMemberService", () => {
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -35,7 +42,11 @@ describe("TeamMemberService", () => {
   });
 
   afterEach(async () => {
-    await TestDatabaseMock.disconnectDbMock();
+    try {
+      await TestDatabaseMock.disconnectDbMock();
+    } catch (error) {
+      // Silently handle disconnect errors to prevent them from breaking tests
+    }
   });
 
   describe("create tests", () => {
