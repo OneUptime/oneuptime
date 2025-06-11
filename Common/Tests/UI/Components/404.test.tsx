@@ -18,7 +18,8 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 });
 
 // Type assertion for the mocked Navigation module
-const MockedNavigation: jest.Mocked<typeof Navigation> = Navigation as jest.Mocked<typeof Navigation>;
+const MockedNavigation: jest.Mocked<typeof Navigation> =
+  Navigation as jest.Mocked<typeof Navigation>;
 
 describe("NotFound Component", () => {
   const mockProps: ComponentProps = {
