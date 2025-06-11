@@ -86,9 +86,9 @@ describe("AnalyticsDatabaseService", () => {
         props: { prop: "test" } as GenericObject,
       });
 
-      expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
-        { field: "value" },
-      );
+      expect(service.statementGenerator.toWhereStatement).toBeCalledWith({
+        field: "value",
+      });
 
       expect(logger.debug).toHaveBeenCalledTimes(2);
       expect(logger.debug).toHaveBeenNthCalledWith(
@@ -185,15 +185,15 @@ describe("AnalyticsDatabaseService", () => {
         skip: 234,
       });
 
-      expect(service.statementGenerator.toSelectStatement).toBeCalledWith(
-        { columns: ["col1", "col2"] },
-      );
-      expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
-        { field: "value" },
-      );
-      expect(service.statementGenerator.toSortStatement).toBeCalledWith(
-        { field: "asc" },
-      );
+      expect(service.statementGenerator.toSelectStatement).toBeCalledWith({
+        columns: ["col1", "col2"],
+      });
+      expect(service.statementGenerator.toWhereStatement).toBeCalledWith({
+        field: "value",
+      });
+      expect(service.statementGenerator.toSortStatement).toBeCalledWith({
+        field: "asc",
+      });
 
       expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
@@ -230,14 +230,14 @@ describe("AnalyticsDatabaseService", () => {
     });
 
     test("should return delete statement", () => {
-        const statement: Statement = service.toDeleteStatement({
-          query: { field: "value" } as GenericObject,
-          props: { prop: "test" } as GenericObject,
-        });
+      const statement: Statement = service.toDeleteStatement({
+        query: { field: "value" } as GenericObject,
+        props: { prop: "test" } as GenericObject,
+      });
 
-      expect(service.statementGenerator.toWhereStatement).toBeCalledWith(
-        { field: "value" },
-      );
+      expect(service.statementGenerator.toWhereStatement).toBeCalledWith({
+        field: "value",
+      });
 
       expect(logger.debug).toHaveBeenCalledTimes(2);
       expect(logger.debug).toHaveBeenNthCalledWith(

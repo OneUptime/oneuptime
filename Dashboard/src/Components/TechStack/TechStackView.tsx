@@ -10,10 +10,17 @@ const TechStackView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   // Convert TechStack enum values to objects for compatibility with TableColumnListComponent
-  const techStackItems = props.techStack.map((techStack: TechStack, index: number) => ({
-    id: index,
-    value: techStack,
-  }));
+  const techStackItems: {
+    id: number;
+    value: TechStack;
+  }[] = props.techStack.map(
+    (techStack: TechStack, index: number) => {
+      return {
+        id: index,
+        value: techStack,
+      };
+    },
+  );
 
   return (
     <TableColumnListComponent
