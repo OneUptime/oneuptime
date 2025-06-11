@@ -32,18 +32,37 @@ export default tseslint.config(
       "**/.temp/",
       "**/logs/",
       "**/*.log",
+      "**/public/",
+      "**/dev-env/",
       "**/greenlock/",
       "**/Certs/",
+      "**/Data/",
       "**/Backups/",
+      "**/Environment/",
+      "**/HelmChart/",
+      "**/terraform-provider-oneuptime/",
+      "**/Tests/",
+      "**/E2E/",
+      "**/Examples/",
+      "**/Docs/",
       "**/.git/",
       "**/.vscode/",
-      "**/.eslintcache",
+      "**/.eslintcache*",
       "**/views/",
+      "**/TestServer/",
+      "**/Scripts/",
+      "**/Devops/",
+      "**/FluentBit/",
+      "**/Fluentd/",
+      "**/Haraka/",
+      "**/Nginx/",
+      "**/OTelCollector/",
+      "**/Clickhouse/",
+      "**/SslCertificates/",
     ],
   },
   eslint.configs.recommended,
-  ...tseslint.configs.recommended, // TODO: make this strict and not recommended
-  eslintPluginPrettierRecommended,
+  ...tseslint.configs.recommended,
   {
     plugins: {
       "unused-imports": unusedImports,
@@ -59,7 +78,9 @@ export default tseslint.config(
       "no-constant-binary-expression": "off", // TODO: Remove this rule
       "@typescript-eslint/ban-ts-comment": "off", // TODO: Remove this rule
       "multiline-comment-style": "off", // TODO: Remove this rule
-      "@typescript-eslint/no-floating-promises": "off", // TODO: Remove this rule
+      "@typescript-eslint/no-floating-promises": "off", // TODO: Remove this rule - EXPENSIVE RULE
+      "@typescript-eslint/await-thenable": "off", // Temporarily disabled for performance
+      "@typescript-eslint/strict-boolean-expressions": "off", // EXPENSIVE RULE - disabled for performance
       "no-fallthrough": "error",
       "no-unreachable": "error",
       "no-cond-assign": "error",
@@ -78,7 +99,6 @@ export default tseslint.config(
       "yield-star-spacing": "error",
       "no-implicit-coercion": "error",
       "no-extra-label": "error",
-
       "no-lonely-if": "error",
       "no-floating-decimal": "error",
       eqeqeq: "error",
@@ -98,7 +118,6 @@ export default tseslint.config(
         },
       ],
       "@typescript-eslint/no-extra-non-null-assertion": "error",
-      "@typescript-eslint/await-thenable": "error",
       "@typescript-eslint/no-non-null-asserted-optional-chain": "error",
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
@@ -144,7 +163,6 @@ export default tseslint.config(
           variableDeclaration: true,
         },
       ],
-      "@typescript-eslint/strict-boolean-expressions": "off", //Need to enable this very soon
       "@typescript-eslint/explicit-function-return-type": [
         "error",
         {
@@ -157,9 +175,7 @@ export default tseslint.config(
       "react/jsx-no-duplicate-props": "error",
       "react/no-unused-state": "error",
       "react/jsx-uses-vars": "error",
-
       "react/react-in-jsx-scope": "error",
-
       "react/no-string-refs": "error",
       "jsx-a11y/href-no-hash": [0],
       "react/no-unescaped-entities": "error",
@@ -234,8 +250,7 @@ export default tseslint.config(
         "NodeJS": true
       },
       parserOptions: {
-        project: ["./tsconfig.json"], // Specify it only for TypeScript files
-        // or `project: true` in typescript-eslint version >= 5.52.0
+        project: false, // Disable project-based linting for performance
         createDefaultProgram: false,
         tsconfigRootDir: ".",
       },
