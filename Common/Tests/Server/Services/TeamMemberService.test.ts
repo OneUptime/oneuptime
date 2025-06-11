@@ -44,7 +44,7 @@ describe("TeamMemberService", () => {
   afterEach(async () => {
     try {
       await TestDatabaseMock.disconnectDbMock();
-    } catch (error) {
+    } catch {
       // Silently handle disconnect errors to prevent them from breaking tests
     }
   });
