@@ -13,14 +13,12 @@ const TechStackView: FunctionComponent<ComponentProps> = (
   const techStackItems: {
     id: number;
     value: TechStack;
-  }[] = props.techStack.map(
-    (techStack: TechStack, index: number) => {
-      return {
-        id: index,
-        value: techStack,
-      };
-    },
-  );
+  }[] = props.techStack.map((techStack: TechStack, index: number) => {
+    return {
+      id: index,
+      value: techStack,
+    };
+  });
 
   return (
     <TableColumnListComponent
