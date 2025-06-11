@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 
-export interface RadioOption extends DropdownOption {}
+export type RadioOption = DropdownOption;
 
 export type RadioValue = DropdownValue;
 
@@ -50,9 +50,15 @@ const Radio: FunctionComponent<ComponentProps> = (
               checked={value === option.value}
               onClick={() => {
                 setValue(option.value);
-                props.onChange && props.onChange(option.value);
-                props.onBlur && props.onBlur();
-                props.onFocus && props.onFocus();
+                if (props.onChange) {
+                  props.onChange(option.value);
+                }
+                if (props.onBlur) {
+                  props.onBlur();
+                }
+                if (props.onFocus) {
+                  props.onFocus();
+                }
               }}
               name={groupName}
               type="radio"

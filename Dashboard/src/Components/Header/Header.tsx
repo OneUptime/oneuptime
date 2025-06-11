@@ -318,7 +318,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
           setCurrentOnCallPolicies(currentOnCallPolicies);
         }
-      } catch (err) {
+      } catch {
         setOnCallDutyPolicyFetchError(
           "Something isnt right, we are unable to fetch on-call policies that you are on duty for. Reload the page to try again.",
         );

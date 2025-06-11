@@ -22,7 +22,7 @@ test.describe("Account Registration", () => {
       try {
         // reload page if it fails to load
         dashboardPageResult = await page.reload();
-      } catch (e) {
+      } catch {
         // reload page if it fails to load
         dashboardPageResult = await page.goto(
           URL.fromString(BASE_URL.toString()).addRoute("/dashboard").toString(),
@@ -40,7 +40,7 @@ test.describe("Account Registration", () => {
       try {
         // reload page if it fails to load
         pageResult = await page.reload();
-      } catch (e) {
+      } catch {
         // reload page if it fails to load
         pageResult = await page.goto(
           URL.fromString(BASE_URL.toString())

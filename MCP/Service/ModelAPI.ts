@@ -23,8 +23,8 @@ export class ModelAPIHttpResponse<
   public miscData?: JSONObject | undefined;
 }
 
-export interface ListResult<TBaseModel extends BaseModel>
-  extends BaseListResult<TBaseModel> {}
+export type ListResult<TBaseModel extends BaseModel> =
+  BaseListResult<TBaseModel>;
 
 export default interface RequestOptions {
   requestHeaders?: Dictionary<string> | undefined;

@@ -50,7 +50,9 @@ const TextArea: FunctionComponent<ComponentProps> = (
 
   const handleChange: HandleChangeFunction = (content: string): void => {
     setText(content);
-    props.onChange && props.onChange(content);
+    if (props.onChange) {
+      props.onChange(content);
+    }
   };
 
   return (

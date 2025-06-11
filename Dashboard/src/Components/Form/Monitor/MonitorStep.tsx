@@ -555,7 +555,7 @@ return {
                         ...errors,
                         requestBody: "",
                       });
-                    } catch (err) {
+                    } catch {
                       setErrors({
                         ...errors,
                         requestBody: "Invalid JSON",

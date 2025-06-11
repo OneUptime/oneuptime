@@ -101,8 +101,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
     <div
       data-testid={props.dataTestId}
       onClick={() => {
-        props.onClick && props.onClick();
-        props.onFocus && props.onFocus();
+        if (props.onClick) {
+          props.onClick();
+        }
+        if (props.onFocus) {
+          props.onFocus();
+        }
       }}
     >
       {helpText && (
@@ -122,8 +126,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           }
 
           setValue(code);
-          props.onBlur && props.onBlur();
-          props.onChange && props.onChange(code);
+          if (props.onBlur) {
+            props.onBlur();
+          }
+          if (props.onChange) {
+            props.onChange(code);
+          }
         }}
         defaultValue={value || placeholder || ""}
         className={className}

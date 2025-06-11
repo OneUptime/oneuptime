@@ -17,7 +17,9 @@ const Logo: FunctionComponent<ComponentProps> = (
         <Image
           className="block h-8 w-auto"
           onClick={() => {
-            props.onClick && props.onClick();
+            if (props.onClick) {
+              props.onClick();
+            }
           }}
           imageUrl={Route.fromString(`${OneUptimeLogo}`)}
           alt={"OneUptime"}

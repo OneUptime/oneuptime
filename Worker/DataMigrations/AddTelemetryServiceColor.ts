@@ -29,16 +29,16 @@ export default class AddTelemetryServiceColor extends DataMigrationBase {
 
     for (const service of services) {
       if (!service.serviceColor) {
-        (service.serviceColor = ArrayUtil.selectItemByRandom(BrightColors)),
-          await TelemetryServiceService.updateOneById({
-            id: service.id!,
-            data: {
-              serviceColor: service.serviceColor,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+        service.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
+        await TelemetryServiceService.updateOneById({
+          id: service.id!,
+          data: {
+            serviceColor: service.serviceColor,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
       }
     }
   }

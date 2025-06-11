@@ -49,7 +49,7 @@ import React, {
 } from "react";
 import useAsyncEffect from "use-async-effect";
 
-export interface ComponentProps extends PageComponentProps {}
+export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,

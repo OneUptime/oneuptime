@@ -21,8 +21,8 @@ const Tabs: FunctionComponent<ComponentProps> = (
   }, [props.tabs]);
 
   useEffect(() => {
-    if (currentTab) {
-      props.onTabChange && props.onTabChange(currentTab);
+    if (currentTab && props.onTabChange) {
+      props.onTabChange(currentTab);
     }
   }, [currentTab]);
 

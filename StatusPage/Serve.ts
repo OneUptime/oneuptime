@@ -99,7 +99,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
               "Status Page lets you see real-time information about the status of our services.",
             faviconUrl: `/status-page-api/favicon/${statusPageIdOrDomain}`,
           };
-        } catch (err) {
+        } catch {
           return {
             title: "Status Page",
             description:

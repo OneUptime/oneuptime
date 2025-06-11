@@ -107,7 +107,7 @@ settings:
     try {
       execSync(generateCommand, { stdio: "inherit" });
       Logger.info("✅ Terraform provider generated successfully");
-    } catch (error: any) {
+    } catch {
       Logger.error("❌ Provider generation failed with tfplugingen-openapi");
       Logger.info(
         "🔄 Trying alternative approach with direct Go generation...",

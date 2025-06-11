@@ -212,7 +212,7 @@ const MonitorSecrets: FunctionComponent<
               });
 
               setCurrentlyEditingItem(null);
-            } catch (err) {
+            } catch {
               // do nothing
             }
 
