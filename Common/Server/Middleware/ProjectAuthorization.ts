@@ -184,6 +184,13 @@ export default class ProjectMiddleware {
         }
       }
 
+      if(apiKey){
+        // If we have an API key but no tenant ID, we throw an error.
+          throw new BadDataException(
+            "Invalid API Key",
+          );
+      }
+
       if (!tenantId) {
         throw new BadDataException(
           "ProjectID not found in the request header.",

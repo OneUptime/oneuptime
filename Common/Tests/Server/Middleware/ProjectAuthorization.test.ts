@@ -247,7 +247,7 @@ describe("ProjectMiddleware", () => {
       });
 
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("Invalid Project ID or API Key"),
+        new BadDataException("Invalid API Key"),
       );
     });
 
@@ -267,7 +267,7 @@ describe("ProjectMiddleware", () => {
       expect(spyGetApiTenantAccessPermission).toHaveBeenCalled();
       // check first param of next
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("Invalid Project ID or API Key"),
+        new BadDataException("Invalid API Key"),
       );
     });
 
