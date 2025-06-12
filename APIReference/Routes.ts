@@ -68,7 +68,7 @@ const APIReferenceFeatureSet: FeatureSet = {
           return IntroductionServiceHandler.executeResponse(req, res);
         } else if (req.params["page"] === "openapi") {
           return OpenAPIServiceHandler.executeResponse(req, res);
-        }else if (req.params["page"] === "status") {
+        } else if (req.params["page"] === "status") {
           return StatusServiceHandler.executeResponse(req, res);
         } else if (req.params["page"] === "data-types") {
           return DataTypeServiceHandler.executeResponse(req, res);

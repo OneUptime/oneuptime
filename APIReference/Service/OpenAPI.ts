@@ -1,4 +1,8 @@
-import { Host, HttpProtocol, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import {
+  Host,
+  HttpProtocol,
+  IsBillingEnabled,
+} from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
@@ -19,12 +23,13 @@ export default class ServiceHandler {
     // Get the 'page' parameter from the request
     const page: string | undefined = req.params["page"];
     const pageData: any = {
-        hostUrl: new URL(HttpProtocol, Host).toString()
+      hostUrl: new URL(HttpProtocol, Host).toString(),
     };
 
     // Set the default page title and description
     pageTitle = "OneUptime OpenAPI Specification";
-    pageDescription = "Learn more about the OpenAPI specification for OneUptime";
+    pageDescription =
+      "Learn more about the OpenAPI specification for OneUptime";
 
     // Render the response using the given view and data
     return res.render(`${ViewsPath}/pages/index`, {
