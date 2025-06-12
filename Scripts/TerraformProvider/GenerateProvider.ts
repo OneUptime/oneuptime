@@ -4,7 +4,7 @@ import path from 'path';
 
 async function main() {
   // 1. Generate OpenAPI spec
-  const openApiSpecPath = path.resolve(__dirname, '../../openapi.json');
+  const openApiSpecPath = path.resolve(__dirname, '../../Terraform/openapi.json');
   await generateOpenAPISpec(openApiSpecPath);
 
   // 2. Generate Terraform provider generator config
