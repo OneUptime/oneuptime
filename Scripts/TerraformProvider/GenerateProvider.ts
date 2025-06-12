@@ -10,12 +10,14 @@ async function main() {
   // 2. Generate Terraform provider generator config
   GeneratorConfig.generateGeneratorConfigAndWriteToFile({
     openApiSpecInJsonFilePath: openApiSpecPath,
-    outputPath: path.resolve(__dirname, '../../'),
+    outputPath: path.resolve(__dirname, '../../Terraform'),
     outputFileName: 'terraform-provider-generator-config.yaml',
     providerName: 'oneuptime', // Change as needed
   });
 
   console.log('OpenAPI spec and Terraform provider generator config generated successfully.');
+
+  
 }
 
 main().catch((err) => {
