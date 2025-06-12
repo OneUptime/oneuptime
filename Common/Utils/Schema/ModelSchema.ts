@@ -517,6 +517,8 @@ export class ModelSchema extends BaseSchema {
 
     switch (operatorType) {
       case "EqualTo":
+        return baseValue;
+          
       case "NotEqual":
       case "EqualToOrNull":
         return z.object({
