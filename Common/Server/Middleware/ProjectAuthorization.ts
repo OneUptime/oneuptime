@@ -99,9 +99,7 @@ export default class ProjectMiddleware {
         tenantId = apiKeyModel?.projectId || null;
 
         if (!tenantId) {
-          throw new BadDataException(
-            "Invalid API Key",
-          );
+          throw new BadDataException("Invalid API Key");
         }
 
         (req as OneUptimeRequest).tenantId = tenantId;

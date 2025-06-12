@@ -214,7 +214,9 @@ describe("ProjectMiddleware", () => {
       );
 
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("API Key not found in the request header. Please provide a valid API Key in the request header."),
+        new BadDataException(
+          "API Key not found in the request header. Please provide a valid API Key in the request header.",
+        ),
       );
     });
 
