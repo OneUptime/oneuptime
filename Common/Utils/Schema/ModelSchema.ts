@@ -290,20 +290,15 @@ export class ModelSchema extends BaseSchema {
               type: "object",
               properties: {
                 _id: {
-                  type: "object",
-                  properties: {
-                    _type: { type: "string", enum: ["ObjectID"] },
-                    value: { type: "string", format: "uuid" },
-                  }
+                  type: "string",
+                  format: "uuid",
+                  description: "Unique identifier for the entity",
                 },
               },
             },
             example: [
               {
-                _id: {
-                  _type: "ObjectID",
-                  value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                },
+                _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
               },
             ],
           });
@@ -327,18 +322,14 @@ export class ModelSchema extends BaseSchema {
             type: "object",
             properties: {
               _id: {
-                type: "object",
-                properties: {
-                  _type: { type: "string", enum: ["ObjectID"] },
-                  value: { type: "string", format: "uuid" },
-                },
+                type: "string",
+                format: "uuid",
+                description: "Unique identifier for the entity",
+                example: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
               },
             },
             example: {
-                _id: {
-                  _type: "ObjectID",
-                  value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-                },
+                _id:"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
               },
           });
       } else {
