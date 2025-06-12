@@ -49,30 +49,57 @@ async function generateTerraformProvider(): Promise<void> {
       version: "1.0",
       generator: "terraform-provider",
       output_dir: outputDir,
-      package_name: "github.com/oneuptime/Terraform",
+      package_name: "github.com/oneuptime/terraform",
       provider_name: "oneuptime",
     };
 
-    const configYaml: string = `version: "${generatorConfig.version}"
+    // Dynamically generate resources and datasources from OpenAPI spec
+    const resources: string[] = [];
+    const datasources: string[] = [];
+    for (const [pathKey, methods] of Object.entries(spec.paths || {})) {
+      const httpMethods = Object.keys(methods as object);
+      for (const method of httpMethods) {
+        // Normalize resource/data source name
+        const cleanPath = pathKey
+          .replace(/^\//, "")
+          .replace(/[\/{}]/g, "_")
+          .replace(/__+/g, "_")
+          .replace(/_$/, "")
+          .toLowerCase();
+        const name = `${method}_${cleanPath}`;
+        if (["post", "put", "patch", "delete"].includes(method)) {
+          resources.push(name);
+        } else if (method === "get") {
+          datasources.push(name);
+        }
+      }
+    }
+
+    // Create generator configuration with resources and datasources
+    const generatorConfigYaml: string = `version: "${generatorConfig.version}"
 generator: "${generatorConfig.generator}"
 output_dir: "${generatorConfig.output_dir}"
 package_name: "${generatorConfig.package_name}"
 provider_name: "${generatorConfig.provider_name}"
 
-# Provider configuration
 provider:
   name: "oneuptime"
   version: "${apiVersion}"
 
-# Generator settings
 settings:
   go_package_name: "oneuptime"
   generate_docs: true
   generate_examples: true
+
+resources:
+${resources.map((r) => `  - ${r}`).join("\n")}
+
+datasources:
+${datasources.map((d) => `  - ${d}`).join("\n")}
 `;
 
-    fs.writeFileSync(configPath, configYaml, "utf8");
-    Logger.info("⚙️ Generator configuration created");
+    fs.writeFileSync(configPath, generatorConfigYaml, "utf8");
+    Logger.info("⚙️ Generator configuration created with resources and datasources");
 
     // Install terraform-plugin-codegen-openapi if not present
     Logger.info("📦 Installing terraform-plugin-codegen-openapi...");
