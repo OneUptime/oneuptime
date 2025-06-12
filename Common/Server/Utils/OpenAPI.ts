@@ -11,7 +11,6 @@ import Models from "../../Models/DatabaseModels/Index";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModels from "../../Models/AnalyticsModels/Index";
 import { JSONObject, JSONValue } from "../../Types/JSON";
-import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
 import {
   AnalyticsModelSchema,
@@ -54,7 +53,6 @@ export default class OpenAPIUtil {
     );
 
     if (cachedSpec) {
-      logger.debug("Returning cached OpenAPI spec");
       return cachedSpec as JSONObject;
     }
 
@@ -73,16 +71,12 @@ export default class OpenAPIUtil {
       // check if enable documentation is enabled
 
       if (!model.enableDocumentation) {
-        logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`,
-        );
+
         continue;
       }
 
       if (!model.crudApiPath) {
-        logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`,
-        );
+
         continue;
       }
 
@@ -134,9 +128,7 @@ export default class OpenAPIUtil {
       }
 
       if (!analyticsModel.crudApiPath) {
-        logger.debug(
-          `Skipping OpenAPI documentation for Analytics model ${modelName} as it does not have a CRUD API path defined.`,
-        );
+
         continue;
       }
 
@@ -216,7 +208,7 @@ export default class OpenAPIUtil {
     }
 
     (spec["components"] as JSONObject)["securitySchemes"] = {
-      ApiKeyAuth: {
+      ApiKey: {
         type: "apiKey",
         in: "header",
         name: "APIKey",
@@ -227,7 +219,7 @@ export default class OpenAPIUtil {
 
     spec["security"] = [
       {
-        ApiKeyAuth: [],
+        ApiKey: [],
       },
     ];
 
@@ -249,7 +241,6 @@ export default class OpenAPIUtil {
     const querySchemaName: string = `${tableName}QuerySchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
     const sortSchemaName: string = `${tableName}SortSchema`;
-    const groupBySchemaName: string = `${tableName}GroupBySchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -268,7 +259,6 @@ export default class OpenAPIUtil {
                 query: { $ref: `#/components/schemas/${querySchemaName}` },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
                 sort: { $ref: `#/components/schemas/${sortSchemaName}` },
-                groupBy: { $ref: `#/components/schemas/${groupBySchemaName}` },
               },
             },
           },

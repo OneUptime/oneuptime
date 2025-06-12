@@ -76,7 +76,7 @@ export default class ProjectMiddleware {
       }
 
       if (!apiKey) {
-        throw new BadDataException("ApiKey not found in the request");
+        throw new BadDataException("Api Key not found in the request header. Please provide a valid API Key in the request header.");
       }
 
       let apiKeyModel: ApiKey | null = null;
@@ -94,15 +94,19 @@ export default class ProjectMiddleware {
           props: { isRoot: true },
         });
 
+        tenantId = apiKeyModel?.projectId || null;
+
+        if (!tenantId) {
+          throw new BadDataException(
+            "Project ID not found for the provided API Key.",
+          );
+        }
+
+
+              (req as OneUptimeRequest).tenantId = tenantId;
+
+
         if (apiKeyModel) {
-          tenantId = apiKeyModel.projectId || null;
-
-          if (!tenantId) {
-            throw new BadDataException(
-              "Project ID not found for the provided API Key.",
-            );
-          }
-
           (req as OneUptimeRequest).userType = UserType.API;
           // TODO: Add API key permissions.
           // (req as OneUptimeRequest).permissions =
