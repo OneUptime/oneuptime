@@ -242,6 +242,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/get-list`,
+      operationId: `list${tableName}`,
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
@@ -301,6 +302,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
+      operationId: `count${tableName}`,
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
@@ -359,6 +361,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
+      operationId: `create${tableName}`,
       summary: `Create ${singularModelName}`,
       description: `Endpoint to create a new ${singularModelName}`,
       tags: [singularModelName],
@@ -466,6 +469,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `get${tableName}`,
       summary: `Get ${singularModelName}`,
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       tags: [singularModelName],
@@ -544,6 +548,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `update${tableName}`,
       summary: `Update ${singularModelName}`,
       description: `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
@@ -615,6 +620,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `delete${tableName}`,
       summary: `Delete ${singularModelName}`,
       description: `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],
@@ -859,6 +865,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/get-list`,
+      operationId: `list${tableName}`,
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
@@ -919,6 +926,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
+      operationId: `count${tableName}`,
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
@@ -977,6 +985,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
+      operationId: `create${tableName}`,
       summary: `Create ${singularModelName}`,
       description: `Endpoint to create a new ${singularModelName}`,
       tags: [singularModelName],
@@ -1043,6 +1052,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `get${tableName}`,
       summary: `Get ${singularModelName}`,
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       tags: [singularModelName],
@@ -1115,6 +1125,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `update${tableName}`,
       summary: `Update ${singularModelName}`,
       description: `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
@@ -1186,6 +1197,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `delete${tableName}`,
       summary: `Delete ${singularModelName}`,
       description: `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],
