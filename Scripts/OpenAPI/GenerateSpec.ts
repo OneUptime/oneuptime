@@ -30,7 +30,7 @@ export async function generateOpenAPISpec(outputPath?: string): Promise<void> {
   Logger.info(`OpenAPI spec generated and saved to ${finalOutputPath}`);
 }
 
-generateOpenAPISpec().catch((error: Error) => {
+generateOpenAPISpec(process.argv[2]).catch((error: Error) => {
   Logger.error("Error generating OpenAPI spec:");
   Logger.error(error);
   process.exit(1);
