@@ -22,6 +22,7 @@ import Name from "../../Types/Name";
 import IP from "../../Types/IP/IP";
 import Port from "../../Types/Port";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import OneUptimeDate from "../../Types/Date";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -113,11 +114,7 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.MonitorSteps) {
         zodType = MonitorSteps.getSchema();
       } else if (column.type === TableColumnType.Date) {
-        zodType = z.date().openapi({
-          type: "string",
-          format: "date-time",
-          example: "2023-01-15T12:30:00.000Z",
-        });
+        zodType = OneUptimeDate.getSchema()
       } else if (column.type === TableColumnType.VeryLongText) {
         zodType = z.string().openapi({
           type: "string",
@@ -1035,6 +1032,13 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      if(column.hideColumnInDocumentation){
+        logger.debug(
+          `Skipping column ${key} in model ${model.tableName} due to hideColumnInDocumentation flag`
+        );
+        continue;
+      }
+
       // Skip excluded fields
       if (data.excludedFields && data.excludedFields.includes(key)) {
         continue;
@@ -1137,11 +1141,7 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Color) {
       zodType = Color.getSchema();
     } else if (column.type === TableColumnType.Date) {
-      zodType = z.date().openapi({
-        type: "string",
-        format: "date-time",
-        example: "2023-01-15T12:30:00.000Z",
-      });
+      zodType = OneUptimeDate.getSchema()
     } else if (column.type === TableColumnType.VeryLongText) {
       zodType = z.string().openapi({
         type: "string",

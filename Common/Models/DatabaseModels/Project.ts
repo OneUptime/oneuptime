@@ -595,7 +595,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({ type: TableColumnType.Number, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -768,6 +768,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Low Call and SMS Balance Notification Sent to Owners",
     description: "Low Call and SMS Balance Notification Sent to Owners",
@@ -788,6 +789,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    hideColumnInDocumentation: true,
     title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
     description:
       "Failed Call and SMS Balance Charge Notification Sent to Owners",
@@ -808,6 +810,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
     description:
@@ -838,6 +841,7 @@ export default class Project extends TenantModel {
     title: "Plan Name",
     description: "Name of the plan this project is subscribed to.",
     canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
   })
   @Column({
     nullable: true,
@@ -865,7 +869,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Phone })
+  @TableColumn({ type: TableColumnType.Phone, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Phone,
     length: ColumnLength.Phone,
@@ -880,7 +884,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Email })
+  @TableColumn({ type: TableColumnType.Email, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Email,
     length: ColumnLength.Email,
@@ -895,7 +899,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Name })
+  @TableColumn({ type: TableColumnType.Name, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Name,
     length: ColumnLength.Name,
@@ -910,7 +914,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -924,7 +928,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -938,7 +942,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -952,12 +956,13 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
     nullable: true,
     unique: false,
+    
   })
   public utmTerm?: string = undefined;
 
@@ -980,10 +985,11 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
+    
     nullable: true,
     unique: false,
   })
@@ -994,9 +1000,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({ type: TableColumnType.ShortText, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.ShortText,
+
     length: ColumnLength.ShortText,
     nullable: true,
     unique: false,
@@ -1011,6 +1018,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "resellerId",
     type: TableColumnType.Entity,
+    hideColumnInDocumentation: true,
     modelType: Reseller,
     title: "Reseller",
     description: "Relation to Reseller Resource in which this object belongs",
@@ -1046,6 +1054,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
     title: "Reseller ID",
     description: "ID of your OneUptime Reseller in which this object belongs",
   })
@@ -1065,6 +1074,7 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "ResellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
+    hideColumnInDocumentation: true,
     title: "ResellerPlan",
     description:
       "Relation to ResellerPlan Resource in which this object belongs",
@@ -1093,6 +1103,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
     title: "Reseller Plan ID",
     description:
       "ID of your OneUptime Reseller Plan in which this object belongs",
@@ -1113,6 +1124,7 @@ export default class Project extends TenantModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "License ID",
+    hideColumnInDocumentation: true,
     description: "License ID from a OneUptime Reseller",
     canReadOnRelationQuery: true,
   })
@@ -1132,6 +1144,7 @@ export default class Project extends TenantModel {
     required: false,
     type: TableColumnType.Number,
     title: "Enterprise Annual Contract Value",
+    hideColumnInDocumentation: true,
     description:
       "Annual contract value for this project (in USD). This field is only applicable for enterprise customers and is manually edited.",
   })
@@ -1156,13 +1169,14 @@ export default class Project extends TenantModel {
     required: false,
     type: TableColumnType.Boolean,
     title: "Let Customer Support Access Project",
+    hideColumnInDocumentation: true,
     description:
       "OneUptime customer support can access this project. This is used for debugging purposes.",
   })
   @Column({
     nullable: true,
     default: false,
-    type: ColumnType.Boolean,
+    type: ColumnType.Boolean
   })
   public letCustomerSupportAccessProject?: boolean = undefined;
 }
