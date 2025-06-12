@@ -6,7 +6,6 @@ import {
 } from "../../Types/Database/TableColumn";
 import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import logger from "../../Server/Utils/Logger";
 import Color from "../../Types/Color";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -273,7 +272,7 @@ export class ModelSchema extends BaseSchema {
         const entityArrayType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;
         if (!entityArrayType) {
-          logger.debug(`Entity type is not defined for column ${key}`);
+          
           continue;
         }
         zodType = z
@@ -307,7 +306,7 @@ export class ModelSchema extends BaseSchema {
           column.modelType;
 
         if (!entityType) {
-          logger.debug(`Entity type is not defined for column ${key}`);
+         
           continue;
         }
 
@@ -359,13 +358,6 @@ export class ModelSchema extends BaseSchema {
 
     const schema: ModelSchemaType = z.object(shape);
 
-    logger.debug(
-      `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
-        shape,
-        null,
-        2,
-      )}`,
-    );
 
     return schema;
   }
@@ -1021,9 +1013,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       if (column.hideColumnInDocumentation) {
-        logger.debug(
-          `Skipping column ${key} in model ${model.tableName} due to hideColumnInDocumentation flag`,
-        );
+
         continue;
       }
 
@@ -1075,7 +1065,6 @@ export class ModelSchema extends BaseSchema {
 
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
         column,
-        key,
         data.schemaType,
       );
 
@@ -1099,13 +1088,6 @@ export class ModelSchema extends BaseSchema {
       additionalProperties: false,
     });
 
-    logger.debug(
-      `${data.schemaType} model schema for ${model.tableName} created with shape: ${JSON.stringify(
-        shape,
-        null,
-        2,
-      )}`,
-    );
 
     return schema;
   }
@@ -1113,7 +1095,6 @@ export class ModelSchema extends BaseSchema {
   // Helper method to get Zod type for a column
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
-    key: string,
     schemaType: "create" | "read" | "update" | "delete",
   ): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny;
@@ -1284,7 +1265,7 @@ export class ModelSchema extends BaseSchema {
       const entityArrayType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
       if (!entityArrayType) {
-        logger.debug(`Entity type is not defined for column ${key}`);
+        
         return z.any().openapi({ type: "null", example: null });
       }
 
@@ -1328,7 +1309,7 @@ export class ModelSchema extends BaseSchema {
         column.modelType;
 
       if (!entityType) {
-        logger.debug(`Entity type is not defined for column ${key}`);
+       
         return z.any().openapi({ type: "null", example: null });
       }
 
