@@ -77,7 +77,7 @@ export default class ProjectMiddleware {
 
       if (!apiKey) {
         throw new BadDataException(
-          "Api Key not found in the request header. Please provide a valid API Key in the request header.",
+          "API Key not found in the request header. Please provide a valid API Key in the request header.",
         );
       }
 
@@ -100,7 +100,7 @@ export default class ProjectMiddleware {
 
         if (!tenantId) {
           throw new BadDataException(
-            "Project ID not found for the provided API Key.",
+            "Invalid API Key",
           );
         }
 
