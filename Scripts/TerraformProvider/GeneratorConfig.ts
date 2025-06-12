@@ -38,22 +38,36 @@ export default class GeneratorConfig {
                 for (const [method, opRaw] of Object.entries(pathObj as any)) {
                     const op = opRaw as any;
                     if (!op || typeof op !== 'object' || typeof op.operationId !== 'string') continue;
-                    // Heuristic: POST/PUT = resource, GET = data source
-                    if (method.toLowerCase() === 'post' || method.toLowerCase() === 'put') {
-                        // Use operationId or path as resource name
-                        const resourceName = (op.operationId.replace(/^(create|put|add)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_')).replace(/^_+|_+$/g, '');
-                        if (!config.resources[resourceName]) config.resources[resourceName] = {};
-                        config.resources[resourceName][method.toLowerCase()] = { path: pathKey, method: method.toUpperCase() };
-                    } else if (method.toLowerCase() === 'get') {
-                        const dsName = (op.operationId.replace(/^get/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_')).replace(/^_+|_+$/g, '');
-                        if (!config.data_sources[dsName]) config.data_sources[dsName] = {};
-                        config.data_sources[dsName]['read'] = { path: pathKey, method: 'GET' };
-                    } else if (method.toLowerCase() === 'delete') {
-                        // Attach delete to resource if exists
-                        for (const resName in config.resources) {
-                            if (pathKey.includes(resName)) {
-                                config.resources[resName]['delete'] = { path: pathKey, method: 'DELETE' };
-                            }
+                    
+                    const operationId = op.operationId.toLowerCase();
+                    const isReadOperation = operationId.startsWith('get') || operationId.startsWith('list') || operationId.startsWith('count') || operationId.includes('read') || operationId.includes('fetch');
+                    const isWriteOperation = operationId.startsWith('create') || operationId.startsWith('add') || operationId.startsWith('update') || operationId.startsWith('put') || operationId.includes('save');
+                    const isDeleteOperation = operationId.startsWith('delete') || operationId.includes('remove');
+
+                    if (isReadOperation) {
+                        // Generate data source for read operations
+                        const dsName = operationId.replace(/^(get|list|count|read|fetch)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_');
+                        const cleanDsName = dsName.replace(/^_+|_+$/g, '');
+                        if (cleanDsName) {
+                            if (!config.data_sources[cleanDsName]) config.data_sources[cleanDsName] = {};
+                            config.data_sources[cleanDsName]['read'] = { path: pathKey, method: method.toUpperCase() };
+                        }
+                    } else if (isWriteOperation || (!isReadOperation && !isDeleteOperation)) {
+                        // Generate resource for write operations (create, update) or other operations
+                        const resourceName = operationId.replace(/^(create|put|add|update)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_');
+                        const cleanResourceName = resourceName.replace(/^_+|_+$/g, '');
+                        if (cleanResourceName) {
+                            if (!config.resources[cleanResourceName]) config.resources[cleanResourceName] = {};
+                            const operationType = isWriteOperation && operationId.includes('update') ? 'put' : method.toLowerCase();
+                            config.resources[cleanResourceName][operationType] = { path: pathKey, method: method.toUpperCase() };
+                        }
+                    } else if (isDeleteOperation) {
+                        // Handle delete operations - try to attach to existing resources or create new ones
+                        const resourceName = operationId.replace(/^(delete|remove)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_');
+                        const cleanResourceName = resourceName.replace(/^_+|_+$/g, '');
+                        if (cleanResourceName) {
+                            if (!config.resources[cleanResourceName]) config.resources[cleanResourceName] = {};
+                            config.resources[cleanResourceName]['delete'] = { path: pathKey, method: method.toUpperCase() };
                         }
                     }
                 }
