@@ -17,7 +17,7 @@ async function generateTerraformProvider(): Promise<void> {
 
   const openApiSpecPath: string = "./openapi.json";
   const outputDir: string = "./Terraform";
-  const configPath: string = "./generator_config.yml";
+  const configPath = path.join(outputDir, "generator-config.yaml");
 
   try {
     // Check if OpenAPI spec exists
@@ -78,7 +78,7 @@ async function generateTerraformProvider(): Promise<void> {
     // Create generator configuration with resources and datasources
     const generatorConfigYaml: string = `version: "${generatorConfig.version}"
 generator: "${generatorConfig.generator}"
-output_dir: "${generatorConfig.output_dir}"
+output_dir: "${outputDir}"
 package_name: "${generatorConfig.package_name}"
 provider_name: "${generatorConfig.provider_name}"
 
@@ -97,6 +97,11 @@ ${resources.map((r) => `  - ${r}`).join("\n")}
 datasources:
 ${datasources.map((d) => `  - ${d}`).join("\n")}
 `;
+
+    // Ensure the output directory exists
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
 
     fs.writeFileSync(configPath, generatorConfigYaml, "utf8");
     Logger.info("⚙️ Generator configuration created with resources and datasources");
