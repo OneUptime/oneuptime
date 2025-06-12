@@ -2,7 +2,6 @@ import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import logger from "../../Server/Utils/Logger";
 import { z as ZodTypes } from "zod";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
 import IP from "../../Types/IP/IP";
@@ -125,10 +124,6 @@ export class AnalyticsModelSchema extends BaseSchema {
     }
 
     const schema: AnalyticsModelSchemaType = z.object(shape);
-
-    logger.debug(
-      `Analytics model schema for ${model.tableName} created with shape keys: ${Object.keys(shape).join(", ")} (filtered ${columns.length - filteredColumns.length} columns without read permissions)`,
-    );
 
     return schema;
   }
