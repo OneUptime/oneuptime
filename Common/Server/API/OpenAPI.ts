@@ -19,7 +19,7 @@ export default class OpenAPI {
   public static getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
-    router.get("/openapi", (req: ExpressRequest, res: ExpressResponse) => {
+    router.get("/openapi/spec", (req: ExpressRequest, res: ExpressResponse) => {
       const openAPISpec: JSONObject = OpenAPIUtil.generateOpenAPISpec();
       return Response.sendJsonObjectResponse(req, res, openAPISpec);
     });
