@@ -876,10 +876,7 @@ export class ModelSchema extends BaseSchema {
         example[key] = { _type: "GreaterThan", value: 10 };
         exampleCount++;
       } else if (validOperators.includes("EqualTo")) {
-        example[key] = {
-          _type: "EqualTo",
-          value: this.getExampleValueForColumn(column.type),
-        };
+        example[key] = this.getExampleValueForColumn(column.type)
         exampleCount++;
       }
     }

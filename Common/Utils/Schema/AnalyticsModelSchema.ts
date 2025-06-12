@@ -7,6 +7,8 @@ import { z as ZodTypes } from "zod";
 import { BaseSchema, SchemaExample, ShapeRecord } from "./BaseSchema";
 import IP from "../../Types/IP/IP";
 import Port from "../../Types/Port";
+import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 
 export type AnalyticsModelSchemaType = ZodSchema;
 
@@ -136,16 +138,9 @@ export class AnalyticsModelSchema extends BaseSchema {
   ): ZodTypes.ZodTypeAny {
     switch (column.type) {
       case TableColumnType.ObjectID:
-        return z.string().openapi({
-          type: "string",
-          example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        });
+        return ObjectID.getSchema();
       case TableColumnType.Date:
-        return z.date().openapi({
-          type: "string",
-          format: "date-time",
-          example: "2023-01-15T12:30:00.000Z",
-        });
+        return OneUptimeDate.getSchema();
       case TableColumnType.Text:
         return z.string().openapi({
           type: "string",
