@@ -94,15 +94,15 @@ export default class ProjectMiddleware {
           props: { isRoot: true },
         });
 
-        tenantId = apiKeyModel?.projectId || null;
-
-        if (!tenantId) {
-          throw new BadDataException(
-            "Project ID not found for the provided API Key.",
-          );
-        }
-
         if (apiKeyModel) {
+          tenantId = apiKeyModel.projectId || null;
+
+          if (!tenantId) {
+            throw new BadDataException(
+              "Project ID not found for the provided API Key.",
+            );
+          }
+
           (req as OneUptimeRequest).userType = UserType.API;
           // TODO: Add API key permissions.
           // (req as OneUptimeRequest).permissions =

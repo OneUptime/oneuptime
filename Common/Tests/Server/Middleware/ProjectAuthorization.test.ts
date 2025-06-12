@@ -200,7 +200,7 @@ describe("ProjectMiddleware", () => {
       });
 
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("ProjectID not found in the request header."),
+        new BadDataException("Invalid API Key"),
       );
     });
 
