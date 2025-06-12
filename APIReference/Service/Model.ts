@@ -77,7 +77,7 @@ export default class ServiceHandler {
         continue;
       }
 
-      if(tableColumns[key].hideColumnInDocumentation) {
+      if (tableColumns[key].hideColumnInDocumentation) {
         delete tableColumns[key];
         continue;
       }

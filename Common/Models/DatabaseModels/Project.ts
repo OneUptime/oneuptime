@@ -595,7 +595,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.Number,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -914,7 +917,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -928,7 +934,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -942,7 +951,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -956,13 +968,15 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
     nullable: true,
     unique: false,
-    
   })
   public utmTerm?: string = undefined;
 
@@ -985,11 +999,14 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
-    
+
     nullable: true,
     unique: false,
   })
@@ -1000,7 +1017,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.ShortText,
 
@@ -1176,7 +1196,7 @@ export default class Project extends TenantModel {
   @Column({
     nullable: true,
     default: false,
-    type: ColumnType.Boolean
+    type: ColumnType.Boolean,
   })
   public letCustomerSupportAccessProject?: boolean = undefined;
 }

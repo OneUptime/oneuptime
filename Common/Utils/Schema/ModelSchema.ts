@@ -36,7 +36,7 @@ export class ModelSchema extends BaseSchema {
    * Format permissions array into a human-readable string for OpenAPI documentation
    */
   private static formatPermissionsForSchema(
-    permissions: Array<Permission> | undefined
+    permissions: Array<Permission> | undefined,
   ): string {
     if (!permissions || permissions.length === 0) {
       return "No access - you don't have permission for this operation";
@@ -50,7 +50,7 @@ export class ModelSchema extends BaseSchema {
    */
   private static getColumnPermissionsDescription(
     model: DatabaseBaseModel,
-    key: string
+    key: string,
   ): string {
     const accessControl: ColumnAccessControl | undefined =
       model.getColumnAccessControlForAllColumns()[key];
@@ -60,13 +60,13 @@ export class ModelSchema extends BaseSchema {
     }
 
     const createPermissions: string = this.formatPermissionsForSchema(
-      accessControl.create
+      accessControl.create,
     );
     const readPermissions: string = this.formatPermissionsForSchema(
-      accessControl.read
+      accessControl.read,
     );
     const updatePermissions: string = this.formatPermissionsForSchema(
-      accessControl.update
+      accessControl.update,
     );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
@@ -114,7 +114,7 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.MonitorSteps) {
         zodType = MonitorSteps.getSchema();
       } else if (column.type === TableColumnType.Date) {
-        zodType = OneUptimeDate.getSchema()
+        zodType = OneUptimeDate.getSchema();
       } else if (column.type === TableColumnType.VeryLongText) {
         zodType = z.string().openapi({
           type: "string",
@@ -282,7 +282,7 @@ export class ModelSchema extends BaseSchema {
               return ModelSchema.getModelSchema({
                 modelType: entityArrayType as new () => DatabaseBaseModel,
               });
-            })
+            }),
           )
           .openapi({
             type: "array",
@@ -329,8 +329,8 @@ export class ModelSchema extends BaseSchema {
               },
             },
             example: {
-                _id:"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-              },
+              _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            },
           });
       } else {
         zodType = z.any().openapi({ type: "null", example: null });
@@ -363,8 +363,8 @@ export class ModelSchema extends BaseSchema {
       `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     return schema;
@@ -409,7 +409,7 @@ export class ModelSchema extends BaseSchema {
       },
       getOperatorSchema: (
         operatorType: string,
-        columnType: TableColumnType
+        columnType: TableColumnType,
       ) => {
         return this.getOperatorSchema(operatorType, columnType);
       },
@@ -423,7 +423,7 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getValidOperatorsForColumnType(
-    columnType: TableColumnType
+    columnType: TableColumnType,
   ): Array<string> {
     const commonOperators: Array<string> = [
       "EqualTo",
@@ -498,7 +498,7 @@ export class ModelSchema extends BaseSchema {
 
   private static getOperatorSchema(
     operatorType: string,
-    columnType: TableColumnType
+    columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
     const baseValue: ZodTypes.ZodTypeAny =
       this.getBaseValueSchemaForColumnType(columnType);
@@ -506,7 +506,7 @@ export class ModelSchema extends BaseSchema {
     switch (operatorType) {
       case "EqualTo":
         return baseValue;
-          
+
       case "NotEqual":
       case "EqualToOrNull":
         return z.object({
@@ -557,7 +557,7 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getBaseValueSchemaForColumnType(
-    columnType: TableColumnType
+    columnType: TableColumnType,
   ): ZodTypes.ZodTypeAny {
     switch (columnType) {
       case TableColumnType.ObjectID:
@@ -757,7 +757,7 @@ export class ModelSchema extends BaseSchema {
 
   private static getExampleValueForColumn(
     columnType: TableColumnType,
-    isSecondValue: boolean = false
+    isSecondValue: boolean = false,
   ): unknown {
     switch (columnType) {
       case TableColumnType.ObjectID:
@@ -800,7 +800,7 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getQuerySchemaExample(
-    modelType: new () => DatabaseBaseModel
+    modelType: new () => DatabaseBaseModel,
   ): SchemaExample {
     const model: DatabaseBaseModel = new modelType();
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
@@ -820,7 +820,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       const validOperators: Array<string> = this.getValidOperatorsForColumnType(
-        column.type
+        column.type,
       );
       if (validOperators.length === 0) {
         continue;
@@ -867,7 +867,7 @@ export class ModelSchema extends BaseSchema {
         example[key] = { _type: "GreaterThan", value: 10 };
         exampleCount++;
       } else if (validOperators.includes("EqualTo")) {
-        example[key] = this.getExampleValueForColumn(column.type)
+        example[key] = this.getExampleValueForColumn(column.type);
         exampleCount++;
       }
     }
@@ -884,11 +884,11 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getSelectSchemaExample(
-    modelType: new () => DatabaseBaseModel
+    modelType: new () => DatabaseBaseModel,
   ): SchemaExample {
     if (!modelType) {
       throw new BadDataException(
-        "Model type is required to generate select schema example."
+        "Model type is required to generate select schema example.",
       );
     }
 
@@ -933,11 +933,11 @@ export class ModelSchema extends BaseSchema {
   }
 
   private static getGroupBySchemaExample(
-    modelType: new () => DatabaseBaseModel
+    modelType: new () => DatabaseBaseModel,
   ): SchemaExample {
     if (!modelType) {
       throw new BadDataException(
-        "Model type is required to generate group by schema example."
+        "Model type is required to generate group by schema example.",
       );
     }
 
@@ -1020,9 +1020,9 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
-      if(column.hideColumnInDocumentation){
+      if (column.hideColumnInDocumentation) {
         logger.debug(
-          `Skipping column ${key} in model ${model.tableName} due to hideColumnInDocumentation flag`
+          `Skipping column ${key} in model ${model.tableName} due to hideColumnInDocumentation flag`,
         );
         continue;
       }
@@ -1076,7 +1076,7 @@ export class ModelSchema extends BaseSchema {
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
         column,
         key,
-        data.schemaType
+        data.schemaType,
       );
 
       // Make fields optional if specified
@@ -1103,8 +1103,8 @@ export class ModelSchema extends BaseSchema {
       `${data.schemaType} model schema for ${model.tableName} created with shape: ${JSON.stringify(
         shape,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     return schema;
@@ -1114,7 +1114,7 @@ export class ModelSchema extends BaseSchema {
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
     key: string,
-    schemaType: "create" | "read" | "update" | "delete"
+    schemaType: "create" | "read" | "update" | "delete",
   ): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny;
 
@@ -1129,7 +1129,7 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Color) {
       zodType = Color.getSchema();
     } else if (column.type === TableColumnType.Date) {
-      zodType = OneUptimeDate.getSchema()
+      zodType = OneUptimeDate.getSchema();
     } else if (column.type === TableColumnType.VeryLongText) {
       zodType = z.string().openapi({
         type: "string",
@@ -1311,7 +1311,7 @@ export class ModelSchema extends BaseSchema {
             return schemaMethod({
               modelType: entityArrayType as new () => DatabaseBaseModel,
             });
-          })
+          }),
         )
         .openapi({
           type: "array",

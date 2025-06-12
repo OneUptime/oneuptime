@@ -71,12 +71,10 @@ export default class OpenAPIUtil {
       // check if enable documentation is enabled
 
       if (!model.enableDocumentation) {
-
         continue;
       }
 
       if (!model.crudApiPath) {
-
         continue;
       }
 
@@ -128,7 +126,6 @@ export default class OpenAPIUtil {
       }
 
       if (!analyticsModel.crudApiPath) {
-
         continue;
       }
 

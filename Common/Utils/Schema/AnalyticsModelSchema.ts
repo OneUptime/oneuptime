@@ -663,7 +663,7 @@ export class AnalyticsModelSchema extends BaseSchema {
 
     switch (operatorType) {
       case "EqualTo":
-        return baseValue; 
+        return baseValue;
       case "NotEqual":
         return z.object({
           _type: z.literal(operatorType),
