@@ -37,19 +37,25 @@ export default class GeneratorConfig {
             for (const [pathKey, pathObj] of Object.entries(openApiSpec.paths)) {
                 for (const [method, opRaw] of Object.entries(pathObj as any)) {
                     const op = opRaw as any;
-                    if (!op || typeof op !== 'object' || typeof op.operationId !== 'string') continue;
+                    if (!op || typeof op !== 'object') continue;
+                    // Use operationId if present, otherwise fallback to path+method
+                    let baseName = '';
+                    if (typeof op.operationId === 'string' && op.operationId.trim() !== '') {
+                        baseName = op.operationId;
+                    } else {
+                        // Fallback: use path and method to generate a name
+                        baseName = `${method}_${pathKey}`;
+                    }
                     // Heuristic: POST/PUT = resource, GET = data source
                     if (method.toLowerCase() === 'post' || method.toLowerCase() === 'put') {
-                        // Use operationId or path as resource name
-                        const resourceName = (op.operationId.replace(/^(create|put|add)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_')).replace(/^_+|_+$/g, '');
+                        const resourceName = (baseName.replace(/^(create|put|add)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_')).replace(/^_+|_+$/g, '');
                         if (!config.resources[resourceName]) config.resources[resourceName] = {};
                         config.resources[resourceName][method.toLowerCase()] = { path: pathKey, method: method.toUpperCase() };
                     } else if (method.toLowerCase() === 'get') {
-                        const dsName = (op.operationId.replace(/^get/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_')).replace(/^_+|_+$/g, '');
+                        const dsName = (baseName.replace(/^get/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_')).replace(/^_+|_+$/g, '');
                         if (!config.data_sources[dsName]) config.data_sources[dsName] = {};
                         config.data_sources[dsName]['read'] = { path: pathKey, method: 'GET' };
                     } else if (method.toLowerCase() === 'delete') {
-                        // Attach delete to resource if exists
                         for (const resName in config.resources) {
                             if (pathKey.includes(resName)) {
                                 config.resources[resName]['delete'] = { path: pathKey, method: 'DELETE' };
