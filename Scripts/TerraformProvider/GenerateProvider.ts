@@ -26,10 +26,14 @@ async function main() {
   // --output <output/for/provider_code_spec.json> \
   // <path/to/openapi_spec.json>
 
+  // Get the Go path and construct the full path to the tfplugingen-openapi binary
+  const goPath = execSync('go env GOPATH', { encoding: 'utf8' }).trim();
+  const tfplugigenBinaryPath = path.join(goPath, 'bin', 'tfplugingen-openapi');
+
   const generatorConfigPath = path.resolve(__dirname, '../../Terraform/terraform-provider-generator-config.yaml');
   const outputPath = path.resolve(__dirname, '../../Terraform/terraform-provider-code');
   const openApiSpecPathForCodegen = path.resolve(__dirname, '../../Terraform/openapi.json');
-  const command = `tfplugingen-openapi generate --config ${generatorConfigPath} --output ${outputPath} ${openApiSpecPathForCodegen}`;
+  const command = `"${tfplugigenBinaryPath}" generate --config "${generatorConfigPath}" --output "${outputPath}" "${openApiSpecPathForCodegen}"`;
 
   try {
     execSync(command, { stdio: 'inherit' });

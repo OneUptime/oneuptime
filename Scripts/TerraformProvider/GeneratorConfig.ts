@@ -41,37 +41,81 @@ export default class GeneratorConfig {
                     
                     const operationId = op.operationId.toLowerCase();
                     const isReadOperation = operationId.startsWith('get') || operationId.startsWith('list') || operationId.startsWith('count') || operationId.includes('read') || operationId.includes('fetch');
-                    const isWriteOperation = operationId.startsWith('create') || operationId.startsWith('add') || operationId.startsWith('update') || operationId.startsWith('put') || operationId.includes('save');
+                    const isCreateOperation = operationId.startsWith('create') || operationId.startsWith('add') || (method.toLowerCase() === 'post');
+                    const isUpdateOperation = operationId.startsWith('update') || operationId.startsWith('put') || (method.toLowerCase() === 'put');
                     const isDeleteOperation = operationId.startsWith('delete') || operationId.includes('remove');
 
                     if (isReadOperation) {
                         // Generate data source for read operations
-                        const dsName = operationId.replace(/^(get|list|count|read|fetch)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_');
-                        const cleanDsName = dsName.replace(/^_+|_+$/g, '');
-                        if (cleanDsName) {
-                            if (!config.data_sources[cleanDsName]) config.data_sources[cleanDsName] = {};
-                            config.data_sources[cleanDsName]['read'] = { path: pathKey, method: method.toUpperCase() };
+                        const dsName = this.extractResourceNameFromPath(pathKey).toLowerCase();
+                        if (dsName) {
+                            if (!config.data_sources[dsName]) config.data_sources[dsName] = {};
+                            config.data_sources[dsName]['read'] = { path: pathKey, method: method.toUpperCase() };
                         }
-                    } else if (isWriteOperation || (!isReadOperation && !isDeleteOperation)) {
-                        // Generate resource for write operations (create, update) or other operations
-                        const resourceName = operationId.replace(/^(create|put|add|update)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_');
-                        const cleanResourceName = resourceName.replace(/^_+|_+$/g, '');
-                        if (cleanResourceName) {
-                            if (!config.resources[cleanResourceName]) config.resources[cleanResourceName] = {};
-                            const operationType = isWriteOperation && operationId.includes('update') ? 'put' : method.toLowerCase();
-                            config.resources[cleanResourceName][operationType] = { path: pathKey, method: method.toUpperCase() };
+                        
+                        // Also add as resource read operation
+                        const resourceName = this.extractResourceNameFromPath(pathKey).toLowerCase();
+                        if (resourceName) {
+                            if (!config.resources[resourceName]) config.resources[resourceName] = {};
+                            config.resources[resourceName]['read'] = { path: pathKey, method: method.toUpperCase() };
+                        }
+                    } else if (isCreateOperation) {
+                        // Generate resource for create operations
+                        const resourceName = this.extractResourceNameFromPath(pathKey).toLowerCase();
+                        if (resourceName) {
+                            if (!config.resources[resourceName]) config.resources[resourceName] = {};
+                            config.resources[resourceName]['create'] = { path: pathKey, method: method.toUpperCase() };
+                        }
+                    } else if (isUpdateOperation) {
+                        // Generate resource for update operations
+                        const resourceName = this.extractResourceNameFromPath(pathKey).toLowerCase();
+                        if (resourceName) {
+                            if (!config.resources[resourceName]) config.resources[resourceName] = {};
+                            config.resources[resourceName]['update'] = { path: pathKey, method: method.toUpperCase() };
                         }
                     } else if (isDeleteOperation) {
-                        // Handle delete operations - try to attach to existing resources or create new ones
-                        const resourceName = operationId.replace(/^(delete|remove)/i, '').toLowerCase() || pathKey.replace(/[\/{\}]/g, '').replace(/\//g, '_');
-                        const cleanResourceName = resourceName.replace(/^_+|_+$/g, '');
-                        if (cleanResourceName) {
-                            if (!config.resources[cleanResourceName]) config.resources[cleanResourceName] = {};
-                            config.resources[cleanResourceName]['delete'] = { path: pathKey, method: method.toUpperCase() };
+                        // Handle delete operations
+                        const resourceName = this.extractResourceNameFromPath(pathKey).toLowerCase();
+                        if (resourceName) {
+                            if (!config.resources[resourceName]) config.resources[resourceName] = {};
+                            config.resources[resourceName]['delete'] = { path: pathKey, method: method.toUpperCase() };
                         }
                     }
                 }
             }
+        }
+
+        // Ensure every resource has both 'create' and 'read' operations
+        // Remove resources that don't have the required operations
+        const resourcesToRemove: string[] = [];
+        
+        for (const [resourceName, resourceConfig] of Object.entries(config.resources)) {
+            const resource = resourceConfig as any;
+            
+            // If resource doesn't have 'create', try to use 'post' operation
+            if (!resource.create && resource.post) {
+                resource.create = resource.post;
+                delete resource.post;
+            }
+            
+            // If resource doesn't have 'read', try to find it in data sources
+            if (!resource.read) {
+                const matchingDataSource = config.data_sources[resourceName];
+                if (matchingDataSource && matchingDataSource.read) {
+                    resource.read = matchingDataSource.read;
+                }
+            }
+            
+            // If resource still doesn't have both 'create' and 'read', remove it
+            if (!resource.create || !resource.read) {
+                console.log(`Removing resource '${resourceName}' - missing required operations (create: ${!!resource.create}, read: ${!!resource.read})`);
+                resourcesToRemove.push(resourceName);
+            }
+        }
+        
+        // Remove invalid resources
+        for (const resourceName of resourcesToRemove) {
+            delete config.resources[resourceName];
         }
 
         // Remove empty objects
@@ -89,6 +133,30 @@ export default class GeneratorConfig {
         // Write the YAML string to the output file
         const outputFile = path.join(data.outputPath, data.outputFileName);
         fs.writeFileSync(outputFile, yamlStr, 'utf-8');
+    }
+
+    /**
+     * Extract resource name from API path.
+     * Converts paths like "/alert-custom-field" to "alertcustomfield"
+     * and "/alert-custom-field/{id}" to "alertcustomfield"
+     */
+    private static extractResourceNameFromPath(path: string): string {
+        // Remove leading slash and anything after the first parameter
+        const pathParts = path.replace(/^\//, '').split('/');
+        let resourcePath = pathParts[0] || '';
+        
+        // Handle paths that end with specific patterns like /count, /get-list, etc.
+        if (resourcePath.includes('-count') || resourcePath.includes('-get-list')) {
+            resourcePath = resourcePath.replace(/-count$|-get-list$/, '');
+        }
+        
+        // Convert kebab-case to snake_case and remove special characters
+        const resourceName = resourcePath
+            .replace(/-/g, '')  // Remove hyphens
+            .replace(/[^a-zA-Z0-9]/g, '')  // Remove any other special characters
+            .toLowerCase();
+        
+        return resourceName;
     }
 }
 
