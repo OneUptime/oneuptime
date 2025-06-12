@@ -12,6 +12,28 @@ interface GeneratorConfig {
   provider_name: string;
 }
 
+interface ResourceConfig {
+  name: string;
+  description?: string;
+  schema?: Record<string, any>;
+  operations: {
+    read?: string | undefined;
+    create?: string | undefined;
+    update?: string | undefined;
+    delete?: string | undefined;
+    list?: string | undefined;
+  };
+}
+
+interface DataSourceConfig {
+  name: string;
+  description?: string;
+  schema?: Record<string, any>;
+  operations: {
+    read: string;
+  };
+}
+
 async function generateTerraformProvider(): Promise<void> {
   await generateOpenAPISpec();
 
@@ -53,50 +75,12 @@ async function generateTerraformProvider(): Promise<void> {
       provider_name: "oneuptime",
     };
 
-    // Dynamically generate resources and datasources from OpenAPI spec
-    const resources: string[] = [];
-    const datasources: string[] = [];
-    for (const [pathKey, methods] of Object.entries(spec.paths || {})) {
-      const httpMethods = Object.keys(methods as object);
-      for (const method of httpMethods) {
-        // Normalize resource/data source name
-        const cleanPath = pathKey
-          .replace(/^\//, "")
-          .replace(/[\/{}]/g, "_")
-          .replace(/__+/g, "_")
-          .replace(/_$/, "")
-          .toLowerCase();
-        const name = `${method}_${cleanPath}`;
-        if (["post", "put", "patch", "delete"].includes(method)) {
-          resources.push(name);
-        } else if (method === "get") {
-          datasources.push(name);
-        }
-      }
-    }
+    // Extract resources and data sources from OpenAPI spec
+    const { resources, dataSources } = extractResourcesAndDataSources(spec);
+    Logger.info(`Found ${resources.length} resources and ${dataSources.length} data sources`);
 
     // Create generator configuration with resources and datasources
-    const generatorConfigYaml: string = `version: "${generatorConfig.version}"
-generator: "${generatorConfig.generator}"
-output_dir: "${outputDir}"
-package_name: "${generatorConfig.package_name}"
-provider_name: "${generatorConfig.provider_name}"
-
-provider:
-  name: "oneuptime"
-  version: "${apiVersion}"
-
-settings:
-  go_package_name: "oneuptime"
-  generate_docs: true
-  generate_examples: true
-
-resources:
-${resources.map((r) => `  - ${r}`).join("\n")}
-
-datasources:
-${datasources.map((d) => `  - ${d}`).join("\n")}
-`;
+    const generatorConfigYaml: string = generateProviderConfigYAML(generatorConfig, apiVersion, resources, dataSources);
 
     // Ensure the output directory exists
     if (!fs.existsSync(outputDir)) {
@@ -119,7 +103,7 @@ ${datasources.map((d) => `  - ${d}`).join("\n")}
 
     try {
       if (!fs.existsSync(tfplugigenPath)) {
-        throw new Error("tfplugingen-openapi not found");
+        throw new Error("tfplugigen-openapi not found");
       }
       Logger.info("✅ terraform-plugin-codegen-openapi already installed");
     } catch {
@@ -146,7 +130,7 @@ ${datasources.map((d) => `  - ${d}`).join("\n")}
       );
 
       // Fallback: Create a basic provider structure manually
-      await createBasicProviderStructure(outputDir, generatorConfig, spec);
+      await createBasicProviderStructure(outputDir, generatorConfig, spec, resources, dataSources);
     }
 
     // Validate generation
@@ -156,7 +140,7 @@ ${datasources.map((d) => `  - ${d}`).join("\n")}
     await ensureGoModule(outputDir, generatorConfig);
 
     // Create provider documentation
-    await createProviderDocumentation(outputDir, spec);
+    await createProviderDocumentation(outputDir, spec, resources, dataSources);
 
     // Clean up temporary config
     if (fs.existsSync(configPath)) {
@@ -172,10 +156,328 @@ ${datasources.map((d) => `  - ${d}`).join("\n")}
   }
 }
 
+function extractResourcesAndDataSources(spec: any): { resources: ResourceConfig[], dataSources: DataSourceConfig[] } {
+  Logger.info("🔍 Extracting resources and data sources from OpenAPI spec");
+  const resources: ResourceConfig[] = [];
+  const dataSources: DataSourceConfig[] = [];
+
+  // Process each path and method in the OpenAPI spec
+  for (const [path, pathItem] of Object.entries<any>(spec.paths || {})) {
+    // Skip if it's not an object
+    if (!pathItem || typeof pathItem !== 'object') {
+      continue;
+    }
+
+    // First, identify potential resources and data sources
+    let resourceName = generateResourceName(path);
+    
+    // Handle GET paths as data sources
+    if (pathItem.get) {
+      const operation = pathItem.get;
+      const isList = path.endsWith('s') && !path.includes('{'); // Simple heuristic to detect list endpoints
+      
+      // For list endpoints, we create a data source
+      if (isList) {
+        const dataSourceName = `${resourceName}_list`;
+        const description = operation.summary || operation.description || `List ${resourceName}`;
+        
+        dataSources.push({
+          name: dataSourceName,
+          description,
+          schema: extractSchema(operation.responses?.['200']?.content?.['application/json']?.schema),
+          operations: {
+            read: path
+          }
+        });
+      } 
+      // For get by ID endpoints, we create a data source
+      else if (path.includes('{')) {
+        const dataSourceName = resourceName;
+        const description = operation.summary || operation.description || `Get ${resourceName}`;
+        
+        dataSources.push({
+          name: dataSourceName,
+          description,
+          schema: extractSchema(operation.responses?.['200']?.content?.['application/json']?.schema),
+          operations: {
+            read: path
+          }
+        });
+      }
+    }
+    
+    // If we have a combination of POST/PUT/PATCH/DELETE, it's likely a resource
+    const hasCreate = !!pathItem.post;
+    const hasUpdate = !!pathItem.put || !!pathItem.patch;
+    const hasDelete = !!pathItem.delete;
+    
+    if (hasCreate || hasUpdate || hasDelete) {
+      let requestSchema = null;
+      
+      // Use request schema from POST for create
+      if (hasCreate) {
+        requestSchema = extractSchema(pathItem.post?.requestBody?.content?.['application/json']?.schema);
+      } 
+      // Fallback to PUT or PATCH for update
+      else if (hasUpdate) {
+        requestSchema = extractSchema(
+          pathItem.put?.requestBody?.content?.['application/json']?.schema ||
+          pathItem.patch?.requestBody?.content?.['application/json']?.schema
+        );
+      }
+      
+      let responseSchema = null;
+      
+      // Get response schema from POST, PUT, PATCH, or GET
+      const getOperation = pathItem.get;
+      const postOperation = pathItem.post;
+      const putOperation = pathItem.put;
+      const patchOperation = pathItem.patch;
+      
+      if (postOperation) {
+        responseSchema = extractSchema(postOperation.responses?.['200']?.content?.['application/json']?.schema) ||
+                        extractSchema(postOperation.responses?.['201']?.content?.['application/json']?.schema);
+      } else if (putOperation) {
+        responseSchema = extractSchema(putOperation.responses?.['200']?.content?.['application/json']?.schema);
+      } else if (patchOperation) {
+        responseSchema = extractSchema(patchOperation.responses?.['200']?.content?.['application/json']?.schema);
+      } else if (getOperation) {
+        responseSchema = extractSchema(getOperation.responses?.['200']?.content?.['application/json']?.schema);
+      }
+      
+      // Combine request and response schemas to create the full resource schema
+      const combinedSchema = { ...requestSchema, ...responseSchema };
+      
+      // Only add as resource if we have meaningful operations
+      if (Object.keys(combinedSchema).length > 0) {
+        const description = (pathItem.post?.summary || pathItem.put?.summary || pathItem.patch?.summary || 
+                            pathItem.delete?.summary || `Manage ${resourceName}`);
+        
+        resources.push({
+          name: resourceName,
+          description,
+          schema: combinedSchema,
+          operations: {
+            create: hasCreate ? path : undefined,
+            read: getOperation ? path : undefined,
+            update: hasUpdate ? path : undefined,
+            delete: hasDelete ? path : undefined,
+            list: undefined
+          }
+        });
+      }
+    }
+  }
+
+  return { resources, dataSources };
+}
+
+function generateResourceName(path: string): string {
+  // Strip the version prefix and leading/trailing slashes
+  let cleanPath = path.replace(/^\/api\/v\d+\//, '').replace(/^\/|\/$/g, '');
+  
+  // Replace path parameters with underscores
+  cleanPath = cleanPath.replace(/\/{([^}]+)}/g, '_by_$1');
+  
+  // Replace slashes with underscores
+  cleanPath = cleanPath.replace(/\//g, '_');
+  
+  // Remove any plural forms to get singular resource name
+  if (cleanPath.endsWith('s') && !cleanPath.endsWith('ss')) {
+    cleanPath = cleanPath.slice(0, -1);
+  }
+  
+  // Special handling for nested resources
+  if (cleanPath.includes('_')) {
+    const parts = cleanPath.split('_');
+    // If we have a nested resource or sub-resource
+    if (parts.length > 2) {
+      // Try to identify the main resource
+      return parts.join('_');
+    }
+  }
+  
+  return cleanPath;
+}
+
+function extractSchema(schema: any): Record<string, any> {
+  if (!schema) {
+    return {};
+  }
+  
+  // Handle references
+  if (schema.$ref) {
+    // Extract just the type name from the reference
+    const refName = schema.$ref.split('/').pop();
+    return { type: 'object', ref_name: refName };
+  }
+  
+  // Handle arrays
+  if (schema.type === 'array' && schema.items) {
+    return {
+      type: mapOpenAPITypeToTerraform('array'),
+      items: extractSchema(schema.items)
+    };
+  }
+  
+  // Handle objects
+  if (schema.type === 'object' || schema.properties) {
+    const properties: Record<string, any> = {};
+    
+    for (const [propName, propSchema] of Object.entries<any>(schema.properties || {})) {
+      properties[propName] = extractSchema(propSchema);
+    }
+    
+    return {
+      type: mapOpenAPITypeToTerraform('object'),
+      properties
+    };
+  }
+  
+  // Handle primitive types
+  if (schema.type) {
+    return { 
+      type: mapOpenAPITypeToTerraform(schema.type),
+      description: schema.description || '',
+      required: schema.required || false,
+      computed: schema.readOnly || false
+    };
+  }
+  
+  return {};
+}
+
+function generateProviderConfigYAML(
+  config: GeneratorConfig, 
+  apiVersion: string, 
+  resources: ResourceConfig[],
+  dataSources: DataSourceConfig[]
+): string {
+  const yaml = [
+    `version: "${config.version}"`,
+    `generator: "${config.generator}"`,
+    `output_dir: "${config.output_dir}"`,
+    `package_name: "${config.package_name}"`,
+    `provider_name: "${config.provider_name}"`,
+    '',
+    'provider:',
+    `  name: "oneuptime"`,
+    `  version: "${apiVersion}"`,
+    '',
+    'settings:',
+    '  go_package_name: "oneuptime"',
+    '  generate_docs: true',
+    '  generate_examples: true',
+    '  schema_generation: true',
+    ''
+  ];
+  
+  // Add resources
+  if (resources.length > 0) {
+    yaml.push('resources:');
+    for (const resource of resources) {
+      yaml.push(`  - name: "${resource.name}"`);
+      
+      if (resource.description) {
+        yaml.push(`    description: "${resource.description}"`);
+      }
+      
+      // Add operations
+      yaml.push('    operations:');
+      if (resource.operations.create) {
+        yaml.push(`      create: "${resource.operations.create}"`);
+      }
+      if (resource.operations.read) {
+        yaml.push(`      read: "${resource.operations.read}"`);
+      }
+      if (resource.operations.update) {
+        yaml.push(`      update: "${resource.operations.update}"`);
+      }
+      if (resource.operations.delete) {
+        yaml.push(`      delete: "${resource.operations.delete}"`);
+      }
+      if (resource.operations.list) {
+        yaml.push(`      list: "${resource.operations.list}"`);
+      }
+      
+      // Add schema if available
+      if (resource.schema && Object.keys(resource.schema).length > 0) {
+        yaml.push('    schema:');
+        yaml.push('      attributes:');
+        
+        for (const [attrName, attrSchema] of Object.entries<any>(resource.schema)) {
+          if (!attrName.startsWith('_') && attrName !== 'id') { // Skip internal properties
+            yaml.push(`        ${attrName}:`);
+            
+            if (attrSchema.type) {
+              yaml.push(`          type: "${attrSchema.type}"`);
+            }
+            
+            if (attrSchema.description) {
+              yaml.push(`          description: "${attrSchema.description}"`);
+            }
+            
+            if (attrSchema.computed) {
+              yaml.push(`          computed: true`);
+            }
+            
+            if (attrSchema.required) {
+              yaml.push(`          required: true`);
+            }
+          }
+        }
+      }
+    }
+    yaml.push('');
+  }
+  
+  // Add data sources
+  if (dataSources.length > 0) {
+    yaml.push('datasources:');
+    for (const dataSource of dataSources) {
+      yaml.push(`  - name: "${dataSource.name}"`);
+      
+      if (dataSource.description) {
+        yaml.push(`    description: "${dataSource.description}"`);
+      }
+      
+      // Add operations
+      yaml.push('    operations:');
+      yaml.push(`      read: "${dataSource.operations.read}"`);
+      
+      // Add schema if available
+      if (dataSource.schema && Object.keys(dataSource.schema).length > 0) {
+        yaml.push('    schema:');
+        yaml.push('      attributes:');
+        
+        for (const [attrName, attrSchema] of Object.entries<any>(dataSource.schema)) {
+          if (!attrName.startsWith('_') && attrName !== 'id') { // Skip internal properties
+            yaml.push(`        ${attrName}:`);
+            
+            if (attrSchema.type) {
+              yaml.push(`          type: "${attrSchema.type}"`);
+            }
+            
+            if (attrSchema.description) {
+              yaml.push(`          description: "${attrSchema.description}"`);
+            }
+            
+            yaml.push(`          computed: true`);
+          }
+        }
+      }
+    }
+  }
+  
+  return yaml.join('\n');
+}
+
 async function createBasicProviderStructure(
   outputDir: string,
   config: GeneratorConfig,
   spec: any,
+  resources: ResourceConfig[],
+  dataSources: DataSourceConfig[]
 ): Promise<void> {
   Logger.info("🔨 Creating basic provider structure...");
 
@@ -346,12 +648,16 @@ func (p *${providerDisplayName}Provider) Configure(ctx context.Context, req prov
 
 func (p *${providerDisplayName}Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		// Generated resources
+		${resources.map(r => `// ${r.name}`).join('\n\t\t')}
 		// Add your resources here
 	}
 }
 
 func (p *${providerDisplayName}Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
+		// Generated data sources
+		${dataSources.map(d => `// ${d.name}`).join('\n\t\t')}
 		// Add your data sources here
 	}
 }
@@ -429,6 +735,8 @@ require (
 async function createProviderDocumentation(
   outputDir: string,
   spec: any,
+  resources: ResourceConfig[],
+  dataSources: DataSourceConfig[],
 ): Promise<void> {
   const readmePath: string = path.join(outputDir, "README.md");
   const apiVersion: string = spec.info?.version || "1.0.0";
@@ -442,14 +750,22 @@ This Terraform provider was auto-generated from the OneUptime OpenAPI specificat
 ## Overview
 
 This provider allows you to manage OneUptime resources using Terraform. It includes:
-- Data sources for reading OneUptime resources
-- Resources for creating, updating, and deleting OneUptime resources
+- ${dataSources.length} data sources for reading OneUptime resources
+- ${resources.length} resources for creating, updating, and deleting OneUptime resources
 
 **Generated from:**
 - **API:** ${apiTitle}
 - **Version:** ${apiVersion}
 - **API Paths:** ${pathCount}
 - **Generated on:** ${new Date().toISOString()}
+
+## Available Resources
+
+${resources.map(resource => `- \`oneuptime_${resource.name}\`: ${resource.description || `Manage ${resource.name}`}`).join('\n')}
+
+## Available Data Sources
+
+${dataSources.map(dataSource => `- \`oneuptime_${dataSource.name}\`: ${dataSource.description || `Access ${dataSource.name}`}`).join('\n')}
 
 ## Installation
 
@@ -501,17 +817,25 @@ The provider requires an API key for authentication. You can provide this in sev
 ## Usage Examples
 
 \`\`\`hcl
-# Example data source
-data "oneuptime_project" "example" {
-  id = "your-project-id"
-}
-
-# Example resource
-resource "oneuptime_monitor" "example" {
-  name = "My Monitor"
-  project_id = data.oneuptime_project.example.id
+${resources.length > 0 ? `# Example resource
+resource "oneuptime_${resources[0]?.name || 'resource'}" "example" {
+  # Required attributes would go here
+  name = "Example ${resources[0]?.name || 'Resource'}"
   # Additional configuration...
-}
+}` : '# No resources available'}
+
+${dataSources.length > 0 ? `# Example data source
+data "oneuptime_${dataSources[0]?.name || 'data_source'}" "example" {
+  # Required attributes would go here
+  id = "your-id"
+}` : '# No data sources available'}
+
+${resources.length > 0 && dataSources.length > 0 ? `# Example using data source with resource
+resource "oneuptime_${resources[0]?.name || 'resource'}" "another_example" {
+  # Reference a data source
+  related_id = data.oneuptime_${dataSources[0]?.name || 'data_source'}.example.id
+  # Additional configuration...
+}` : ''}
 \`\`\`
 
 ## Development
@@ -554,6 +878,24 @@ This provider is licensed under the same license as the OneUptime project.
 
   fs.writeFileSync(readmePath, readmeContent);
   Logger.info("✅ Provider documentation created");
+}
+
+function mapOpenAPITypeToTerraform(openAPIType: string): string {
+  switch (openAPIType) {
+    case 'string':
+      return 'string';
+    case 'integer':
+    case 'number':
+      return 'number';
+    case 'boolean':
+      return 'bool';
+    case 'array':
+      return 'list';
+    case 'object':
+      return 'map';
+    default:
+      return 'string'; // Default to string for unknown types
+  }
 }
 
 // Execute the main function
