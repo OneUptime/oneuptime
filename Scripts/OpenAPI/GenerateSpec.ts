@@ -10,13 +10,13 @@ export async function generateOpenAPISpec(outputPath?: string): Promise<void> {
 
   // Default to root directory if outputPath is not provided
   const finalOutputPath: string = outputPath || "./openapi.json";
-  
+
   // Ensure the directory exists
   const directory = path.dirname(finalOutputPath);
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory, { recursive: true });
   }
-  
+
   fs.writeFileSync(finalOutputPath, JSON.stringify(spec, null, 2), "utf8");
 
   const validationResult: ValidationResult = await validate(finalOutputPath);
