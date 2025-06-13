@@ -103,6 +103,7 @@ import SmsLog from "./SmsLog";
 // Status Page
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
+import StatusPageAnnouncementTemplate from "./StatusPageAnnouncementTemplate";
 import StatusPageCustomField from "./StatusPageCustomField";
 import StatusPageDomain from "./StatusPageDomain";
 import StatusPageFooterLink from "./StatusPageFooterLink";
@@ -247,6 +248,7 @@ const AllModelTypes: Array<{
   StatusPageResource,
 
   StatusPageAnnouncement,
+  StatusPageAnnouncementTemplate,
   StatusPageSubscriber,
   StatusPageFooterLink,
   StatusPageHeaderLink,

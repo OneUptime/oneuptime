@@ -221,6 +221,10 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
 
+  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]:
+    "status-page-announcement-templates",
+  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW]: `status-page-announcement-templates/${RouteParams.ModelID}`,
+
   [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: "alert-custom-fields",
   [PageMap.SETTINGS_ALERTS_STATE]: "alerts-state",
   [PageMap.SETTINGS_ALERTS_SEVERITY]: "alerts-severity",

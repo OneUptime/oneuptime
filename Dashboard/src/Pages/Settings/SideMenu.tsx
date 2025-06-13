@@ -87,6 +87,17 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       <SideMenuSection title="Status Pages">
         <SideMenuItem
           link={{
+            title: "Announcement Templates",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES
+              ] as Route,
+            ),
+          }}
+          icon={IconProp.Template}
+        />
+        <SideMenuItem
+          link={{
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS] as Route,

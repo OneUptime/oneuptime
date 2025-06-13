@@ -94,6 +94,7 @@ import SmsLogService from "./SmsLogService";
 import SmsService from "./SmsService";
 import SpanService from "./SpanService";
 import StatusPageAnnouncementService from "./StatusPageAnnouncementService";
+import StatusPageAnnouncementTemplateService from "./StatusPageAnnouncementTemplateService";
 import StatusPageCustomFieldService from "./StatusPageCustomFieldService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
@@ -249,6 +250,7 @@ const services: Array<BaseService> = [
   SmsService,
 
   StatusPageAnnouncementService,
+  StatusPageAnnouncementTemplateService,
   StatusPageCustomFieldService,
   StatusPageDomainService,
   StatusPageFooterLinkService,

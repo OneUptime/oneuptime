@@ -272,7 +272,6 @@ export class ModelSchema extends BaseSchema {
         const entityArrayType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;
         if (!entityArrayType) {
-          
           continue;
         }
         zodType = z
@@ -306,7 +305,6 @@ export class ModelSchema extends BaseSchema {
           column.modelType;
 
         if (!entityType) {
-         
           continue;
         }
 
@@ -357,7 +355,6 @@ export class ModelSchema extends BaseSchema {
     }
 
     const schema: ModelSchemaType = z.object(shape);
-
 
     return schema;
   }
@@ -1013,7 +1010,6 @@ export class ModelSchema extends BaseSchema {
       }
 
       if (column.hideColumnInDocumentation) {
-
         continue;
       }
 
@@ -1087,7 +1083,6 @@ export class ModelSchema extends BaseSchema {
       example: data.example,
       additionalProperties: false,
     });
-
 
     return schema;
   }
@@ -1265,7 +1260,6 @@ export class ModelSchema extends BaseSchema {
       const entityArrayType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
       if (!entityArrayType) {
-        
         return z.any().openapi({ type: "null", example: null });
       }
 
@@ -1309,7 +1303,6 @@ export class ModelSchema extends BaseSchema {
         column.modelType;
 
       if (!entityType) {
-       
         return z.any().openapi({ type: "null", example: null });
       }
 
