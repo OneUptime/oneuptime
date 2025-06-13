@@ -114,6 +114,7 @@ export const DashboardsRoutePath: Dictionary<string> = {
 
 export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
+  [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.STATUS_PAGE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -953,6 +954,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_ANNOUNCEMENTS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE]
     }`,
   ),
 

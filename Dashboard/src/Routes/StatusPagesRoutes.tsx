@@ -13,6 +13,7 @@ import React, {
 } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 import StatusPageLayout from "../Pages/StatusPages/Layout";
+import Navigation from "Common/UI/Utils/Navigation";
 
 // Pages
 const StatusPages: LazyExoticComponent<FunctionComponent<ComponentProps>> =
@@ -158,14 +159,26 @@ const StatusPageAnnouncements: LazyExoticComponent<
   return import("../Pages/StatusPages/Announcements");
 });
 
+const AnnouncementCreate: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Create");
+});
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  let hideSideMenu: boolean = false;
+
+  if (Navigation.isOnThisPage(RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
   return (
     <Routes>
       <PageRoute
         path="/"
-        element={<StatusPageLayout {...props} hideSideMenu={false} />}
+        element={<StatusPageLayout {...props} hideSideMenu={hideSideMenu} />}
       >
         <PageRoute
           path={StatusPagesRoutePath[PageMap.STATUS_PAGES] || ""}
@@ -185,6 +198,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPageAnnouncements
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementCreate
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
               />
             </Suspense>
           }
