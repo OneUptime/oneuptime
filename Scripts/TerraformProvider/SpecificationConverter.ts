@@ -48,31 +48,37 @@ export default class SpecificationConverter {
     providerName: string;
   }): void {
     try {
+      // eslint-disable-next-line no-console
       console.log(
         "🔄 Converting OpenAPI spec to Provider Code Specification...",
       );
+      // eslint-disable-next-line no-console
       console.log(`📄 Input OpenAPI spec: ${options.openApiSpecPath}`);
+      // eslint-disable-next-line no-console
       console.log(`📁 Output path: ${options.outputPath}`);
 
       // Read OpenAPI specification
-      const openApiContent = fs.readFileSync(options.openApiSpecPath, "utf8");
+      const openApiContent: string = fs.readFileSync(options.openApiSpecPath, "utf8");
       const openApiSpec: OpenAPISpec = JSON.parse(openApiContent);
 
       // Generate Provider Code Specification
-      const providerSpec = this.generateProviderSpecification(
+      const providerSpec: ProviderCodeSpecification = this.generateProviderSpecification(
         openApiSpec,
         options.providerName,
       );
 
       // Write specification to file
-      const outputContent = JSON.stringify(providerSpec, null, 2);
+      const outputContent: string = JSON.stringify(providerSpec, null, 2);
       fs.writeFileSync(options.outputPath, outputContent, "utf8");
 
+      // eslint-disable-next-line no-console
       console.log(
         "✅ Successfully converted OpenAPI spec to Provider Code Specification",
       );
+      // eslint-disable-next-line no-console
       console.log(`📝 Generated specification saved to: ${options.outputPath}`);
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("❌ Error converting specification:", error);
       throw new Error(
         `Failed to convert specification: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -154,7 +160,7 @@ export default class SpecificationConverter {
       }
 
       // Extract resource name from path (e.g., /api/v1/monitor -> monitor)
-      const pathSegments = pathKey.split("/").filter((segment) => {
+      const pathSegments: string[] = pathKey.split("/").filter((segment: string) => {
         return (
           segment &&
           !segment.startsWith("{") &&
@@ -167,28 +173,28 @@ export default class SpecificationConverter {
         continue;
       }
 
-      const lastSegment = pathSegments[pathSegments.length - 1];
+      const lastSegment: string | undefined = pathSegments[pathSegments.length - 1];
       if (!lastSegment) {
         continue;
       }
 
-      const resourceName = this.sanitizeResourceName(lastSegment);
+      const resourceName: string = this.sanitizeResourceName(lastSegment);
       if (!resourceName) {
         continue;
       }
 
       // Sanitize resource name to be Terraform-compatible
-      const sanitizedResourceName = this.sanitizeResourceName(resourceName);
+      const sanitizedResourceName: string = this.sanitizeResourceName(resourceName);
 
       // Determine if this is a resource (has POST/PUT/DELETE) or data source (only GET)
-      const methods = Object.keys(pathValue);
-      const hasWriteOperations = methods.some((method) => {
+      const methods: string[] = Object.keys(pathValue);
+      const hasWriteOperations: boolean = methods.some((method: string) => {
         return ["post", "put", "patch", "delete"].includes(
           method.toLowerCase(),
         );
       });
 
-      const schema = this.generateSchemaFromPath(
+      const schema: any = this.generateSchemaFromPath(
         pathValue,
         openApiSpec.components?.schemas,
       );
@@ -196,7 +202,7 @@ export default class SpecificationConverter {
       if (hasWriteOperations) {
         // This is a resource
         if (
-          !resources.find((r) => {
+          !resources.find((r: any) => {
             return r.name === sanitizedResourceName;
           })
         ) {
@@ -208,7 +214,7 @@ export default class SpecificationConverter {
       } else if (methods.includes("get")) {
         // This is a data source
         if (
-          !datasources.find((d) => {
+          !datasources.find((d: any) => {
             return d.name === sanitizedResourceName;
           })
         ) {
@@ -255,9 +261,9 @@ export default class SpecificationConverter {
 
     // Try to extract more attributes from request/response schemas if available
     if (pathSpec.post?.requestBody?.content?.["application/json"]?.schema) {
-      const requestSchema =
+      const requestSchema: any =
         pathSpec.post.requestBody.content["application/json"].schema;
-      const extractedAttributes = this.extractAttributesFromSchema(
+      const extractedAttributes: any[] = this.extractAttributesFromSchema(
         requestSchema,
         schemas,
       );
@@ -281,7 +287,7 @@ export default class SpecificationConverter {
           continue;
         }
 
-        const attribute = this.convertPropertyToAttribute(
+        const attribute: any = this.convertPropertyToAttribute(
           propName,
           propSchema as any,
         );
@@ -304,7 +310,7 @@ export default class SpecificationConverter {
     }
 
     let attributeType: any;
-    const computedOptionalRequired = "optional";
+    const computedOptionalRequired: string = "optional";
 
     switch (schema.type) {
       case "string":
@@ -348,7 +354,7 @@ export default class SpecificationConverter {
       return null;
     }
 
-    const typeKey = Object.keys(attributeType)[0];
+    const typeKey: string | undefined = Object.keys(attributeType)[0];
     if (!typeKey) {
       return null;
     }
@@ -442,10 +448,12 @@ export default class SpecificationConverter {
       ],
     };
 
-    const content = JSON.stringify(basicSpec, null, 2);
+    const content: string = JSON.stringify(basicSpec, null, 2);
     fs.writeFileSync(options.outputPath, content, "utf8");
 
+    // eslint-disable-next-line no-console
     console.log("✅ Generated basic Provider Code Specification template");
+    // eslint-disable-next-line no-console
     console.log(`📝 Template saved to: ${options.outputPath}`);
   }
 }

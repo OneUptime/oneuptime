@@ -93,10 +93,10 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   // Handle spell check configuration for Monaco Editor
   useEffect(() => {
     if (editorRef.current && props.type === CodeType.Markdown) {
-      const editor = editorRef.current;
-      const domNode = editor.getDomNode();
+      const editor: any = editorRef.current;
+      const domNode: HTMLElement | null = editor.getDomNode();
       if (domNode) {
-        const textareaElement = domNode.querySelector("textarea");
+        const textareaElement: HTMLTextAreaElement | null = domNode.querySelector("textarea");
         if (textareaElement) {
           textareaElement.spellcheck = !props.disableSpellCheck;
         }
@@ -150,14 +150,14 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             props.onChange(code);
           }
         }}
-        onMount={(editor, monaco) => {
+        onMount={(editor: any, _monaco: any) => {
           editorRef.current = editor;
 
           // Configure spell check for Markdown
           if (props.type === CodeType.Markdown) {
-            const domNode = editor.getDomNode();
+            const domNode: HTMLElement | null = editor.getDomNode();
             if (domNode) {
-              const textareaElement = domNode.querySelector("textarea");
+              const textareaElement: HTMLTextAreaElement | null = domNode.querySelector("textarea");
               if (textareaElement) {
                 textareaElement.spellcheck = !props.disableSpellCheck;
               }

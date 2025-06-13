@@ -383,7 +383,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             ] as ObjectID;
 
             // Find the selected template
-            const selectedTemplate = announcementTemplates.find((template) => {
+            const selectedTemplate: StatusPageAnnouncementTemplate | undefined = announcementTemplates.find((template: StatusPageAnnouncementTemplate) => {
               return (
                 template._id?.toString() === announcementTemplateId.toString()
               );

@@ -51,9 +51,9 @@ export default class FrameworkGenerator {
    * Scaffold starter code for a data source, provider, or resource
    */
   public static scaffold(options: FrameworkScaffoldOptions): void {
-    const binaryPath = this.getTerraformFrameworkGeneratorPath();
+    const binaryPath: string = this.getTerraformFrameworkGeneratorPath();
 
-    let command = `"${binaryPath}" scaffold ${options.type} --name "${options.name}" --output-dir "${options.outputDir}"`;
+    let command: string = `"${binaryPath}" scaffold ${options.type} --name "${options.name}" --output-dir "${options.outputDir}"`;
 
     if (options.packageName) {
       command += ` --package "${options.packageName}"`;
@@ -64,15 +64,20 @@ export default class FrameworkGenerator {
     }
 
     try {
+      // eslint-disable-next-line no-console
       console.log(`🏗️  Scaffolding ${options.type}: ${options.name}`);
+      // eslint-disable-next-line no-console
       console.log(`📁 Output directory: ${options.outputDir}`);
+      // eslint-disable-next-line no-console
       console.log(`🔧 Running command: ${command}`);
 
       execSync(command, { stdio: "inherit" });
+      // eslint-disable-next-line no-console
       console.log(
         `✅ Successfully scaffolded ${options.type}: ${options.name}`,
       );
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`❌ Error scaffolding ${options.type}:`, error);
       throw new Error(
         `Failed to scaffold ${options.type}: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -84,18 +89,22 @@ export default class FrameworkGenerator {
     subcommand: "all" | "data-sources" | "resources" | "provider",
     options: FrameworkGeneratorOptions,
   ): void {
-    const binaryPath = this.getTerraformFrameworkGeneratorPath();
+    const binaryPath: string = this.getTerraformFrameworkGeneratorPath();
 
-    let command = `"${binaryPath}" generate ${subcommand} --input "${options.specificationPath}" --output "${options.outputPath}"`;
+    let command: string = `"${binaryPath}" generate ${subcommand} --input "${options.specificationPath}" --output "${options.outputPath}"`;
 
     if (options.packageName) {
       command += ` --package "${options.packageName}"`;
     }
 
     try {
+      // eslint-disable-next-line no-console
       console.log(`🔄 Generating ${subcommand} from specification...`);
+      // eslint-disable-next-line no-console
       console.log(`📄 Input specification: ${options.specificationPath}`);
+      // eslint-disable-next-line no-console
       console.log(`📁 Output directory: ${options.outputPath}`);
+      // eslint-disable-next-line no-console
       console.log(`🔧 Running command: ${command}`);
 
       // Ensure output directory exists
@@ -104,10 +113,12 @@ export default class FrameworkGenerator {
       }
 
       execSync(command, { stdio: "inherit" });
+      // eslint-disable-next-line no-console
       console.log(
         `✅ Successfully generated ${subcommand} at: ${options.outputPath}`,
       );
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(`❌ Error generating ${subcommand}:`, error);
       throw new Error(
         `Failed to generate ${subcommand}: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -117,7 +128,7 @@ export default class FrameworkGenerator {
 
   private static getTerraformFrameworkGeneratorPath(): string {
     // Get the Go path and construct the full path to the tfplugingen-framework binary
-    const goPath = execSync("go env GOPATH", { encoding: "utf8" }).trim();
+    const goPath: string = execSync("go env GOPATH", { encoding: "utf8" }).trim();
     return path.join(goPath, "bin", this.TOOL_NAME);
   }
 
@@ -126,7 +137,7 @@ export default class FrameworkGenerator {
    */
   public static isInstalled(): boolean {
     try {
-      const binaryPath = this.getTerraformFrameworkGeneratorPath();
+      const binaryPath: string = this.getTerraformFrameworkGeneratorPath();
       return fs.existsSync(binaryPath);
     } catch {
       return false;
@@ -137,25 +148,41 @@ export default class FrameworkGenerator {
    * Print usage information for the framework generator
    */
   public static printUsageInfo(): void {
+    // eslint-disable-next-line no-console
     console.log("📖 Terraform Plugin Framework Generator Usage:");
+    // eslint-disable-next-line no-console
     console.log("");
+    // eslint-disable-next-line no-console
     console.log("🔄 Generate Commands:");
+    // eslint-disable-next-line no-console
     console.log(
       "   generateAll()        - Generate all provider code (data sources, resources, and provider)",
     );
+    // eslint-disable-next-line no-console
     console.log("   generateDataSources()- Generate only data source code");
+    // eslint-disable-next-line no-console
     console.log("   generateResources()  - Generate only resource code");
+    // eslint-disable-next-line no-console
     console.log("   generateProvider()   - Generate only provider code");
+    // eslint-disable-next-line no-console
     console.log("");
+    // eslint-disable-next-line no-console
     console.log("🏗️  Scaffold Commands:");
+    // eslint-disable-next-line no-console
     console.log(
       "   scaffold()           - Create starter code for data source, provider, or resource",
     );
+    // eslint-disable-next-line no-console
     console.log("");
+    // eslint-disable-next-line no-console
     console.log("📋 Requirements:");
+    // eslint-disable-next-line no-console
     console.log("   - Provider Code Specification file (JSON format)");
+    // eslint-disable-next-line no-console
     console.log("   - tfplugingen-framework tool installed");
+    // eslint-disable-next-line no-console
     console.log("   - Go installed and properly configured");
+    // eslint-disable-next-line no-console
     console.log("");
   }
 }

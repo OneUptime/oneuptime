@@ -12,7 +12,7 @@ export async function generateOpenAPISpec(outputPath?: string): Promise<void> {
   const finalOutputPath: string = outputPath || "./openapi.json";
 
   // Ensure the directory exists
-  const directory = path.dirname(finalOutputPath);
+  const directory: string = path.dirname(finalOutputPath);
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory, { recursive: true });
   }

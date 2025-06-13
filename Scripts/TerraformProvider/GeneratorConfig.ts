@@ -22,7 +22,7 @@ export default class GeneratorConfig {
     providerName: string;
   }): void {
     // Read the OpenAPI spec JSON file
-    const openApiSpec = JSON.parse(
+    const openApiSpec: any = JSON.parse(
       fs.readFileSync(data.openApiSpecInJsonFilePath, "utf-8"),
     );
     const config: any = {
@@ -37,7 +37,7 @@ export default class GeneratorConfig {
     if (openApiSpec.paths) {
       for (const [pathKey, pathObj] of Object.entries(openApiSpec.paths)) {
         for (const [method, opRaw] of Object.entries(pathObj as any)) {
-          const op = opRaw as any;
+          const op: any = opRaw as any;
           if (
             !op ||
             typeof op !== "object" ||
@@ -46,27 +46,27 @@ export default class GeneratorConfig {
             continue;
           }
 
-          const operationId = op.operationId.toLowerCase();
-          const isReadOperation =
+          const operationId: string = op.operationId.toLowerCase();
+          const isReadOperation: boolean =
             operationId.startsWith("get") ||
             operationId.startsWith("list") ||
             operationId.startsWith("count") ||
             operationId.includes("read") ||
             operationId.includes("fetch");
-          const isCreateOperation =
+          const isCreateOperation: boolean =
             operationId.startsWith("create") ||
             operationId.startsWith("add") ||
             method.toLowerCase() === "post";
-          const isUpdateOperation =
+          const isUpdateOperation: boolean =
             operationId.startsWith("update") ||
             operationId.startsWith("put") ||
             method.toLowerCase() === "put";
-          const isDeleteOperation =
+          const isDeleteOperation: boolean =
             operationId.startsWith("delete") || operationId.includes("remove");
 
           if (isReadOperation) {
             // Generate data source for read operations
-            const dsName =
+            const dsName: string =
               this.extractResourceNameFromPath(pathKey).toLowerCase();
             if (dsName) {
               if (!config.data_sources[dsName]) {
@@ -79,7 +79,7 @@ export default class GeneratorConfig {
             }
 
             // Also add as resource read operation
-            const resourceName =
+            const resourceName: string =
               this.extractResourceNameFromPath(pathKey).toLowerCase();
             if (resourceName) {
               if (!config.resources[resourceName]) {
@@ -92,7 +92,7 @@ export default class GeneratorConfig {
             }
           } else if (isCreateOperation) {
             // Generate resource for create operations
-            const resourceName =
+            const resourceName: string =
               this.extractResourceNameFromPath(pathKey).toLowerCase();
             if (resourceName) {
               if (!config.resources[resourceName]) {
@@ -105,7 +105,7 @@ export default class GeneratorConfig {
             }
           } else if (isUpdateOperation) {
             // Generate resource for update operations
-            const resourceName =
+            const resourceName: string =
               this.extractResourceNameFromPath(pathKey).toLowerCase();
             if (resourceName) {
               if (!config.resources[resourceName]) {
@@ -118,7 +118,7 @@ export default class GeneratorConfig {
             }
           } else if (isDeleteOperation) {
             // Handle delete operations
-            const resourceName =
+            const resourceName: string =
               this.extractResourceNameFromPath(pathKey).toLowerCase();
             if (resourceName) {
               if (!config.resources[resourceName]) {
@@ -141,7 +141,7 @@ export default class GeneratorConfig {
     for (const [resourceName, resourceConfig] of Object.entries(
       config.resources,
     )) {
-      const resource = resourceConfig as any;
+      const resource: any = resourceConfig as any;
 
       // If resource doesn't have 'create', try to use 'post' operation
       if (!resource.create && resource.post) {
@@ -151,7 +151,7 @@ export default class GeneratorConfig {
 
       // If resource doesn't have 'read', try to find it in data sources
       if (!resource.read) {
-        const matchingDataSource = config.data_sources[resourceName];
+        const matchingDataSource: any = config.data_sources[resourceName];
         if (matchingDataSource && matchingDataSource.read) {
           resource.read = matchingDataSource.read;
         }
@@ -159,6 +159,7 @@ export default class GeneratorConfig {
 
       // If resource still doesn't have both 'create' and 'read', remove it
       if (!resource.create || !resource.read) {
+        // eslint-disable-next-line no-console
         console.log(
           `Removing resource '${resourceName}' - missing required operations (create: ${Boolean(resource.create)}, read: ${Boolean(resource.read)})`,
         );
@@ -180,7 +181,7 @@ export default class GeneratorConfig {
     }
 
     // Convert the config object to YAML
-    const yamlStr = yaml.dump(config, { noRefs: true, lineWidth: 120 });
+    const yamlStr: string = yaml.dump(config, { noRefs: true, lineWidth: 120 });
 
     // Ensure output directory exists
     if (!fs.existsSync(data.outputPath)) {
@@ -188,7 +189,7 @@ export default class GeneratorConfig {
     }
 
     // Write the YAML string to the output file
-    const outputFile = path.join(data.outputPath, data.outputFileName);
+    const outputFile: string = path.join(data.outputPath, data.outputFileName);
     fs.writeFileSync(outputFile, yamlStr, "utf-8");
   }
 
@@ -199,8 +200,8 @@ export default class GeneratorConfig {
    */
   private static extractResourceNameFromPath(path: string): string {
     // Remove leading slash and anything after the first parameter
-    const pathParts = path.replace(/^\//, "").split("/");
-    let resourcePath = pathParts[0] || "";
+    const pathParts: string[] = path.replace(/^\//, "").split("/");
+    let resourcePath: string = pathParts[0] || "";
 
     // Handle paths that end with specific patterns like /count, /get-list, etc.
     if (resourcePath.includes("-count") || resourcePath.includes("-get-list")) {
@@ -208,7 +209,7 @@ export default class GeneratorConfig {
     }
 
     // Convert kebab-case to snake_case and remove special characters
-    const resourceName = resourcePath
+    const resourceName: string = resourcePath
       .replace(/-/g, "") // Remove hyphens
       .replace(/[^a-zA-Z0-9]/g, "") // Remove any other special characters
       .toLowerCase();

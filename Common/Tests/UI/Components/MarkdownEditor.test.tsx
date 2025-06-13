@@ -12,7 +12,7 @@ describe("MarkdownEditor with SpellCheck", () => {
       />,
     );
 
-    const textarea = screen.getByRole("textbox");
+    const textarea: HTMLTextAreaElement = screen.getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.spellcheck).toBe(true);
   });
 
@@ -25,7 +25,7 @@ describe("MarkdownEditor with SpellCheck", () => {
       />,
     );
 
-    const textarea = screen.getByRole("textbox");
+    const textarea: HTMLTextAreaElement = screen.getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.spellcheck).toBe(false);
   });
 
@@ -38,7 +38,7 @@ describe("MarkdownEditor with SpellCheck", () => {
       />,
     );
 
-    let textarea = screen.getByRole("textbox");
+    let textarea: HTMLTextAreaElement = screen.getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.spellcheck).toBe(true);
 
     rerender(
@@ -49,7 +49,7 @@ describe("MarkdownEditor with SpellCheck", () => {
       />,
     );
 
-    textarea = screen.getByRole("textbox");
+    textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.spellcheck).toBe(false);
   });
 });

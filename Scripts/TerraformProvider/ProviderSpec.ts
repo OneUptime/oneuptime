@@ -8,18 +8,19 @@ export default class ProviderSpec {
     outputPath: string;
   }): void {
     // Get the Go path and construct the full path to the tfplugingen-openapi binary
-    const goPath = execSync("go env GOPATH", { encoding: "utf8" }).trim();
-    const tfplugigenBinaryPath = path.join(
+    const goPath: string = execSync("go env GOPATH", { encoding: "utf8" }).trim();
+    const tfplugigenBinaryPath: string = path.join(
       goPath,
       "bin",
       "tfplugingen-openapi",
     );
 
-    const command = `"${tfplugigenBinaryPath}" generate --config "${options.generatorConfigPath}" --output "${options.outputPath}" "${options.openApiSpecPath}"`;
+    const command: string = `"${tfplugigenBinaryPath}" generate --config "${options.generatorConfigPath}" --output "${options.outputPath}" "${options.openApiSpecPath}"`;
 
     try {
       execSync(command, { stdio: "inherit" });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error(
         "Error executing Terraform provider code generation command:",
         error,
@@ -29,6 +30,7 @@ export default class ProviderSpec {
       );
     }
 
+    // eslint-disable-next-line no-console
     console.log(
       "Terraform provider code generated successfully at:",
       options.outputPath,
