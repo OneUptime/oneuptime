@@ -383,11 +383,15 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             ] as ObjectID;
 
             // Find the selected template
-            const selectedTemplate: StatusPageAnnouncementTemplate | undefined = announcementTemplates.find((template: StatusPageAnnouncementTemplate) => {
-              return (
-                template._id?.toString() === announcementTemplateId.toString()
+            const selectedTemplate: StatusPageAnnouncementTemplate | undefined =
+              announcementTemplates.find(
+                (template: StatusPageAnnouncementTemplate) => {
+                  return (
+                    template._id?.toString() ===
+                    announcementTemplateId.toString()
+                  );
+                },
               );
-            });
 
             if (selectedTemplate) {
               // Close the template modal and trigger the regular create modal with template data

@@ -33,7 +33,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
   const [placeholder, setPlaceholder] = useState<string>("");
   const [helpText, setHelpText] = useState<string>("");
-  const editorRef = useRef<any>(null);
+  const editorRef: React.MutableRefObject<any> = useRef<any>(null);
 
   useEffect(() => {
     let value: string | undefined = props.value;
@@ -96,7 +96,8 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       const editor: any = editorRef.current;
       const domNode: HTMLElement | null = editor.getDomNode();
       if (domNode) {
-        const textareaElement: HTMLTextAreaElement | null = domNode.querySelector("textarea");
+        const textareaElement: HTMLTextAreaElement | null =
+          domNode.querySelector("textarea");
         if (textareaElement) {
           textareaElement.spellcheck = !props.disableSpellCheck;
         }
@@ -157,7 +158,8 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           if (props.type === CodeType.Markdown) {
             const domNode: HTMLElement | null = editor.getDomNode();
             if (domNode) {
-              const textareaElement: HTMLTextAreaElement | null = domNode.querySelector("textarea");
+              const textareaElement: HTMLTextAreaElement | null =
+                domNode.querySelector("textarea");
               if (textareaElement) {
                 textareaElement.spellcheck = !props.disableSpellCheck;
               }

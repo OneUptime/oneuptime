@@ -39,7 +39,9 @@ class ToolInstaller {
       });
 
       // Verify installation
-      const version: string | null = this.getToolVersion(this.OPENAPI_TOOL_NAME);
+      const version: string | null = this.getToolVersion(
+        this.OPENAPI_TOOL_NAME,
+      );
       if (version) {
         // eslint-disable-next-line no-console
         console.log("✅ Installation successful!");
@@ -85,7 +87,9 @@ class ToolInstaller {
       });
 
       // Verify installation
-      const version: string | null = this.getToolVersion(this.FRAMEWORK_TOOL_NAME);
+      const version: string | null = this.getToolVersion(
+        this.FRAMEWORK_TOOL_NAME,
+      );
       if (version) {
         // eslint-disable-next-line no-console
         console.log("✅ Framework Generator installation successful!");
@@ -143,11 +147,14 @@ class ToolInstaller {
 
   private static getGoPath(): string {
     try {
-      const goPath: string = execSync("go env GOPATH", { encoding: "utf8" }).trim();
+      const goPath: string = execSync("go env GOPATH", {
+        encoding: "utf8",
+      }).trim();
       return goPath;
     } catch {
       // Default GOPATH
-      const homeDir: string = process.env["HOME"] || process.env["USERPROFILE"] || "";
+      const homeDir: string =
+        process.env["HOME"] || process.env["USERPROFILE"] || "";
       return path.join(homeDir, "go");
     }
   }
@@ -179,7 +186,8 @@ async function main(): Promise<void> {
   try {
     ToolInstaller.printInstallationInfo();
 
-    const result: InstallResult = await ToolInstaller.installTerraformPluginCodegenOpenAPI();
+    const result: InstallResult =
+      await ToolInstaller.installTerraformPluginCodegenOpenAPI();
 
     if (result.success) {
       // eslint-disable-next-line no-console

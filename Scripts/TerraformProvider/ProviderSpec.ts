@@ -8,7 +8,9 @@ export default class ProviderSpec {
     outputPath: string;
   }): void {
     // Get the Go path and construct the full path to the tfplugingen-openapi binary
-    const goPath: string = execSync("go env GOPATH", { encoding: "utf8" }).trim();
+    const goPath: string = execSync("go env GOPATH", {
+      encoding: "utf8",
+    }).trim();
     const tfplugigenBinaryPath: string = path.join(
       goPath,
       "bin",

@@ -58,14 +58,15 @@ export default class SpecificationConverter {
       console.log(`📁 Output path: ${options.outputPath}`);
 
       // Read OpenAPI specification
-      const openApiContent: string = fs.readFileSync(options.openApiSpecPath, "utf8");
+      const openApiContent: string = fs.readFileSync(
+        options.openApiSpecPath,
+        "utf8",
+      );
       const openApiSpec: OpenAPISpec = JSON.parse(openApiContent);
 
       // Generate Provider Code Specification
-      const providerSpec: ProviderCodeSpecification = this.generateProviderSpecification(
-        openApiSpec,
-        options.providerName,
-      );
+      const providerSpec: ProviderCodeSpecification =
+        this.generateProviderSpecification(openApiSpec, options.providerName);
 
       // Write specification to file
       const outputContent: string = JSON.stringify(providerSpec, null, 2);
@@ -160,20 +161,23 @@ export default class SpecificationConverter {
       }
 
       // Extract resource name from path (e.g., /api/v1/monitor -> monitor)
-      const pathSegments: string[] = pathKey.split("/").filter((segment: string) => {
-        return (
-          segment &&
-          !segment.startsWith("{") &&
-          segment !== "api" &&
-          !segment.match(/^v\d+$/)
-        );
-      });
+      const pathSegments: string[] = pathKey
+        .split("/")
+        .filter((segment: string) => {
+          return (
+            segment &&
+            !segment.startsWith("{") &&
+            segment !== "api" &&
+            !segment.match(/^v\d+$/)
+          );
+        });
 
       if (pathSegments.length === 0) {
         continue;
       }
 
-      const lastSegment: string | undefined = pathSegments[pathSegments.length - 1];
+      const lastSegment: string | undefined =
+        pathSegments[pathSegments.length - 1];
       if (!lastSegment) {
         continue;
       }
@@ -184,7 +188,8 @@ export default class SpecificationConverter {
       }
 
       // Sanitize resource name to be Terraform-compatible
-      const sanitizedResourceName: string = this.sanitizeResourceName(resourceName);
+      const sanitizedResourceName: string =
+        this.sanitizeResourceName(resourceName);
 
       // Determine if this is a resource (has POST/PUT/DELETE) or data source (only GET)
       const methods: string[] = Object.keys(pathValue);
@@ -235,7 +240,13 @@ export default class SpecificationConverter {
   ): any {
     // Generate a basic schema structure
     // This is a simplified implementation - you may want to enhance this based on your specific needs
-    const attributes = [
+    const attributes: {
+    name: string;
+    string: {
+        computed_optional_required: string;
+        description: string;
+    };
+}[] = [
       {
         name: "id",
         string: {

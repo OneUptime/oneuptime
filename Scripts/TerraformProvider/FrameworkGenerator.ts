@@ -128,7 +128,9 @@ export default class FrameworkGenerator {
 
   private static getTerraformFrameworkGeneratorPath(): string {
     // Get the Go path and construct the full path to the tfplugingen-framework binary
-    const goPath: string = execSync("go env GOPATH", { encoding: "utf8" }).trim();
+    const goPath: string = execSync("go env GOPATH", {
+      encoding: "utf8",
+    }).trim();
     return path.join(goPath, "bin", this.TOOL_NAME);
   }
 

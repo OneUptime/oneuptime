@@ -111,7 +111,8 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
+main().catch((err: Error) => {
+  // eslint-disable-next-line no-console
   console.error("💥 Unexpected error:", err);
   process.exit(1);
 });
