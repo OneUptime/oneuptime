@@ -1581,7 +1581,107 @@ jobs:
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
             
   
-  
+  publish-terraform-provider:
+    runs-on: ubuntu-latest
+    needs: [generate-build-number]
+    permissions:
+      contents: write  # For creating releases
+      packages: write  # For publishing packages
+    
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
+
+      - name: Import GPG key (optional)
+        continue-on-error: true
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing Terraform provider version: $VERSION"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
+          if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
+
+      - name: Generate Terraform provider
+        run: npm run generate-terraform-provider
+
+      - name: Setup Terraform provider for publishing
+        working-directory: ./Terraform
+        run: |
+
+          # Update dependencies
+          go mod tidy
+
+      - name: Validate Go build
+        working-directory: ./Terraform
+        run: |
+          go build -v .
+
+      - name: Run tests
+        working-directory: ./Terraform
+        run: |
+          if ls *_test.go 1> /dev/null 2>&1; then
+            go test -v ./...
+          else
+            echo "No test files found, skipping tests"
+          fi
+
+      - name: Create terraform provider release
+        working-directory: ./Terraform
+        run: |
+          # Tag the current commit for terraform provider
+          git tag -a "terraform-provider-v${{ steps.version.outputs.version }}" -m "Terraform Provider Release v${{ steps.version.outputs.version }}"
+          git push origin "terraform-provider-v${{ steps.version.outputs.version }}"
+          
+          goreleaser release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post-release summary
+        run: |
+          echo "## 🚀 Terraform Provider Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Provider Name:** oneuptime" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Release:** https://github.com/OneUptime/terraform-provider-oneuptime/releases/tag/terraform-provider-v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Terraform Registry:** https://registry.terraform.io/providers/oneuptime/oneuptime/${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The provider will be available on the Terraform Registry within a few minutes." >> $GITHUB_STEP_SUMMARY
+
+
+
   
 
   api-reference-docker-image-deploy: 
@@ -1653,7 +1753,7 @@ jobs:
 
   test-e2e-release-saas: 
     runs-on: ubuntu-latest
-    needs: [open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy,  llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, haraka-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy,  otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
+    needs: [open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, haraka-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, nginx-docker-image-deploy, incoming-request-ingest-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1706,7 +1806,7 @@ jobs:
   test-e2e-release-self-hosted: 
     runs-on: ubuntu-latest
     # After all the jobs runs
-    needs: [open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, incoming-request-ingest-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy,  api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, haraka-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, nginx-docker-image-deploy]
+    needs: [open-telemetry-ingest-docker-image-deploy, copilot-docker-image-deploy, incoming-request-ingest-docker-image-deploy, fluent-ingest-docker-image-deploy, docs-docker-image-deploy, api-reference-docker-image-deploy, workflow-docker-image-deploy, llm-docker-image-deploy, accounts-docker-image-deploy, admin-dashboard-docker-image-deploy, app-docker-image-deploy, dashboard-docker-image-deploy, haraka-docker-image-deploy, probe-ingest-docker-image-deploy, server-monitor-ingest-docker-image-deploy, isolated-vm-docker-image-deploy, home-docker-image-deploy, worker-docker-image-deploy, otel-collector-docker-image-deploy, probe-docker-image-deploy, status-page-docker-image-deploy, test-docker-image-deploy, test-server-docker-image-deploy, publish-npm-packages, e2e-docker-image-deploy, helm-chart-deploy, generate-build-number, nginx-docker-image-deploy]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -1823,5 +1923,4 @@ jobs:
           draft: false
           prerelease: false
           tag_name: 7.0.${{needs.generate-build-number.outputs.build_number}}
-
 
