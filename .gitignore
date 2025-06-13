@@ -118,3 +118,4 @@ InfrastructureAgent/oneuptime-infrastructure-agent
 
 # Terraform generated files
 Terraform/
+openapi.json
