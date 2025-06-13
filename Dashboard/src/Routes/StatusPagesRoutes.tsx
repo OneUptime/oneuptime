@@ -202,20 +202,19 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-       
       </PageRoute>
 
-       <PageRoute
-          path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementCreate
-                {...props}
-                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
-              />
-            </Suspense>
-          }
-        />
+      <PageRoute
+        path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <AnnouncementCreate
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
+            />
+          </Suspense>
+        }
+      />
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW] || ""}

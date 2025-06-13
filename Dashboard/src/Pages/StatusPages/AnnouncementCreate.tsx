@@ -98,15 +98,21 @@ const AnnouncementCreate: FunctionComponent<
       breadcrumbLinks={[
         {
           title: "Status Pages",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGES] as Route),
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.STATUS_PAGES] as Route,
+          ),
         },
         {
           title: "Announcements",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route),
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
+          ),
         },
         {
           title: "Create Announcement",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route),
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route,
+          ),
         },
       ]}
     >
@@ -156,7 +162,8 @@ const AnnouncementCreate: FunctionComponent<
                   },
                   title: "Show announcement on these status pages",
                   stepId: "status-pages",
-                  description: "Select status pages to show this announcement on",
+                  description:
+                    "Select status pages to show this announcement on",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: StatusPage,
