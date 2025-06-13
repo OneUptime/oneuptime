@@ -579,7 +579,7 @@ import OnCallDutyPolicyTimeLogService, {
 // statu spage announcement templates
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import StatusPageAnnouncementTemplateService, {
-  Service as StatusPageAnnouncementTemplateServiceType, 
+  Service as StatusPageAnnouncementTemplateServiceType,
 } from "Common/Server/Services/StatusPageAnnouncementTemplateService";
 
 // Open API Spec

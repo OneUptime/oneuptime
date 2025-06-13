@@ -115,7 +115,7 @@ const RegisterPage: () => JSX.Element = () => {
       required: true,
       title: "Full Name",
       dataTestId: "name",
-      disableSpellCheck: true,  
+      disableSpellCheck: true,
     },
   ];
 

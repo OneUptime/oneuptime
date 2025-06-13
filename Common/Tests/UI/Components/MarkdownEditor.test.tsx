@@ -9,9 +9,9 @@ describe("MarkdownEditor with SpellCheck", () => {
       <MarkdownEditor
         initialValue="This is a test with speling errors"
         placeholder="Enter markdown here..."
-      />
+      />,
     );
-    
+
     const textarea = screen.getByRole("textbox");
     expect(textarea.spellcheck).toBe(true);
   });
@@ -22,9 +22,9 @@ describe("MarkdownEditor with SpellCheck", () => {
         initialValue="This is a test with speling errors"
         placeholder="Enter markdown here..."
         disableSpellCheck={true}
-      />
+      />,
     );
-    
+
     const textarea = screen.getByRole("textbox");
     expect(textarea.spellcheck).toBe(false);
   });
@@ -35,9 +35,9 @@ describe("MarkdownEditor with SpellCheck", () => {
         initialValue="This is a test with speling errors"
         placeholder="Enter markdown here..."
         disableSpellCheck={false}
-      />
+      />,
     );
-    
+
     let textarea = screen.getByRole("textbox");
     expect(textarea.spellcheck).toBe(true);
 
@@ -46,9 +46,9 @@ describe("MarkdownEditor with SpellCheck", () => {
         initialValue="This is a test with speling errors"
         placeholder="Enter markdown here..."
         disableSpellCheck={true}
-      />
+      />,
     );
-    
+
     textarea = screen.getByRole("textbox");
     expect(textarea.spellcheck).toBe(false);
   });

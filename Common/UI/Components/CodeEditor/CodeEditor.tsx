@@ -96,7 +96,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       const editor = editorRef.current;
       const domNode = editor.getDomNode();
       if (domNode) {
-        const textareaElement = domNode.querySelector('textarea');
+        const textareaElement = domNode.querySelector("textarea");
         if (textareaElement) {
           textareaElement.spellcheck = !props.disableSpellCheck;
         }
@@ -152,12 +152,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         }}
         onMount={(editor, monaco) => {
           editorRef.current = editor;
-          
+
           // Configure spell check for Markdown
           if (props.type === CodeType.Markdown) {
             const domNode = editor.getDomNode();
             if (domNode) {
-              const textareaElement = domNode.querySelector('textarea');
+              const textareaElement = domNode.querySelector("textarea");
               if (textareaElement) {
                 textareaElement.spellcheck = !props.disableSpellCheck;
               }
