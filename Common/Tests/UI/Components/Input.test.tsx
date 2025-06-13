@@ -39,6 +39,7 @@ describe("Input", () => {
       error: "error",
       outerDivClassName: "outerDivClassName",
       autoFocus: true,
+      disableSpellCheck: false,
     };
 
     const { getByRole } = render(<Input {...props} />);
@@ -282,5 +283,26 @@ describe("Input", () => {
     const { getByRole } = render(<Input autoFocus={true} />);
 
     expect(getByRole("textbox")).toHaveFocus();
+  });
+
+  test("enables spellcheck by default", () => {
+    const { getByRole } = render(<Input />);
+    const input: HTMLElement = getByRole("textbox");
+
+    expect(input).toHaveAttribute("spellcheck", "true");
+  });
+
+  test("disables spellcheck when disableSpellCheck is true", () => {
+    const { getByRole } = render(<Input disableSpellCheck={true} />);
+    const input: HTMLElement = getByRole("textbox");
+
+    expect(input).toHaveAttribute("spellcheck", "false");
+  });
+
+  test("enables spellcheck when disableSpellCheck is false", () => {
+    const { getByRole } = render(<Input disableSpellCheck={false} />);
+    const input: HTMLElement = getByRole("textbox");
+
+    expect(input).toHaveAttribute("spellcheck", "true");
   });
 });

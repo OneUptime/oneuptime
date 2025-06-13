@@ -38,6 +38,7 @@ export interface ComponentProps {
   error?: string | undefined;
   outerDivClassName?: string | undefined;
   autoFocus?: boolean | undefined;
+  disableSpellCheck?: boolean | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -159,6 +160,7 @@ const Input: FunctionComponent<ComponentProps> = (
           onFocus={props.onFocus}
           onClick={props.onClick}
           data-testid={props.dataTestId}
+          spellCheck={!props.disableSpellCheck}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             let value: string | Date = e.target.value;
 
