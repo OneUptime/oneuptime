@@ -63,6 +63,8 @@ COPY ./Haraka/package-lock.json /harakaapp/package-lock.json
 
 # Install dependencies
 RUN cd /harakaapp && npm install
+# Set permission to write logs and cache in case container run as non root
+RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
 
 EXPOSE 2525
 EXPOSE 110
