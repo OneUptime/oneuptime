@@ -161,6 +161,12 @@ const StatusPageAnnouncementTemplates: LazyExoticComponent<
   return import("../Pages/Settings/StatusPageAnnouncementTemplates");
 });
 
+const StatusPageAnnouncementTemplateView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/StatusPageAnnouncementTemplateView");
+});
+
 const IncidentNoteTemplates: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -344,6 +350,25 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                 pageRoute={
                   RouteMap[
                     PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW,
+            2,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPageAnnouncementTemplateView
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW
                   ] as Route
                 }
               />
