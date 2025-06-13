@@ -162,7 +162,7 @@ const StatusPageAnnouncements: LazyExoticComponent<
 const AnnouncementCreate: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/StatusPages/Create");
+  return import("../Pages/StatusPages/AnnouncementCreate");
 });
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
