@@ -51,6 +51,7 @@ const StatusPageDelete: FunctionComponent<
             fieldType: FormFieldSchemaType.Email,
             required: true,
             placeholder: "user@company.com",
+            disableSpellCheck: true,
           },
         ]}
         showRefreshButton={true}

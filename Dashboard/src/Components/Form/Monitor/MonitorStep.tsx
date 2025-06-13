@@ -323,6 +323,7 @@ return {
             />
             <Input
               initialValue={destinationInputValue}
+              disableSpellCheck={true}
               onBlur={() => {
                 setTouched({
                   ...touched,

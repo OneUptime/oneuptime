@@ -10,6 +10,7 @@ export interface ComponentProps {
   onBlur?: (() => void) | undefined;
   tabIndex?: number | undefined;
   error?: string | undefined;
+  disableSpellCheck?: boolean | undefined;
 }
 
 const MarkdownEditor: FunctionComponent<ComponentProps> = (
@@ -25,6 +26,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       onFocus={props.onFocus ? props.onFocus : () => {}}
       onBlur={props.onBlur ? props.onBlur : () => {}}
       error={props.error}
+      disableSpellCheck={props.disableSpellCheck}
     />
   );
 };

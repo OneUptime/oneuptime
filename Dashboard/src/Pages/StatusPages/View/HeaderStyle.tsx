@@ -129,6 +129,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.URL,
             required: true,
             placeholder: "https://link.com",
+            disableSpellCheck: true,
           },
         ]}
         showRefreshButton={true}

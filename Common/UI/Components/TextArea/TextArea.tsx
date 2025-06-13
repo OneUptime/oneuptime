@@ -19,6 +19,7 @@ export interface ComponentProps {
   error?: string | undefined;
   autoFocus?: boolean | undefined;
   dataTestId?: string | undefined;
+  disableSpellCheck?: boolean | undefined;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -64,6 +65,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
           data-testid={props.dataTestId}
           className={`${className || ""}`}
           value={text}
+          spellCheck={!props.disableSpellCheck}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value: string = e.target.value;
 

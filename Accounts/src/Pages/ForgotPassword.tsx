@@ -56,6 +56,7 @@ const ForgotPassword: () => JSX.Element = () => {
                   title: "Email",
                   fieldType: FormFieldSchemaType.Email,
                   required: true,
+                  disableSpellCheck: true,
                 },
               ]}
               onSuccess={() => {
