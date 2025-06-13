@@ -4,6 +4,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -22,6 +23,7 @@ export interface ComponentProps {
   error?: string | undefined;
   value?: string | undefined;
   showLineNumbers?: boolean | undefined;
+  disableSpellCheck?: boolean | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
@@ -31,6 +33,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
   const [placeholder, setPlaceholder] = useState<string>("");
   const [helpText, setHelpText] = useState<string>("");
+  const editorRef = useRef<any>(null);
 
   useEffect(() => {
     let value: string | undefined = props.value;
@@ -87,6 +90,20 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
   const [value, setValue] = useState<string>("");
 
+  // Handle spell check configuration for Monaco Editor
+  useEffect(() => {
+    if (editorRef.current && props.type === CodeType.Markdown) {
+      const editor = editorRef.current;
+      const domNode = editor.getDomNode();
+      if (domNode) {
+        const textareaElement = domNode.querySelector('textarea');
+        if (textareaElement) {
+          textareaElement.spellcheck = !props.disableSpellCheck;
+        }
+      }
+    }
+  }, [props.disableSpellCheck, props.type]);
+
   useEffect(() => {
     let initialValue: string | undefined = props.initialValue;
 
@@ -131,6 +148,20 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
           }
           if (props.onChange) {
             props.onChange(code);
+          }
+        }}
+        onMount={(editor, monaco) => {
+          editorRef.current = editor;
+          
+          // Configure spell check for Markdown
+          if (props.type === CodeType.Markdown) {
+            const domNode = editor.getDomNode();
+            if (domNode) {
+              const textareaElement = domNode.querySelector('textarea');
+              if (textareaElement) {
+                textareaElement.spellcheck = !props.disableSpellCheck;
+              }
+            }
           }
         }}
         defaultValue={value || placeholder || ""}
