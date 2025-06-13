@@ -83,14 +83,14 @@ export default class SpecificationConverter {
                         {
                             name: "api_url",
                             string: {
-                                computed_optional_required: "optional",
+                                optional_required: "optional",
                                 description: "The base URL for the API"
                             }
                         },
                         {
                             name: "api_key",
                             string: {
-                                computed_optional_required: "optional",
+                                optional_required: "optional",
                                 sensitive: true,
                                 description: "API key for authentication"
                             }
@@ -110,6 +110,22 @@ export default class SpecificationConverter {
         }
 
         return providerSpec;
+    }
+
+    /**
+     * Sanitize resource name to follow Terraform naming conventions
+     * - Must start with lowercase letter or underscore
+     * - Can only contain lowercase letters, numbers, and underscores
+     * - Convert hyphens to underscores
+     * - Convert to lowercase
+     */
+    private static sanitizeResourceName(name: string): string {
+        return name
+            .toLowerCase()
+            .replace(/-/g, '_')  // Replace hyphens with underscores
+            .replace(/[^a-z0-9_]/g, '_')  // Replace any other invalid characters with underscores
+            .replace(/^[0-9]/, '_$&')  // If it starts with a number, prefix with underscore
+            .replace(/_+/g, '_');  // Replace multiple consecutive underscores with single underscore
     }
 
     private static extractResourcesAndDataSources(openApiSpec: OpenAPISpec): {
@@ -133,8 +149,14 @@ export default class SpecificationConverter {
 
             if (pathSegments.length === 0) continue;
 
-            const resourceName = pathSegments[pathSegments.length - 1];
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            if (!lastSegment) continue;
+            
+            const resourceName = this.sanitizeResourceName(lastSegment);
             if (!resourceName) continue;
+
+            // Sanitize resource name to be Terraform-compatible
+            const sanitizedResourceName = this.sanitizeResourceName(resourceName);
 
             // Determine if this is a resource (has POST/PUT/DELETE) or data source (only GET)
             const methods = Object.keys(pathValue);
@@ -146,17 +168,17 @@ export default class SpecificationConverter {
 
             if (hasWriteOperations) {
                 // This is a resource
-                if (!resources.find(r => r.name === resourceName)) {
+                if (!resources.find(r => r.name === sanitizedResourceName)) {
                     resources.push({
-                        name: resourceName,
+                        name: sanitizedResourceName,
                         schema: schema
                     });
                 }
             } else if (methods.includes('get')) {
                 // This is a data source
-                if (!datasources.find(d => d.name === resourceName)) {
+                if (!datasources.find(d => d.name === sanitizedResourceName)) {
                     datasources.push({
-                        name: resourceName,
+                        name: sanitizedResourceName,
                         schema: schema
                     });
                 }
@@ -298,14 +320,14 @@ export default class SpecificationConverter {
                         {
                             name: "api_url",
                             string: {
-                                computed_optional_required: "optional",
+                                optional_required: "optional",
                                 description: "The base URL for the API"
                             }
                         },
                         {
                             name: "api_key",
                             string: {
-                                computed_optional_required: "optional",
+                                optional_required: "optional",
                                 sensitive: true,
                                 description: "API key for authentication"
                             }
