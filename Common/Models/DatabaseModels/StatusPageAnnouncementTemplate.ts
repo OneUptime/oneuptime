@@ -341,7 +341,12 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadStatusPageAnnouncementTemplate,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageAnnouncementTemplate,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: true,

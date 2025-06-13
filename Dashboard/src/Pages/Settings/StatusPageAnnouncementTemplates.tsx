@@ -7,9 +7,10 @@ import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusP
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPagesElement from "../../Components/StatusPage/StatusPagesElement";
+import { RouteUtil } from "../../Utils/RouteMap";
 
 const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
+  props: PageComponentProps,
 ): ReactElement => {
   return (
     <Fragment>
@@ -19,6 +20,7 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
         userPreferencesKey="status-page-announcement-templates-table"
         name="Settings > Status Page Announcement Templates"
         isDeleteable={false}
+        viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
