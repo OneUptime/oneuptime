@@ -92,6 +92,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       fieldType: FormFieldSchemaType.Phone,
       required: true,
       placeholder: "+11234567890",
+      disableSpellCheck: true,
     },
   ];
 
@@ -204,6 +205,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               fieldType: FormFieldSchemaType.Phone,
               required: true,
               placeholder: "+11234567890",
+              disableSpellCheck: true,
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(

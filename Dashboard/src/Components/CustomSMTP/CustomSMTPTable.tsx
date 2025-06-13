@@ -129,6 +129,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Hostname,
             required: true,
             placeholder: "smtp.server.com",
+            disableSpellCheck: true,
           },
           {
             field: {
@@ -158,6 +159,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "emailuser",
+            disableSpellCheck: true,
           },
           {
             field: {
@@ -168,6 +170,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
             placeholder: "Password",
+            disableSpellCheck: true,
           },
           {
             field: {
@@ -180,6 +183,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             description:
               "Email used to log in to this SMTP Server. This is also the email your customers will see. ",
             placeholder: "email@company.com",
+            disableSpellCheck: true,
           },
           {
             field: {
@@ -192,6 +196,7 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             description:
               "This is the display name your team and customers see, when they receive emails from OneUptime.",
             placeholder: "Company, Inc.",
+            disableSpellCheck: true,
           },
         ]}
         showRefreshButton={true}

@@ -92,6 +92,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       fieldType: FormFieldSchemaType.Email,
       required: true,
       placeholder: "subscriber@company.com",
+      disableSpellCheck: true,
     },
   ];
 
@@ -204,6 +205,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: "email@yourcompany.com",
+              disableSpellCheck: true,
             },
           ]}
           createOrUpdateApiUrl={URL.fromString(

@@ -134,6 +134,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                 title: "Email",
                 fieldType: FormFieldSchemaType.Email,
                 required: true,
+                disableSpellCheck: true,
               },
               {
                 field: {

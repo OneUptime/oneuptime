@@ -68,6 +68,7 @@ const RegisterPage: () => JSX.Element = () => {
                   title: "New Password",
                   required: true,
                   showEvenIfPermissionDoesNotExist: true,
+                  disableSpellCheck: true,
                 },
                 {
                   field: {
@@ -83,6 +84,7 @@ const RegisterPage: () => JSX.Element = () => {
                   overrideFieldKey: "confirmPassword",
                   required: true,
                   showEvenIfPermissionDoesNotExist: true,
+                  disableSpellCheck: true,
                 },
               ]}
               createOrUpdateApiUrl={apiUrl}

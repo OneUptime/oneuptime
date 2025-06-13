@@ -94,6 +94,7 @@ const MonitorSecrets: FunctionComponent<
               noNumbers: true,
               noSpecialCharacters: true,
             },
+            disableSpellCheck: true,
           },
           {
             field: {

@@ -127,6 +127,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   placeholder: "New Password",
                   title: "New Password",
                   required: true,
+                  disableSpellCheck: true,
                 },
                 {
                   field: {
@@ -142,6 +143,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                   title: "Confirm Password",
                   overrideFieldKey: "confirmPassword",
                   required: true,
+                  disableSpellCheck: true,
                 },
               ]}
               createOrUpdateApiUrl={apiUrl}
