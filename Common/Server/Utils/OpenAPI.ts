@@ -375,11 +375,6 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
                 },
-                miscDataProps: {
-                  type: "object",
-                  description: "Additional data properties for creation",
-                  additionalProperties: true,
-                },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
@@ -998,11 +993,6 @@ export default class OpenAPIUtil {
               properties: {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
-                },
-                miscDataProps: {
-                  type: "object",
-                  description: "Additional data properties for creation",
-                  additionalProperties: true,
                 },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
