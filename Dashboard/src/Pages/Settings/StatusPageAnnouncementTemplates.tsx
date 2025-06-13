@@ -111,7 +111,6 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: "Select Status Pages",
-            overrideFieldKey: "statusPages",
           },
           {
             field: {

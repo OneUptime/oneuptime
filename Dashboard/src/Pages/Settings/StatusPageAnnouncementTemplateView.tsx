@@ -107,7 +107,6 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
             },
             required: false,
             placeholder: "Select Status Pages",
-            overrideFieldKey: "statusPages",
           },
           {
             field: {
