@@ -14,7 +14,12 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import Query from "Common/Types/BaseDatabase/Query";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -378,15 +383,17 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             ] as ObjectID;
 
             // Find the selected template
-            const selectedTemplate = announcementTemplates.find(
-              (template) => template._id?.toString() === announcementTemplateId.toString()
-            );
+            const selectedTemplate = announcementTemplates.find((template) => {
+              return (
+                template._id?.toString() === announcementTemplateId.toString()
+              );
+            });
 
             if (selectedTemplate) {
               // Close the template modal and trigger the regular create modal with template data
               setShowAnnouncementTemplateModal(false);
               setIsLoading(false);
-              
+
               // Note: The actual template data population would need to be handled
               // by the ModelTable component's create functionality
               // This is a simplified implementation
