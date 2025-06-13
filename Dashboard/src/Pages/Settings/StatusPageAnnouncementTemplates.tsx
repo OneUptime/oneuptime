@@ -165,7 +165,10 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              statusPages: true,
+              statusPages: {
+                _id: true, 
+                name: true,
+              },
             },
             title: "Status Pages",
             type: FieldType.Element,
