@@ -9,8 +9,11 @@ interface InstallResult {
 }
 
 class ToolInstaller {
-    private static readonly TOOL_NAME = 'tfplugingen-openapi';
-    private static readonly TOOL_PACKAGE = 'github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest';
+    private static readonly OPENAPI_TOOL_NAME = 'tfplugingen-openapi';
+    private static readonly OPENAPI_TOOL_PACKAGE = 'github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest';
+    
+    private static readonly FRAMEWORK_TOOL_NAME = 'tfplugingen-framework';
+    private static readonly FRAMEWORK_TOOL_PACKAGE = 'github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@latest';
 
     public static async installTerraformPluginCodegenOpenAPI(): Promise<InstallResult> {
         try {
@@ -25,30 +28,74 @@ class ToolInstaller {
             }
 
             // Install the tool
-            console.log(`📦 Running: go install ${this.TOOL_PACKAGE}`);
-            execSync(`go install ${this.TOOL_PACKAGE}`, {
+            console.log(`📦 Running: go install ${this.OPENAPI_TOOL_PACKAGE}`);
+            execSync(`go install ${this.OPENAPI_TOOL_PACKAGE}`, {
                 stdio: 'inherit',
                 timeout: 300000 // 5 minutes timeout
             });
 
             // Verify installation
-            const version = this.getToolVersion();
+            const version = this.getToolVersion(this.OPENAPI_TOOL_NAME);
             if (version) {
                 console.log('✅ Installation successful!');
                 return {
                     success: true,
-                    message: `Successfully installed ${this.TOOL_NAME}`,
+                    message: `Successfully installed ${this.OPENAPI_TOOL_NAME}`,
                     version: version
                 };
             } else {
                 return {
                     success: false,
-                    message: `Installation completed but ${this.TOOL_NAME} is not available in PATH`
+                    message: `Installation completed but ${this.OPENAPI_TOOL_NAME} is not available in PATH`
                 };
             }
 
         } catch (error) {
             console.error('❌ Installation failed:', error);
+            return {
+                success: false,
+                message: `Installation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            };
+        }
+    }
+
+    public static async installTerraformPluginFrameworkGenerator(): Promise<InstallResult> {
+        try {
+            console.log('🔧 Installing Terraform Plugin Framework Generator...');
+            
+            // Check if Go is installed
+            if (!this.isGoInstalled()) {
+                return {
+                    success: false,
+                    message: 'Go is not installed. Please install Go first.'
+                };
+            }
+
+            // Install the tool
+            console.log(`📦 Running: go install ${this.FRAMEWORK_TOOL_PACKAGE}`);
+            execSync(`go install ${this.FRAMEWORK_TOOL_PACKAGE}`, {
+                stdio: 'inherit',
+                timeout: 300000 // 5 minutes timeout
+            });
+
+            // Verify installation
+            const version = this.getToolVersion(this.FRAMEWORK_TOOL_NAME);
+            if (version) {
+                console.log('✅ Framework Generator installation successful!');
+                return {
+                    success: true,
+                    message: `Successfully installed ${this.FRAMEWORK_TOOL_NAME}`,
+                    version: version
+                };
+            } else {
+                return {
+                    success: false,
+                    message: `Installation completed but ${this.FRAMEWORK_TOOL_NAME} is not available in PATH`
+                };
+            }
+
+        } catch (error) {
+            console.error('❌ Framework Generator installation failed:', error);
             return {
                 success: false,
                 message: `Installation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -65,9 +112,9 @@ class ToolInstaller {
         }
     }
 
-    private static getToolVersion(): string | null {
+    private static getToolVersion(toolName: string): string | null {
         try {
-            execSync(`${this.TOOL_NAME} --help`, { 
+            execSync(`${toolName} --help`, { 
                 encoding: 'utf8',
                 stdio: 'pipe'
             });
@@ -77,7 +124,7 @@ class ToolInstaller {
             try {
                 // Try to find the binary in GOPATH/bin or GOBIN
                 const goPath = this.getGoPath();
-                const binaryPath = path.join(goPath, 'bin', this.TOOL_NAME);
+                const binaryPath = path.join(goPath, 'bin', toolName);
                 if (fs.existsSync(binaryPath)) {
                     return 'latest';
                 }
@@ -101,10 +148,12 @@ class ToolInstaller {
 
     public static printInstallationInfo(): void {
         console.log('📋 Installation Information:');
-        console.log(`   Tool: ${this.TOOL_NAME}`);
-        console.log(`   Package: ${this.TOOL_PACKAGE}`);
+        console.log(`   OpenAPI Tool: ${this.OPENAPI_TOOL_NAME}`);
+        console.log(`   OpenAPI Package: ${this.OPENAPI_TOOL_PACKAGE}`);
+        console.log(`   Framework Tool: ${this.FRAMEWORK_TOOL_NAME}`);
+        console.log(`   Framework Package: ${this.FRAMEWORK_TOOL_PACKAGE}`);
         console.log('   Prerequisites: Go must be installed');
-        console.log('   Usage: Run this script to install the tool globally');
+        console.log('   Usage: Use different methods to install the specific tool needed');
         console.log('');
     }
 }
