@@ -202,7 +202,10 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-        <PageRoute
+       
+      </PageRoute>
+
+       <PageRoute
           path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE] || ""}
           element={
             <Suspense fallback={Loader}>
@@ -213,7 +216,6 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-      </PageRoute>
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW] || ""}
