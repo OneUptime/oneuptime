@@ -14,7 +14,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPagesElement from "../../Components/StatusPage/StatusPagesElement";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 
-const StatusPageAnnouncementTemplateView: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const StatusPageAnnouncementTemplateView: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   return (
@@ -34,7 +36,7 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<PageComponentProps> 
             id: "template-info",
           },
           {
-            title: "Announcement Details", 
+            title: "Announcement Details",
             id: "announcement-details",
           },
           {
@@ -100,7 +102,7 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<PageComponentProps> 
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: StatusPage,
-              labelField: "name", 
+              labelField: "name",
               valueField: "_id",
             },
             required: false,
@@ -223,7 +225,9 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<PageComponentProps> 
         modelId={Navigation.getLastParamAsObjectID()}
         onDeleteSuccess={() => {
           Navigation.navigate(
-            RouteMap[PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES] as Route,
+            RouteMap[
+              PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES
+            ] as Route,
           );
         }}
       />

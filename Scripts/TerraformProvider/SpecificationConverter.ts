@@ -241,12 +241,12 @@ export default class SpecificationConverter {
     // Generate a basic schema structure
     // This is a simplified implementation - you may want to enhance this based on your specific needs
     const attributes: {
-    name: string;
-    string: {
+      name: string;
+      string: {
         computed_optional_required: string;
         description: string;
-    };
-}[] = [
+      };
+    }[] = [
       {
         name: "id",
         string: {
