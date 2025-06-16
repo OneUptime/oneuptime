@@ -71,9 +71,10 @@ Environment Variables:
     TERRAFORM_REGISTRY_TOKEN      # Required for Terraform Registry publishing
 
 Note: The GITHUB_TOKEN should have the following permissions:
-    - repo (for creating releases)
+    - repo (for creating releases in the terraform-provider-oneuptime repository)
     - write:packages (if publishing packages)
-    - For organization repos, ensure the token has access to the organization
+    - For organization repos, ensure the token has access to the OneUptime organization
+    - The token must have access to the terraform-provider-oneuptime repository
 
 EOF
 }
@@ -163,6 +164,25 @@ validate_prerequisites() {
             print_error "GITHUB_TOKEN environment variable not set. Required for publishing."
             exit 1
         fi
+        
+        # Validate access to the target repository
+        print_status "Validating access to target repository: $GITHUB_ORG/$PROVIDER_REPO"
+        if command -v gh &> /dev/null; then
+            if ! gh repo view "$GITHUB_ORG/$PROVIDER_REPO" &> /dev/null; then
+                print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
+                print_error "Please ensure the GITHUB_TOKEN has access to this repository"
+                exit 1
+            fi
+        else
+            # Fallback to API check if gh CLI is not available
+            local repo_check_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO"
+            if ! curl -s -H "Authorization: token $GITHUB_TOKEN" "$repo_check_url" | jq -e '.id' > /dev/null; then
+                print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
+                print_error "Please ensure the GITHUB_TOKEN has access to this repository"
+                exit 1
+            fi
+        fi
+        print_success "Repository access validated"
         
         if [[ -z "$GPG_PRIVATE_KEY" ]]; then
             print_warning "GPG_PRIVATE_KEY environment variable not set. Required for signing releases."
@@ -358,8 +378,9 @@ EOF
     fi
     
     if [[ "$use_gh_cli" == true ]]; then
-        # Use GitHub CLI if available
+        # Use GitHub CLI if available - specify the target repository
         if gh release create "v$VERSION" \
+            --repo "$GITHUB_ORG/$PROVIDER_REPO" \
             --title "OneUptime Terraform Provider v$VERSION" \
             --notes-file "$release_notes_file" \
             --draft; then
