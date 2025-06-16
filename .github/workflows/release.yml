@@ -1641,6 +1641,82 @@ jobs:
         working-directory: ./Terraform
         run: |
 
+          # Create .goreleaser.yml
+          cat > .goreleaser.yml << 'EOF'
+          version: 2
+          
+          before:
+            hooks:
+              - go mod tidy
+          
+          builds:
+            - env:
+                - CGO_ENABLED=0
+              mod_timestamp: '{{ .CommitTimestamp }}'
+              flags:
+                - -trimpath
+              ldflags:
+                - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
+              goos:
+                - freebsd
+                - windows
+                - linux
+                - darwin
+              goarch:
+                - amd64
+                - '386'
+                - arm
+                - arm64
+              ignore:
+                - goos: darwin
+                  goarch: '386'
+              binary: '{{ .ProjectName }}_v{{ .Version }}'
+          
+          archives:
+            - format: zip
+              name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+          
+          checksum:
+            extra_files:
+              - glob: 'terraform-registry-manifest.json'
+                name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
+            name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+            algorithm: sha256
+          
+          signs:
+            - artifacts: checksum
+              args:
+                - "--batch"
+                - "--local-user"
+                - "{{ .Env.GPG_FINGERPRINT | default \"\" }}"
+                - "--output"
+                - "${signature}"
+                - "--detach-sign"
+                - "${artifact}"
+              # Only sign if GPG_FINGERPRINT is available
+              skip: '{{ if .Env.GPG_FINGERPRINT }}false{{ else }}true{{ end }}'
+          
+          release:
+            extra_files:
+              - glob: 'terraform-registry-manifest.json'
+            name_template: '{{ .ProjectName }}_{{ .Version }}'
+          
+          changelog:
+            use: github
+            sort: asc
+            abbrev: 0
+          EOF
+
+          # Create terraform-registry-manifest.json
+          cat > terraform-registry-manifest.json << 'EOF'
+          {
+              "version": 1,
+              "metadata": {
+                  "protocol_versions": ["6.0"]
+              }
+          }
+          EOF
+
           # Update dependencies
           go mod tidy
 
@@ -1658,16 +1734,106 @@ jobs:
             echo "No test files found, skipping tests"
           fi
 
-      - name: Create terraform provider release
-        working-directory: ./Terraform
+      - name: Setup Git for terraform provider repo
         run: |
-          # Tag the current commit for terraform provider
-          git tag -a "terraform-provider-v${{ steps.version.outputs.version }}" -m "Terraform Provider Release v${{ steps.version.outputs.version }}"
-          git push origin "terraform-provider-v${{ steps.version.outputs.version }}"
-          
-          goreleaser release --clean
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push to terraform-provider-oneuptime repository
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TERRAFORM_PROVIDER_TOKEN: ${{ secrets.TERRAFORM_PROVIDER_TOKEN }}
+        run: |
+          # Clone the terraform provider repository
+          git clone https://x-access-token:${TERRAFORM_PROVIDER_TOKEN}@github.com/OneUptime/terraform-provider-oneuptime.git terraform-provider-repo
+          
+          # Copy generated terraform files to the provider repository
+          cd terraform-provider-repo
+          
+          # Clear existing content (except .git)
+          find . -mindepth 1 -name '.git' -prune -o -type f -exec rm -f {} +
+          find . -mindepth 1 -name '.git' -prune -o -type d -exec rm -rf {} +
+          
+          # Copy terraform provider files
+          cp -r ../Terraform/* .
+          
+          # Ensure we have the required files
+          if [ ! -f "go.mod" ] || [ ! -f "main.go" ] || [ ! -f "provider.go" ]; then
+            echo "Error: Required terraform provider files not found"
+            exit 1
+          fi
+          
+          # Add all files
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit for terraform provider"
+            exit 0
+          fi
+          
+          # Commit changes
+          git commit -m "Release terraform provider v${{ steps.version.outputs.version }}
+
+          Auto-generated from OneUptime main repository
+          Build: ${{needs.generate-build-number.outputs.build_number}}
+          Commit: ${{ github.sha }}
+          "
+          
+          # Create and push tag
+          git tag "v${{ steps.version.outputs.version }}"
+          
+          # Push changes and tag
+          git push origin main
+          git push origin "v${{ steps.version.outputs.version }}"
+          
+          echo "Successfully pushed terraform provider v${{ steps.version.outputs.version }} to OneUptime/terraform-provider-oneuptime"
+
+      - name: Create terraform provider release
+        env:
+          TERRAFORM_PROVIDER_TOKEN: ${{ secrets.TERRAFORM_PROVIDER_TOKEN }}
+        run: |
+          # Use GitHub CLI to create release in the terraform provider repository
+          cd terraform-provider-repo
+          
+          # Create release notes
+          cat > release-notes.md << EOF
+          # OneUptime Terraform Provider v${{ steps.version.outputs.version }}
+          
+          ## What's Changed
+          
+          This release includes the latest OneUptime Terraform provider generated from the OneUptime API specification.
+          
+          ### Features
+          - Full support for OneUptime resources and data sources
+          - Auto-generated from OpenAPI specification
+          - Supports all OneUptime monitoring and incident management features
+          
+          ### Installation
+          
+          \`\`\`hcl
+          terraform {
+            required_providers {
+              oneuptime = {
+                source  = "oneuptime/oneuptime"
+                version = "~> ${{ steps.version.outputs.version }}"
+              }
+            }
+          }
+          \`\`\`
+          
+          ### Build Information
+          - **Build Number**: ${{needs.generate-build-number.outputs.build_number}}
+          - **Source Commit**: ${{ github.sha }}
+          - **Generated**: $(date -u)
+          
+          For detailed documentation and examples, visit: https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs
+          EOF
+          
+          # Create GitHub release
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "OneUptime Terraform Provider v${{ steps.version.outputs.version }}" \
+            --notes-file release-notes.md \
+            --repo OneUptime/terraform-provider-oneuptime
 
       - name: Post-release summary
         run: |
@@ -1675,7 +1841,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Provider Name:** oneuptime" >> $GITHUB_STEP_SUMMARY
-          echo "**GitHub Release:** https://github.com/OneUptime/terraform-provider-oneuptime/releases/tag/terraform-provider-v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Release:** https://github.com/OneUptime/terraform-provider-oneuptime/releases/tag/v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Terraform Registry:** https://registry.terraform.io/providers/oneuptime/oneuptime/${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The provider will be available on the Terraform Registry within a few minutes." >> $GITHUB_STEP_SUMMARY
@@ -1686,8 +1852,6 @@ jobs:
 
   api-reference-docker-image-deploy: 
     needs: generate-build-number
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
 
