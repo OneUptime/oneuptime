@@ -351,7 +351,6 @@ publish_to_registry() {
     print_status "Monitor the release at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases"
     print_status "Provider will be available at: https://registry.terraform.io/providers/oneuptime/oneuptime/$VERSION"
 
-    print_success "Publishing process initiated"
 }
 
 # Function to cleanup
