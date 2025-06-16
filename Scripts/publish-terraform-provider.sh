@@ -242,12 +242,23 @@ generate_provider() {
     local go_files=$(find "$TERRAFORM_DIR" -name "*.go" | wc -l)
     print_status "Generated $go_files Go files"
 
+    # Check for essential files
+    if [[ ! -f "$TERRAFORM_DIR/go.mod" ]]; then
+        print_error "go.mod file not generated. Provider generation incomplete."
+        exit 1
+    fi
+
+    if [[ ! -f "$TERRAFORM_DIR/main.go" ]]; then
+        print_error "main.go file not generated. Provider generation incomplete."
+        exit 1
+    fi
+
     if [[ "$go_files" -eq 0 ]]; then
         print_error "No Go files were generated"
         exit 1
     fi
 
-    print_success "Terraform provider generated successfully"
+    print_success "Terraform provider generated successfully with go.mod and main.go"
 }
 
 # Function to run tests
@@ -631,6 +642,22 @@ build_provider_releases() {
 
     cd "$TERRAFORM_DIR"
 
+    # Verify Go module exists
+    if [[ ! -f "go.mod" ]]; then
+        print_error "go.mod file not found. The provider generation should create this file."
+        print_error "Please ensure 'npm run generate-terraform-provider' creates a proper Go module."
+        exit 1
+    fi
+
+    # Verify main.go exists
+    if [[ ! -f "main.go" ]]; then
+        print_error "main.go file not found. The provider generation should create this file."
+        print_error "Please ensure 'npm run generate-terraform-provider' creates the main entry point."
+        exit 1
+    fi
+
+    print_status "Found go.mod and main.go files - proceeding with build"
+
     # Create builds directory
     local builds_dir="builds"
     rm -rf "$builds_dir"
@@ -666,8 +693,16 @@ build_provider_releases() {
         
         print_status "Building for $os/$arch..."
         
+        # Set build environment variables
+        export CGO_ENABLED=0
+        export GOOS=$os
+        export GOARCH=$arch
+        
+        # Build the binary with appropriate flags
+        local build_flags="-a -installsuffix cgo -ldflags='-s -w -X main.version=$VERSION -extldflags \"-static\"'"
+        
         # Build the binary
-        if GOOS=$os GOARCH=$arch go build -o "$builds_dir/$binary_name" -ldflags="-s -w -X main.version=$VERSION" .; then
+        if go build $build_flags -o "$builds_dir/$binary_name" .; then
             # Create zip file
             cd "$builds_dir"
             zip "$zip_name" "$binary_name"
@@ -676,6 +711,9 @@ build_provider_releases() {
             print_status "✓ Built $zip_name"
         else
             print_error "Failed to build for $os/$arch"
+            print_error "Build command: go build $build_flags -o $builds_dir/$binary_name ."
+            print_error "Current directory: $(pwd)"
+            print_error "Available files: $(ls -la)"
             exit 1
         fi
     done
@@ -871,6 +909,7 @@ show_summary() {
         print_status "Note: To generate a new provider version, run 'npm run generate-terraform-provider' first"
     fi
 }
+
 
 # Main execution function
 main() {
