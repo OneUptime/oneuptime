@@ -23,6 +23,63 @@ jobs:
         token: ${{secrets.github_token}}
     - run: echo "Build number is ${{ steps.buildnumber.outputs.build_number }}"
 
+  publish-terraform-provider:
+    runs-on: ubuntu-latest
+    needs: [generate-build-number]
+    permissions:
+      contents: write  # For creating releases
+      packages: write  # For publishing packages
+    
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
+
+      - name: Import GPG key (optional)
+        continue-on-error: true
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing Terraform provider version: $VERSION"
+
+      - name: Install dependencies
+        run: |
+          npm install
+          if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
+          if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
+
+      - name: Generate Terraform provider
+        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }} --dry-run
+
+     
+
   llm-docker-image-deploy: 
     needs: generate-build-number
     strategy:
