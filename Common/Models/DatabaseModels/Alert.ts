@@ -968,7 +968,7 @@ export default class Alert extends BaseModel {
     required: false,
     type: TableColumnType.Markdown,
     title: "Remediation Notes",
-    description: Markdown.getMarkdownCheatsheet("Notes on how to remediate this alert"),
+    description: "Notes on how to remediate this alert. This is in markdown.",
   })
   @Column({
     nullable: true,

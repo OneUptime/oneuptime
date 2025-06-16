@@ -14,11 +14,6 @@ export default class Markdown {
   private static docsRenderer: Renderer | null = null;
   private static emailRenderer: Renderer | null = null;
 
-  public static getMarkdownCheatsheet(prefix?: string): string {
-    const prefixText = prefix ? `${prefix}. ` : "";
-    return `${prefixText}This is in Markdown. [Learn more about Markdown syntax](https://www.markdownguide.org/cheat-sheet/).`;
-  }
-
   @CaptureSpan()
   public static async convertToHTML(
     markdown: string,
