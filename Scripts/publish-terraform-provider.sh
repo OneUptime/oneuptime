@@ -270,6 +270,10 @@ create_github_release() {
         
         # Set up SSH key for git operations
         local ssh_key_file="$HOME/.ssh/terraform_provider_deploy_key"
+        
+        # Ensure SSH directory exists
+        mkdir -p "$HOME/.ssh"
+        
         echo "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" > "$ssh_key_file"
         chmod 600 "$ssh_key_file"
         
