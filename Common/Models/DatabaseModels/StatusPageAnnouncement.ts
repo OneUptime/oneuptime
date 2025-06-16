@@ -18,6 +18,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
+import Markdown from "../../Server/Types/Markdown";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -318,7 +319,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     required: true,
     type: TableColumnType.Markdown,
     title: "Announcement Description",
-    description: "Text of the announcement. This is in Markdown.",
+    description: Markdown.getMarkdownCheatsheet("Text of the announcement"),
   })
   @Column({
     nullable: false,

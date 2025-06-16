@@ -1,3 +1,4 @@
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -94,7 +95,7 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "announcement-details",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
-            description: "Add an announcement note. This is in Markdown.",
+            description: MarkdownUtil.getMarkdownCheatsheet("Add an announcement note"),
           },
           {
             field: {

@@ -8,6 +8,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import Markdown from "../../Server/Types/Markdown";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -287,7 +288,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Description of this scheduled event that will show up on Status Page. This is in markdown.",
+      Markdown.getMarkdownCheatsheet("Description of this scheduled event that will show up on Status Page"),
   })
   @Column({
     nullable: true,

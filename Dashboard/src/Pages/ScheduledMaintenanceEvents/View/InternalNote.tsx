@@ -1,3 +1,4 @@
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import UserElement from "../../../Components/User/User";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
@@ -173,7 +174,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
             description:
-              "Add a private note to this scheduled maintenance here. This is in Markdown.",
+              MarkdownUtil.getMarkdownCheatsheet("Add a private note to this scheduled maintenance here"),
           },
         ]}
         showRefreshButton={true}

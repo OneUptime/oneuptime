@@ -18,6 +18,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
+import Markdown from "../../Server/Types/Markdown";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -217,7 +218,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Short description of this alert. This is in markdown and will be visible on the status page.",
+      Markdown.getMarkdownCheatsheet("Short description of this alert. This will be visible on the status page"),
   })
   @Column({
     nullable: true,
@@ -967,7 +968,7 @@ export default class Alert extends BaseModel {
     required: false,
     type: TableColumnType.Markdown,
     title: "Remediation Notes",
-    description: "Notes on how to remediate this alert. This is in markdown.",
+    description: Markdown.getMarkdownCheatsheet("Notes on how to remediate this alert"),
   })
   @Column({
     nullable: true,

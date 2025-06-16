@@ -1,3 +1,4 @@
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -90,7 +91,7 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
             stepId: "announcement-details",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
-            description: "Add an announcement note. This is in Markdown.",
+            description: MarkdownUtil.getMarkdownCheatsheet("Add an announcement note"),
           },
           {
             field: {

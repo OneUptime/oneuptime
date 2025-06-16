@@ -1,5 +1,6 @@
 import Editor from "@monaco-editor/react";
 import CodeType from "../../../Types/Code/CodeType";
+import MarkdownUtil from "../../../Utils/Markdown";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -48,7 +49,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (props.placeholder) {
       if (props.type === CodeType.Markdown) {
-        setHelpText(`${props.placeholder}. This is in Markdown`);
+        setHelpText(MarkdownUtil.getMarkdownCheatsheet(props.placeholder));
       }
 
       if (props.type === CodeType.HTML) {
