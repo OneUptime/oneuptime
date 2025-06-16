@@ -1,17 +1,21 @@
 {
   "name": "@oneuptime/mcp-server",
   "version": "1.0.0",
-  "description": "",
-  "main": "Index.ts",
+  "description": "OneUptime MCP Server - Dynamic monitoring and incident management tools for Model Context Protocol",
+  "main": "build/Index.js",
   "bin": {
-    "oneuptime": "./build/Index.js"
+    "oneuptime-mcp": "./build/Index.js"
   },
   "files": [
-    "build"
+    "build/**/*",
+    "package.json",
+    "README.md"
   ],
   "scripts": {
     "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
     "compile": "tsc",
+    "build": "npm run compile",
+    "prepublishOnly": "npm run build",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
@@ -19,8 +23,30 @@
     "test": "rm -rf build && jest --detectOpenHandles --passWithNoTests",
     "coverage": "jest --detectOpenHandles --coverage"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "oneuptime",
+    "monitoring",
+    "alerting",
+    "incident-management",
+    "uptime",
+    "observability"
+  ],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime.git",
+    "directory": "MCP"
+  },
+  "homepage": "https://oneuptime.com",
+  "bugs": {
+    "url": "https://github.com/OneUptime/oneuptime/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@oneuptime/common": "^7.0.4263"
@@ -28,6 +54,8 @@
   "devDependencies": {
     "@types/jest": "^29.5.11",
     "@types/node": "^17.0.31",
-    "jest": "^28.1.0"
+    "jest": "^28.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.0"
   }
 }

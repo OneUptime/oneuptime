@@ -1,0 +1,314 @@
+name: Publish OneUptime MCP Server
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'MCP/**'
+      - '.github/workflows/publish-mcp.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'MCP/**'
+      - '.github/workflows/publish-mcp.yml'
+  release:
+    types: [published]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'MCP/package-lock.json'
+
+    - name: Install dependencies
+      working-directory: ./MCP
+      run: npm ci
+
+    - name: Compile TypeScript
+      working-directory: ./MCP
+      run: npm run compile
+
+    - name: Run tests
+      working-directory: ./MCP
+      run: npm test
+
+    - name: Run audit
+      working-directory: ./MCP
+      run: npm audit --audit-level=low
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+        cache-dependency-path: 'MCP/package-lock.json'
+
+    - name: Install dependencies
+      working-directory: ./MCP
+      run: npm ci
+
+    - name: Build
+      working-directory: ./MCP
+      run: npm run compile
+
+    - name: Generate OpenAPI tools dynamically
+      working-directory: ./MCP
+      run: |
+        echo "Generating MCP tools from OpenAPI spec..."
+        # This will be run at build time to ensure tools are up to date
+        node -e "
+          const generator = require('./build/Service/DynamicMCPGenerator.js');
+          generator.default.initialize().then(() => {
+            const models = generator.default.getAvailableModels();
+            console.log('Generated tools for models:', models.map(m => m.name).join(', '));
+          }).catch(console.error);
+        "
+
+    - name: Create tarball
+      working-directory: ./MCP
+      run: npm pack
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-server-package
+        path: MCP/*.tgz
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: mcp-server-package
+        path: MCP/
+
+    - name: Install dependencies
+      working-directory: ./MCP
+      run: npm ci
+
+    - name: Build
+      working-directory: ./MCP
+      run: npm run compile
+
+    - name: Publish to NPM
+      working-directory: ./MCP
+      run: npm publish --access public
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-docker:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          oneuptime/mcp-server
+          ghcr.io/${{ github.repository }}/mcp-server
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./MCP
+        file: ./MCP/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64,linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  publish-mcp-registry:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      working-directory: ./MCP
+      run: npm ci
+
+    - name: Build
+      working-directory: ./MCP
+      run: npm run compile
+
+    - name: Create MCP registry entry
+      working-directory: ./MCP
+      run: |
+        # Create a registry entry for the MCP server
+        cat > mcp-registry.json << EOF
+        {
+          "name": "@oneuptime/mcp-server",
+          "version": "$(node -p "require('./package.json').version")",
+          "description": "OneUptime MCP Server - Dynamic monitoring and incident management tools",
+          "author": "OneUptime <hello@oneuptime.com>",
+          "license": "Apache-2.0",
+          "homepage": "https://oneuptime.com",
+          "repository": {
+            "type": "git",
+            "url": "https://github.com/OneUptime/oneuptime.git",
+            "directory": "MCP"
+          },
+          "capabilities": {
+            "tools": true,
+            "resources": false,
+            "prompts": false
+          },
+          "tags": [
+            "monitoring",
+            "alerting",
+            "incident-management",
+            "uptime",
+            "observability",
+            "oneuptime"
+          ],
+          "executable": {
+            "npm": "@oneuptime/mcp-server",
+            "docker": "oneuptime/mcp-server:latest"
+          }
+        }
+        EOF
+
+    - name: Upload MCP registry entry
+      uses: actions/upload-artifact@v4
+      with:
+        name: mcp-registry-entry
+        path: MCP/mcp-registry.json
+
+  create-release-notes:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      working-directory: ./MCP
+      run: npm ci
+
+    - name: Build
+      working-directory: ./MCP
+      run: npm run compile
+
+    - name: Generate release notes
+      working-directory: ./MCP
+      run: |
+        # Generate comprehensive release notes
+        cat > release-notes.md << EOF
+        # OneUptime MCP Server Release
+
+        ## Features
+        - **Dynamic Tool Generation**: Automatically generates MCP tools from OpenAPI specification
+        - **Complete CRUD Operations**: Support for Create, Read, Update, Delete operations on all OneUptime models
+        - **Model Discovery**: Built-in tools to explore available models and their schemas
+        - **OpenAPI Integration**: Direct integration with OneUptime's OpenAPI specification
+
+        ## Available Models
+        \`\`\`
+        $(node -e "
+          const generator = require('./build/Service/DynamicMCPGenerator.js');
+          generator.default.initialize().then(() => {
+            const models = generator.default.getAvailableModels();
+            models.forEach(model => console.log('- ' + model.name + ': ' + model.description));
+          }).catch(() => console.log('Unable to load models'));
+        ")
+        \`\`\`
+
+        ## Installation
+
+        ### NPM
+        \`\`\`bash
+        npm install -g @oneuptime/mcp-server
+        \`\`\`
+
+        ### Docker
+        \`\`\`bash
+        docker run --rm -i oneuptime/mcp-server:latest
+        \`\`\`
+
+        ## Configuration
+        Set the following environment variables:
+        - \`ONEUPTIME_URL\`: Your OneUptime instance URL
+        - \`ONEUPTIME_PROJECT_ID\`: Your project ID
+        - \`ONEUPTIME_API_KEY\`: Your API key
+
+        ## Usage
+        The MCP server provides tools for:
+        - Managing monitors and incidents
+        - Creating and updating status pages
+        - Managing teams and users
+        - Working with all OneUptime models
+
+        ## Generated Tools
+        All tools are dynamically generated from the OpenAPI specification, ensuring they stay up-to-date with the latest API changes.
+        EOF
+
+    - name: Upload release notes
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-notes
+        path: MCP/release-notes.md
