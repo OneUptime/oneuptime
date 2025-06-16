@@ -1,6 +1,6 @@
 import Editor from "@monaco-editor/react";
 import CodeType from "../../../Types/Code/CodeType";
-import MarkdownUtil from "../../../Utils/Markdown";
+import MarkdownUtil from "../../Utils/Markdown";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -33,7 +33,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   let className: string = "";
 
   const [placeholder, setPlaceholder] = useState<string>("");
-  const [helpText, setHelpText] = useState<string>("");
+  const [helpText, setHelpText] = useState<string | ReactElement>("");
   const editorRef: React.MutableRefObject<any> = useRef<any>(null);
 
   useEffect(() => {
