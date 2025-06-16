@@ -60,7 +60,7 @@ async function main(): Promise<void> {
     FrameworkGenerator.generateAll({
       specificationPath: providerSpecPath,
       outputPath: frameworkOutputPath,
-      packageName: "oneuptime", // Optional: specify a package name
+      packageName: "oneuptime", // Use oneuptime package for generated files
     });
 
     // 5. Setup Go module and build configuration

@@ -42,10 +42,10 @@ export class GoModuleSetup {
     // Create go.mod
     this.createGoMod(terraformDir);
 
-    // Create main.go
-    this.createMainGo(terraformDir);
+    // Create cmd directory and main.go
+    this.createCmdMainGo(terraformDir);
 
-    // Create provider.go
+    // Create provider.go in root directory with proper package
     this.createProviderGo(terraformDir);
 
     // Create .goreleaser.yml
@@ -83,11 +83,16 @@ require (
     }
   }
 
-  private createMainGo(terraformDir: string): void {
-    const mainGoPath = path.join(terraformDir, "main.go");
+  private createCmdMainGo(terraformDir: string): void {
+    const cmdDir = path.join(terraformDir, "cmd");
+    if (!fs.existsSync(cmdDir)) {
+      fs.mkdirSync(cmdDir, { recursive: true });
+    }
+    
+    const mainGoPath = path.join(cmdDir, "main.go");
     if (!fs.existsSync(mainGoPath)) {
       // eslint-disable-next-line no-console
-      console.log("   📄 Creating main.go file...");
+      console.log("   📄 Creating cmd/main.go file...");
       
       const mainGoContent = `package main
 
@@ -97,6 +102,7 @@ import (
     "log"
 
     "github.com/hashicorp/terraform-plugin-framework/providerserver"
+    "github.com/${this.config.githubOrg}/terraform-provider-${this.config.providerName}"
 )
 
 // Provider documentation generation.
@@ -122,7 +128,7 @@ func main() {
         Debug:   debug,
     }
 
-    err := providerserver.Serve(context.Background(), NewProvider(version), opts)
+    err := providerserver.Serve(context.Background(), ${this.config.providerName}.NewProvider(version), opts)
     if err != nil {
         log.Fatal(err.Error())
     }
@@ -139,7 +145,7 @@ func main() {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating provider.go file...");
       
-      const providerGoContent = `package main
+      const providerGoContent = `package ${this.config.providerName}
 
 import (
     "context"
@@ -344,8 +350,8 @@ changelog:
       // eslint-disable-next-line no-console
       console.log("   🔨 Building provider for current platform...");
       
-      // Build for current platform
-      execSync("go build -v .", { stdio: "inherit" });
+      // Build from cmd directory
+      execSync(`go build -v -o terraform-provider-${this.config.providerName} ./cmd`, { stdio: "inherit" });
       
       // eslint-disable-next-line no-console
       console.log("   ✅ Provider build successful");
