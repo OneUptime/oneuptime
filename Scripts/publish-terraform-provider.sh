@@ -66,9 +66,14 @@ Examples:
     $0 -v 1.0.1 --skip-tests      # Publish without running tests
 
 Environment Variables:
-    GITHUB_TOKEN                   # Required for GitHub operations
+    GITHUB_TOKEN                   # Required for GitHub authentication and operations
     GPG_PRIVATE_KEY               # Required for signing releases
     TERRAFORM_REGISTRY_TOKEN      # Required for Terraform Registry publishing
+
+Note: The GITHUB_TOKEN should have the following permissions:
+    - repo (for creating releases)
+    - write:packages (if publishing packages)
+    - For organization repos, ensure the token has access to the organization
 
 EOF
 }
@@ -123,7 +128,7 @@ validate_prerequisites() {
     fi
 
     # Check required tools
-    local tools=("node" "npm" "go" "git")
+    local tools=("node" "npm" "go" "git" "curl" "jq")
     for tool in "${tools[@]}"; do
         if ! command -v "$tool" &> /dev/null; then
             print_error "$tool is not installed or not in PATH"
@@ -155,7 +160,8 @@ validate_prerequisites() {
     # Check environment variables for non-dry-run mode
     if [[ "$DRY_RUN" == false ]]; then
         if [[ -z "$GITHUB_TOKEN" ]]; then
-            print_warning "GITHUB_TOKEN environment variable not set. Required for publishing."
+            print_error "GITHUB_TOKEN environment variable not set. Required for publishing."
+            exit 1
         fi
         
         if [[ -z "$GPG_PRIVATE_KEY" ]]; then
@@ -263,16 +269,22 @@ create_github_release() {
         return
     fi
 
-    # Check if GitHub CLI is available
-    if ! command -v gh &> /dev/null; then
-        print_error "GitHub CLI (gh) is not installed. Please install it to create releases."
+    # Authenticate with GitHub using token
+    if [[ -z "$GITHUB_TOKEN" ]]; then
+        print_error "GITHUB_TOKEN environment variable is required for GitHub authentication"
         exit 1
     fi
 
-    # Check if we're authenticated with GitHub
-    if ! gh auth status &> /dev/null; then
-        print_error "Not authenticated with GitHub. Please run 'gh auth login'"
-        exit 1
+    # Set up authentication for git and GitHub API
+    export GH_TOKEN="$GITHUB_TOKEN"
+    git config --global credential.helper store
+    echo "https://$GITHUB_TOKEN@github.com" | git credential approve
+
+    # Check if GitHub CLI is available, if not use API directly
+    local use_gh_cli=true
+    if ! command -v gh &> /dev/null; then
+        print_warning "GitHub CLI (gh) is not installed. Using direct API calls."
+        use_gh_cli=false
     fi
 
     # Create release notes
@@ -319,14 +331,40 @@ EOF
 
     # Create the release
     print_status "Creating GitHub release v$VERSION..."
-    if gh release create "v$VERSION" \
-        --title "OneUptime Terraform Provider v$VERSION" \
-        --notes-file "$release_notes_file" \
-        --draft; then
-        print_success "GitHub release created successfully"
+    
+    if [[ "$use_gh_cli" == true ]]; then
+        # Use GitHub CLI if available
+        if gh release create "v$VERSION" \
+            --title "OneUptime Terraform Provider v$VERSION" \
+            --notes-file "$release_notes_file" \
+            --draft; then
+            print_success "GitHub release created successfully"
+        else
+            print_error "Failed to create GitHub release"
+            exit 1
+        fi
     else
-        print_error "Failed to create GitHub release"
-        exit 1
+        # Use direct API call if GitHub CLI is not available
+        local api_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases"
+        local release_body=$(cat "$release_notes_file" | jq -Rs .)
+        
+        local response=$(curl -s -X POST "$api_url" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "{
+                \"tag_name\": \"v$VERSION\",
+                \"name\": \"OneUptime Terraform Provider v$VERSION\",
+                \"body\": $release_body,
+                \"draft\": true
+            }")
+        
+        if echo "$response" | jq -e '.id' > /dev/null; then
+            print_success "GitHub release created successfully via API"
+        else
+            print_error "Failed to create GitHub release via API"
+            echo "Response: $response"
+            exit 1
+        fi
     fi
 
     # Clean up
@@ -350,6 +388,7 @@ publish_to_registry() {
     print_status "Terraform Registry will automatically detect the new release"
     print_status "Monitor the release at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases"
     print_status "Provider will be available at: https://registry.terraform.io/providers/oneuptime/oneuptime/$VERSION"
+
 
 }
 
