@@ -742,10 +742,10 @@ build_provider_releases() {
         export GOARCH=$arch
         
         # Build the binary with appropriate flags
-        local build_flags="-a -installsuffix cgo -ldflags='-s -w -X main.version=$VERSION -extldflags \"-static\"'"
+        local ldflags="-s -w -X main.version=$VERSION -extldflags '-static'"
         
         # Build the binary
-        if go build $build_flags -o "$builds_dir/$binary_name" "$main_go_path"; then
+        if go build -a -installsuffix cgo -ldflags="$ldflags" -o "$builds_dir/$binary_name" "$main_go_path"; then
             # Create zip file
             cd "$builds_dir"
             zip "$zip_name" "$binary_name"
@@ -754,7 +754,7 @@ build_provider_releases() {
             print_status "✓ Built $zip_name"
         else
             print_error "Failed to build for $os/$arch"
-            print_error "Build command: go build $build_flags -o $builds_dir/$binary_name $main_go_path"
+            print_error "Build command: go build -a -installsuffix cgo -ldflags=\"$ldflags\" -o $builds_dir/$binary_name $main_go_path"
             print_error "Current directory: $(pwd)"
             print_error "Available files: $(ls -la)"
             exit 1
