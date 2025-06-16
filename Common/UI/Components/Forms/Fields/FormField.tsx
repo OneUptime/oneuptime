@@ -198,7 +198,8 @@ const FormField: <T extends GenericObject>(
       codeType = CodeType.JavaScript;
     }
 
-    let fieldDescription: string | ReactElement | undefined = props.field.description;
+    let fieldDescription: string | ReactElement | undefined =
+      props.field.description;
 
     if (
       props.field.fieldType === FormFieldSchemaType.DateTime ||

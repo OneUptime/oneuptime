@@ -17,7 +17,7 @@ export interface GoModuleConfig {
  * for the Terraform provider. This includes creating go.mod, main.go, provider.go,
  * .goreleaser.yml, and terraform-registry-manifest.json files, as well as
  * updating Go dependencies and building the provider.
- * 
+ *
  * This functionality was moved from the bash script to provide better
  * integration with the TypeScript generation process.
  */
@@ -69,7 +69,7 @@ export class GoModuleSetup {
     if (!fs.existsSync(goModPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating go.mod file...");
-      
+
       const goModContent = `module github.com/${this.config.githubOrg}/terraform-provider-${this.config.providerName}
 
 go 1.21
@@ -81,7 +81,7 @@ require (
     github.com/hashicorp/terraform-plugin-testing v1.5.1
 )
 `;
-      
+
       fs.writeFileSync(goModPath, goModContent);
     }
   }
@@ -91,12 +91,12 @@ require (
     if (!fs.existsSync(cmdDir)) {
       fs.mkdirSync(cmdDir, { recursive: true });
     }
-    
+
     const mainGoPath = path.join(cmdDir, "main.go");
     if (!fs.existsSync(mainGoPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating cmd/main.go file...");
-      
+
       const mainGoContent = `package main
 
 import (
@@ -137,7 +137,7 @@ func main() {
     }
 }
 `;
-      
+
       fs.writeFileSync(mainGoPath, mainGoContent);
     }
   }
@@ -147,7 +147,7 @@ func main() {
     if (!fs.existsSync(providerGoPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating provider.go file...");
-      
+
       const providerGoContent = `package ${this.config.providerName}
 
 import (
@@ -235,7 +235,7 @@ func (p *${this.config.providerName}Provider) Resources(_ context.Context) []fun
     }
 }
 `;
-      
+
       fs.writeFileSync(providerGoPath, providerGoContent);
     }
   }
@@ -245,7 +245,7 @@ func (p *${this.config.providerName}Provider) Resources(_ context.Context) []fun
     if (!fs.existsSync(goreleaserPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating .goreleaser.yml file...");
-      
+
       const goreleaserContent = `version: 2
 
 before:
@@ -316,49 +316,56 @@ changelog:
     - title: Others
       order: 999
 `;
-      
+
       fs.writeFileSync(goreleaserPath, goreleaserContent);
     }
   }
 
   private createTerraformRegistryManifest(terraformDir: string): void {
-    const manifestPath = path.join(terraformDir, "terraform-registry-manifest.json");
+    const manifestPath = path.join(
+      terraformDir,
+      "terraform-registry-manifest.json",
+    );
     if (!fs.existsSync(manifestPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating terraform-registry-manifest.json...");
-      
+
       const manifestContent = {
         version: 1,
         metadata: {
-          protocol_versions: ["6.0"]
-        }
+          protocol_versions: ["6.0"],
+        },
       };
-      
+
       fs.writeFileSync(manifestPath, JSON.stringify(manifestContent, null, 2));
     }
   }
 
-  private async updateDependenciesAndBuild(terraformDir: string): Promise<void> {
+  private async updateDependenciesAndBuild(
+    terraformDir: string,
+  ): Promise<void> {
     try {
       // eslint-disable-next-line no-console
       console.log("   🔄 Updating Go dependencies...");
-      
+
       // Change to terraform directory
       process.chdir(terraformDir);
-      
+
       // Update go.mod and download dependencies
       execSync("go mod tidy", { stdio: "inherit" });
       execSync("go mod download", { stdio: "inherit" });
-      
+
       // eslint-disable-next-line no-console
       console.log("   🔨 Building provider for current platform...");
-      
+
       // Build from cmd directory
-      execSync(`go build -v -o terraform-provider-${this.config.providerName} ./cmd`, { stdio: "inherit" });
-      
+      execSync(
+        `go build -v -o terraform-provider-${this.config.providerName} ./cmd`,
+        { stdio: "inherit" },
+      );
+
       // eslint-disable-next-line no-console
       console.log("   ✅ Provider build successful");
-      
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("   ❌ Error during Go operations:", error);
@@ -370,43 +377,46 @@ changelog:
     try {
       // eslint-disable-next-line no-console
       console.log("\n🏗️  Step 6: Building provider for multiple platforms...");
-      
+
       // Change to terraform directory
       process.chdir(terraformDir);
-      
+
       // Define target platforms
       const platforms = [
         { os: "linux", arch: "amd64" },
         { os: "linux", arch: "arm64" },
         { os: "darwin", arch: "amd64" },
         { os: "darwin", arch: "arm64" },
-        { os: "windows", arch: "amd64" }
+        { os: "windows", arch: "amd64" },
       ];
-      
+
       // Create builds directory
       const buildDir = path.join(terraformDir, "builds");
       if (!fs.existsSync(buildDir)) {
         fs.mkdirSync(buildDir, { recursive: true });
       }
-      
+
       // eslint-disable-next-line no-console
       console.log(`   📁 Created builds directory: ${buildDir}`);
-      
+
       // Build for each platform
       for (const platform of platforms) {
         const { os, arch } = platform;
         const extension = os === "windows" ? ".exe" : "";
         const outputName = `terraform-provider-${this.config.providerName}_${os}_${arch}${extension}`;
         const outputPath = path.join(buildDir, outputName);
-        
+
         // eslint-disable-next-line no-console
         console.log(`   🔨 Building for ${os}/${arch}...`);
-        
+
         try {
-          execSync(`GOOS=${os} GOARCH=${arch} go build -o "${outputPath}" ./cmd`, { 
-            stdio: "inherit",
-            env: { ...process.env, GOOS: os, GOARCH: arch }
-          });
+          execSync(
+            `GOOS=${os} GOARCH=${arch} go build -o "${outputPath}" ./cmd`,
+            {
+              stdio: "inherit",
+              env: { ...process.env, GOOS: os, GOARCH: arch },
+            },
+          );
           // eslint-disable-next-line no-console
           console.log(`   ✅ Built for ${os}/${arch}: ${outputName}`);
         } catch (error) {
@@ -415,10 +425,9 @@ changelog:
           throw error;
         }
       }
-      
+
       // eslint-disable-next-line no-console
       console.log("✅ Multi-platform build completed successfully");
-      
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("   ❌ Error during multi-platform build:", error);
