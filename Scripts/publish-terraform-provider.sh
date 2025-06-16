@@ -641,8 +641,8 @@ EOF
     # Clean up
     rm -f "$release_notes_file"
     
-    # Build provider for multiple platforms and generate SHASUMS
-    build_provider_releases
+    # Use existing builds from generation process and generate SHASUMS
+    verify_existing_builds
     generate_shasums
     
     # Upload release assets
@@ -673,95 +673,37 @@ publish_to_registry() {
 }
 
 # Function to build provider for multiple platforms
-build_provider_releases() {
-    print_step "Building provider for multiple platforms..."
+# Function to verify existing builds from generation process
+verify_existing_builds() {
+    print_step "Verifying existing builds from generation process..."
 
     cd "$PROVIDER_FRAMEWORK_DIR"
 
-    # Verify Go module exists
-    if [[ ! -f "go.mod" ]]; then
-        print_error "go.mod file not found. The provider generation should create this file."
-        print_error "Please ensure 'npm run generate-terraform-provider' creates a proper Go module."
+    # Check if builds directory exists
+    if [[ ! -d "builds" ]]; then
+        print_error "Builds directory not found at $PROVIDER_FRAMEWORK_DIR/builds"
+        print_error "The provider generation process should create multi-platform builds"
+        print_error "Please ensure 'npm run generate-terraform-provider' includes build step"
         exit 1
     fi
 
-    # Verify cmd/main.go exists (check various possible locations)
-    local main_go_path=""
-    if [[ -f "cmd/main.go" ]]; then
-        main_go_path="./cmd"
-    elif [[ -f "main.go" ]]; then
-        main_go_path="."
-    elif [[ -f "cmd/provider/main.go" ]]; then
-        main_go_path="./cmd/provider"
-    else
-        print_error "No main.go file found (checked cmd/main.go, main.go, and cmd/provider/main.go)"
-        print_error "Please ensure 'npm run generate-terraform-provider' creates the main entry point."
+    # Count the number of zip files
+    local zip_count=$(find builds -name "*.zip" | wc -l)
+    if [[ "$zip_count" -eq 0 ]]; then
+        print_error "No zip files found in builds directory"
+        print_error "The provider generation should create platform-specific zip files"
         exit 1
     fi
 
-    print_status "Found main.go at $main_go_path/main.go - proceeding with build"
-
-    # Create builds directory
-    local builds_dir="builds"
-    rm -rf "$builds_dir"
-    mkdir -p "$builds_dir"
-
-    # Define target platforms that Terraform Registry expects
-    local platforms=(
-        "linux/amd64"
-        "linux/arm64"
-        "darwin/amd64"
-        "darwin/arm64"
-        "windows/amd64"
-        "freebsd/amd64"
-    )
-
-    # Get the provider binary name from the module
-    local provider_binary="terraform-provider-$PROVIDER_NAME"
-
-    print_status "Building provider for ${#platforms[@]} platforms..."
-
-    for platform in "${platforms[@]}"; do
-        local os=$(echo $platform | cut -d'/' -f1)
-        local arch=$(echo $platform | cut -d'/' -f2)
-        local binary_name="$provider_binary"
-        
-        # Add .exe extension for Windows
-        if [[ "$os" == "windows" ]]; then
-            binary_name="${provider_binary}.exe"
-        fi
-        
-        local output_name="${provider_binary}_v${VERSION}_${os}_${arch}"
-        local zip_name="${output_name}.zip"
-        
-        print_status "Building for $os/$arch..."
-        
-        # Set build environment variables
-        export CGO_ENABLED=0
-        export GOOS=$os
-        export GOARCH=$arch
-        
-        # Build the binary with appropriate flags
-        local ldflags="-s -w -X main.version=$VERSION -extldflags '-static'"
-        
-        # Build the binary
-        if go build -a -installsuffix cgo -ldflags="$ldflags" -o "$builds_dir/$binary_name" "$main_go_path"; then
-            # Create zip file
-            cd "$builds_dir"
-            zip "$zip_name" "$binary_name"
-            rm "$binary_name"
-            cd ..
-            print_status "✓ Built $zip_name"
-        else
-            print_error "Failed to build for $os/$arch"
-            print_error "Build command: go build -a -installsuffix cgo -ldflags=\"$ldflags\" -o $builds_dir/$binary_name $main_go_path"
-            print_error "Current directory: $(pwd)"
-            print_error "Available files: $(ls -la)"
-            exit 1
-        fi
+    print_status "Found $zip_count platform builds in builds directory"
+    
+    # List the available builds
+    print_status "Available builds:"
+    ls -la builds/*.zip | while read line; do
+        print_status "  $(basename $(echo $line | awk '{print $9}'))"
     done
 
-    print_success "Built provider for all platforms"
+    print_success "Existing builds verified successfully"
 }
 
 # Function to generate SHASUMS and signature files
@@ -820,7 +762,8 @@ upload_release_assets() {
     local builds_dir="builds"
     
     if [[ ! -d "$builds_dir" ]]; then
-        print_error "Builds directory not found. Run build_provider_releases first."
+        print_error "Builds directory not found. Provider generation should have created builds."
+        print_error "Please ensure 'npm run generate-terraform-provider' includes the build step."
         exit 1
     fi
 
@@ -887,9 +830,10 @@ cleanup() {
     
     cd "$PROVIDER_FRAMEWORK_DIR" 2>/dev/null || cd "$PROJECT_ROOT"
     
-    # Remove build artifacts if they exist
+    # Remove temporary SHASUMS files if they exist
     if [[ -d "builds" ]]; then
-        rm -rf builds
+        # Only remove SHASUMS files, keep the original builds
+        rm -f builds/*SHA256SUMS*
     fi
     
     # Remove any temporary files
@@ -920,7 +864,7 @@ show_summary() {
         echo "✓ Ran tests (if not skipped)"
         echo "✓ Pushed code to terraform-provider-oneuptime repository"
         echo "✓ Created draft GitHub release v$VERSION"
-        echo "✓ Built provider for multiple platforms (linux, darwin, windows, freebsd)"
+        echo "✓ Verified existing multi-platform builds (linux, darwin, windows, freebsd)"
         echo "✓ Generated SHA256SUMS and signature files"
         echo "✓ Uploaded release assets"
         echo "✗ Skipped Terraform Registry publishing"
@@ -938,7 +882,7 @@ show_summary() {
         echo "✓ Ran tests (if not skipped)"
         echo "✓ Pushed code to terraform-provider-oneuptime repository"
         echo "✓ Created GitHub release v$VERSION"
-        echo "✓ Built provider for multiple platforms (linux, darwin, windows, freebsd)"
+        echo "✓ Verified existing multi-platform builds (linux, darwin, windows, freebsd)"
         echo "✓ Generated SHA256SUMS and signature files"
         echo "✓ Uploaded release assets"
         echo "✓ Terraform Registry notified"
