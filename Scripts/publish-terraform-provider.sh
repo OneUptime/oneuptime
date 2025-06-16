@@ -533,7 +533,7 @@ EOF
             # This prevents the auto-generation of untagged releases
             if gh release create "v$VERSION" \
                 --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-                --title "OneUptime Terraform Provider v$VERSION" \
+                --title "v$VERSION" \
                 --notes-file "$release_notes_file" \
                 --draft \
                 --target master; then
