@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# OneUptime Terraform Provider Generator and Publisher
-# This script generates the Terraform provider and publishes it to the Terraform Registry
+# OneUptime Terraform Provider Publisher
+# This script publishes the generated Terraform provider to the Terraform Registry
+# Note: Provider generation and Go module setup is handled by the TypeScript generator
 
 set -e  # Exit on any error
 
@@ -229,262 +230,6 @@ generate_provider() {
     print_success "Terraform provider generated successfully"
 }
 
-# Function to setup Go module and build configuration
-setup_go_module() {
-    print_step "Setting up Go module and build configuration..."
-
-    cd "$TERRAFORM_DIR"
-
-    # Create go.mod if it doesn't exist
-    if [[ ! -f "go.mod" ]]; then
-        print_status "Creating go.mod file..."
-        cat > go.mod << EOF
-module github.com/$GITHUB_ORG/$PROVIDER_REPO
-
-go 1.21
-
-require (
-    github.com/hashicorp/terraform-plugin-framework v1.4.2
-    github.com/hashicorp/terraform-plugin-go v0.19.1
-    github.com/hashicorp/terraform-plugin-log v0.9.0
-    github.com/hashicorp/terraform-plugin-testing v1.5.1
-)
-EOF
-    fi
-
-    # Create main.go if it doesn't exist
-    if [[ ! -f "main.go" ]]; then
-        print_status "Creating main.go file..."
-        cat > main.go << 'EOF'
-package main
-
-import (
-    "context"
-    "flag"
-    "log"
-
-    "github.com/hashicorp/terraform-plugin-framework/providerserver"
-)
-
-// Provider documentation generation.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name oneuptime
-
-var (
-    // these will be set by the goreleaser configuration
-    // to appropriate values for the compiled binary.
-    version string = "dev"
-
-    // goreleaser can pass other information to the main package, such as the specific commit
-    // https://goreleaser.com/cookbooks/using-main.version/
-)
-
-func main() {
-    var debug bool
-
-    flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
-    flag.Parse()
-
-    opts := providerserver.ServeOpts{
-        Address: "registry.terraform.io/oneuptime/oneuptime",
-        Debug:   debug,
-    }
-
-    err := providerserver.Serve(context.Background(), NewProvider(version), opts)
-    if err != nil {
-        log.Fatal(err.Error())
-    }
-}
-EOF
-    fi
-
-    # Create provider.go if it doesn't exist
-    if [[ ! -f "provider.go" ]]; then
-        print_status "Creating provider.go file..."
-        cat > provider.go << 'EOF'
-package main
-
-import (
-    "context"
-
-    "github.com/hashicorp/terraform-plugin-framework/datasource"
-    "github.com/hashicorp/terraform-plugin-framework/provider"
-    "github.com/hashicorp/terraform-plugin-framework/provider/schema"
-    "github.com/hashicorp/terraform-plugin-framework/resource"
-    "github.com/hashicorp/terraform-plugin-framework/types"
-)
-
-// Ensure the implementation satisfies the expected interfaces.
-var (
-    _ provider.Provider = &oneuptimeProvider{}
-)
-
-// New is a helper function to simplify provider server and testing implementation.
-func NewProvider(version string) func() provider.Provider {
-    return func() provider.Provider {
-        return &oneuptimeProvider{
-            version: version,
-        }
-    }
-}
-
-// oneuptimeProvider is the provider implementation.
-type oneuptimeProvider struct {
-    version string
-}
-
-// Metadata returns the provider type name.
-func (p *oneuptimeProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-    resp.TypeName = "oneuptime"
-    resp.Version = p.version
-}
-
-// Schema defines the provider-level schema for configuration data.
-func (p *oneuptimeProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
-    resp.Schema = schema.Schema{
-        Description: "Interact with OneUptime.",
-        Attributes: map[string]schema.Attribute{
-            "api_url": schema.StringAttribute{
-                Description: "OneUptime API URL. May also be provided via ONEUPTIME_API_URL environment variable.",
-                Optional:    true,
-            },
-            "api_key": schema.StringAttribute{
-                Description: "OneUptime API Key. May also be provided via ONEUPTIME_API_KEY environment variable.",
-                Optional:    true,
-                Sensitive:   true,
-            },
-        },
-    }
-}
-
-type oneuptimeProviderModel struct {
-    ApiUrl types.String `tfsdk:"api_url"`
-    ApiKey types.String `tfsdk:"api_key"`
-}
-
-// Configure prepares a OneUptime API client for data sources and resources.
-func (p *oneuptimeProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-    var config oneuptimeProviderModel
-    diags := req.Config.Get(ctx, &config)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
-
-    // If configuration values are known, set them here
-    // This is where you would initialize your API client
-}
-
-// DataSources defines the data sources implemented in the provider.
-func (p *oneuptimeProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-    return []func() datasource.DataSource{
-        // Add your data sources here
-    }
-}
-
-// Resources defines the resources implemented in the provider.
-func (p *oneuptimeProvider) Resources(_ context.Context) []func() resource.Resource {
-    return []func() resource.Resource{
-        // Add your resources here
-    }
-}
-EOF
-    fi
-
-    # Create .goreleaser.yml for releases
-    if [[ ! -f ".goreleaser.yml" ]]; then
-        print_status "Creating .goreleaser.yml file..."
-        cat > .goreleaser.yml << EOF
-version: 2
-
-before:
-  hooks:
-    - go mod tidy
-
-builds:
-  - env:
-      - CGO_ENABLED=0
-    mod_timestamp: '{{ .CommitTimestamp }}'
-    flags:
-      - -trimpath
-    ldflags:
-      - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
-    goos:
-      - freebsd
-      - windows
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - '386'
-      - arm
-      - arm64
-    ignore:
-      - goos: darwin
-        goarch: '386'
-    binary: '{{ .ProjectName }}_v{{ .Version }}'
-
-archives:
-  - format: zip
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
-
-checksum:
-  extra_files:
-    - glob: 'terraform-registry-manifest.json'
-      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
-  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
-  algorithm: sha256
-
-signs:
-  - artifacts: checksum
-    args:
-      - "--batch"
-      - "--local-user"
-      - "{{ .Env.GPG_FINGERPRINT }}"
-      - "--output"
-      - "\${signature}"
-      - "--detach-sign"
-      - "\${artifact}"
-
-release:
-  extra_files:
-    - glob: 'terraform-registry-manifest.json'
-  name_template: '{{ .ProjectName }}_{{ .Version }}'
-
-changelog:
-  use: github
-  sort: asc
-  abbrev: 0
-  groups:
-    - title: Features
-      regexp: "^.*feat[(\\w)]*:+.*$"
-      order: 0
-    - title: 'Bug fixes'
-      regexp: "^.*fix[(\\w)]*:+.*$"
-      order: 1
-    - title: Others
-      order: 999
-EOF
-    fi
-
-    # Create terraform-registry-manifest.json
-    print_status "Creating terraform-registry-manifest.json..."
-    cat > terraform-registry-manifest.json << EOF
-{
-    "version": 1,
-    "metadata": {
-        "protocol_versions": ["6.0"]
-    }
-}
-EOF
-
-    # Update go.mod and download dependencies
-    print_status "Updating Go dependencies..."
-    go mod tidy
-    go mod download
-
-    print_success "Go module setup completed"
-}
-
 # Function to run tests
 run_tests() {
     if [[ "$SKIP_TESTS" == true ]]; then
@@ -513,24 +258,28 @@ run_tests() {
     fi
 }
 
-# Function to build the provider
+# Function to build the provider for multiple platforms (for release)
 build_provider() {
     if [[ "$SKIP_BUILD" == true ]]; then
         print_warning "Skipping build as requested"
         return
     fi
 
-    print_step "Building Terraform provider..."
+    print_step "Building Terraform provider for multiple platforms..."
 
     cd "$TERRAFORM_DIR"
 
-    # Build for current platform
-    print_status "Building provider for current platform..."
-    if go build -v .; then
-        print_success "Build successful"
+    # Verify that basic build was already done during generation
+    if [[ ! -f "terraform-provider-${PROVIDER_NAME}" && ! -f "terraform-provider-${PROVIDER_NAME}.exe" ]]; then
+        print_status "Basic build not found, building for current platform first..."
+        if go build -v .; then
+            print_success "Build successful"
+        else
+            print_error "Build failed"
+            exit 1
+        fi
     else
-        print_error "Build failed"
-        exit 1
+        print_status "Basic build already completed during generation phase"
     fi
 
     # Create builds for multiple platforms
@@ -686,7 +435,7 @@ show_summary() {
     echo ""
     echo "Provider Name: $PROVIDER_NAME"
     echo "Version: $VERSION"
-    echo "Generated Files Location: $TERRAFORM_DIR"
+    echo "Provider Files Location: $TERRAFORM_DIR"
     echo "GitHub Repository: https://github.com/$GITHUB_ORG/$PROVIDER_REPO"
     echo "Terraform Registry: https://registry.terraform.io/providers/oneuptime/oneuptime"
     echo ""
@@ -701,14 +450,16 @@ show_summary() {
         echo "2. Wait for Terraform Registry to index the new version (usually takes a few minutes)"
         echo "3. Test the provider installation: terraform init"
         echo "4. Update documentation if needed"
+        echo ""
+        print_status "Note: To generate a new provider version, run 'npm run generate-terraform-provider' first"
     fi
 }
 
 # Main execution function
 main() {
     echo ""
-    print_status "OneUptime Terraform Provider Generator and Publisher"
-    print_status "=================================================="
+    print_status "OneUptime Terraform Provider Publisher"
+    print_status "====================================="
     echo ""
 
     parse_args "$@"
@@ -716,7 +467,6 @@ main() {
     validate_prerequisites
     install_dependencies
     generate_provider
-    setup_go_module
     run_tests
     build_provider
     create_github_release

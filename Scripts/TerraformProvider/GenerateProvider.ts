@@ -2,6 +2,7 @@ import { generateOpenAPISpec } from "../OpenAPI/GenerateSpec";
 import { ToolInstaller } from "./InstallTools";
 import FrameworkGenerator from "./FrameworkGenerator";
 import SpecificationConverter from "./SpecificationConverter";
+import { GoModuleSetup } from "./GoModuleSetup";
 import path from "path";
 
 async function main(): Promise<void> {
@@ -62,8 +63,17 @@ async function main(): Promise<void> {
       packageName: "oneuptime", // Optional: specify a package name
     });
 
+    // 5. Setup Go module and build configuration
     // eslint-disable-next-line no-console
-    console.log("\n🎉 Provider generation completed successfully!");
+    console.log("\n🔧 Step 5: Setting up Go module and building provider...");
+    await GoModuleSetup.setup({
+      outputPath: frameworkOutputPath,
+      providerName: "oneuptime",
+      githubOrg: "OneUptime",
+    });
+
+    // eslint-disable-next-line no-console
+    console.log("\n🎉 Provider generation and build completed successfully!");
     // eslint-disable-next-line no-console
     console.log("\n📋 Generated Files:");
     // eslint-disable-next-line no-console
@@ -72,6 +82,8 @@ async function main(): Promise<void> {
     console.log(`   📄 Provider Code Spec: ${providerSpecPath}`);
     // eslint-disable-next-line no-console
     console.log(`   📁 Framework Provider Code: ${frameworkOutputPath}`);
+    // eslint-disable-next-line no-console
+    console.log(`   🔧 Go Module & Build Files: ${frameworkOutputPath}`);
 
     // eslint-disable-next-line no-console
     console.log("\n📖 Next Steps:");
@@ -88,6 +100,10 @@ async function main(): Promise<void> {
     // eslint-disable-next-line no-console
     console.log(
       "   4. Implement the actual provider logic in the generated Go files",
+    );
+    // eslint-disable-next-line no-console
+    console.log(
+      "   5. Run tests and publish using the publish-terraform-provider.sh script",
     );
 
     FrameworkGenerator.printUsageInfo();

@@ -110,7 +110,33 @@ export GPG_FINGERPRINT="your-gpg-fingerprint"  # Optional for signing
 ./scripts/publish-terraform-provider.sh -v 1.3.0-beta.1 --dry-run --force
 ```
 
-## What the Script Does
+## What the Process Does
+
+### Generation Phase (TypeScript)
+Run via `npm run generate-terraform-provider` or the TypeScript GenerateProvider script:
+
+1. **� Generates OpenAPI Specification**
+   - Creates OpenAPI spec from OneUptime API
+
+2. **🔄 Converts to Provider Code Specification**
+   - Transforms OpenAPI to Terraform provider spec
+
+3. **🔧 Installs Framework Generator Tool**
+   - Downloads Terraform Plugin Framework Generator
+
+4. **🏗️ Generates Provider Framework Code**
+   - Creates Go source code for resources and data sources
+
+5. **⚙️ Sets Up Go Module & Build**
+   - Creates `go.mod` with proper dependencies
+   - Creates `main.go` entry point  
+   - Creates `provider.go` with basic structure
+   - Sets up `.goreleaser.yml` for releases
+   - Creates `terraform-registry-manifest.json`
+   - Updates Go dependencies and builds provider
+
+### Publishing Phase (Bash Script)
+Run via `./scripts/publish-terraform-provider.sh`:
 
 1. **🔍 Validates Prerequisites**
    - Checks required tools are installed
@@ -123,27 +149,18 @@ export GPG_FINGERPRINT="your-gpg-fingerprint"  # Optional for signing
    - Scripts module dependencies
 
 3. **🏗️ Generates Provider**
-   - Runs `npm run generate-terraform-provider`
-   - Creates OpenAPI specification
-   - Generates Terraform provider code
+   - Runs `npm run generate-terraform-provider` (calls TypeScript generation)
 
-4. **⚙️ Sets Up Go Module**
-   - Creates `go.mod` with proper dependencies
-   - Creates `main.go` entry point
-   - Creates `provider.go` with basic structure
-   - Sets up `.goreleaser.yml` for releases
-   - Creates `terraform-registry-manifest.json`
-
-5. **🧪 Runs Tests**
+4. **🧪 Runs Tests**
    - Executes Go tests if found
    - Validates provider builds correctly
 
-6. **🔨 Builds Provider**
-   - Builds for current platform
-   - Creates multi-platform builds
+5. **🔨 Builds Provider**
+   - Verifies basic build from generation phase
+   - Creates multi-platform builds for release
    - Validates all builds succeed
 
-7. **🚀 Creates GitHub Release**
+6. **🚀 Creates GitHub Release**
    - Creates GitHub release with proper tags
    - Uploads provider binaries
    - Generates release notes
