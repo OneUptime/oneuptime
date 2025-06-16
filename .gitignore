@@ -117,5 +117,6 @@ InfrastructureAgent/oneuptime-infrastructure-agent
 .eslintcache*
 
 # Terraform generated files
-Terraform/
 openapi.json
+
+Terraform/**
