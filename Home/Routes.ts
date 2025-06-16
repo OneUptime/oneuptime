@@ -58,6 +58,7 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/support`, {
         enableGoogleTagManager: IsBillingEnabled,
@@ -710,6 +711,15 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
+              name: "Terraform Support",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
               name: "Integrate with Issue Tracker",
               plans: {
                 free: false,
@@ -1019,6 +1029,7 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
+
 
     app.get(
       "/product/incident-management",
