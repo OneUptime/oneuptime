@@ -11,7 +11,7 @@ export default class MarkdownUtil {
         <Link
           to={URL.fromString("https://www.markdownguide.org/cheat-sheet/")}
           openInNewTab={true}
-          className="underline text-blue-600 hover:text-blue-800"
+          className="underline text-blue-500 hover:text-blue-700"
         >
           Learn more about Markdown syntax
         </Link>
