@@ -18,7 +18,7 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://api.oneuptime.com"
+  api_url = "https://oneuptime.com/api"
   api_key = var.oneuptime_api_key
 }
 ```
@@ -106,7 +106,7 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://api.oneuptime.com"  # Adjust for self-hosted
+  api_url = "https://oneuptime.com/api"  # Adjust for self-hosted
   api_key = var.oneuptime_api_key
 }
 

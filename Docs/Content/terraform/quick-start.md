@@ -47,7 +47,7 @@ terraform {
 
 provider "oneuptime" {
   # For Cloud customers
-  api_url = "https://api.oneuptime.com"
+  api_url = "https://oneuptime.com/api"
   
   # For Self-Hosted customers - use your instance URL
   # api_url = "https://oneuptime.yourcompany.com"
@@ -145,7 +145,7 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://api.oneuptime.com"
+  api_url = "https://oneuptime.com/api"
   api_key = var.oneuptime_api_key
 }
 ```

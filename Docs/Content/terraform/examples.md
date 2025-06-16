@@ -17,14 +17,10 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://api.oneuptime.com"  # Change for self-hosted
+  api_url = "https://oneuptime.com/api"  # Change for self-hosted
   api_key = var.oneuptime_api_key
 }
 
-resource "oneuptime_project" "website" {
-  name        = "Website Monitoring"
-  description = "Monitoring for company website"
-}
 
 resource "oneuptime_monitor" "homepage" {
   name       = "Homepage Monitor"

@@ -74,7 +74,7 @@ terraform {
 
 ```hcl
 provider "oneuptime" {
-  api_url = "https://your-oneuptime-instance.com"  # Or https://api.oneuptime.com for cloud
+  api_url = "https://your-oneuptime-instance.com"  # Or https://oneuptime.com/api for cloud
   api_key = var.oneuptime_api_key
 }
 ```
@@ -130,7 +130,7 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://api.oneuptime.com"  # Use your instance URL
+  api_url = "https://oneuptime.com/api"  # Use your instance URL
   api_key = var.oneuptime_api_key
 }
 
@@ -274,7 +274,7 @@ variable "oneuptime_api_key" {
 variable "oneuptime_api_url" {
   description = "OneUptime API URL"
   type        = string
-  default     = "https://api.oneuptime.com"
+  default     = "https://oneuptime.com/api"
 }
 
 # Provider configuration
