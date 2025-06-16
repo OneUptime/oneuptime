@@ -57,6 +57,9 @@ export class GoModuleSetup {
     // Update Go dependencies and build
     await this.updateDependenciesAndBuild(terraformDir);
 
+    // Build for multiple platforms
+    await this.buildMultiPlatform(terraformDir);
+
     // eslint-disable-next-line no-console
     console.log("✅ Go module setup completed successfully");
   }
@@ -359,6 +362,66 @@ changelog:
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("   ❌ Error during Go operations:", error);
+      throw error;
+    }
+  }
+
+  private async buildMultiPlatform(terraformDir: string): Promise<void> {
+    try {
+      // eslint-disable-next-line no-console
+      console.log("\n🏗️  Step 6: Building provider for multiple platforms...");
+      
+      // Change to terraform directory
+      process.chdir(terraformDir);
+      
+      // Define target platforms
+      const platforms = [
+        { os: "linux", arch: "amd64" },
+        { os: "linux", arch: "arm64" },
+        { os: "darwin", arch: "amd64" },
+        { os: "darwin", arch: "arm64" },
+        { os: "windows", arch: "amd64" }
+      ];
+      
+      // Create builds directory
+      const buildDir = path.join(terraformDir, "builds");
+      if (!fs.existsSync(buildDir)) {
+        fs.mkdirSync(buildDir, { recursive: true });
+      }
+      
+      // eslint-disable-next-line no-console
+      console.log(`   📁 Created builds directory: ${buildDir}`);
+      
+      // Build for each platform
+      for (const platform of platforms) {
+        const { os, arch } = platform;
+        const extension = os === "windows" ? ".exe" : "";
+        const outputName = `terraform-provider-${this.config.providerName}_${os}_${arch}${extension}`;
+        const outputPath = path.join(buildDir, outputName);
+        
+        // eslint-disable-next-line no-console
+        console.log(`   🔨 Building for ${os}/${arch}...`);
+        
+        try {
+          execSync(`GOOS=${os} GOARCH=${arch} go build -o "${outputPath}" ./cmd`, { 
+            stdio: "inherit",
+            env: { ...process.env, GOOS: os, GOARCH: arch }
+          });
+          // eslint-disable-next-line no-console
+          console.log(`   ✅ Built for ${os}/${arch}: ${outputName}`);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error(`   ❌ Failed to build for ${os}/${arch}:`, error);
+          throw error;
+        }
+      }
+      
+      // eslint-disable-next-line no-console
+      console.log("✅ Multi-platform build completed successfully");
+      
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("   ❌ Error during multi-platform build:", error);
       throw error;
     }
   }

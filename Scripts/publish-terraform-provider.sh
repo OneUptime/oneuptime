@@ -25,7 +25,6 @@ GITHUB_ORG="OneUptime"
 VERSION=""
 DRY_RUN=false
 SKIP_TESTS=false
-SKIP_BUILD=false
 FORCE=false
 
 # Function to print colored output
@@ -58,7 +57,6 @@ Options:
     -v, --version VERSION   Specify the version to publish (e.g., 1.0.0)
     -d, --dry-run          Run in dry-run mode (no actual publishing)
     -s, --skip-tests       Skip running tests
-    -b, --skip-build       Skip building the provider
     -f, --force           Force regeneration even if files exist
     -h, --help            Show this help message
 
@@ -89,10 +87,6 @@ parse_args() {
                 ;;
             -s|--skip-tests)
                 SKIP_TESTS=true
-                shift
-                ;;
-            -b|--skip-build)
-                SKIP_BUILD=true
                 shift
                 ;;
             -f|--force)
@@ -258,58 +252,6 @@ run_tests() {
     fi
 }
 
-# Function to build the provider for multiple platforms (for release)
-build_provider() {
-    if [[ "$SKIP_BUILD" == true ]]; then
-        print_warning "Skipping build as requested"
-        return
-    fi
-
-    print_step "Building Terraform provider for multiple platforms..."
-
-    cd "$TERRAFORM_DIR"
-
-    # Verify that basic build was already done during generation
-    if [[ ! -f "terraform-provider-${PROVIDER_NAME}" && ! -f "terraform-provider-${PROVIDER_NAME}.exe" ]]; then
-        print_status "Basic build not found, building for current platform first..."
-        if go build -v .; then
-            print_success "Build successful"
-        else
-            print_error "Build failed"
-            exit 1
-        fi
-    else
-        print_status "Basic build already completed during generation phase"
-    fi
-
-    # Create builds for multiple platforms
-    print_status "Building for multiple platforms..."
-    
-    local platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64")
-    local build_dir="builds"
-    mkdir -p "$build_dir"
-
-    for platform in "${platforms[@]}"; do
-        local os="${platform%/*}"
-        local arch="${platform#*/}"
-        local output="$build_dir/${PROVIDER_REPO}_${VERSION}_${os}_${arch}"
-        
-        if [[ "$os" == "windows" ]]; then
-            output="${output}.exe"
-        fi
-
-        print_status "Building for $os/$arch..."
-        if GOOS="$os" GOARCH="$arch" go build -o "$output" .; then
-            print_status "✓ Built for $os/$arch"
-        else
-            print_error "✗ Failed to build for $os/$arch"
-            exit 1
-        fi
-    done
-
-    print_success "Multi-platform build completed"
-}
-
 # Function to create GitHub release
 create_github_release() {
     print_step "Creating GitHub release..."
@@ -468,7 +410,6 @@ main() {
     install_dependencies
     generate_provider
     run_tests
-    build_provider
     create_github_release
     publish_to_registry
     cleanup

@@ -84,6 +84,8 @@ async function main(): Promise<void> {
     console.log(`   📁 Framework Provider Code: ${frameworkOutputPath}`);
     // eslint-disable-next-line no-console
     console.log(`   🔧 Go Module & Build Files: ${frameworkOutputPath}`);
+    // eslint-disable-next-line no-console
+    console.log(`   🏗️  Multi-platform Builds: ${frameworkOutputPath}/builds`);
 
     // eslint-disable-next-line no-console
     console.log("\n📖 Next Steps:");
