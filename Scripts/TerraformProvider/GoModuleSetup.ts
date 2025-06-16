@@ -330,7 +330,10 @@ changelog:
       // eslint-disable-next-line no-console
       console.log("   📄 Creating terraform-registry-manifest.json...");
 
-      const manifestContent: { version: number; metadata: { protocol_versions: string[] } } = {
+      const manifestContent: {
+        version: number;
+        metadata: { protocol_versions: string[] };
+      } = {
         version: 1,
         metadata: {
           protocol_versions: ["6.0"],
