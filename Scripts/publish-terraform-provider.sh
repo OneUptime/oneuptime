@@ -379,25 +379,43 @@ EOF
     
     if [[ "$use_gh_cli" == true ]]; then
         # Use GitHub CLI if available - specify the target repository
-        if gh release create "v$VERSION" \
-            --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-            --title "OneUptime Terraform Provider v$VERSION" \
-            --notes-file "$release_notes_file" \
-            --draft; then
-            if [[ "$DRY_RUN" == true ]]; then
+        if [[ "$DRY_RUN" == true ]]; then
+            # For dry run, create a draft release without specifying the tag upfront
+            # This prevents the auto-generation of untagged releases
+            if gh release create "v$VERSION" \
+                --repo "$GITHUB_ORG/$PROVIDER_REPO" \
+                --title "OneUptime Terraform Provider v$VERSION" \
+                --notes-file "$release_notes_file" \
+                --draft \
+                --target main; then
                 print_success "Draft release created successfully for dry run"
                 print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
             else
-                print_success "GitHub release created successfully"
+                print_error "Failed to create GitHub release"
+                exit 1
             fi
         else
-            print_error "Failed to create GitHub release"
-            exit 1
+            # For actual release, create without draft flag
+            if gh release create "v$VERSION" \
+                --repo "$GITHUB_ORG/$PROVIDER_REPO" \
+                --title "OneUptime Terraform Provider v$VERSION" \
+                --notes-file "$release_notes_file" \
+                --target main; then
+                print_success "GitHub release created successfully"
+            else
+                print_error "Failed to create GitHub release"
+                exit 1
+            fi
         fi
     else
         # Use direct API call if GitHub CLI is not available
         local api_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases"
         local release_body=$(cat "$release_notes_file" | jq -Rs .)
+        
+        local is_draft="true"
+        if [[ "$DRY_RUN" == false ]]; then
+            is_draft="false"
+        fi
         
         local response=$(curl -s -X POST "$api_url" \
             -H "Authorization: token $GITHUB_TOKEN" \
@@ -406,7 +424,8 @@ EOF
                 \"tag_name\": \"v$VERSION\",
                 \"name\": \"OneUptime Terraform Provider v$VERSION\",
                 \"body\": $release_body,
-                \"draft\": true
+                \"draft\": $is_draft,
+                \"target_commitish\": \"main\"
             }")
         
         if echo "$response" | jq -e '.id' > /dev/null; then

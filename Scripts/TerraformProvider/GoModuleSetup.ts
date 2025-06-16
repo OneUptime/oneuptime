@@ -24,7 +24,7 @@ export interface GoModuleConfig {
 export class GoModuleSetup {
   private config: GoModuleConfig;
 
-  constructor(config: GoModuleConfig) {
+  public constructor(config: GoModuleConfig) {
     this.config = config;
   }
 
@@ -37,7 +37,7 @@ export class GoModuleSetup {
       fs.mkdirSync(this.config.outputPath, { recursive: true });
     }
 
-    const terraformDir = this.config.outputPath;
+    const terraformDir: string = this.config.outputPath;
 
     // Create go.mod
     this.createGoMod(terraformDir);
@@ -65,12 +65,12 @@ export class GoModuleSetup {
   }
 
   private createGoMod(terraformDir: string): void {
-    const goModPath = path.join(terraformDir, "go.mod");
+    const goModPath: string = path.join(terraformDir, "go.mod");
     if (!fs.existsSync(goModPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating go.mod file...");
 
-      const goModContent = `module github.com/${this.config.githubOrg}/terraform-provider-${this.config.providerName}
+      const goModContent: string = `module github.com/${this.config.githubOrg}/terraform-provider-${this.config.providerName}
 
 go 1.21
 
@@ -87,17 +87,17 @@ require (
   }
 
   private createCmdMainGo(terraformDir: string): void {
-    const cmdDir = path.join(terraformDir, "cmd");
+    const cmdDir: string = path.join(terraformDir, "cmd");
     if (!fs.existsSync(cmdDir)) {
       fs.mkdirSync(cmdDir, { recursive: true });
     }
 
-    const mainGoPath = path.join(cmdDir, "main.go");
+    const mainGoPath: string = path.join(cmdDir, "main.go");
     if (!fs.existsSync(mainGoPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating cmd/main.go file...");
 
-      const mainGoContent = `package main
+      const mainGoContent: string = `package main
 
 import (
     "context"
@@ -143,12 +143,12 @@ func main() {
   }
 
   private createProviderGo(terraformDir: string): void {
-    const providerGoPath = path.join(terraformDir, "provider.go");
+    const providerGoPath: string = path.join(terraformDir, "provider.go");
     if (!fs.existsSync(providerGoPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating provider.go file...");
 
-      const providerGoContent = `package ${this.config.providerName}
+      const providerGoContent: string = `package ${this.config.providerName}
 
 import (
     "context"
@@ -241,12 +241,12 @@ func (p *${this.config.providerName}Provider) Resources(_ context.Context) []fun
   }
 
   private createGoReleaserConfig(terraformDir: string): void {
-    const goreleaserPath = path.join(terraformDir, ".goreleaser.yml");
+    const goreleaserPath: string = path.join(terraformDir, ".goreleaser.yml");
     if (!fs.existsSync(goreleaserPath)) {
       // eslint-disable-next-line no-console
       console.log("   📄 Creating .goreleaser.yml file...");
 
-      const goreleaserContent = `version: 2
+      const goreleaserContent: string = `version: 2
 
 before:
   hooks:
@@ -322,7 +322,7 @@ changelog:
   }
 
   private createTerraformRegistryManifest(terraformDir: string): void {
-    const manifestPath = path.join(
+    const manifestPath: string = path.join(
       terraformDir,
       "terraform-registry-manifest.json",
     );
@@ -330,7 +330,7 @@ changelog:
       // eslint-disable-next-line no-console
       console.log("   📄 Creating terraform-registry-manifest.json...");
 
-      const manifestContent = {
+      const manifestContent: { version: number; metadata: { protocol_versions: string[] } } = {
         version: 1,
         metadata: {
           protocol_versions: ["6.0"],
@@ -382,7 +382,7 @@ changelog:
       process.chdir(terraformDir);
 
       // Define target platforms
-      const platforms = [
+      const platforms: Array<{ os: string; arch: string }> = [
         { os: "linux", arch: "amd64" },
         { os: "linux", arch: "arm64" },
         { os: "darwin", arch: "amd64" },
@@ -391,7 +391,7 @@ changelog:
       ];
 
       // Create builds directory
-      const buildDir = path.join(terraformDir, "builds");
+      const buildDir: string = path.join(terraformDir, "builds");
       if (!fs.existsSync(buildDir)) {
         fs.mkdirSync(buildDir, { recursive: true });
       }
@@ -402,9 +402,9 @@ changelog:
       // Build for each platform
       for (const platform of platforms) {
         const { os, arch } = platform;
-        const extension = os === "windows" ? ".exe" : "";
-        const outputName = `terraform-provider-${this.config.providerName}_${os}_${arch}${extension}`;
-        const outputPath = path.join(buildDir, outputName);
+        const extension: string = os === "windows" ? ".exe" : "";
+        const outputName: string = `terraform-provider-${this.config.providerName}_${os}_${arch}${extension}`;
+        const outputPath: string = path.join(buildDir, outputName);
 
         // eslint-disable-next-line no-console
         console.log(`   🔨 Building for ${os}/${arch}...`);
@@ -436,7 +436,7 @@ changelog:
   }
 
   public static async setup(config: GoModuleConfig): Promise<void> {
-    const goModuleSetup = new GoModuleSetup(config);
+    const goModuleSetup: GoModuleSetup = new GoModuleSetup(config);
     await goModuleSetup.setupGoModule();
   }
 }
