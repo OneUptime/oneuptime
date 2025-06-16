@@ -264,15 +264,14 @@ create_github_release() {
 
     cd "$TERRAFORM_DIR"
 
-    if [[ "$DRY_RUN" == true ]]; then
-        print_warning "DRY RUN: Would create GitHub release v$VERSION"
-        return
-    fi
-
     # Authenticate with GitHub using token
     if [[ -z "$GITHUB_TOKEN" ]]; then
         print_error "GITHUB_TOKEN environment variable is required for GitHub authentication"
         exit 1
+    fi
+
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: Creating draft release v$VERSION (will not be published)"
     fi
 
     # Set up authentication for git and GitHub API
@@ -330,7 +329,11 @@ For detailed documentation and examples, visit: https://registry.terraform.io/pr
 EOF
 
     # Create the release
-    print_status "Creating GitHub release v$VERSION..."
+    if [[ "$DRY_RUN" == true ]]; then
+        print_status "Creating draft release v$VERSION for dry run..."
+    else
+        print_status "Creating GitHub release v$VERSION..."
+    fi
     
     if [[ "$use_gh_cli" == true ]]; then
         # Use GitHub CLI if available
@@ -338,7 +341,12 @@ EOF
             --title "OneUptime Terraform Provider v$VERSION" \
             --notes-file "$release_notes_file" \
             --draft; then
-            print_success "GitHub release created successfully"
+            if [[ "$DRY_RUN" == true ]]; then
+                print_success "Draft release created successfully for dry run"
+                print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
+            else
+                print_success "GitHub release created successfully"
+            fi
         else
             print_error "Failed to create GitHub release"
             exit 1
@@ -359,7 +367,12 @@ EOF
             }")
         
         if echo "$response" | jq -e '.id' > /dev/null; then
-            print_success "GitHub release created successfully via API"
+            if [[ "$DRY_RUN" == true ]]; then
+                print_success "Draft release created successfully for dry run via API"
+                print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
+            else
+                print_success "GitHub release created successfully via API"
+            fi
         else
             print_error "Failed to create GitHub release via API"
             echo "Response: $response"
@@ -376,7 +389,8 @@ publish_to_registry() {
     print_step "Publishing to Terraform Registry..."
 
     if [[ "$DRY_RUN" == true ]]; then
-        print_warning "DRY RUN: Would publish to Terraform Registry"
+        print_warning "DRY RUN: Skipping Terraform Registry publishing"
+        print_status "In a real run, the Terraform Registry would automatically detect the published release"
         return
     fi
 
@@ -421,7 +435,17 @@ show_summary() {
     echo ""
     
     if [[ "$DRY_RUN" == true ]]; then
-        print_warning "This was a DRY RUN - no actual publishing occurred"
+        print_warning "This was a DRY RUN with the following actions taken:"
+        echo "✓ Generated Terraform provider"
+        echo "✓ Ran tests (if not skipped)"
+        echo "✓ Created draft GitHub release v$VERSION"
+        echo "✗ Skipped Terraform Registry publishing"
+        echo ""
+        print_status "Next steps for a real release:"
+        echo "1. Review the draft release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
+        echo "2. If satisfied, publish the release (remove draft status)"
+        echo "3. Or run the script again without --dry-run flag"
+        echo "4. Monitor Terraform Registry for automatic indexing"
     else
         print_success "Terraform provider published successfully!"
         echo ""
