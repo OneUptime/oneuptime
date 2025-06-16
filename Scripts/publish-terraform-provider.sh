@@ -341,6 +341,29 @@ push_to_repository() {
         git remote set-url origin "$remote_url"
     fi
 
+    # Fetch remote changes to check if repository exists and has content
+    print_status "Fetching remote changes..."
+    if git fetch origin master 2>/dev/null; then
+        print_status "Remote repository exists and has content"
+        
+        # Check if we have any local commits
+        if git rev-parse HEAD &>/dev/null; then
+            # We have local commits, need to merge or rebase
+            print_status "Merging remote changes..."
+            if ! git merge origin/master --allow-unrelated-histories; then
+                print_error "Failed to merge remote changes. There may be conflicts."
+                print_error "Please resolve conflicts manually or use --force flag to regenerate completely."
+                exit 1
+            fi
+        else
+            # No local commits, just reset to remote
+            print_status "No local commits found, resetting to remote master..."
+            git reset --hard origin/master
+        fi
+    else
+        print_status "Remote repository is empty or doesn't exist yet"
+    fi
+
     # Configure git user if not already configured
     if [[ -z "$(git config user.name)" ]]; then
         git config user.name "OneUptime Terraform Provider Bot"
@@ -356,6 +379,19 @@ push_to_repository() {
     # Check if there are any changes to commit
     if git diff --staged --quiet; then
         print_warning "No changes detected in generated files"
+        
+        # Check if we're behind the remote
+        if git rev-parse origin/master &>/dev/null; then
+            local local_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
+            local remote_commit=$(git rev-parse origin/master 2>/dev/null || echo "")
+            
+            if [[ "$local_commit" != "$remote_commit" && -n "$remote_commit" ]]; then
+                print_status "Local repository is behind remote, but no new changes to commit"
+                print_status "Repository is already up to date with generated content"
+                return
+            fi
+        fi
+        
         print_status "Repository is already up to date"
         return
     fi
@@ -377,14 +413,47 @@ Changes include:
 
     # Create and push tag
     print_status "Creating tag v$VERSION..."
+    # Delete existing tag if it exists
+    if git tag -l | grep -q "^v$VERSION$"; then
+        print_warning "Tag v$VERSION already exists locally, removing..."
+        git tag -d "v$VERSION"
+    fi
+    
+    # Check if tag exists on remote
+    if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
+        if [[ "$FORCE" == true ]]; then
+            print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
+        else
+            print_error "Tag v$VERSION already exists on remote repository"
+            print_error "Use --force flag to overwrite, or choose a different version"
+            exit 1
+        fi
+    fi
+    
     git tag -a "v$VERSION" -m "Release v$VERSION"
 
     # Push to remote repository
     print_status "Pushing changes to remote repository..."
-    git push origin master
+    if ! git push origin master; then
+        print_error "Failed to push to remote repository"
+        print_error "This might be due to conflicts or permission issues"
+        exit 1
+    fi
 
     print_status "Pushing tag v$VERSION..."
-    git push origin "v$VERSION"
+    if [[ "$FORCE" == true ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
+        # Force push the tag if it exists and force mode is enabled
+        if ! git push -f origin "v$VERSION"; then
+            print_error "Failed to force push tag v$VERSION"
+            exit 1
+        fi
+        print_warning "Force pushed tag v$VERSION"
+    else
+        if ! git push origin "v$VERSION"; then
+            print_error "Failed to push tag v$VERSION"
+            exit 1
+        fi
+    fi
 
     print_success "Code pushed to terraform-provider-oneuptime repository"
 }
