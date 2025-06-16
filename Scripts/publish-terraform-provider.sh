@@ -264,20 +264,38 @@ create_github_release() {
 
     cd "$TERRAFORM_DIR"
 
-    # Authenticate with GitHub using token
-    if [[ -z "$GITHUB_TOKEN" ]]; then
-        print_error "GITHUB_TOKEN environment variable is required for GitHub authentication"
+    # Check for authentication method
+    if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" ]]; then
+        print_status "Using deploy key for GitHub authentication"
+        
+        # Set up SSH key for git operations
+        local ssh_key_file="$HOME/.ssh/terraform_provider_deploy_key"
+        echo "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" > "$ssh_key_file"
+        chmod 600 "$ssh_key_file"
+        
+        # Configure git to use the deploy key
+        export GIT_SSH_COMMAND="ssh -i $ssh_key_file -o StrictHostKeyChecking=no"
+        
+        # For GitHub API operations, we still need a token
+        if [[ -z "$GITHUB_TOKEN" ]]; then
+            print_error "GITHUB_TOKEN environment variable is required for GitHub API operations (release creation)"
+            print_error "Deploy key is used for git operations, but API operations require a token"
+            exit 1
+        fi
+    elif [[ -n "$GITHUB_TOKEN" ]]; then
+        print_status "Using GitHub token for authentication"
+        # Set up authentication for git and GitHub API
+        export GH_TOKEN="$GITHUB_TOKEN"
+        git config --global credential.helper store
+        echo "https://$GITHUB_TOKEN@github.com" | git credential approve
+    else
+        print_error "Either TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY or GITHUB_TOKEN environment variable is required for GitHub authentication"
         exit 1
     fi
 
     if [[ "$DRY_RUN" == true ]]; then
         print_warning "DRY RUN: Creating draft release v$VERSION (will not be published)"
     fi
-
-    # Set up authentication for git and GitHub API
-    export GH_TOKEN="$GITHUB_TOKEN"
-    git config --global credential.helper store
-    echo "https://$GITHUB_TOKEN@github.com" | git credential approve
 
     # Check if GitHub CLI is available, if not use API directly
     local use_gh_cli=true
@@ -382,6 +400,9 @@ EOF
 
     # Clean up
     rm -f "$release_notes_file"
+    if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" && -f "$HOME/.ssh/terraform_provider_deploy_key" ]]; then
+        rm -f "$HOME/.ssh/terraform_provider_deploy_key"
+    fi
 }
 
 # Function to publish to terraform registry
