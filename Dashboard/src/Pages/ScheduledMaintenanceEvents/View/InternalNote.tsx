@@ -173,8 +173,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             title: "Private Scheduled Maintenance Note",
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
-            description:
-              MarkdownUtil.getMarkdownCheatsheet("Add a private note to this scheduled maintenance here"),
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Add a private note to this scheduled maintenance here",
+            ),
           },
         ]}
         showRefreshButton={true}

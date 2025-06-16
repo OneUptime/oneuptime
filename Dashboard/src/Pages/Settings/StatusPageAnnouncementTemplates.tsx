@@ -95,7 +95,9 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "announcement-details",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
-            description: MarkdownUtil.getMarkdownCheatsheet("Add an announcement note"),
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Add an announcement note",
+            ),
           },
           {
             field: {

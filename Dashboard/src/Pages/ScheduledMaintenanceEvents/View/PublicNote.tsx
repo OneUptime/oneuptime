@@ -176,8 +176,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             title: "Public Scheduled Maintenance Note",
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
-            description:
-              MarkdownUtil.getMarkdownCheatsheet("This note is visible on your Status Page"),
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "This note is visible on your Status Page",
+            ),
           },
           {
             field: {

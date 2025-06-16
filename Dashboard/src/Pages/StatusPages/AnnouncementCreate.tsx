@@ -155,7 +155,9 @@ const AnnouncementCreate: FunctionComponent<
                   stepId: "basic",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
-                  description: MarkdownUtil.getMarkdownCheatsheet("Add an announcement note"),
+                  description: MarkdownUtil.getMarkdownCheatsheet(
+                    "Add an announcement note",
+                  ),
                 },
                 {
                   field: {

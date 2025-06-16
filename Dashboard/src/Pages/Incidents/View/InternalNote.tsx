@@ -161,8 +161,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             title: "Private Incident Note",
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
-            description:
-              MarkdownUtil.getMarkdownCheatsheet("Add a private note to this incident here. This is private to your team and is not visible on Status Page"),
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Add a private note to this incident here. This is private to your team and is not visible on Status Page",
+            ),
           },
         ]}
         showAs={ShowAs.List}
