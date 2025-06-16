@@ -686,22 +686,48 @@ generate_shasums() {
     if [[ -n "$GPG_PRIVATE_KEY" ]]; then
         print_status "Signing SHASUMS file with GPG..."
         
-        # Import the GPG private key
-        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-        
-        # Get the key ID for signing
-        local key_id=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | head -n1)
-        
-        if [[ -n "$key_id" ]]; then
-            # Sign the SHASUMS file
-            gpg --batch --yes --detach-sign --armor --local-user "$key_id" "$shasums_file"
-            print_success "Signed SHASUMS file: ${shasums_file}.sig"
+        # Validate GPG key format before importing
+        if [[ "$GPG_PRIVATE_KEY" == *"***"* ]] || [[ "$GPG_PRIVATE_KEY" == *"placeholder"* ]] || [[ "$GPG_PRIVATE_KEY" == *"example"* ]]; then
+            print_warning "GPG_PRIVATE_KEY appears to contain placeholder or invalid content"
+            print_warning "Skipping GPG signing. Please provide a valid GPG private key."
+        elif [[ ! "$GPG_PRIVATE_KEY" =~ -----BEGIN ]]; then
+            print_warning "GPG_PRIVATE_KEY does not appear to be in PGP armor format"
+            print_warning "Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----"
+            print_warning "Skipping GPG signing."
         else
-            print_warning "Could not determine GPG key ID for signing"
+            # Create a temporary file for the GPG key to avoid shell escaping issues
+            local gpg_key_file=$(mktemp)
+            echo "$GPG_PRIVATE_KEY" > "$gpg_key_file"
+            
+            # Import the GPG private key
+            if gpg --batch --import "$gpg_key_file" 2>/dev/null; then
+                print_status "GPG key imported successfully"
+                
+                # Get the key ID for signing
+                local key_id=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | head -n1)
+                
+                if [[ -n "$key_id" ]]; then
+                    # Sign the SHASUMS file
+                    if gpg --batch --yes --detach-sign --armor --local-user "$key_id" "$shasums_file"; then
+                        print_success "Signed SHASUMS file: ${shasums_file}.sig"
+                    else
+                        print_warning "Failed to sign SHASUMS file with GPG"
+                    fi
+                else
+                    print_warning "Could not determine GPG key ID for signing"
+                fi
+            else
+                print_warning "Failed to import GPG private key"
+                print_warning "Please verify the GPG_PRIVATE_KEY format and content"
+            fi
+            
+            # Clean up temporary file
+            rm -f "$gpg_key_file"
         fi
     else
         print_warning "GPG_PRIVATE_KEY not provided, skipping SHASUMS signing"
-        print_warning "Terraform Registry requires signed SHASUMS for verification"
+        print_warning "Note: Terraform Registry requires signed SHASUMS for official provider verification"
+        print_warning "For testing purposes, unsigned SHASUMS will still work"
     fi
 
     # Show summary of created files
