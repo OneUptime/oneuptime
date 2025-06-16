@@ -49,6 +49,35 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Terraform Provider",
+    links: [
+      {
+        title: "Overview",
+        url: "/docs/terraform/index",
+      },
+      {
+        title: "Quick Start",
+        url: "/docs/terraform/quick-start",
+      },
+      {
+        title: "Complete Guide",
+        url: "/docs/terraform/README",
+      },
+      {
+        title: "Self-Hosted Setup",
+        url: "/docs/terraform/self-hosted",
+      },
+      {
+        title: "Examples",
+        url: "/docs/terraform/examples",
+      },
+      {
+        title: "Registry Usage",
+        url: "/docs/terraform/registry",
+      },
+    ],
+  },
+  {
     title: "Monitor",
     links: [
       {
