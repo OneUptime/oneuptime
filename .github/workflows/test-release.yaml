@@ -30,9 +30,11 @@ jobs:
       contents: write  # For creating releases
       packages: write  # For publishing packages
     
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    env: 
+      CI_PIPELINE_ID: ${{github.run_number}}
+      GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
       GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+      TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
