@@ -525,7 +525,7 @@ EOF
     # Clean up
     rm -f "$release_notes_file"
 }
-}
+
 
 # Function to publish to terraform registry
 publish_to_registry() {
