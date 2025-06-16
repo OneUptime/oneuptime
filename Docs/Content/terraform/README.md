@@ -134,39 +134,28 @@ provider "oneuptime" {
   api_key = var.oneuptime_api_key
 }
 
-# Create a project
-resource "oneuptime_project" "example" {
-  name        = "My Terraform Project"
-  description = "Project created with Terraform"
+# Note: Projects must be created manually in the OneUptime dashboard
+variable "project_id" {
+  description = "OneUptime project ID"
+  type        = string
 }
 
 # Create a monitor
 resource "oneuptime_monitor" "website" {
-  name       = "Website Monitor"
-  project_id = oneuptime_project.example.id
-  
-  monitor_type = "website"
-  url          = "https://example.com"
-  interval     = "5m"
-  
-  tags = {
-    environment = "production"
-    team        = "platform"
-  }
+  name        = "Website Monitor"
+  description = "Monitor for website uptime"
+  data        = jsonencode({
+    url = "https://example.com"
+    interval = "5m"
+    timeout = "30s"
+  })
 }
 
-# Create an alert policy
-resource "oneuptime_alert_policy" "critical" {
-  name       = "Critical Alerts"
-  project_id = oneuptime_project.example.id
-  
-  conditions {
-    monitor_id = oneuptime_monitor.website.id
-    threshold  = "down"
-  }
-  
-  notifications {
-    type  = "email"
+# Create a team
+resource "oneuptime_team" "platform" {
+  name        = "Platform Team"
+  description = "Platform engineering team"
+}
     value = "alerts@example.com"
   }
 }
@@ -230,34 +219,27 @@ terraform {
 The OneUptime Terraform provider supports the following resources:
 
 ### Core Resources
-- `oneuptime_project` - Manage projects
 - `oneuptime_team` - Manage teams
-- `oneuptime_user` - Manage users (enterprise only)
 
 ### Monitoring
 - `oneuptime_monitor` - Create and manage monitors
-- `oneuptime_monitor_group` - Organize monitors into groups
 - `oneuptime_probe` - Manage monitoring probes
 
-### Incident Management
-- `oneuptime_incident` - Manage incidents
-- `oneuptime_alert_policy` - Configure alerting rules
-- `oneuptime_on_call_policy` - Set up on-call schedules
-- `oneuptime_escalation_policy` - Define escalation procedures
+### On-Call Management
+- `oneuptime_on_call_duty_policy` - Set up on-call schedules
 
 ### Status Pages
 - `oneuptime_status_page` - Create status pages
-- `oneuptime_status_page_group` - Organize status page components
-- `oneuptime_announcement` - Manage announcements
+
+### Service Catalog
+- `oneuptime_service_catalog` - Manage service catalog entries
 
 ### Service Catalog
 - `oneuptime_service` - Define services
 - `oneuptime_service_dependency` - Map service dependencies
 
 ### Data Sources
-- `oneuptime_project` - Fetch project information
-- `oneuptime_monitor` - Fetch monitor details
-- `oneuptime_team` - Fetch team information
+Note: Data sources are not currently available in the provider as no datasources are defined in the provider schema.
 
 ## Examples
 
@@ -269,6 +251,11 @@ variable "oneuptime_api_key" {
   description = "OneUptime API Key"
   type        = string
   sensitive   = true
+}
+
+variable "project_id" {
+  description = "OneUptime project ID (create project manually in dashboard)"
+  type        = string
 }
 
 variable "oneuptime_api_url" {
@@ -292,35 +279,22 @@ provider "oneuptime" {
   api_key = var.oneuptime_api_key
 }
 
-# Project
-resource "oneuptime_project" "production" {
-  name        = "Production Environment"
-  description = "Production monitoring and alerting"
-}
-
 # Team
 resource "oneuptime_team" "platform" {
-  name       = "Platform Team"
-  project_id = oneuptime_project.production.id
+  name        = "Platform Team"
+  description = "Platform engineering team"
 }
 
 # Monitors
 resource "oneuptime_monitor" "api" {
-  name       = "API Health Check"
-  project_id = oneuptime_project.production.id
-  
-  monitor_type = "api"
-  url          = "https://api.mycompany.com/health"
-  method       = "GET"
-  interval     = "1m"
-  timeout      = "30s"
-  
-  expected_status_codes = [200]
-  
-  tags = {
-    service     = "api"
-    environment = "production"
-    criticality = "high"
+  name        = "API Health Check"
+  description = "Monitor for API health endpoint"
+  data        = jsonencode({
+    url = "https://api.mycompany.com/health"
+    method = "GET"
+    interval = "1m"
+    timeout = "30s"
+  })
   }
 }
 

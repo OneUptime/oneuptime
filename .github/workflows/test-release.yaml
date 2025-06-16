@@ -78,8 +78,7 @@ jobs:
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
       - name: Generate Terraform provider
-        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }} --test-release
-
+        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }} 
      
 
   llm-docker-image-deploy: 

@@ -321,7 +321,7 @@ push_to_repository() {
     if [[ ! -d ".git" ]]; then
         print_status "Initializing git repository..."
         git init
-        git branch -M main
+        git branch -M master
     fi
 
     # Set up remote repository
@@ -381,7 +381,7 @@ Changes include:
 
     # Push to remote repository
     print_status "Pushing changes to remote repository..."
-    git push origin main
+    git push origin master
 
     print_status "Pushing tag v$VERSION..."
     git push origin "v$VERSION"
@@ -467,7 +467,7 @@ EOF
                 --title "OneUptime Terraform Provider v$VERSION" \
                 --notes-file "$release_notes_file" \
                 --draft \
-                --target main; then
+                --target master; then
                 print_success "Draft release created successfully for test release"
                 print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
             else
@@ -480,7 +480,7 @@ EOF
                 --repo "$GITHUB_ORG/$PROVIDER_REPO" \
                 --title "OneUptime Terraform Provider v$VERSION" \
                 --notes-file "$release_notes_file" \
-                --target main; then
+                --target master; then
                 print_success "GitHub release created successfully"
             else
                 print_error "Failed to create GitHub release"
@@ -505,7 +505,7 @@ EOF
                 \"name\": \"OneUptime Terraform Provider v$VERSION\",
                 \"body\": $release_body,
                 \"draft\": $is_draft,
-                \"target_commitish\": \"main\"
+                \"target_commitish\": \"master\"
             }")
         
         if echo "$response" | jq -e '.id' > /dev/null; then

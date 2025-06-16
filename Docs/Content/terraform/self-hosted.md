@@ -2,6 +2,19 @@
 
 This guide is specifically for customers running self-hosted OneUptime instances. It covers version management, configuration, and best practices for using the Terraform provider with your own OneUptime deployment.
 
+## Important Notes
+
+⚠️ **Projects cannot be created via Terraform** - Projects must be created manually in the OneUptime dashboard first. Use the project ID in your Terraform configurations.
+
+⚠️ **The most important rule for self-hosted customers**: Always pin your Terraform provider version to match your OneUptime installation version exactly.
+
+## Resource Structure
+
+All OneUptime Terraform resources follow a simplified structure:
+- `name` (required) - Resource name
+- `description` (optional) - Resource description  
+- `data` (optional) - Complex configuration as JSON
+
 ## Critical: Version Compatibility
 
 ⚠️ **The most important rule for self-hosted customers**: Always pin your Terraform provider version to match your OneUptime installation version exactly.
@@ -133,21 +146,22 @@ provider "oneuptime" {
   api_key = var.oneuptime_api_key
 }
 
-# main.tf
-# Create project for this environment
-resource "oneuptime_project" "main" {
-  name        = "${var.environment} Environment"
-  description = "Managed by Terraform for ${var.environment}"
+# variables.tf
+variable "project_id" {
+  description = "OneUptime project ID (create manually in dashboard)"
+  type        = string
 }
 
+# main.tf
 # Create teams
 resource "oneuptime_team" "infrastructure" {
-  name       = "Infrastructure Team"
-  project_id = oneuptime_project.main.id
+  name        = "Infrastructure Team"
+  description = "Infrastructure and operations team"
 }
 
 resource "oneuptime_team" "development" {
-  name       = "Development Team"  
+  name        = "Development Team"
+  description = "Application development team"  
   project_id = oneuptime_project.main.id
 }
 

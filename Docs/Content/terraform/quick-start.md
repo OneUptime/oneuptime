@@ -61,35 +61,27 @@ variable "oneuptime_api_key" {
   sensitive   = true
 }
 
-# Create a project
-resource "oneuptime_project" "demo" {
-  name        = "Demo Project"
-  description = "Created with Terraform"
+# Note: Projects must be created manually in the OneUptime dashboard
+# Use your existing project ID here
+variable "project_id" {
+  description = "OneUptime project ID"
+  type        = string
 }
 
 # Create a simple website monitor
 resource "oneuptime_monitor" "website" {
-  name       = "Website Monitor"
-  project_id = oneuptime_project.demo.id
-  
-  monitor_type = "website"
-  url          = "https://google.com"
-  interval     = "5m"
-  timeout      = "30s"
-  
-  tags = {
-    created_by = "terraform"
-    environment = "demo"
-  }
+  name        = "Website Monitor"
+  description = "Monitor for website uptime"
+  data        = jsonencode({
+    url = "https://example.com"
+    interval = "5m"
+    timeout = "30s"
+  })
 }
 
 # Output the monitor ID
 output "monitor_id" {
   value = oneuptime_monitor.website.id
-}
-
-output "project_id" {
-  value = oneuptime_project.demo.id
 }
 ```
 
@@ -100,6 +92,7 @@ Create `terraform.tfvars`:
 ```hcl
 # terraform.tfvars
 oneuptime_api_key = "your-api-key-here"
+project_id        = "your-project-id-here"  # Get this from OneUptime dashboard
 ```
 
 **Important**: Add `terraform.tfvars` to your `.gitignore` to keep API keys secret!
@@ -120,7 +113,7 @@ terraform apply
 ## Step 5: Verify Resources
 
 1. Check your OneUptime dashboard
-2. Look for the new "Demo Project"
+2. Go to your existing project
 3. Verify the "Website Monitor" is created and running
 
 ## Next Steps
