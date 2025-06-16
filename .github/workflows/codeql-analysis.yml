@@ -31,8 +31,6 @@ jobs:
       contents: read
       security-events: write
 
-    strategy:
-      fail-fast: false
       matrix:
         language: [ 'javascript', 'typescript', 'go' ]
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]

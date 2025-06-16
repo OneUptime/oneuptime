@@ -1299,8 +1299,6 @@ jobs:
   
   llm-docker-image-deploy: 
     needs: generate-build-number
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
       
@@ -1384,8 +1382,6 @@ jobs:
         
   docs-docker-image-deploy: 
     needs: generate-build-number
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
 
@@ -1451,8 +1447,6 @@ jobs:
 
   worker-docker-image-deploy: 
     needs: generate-build-number
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
 
@@ -1518,8 +1512,6 @@ jobs:
   
   workflow-docker-image-deploy: 
     needs: generate-build-number
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
 
