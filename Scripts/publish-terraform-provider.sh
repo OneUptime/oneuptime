@@ -248,8 +248,8 @@ generate_provider() {
         exit 1
     fi
 
-    if [[ ! -f "$TERRAFORM_DIR/main.go" ]]; then
-        print_error "main.go file not generated. Provider generation incomplete."
+    if [[ ! -f "$TERRAFORM_DIR/cmd/main.go" ]]; then
+        print_error "cmd/main.go file not generated. Provider generation incomplete."
         exit 1
     fi
 
@@ -258,7 +258,7 @@ generate_provider() {
         exit 1
     fi
 
-    print_success "Terraform provider generated successfully with go.mod and main.go"
+    print_success "Terraform provider generated successfully with go.mod and cmd/main.go"
 }
 
 # Function to run tests
@@ -649,14 +649,14 @@ build_provider_releases() {
         exit 1
     fi
 
-    # Verify main.go exists
-    if [[ ! -f "main.go" ]]; then
-        print_error "main.go file not found. The provider generation should create this file."
+    # Verify cmd/main.go exists
+    if [[ ! -f "cmd/main.go" ]]; then
+        print_error "cmd/main.go file not found. The provider generation should create this file."
         print_error "Please ensure 'npm run generate-terraform-provider' creates the main entry point."
         exit 1
     fi
 
-    print_status "Found go.mod and main.go files - proceeding with build"
+    print_status "Found go.mod and cmd/main.go files - proceeding with build"
 
     # Create builds directory
     local builds_dir="builds"
@@ -702,7 +702,7 @@ build_provider_releases() {
         local build_flags="-a -installsuffix cgo -ldflags='-s -w -X main.version=$VERSION -extldflags \"-static\"'"
         
         # Build the binary
-        if go build $build_flags -o "$builds_dir/$binary_name" .; then
+        if go build $build_flags -o "$builds_dir/$binary_name" ./cmd; then
             # Create zip file
             cd "$builds_dir"
             zip "$zip_name" "$binary_name"
@@ -711,7 +711,7 @@ build_provider_releases() {
             print_status "✓ Built $zip_name"
         else
             print_error "Failed to build for $os/$arch"
-            print_error "Build command: go build $build_flags -o $builds_dir/$binary_name ."
+            print_error "Build command: go build $build_flags -o $builds_dir/$binary_name ./cmd"
             print_error "Current directory: $(pwd)"
             print_error "Available files: $(ls -la)"
             exit 1
