@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -30,6 +31,9 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           fieldType: FormFieldSchemaType.Markdown,
           required: true,
           placeholder: "Remediation Notes",
+          description: MarkdownUtil.getMarkdownCheatsheet(
+            "Add remediation notes for this alert here",
+          ),
         },
       ]}
       modelDetailProps={{

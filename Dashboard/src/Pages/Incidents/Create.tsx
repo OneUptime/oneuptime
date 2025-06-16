@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -196,6 +197,9 @@ const IncidentCreate: FunctionComponent<
                   stepId: "incident-details",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
+                  description: MarkdownUtil.getMarkdownCheatsheet(
+                    "Describe the incident details here",
+                  ),
                 },
                 {
                   field: {

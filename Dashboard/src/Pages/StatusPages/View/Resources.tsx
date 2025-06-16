@@ -32,6 +32,7 @@ import React, {
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -180,6 +181,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       required: false,
       placeholder: "",
       stepId: "monitor-details",
+      description: MarkdownUtil.getMarkdownCheatsheet(
+        "Describe this resource here",
+      ),
     },
     {
       field: {

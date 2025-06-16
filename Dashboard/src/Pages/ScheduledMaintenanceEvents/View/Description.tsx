@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -32,6 +33,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<
           fieldType: FormFieldSchemaType.Markdown,
           required: false,
           placeholder: "Description",
+          description: MarkdownUtil.getMarkdownCheatsheet(
+            "Describe the scheduled maintenance event here",
+          ),
         },
       ]}
       modelDetailProps={{
