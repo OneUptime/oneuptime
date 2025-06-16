@@ -58,7 +58,6 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
       res.render(`${ViewsPath}/support`, {
         enableGoogleTagManager: IsBillingEnabled,
@@ -1029,7 +1028,6 @@ const HomeFeatureSet: FeatureSet = {
         });
       },
     );
-
 
     app.get(
       "/product/incident-management",
