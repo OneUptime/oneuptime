@@ -23,7 +23,7 @@ PROVIDER_NAME="oneuptime"
 PROVIDER_REPO="terraform-provider-$PROVIDER_NAME"
 GITHUB_ORG="OneUptime"
 VERSION=""
-DRY_RUN=false
+TEST_RELEASE=false
 SKIP_TESTS=false
 FORCE=false
 
@@ -55,14 +55,14 @@ Usage: $0 [OPTIONS]
 
 Options:
     -v, --version VERSION   Specify the version to publish (e.g., 1.0.0)
-    -d, --dry-run          Run in dry-run mode (no actual publishing)
+    -t, --test-release     Run in test release mode (creates draft release)
     -s, --skip-tests       Skip running tests
     -f, --force           Force regeneration even if files exist
     -h, --help            Show this help message
 
 Examples:
     $0 -v 1.0.0                    # Publish version 1.0.0
-    $0 -v 1.1.0 --dry-run         # Test publishing version 1.1.0
+    $0 -v 1.1.0 --test-release    # Test publishing version 1.1.0 (draft release)
     $0 -v 1.0.1 --skip-tests      # Publish without running tests
 
 Environment Variables:
@@ -87,8 +87,8 @@ parse_args() {
                 VERSION="$2"
                 shift 2
                 ;;
-            -d|--dry-run)
-                DRY_RUN=true
+            -t|--test-release)
+                TEST_RELEASE=true
                 shift
                 ;;
             -s|--skip-tests)
@@ -158,8 +158,8 @@ validate_prerequisites() {
         exit 1
     fi
 
-    # Check environment variables for non-dry-run mode
-    if [[ "$DRY_RUN" == false ]]; then
+    # Check environment variables for non-test-release mode
+    if [[ "$TEST_RELEASE" == false ]]; then
         if [[ -z "$GITHUB_TOKEN" ]]; then
             print_error "GITHUB_TOKEN environment variable not set. Required for publishing."
             exit 1
@@ -278,9 +278,9 @@ run_tests() {
     fi
 }
 
-# Function to create GitHub release
-create_github_release() {
-    print_step "Creating GitHub release..."
+# Function to push code to terraform-provider-oneuptime repository
+push_to_repository() {
+    print_step "Pushing generated code to terraform-provider-oneuptime repository..."
 
     cd "$TERRAFORM_DIR"
 
@@ -317,8 +317,88 @@ create_github_release() {
         exit 1
     fi
 
-    if [[ "$DRY_RUN" == true ]]; then
-        print_warning "DRY RUN: Creating draft release v$VERSION (will not be published)"
+    # Initialize git repository if it doesn't exist
+    if [[ ! -d ".git" ]]; then
+        print_status "Initializing git repository..."
+        git init
+        git branch -M main
+    fi
+
+    # Set up remote repository
+    local remote_url=""
+    if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" ]]; then
+        remote_url="git@github.com:$GITHUB_ORG/$PROVIDER_REPO.git"
+    else
+        remote_url="https://github.com/$GITHUB_ORG/$PROVIDER_REPO.git"
+    fi
+
+    # Check if remote exists, if not add it
+    if ! git remote get-url origin &> /dev/null; then
+        print_status "Adding remote origin: $remote_url"
+        git remote add origin "$remote_url"
+    else
+        # Update the remote URL in case it changed
+        git remote set-url origin "$remote_url"
+    fi
+
+    # Configure git user if not already configured
+    if [[ -z "$(git config user.name)" ]]; then
+        git config user.name "OneUptime Terraform Provider Bot"
+    fi
+    if [[ -z "$(git config user.email)" ]]; then
+        git config user.email "terraform-provider@oneuptime.com"
+    fi
+
+    # Stage all changes
+    print_status "Staging generated files..."
+    git add .
+
+    # Check if there are any changes to commit
+    if git diff --staged --quiet; then
+        print_warning "No changes detected in generated files"
+        print_status "Repository is already up to date"
+        return
+    fi
+
+    # Commit changes
+    local commit_message="chore: generate provider for version v$VERSION
+
+This commit contains the auto-generated Terraform provider code for OneUptime v$VERSION.
+
+Generated from OneUptime API specification on $(date -u '+%Y-%m-%d %H:%M:%S UTC').
+
+Changes include:
+- Updated provider resources and data sources
+- Latest API schema definitions
+- Generated documentation"
+
+    print_status "Committing changes..."
+    git commit -m "$commit_message"
+
+    # Create and push tag
+    print_status "Creating tag v$VERSION..."
+    git tag -a "v$VERSION" -m "Release v$VERSION"
+
+    # Push to remote repository
+    print_status "Pushing changes to remote repository..."
+    git push origin main
+
+    print_status "Pushing tag v$VERSION..."
+    git push origin "v$VERSION"
+
+    print_success "Code pushed to terraform-provider-oneuptime repository"
+}
+
+# Function to create GitHub release
+create_github_release() {
+    print_step "Creating GitHub release..."
+
+    cd "$TERRAFORM_DIR"
+
+    # Authentication is already set up in push_to_repository function
+
+    if [[ "$TEST_RELEASE" == true ]]; then
+        print_warning "TEST RELEASE: Creating draft release v$VERSION (will not be published)"
     fi
 
     # Check if GitHub CLI is available, if not use API directly
@@ -371,16 +451,16 @@ For detailed documentation and examples, visit: https://registry.terraform.io/pr
 EOF
 
     # Create the release
-    if [[ "$DRY_RUN" == true ]]; then
-        print_status "Creating draft release v$VERSION for dry run..."
+    if [[ "$TEST_RELEASE" == true ]]; then
+        print_status "Creating draft release v$VERSION for test release..."
     else
         print_status "Creating GitHub release v$VERSION..."
     fi
     
     if [[ "$use_gh_cli" == true ]]; then
         # Use GitHub CLI if available - specify the target repository
-        if [[ "$DRY_RUN" == true ]]; then
-            # For dry run, create a draft release without specifying the tag upfront
+        if [[ "$TEST_RELEASE" == true ]]; then
+            # For test release, create a draft release without specifying the tag upfront
             # This prevents the auto-generation of untagged releases
             if gh release create "v$VERSION" \
                 --repo "$GITHUB_ORG/$PROVIDER_REPO" \
@@ -388,7 +468,7 @@ EOF
                 --notes-file "$release_notes_file" \
                 --draft \
                 --target main; then
-                print_success "Draft release created successfully for dry run"
+                print_success "Draft release created successfully for test release"
                 print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
             else
                 print_error "Failed to create GitHub release"
@@ -412,9 +492,9 @@ EOF
         local api_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases"
         local release_body=$(cat "$release_notes_file" | jq -Rs .)
         
-        local is_draft="true"
-        if [[ "$DRY_RUN" == false ]]; then
-            is_draft="false"
+        local is_draft="false"
+        if [[ "$TEST_RELEASE" == true ]]; then
+            is_draft="true"
         fi
         
         local response=$(curl -s -X POST "$api_url" \
@@ -429,8 +509,8 @@ EOF
             }")
         
         if echo "$response" | jq -e '.id' > /dev/null; then
-            if [[ "$DRY_RUN" == true ]]; then
-                print_success "Draft release created successfully for dry run via API"
+            if [[ "$TEST_RELEASE" == true ]]; then
+                print_success "Draft release created successfully for test release via API"
                 print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
             else
                 print_success "GitHub release created successfully via API"
@@ -444,17 +524,15 @@ EOF
 
     # Clean up
     rm -f "$release_notes_file"
-    if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" && -f "$HOME/.ssh/terraform_provider_deploy_key" ]]; then
-        rm -f "$HOME/.ssh/terraform_provider_deploy_key"
-    fi
+}
 }
 
 # Function to publish to terraform registry
 publish_to_registry() {
     print_step "Publishing to Terraform Registry..."
 
-    if [[ "$DRY_RUN" == true ]]; then
-        print_warning "DRY RUN: Skipping Terraform Registry publishing"
+    if [[ "$TEST_RELEASE" == true ]]; then
+        print_warning "TEST RELEASE: Skipping Terraform Registry publishing"
         print_status "In a real run, the Terraform Registry would automatically detect the published release"
         return
     fi
@@ -475,7 +553,7 @@ publish_to_registry() {
 cleanup() {
     print_step "Cleaning up temporary files..."
     
-    cd "$TERRAFORM_DIR"
+    cd "$TERRAFORM_DIR" 2>/dev/null || cd "$PROJECT_ROOT"
     
     # Remove build artifacts if they exist
     if [[ -d "builds" ]]; then
@@ -484,6 +562,11 @@ cleanup() {
     
     # Remove any temporary files
     rm -f release-notes-*.md
+    
+    # Clean up SSH key if it was created
+    if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" && -f "$HOME/.ssh/terraform_provider_deploy_key" ]]; then
+        rm -f "$HOME/.ssh/terraform_provider_deploy_key"
+    fi
     
     print_success "Cleanup completed"
 }
@@ -499,20 +582,28 @@ show_summary() {
     echo "Terraform Registry: https://registry.terraform.io/providers/oneuptime/oneuptime"
     echo ""
     
-    if [[ "$DRY_RUN" == true ]]; then
-        print_warning "This was a DRY RUN with the following actions taken:"
+    if [[ "$TEST_RELEASE" == true ]]; then
+        print_warning "This was a TEST RELEASE with the following actions taken:"
         echo "✓ Generated Terraform provider"
         echo "✓ Ran tests (if not skipped)"
+        echo "✓ Pushed code to terraform-provider-oneuptime repository"
         echo "✓ Created draft GitHub release v$VERSION"
         echo "✗ Skipped Terraform Registry publishing"
         echo ""
         print_status "Next steps for a real release:"
         echo "1. Review the draft release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
         echo "2. If satisfied, publish the release (remove draft status)"
-        echo "3. Or run the script again without --dry-run flag"
+        echo "3. Or run the script again without --test-release flag"
         echo "4. Monitor Terraform Registry for automatic indexing"
     else
         print_success "Terraform provider published successfully!"
+        echo ""
+        print_status "Actions completed:"
+        echo "✓ Generated Terraform provider"
+        echo "✓ Ran tests (if not skipped)"
+        echo "✓ Pushed code to terraform-provider-oneuptime repository"
+        echo "✓ Created GitHub release v$VERSION"
+        echo "✓ Terraform Registry notified"
         echo ""
         print_status "Next steps:"
         echo "1. Monitor the GitHub release: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
@@ -537,6 +628,7 @@ main() {
     install_dependencies
     generate_provider
     run_tests
+    push_to_repository
     create_github_release
     publish_to_registry
     cleanup
