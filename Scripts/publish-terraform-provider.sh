@@ -593,6 +593,13 @@ EOF
 
     # Clean up
     rm -f "$release_notes_file"
+    
+    # Build provider for multiple platforms and generate SHASUMS
+    build_provider_releases
+    generate_shasums
+    
+    # Upload release assets
+    upload_release_assets
 }
 
 
@@ -616,6 +623,181 @@ publish_to_registry() {
     print_status "Provider will be available at: https://registry.terraform.io/providers/oneuptime/oneuptime/$VERSION"
 
 
+}
+
+# Function to build provider for multiple platforms
+build_provider_releases() {
+    print_step "Building provider for multiple platforms..."
+
+    cd "$TERRAFORM_DIR"
+
+    # Create builds directory
+    local builds_dir="builds"
+    rm -rf "$builds_dir"
+    mkdir -p "$builds_dir"
+
+    # Define target platforms that Terraform Registry expects
+    local platforms=(
+        "linux/amd64"
+        "linux/arm64"
+        "darwin/amd64"
+        "darwin/arm64"
+        "windows/amd64"
+        "freebsd/amd64"
+    )
+
+    # Get the provider binary name from the module
+    local provider_binary="terraform-provider-$PROVIDER_NAME"
+
+    print_status "Building provider for ${#platforms[@]} platforms..."
+
+    for platform in "${platforms[@]}"; do
+        local os=$(echo $platform | cut -d'/' -f1)
+        local arch=$(echo $platform | cut -d'/' -f2)
+        local binary_name="$provider_binary"
+        
+        # Add .exe extension for Windows
+        if [[ "$os" == "windows" ]]; then
+            binary_name="${provider_binary}.exe"
+        fi
+        
+        local output_name="${provider_binary}_v${VERSION}_${os}_${arch}"
+        local zip_name="${output_name}.zip"
+        
+        print_status "Building for $os/$arch..."
+        
+        # Build the binary
+        if GOOS=$os GOARCH=$arch go build -o "$builds_dir/$binary_name" -ldflags="-s -w -X main.version=$VERSION" .; then
+            # Create zip file
+            cd "$builds_dir"
+            zip "$zip_name" "$binary_name"
+            rm "$binary_name"
+            cd ..
+            print_status "✓ Built $zip_name"
+        else
+            print_error "Failed to build for $os/$arch"
+            exit 1
+        fi
+    done
+
+    print_success "Built provider for all platforms"
+}
+
+# Function to generate SHASUMS and signature files
+generate_shasums() {
+    print_step "Generating SHASUMS and signature files..."
+
+    cd "$TERRAFORM_DIR/builds"
+
+    # Generate SHA256 sums for all zip files
+    local shasums_file="terraform-provider-${PROVIDER_NAME}_${VERSION}_SHA256SUMS"
+    
+    print_status "Generating SHA256SUMS..."
+    if command -v shasum &> /dev/null; then
+        shasum -a 256 *.zip > "$shasums_file"
+    elif command -v sha256sum &> /dev/null; then
+        sha256sum *.zip > "$shasums_file"
+    else
+        print_error "Neither shasum nor sha256sum command found"
+        exit 1
+    fi
+
+    print_status "Generated $shasums_file"
+
+    # Sign the SHASUMS file with GPG if GPG key is available
+    if [[ -n "$GPG_PRIVATE_KEY" ]]; then
+        print_status "Signing SHASUMS file with GPG..."
+        
+        # Import the GPG private key
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        
+        # Get the key ID for signing
+        local key_id=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | head -n1)
+        
+        if [[ -n "$key_id" ]]; then
+            # Sign the SHASUMS file
+            gpg --batch --yes --detach-sign --armor --local-user "$key_id" "$shasums_file"
+            print_success "Signed SHASUMS file: ${shasums_file}.sig"
+        else
+            print_warning "Could not determine GPG key ID for signing"
+        fi
+    else
+        print_warning "GPG_PRIVATE_KEY not provided, skipping SHASUMS signing"
+        print_warning "Terraform Registry requires signed SHASUMS for verification"
+    fi
+
+    cd "$TERRAFORM_DIR"
+    print_success "SHASUMS generation completed"
+}
+
+# Function to upload release assets
+upload_release_assets() {
+    print_step "Uploading release assets..."
+
+    cd "$TERRAFORM_DIR"
+
+    local builds_dir="builds"
+    
+    if [[ ! -d "$builds_dir" ]]; then
+        print_error "Builds directory not found. Run build_provider_releases first."
+        exit 1
+    fi
+
+    # Check if GitHub CLI is available
+    if command -v gh &> /dev/null; then
+        print_status "Uploading assets using GitHub CLI..."
+        
+        # Upload all zip files and SHASUMS files
+        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS*; do
+            if [[ -f "$file" ]]; then
+                local filename=$(basename "$file")
+                print_status "Uploading $filename..."
+                if gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO"; then
+                    print_status "✓ Uploaded $filename"
+                else
+                    print_error "Failed to upload $filename"
+                    exit 1
+                fi
+            fi
+        done
+    else
+        print_warning "GitHub CLI not available, using curl for asset upload..."
+        
+        # Get release ID
+        local release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/tags/v$VERSION" | \
+            jq -r '.id')
+        
+        if [[ "$release_id" == "null" || -z "$release_id" ]]; then
+            print_error "Could not find release ID for v$VERSION"
+            exit 1
+        fi
+        
+        # Upload each file
+        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS*; do
+            if [[ -f "$file" ]]; then
+                local filename=$(basename "$file")
+                local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
+                
+                print_status "Uploading $filename..."
+                local response=$(curl -s -X POST \
+                    -H "Authorization: token $GITHUB_TOKEN" \
+                    -H "Content-Type: application/octet-stream" \
+                    --data-binary "@$file" \
+                    "$upload_url")
+                
+                if echo "$response" | jq -e '.id' > /dev/null; then
+                    print_status "✓ Uploaded $filename"
+                else
+                    print_error "Failed to upload $filename"
+                    echo "Response: $response"
+                    exit 1
+                fi
+            fi
+        done
+    fi
+
+    print_success "All release assets uploaded successfully"
 }
 
 # Function to cleanup
@@ -657,6 +839,9 @@ show_summary() {
         echo "✓ Ran tests (if not skipped)"
         echo "✓ Pushed code to terraform-provider-oneuptime repository"
         echo "✓ Created draft GitHub release v$VERSION"
+        echo "✓ Built provider for multiple platforms (linux, darwin, windows, freebsd)"
+        echo "✓ Generated SHA256SUMS and signature files"
+        echo "✓ Uploaded release assets"
         echo "✗ Skipped Terraform Registry publishing"
         echo ""
         print_status "Next steps for a real release:"
@@ -672,6 +857,9 @@ show_summary() {
         echo "✓ Ran tests (if not skipped)"
         echo "✓ Pushed code to terraform-provider-oneuptime repository"
         echo "✓ Created GitHub release v$VERSION"
+        echo "✓ Built provider for multiple platforms (linux, darwin, windows, freebsd)"
+        echo "✓ Generated SHA256SUMS and signature files"
+        echo "✓ Uploaded release assets"
         echo "✓ Terraform Registry notified"
         echo ""
         print_status "Next steps:"
