@@ -453,7 +453,7 @@ create_github_release() {
     # Create release notes
     local release_notes_file="release-notes-v$VERSION.md"
     cat > "$release_notes_file" << EOF
-# OneUptime Terraform Provider v$VERSION
+# v$VERSION
 
 ## What's Changed
 
@@ -520,7 +520,7 @@ EOF
             # For actual release, create without draft flag
             if gh release create "v$VERSION" \
                 --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-                --title "OneUptime Terraform Provider v$VERSION" \
+                --title "v$VERSION" \
                 --notes-file "$release_notes_file" \
                 --target master; then
                 print_success "GitHub release created successfully"
@@ -544,7 +544,7 @@ EOF
             -H "Accept: application/vnd.github.v3+json" \
             -d "{
                 \"tag_name\": \"v$VERSION\",
-                \"name\": \"OneUptime Terraform Provider v$VERSION\",
+                \"name\": \"v$VERSION\",
                 \"body\": $release_body,
                 \"draft\": $is_draft,
                 \"target_commitish\": \"master\"
