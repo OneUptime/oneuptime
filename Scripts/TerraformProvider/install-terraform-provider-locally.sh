@@ -163,35 +163,7 @@ detect_platform() {
 
 # Function to get provider version
 get_provider_version() {
-    if [[ -n "$PROVIDER_VERSION" ]]; then
-        echo "$PROVIDER_VERSION"
-        return
-    fi
-    
-    # Try to extract version from go.mod
-    if [[ -f "$PROVIDER_FRAMEWORK_DIR/go.mod" ]]; then
-        local version=$(grep "^module" "$PROVIDER_FRAMEWORK_DIR/go.mod" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "")
-        if [[ -n "$version" ]]; then
-            echo "${version#v}"  # Remove 'v' prefix
-            return
-        fi
-    fi
-    
-    # Try to extract from builds directory
-    if [[ -d "$PROVIDER_FRAMEWORK_DIR/builds" ]]; then
-        local binary_file=$(ls "$PROVIDER_FRAMEWORK_DIR/builds/terraform-provider-${PROVIDER_NAME}_"* 2>/dev/null | head -1)
-        if [[ -n "$binary_file" ]]; then
-            local filename=$(basename "$binary_file")
-            local version=$(echo "$filename" | sed "s/terraform-provider-${PROVIDER_NAME}_//" | sed 's/_.*$//')
-            if [[ -n "$version" && "$version" != "$filename" ]]; then
-                echo "$version"
-                return
-            fi
-        fi
-    fi
-    
-    # Default version
-    echo "dev"
+     echo "0.0.1"  # Default version for testing and local development
 }
 
 # Function to validate prerequisites
