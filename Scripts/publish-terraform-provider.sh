@@ -714,7 +714,11 @@ generate_shasums() {
             echo "$GPG_PRIVATE_KEY" > "$gpg_key_file"
             
             print_status "Importing GPG private key..."
-            if import_result=$(gpg --batch --import "$gpg_key_file" 2>&1); then
+            import_result=$(gpg --batch --import "$gpg_key_file" 2>&1)
+            import_exit_code=$?
+            
+            # Check if import was successful by looking at exit code and checking for imported keys
+            if [[ $import_exit_code -eq 0 ]] && echo "$import_result" | grep -q "secret keys imported: [1-9]"; then
                 print_status "GPG key imported successfully"
                 
                 # Get the key ID for signing
@@ -746,7 +750,8 @@ generate_shasums() {
                 fi
             else
                 print_warning "Failed to import GPG private key"
-                print_warning "Import error: $import_result"
+                print_warning "GPG output: $import_result"
+                print_warning "Exit code: $import_exit_code"
                 print_warning "Please verify the GPG_PRIVATE_KEY format and content"
             fi
             
