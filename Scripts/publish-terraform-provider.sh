@@ -732,7 +732,7 @@ generate_shasums() {
 
     # Show summary of created files
     print_status "Created release assets:"
-    for file in *.zip *SHA256SUMS* *.json; do
+    for file in *.zip *SHA256SUMS* *.sig *.json; do
         if [[ -f "$file" ]]; then
             local size=$(ls -lh "$file" | awk '{print $5}')
             print_status "  - $file ($size)"
@@ -761,8 +761,8 @@ upload_release_assets() {
     if command -v gh &> /dev/null; then
         print_status "Uploading assets using GitHub CLI..."
         
-        # Upload all zip files, SHASUMS files, and manifest files
-        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.json; do
+        # Upload all zip files, SHASUMS files, signature files, and manifest files
+        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.sig "$builds_dir"/*.json; do
             if [[ -f "$file" ]]; then
                 local filename=$(basename "$file")
                 print_status "Uploading $filename..."
@@ -788,7 +788,7 @@ upload_release_assets() {
         fi
         
         # Upload each file
-        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.json; do
+        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.sig "$builds_dir"/*.json; do
             if [[ -f "$file" ]]; then
                 local filename=$(basename "$file")
                 local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
@@ -822,8 +822,8 @@ cleanup() {
     
     # Remove temporary SHASUMS files if they exist
     if [[ -d "builds" ]]; then
-        # Only remove SHASUMS files and generated zip files, keep the original binaries
-        rm -f builds/*SHA256SUMS* builds/*.zip builds/*manifest.json
+        # Only remove SHASUMS files, signature files, and generated zip files, keep the original binaries
+        rm -f builds/*SHA256SUMS* builds/*.sig builds/*.zip builds/*manifest.json
     fi
     
     # Remove any temporary files
