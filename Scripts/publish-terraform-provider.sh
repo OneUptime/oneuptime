@@ -709,14 +709,11 @@ generate_shasums() {
             print_warning "Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----"
             print_warning "Skipping GPG signing."
         else
+            # Create temporary file for GPG key
+            local gpg_key_file="$(mktemp)"
+            echo "$GPG_PRIVATE_KEY" > "$gpg_key_file"
             
-            echo $GPG_PRIVATE_KEY > private.key
-            gpg --import private.key || true
-            rm private.key
-            echo "GPG key imported successfully"
-            gpg --export-secret-keys >~/.gnupg/secring.gpg 
-            echo "GPG key exported successfully"
-
+            print_status "Importing GPG private key..."
             if import_result=$(gpg --batch --import "$gpg_key_file" 2>&1); then
                 print_status "GPG key imported successfully"
                 
@@ -755,7 +752,6 @@ generate_shasums() {
             
             # Clean up temporary files
             rm -f "$gpg_key_file"
-            rm -rf "$GNUPGHOME"
         fi
     else
         print_warning "GPG_PRIVATE_KEY not provided, skipping SHASUMS signing"
