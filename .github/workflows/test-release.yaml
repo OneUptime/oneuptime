@@ -73,7 +73,7 @@ jobs:
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
       - name: Generate Terraform provider
-        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }} --gpg-private-key ${{ secrets.GPG_PRIVATE_KEY }} --github-token ${{ secrets.SIMLARSEN_GITHUB_PAT }} --github-repo-deploy-key ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
+        run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --gpg-private-key "${{ secrets.GPG_PRIVATE_KEY }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
   
 
