@@ -696,9 +696,25 @@ generate_shasums() {
 
     print_status "Generated $shasums_file with $(wc -l < "$shasums_file") entries"
 
-   
+    # Sign the checksums file with GPG
     print_status "Signing $shasums_file with GPG..."
-    gpg --output "${shasums_file}.sig" --detach-sig "$shasums_file"
+    
+    # List available GPG keys for debugging
+    print_status "Available GPG secret keys:"
+    gpg --list-secret-keys --keyid-format=long
+    
+    # Get the first available secret key ID
+    local key_id=$(gpg --list-secret-keys --keyid-format=long | grep -E "^sec" | head -1 | sed 's/.*\/\([A-F0-9]*\).*/\1/')
+    
+    if [[ -z "$key_id" ]]; then
+        print_error "No GPG secret key found. Please ensure GPG key is imported."
+        exit 1
+    fi
+    
+    print_status "Using GPG key: $key_id"
+    
+    # Create binary (non-ASCII armored) detached signature
+    gpg --batch --yes --local-user "$key_id" --output "${shasums_file}.sig" --detach-sig "$shasums_file"
     if [[ $? -ne 0 ]]; then
         print_error "Failed to sign $shasums_file"
         exit 1 
