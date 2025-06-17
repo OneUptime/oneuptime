@@ -78,7 +78,13 @@ export GPG_FINGERPRINT="your-gpg-fingerprint"  # Optional for signing
 ### Basic Commands
 
 ```bash
-# Show help
+# Generate and install provider locally
+npm run install-terraform-provider-locally
+
+# Generate provider only
+npm run generate-terraform-provider
+
+# Show publishing help
 ./scripts/publish-terraform-provider.sh --help
 
 # Dry run (recommended first)
@@ -109,6 +115,26 @@ export GPG_FINGERPRINT="your-gpg-fingerprint"  # Optional for signing
 # Testing new generation
 ./scripts/publish-terraform-provider.sh -v 1.3.0-beta.1 --dry-run --force
 ```
+
+### Local Installation (Development)
+
+For local development and testing, you can generate and install the provider locally in one step:
+
+```bash
+# Generate provider and install locally for testing
+npm run install-terraform-provider-locally
+
+# Or with specific version
+npm run install-terraform-provider-locally -- -v 1.0.0
+
+# Force regenerate and reinstall
+npm run install-terraform-provider-locally -- --force
+
+# Skip generation step (use existing provider)
+npm run install-terraform-provider-locally -- --skip-generation
+```
+
+This automatically generates the provider, installs the binary to your local Terraform plugins directory, and creates an example configuration. See [LOCAL_INSTALLATION.md](./LOCAL_INSTALLATION.md) for detailed usage.
 
 ## What the Process Does
 
