@@ -748,7 +748,7 @@ upload_release_assets() {
                 files_found=true
                 local filename=$(basename "$file")
                 print_status "Uploading $filename..."
-                if gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO"; then
+                if gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO" --clobber; then
                     print_status "✓ Uploaded $filename"
                 else
                     print_error "Failed to upload $filename"
@@ -780,6 +780,21 @@ upload_release_assets() {
             if [[ -f "$file" ]]; then
                 files_found=true
                 local filename=$(basename "$file")
+                
+                # Check if asset already exists and delete it
+                print_status "Checking if $filename already exists..."
+                local existing_asset_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                    "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets" | \
+                    jq -r ".[] | select(.name == \"$filename\") | .id")
+                
+                if [[ -n "$existing_asset_id" && "$existing_asset_id" != "null" ]]; then
+                    print_status "Asset $filename already exists (ID: $existing_asset_id), deleting..."
+                    local delete_response=$(curl -s -X DELETE \
+                        -H "Authorization: token $GITHUB_TOKEN" \
+                        "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/assets/$existing_asset_id")
+                    print_status "✓ Deleted existing $filename"
+                fi
+                
                 local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
                 
                 print_status "Uploading $filename..."
