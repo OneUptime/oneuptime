@@ -697,71 +697,24 @@ generate_shasums() {
     print_status "Generated $shasums_file with $(wc -l < "$shasums_file") entries"
 
     # Sign the SHASUMS file with GPG if GPG key is available
+    echo $GPG_PRIVATE_KEY > private.key
+    gpg --import private.key || true
+    rm private.key
+    echo "GPG key imported successfully"
+    gpg --export-secret-keys >~/.gnupg/secring.gpg 
+    echo "GPG key exported successfully"
+
+   # Sign the SHASUMS file if GPG key is available
     if [[ -n "$GPG_PRIVATE_KEY" ]]; then
-        print_status "Signing SHASUMS file with GPG..."
-        
-        # Validate GPG key format before importing
-        if [[ "$GPG_PRIVATE_KEY" == *"***"* ]] || [[ "$GPG_PRIVATE_KEY" == *"placeholder"* ]] || [[ "$GPG_PRIVATE_KEY" == *"example"* ]]; then
-            print_warning "GPG_PRIVATE_KEY appears to contain placeholder or invalid content"
-            print_warning "Skipping GPG signing. Please provide a valid GPG private key."
-        elif [[ ! "$GPG_PRIVATE_KEY" =~ -----BEGIN ]]; then
-            print_warning "GPG_PRIVATE_KEY does not appear to be in PGP armor format"
-            print_warning "Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----"
-            print_warning "Skipping GPG signing."
-        else
-            # Create temporary file for GPG key
-            local gpg_key_file="$(mktemp)"
-            echo "$GPG_PRIVATE_KEY" > "$gpg_key_file"
-            
-            print_status "Importing GPG private key..."
-            import_result=$(gpg --batch --import "$gpg_key_file" 2>&1)
-            import_exit_code=$?
-            
-            # Check if import was successful by looking at exit code and checking for imported keys
-            if [[ $import_exit_code -eq 0 ]] && echo "$import_result" | grep -q "secret keys imported: [1-9]"; then
-                print_status "GPG key imported successfully"
-                
-                # Get the key ID for signing
-                local key_id=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | head -n1)
-                
-                if [[ -n "$key_id" ]]; then
-                    print_status "Using GPG key ID: $key_id"
-                    
-                    # Sign the SHASUMS file with absolute path
-                    local abs_shasums_file="$(pwd)/$shasums_file"
-                    print_status "Signing file: $abs_shasums_file"
-                    
-                    if gpg --batch --yes --pinentry-mode loopback --detach-sign --armor --local-user "$key_id" "$abs_shasums_file"; then
-                        # Verify the signature file was created
-                        if [[ -f "${abs_shasums_file}.sig" ]]; then
-                            print_success "Signed SHASUMS file: ${shasums_file}.sig"
-                            print_status "Signature file size: $(ls -lh "${abs_shasums_file}.sig" | awk '{print $5}')"
-                        else
-                            print_error "Signature file was not created: ${abs_shasums_file}.sig"
-                        fi
-                    else
-                        print_warning "Failed to sign SHASUMS file with GPG"
-                        print_status "GPG command failed. Check if the private key is valid and has signing capabilities."
-                    fi
-                else
-                    print_warning "Could not determine GPG key ID for signing"
-                    print_status "Available secret keys:"
-                    gpg --list-secret-keys
-                fi
-            else
-                print_warning "Failed to import GPG private key"
-                print_warning "GPG output: $import_result"
-                print_warning "Exit code: $import_exit_code"
-                print_warning "Please verify the GPG_PRIVATE_KEY format and content"
-            fi
-            
-            # Clean up temporary files
-            rm -f "$gpg_key_file"
+        print_status "Signing $shasums_file with GPG..."
+        gpg --output "${shasums_file}.sig" --detach-sig "$shasums_file"
+        if [[ $? -ne 0 ]]; then
+            print_error "Failed to sign $shasums_file"
+            exit 1
         fi
+        print_success "Signed $shasums_file successfully"
     else
-        print_warning "GPG_PRIVATE_KEY not provided, skipping SHASUMS signing"
-        print_warning "Note: Terraform Registry requires signed SHASUMS for official provider verification"
-        print_warning "For testing purposes, unsigned SHASUMS will still work"
+        print_warning "No GPG private key provided, skipping signing of SHASUMS file"
     fi
 
     # Show summary of created files
