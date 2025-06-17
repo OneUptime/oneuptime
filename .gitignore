@@ -120,3 +120,5 @@ InfrastructureAgent/oneuptime-infrastructure-agent
 openapi.json
 
 Terraform/**
+
+terraform-provider-example/** 
