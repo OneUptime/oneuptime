@@ -1,5 +1,27 @@
 # OneUptime Terraform Provider Publishing
 
+This directory contains all scripts and documentation for generating, installing, and publishing the OneUptime Terraform provider.
+
+## Directory Structure
+
+```
+Scripts/TerraformProvider/
+├── install-terraform-provider-locally.sh    # Local installation script
+├── publish-terraform-provider.sh            # Publishing script
+├── GenerateProvider.ts                      # Provider generation (TypeScript)
+├── FrameworkGenerator.ts                    # Framework code generation
+├── GoModuleSetup.ts                         # Go module setup and builds
+├── InstallTools.ts                          # Tool installation utilities
+├── SpecificationConverter.ts               # OpenAPI to provider spec conversion
+├── GeneratorConfig.ts                       # Configuration generation
+├── ProviderSpec.ts                          # Provider specification handling
+├── README.md                                # Main documentation (this file)
+├── LOCAL_INSTALLATION.md                   # Local installation guide
+├── test-installation.sh                    # Installation workflow demo
+├── validate-generation.sh                  # Generation validation script
+└── openapi.json                            # Generated OpenAPI specification
+```
+
 ## Environment Variables
 
 For publishing (not needed for dry runs):
@@ -30,13 +52,13 @@ The release workflow automatically:
 
 ```bash
 # Make the script executable (if not already)
-chmod +x scripts/publish-terraform-provider.sh
+chmod +x Scripts/TerraformProvider/publish-terraform-provider.sh
 
 # Publish a new version (dry run first)
-./scripts/publish-terraform-provider.sh -v 1.0.0 --dry-run
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0 --dry-run
 
 # Publish for real
-./scripts/publish-terraform-provider.sh -v 1.0.0
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0
 ```
 
 ### Using GitHub Actions
@@ -85,35 +107,35 @@ npm run install-terraform-provider-locally
 npm run generate-terraform-provider
 
 # Show publishing help
-./scripts/publish-terraform-provider.sh --help
+./Scripts/TerraformProvider/publish-terraform-provider.sh --help
 
 # Dry run (recommended first)
-./scripts/publish-terraform-provider.sh -v 1.0.0 --dry-run
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0 --dry-run
 
 # Full publish
-./scripts/publish-terraform-provider.sh -v 1.0.0
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0
 
 # Skip tests (faster)
-./scripts/publish-terraform-provider.sh -v 1.0.0 --skip-tests
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0 --skip-tests
 
 # Skip build (if already built)
-./scripts/publish-terraform-provider.sh -v 1.0.0 --skip-build
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0 --skip-build
 
 # Force regeneration
-./scripts/publish-terraform-provider.sh -v 1.0.0 --force
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0 --force
 ```
 
 ### Advanced Examples
 
 ```bash
 # Complete workflow with all checks
-./scripts/publish-terraform-provider.sh -v 1.2.3
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.2.3
 
 # Quick publish (skip time-consuming steps)
-./scripts/publish-terraform-provider.sh -v 1.2.4 --skip-tests --skip-build
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.2.4 --skip-tests --skip-build
 
 # Testing new generation
-./scripts/publish-terraform-provider.sh -v 1.3.0-beta.1 --dry-run --force
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.3.0-beta.1 --dry-run --force
 ```
 
 ### Local Installation (Development)
@@ -162,7 +184,7 @@ Run via `npm run generate-terraform-provider` or the TypeScript GenerateProvider
    - Updates Go dependencies and builds provider
 
 ### Publishing Phase (Bash Script)
-Run via `./scripts/publish-terraform-provider.sh`:
+Run via `./Scripts/TerraformProvider/publish-terraform-provider.sh`:
 
 1. **🔍 Validates Prerequisites**
    - Checks required tools are installed
@@ -308,7 +330,7 @@ Enable verbose output:
 export DEBUG=1
 
 # Run with verbose logging
-./scripts/publish-terraform-provider.sh -v 1.0.0 --dry-run
+./Scripts/TerraformProvider/publish-terraform-provider.sh -v 1.0.0 --dry-run
 ```
 
 ### Manual Verification

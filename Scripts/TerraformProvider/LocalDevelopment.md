@@ -38,16 +38,16 @@ npm run install-terraform-provider-locally -- --verbose
 
 ```bash
 # Basic installation (generates provider first)
-./Scripts/install-terraform-provider-locally.sh
+./Scripts/TerraformProvider/install-terraform-provider-locally.sh
 
 # With options
-./Scripts/install-terraform-provider-locally.sh -v 1.0.0 --force --verbose
+./Scripts/TerraformProvider/install-terraform-provider-locally.sh -v 1.0.0 --force --verbose
 
 # Skip generation (use existing provider)
-./Scripts/install-terraform-provider-locally.sh --skip-generation
+./Scripts/TerraformProvider/install-terraform-provider-locally.sh --skip-generation
 
 # Show help
-./Scripts/install-terraform-provider-locally.sh --help
+./Scripts/TerraformProvider/install-terraform-provider-locally.sh --help
 ```
 
 ## What the Script Does

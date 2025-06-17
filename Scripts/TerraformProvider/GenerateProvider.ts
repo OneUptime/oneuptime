@@ -105,7 +105,7 @@ async function main(): Promise<void> {
     );
     // eslint-disable-next-line no-console
     console.log(
-      "   5. Run tests and publish using the publish-terraform-provider.sh script",
+      "   5. Run tests and publish using the Scripts/TerraformProvider/publish-terraform-provider.sh script",
     );
 
     FrameworkGenerator.printUsageInfo();
