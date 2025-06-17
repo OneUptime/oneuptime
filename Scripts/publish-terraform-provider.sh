@@ -696,26 +696,15 @@ generate_shasums() {
 
     print_status "Generated $shasums_file with $(wc -l < "$shasums_file") entries"
 
-    # Sign the SHASUMS file with GPG if GPG key is available
-    echo $GPG_PRIVATE_KEY > private.key
-    gpg --import private.key || true
-    rm private.key
-    echo "GPG key imported successfully"
-    gpg --export-secret-keys >~/.gnupg/secring.gpg 
-    echo "GPG key exported successfully"
-
-   # Sign the SHASUMS file if GPG key is available
-    if [[ -n "$GPG_PRIVATE_KEY" ]]; then
-        print_status "Signing $shasums_file with GPG..."
-        gpg --output "${shasums_file}.sig" --detach-sig "$shasums_file"
-        if [[ $? -ne 0 ]]; then
-            print_error "Failed to sign $shasums_file"
-            exit 1
-        fi
-        print_success "Signed $shasums_file successfully"
-    else
-        print_warning "No GPG private key provided, skipping signing of SHASUMS file"
+   
+    print_status "Signing $shasums_file with GPG..."
+    gpg --output "${shasums_file}.sig" --detach-sig "$shasums_file"
+    if [[ $? -ne 0 ]]; then
+        print_error "Failed to sign $shasums_file"
+        exit 1 
     fi
+    print_success "Signed $shasums_file successfully"
+    
 
     # Show summary of created files
     print_status "Created release assets:"
