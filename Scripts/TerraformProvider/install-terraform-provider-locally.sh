@@ -388,14 +388,6 @@ create_example_config() {
     
     # Create main.tf
     cat > "$example_dir/main.tf" << EOF
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> ${PROVIDER_VERSION}"
-    }
-  }
-}
 
 provider "oneuptime" {
   # Configuration options will be documented in the provider
