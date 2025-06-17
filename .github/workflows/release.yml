@@ -1579,7 +1579,7 @@ jobs:
     env: 
       CI_PIPELINE_ID: ${{github.run_number}}
       GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
-      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
       TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
     permissions:
       contents: write  # For creating releases
@@ -1611,7 +1611,7 @@ jobs:
         continue-on-error: true
         uses: crazy-max/ghaction-import-gpg@v6
         with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY || '' }}
+          gpg_private_key: ${{ env.GPG_PRIVATE_KEY }}
 
       - name: Determine version
         id: version
