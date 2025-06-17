@@ -1607,11 +1607,6 @@ jobs:
         with:
           install-only: true
 
-      - name: Import GPG key (optional)
-        continue-on-error: true
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ env.GPG_PRIVATE_KEY }}
 
       - name: Determine version
         id: version
@@ -1627,11 +1622,7 @@ jobs:
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
       - name: Generate Terraform provider
-        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }}
-
-     
-
-
+        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }} --gpg-private-key ${{ secrets.GPG_PRIVATE_KEY }} --github-token ${{ secrets.SIMLARSEN_GITHUB_PAT }} --github-repo-deploy-key ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
 
   
 

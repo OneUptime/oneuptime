@@ -55,21 +55,19 @@ show_usage() {
 Usage: $0 [OPTIONS]
 
 Options:
-    -v, --version VERSION   Specify the version to publish (e.g., 1.0.0)
-    -t, --test-release     Run in test release mode (creates draft release)
-    -s, --skip-tests       Skip running tests
-    -f, --force           Force regeneration even if files exist
-    -h, --help            Show this help message
+    -v, --version VERSION                    Specify the version to publish (e.g., 1.0.0)
+    -t, --test-release                      Run in test release mode (creates draft release)
+    -s, --skip-tests                        Skip running tests
+    -f, --force                            Force regeneration even if files exist
+    --gpg-private-key KEY                   GPG private key for signing releases
+    --github-token TOKEN                    GitHub token for authentication and operations
+    --github-repo-deploy-key KEY            GitHub repository deploy key
+    -h, --help                             Show this help message
 
 Examples:
-    $0 -v 1.0.0                    # Publish version 1.0.0
-    $0 -v 1.1.0 --test-release    # Test publishing version 1.1.0 (draft release)
-    $0 -v 1.0.1 --skip-tests      # Publish without running tests
-
-Environment Variables:
-    GITHUB_TOKEN                   # Required for GitHub authentication and operations
-    GPG_PRIVATE_KEY               # Required for signing releases
-    TERRAFORM_REGISTRY_TOKEN      # Required for Terraform Registry publishing
+    $0 -v 1.0.0 --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }} --gpg-private-key \${{ secrets.GPG_PRIVATE_KEY }}
+    $0 -v 1.1.0 --test-release --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }}
+    $0 -v 1.0.1 --skip-tests --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }}
 
 Note: The GITHUB_TOKEN should have the following permissions:
     - repo (for creating releases in the terraform-provider-oneuptime repository)
@@ -99,6 +97,18 @@ parse_args() {
             -f|--force)
                 FORCE=true
                 shift
+                ;;
+            --gpg-private-key)
+                GPG_PRIVATE_KEY="$2"
+                shift 2
+                ;;
+            --github-token)
+                GITHUB_TOKEN="$2"
+                shift 2
+                ;;
+            --github-repo-deploy-key)
+                TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY="$2"
+                shift 2
                 ;;
             -h|--help)
                 show_usage
@@ -162,7 +172,8 @@ validate_prerequisites() {
     # Check environment variables for non-test-release mode
     if [[ "$TEST_RELEASE" == false ]]; then
         if [[ -z "$GITHUB_TOKEN" ]]; then
-            print_error "GITHUB_TOKEN environment variable not set. Required for publishing."
+            print_error "GitHub token is required for publishing."
+            print_error "Use --github-token option to provide the token."
             exit 1
         fi
         
@@ -171,7 +182,7 @@ validate_prerequisites() {
         if command -v gh &> /dev/null; then
             if ! gh repo view "$GITHUB_ORG/$PROVIDER_REPO" &> /dev/null; then
                 print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
-                print_error "Please ensure the GITHUB_TOKEN has access to this repository"
+                print_error "Please ensure the GitHub token has access to this repository"
                 exit 1
             fi
         else
@@ -179,14 +190,15 @@ validate_prerequisites() {
             local repo_check_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO"
             if ! curl -s -H "Authorization: token $GITHUB_TOKEN" "$repo_check_url" | jq -e '.id' > /dev/null; then
                 print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
-                print_error "Please ensure the GITHUB_TOKEN has access to this repository"
+                print_error "Please ensure the GitHub token has access to this repository"
                 exit 1
             fi
         fi
         print_success "Repository access validated"
         
         if [[ -z "$GPG_PRIVATE_KEY" ]]; then
-            print_warning "GPG_PRIVATE_KEY environment variable not set. Required for signing releases."
+            print_warning "GPG private key not provided. Required for signing releases."
+            print_warning "Use --gpg-private-key option to provide the key."
         fi
     fi
 
@@ -275,8 +287,9 @@ push_to_repository() {
         
         # For GitHub API operations, we still need a token
         if [[ -z "$GITHUB_TOKEN" ]]; then
-            print_error "GITHUB_TOKEN environment variable is required for GitHub API operations (release creation)"
+            print_error "GitHub token is required for GitHub API operations (release creation)"
             print_error "Deploy key is used for git operations, but API operations require a token"
+            print_error "Use --github-token option to provide the token."
             exit 1
         fi
     elif [[ -n "$GITHUB_TOKEN" ]]; then
@@ -286,7 +299,8 @@ push_to_repository() {
         git config --global credential.helper store
         echo "https://$GITHUB_TOKEN@github.com" | git credential approve
     else
-        print_error "Either TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY or GITHUB_TOKEN environment variable is required for GitHub authentication"
+        print_error "Either deploy key or GitHub token is required for GitHub authentication"
+        print_error "Use --github-repo-deploy-key or --github-token option to provide authentication"
         exit 1
     fi
 
