@@ -1573,6 +1573,7 @@ jobs:
             APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
             
   
+
   publish-terraform-provider:
     runs-on: ubuntu-latest
     needs: [generate-build-number]
@@ -1621,8 +1622,17 @@ jobs:
           if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
+      - name:  Import GPG key
+        run: |
+          echo '${{ secrets.GPG_PRIVATE_KEY }}' > private.key
+          gpg --import private.key || true
+          rm private.key
+          echo "GPG key imported successfully"
+          gpg --export-secret-keys >~/.gnupg/secring.gpg 
+          echo "GPG key exported successfully"
+
       - name: Generate Terraform provider
-        run: npm run publish-terraform-provider -- --version ${{ steps.version.outputs.version }} --gpg-private-key ${{ secrets.GPG_PRIVATE_KEY }} --github-token ${{ secrets.SIMLARSEN_GITHUB_PAT }} --github-repo-deploy-key ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
+        run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
   
 
