@@ -699,30 +699,52 @@ generate_shasums() {
             local gpg_key_file=$(mktemp)
             echo "$GPG_PRIVATE_KEY" > "$gpg_key_file"
             
-            # Import the GPG private key
-            if gpg --batch --import "$gpg_key_file" 2>/dev/null; then
+            # Set up GPG environment for better automation
+            export GNUPGHOME="$(mktemp -d)"
+            chmod 700 "$GNUPGHOME"
+            
+            # Import the GPG private key with better error handling
+            print_status "Importing GPG key..."
+            local import_result
+            if import_result=$(gpg --batch --import "$gpg_key_file" 2>&1); then
                 print_status "GPG key imported successfully"
                 
                 # Get the key ID for signing
                 local key_id=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d':' -f5 | head -n1)
                 
                 if [[ -n "$key_id" ]]; then
-                    # Sign the SHASUMS file
-                    if gpg --batch --yes --detach-sign --armor --local-user "$key_id" "$shasums_file"; then
-                        print_success "Signed SHASUMS file: ${shasums_file}.sig"
+                    print_status "Using GPG key ID: $key_id"
+                    
+                    # Sign the SHASUMS file with absolute path
+                    local abs_shasums_file="$(pwd)/$shasums_file"
+                    print_status "Signing file: $abs_shasums_file"
+                    
+                    if gpg --batch --yes --pinentry-mode loopback --detach-sign --armor --local-user "$key_id" "$abs_shasums_file"; then
+                        # Verify the signature file was created
+                        if [[ -f "${abs_shasums_file}.sig" ]]; then
+                            print_success "Signed SHASUMS file: ${shasums_file}.sig"
+                            print_status "Signature file size: $(ls -lh "${abs_shasums_file}.sig" | awk '{print $5}')"
+                        else
+                            print_error "Signature file was not created: ${abs_shasums_file}.sig"
+                        fi
                     else
                         print_warning "Failed to sign SHASUMS file with GPG"
+                        print_status "GPG command failed. Check if the private key is valid and has signing capabilities."
                     fi
                 else
                     print_warning "Could not determine GPG key ID for signing"
+                    print_status "Available secret keys:"
+                    gpg --list-secret-keys
                 fi
             else
                 print_warning "Failed to import GPG private key"
+                print_warning "Import error: $import_result"
                 print_warning "Please verify the GPG_PRIVATE_KEY format and content"
             fi
             
-            # Clean up temporary file
+            # Clean up temporary files
             rm -f "$gpg_key_file"
+            rm -rf "$GNUPGHOME"
         fi
     else
         print_warning "GPG_PRIVATE_KEY not provided, skipping SHASUMS signing"
@@ -761,9 +783,15 @@ upload_release_assets() {
     if command -v gh &> /dev/null; then
         print_status "Uploading assets using GitHub CLI..."
         
+        # Debug: List all files in builds directory
+        print_status "Files available in builds directory:"
+        ls -la "$builds_dir"/
+        
         # Upload all zip files, SHASUMS files, signature files, and manifest files
+        local files_found=false
         for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.sig "$builds_dir"/*.json; do
             if [[ -f "$file" ]]; then
+                files_found=true
                 local filename=$(basename "$file")
                 print_status "Uploading $filename..."
                 if gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO"; then
@@ -774,6 +802,11 @@ upload_release_assets() {
                 fi
             fi
         done
+        
+        if [[ "$files_found" == false ]]; then
+            print_warning "No files found matching upload patterns in $builds_dir"
+            print_status "Looking for: *.zip, *SHA256SUMS*, *.sig, *.json"
+        fi
     else
         print_warning "GitHub CLI not available, using curl for asset upload..."
         
@@ -788,8 +821,10 @@ upload_release_assets() {
         fi
         
         # Upload each file
+        local files_found=false
         for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.sig "$builds_dir"/*.json; do
             if [[ -f "$file" ]]; then
+                files_found=true
                 local filename=$(basename "$file")
                 local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
                 
@@ -809,6 +844,13 @@ upload_release_assets() {
                 fi
             fi
         done
+        
+        if [[ "$files_found" == false ]]; then
+            print_warning "No files found matching upload patterns in $builds_dir"
+            print_status "Looking for: *.zip, *SHA256SUMS*, *.sig, *.json"
+            print_status "Files available in builds directory:"
+            ls -la "$builds_dir"/
+        fi
     fi
 
     print_success "All release assets uploaded successfully"
