@@ -695,17 +695,14 @@ generate_shasums() {
             print_warning "Expected format: -----BEGIN PGP PRIVATE KEY BLOCK-----"
             print_warning "Skipping GPG signing."
         else
-            # Create a temporary file for the GPG key to avoid shell escaping issues
-            local gpg_key_file=$(mktemp)
-            echo "$GPG_PRIVATE_KEY" > "$gpg_key_file"
             
-            # Set up GPG environment for better automation
-            export GNUPGHOME="$(mktemp -d)"
-            chmod 700 "$GNUPGHOME"
-            
-            # Import the GPG private key with better error handling
-            print_status "Importing GPG key..."
-            local import_result
+            echo $GPG_PRIVATE_KEY > private.key
+            gpg --import private.key || true
+            rm private.key
+            echo "GPG key imported successfully"
+            gpg --export-secret-keys >~/.gnupg/secring.gpg 
+            echo "GPG key exported successfully"
+
             if import_result=$(gpg --batch --import "$gpg_key_file" 2>&1); then
                 print_status "GPG key imported successfully"
                 
