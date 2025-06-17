@@ -144,11 +144,33 @@ func main() {
 
   private createProviderGo(terraformDir: string): void {
     const providerGoPath: string = path.join(terraformDir, "provider.go");
-    if (!fs.existsSync(providerGoPath)) {
-      // eslint-disable-next-line no-console
-      console.log("   📄 Creating provider.go file...");
+    
+    // eslint-disable-next-line no-console
+    console.log("   📄 Creating provider.go file...");
+    
+    // Scan for generated resources and data sources
+    const resources = this.getGeneratedResources(terraformDir);
+    const dataSources = this.getGeneratedDataSources(terraformDir);
+    
+    // Create resource implementations
+    this.createResourceImplementations(terraformDir, resources);
+    
+    // Create data source implementations
+    this.createDataSourceImplementations(terraformDir, dataSources);
+    
+    // Generate resource registrations
+    const resourceRegistrations = resources.map(resourceName => {
+      const pascalCaseName = this.toPascalCase(resourceName);
+      return `        New${pascalCaseName}Resource,`;
+    }).join('\n');
+    
+    // Generate data source registrations
+    const dataSourceRegistrations = dataSources.map(dataSourceName => {
+      const pascalCaseName = this.toPascalCase(dataSourceName);
+      return `        New${pascalCaseName}DataSource,`;
+    }).join('\n');
 
-      const providerGoContent: string = `package ${this.config.providerName}
+    const providerGoContent: string = `package ${this.config.providerName}
 
 import (
     "context"
@@ -224,20 +246,22 @@ func (p *${this.config.providerName}Provider) Configure(ctx context.Context, req
 // DataSources defines the data sources implemented in the provider.
 func (p *${this.config.providerName}Provider) DataSources(_ context.Context) []func() datasource.DataSource {
     return []func() datasource.DataSource{
-        // Add your data sources here
+${dataSourceRegistrations}
     }
 }
 
 // Resources defines the resources implemented in the provider.
 func (p *${this.config.providerName}Provider) Resources(_ context.Context) []func() resource.Resource {
     return []func() resource.Resource{
-        // Add your resources here
+${resourceRegistrations}
     }
 }
 `;
 
-      fs.writeFileSync(providerGoPath, providerGoContent);
-    }
+    fs.writeFileSync(providerGoPath, providerGoContent);
+    
+    // eslint-disable-next-line no-console
+    console.log(`   ✅ Created provider.go with ${resources.length} resources and ${dataSources.length} data sources`);
   }
 
   private createGoReleaserConfig(terraformDir: string): void {
@@ -435,6 +459,278 @@ changelog:
       // eslint-disable-next-line no-console
       console.error("   ❌ Error during multi-platform build:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Scans generated resource files and extracts resource names for dynamic registration
+   */
+  private getGeneratedResources(terraformDir: string): string[] {
+    const resources: string[] = [];
+    
+    try {
+      const files = fs.readdirSync(terraformDir);
+      const resourceFiles = files.filter(file => 
+        file.endsWith('_resource_gen.go') && !file.includes('provider_gen.go')
+      );
+      
+      for (const file of resourceFiles) {
+        // Extract resource name from filename
+        // e.g., team_resource_gen.go -> team
+        const resourceName = file.replace('_resource_gen.go', '');
+        resources.push(resourceName);
+      }
+    } catch (error) {
+      console.log(`Warning: Could not scan for generated resources: ${error}`);
+    }
+    
+    return resources;
+  }
+
+  /**
+   * Scans generated data source files and extracts data source names for dynamic registration
+   */
+  private getGeneratedDataSources(terraformDir: string): string[] {
+    const dataSources: string[] = [];
+    
+    try {
+      const files = fs.readdirSync(terraformDir);
+      const dataSourceFiles = files.filter(file => 
+        file.endsWith('_data_source_gen.go')
+      );
+      
+      for (const file of dataSourceFiles) {
+        // Extract data source name from filename
+        // e.g., team_data_source_gen.go -> team
+        const dataSourceName = file.replace('_data_source_gen.go', '');
+        dataSources.push(dataSourceName);
+      }
+    } catch (error) {
+      console.log(`Warning: Could not scan for generated data sources: ${error}`);
+    }
+    
+    return dataSources;
+  }
+
+  /**
+   * Converts a resource name to PascalCase for Go function naming
+   */
+  private toPascalCase(str: string): string {
+    return str
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join('');
+  }
+
+  /**
+   * Creates resource implementation files for generated schemas
+   */
+  private createResourceImplementations(terraformDir: string, resources: string[]): void {
+    for (const resourceName of resources) {
+      const pascalCaseName = this.toPascalCase(resourceName);
+      const resourceFileName = `${resourceName}_resource.go`;
+      const resourceFilePath = path.join(terraformDir, resourceFileName);
+      
+      // Only create if implementation doesn't already exist
+      if (!fs.existsSync(resourceFilePath)) {
+        const resourceContent = `package oneuptime
+
+import (
+    "context"
+
+    "github.com/hashicorp/terraform-plugin-framework/resource"
+    "github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ resource.Resource = &${pascalCaseName}Resource{}
+var _ resource.ResourceWithImportState = &${pascalCaseName}Resource{}
+
+func New${pascalCaseName}Resource() resource.Resource {
+    return &${pascalCaseName}Resource{}
+}
+
+// ${pascalCaseName}Resource defines the resource implementation.
+type ${pascalCaseName}Resource struct{}
+
+// Metadata returns the resource type name.
+func (r *${pascalCaseName}Resource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+    resp.TypeName = req.ProviderTypeName + "_${resourceName}"
+}
+
+// Schema defines the schema for the resource.
+func (r *${pascalCaseName}Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+    resp.Schema = ${pascalCaseName}ResourceSchema(ctx)
+}
+
+// Configure adds the provider configured client to the resource.
+func (r *${pascalCaseName}Resource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+    // Prevent panic if the provider has not been configured.
+    if req.ProviderData == nil {
+        return
+    }
+
+    // Add client configuration here when API client is implemented
+}
+
+// Create creates the resource and sets the initial Terraform state.
+func (r *${pascalCaseName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+    var data ${pascalCaseName}Model
+
+    // Read Terraform plan data into the model
+    resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // TODO: Implement API call to create resource
+    // For now, set a placeholder ID
+    data.Id = types.StringValue("placeholder-id")
+
+    // Write logs using the tflog package
+    // Documentation: https://terraform.io/plugin/log
+    // tflog.Trace(ctx, "created a resource")
+
+    // Save data into Terraform state
+    resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// Read refreshes the Terraform state with the latest data.
+func (r *${pascalCaseName}Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+    var data ${pascalCaseName}Model
+
+    // Read Terraform prior state data into the model
+    resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // TODO: Implement API call to read resource
+
+    // Save updated data into Terraform state
+    resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// Update updates the resource and sets the updated Terraform state on success.
+func (r *${pascalCaseName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    var data ${pascalCaseName}Model
+
+    // Read Terraform plan data into the model
+    resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // TODO: Implement API call to update resource
+
+    // Save updated data into Terraform state
+    resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// Delete deletes the resource and removes the Terraform state on success.
+func (r *${pascalCaseName}Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+    var data ${pascalCaseName}Model
+
+    // Read Terraform prior state data into the model
+    resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // TODO: Implement API call to delete resource
+}
+
+// ImportState imports the resource into Terraform state.
+func (r *${pascalCaseName}Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+    // TODO: Implement resource import
+    resp.Diagnostics.AddError(
+        "Import Not Implemented",
+        "Import is not yet implemented for this resource.",
+    )
+}
+`;
+
+        fs.writeFileSync(resourceFilePath, resourceContent);
+        console.log(`   📄 Created resource implementation: ${resourceFileName}`);
+      }
+    }
+  }
+
+  /**
+   * Creates data source implementation files for generated schemas
+   */
+  private createDataSourceImplementations(terraformDir: string, dataSources: string[]): void {
+    for (const dataSourceName of dataSources) {
+      const pascalCaseName = this.toPascalCase(dataSourceName);
+      const dataSourceFileName = `${dataSourceName}_data_source.go`;
+      const dataSourceFilePath = path.join(terraformDir, dataSourceFileName);
+      
+      // Only create if implementation doesn't already exist
+      if (!fs.existsSync(dataSourceFilePath)) {
+        const dataSourceContent = `package oneuptime
+
+import (
+    "context"
+
+    "github.com/hashicorp/terraform-plugin-framework/datasource"
+    "github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// Ensure provider defined types fully satisfy framework interfaces.
+var _ datasource.DataSource = &${pascalCaseName}DataSource{}
+
+func New${pascalCaseName}DataSource() datasource.DataSource {
+    return &${pascalCaseName}DataSource{}
+}
+
+// ${pascalCaseName}DataSource defines the data source implementation.
+type ${pascalCaseName}DataSource struct{}
+
+// Metadata returns the data source type name.
+func (d *${pascalCaseName}DataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+    resp.TypeName = req.ProviderTypeName + "_${dataSourceName}"
+}
+
+// Schema defines the schema for the data source.
+func (d *${pascalCaseName}DataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+    resp.Schema = ${pascalCaseName}DataSourceSchema(ctx)
+}
+
+// Configure adds the provider configured client to the data source.
+func (d *${pascalCaseName}DataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+    // Prevent panic if the provider has not been configured.
+    if req.ProviderData == nil {
+        return
+    }
+
+    // Add client configuration here when API client is implemented
+}
+
+// Read refreshes the Terraform state with the latest data.
+func (d *${pascalCaseName}DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+    var data ${pascalCaseName}Model
+
+    // Read Terraform configuration data into the model
+    resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // TODO: Implement API call to read data source
+
+    // Save data into Terraform state
+    resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+`;
+
+        fs.writeFileSync(dataSourceFilePath, dataSourceContent);
+        console.log(`   📄 Created data source implementation: ${dataSourceFileName}`);
+      }
     }
   }
 
