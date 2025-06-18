@@ -235,7 +235,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
         const blob: Blob = new Blob(
           [(props.item[fieldKey] as unknown as FileModel).file as Uint8Array],
           {
-            type: (props.item[fieldKey] as unknown as FileModel).fileType as string,
+            type: (props.item[fieldKey] as unknown as FileModel)
+              .fileType as string,
           },
         );
 
