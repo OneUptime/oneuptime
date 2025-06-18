@@ -18,13 +18,12 @@ const MonitorStatusesElement: FunctionComponent<ComponentProps> = (
     <div>
       {props.monitorStatuses.map((monitorStatus: MonitorStatus, i: number) => {
         return (
-          <span key={i}>
+          <div key={i}>
             <MonitorStatusElement
               shouldAnimate={props.shouldAnimate || false}
               monitorStatus={monitorStatus}
             />
-            {i !== props.monitorStatuses.length - 1 && <span>,&nbsp;</span>}
-          </span>
+          </div>
         );
       })}
     </div>
