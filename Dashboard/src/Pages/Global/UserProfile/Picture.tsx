@@ -82,7 +82,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 profilePictureFile: {
                   file: true,
-                  type: true,
+                  fileType: true,
                 },
               },
               fieldType: FieldType.ImageFile,

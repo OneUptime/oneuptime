@@ -51,7 +51,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
-            type: true,
+            customFieldType: true,
             description: true,
           } as any,
           sort: {},

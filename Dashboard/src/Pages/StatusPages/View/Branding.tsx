@@ -96,7 +96,7 @@ const StatusPageDelete: FunctionComponent<
               field: {
                 faviconFile: {
                   file: true,
-                  type: true,
+                  fileType: true,
                 },
               },
               fieldType: FieldType.ImageFile,

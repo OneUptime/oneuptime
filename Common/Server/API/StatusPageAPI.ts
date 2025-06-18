@@ -246,7 +246,7 @@ export default class StatusPageAPI extends BaseAPI<
               faviconFile: {
                 file: true,
                 _id: true,
-                type: true,
+                fileType: true,
                 name: true,
               },
             },
@@ -510,19 +510,19 @@ export default class StatusPageAPI extends BaseAPI<
             coverImageFile: {
               file: true,
               _id: true,
-              type: true,
+              fileType: true,
               name: true,
             },
             faviconFile: {
               file: true,
               _id: true,
-              type: true,
+              fileType: true,
               name: true,
             },
             logoFile: {
               file: true,
               _id: true,
-              type: true,
+              fileType: true,
               name: true,
             },
             showIncidentsOnStatusPage: true,

@@ -94,7 +94,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
           (relationSelect as JSONObject)[key] = {
             file: true,
             _id: true,
-            type: true,
+            fileType: true,
             name: true,
           };
         } else if (key && new props.modelType()?.isEntityColumn(key)) {

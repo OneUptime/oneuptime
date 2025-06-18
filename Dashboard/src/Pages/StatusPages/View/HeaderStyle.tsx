@@ -56,7 +56,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               field: {
                 logoFile: {
                   file: true,
-                  type: true,
+                  fileType: true,
                 },
               },
               fieldType: FieldType.ImageFile,
@@ -67,7 +67,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               field: {
                 coverImageFile: {
                   file: true,
-                  type: true,
+                  fileType: true,
                 },
               },
               fieldType: FieldType.ImageFile,
