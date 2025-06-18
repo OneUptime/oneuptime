@@ -99,7 +99,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
           fileModel.file = Buffer.from(fileBuffer);
           fileModel.isPublic = false;
-          fileModel.type = acceptedFile.type as MimeType;
+          fileModel.fileType = acceptedFile.type as MimeType;
 
           const result: HTTPResponse<FileModel> =
             (await ModelAPI.create<FileModel>({
@@ -132,7 +132,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       }
 
       const blob: Blob = new Blob([file.file as Uint8Array], {
-        type: file.type as string,
+        type: file.fileType as string,
       });
       const url: string = URL.createObjectURL(blob);
 

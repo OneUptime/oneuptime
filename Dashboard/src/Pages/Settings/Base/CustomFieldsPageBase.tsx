@@ -75,7 +75,7 @@ const CustomFieldsPageBase: (
           },
           {
             field: {
-              type: true,
+              customFieldType: true,
             },
             title: "Field Type",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -109,7 +109,7 @@ const CustomFieldsPageBase: (
           },
           {
             field: {
-              type: true,
+              customFieldType: true,
             },
             title: "Field Type",
             type: FieldType.Text,
@@ -133,7 +133,7 @@ const CustomFieldsPageBase: (
           },
           {
             field: {
-              type: true,
+              customFieldType: true,
             },
             title: "Field Type",
             type: FieldType.Text,

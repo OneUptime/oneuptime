@@ -234,7 +234,7 @@ export default class BillingPaymentMethod extends BaseModel {
     nullable: false,
     unique: false,
   })
-  public type?: string = undefined;
+  public paymentMethodType?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

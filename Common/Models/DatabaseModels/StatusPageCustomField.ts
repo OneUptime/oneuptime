@@ -218,7 +218,7 @@ export default class StatusPageCustomField extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public type?: CustomFieldType = undefined;
+  public customFieldType?: CustomFieldType = undefined;
 
   @ColumnAccessControl({
     create: [

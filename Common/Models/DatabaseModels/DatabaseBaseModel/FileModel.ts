@@ -70,7 +70,7 @@ export default class FileModel extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public type?: MimeType = undefined;
+  public fileType?: MimeType = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

@@ -60,7 +60,7 @@ const mockCreateResponse: MockCreateResponseFunction = async (
     {
       file: (await file.arrayBuffer()) as Buffer,
       name: file.name,
-      type: file.type,
+      type: file.type as MimeType,
       slug: file.name,
       isPublic: true,
     },
@@ -75,7 +75,7 @@ const mockFileModel: MockFileModelFunction = async (
 ): Promise<FileModel> => {
   const fileModel: FileModel = new FileModel(new ObjectID("123"));
   fileModel.name = file.name;
-  fileModel.type = file.type as MimeType;
+  fileModel.fileType = file.type as MimeType;
   fileModel.slug = file.name;
   fileModel.isPublic = true;
   fileModel.file = (await file.arrayBuffer()) as Buffer;
