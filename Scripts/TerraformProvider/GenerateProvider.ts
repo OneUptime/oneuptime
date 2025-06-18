@@ -2,7 +2,6 @@ import { generateOpenAPISpec } from "../OpenAPI/GenerateSpec";
 import { ToolInstaller } from "./InstallTools";
 import FrameworkGenerator from "./FrameworkGenerator";
 import SpecificationConverter from "./SpecificationConverter";
-import { GoModuleSetup } from "./GoModuleSetup";
 import path from "path";
 
 async function main(): Promise<void> {
@@ -17,6 +16,7 @@ async function main(): Promise<void> {
       __dirname,
       "../../Terraform/openapi.json",
     );
+    
     await generateOpenAPISpec(openApiSpecPath);
 
     // 2. Convert OpenAPI spec to Provider Code Specification
@@ -63,14 +63,18 @@ async function main(): Promise<void> {
       packageName: "oneuptime", // Use oneuptime package for generated files
     });
 
+    // scaffolding the framework output directory
+    FrameworkGenerator.scaffold({
+      type: "provider",
+      name: "oneuptime",
+      outputDir: frameworkOutputPath,
+      packageName: "oneuptime",
+      force: true, // Force overwrite existing files
+    })
+
     // 5. Setup Go module and build configuration
     // eslint-disable-next-line no-console
     console.log("\n🔧 Step 5: Setting up Go module and building provider...");
-    await GoModuleSetup.setup({
-      outputPath: frameworkOutputPath,
-      providerName: "oneuptime",
-      githubOrg: "OneUptime",
-    });
 
     // eslint-disable-next-line no-console
     console.log("\n🎉 Provider generation and build completed successfully!");
