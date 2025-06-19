@@ -48,10 +48,8 @@ terraform {
 }
 
 provider "${this.config.providerName}" {
-  host     = "https://api.${this.config.providerName}.com"
+  host     = "oneuptime.com/api"  # Optional, defaults to oneuptime.com/api
   api_key  = var.${this.config.providerName}_api_key
-  # username = var.${this.config.providerName}_username
-  # password = var.${this.config.providerName}_password
 }
 \`\`\`
 
@@ -59,10 +57,8 @@ provider "${this.config.providerName}" {
 
 ### Optional
 
-- \`host\` (String) The ${this.config.providerName} API host. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_HOST\` environment variable.
+- \`host\` (String) The ${this.config.providerName} API host. Defaults to 'oneuptime.com/api' if not specified. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_HOST\` environment variable.
 - \`api_key\` (String, Sensitive) API key for authentication. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_API_KEY\` environment variable.
-- \`username\` (String) Username for authentication. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_USERNAME\` environment variable.
-- \`password\` (String, Sensitive) Password for authentication. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_PASSWORD\` environment variable.
 `;
 
     await this.fileGenerator.writeFileInDir("docs", "index.md", providerDoc);
@@ -195,7 +191,7 @@ ${schemaItems.join("\n")}
 }
 
 provider "${this.config.providerName}" {
-  host    = "https://api.${this.config.providerName}.com"
+  host    = "oneuptime.com/api"  # Optional, defaults to oneuptime.com/api  
   api_key = var.${this.config.providerName}_api_key
 }
 

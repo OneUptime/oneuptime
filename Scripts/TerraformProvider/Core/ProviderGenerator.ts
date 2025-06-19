@@ -15,7 +15,6 @@ export class ProviderGenerator {
 
   async generateProvider(): Promise<void> {
     await this.generateProviderGo();
-    await this.generateProviderSchema();
     await this.generateClientGo();
     await this.generateConfigGo();
   }
@@ -50,8 +49,6 @@ type ${StringUtils.toPascalCase(this.config.providerName)}Provider struct {
 type ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel struct {
     Host     types.String \`tfsdk:"host"\`
     ApiKey   types.String \`tfsdk:"api_key"\`
-    Username types.String \`tfsdk:"username"\`
-    Password types.String \`tfsdk:"password"\`
 }
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -65,20 +62,11 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(c
 
         Attributes: map[string]schema.Attribute{
             "host": schema.StringAttribute{
-                MarkdownDescription: "The ${this.config.providerName} API host",
+                MarkdownDescription: "The ${this.config.providerName} API host. Defaults to 'oneuptime.com/api' if not specified.",
                 Optional:            true,
             },
             "api_key": schema.StringAttribute{
                 MarkdownDescription: "API key for authentication",
-                Optional:            true,
-                Sensitive:           true,
-            },
-            "username": schema.StringAttribute{
-                MarkdownDescription: "Username for authentication",
-                Optional:            true,
-            },
-            "password": schema.StringAttribute{
-                MarkdownDescription: "Password for authentication",
                 Optional:            true,
                 Sensitive:           true,
             },
@@ -96,11 +84,8 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
     }
 
     // Configuration values are now available.
-    // Example implementation:
     var host string
     var apiKey string
-    var username string
-    var password string
 
     if data.Host.IsUnknown() {
         // Cannot connect to client with an unknown value
@@ -113,6 +98,9 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
 
     if data.Host.IsNull() {
         host = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_HOST")
+        if host == "" {
+            host = "oneuptime.com/api"
+        }
     } else {
         host = data.Host.ValueString()
     }
@@ -123,24 +111,7 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
         apiKey = data.ApiKey.ValueString()
     }
 
-    if data.Username.IsNull() {
-        username = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_USERNAME")
-    } else {
-        username = data.Username.ValueString()
-    }
-
-    if data.Password.IsNull() {
-        password = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_PASSWORD")
-    } else {
-        password = data.Password.ValueString()
-    }
-
-    // Example client configuration for data sources and resources
-    if host == "" {
-        host = "${this.spec.servers[0]?.url || "https://api.example.com"}"
-    }
-
-    client, err := NewClient(host, apiKey, username, password)
+    client, err := NewClient(host, apiKey)
     if err != nil {
         resp.Diagnostics.AddError(
             "Unable to Create ${StringUtils.toPascalCase(this.config.providerName)} API Client",
@@ -158,15 +129,11 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
 }
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Resources(ctx context.Context) []func() resource.Resource {
-    return []func() resource.Resource{
-        // Resources will be added here dynamically
-    }
+    return GetResources()
 }
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
-    return []func() datasource.DataSource{
-        // Data sources will be added here dynamically
-    }
+    return GetDataSources()
 }
 
 func New(version string) func() provider.Provider {
@@ -179,53 +146,6 @@ func New(version string) func() provider.Provider {
 `;
 
     await this.fileGenerator.writeFileInDir("internal/provider", "provider.go", providerGoContent);
-  }
-
-  private async generateProviderSchema(): Promise<void> {
-    const schemaGoContent = `package provider
-
-import (
-    "github.com/hashicorp/terraform-plugin-framework/provider/schema"
-    "github.com/hashicorp/terraform-plugin-framework/types"
-)
-
-// ProviderSchema returns the schema for the provider configuration
-func ProviderSchema() schema.Schema {
-    return schema.Schema{
-        MarkdownDescription: "${this.spec.info.description || `Terraform provider for ${this.config.providerName}`}",
-        Attributes: map[string]schema.Attribute{
-            "host": schema.StringAttribute{
-                MarkdownDescription: "The ${this.config.providerName} API host. Can also be set via the ${StringUtils.toConstantCase(this.config.providerName)}_HOST environment variable.",
-                Optional:            true,
-            },
-            "api_key": schema.StringAttribute{
-                MarkdownDescription: "API key for authentication. Can also be set via the ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY environment variable.",
-                Optional:            true,
-                Sensitive:           true,
-            },
-            "username": schema.StringAttribute{
-                MarkdownDescription: "Username for authentication. Can also be set via the ${StringUtils.toConstantCase(this.config.providerName)}_USERNAME environment variable.",
-                Optional:            true,
-            },
-            "password": schema.StringAttribute{
-                MarkdownDescription: "Password for authentication. Can also be set via the ${StringUtils.toConstantCase(this.config.providerName)}_PASSWORD environment variable.",
-                Optional:            true,
-                Sensitive:           true,
-            },
-        },
-    }
-}
-
-// ProviderModel represents the provider configuration
-type ProviderModel struct {
-    Host     types.String \`tfsdk:"host"\`
-    ApiKey   types.String \`tfsdk:"api_key"\`
-    Username types.String \`tfsdk:"username"\`
-    Password types.String \`tfsdk:"password"\`
-}
-`;
-
-    await this.fileGenerator.writeFileInDir("internal/provider", "schema.go", schemaGoContent);
   }
 
   private async generateClientGo(): Promise<void> {
@@ -247,12 +167,10 @@ type Client struct {
     BaseURL    string
     HTTPClient *http.Client
     ApiKey     string
-    Username   string
-    Password   string
 }
 
 // NewClient creates a new API client
-func NewClient(host, apiKey, username, password string) (*Client, error) {
+func NewClient(host, apiKey string) (*Client, error) {
     // Ensure the host has the correct scheme
     if !strings.HasPrefix(host, "http://") && !strings.HasPrefix(host, "https://") {
         host = "https://" + host
@@ -269,9 +187,7 @@ func NewClient(host, apiKey, username, password string) (*Client, error) {
         HTTPClient: &http.Client{
             Timeout: time.Second * 30,
         },
-        ApiKey:   apiKey,
-        Username: username,
-        Password: password,
+        ApiKey: apiKey,
     }
 
     return client, nil
@@ -303,8 +219,6 @@ func (c *Client) DoRequest(method, path string, body interface{}) (*http.Respons
     // Set authentication
     if c.ApiKey != "" {
         req.Header.Set("Authorization", "Bearer "+c.ApiKey)
-    } else if c.Username != "" && c.Password != "" {
-        req.SetBasicAuth(c.Username, c.Password)
     }
 
     resp, err := c.HTTPClient.Do(req)
@@ -388,13 +302,11 @@ import (
 type Config struct {
     Host     string
     ApiKey   string
-    Username string
-    Password string
     Client   *Client
 }
 
 // NewConfig creates a new configuration from the provider model
-func NewConfig(ctx context.Context, model ProviderModel) (*Config, diag.Diagnostics) {
+func NewConfig(ctx context.Context, model ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel) (*Config, diag.Diagnostics) {
     var diags diag.Diagnostics
 
     config := &Config{}
@@ -402,6 +314,9 @@ func NewConfig(ctx context.Context, model ProviderModel) (*Config, diag.Diagnost
     // Set host
     if model.Host.IsNull() {
         config.Host = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_HOST")
+        if config.Host == "" {
+            config.Host = "oneuptime.com/api"
+        }
     } else {
         config.Host = model.Host.ValueString()
     }
@@ -413,27 +328,8 @@ func NewConfig(ctx context.Context, model ProviderModel) (*Config, diag.Diagnost
         config.ApiKey = model.ApiKey.ValueString()
     }
 
-    // Set username
-    if model.Username.IsNull() {
-        config.Username = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_USERNAME")
-    } else {
-        config.Username = model.Username.ValueString()
-    }
-
-    // Set password
-    if model.Password.IsNull() {
-        config.Password = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_PASSWORD")
-    } else {
-        config.Password = model.Password.ValueString()
-    }
-
-    // Default host if not set
-    if config.Host == "" {
-        config.Host = "${this.spec.servers[0]?.url || "https://api.example.com"}"
-    }
-
     // Create client
-    client, err := NewClient(config.Host, config.ApiKey, config.Username, config.Password)
+    client, err := NewClient(config.Host, config.ApiKey)
     if err != nil {
         diags.AddError(
             "Unable to Create API Client",
