@@ -17,7 +17,8 @@ export class StringUtils {
       .replace(/([A-Z])/g, "_$1")
       .toLowerCase()
       .replace(/^_/, "")
-      .replace(/[-\s]+/g, "_");
+      .replace(/[-\s]+/g, "_")
+      .replace(/_+/g, "_"); // Replace multiple underscores with single underscore
   }
 
   static toKebabCase(str: string): string {
