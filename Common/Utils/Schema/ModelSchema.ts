@@ -1083,8 +1083,9 @@ export class ModelSchema extends BaseSchema {
     }
 
     const schema: ModelSchemaType = z.object(shape).openapi({
-       description: `${data.description} schema for ${model.tableName || "model"} model. ${data.description}`,
+      description: `${data.description} schema for ${model.tableName || "model"} model. ${data.description}`,
       additionalProperties: false,
+      example: data.example,
     });
 
     return schema;
@@ -1366,7 +1367,11 @@ export class ModelSchema extends BaseSchema {
       excludedFields,
       schemaType: "create",
       description: "Create",
-      example: this.getCreateSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "create",
+        excludedFields,
+      }),
     });
   }
 
@@ -1378,7 +1383,10 @@ export class ModelSchema extends BaseSchema {
       modelType: data.modelType,
       schemaType: "read",
       description: "Read",
-      example: this.getReadSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "read",
+      }),
     });
   }
 
@@ -1398,7 +1406,11 @@ export class ModelSchema extends BaseSchema {
       excludedFields,
       schemaType: "update",
       description: "Update",
-      example: this.getUpdateSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "update",
+        excludedFields,
+      }),
       makeOptional: true, // All fields are optional for updates
     });
   }
@@ -1414,40 +1426,188 @@ export class ModelSchema extends BaseSchema {
       includedFields,
       schemaType: "delete",
       description: "Delete",
-      example: this.getDeleteSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "delete",
+        includedFields,
+      }),
     });
   }
 
-  private static getCreateSchemaExample(): SchemaExample {
-    return {
-      name: "John Doe",
-      email: "john@example.com",
-      description: "Example user description",
-    };
+  private static generateDynamicExample(data: {
+    modelType: new () => DatabaseBaseModel;
+    schemaType: "create" | "read" | "update" | "delete";
+    excludedFields?: Array<string>;
+    includedFields?: Array<string>;
+  }): SchemaExample {
+    const model: DatabaseBaseModel = new data.modelType();
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const columnAccessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+    
+    const example: SchemaExample = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
+
+      if (column.hideColumnInDocumentation) {
+        continue;
+      }
+
+      // Skip excluded fields
+      if (data.excludedFields && data.excludedFields.includes(key)) {
+        continue;
+      }
+
+      // Only include specified fields if includedFields is provided
+      if (data.includedFields && !data.includedFields.includes(key)) {
+        continue;
+      }
+
+      // Filter out columns with no permissions (root-only access)
+      const accessControl: ColumnAccessControl | undefined =
+        columnAccessControl[key];
+      if (accessControl) {
+        let hasPermissions: boolean = false;
+
+        // Check if column has any permissions defined for the current operation
+        if (
+          data.schemaType === "create" &&
+          accessControl.create &&
+          accessControl.create.length > 0
+        ) {
+          hasPermissions = true;
+        } else if (
+          data.schemaType === "read" &&
+          accessControl.read &&
+          accessControl.read.length > 0
+        ) {
+          hasPermissions = true;
+        } else if (
+          data.schemaType === "update" &&
+          accessControl.update &&
+          accessControl.update.length > 0
+        ) {
+          hasPermissions = true;
+        } else if (data.schemaType === "delete") {
+          // For delete operations, we don't filter by column permissions
+          hasPermissions = true;
+        }
+
+        // If no permissions are defined for this operation, exclude the column
+        if (!hasPermissions) {
+          continue;
+        }
+      }
+
+      // For create and update, only include required fields
+      if ((data.schemaType === "create" || data.schemaType === "update") && !column.required) {
+        continue;
+      }
+
+      // Generate example value based on column type
+      example[key] = this.generateExampleValueForColumn(column);
+    }
+
+    return example;
   }
 
-  private static getReadSchemaExample(): SchemaExample {
-    return {
-      _id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      name: "John Doe",
-      email: "john@example.com",
-      description: "Example user description",
-      createdAt: "2023-01-15T12:30:00.000Z",
-      updatedAt: "2023-01-15T12:30:00.000Z",
-      version: 1,
-    };
+  private static generateExampleValueForColumn(
+    column: TableColumnMetadata,
+  ): any {
+    switch (column.type) {
+      case TableColumnType.ObjectID:
+        return "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+      case TableColumnType.ShortText:
+        return this.getShortTextExample();
+
+      case TableColumnType.LongText:
+        return this.getLongTextExample();
+
+      case TableColumnType.Email:
+        return "user@example.com";
+
+      case TableColumnType.Phone:
+        return "+1-555-0123";
+
+      case TableColumnType.LongURL:
+        return "https://example.com";
+
+      case TableColumnType.ShortURL:
+        return "https://example.com";
+
+      case TableColumnType.Number:
+      case TableColumnType.SmallNumber:
+      case TableColumnType.BigNumber:
+        return 42;
+
+      case TableColumnType.PositiveNumber:
+      case TableColumnType.SmallPositiveNumber:
+      case TableColumnType.BigPositiveNumber:
+        return 100;
+
+      case TableColumnType.Boolean:
+        return true;
+
+      case TableColumnType.Date:
+        return {
+          _type: "DateTime",
+          value: "2023-10-01T12:00:00Z"
+        };
+
+      case TableColumnType.Color:
+        return "#FF0000";
+
+      case TableColumnType.JSON:
+        return { key: "value", nested: { data: 123 } };
+
+      case TableColumnType.Entity:
+        return {
+          _id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        };
+
+      case TableColumnType.EntityArray:
+        return [
+          { _id: "cccccccc-cccc-cccc-cccc-cccccccccccc" },
+          { _id: "dddddddd-dddd-dddd-dddd-dddddddddddd" }
+        ];
+
+      case TableColumnType.File:
+        return {
+          _id: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+          name: "example-file.pdf",
+          type: "application/pdf"
+        };
+
+      case TableColumnType.Version:
+        return 1;
+
+      case TableColumnType.Port:
+        return 8080;
+
+      case TableColumnType.HashedString:
+        return "hashed_value_here";
+
+      case TableColumnType.Slug:
+        return "example-slug";
+
+      case TableColumnType.Permission:
+        return "read";
+
+      default:
+        return null;
+    }
   }
 
-  private static getUpdateSchemaExample(): SchemaExample {
-    return {
-      name: "Jane Doe",
-      email: "jane@example.com",
-    };
+  private static getShortTextExample(): string {
+    return "Example Text";
   }
 
-  private static getDeleteSchemaExample(): SchemaExample {
-    return {
-      _id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-    };
+  private static getLongTextExample(): string {
+    return "This is an example of longer text content that provides detailed information.";
   }
 }
