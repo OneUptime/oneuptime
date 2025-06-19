@@ -45,7 +45,7 @@ export class ResourceGenerator {
     const resourceTypeName = StringUtils.toPascalCase(resource.name);
     const resourceVarName = StringUtils.toCamelCase(resource.name);
 
-    // Determine which imports are needed based on operations
+    // Determine which imports are needed based on actual usage
     const imports = [
       "context",
       "fmt",
@@ -57,8 +57,16 @@ export class ResourceGenerator {
     ];
 
     // Add conditional imports only if they're actually used
-    // Currently our generated code doesn't use net/http or strconv directly
-    // The client handles HTTP calls internally
+    const hasNumberFields = Object.values(resource.schema).some(attr => attr.type === "number");
+    const hasReadOperation = resource.operations.read;
+    
+    if (hasNumberFields) {
+      imports.push("math/big");
+    }
+    
+    if (hasReadOperation) {
+      imports.push("net/http");
+    }
 
     if (resource.operations.create || resource.operations.update) {
       imports.push(
