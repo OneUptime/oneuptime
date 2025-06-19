@@ -10,7 +10,7 @@ export class GoModuleSetup {
   }): void {
     // go mod init terraform-provider-petstore
 
-    const command: string = `cd ${path} && go mod init terraform-provider-${data.packageName}`;
+    const command: string = `cd ${data.path.toString()} && go mod init terraform-provider-${data.packageName}`;
     try {
       execSync(command, { stdio: "inherit" });
       // eslint-disable-next-line no-console
@@ -22,7 +22,7 @@ export class GoModuleSetup {
 
    // read the main.go file content from ./main.go
     const mainGoContent: string = fs.readFileSync(
-        path.join(__dirname, "../../Terraform/main.go"),
+        path.join(__dirname, "../../Scripts/TerraformProvider/main.go"),
         "utf-8",
     );
 
