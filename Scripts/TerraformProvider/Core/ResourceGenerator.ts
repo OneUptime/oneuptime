@@ -192,6 +192,11 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
       options.push("Sensitive: true");
     }
 
+    // For map attributes, add ElementType
+    if (attr.type === "map") {
+      options.push("ElementType: types.StringType");
+    }
+
     let planModifiers = "";
     if (name === "id") {
       planModifiers = `,
@@ -561,6 +566,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
+      // Skip map and list types for now as they are complex objects
+      if (attr.type === "map" || attr.type === "list") {
+        continue;
+      }
+
       const fieldName = StringUtils.toPascalCase(name);
       const value = this.getGoValueForTerraformType(
         attr.type,
@@ -609,6 +619,12 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
     }`;
+      case "map":
+        return `// Map type field ${fieldName} - skipping complex object assignment
+    // TODO: Implement proper map handling for complex objects`;
+      case "list":
+        return `// List type field ${fieldName} - skipping list assignment
+    // TODO: Implement proper list handling`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
@@ -665,6 +681,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return `${fieldRef}.ValueBigFloat()`;
       case "bool":
         return `${fieldRef}.ValueBool()`;
+      case "map":
+        // For map types, we need to handle them differently
+        // For now, we'll skip them in request bodies since they're typically complex objects
+        return `""`;
+      case "list":
+        // For list types, we need to handle them differently
+        return `[]string{}`;
       default:
         return `${fieldRef}.ValueString()`;
     }
