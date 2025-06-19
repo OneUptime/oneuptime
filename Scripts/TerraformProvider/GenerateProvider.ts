@@ -5,6 +5,7 @@ import { ToolInstaller } from "./InstallTools";
 import ProviderCodeSpecGenerator from "./ProviderCodeSpecGenerator";
 import FrameworkGenerator from "./FrameworkGenerator";
 import { GoModuleSetup } from "./GoModuleSetup";
+import { TypeConflictResolver } from "./TypeConflictResolver";
 import fs from "fs";
 
 async function main(): Promise<void> {
@@ -92,6 +93,16 @@ async function main(): Promise<void> {
         "../../Terraform/terraform-provider-oneuptime"
       ),
     });
+
+    // Step 6: Resolve type conflicts
+    // eslint-disable-next-line no-console
+    console.log("\n🔧 Step 6: Resolving type conflicts...");
+    TypeConflictResolver.resolveTypeConflicts(
+      path.resolve(
+        __dirname,
+        "../../Terraform/terraform-provider-oneuptime/internal/provider"
+      )
+    );
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("❌ Error during Terraform provider generation:", error);
