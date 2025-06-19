@@ -355,7 +355,6 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
-    const selectSchemaName: string = `${tableName}SelectSchema`;
     const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
@@ -375,7 +374,6 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
                 },
-                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
