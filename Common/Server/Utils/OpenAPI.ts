@@ -19,7 +19,6 @@ import {
 import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
-import z from '../../Utils/Schema/Zod';
 
 export default class OpenAPIUtil {
   /**
@@ -239,17 +238,6 @@ export default class OpenAPIUtil {
     const querySchemaName: string = `${tableName}QuerySchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
     const sortSchemaName: string = `${tableName}SortSchema`;
-    const listResponseSchemaName: string = `${tableName}ListResponse`;
-
-    // Register the list response schema
-    const listResponseSchema = z.object({
-      data: z.array(z.lazy(() => ModelSchema.getModelSchema({ modelType }))),
-      count: z.number(),
-    }).openapi({
-      type: "object",
-      description: `List response for ${tableName}`,
-    });
-    data.registry.register(listResponseSchemaName, listResponseSchema);
 
     data.registry.registerPath({
       method: "post",
@@ -280,7 +268,16 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${listResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      $ref: `#/components/schemas/${tableName}`,
+                    },
+                  },
+                  count: { type: "number" },
+                },
               },
             },
           },
@@ -359,16 +356,7 @@ export default class OpenAPIUtil {
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
-    const createResponseSchemaName: string = `${tableName}CreateResponse`;
-
-    // Register the create response schema
-    const createResponseSchema = z.object({
-      data: z.lazy(() => ModelSchema.getReadModelSchema({ modelType })),
-    }).openapi({
-      type: "object",
-      description: `Create response for ${tableName}`,
-    });
-    data.registry.register(createResponseSchemaName, createResponseSchema);
+    const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -400,7 +388,12 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${createResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${readSchemaName}`,
+                  },
+                },
               },
             },
           },
@@ -467,16 +460,6 @@ export default class OpenAPIUtil {
 
     // Use schema name that is already registered
     const selectSchemaName: string = `${tableName}SelectSchema`;
-    const getResponseSchemaName: string = `${tableName}GetResponse`;
-
-    // Register the get response schema
-    const getResponseSchema = z.object({
-      data: z.lazy(() => ModelSchema.getModelSchema({ modelType })),
-    }).openapi({
-      type: "object",
-      description: `Get response for ${tableName}`,
-    });
-    data.registry.register(getResponseSchemaName, getResponseSchema);
 
     data.registry.registerPath({
       method: "post",
@@ -517,7 +500,12 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${getResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${tableName}`,
+                  },
+                },
               },
             },
           },
@@ -550,16 +538,7 @@ export default class OpenAPIUtil {
     // Use schema names that are already registered
     const updateSchemaName: string = `${tableName}UpdateSchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
-    const updateResponseSchemaName: string = `${tableName}UpdateResponse`;
-
-    // Register the update response schema
-    const updateResponseSchema = z.object({
-      data: z.lazy(() => ModelSchema.getReadModelSchema({ modelType })),
-    }).openapi({
-      type: "object",
-      description: `Update response for ${tableName}`,
-    });
-    data.registry.register(updateResponseSchemaName, updateResponseSchema);
+    const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "put",
@@ -604,7 +583,12 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${updateResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${readSchemaName}`,
+                  },
+                },
               },
             },
           },
@@ -872,17 +856,6 @@ export default class OpenAPIUtil {
     const selectSchemaName: string = `${tableName}SelectSchema`;
     const sortSchemaName: string = `${tableName}SortSchema`;
     const groupBySchemaName: string = `${tableName}GroupBySchema`;
-    const analyticsListResponseSchemaName: string = `${tableName}AnalyticsListResponse`;
-
-    // Register the analytics list response schema
-    const analyticsListResponseSchema = z.object({
-      data: z.array(z.lazy(() => AnalyticsModelSchema.getModelSchema({ modelType }))),
-      count: z.number(),
-    }).openapi({
-      type: "object",
-      description: `Analytics list response for ${tableName}`,
-    });
-    data.registry.register(analyticsListResponseSchemaName, analyticsListResponseSchema);
 
     data.registry.registerPath({
       method: "post",
@@ -914,7 +887,16 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${analyticsListResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      $ref: `#/components/schemas/${tableName}`,
+                    },
+                  },
+                  count: { type: "number" },
+                },
               },
             },
           },
@@ -993,16 +975,7 @@ export default class OpenAPIUtil {
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
-    const analyticsCreateResponseSchemaName: string = `${tableName}AnalyticsCreateResponse`;
-
-    // Register the analytics create response schema
-    const analyticsCreateResponseSchema = z.object({
-      data: z.lazy(() => AnalyticsModelSchema.getModelSchema({ modelType })),
-    }).openapi({
-      type: "object",
-      description: `Analytics create response for ${tableName}`,
-    });
-    data.registry.register(analyticsCreateResponseSchemaName, analyticsCreateResponseSchema);
+    const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
@@ -1034,7 +1007,12 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${analyticsCreateResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${readSchemaName}`,
+                  },
+                },
               },
             },
           },
@@ -1060,16 +1038,6 @@ export default class OpenAPIUtil {
 
     // Use schema name that is already registered
     const selectSchemaName: string = `${tableName}SelectSchema`;
-    const analyticsGetResponseSchemaName: string = `${tableName}AnalyticsGetResponse`;
-
-    // Register the analytics get response schema
-    const analyticsGetResponseSchema = z.object({
-      data: z.lazy(() => AnalyticsModelSchema.getModelSchema({ modelType })),
-    }).openapi({
-      type: "object",
-      description: `Analytics get response for ${tableName}`,
-    });
-    data.registry.register(analyticsGetResponseSchemaName, analyticsGetResponseSchema);
 
     data.registry.registerPath({
       method: "post",
@@ -1110,7 +1078,12 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${analyticsGetResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${tableName}`,
+                  },
+                },
               },
             },
           },
@@ -1137,16 +1110,7 @@ export default class OpenAPIUtil {
     // Use schema names that are already registered
     const updateSchemaName: string = `${tableName}UpdateSchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
-    const analyticsUpdateResponseSchemaName: string = `${tableName}AnalyticsUpdateResponse`;
-
-    // Register the analytics update response schema
-    const analyticsUpdateResponseSchema = z.object({
-      data: z.lazy(() => AnalyticsModelSchema.getModelSchema({ modelType })),
-    }).openapi({
-      type: "object",
-      description: `Analytics update response for ${tableName}`,
-    });
-    data.registry.register(analyticsUpdateResponseSchemaName, analyticsUpdateResponseSchema);
+    const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "put",
@@ -1191,7 +1155,12 @@ export default class OpenAPIUtil {
           content: {
             "application/json": {
               schema: {
-                $ref: `#/components/schemas/${analyticsUpdateResponseSchemaName}`,
+                type: "object",
+                properties: {
+                  data: {
+                    $ref: `#/components/schemas/${readSchemaName}`,
+                  },
+                },
               },
             },
           },
