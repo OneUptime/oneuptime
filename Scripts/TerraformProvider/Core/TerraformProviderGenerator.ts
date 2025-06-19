@@ -71,7 +71,7 @@ clean:
   }
 
   private async generateInstallScript(): Promise<void> {
-    const scriptContent = `#!/bin/bash
+    const scriptContent: string = `#!/bin/bash
 set -e
 
 # Install Terraform Provider locally
@@ -105,12 +105,12 @@ echo "}"
     await this.fileGenerator.writeFile("install.sh", scriptContent);
 
     // Make script executable
-    const scriptPath = path.join(this.config.outputDir, "install.sh");
+    const scriptPath: string = path.join(this.config.outputDir, "install.sh");
     fs.chmodSync(scriptPath, "755");
   }
 
   private async generateBuildScript(): Promise<void> {
-    const scriptContent = `#!/bin/bash
+    const scriptContent: string = `#!/bin/bash
 set -e
 
 echo "Building ${this.config.providerName} Terraform Provider..."
@@ -128,12 +128,12 @@ echo "Binary: terraform-provider-${this.config.providerName}"
     await this.fileGenerator.writeFile("build.sh", scriptContent);
 
     // Make script executable
-    const scriptPath = path.join(this.config.outputDir, "build.sh");
+    const scriptPath: string = path.join(this.config.outputDir, "build.sh");
     fs.chmodSync(scriptPath, "755");
   }
 
   private async generateTestScript(): Promise<void> {
-    const scriptContent = `#!/bin/bash
+    const scriptContent: string = `#!/bin/bash
 set -e
 
 echo "Running tests for ${this.config.providerName} Terraform Provider..."

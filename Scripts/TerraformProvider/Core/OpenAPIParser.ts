@@ -11,9 +11,9 @@ import { StringUtils } from "./StringUtils";
 export class OpenAPIParser {
   public spec: OpenAPISpec | null = null;
 
-  async parseOpenAPISpec(filePath: string): Promise<OpenAPISpec> {
+  public async parseOpenAPISpec(filePath: string): Promise<OpenAPISpec> {
     try {
-      const content = fs.readFileSync(filePath, "utf-8");
+      const content: string = fs.readFileSync(filePath, "utf-8");
       this.spec = JSON.parse(content) as OpenAPISpec;
       return this.spec;
     } catch (error) {
@@ -23,17 +23,17 @@ export class OpenAPIParser {
     }
   }
 
-  setSpec(spec: OpenAPISpec): void {
+  public setSpec(spec: OpenAPISpec): void {
     this.spec = spec;
   }
 
-  getResources(): TerraformResource[] {
+  public getResources(): TerraformResource[] {
     if (!this.spec) {
       throw new Error("OpenAPI spec not loaded. Call parseOpenAPISpec first.");
     }
 
     const resources: TerraformResource[] = [];
-    const resourceMap = new Map<string, Partial<TerraformResource>>();
+    const resourceMap: Map<string, Partial<TerraformResource>> = new Map<string, Partial<TerraformResource>>();
 
     // Group operations by resource
     for (const [path, pathItem] of Object.entries(this.spec.paths)) {
@@ -46,7 +46,7 @@ export class OpenAPIParser {
           continue;
         }
 
-        const resourceName = this.extractResourceName(path, operation);
+        const resourceName: string | null = this.extractResourceName(path, operation);
         if (!resourceName) {
           continue;
         }
@@ -60,12 +60,12 @@ export class OpenAPIParser {
           });
         }
 
-        const resource = resourceMap.get(resourceName)!;
-        const operationType = this.getOperationType(method, path, operation);
+        const resource: Partial<TerraformResource> = resourceMap.get(resourceName)!;
+        const operationType: "create" | "read" | "update" | "delete" | "list" | null = this.getOperationType(method, path, operation);
 
         if (operationType && resource.operations) {
           // Add method and path to operation for later use
-          const enhancedOperation = {
+          const enhancedOperation: OpenAPIOperation & { method: string; path: string } = {
             ...operation,
             method: method,
             path: path,
@@ -89,13 +89,13 @@ export class OpenAPIParser {
     return resources;
   }
 
-  getDataSources(): TerraformDataSource[] {
+  public getDataSources(): TerraformDataSource[] {
     if (!this.spec) {
       throw new Error("OpenAPI spec not loaded. Call parseOpenAPISpec first.");
     }
 
     const dataSources: TerraformDataSource[] = [];
-    const dataSourceMap = new Map<string, Partial<TerraformDataSource>>();
+    const dataSourceMap: Map<string, Partial<TerraformDataSource>> = new Map<string, Partial<TerraformDataSource>>();
 
     // Look for GET operations that can be used as data sources
     for (const [path, pathItem] of Object.entries(this.spec.paths)) {
@@ -109,12 +109,12 @@ export class OpenAPIParser {
           continue;
         }
 
-        const resourceName = this.extractResourceName(path, operation);
+        const resourceName: string | null = this.extractResourceName(path, operation);
         if (!resourceName) {
           continue;
         }
 
-        const dataSourceName = `${resourceName}_data`;
+        const dataSourceName: string = `${resourceName}_data`;
 
         if (!dataSourceMap.has(dataSourceName)) {
           dataSourceMap.set(dataSourceName, {
@@ -125,12 +125,12 @@ export class OpenAPIParser {
           });
         }
 
-        const dataSource = dataSourceMap.get(dataSourceName)!;
-        const isListOperation = this.isListOperation(path, operation);
+        const dataSource: Partial<TerraformDataSource> = dataSourceMap.get(dataSourceName)!;
+        const isListOperation: boolean = this.isListOperation(path, operation);
 
         if (dataSource.operations) {
           // Add method and path to operation for later use
-          const enhancedOperation = {
+          const enhancedOperation: OpenAPIOperation & { method: string; path: string } = {
             ...operation,
             method: method,
             path: path,
@@ -168,11 +168,11 @@ export class OpenAPIParser {
     }
 
     // Fallback to path analysis
-    const pathSegments = path.split("/").filter((segment) => {
+    const pathSegments: string[] = path.split("/").filter((segment: string) => {
       return segment && !segment.startsWith("{");
     });
     if (pathSegments.length > 0) {
-      const lastSegment = pathSegments[pathSegments.length - 1];
+      const lastSegment: string | undefined = pathSegments[pathSegments.length - 1];
       if (lastSegment) {
         return StringUtils.toSnakeCase(lastSegment);
       }
@@ -186,8 +186,8 @@ export class OpenAPIParser {
     path: string,
     operation: OpenAPIOperation,
   ): "create" | "read" | "update" | "delete" | "list" | null {
-    const lowerMethod = method.toLowerCase();
-    const hasIdParam = path.includes("{id}");
+    const lowerMethod: string = method.toLowerCase();
+    const hasIdParam: boolean = path.includes("{id}");
 
     switch (lowerMethod) {
       case "post":
@@ -212,7 +212,7 @@ export class OpenAPIParser {
 
   private isListOperation(path: string, _operation: OpenAPIOperation): boolean {
     // Check if path ends with collection (not individual resource)
-    const hasIdParam =
+    const hasIdParam: boolean =
       path.includes("{id}") || (path.includes("{") && path.endsWith("}"));
     return !hasIdParam;
   }
@@ -261,47 +261,22 @@ export class OpenAPIParser {
     }
 
     // Store the required fields from create/update operations AFTER all processing
-    const requiredFields = new Set<string>();
+    const requiredFields: Set<string> = new Set<string>();
     for (const [fieldName, attr] of Object.entries(schema)) {
       if ((attr as any).required) {
         requiredFields.add(fieldName);
-        console.log(
-          `[DEBUG] Found required field after all operations: ${fieldName}`,
-          attr,
-        );
       }
     }
-
-    console.log(
-      `[DEBUG] After all operations, requiredFields:`,
-      Array.from(requiredFields),
-    );
-
     // Restore required status for fields that were required in create operations
-    console.log(
-      `[DEBUG] Before restoring required fields, color field:`,
-      schema["color"],
-    );
     for (const fieldName of requiredFields) {
       if (schema[fieldName]) {
         // Only restore if the field isn't already set to required (to avoid overriding correct OpenAPI processing)
         if (schema[fieldName].required !== true) {
-          console.log(
-            `[DEBUG] Restoring required status for field: ${fieldName}`,
-          );
           schema[fieldName].required = true;
           schema[fieldName].computed = false;
-        } else {
-          console.log(
-            `[DEBUG] Skipping restoration for field: ${fieldName} (already required)`,
-          );
         }
       }
     }
-    console.log(
-      `[DEBUG] After restoring required fields, color field:`,
-      schema["color"],
-    );
 
     return schema;
   }
@@ -369,9 +344,9 @@ export class OpenAPIParser {
 
     // Add request body schema fields - look inside the data wrapper
     if (operation.requestBody && !computed) {
-      const content = operation.requestBody.content?.["application/json"];
+      const content: any = operation.requestBody.content?.["application/json"];
       if (content?.schema?.properties?.["data"]) {
-        const dataSchema = content.schema.properties["data"];
+        const dataSchema: any = content.schema.properties["data"];
         this.addSchemaFromOpenAPISchema(
           schema,
           dataSchema,
@@ -383,14 +358,14 @@ export class OpenAPIParser {
 
     // Add response schema fields for read operations - look inside the data wrapper
     if (computed && operation.responses) {
-      const successResponse =
+      const successResponse: any =
         operation.responses["200"] || operation.responses["201"];
       if (
         successResponse?.content?.["application/json"]?.schema?.properties?.[
           "data"
         ]
       ) {
-        const dataSchema =
+        const dataSchema: any =
           successResponse.content["application/json"].schema.properties["data"];
         this.addSchemaFromOpenAPISchema(
           schema,
@@ -410,7 +385,7 @@ export class OpenAPIParser {
   ): void {
     // Handle $ref schemas
     if (openApiSchema.$ref) {
-      const resolvedSchema = this.resolveSchemaRef(openApiSchema.$ref);
+      const resolvedSchema: any = this.resolveSchemaRef(openApiSchema.$ref);
       if (resolvedSchema) {
         this.addSchemaFromOpenAPISchema(
           schema,
@@ -423,26 +398,22 @@ export class OpenAPIParser {
     }
 
     // Check if this schema has properties defined
-    const hasProperties =
+    const hasProperties: boolean =
       openApiSchema.properties &&
       Object.keys(openApiSchema.properties).length > 0;
 
     // If no properties are defined (empty CRUD schema), try to fallback to main model schema
     if (!hasProperties && openApiSchema.description) {
-      const description = openApiSchema.description.toLowerCase();
+      const description: string = openApiSchema.description.toLowerCase();
       if (description.includes("schema for") && description.includes("model")) {
         // Extract model name from description like "Create schema for Label model. Create"
-        const modelNameMatch = description.match(/schema for (\w+) model/);
-        if (modelNameMatch) {
-          const modelName = modelNameMatch[1]; // Keep original case from the description
-          console.log(`Attempting fallback to main ${modelName} schema`);
-          const mainModelSchema = this.resolveSchemaRef(
+        const modelNameMatch: RegExpMatchArray | null = description.match(/schema for (\w+) model/);
+        if (modelNameMatch && modelNameMatch[1]) {
+          const modelName: string = modelNameMatch[1]; // Keep original case from the description
+          const mainModelSchema: any = this.resolveSchemaRef(
             `#/components/schemas/${modelName}`,
           );
           if (mainModelSchema && mainModelSchema.properties) {
-            console.log(
-              `Successfully falling back to ${modelName} schema with ${Object.keys(mainModelSchema.properties).length} properties`,
-            );
             this.addSchemaFromOpenAPISchema(
               schema,
               mainModelSchema,
@@ -451,9 +422,6 @@ export class OpenAPIParser {
             );
             return;
           }
-          console.log(
-            `Failed to find main ${modelName} schema or it has no properties`,
-          );
         }
       }
     }
@@ -462,19 +430,19 @@ export class OpenAPIParser {
       for (const [propName, propSchema] of Object.entries(
         openApiSchema.properties,
       )) {
-        const terraformName = StringUtils.toSnakeCase(propName);
+        const terraformName: string = StringUtils.toSnakeCase(propName);
         if (terraformName === "id" || terraformName === "_id") {
           // Skip ID fields as they're handled separately
           continue;
         }
 
-        const prop = propSchema as any;
-        let propType = prop.type || "string";
-        let description = prop.description || "";
+        const prop: any = propSchema as any;
+        let propType: string = prop.type || "string";
+        let description: string = prop.description || "";
 
         // Handle nested $ref
         if (prop.$ref) {
-          const resolvedProp = this.resolveSchemaRef(prop.$ref);
+          const resolvedProp: any = this.resolveSchemaRef(prop.$ref);
           if (resolvedProp) {
             propType = resolvedProp.type || "string";
             description = resolvedProp.description || description;
@@ -482,7 +450,7 @@ export class OpenAPIParser {
         }
 
         // Skip computed fields for create/update operations
-        const isComputedField = [
+        const isComputedField: boolean = [
           "createdAt",
           "updatedAt",
           "deletedAt",
@@ -520,17 +488,17 @@ export class OpenAPIParser {
         }
 
         // Determine if this field should be required
-        let fieldRequired = false;
+        let fieldRequired: boolean = false;
         if (computed) {
           fieldRequired = false; // Computed fields are never required
         } else {
           // Check if it's explicitly required in the current schema
-          const explicitlyRequired =
+          const explicitlyRequired: boolean =
             openApiSchema.required?.includes(propName) || false;
 
           // If the field already exists and was previously marked as required, preserve that
-          const existingField = schema[terraformName];
-          const previouslyRequired = existingField?.required || false;
+          const existingField: TerraformAttribute | undefined = schema[terraformName];
+          const previouslyRequired: boolean = existingField?.required || false;
 
           // Field is required if it's explicitly required OR was previously required
           fieldRequired = explicitlyRequired || previouslyRequired;
@@ -551,7 +519,7 @@ export class OpenAPIParser {
       return null;
     }
 
-    const schemaName = ref.replace("#/components/schemas/", "");
+    const schemaName: string = ref.replace("#/components/schemas/", "");
     return this.spec.components?.schemas?.[schemaName] || null;
   }
 

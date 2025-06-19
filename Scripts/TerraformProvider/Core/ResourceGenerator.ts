@@ -421,7 +421,7 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
       finalPath = `"${pathWithParams}"`;
     }
 
-    const httpMethod =
+    const httpMethod: string =
       operation.method && operation.method.toUpperCase() === "PATCH"
         ? "Patch"
         : "Put";
