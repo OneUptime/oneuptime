@@ -36,6 +36,7 @@ async function main(): Promise<void> {
     // Step 2: Generate  GeneratorConfig
     // eslint-disable-next-line no-console
     console.log("\n📄 Step 2: Generating GeneratorConfig...");
+    
     GeneratorConfig.generateGeneratorConfigAndWriteToFile({
       openApiSpecInJsonFilePath: openApiSpecPath,
       outputPath: path.resolve(__dirname, "../../Terraform"),
