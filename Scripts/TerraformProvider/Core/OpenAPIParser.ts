@@ -472,6 +472,7 @@ export class OpenAPIParser {
           
           // Field is required if it's explicitly required OR was previously required
           fieldRequired = explicitlyRequired || previouslyRequired;
+        }
         
         schema[terraformName] = {
           type: this.mapOpenAPITypeToTerraform(propType),

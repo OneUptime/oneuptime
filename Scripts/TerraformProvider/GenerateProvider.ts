@@ -12,15 +12,15 @@ import { DocumentationGenerator } from "./Core/DocumentationGenerator";
 import { exec } from "child_process";
 import { promisify } from "util";
 
-const execAsync = promisify(exec);
+const execAsync: (command: string) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
 
 async function main(): Promise<void> {
   Logger.info("🚀 Starting Terraform Provider Generation Process...");
 
   // Define paths
-  const terraformDir = path.resolve(__dirname, "../../Terraform");
-  const openApiSpecPath = path.resolve(terraformDir, "openapi.json");
-  const providerDir = path.resolve(
+  const terraformDir: string = path.resolve(__dirname, "../../Terraform");
+  const openApiSpecPath: string = path.resolve(terraformDir, "openapi.json");
+  const providerDir: string = path.resolve(
     terraformDir,
     "terraform-provider-oneuptime",
   );
@@ -38,12 +38,12 @@ async function main(): Promise<void> {
 
     // Step 3: Parse OpenAPI spec
     Logger.info("🔍 Step 2: Parsing OpenAPI specification...");
-    const parser = new OpenAPIParser();
-    const apiSpec = await parser.parseOpenAPISpec(openApiSpecPath);
+    const parser: OpenAPIParser = new OpenAPIParser();
+    const apiSpec: any = await parser.parseOpenAPISpec(openApiSpecPath);
 
     // Step 4: Initialize Terraform provider generator
     Logger.info("⚙️ Step 3: Initializing Terraform provider generator...");
-    const generator = new TerraformProviderGenerator({
+    const generator: TerraformProviderGenerator = new TerraformProviderGenerator({
       outputDir: providerDir,
       providerName: "oneuptime",
       providerVersion: "1.0.0",
@@ -52,27 +52,27 @@ async function main(): Promise<void> {
 
     // Step 5: Generate Go module files
     Logger.info("📦 Step 4: Generating Go module files...");
-    const goModuleGen = new GoModuleGenerator(generator.config);
+    const goModuleGen: GoModuleGenerator = new GoModuleGenerator(generator.config);
     await goModuleGen.generateModule();
 
     // Step 6: Generate provider main file
     Logger.info("🏗️ Step 5: Generating provider main file...");
-    const providerGen = new ProviderGenerator(generator.config, apiSpec);
+    const providerGen: ProviderGenerator = new ProviderGenerator(generator.config, apiSpec);
     await providerGen.generateProvider();
 
     // Step 7: Generate resources
     Logger.info("📋 Step 6: Generating Terraform resources...");
-    const resourceGen = new ResourceGenerator(generator.config, apiSpec);
+    const resourceGen: ResourceGenerator = new ResourceGenerator(generator.config, apiSpec);
     await resourceGen.generateResources();
 
     // Step 8: Generate data sources
     Logger.info("🔍 Step 7: Generating Terraform data sources...");
-    const dataSourceGen = new DataSourceGenerator(generator.config, apiSpec);
+    const dataSourceGen: DataSourceGenerator = new DataSourceGenerator(generator.config, apiSpec);
     await dataSourceGen.generateDataSources();
 
     // Step 9: Generate documentation
     Logger.info("📚 Step 8: Generating documentation...");
-    const docGen = new DocumentationGenerator(generator.config, apiSpec);
+    const docGen: DocumentationGenerator = new DocumentationGenerator(generator.config, apiSpec);
     await docGen.generateDocumentation();
 
     // Step 10: Generate build scripts
@@ -83,7 +83,10 @@ async function main(): Promise<void> {
     Logger.info("📦 Step 10: Running go mod tidy...");
 
     try {
-      await execAsync("go mod tidy", { cwd: providerDir });
+      const originalCwd: string = process.cwd();
+      process.chdir(providerDir);
+      await execAsync("go mod tidy");
+      process.chdir(originalCwd);
       Logger.info("✅ go mod tidy completed successfully");
     } catch (error) {
       Logger.warn(
@@ -94,7 +97,10 @@ async function main(): Promise<void> {
     // Step 12: Build the provider
     Logger.info("🔨 Step 11: Building the provider...");
     try {
-      await execAsync("go build", { cwd: providerDir });
+      const originalCwd: string = process.cwd();
+      process.chdir(providerDir);
+      await execAsync("go build");
+      process.chdir(originalCwd);
       Logger.info("✅ go build completed successfully");
     } catch (error) {
       Logger.warn(

@@ -11,16 +11,16 @@ export class ResourceGenerator {
   private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
 
-  constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
+  public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
-  async generateResources(): Promise<void> {
+  public async generateResources(): Promise<void> {
     // Create parser and set the spec to get resources
-    const parser = new OpenAPIParser();
+    const parser: OpenAPIParser = new OpenAPIParser();
     parser.setSpec(this.spec);
-    const resources = parser.getResources();
+    const resources: TerraformResource[] = parser.getResources();
 
     // Generate each resource
     for (const resource of resources) {
@@ -32,8 +32,8 @@ export class ResourceGenerator {
   }
 
   private async generateResource(resource: TerraformResource): Promise<void> {
-    const resourceGoContent = this.generateResourceGoFile(resource);
-    const fileName = `resource_${resource.name}.go`;
+    const resourceGoContent: string = this.generateResourceGoFile(resource);
+    const fileName: string = `resource_${resource.name}.go`;
     await this.fileGenerator.writeFileInDir(
       "internal/provider",
       fileName,
@@ -42,11 +42,11 @@ export class ResourceGenerator {
   }
 
   private generateResourceGoFile(resource: TerraformResource): string {
-    const resourceTypeName = StringUtils.toPascalCase(resource.name);
-    const resourceVarName = StringUtils.toCamelCase(resource.name);
+    const resourceTypeName: string = StringUtils.toPascalCase(resource.name);
+    const resourceVarName: string = StringUtils.toCamelCase(resource.name);
 
     // Determine which imports are needed based on actual usage
-    const imports = [
+    const imports: string[] = [
       "context",
       "fmt",
       "github.com/hashicorp/terraform-plugin-framework/path",
@@ -57,10 +57,10 @@ export class ResourceGenerator {
     ];
 
     // Add conditional imports only if they're actually used
-    const hasNumberFields = Object.values(resource.schema).some((attr) => {
+    const hasNumberFields: boolean = Object.values(resource.schema).some((attr: any) => {
       return attr.type === "number";
     });
-    const hasReadOperation = resource.operations.read;
+    const hasReadOperation: boolean = !!resource.operations.read;
 
     if (hasNumberFields) {
       imports.push("math/big");
@@ -79,8 +79,8 @@ export class ResourceGenerator {
       );
     }
 
-    const importStatements = imports
-      .map((imp) => {
+    const importStatements: string = imports
+      .map((imp: string) => {
         return `    "${imp}"`;
       })
       .join("\n");
@@ -155,8 +155,8 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     const fields: string[] = [];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      const fieldName = StringUtils.toPascalCase(name);
-      const goType = this.mapTerraformTypeToGo(attr.type);
+      const fieldName: string = StringUtils.toPascalCase(name);
+      const goType: string = this.mapTerraformTypeToGo(attr.type);
       fields.push(`    ${fieldName} ${goType} \`tfsdk:"${name}"\``);
     }
 
@@ -167,7 +167,7 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     const attributes: string[] = [];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      const schemaAttr = this.generateSchemaAttribute(name, attr);
+      const schemaAttr: string = this.generateSchemaAttribute(name, attr);
       attributes.push(`            "${name}": ${schemaAttr},`);
     }
 
@@ -175,7 +175,7 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
   }
 
   private generateSchemaAttribute(name: string, attr: any): string {
-    const attrType = this.mapTerraformTypeToSchemaType(attr.type);
+    const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
     const options: string[] = [];
 
     if (attr.description) {
@@ -199,7 +199,7 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
       options.push("ElementType: types.StringType");
     }
 
-    let planModifiers = "";
+    let planModifiers: string = "";
     if (name === "id") {
       planModifiers = `,
                 PlanModifiers: []planmodifier.String{
@@ -217,7 +217,7 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     resourceTypeName: string,
     resourceVarName: string,
   ): string {
-    let methods = "";
+    let methods: string = "";
 
     // Create method
     if (resource.operations.create) {
@@ -271,8 +271,8 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     resourceTypeName: string,
     resourceVarName: string,
   ): string {
-    const operation = resource.operations.create!;
-    const path = this.extractPathFromOperation(operation);
+    const operation: any = resource.operations.create!;
+    const path: string = this.extractPathFromOperation(operation);
 
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -321,11 +321,11 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
     resourceTypeName: string,
     resourceVarName: string,
   ): string {
-    const operation = resource.operations.read!;
-    const path = this.extractPathFromOperation(operation);
+    const operation: any = resource.operations.read!;
+    const path: string = this.extractPathFromOperation(operation);
 
     // Replace path parameters
-    const pathWithParams = path.replace(
+    const pathWithParams: string = path.replace(
       /{([^}]+)}/g,
       `" + data.Id.ValueString() + "`,
     );
@@ -392,11 +392,11 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
     resourceTypeName: string,
     resourceVarName: string,
   ): string {
-    const operation = resource.operations.update!;
-    const path = this.extractPathFromOperation(operation);
+    const operation: any = resource.operations.update!;
+    const path: string = this.extractPathFromOperation(operation);
 
     // Replace path parameters
-    const pathWithParams = path.replace(
+    const pathWithParams: string = path.replace(
       /{([^}]+)}/g,
       `" + data.Id.ValueString() + "`,
     );
@@ -468,11 +468,11 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
     resourceTypeName: string,
     _resourceVarName: string,
   ): string {
-    const operation = resource.operations.delete!;
-    const path = this.extractPathFromOperation(operation);
+    const operation: any = resource.operations.delete!;
+    const path: string = this.extractPathFromOperation(operation);
 
     // Replace path parameters
-    const pathWithParams = path.replace(
+    const pathWithParams: string = path.replace(
       /{([^}]+)}/g,
       `" + data.Id.ValueString() + "`,
     );
@@ -573,8 +573,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
-      const fieldName = StringUtils.toPascalCase(name);
-      const value = this.getGoValueForTerraformType(
+      const fieldName: string = StringUtils.toPascalCase(name);
+      const value: string = this.getGoValueForTerraformType(
         attr.type,
         `data.${fieldName}`,
       );
@@ -591,8 +591,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const mappings: string[] = [];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      const fieldName = StringUtils.toPascalCase(name);
-      const setter = this.generateResponseSetter(
+      const fieldName: string = StringUtils.toPascalCase(name);
+      const setter: string = this.generateResponseSetter(
         attr.type,
         `data.${fieldName}`,
         `${responseVar}["${name}"]`,
@@ -699,16 +699,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     resources: TerraformResource[],
   ): Promise<void> {
     // Generate the list of resource functions
-    const resourceFunctions = resources
-      .map((resource) => {
-        const resourceTypeName = StringUtils.toPascalCase(resource.name);
+    const resourceFunctions: string = resources
+      .map((resource: TerraformResource) => {
+        const resourceTypeName: string = StringUtils.toPascalCase(resource.name);
         return `        New${resourceTypeName}Resource,`;
       })
       .join("\n");
 
     // This would update the provider.go file to include the resources
     // For now, we'll create a separate file with the resource list
-    const resourceListContent = `package provider
+    const resourceListContent: string = `package provider
 
 import (
     "github.com/hashicorp/terraform-plugin-framework/resource"

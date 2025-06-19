@@ -1,7 +1,7 @@
 import { StringUtils } from "./StringUtils";
 
 export class GoCodeGenerator {
-  static generateStruct(
+  public static generateStruct(
     name: string,
     fields: Array<{
       name: string;
@@ -10,9 +10,9 @@ export class GoCodeGenerator {
       comment?: string;
     }>,
   ): string {
-    const structFields = fields
-      .map((field) => {
-        let line = `    ${field.name} ${field.type}`;
+    const structFields: string = fields
+      .map((field: any) => {
+        let line: string = `    ${field.name} ${field.type}`;
         if (field.tag) {
           line += ` \`${field.tag}\``;
         }
@@ -28,26 +28,26 @@ ${structFields}
 }`;
   }
 
-  static generateFunction(
+  public static generateFunction(
     name: string,
     params: Array<{ name: string; type: string }>,
     returnType: string,
     body: string,
     comment?: string,
   ): string {
-    const paramList = params
-      .map((p) => {
+    const paramList: string = params
+      .map((p: { name: string; type: string }) => {
         return `${p.name} ${p.type}`;
       })
       .join(", ");
-    const funcComment = comment ? `// ${comment}\n` : "";
+    const funcComment: string = comment ? `// ${comment}\n` : "";
 
     return `${funcComment}func ${name}(${paramList}) ${returnType} {
 ${body}
 }`;
   }
 
-  static generateMethod(
+  public static generateMethod(
     receiver: { name: string; type: string },
     name: string,
     params: Array<{ name: string; type: string }>,
@@ -55,19 +55,19 @@ ${body}
     body: string,
     comment?: string,
   ): string {
-    const paramList = params
-      .map((p) => {
+    const paramList: string = params
+      .map((p: { name: string; type: string }) => {
         return `${p.name} ${p.type}`;
       })
       .join(", ");
-    const funcComment = comment ? `// ${comment}\n` : "";
+    const funcComment: string = comment ? `// ${comment}\n` : "";
 
     return `${funcComment}func (${receiver.name} ${receiver.type}) ${name}(${paramList}) ${returnType} {
 ${body}
 }`;
   }
 
-  static generateMapAccess(
+  public static generateMapAccess(
     mapVar: string,
     key: string,
     targetType: string,
@@ -95,7 +95,7 @@ ${body}
     }
   }
 
-  static generateImports(imports: string[]): string {
+  public static generateImports(imports: string[]): string {
     if (imports.length === 0) {
       return "";
     }
@@ -104,8 +104,8 @@ ${body}
       return `import "${imports[0]}"`;
     }
 
-    const importList = imports
-      .map((imp) => {
+    const importList: string = imports
+      .map((imp: string) => {
         return `    "${imp}"`;
       })
       .join("\n");
@@ -114,23 +114,23 @@ ${importList}
 )`;
   }
 
-  static generatePackageDeclaration(packageName: string): string {
+  public static generatePackageDeclaration(packageName: string): string {
     return `package ${packageName}`;
   }
 
-  static generateFileHeader(
+  public static generateFileHeader(
     packageName: string,
     imports: string[],
     comment?: string,
   ): string {
-    const header = comment ? `// ${comment}\n\n` : "";
-    const pkg = this.generatePackageDeclaration(packageName);
-    const imp = this.generateImports(imports);
+    const header: string = comment ? `// ${comment}\n\n` : "";
+    const pkg: string = this.generatePackageDeclaration(packageName);
+    const imp: string = this.generateImports(imports);
 
     return `${header}${pkg}\n\n${imp}\n\n`;
   }
 
-  static escapeString(str: string): string {
+  public static escapeString(str: string): string {
     return str
       .replace(/\\/g, "\\\\")
       .replace(/"/g, '\\"')
@@ -139,14 +139,14 @@ ${importList}
       .replace(/\t/g, "\\t");
   }
 
-  static formatGoCode(code: string): string {
+  public static formatGoCode(code: string): string {
     // Basic Go code formatting
-    const lines = code.split("\n");
-    let indentLevel = 0;
+    const lines: string[] = code.split("\n");
+    let indentLevel: number = 0;
     const formattedLines: string[] = [];
 
     for (const line of lines) {
-      const trimmedLine = line.trim();
+      const trimmedLine: string = line.trim();
 
       if (trimmedLine === "") {
         formattedLines.push("");
@@ -159,7 +159,7 @@ ${importList}
       }
 
       // Add the line with proper indentation
-      const indent = "    ".repeat(indentLevel);
+      const indent: string = "    ".repeat(indentLevel);
       formattedLines.push(indent + trimmedLine);
 
       // Increase indent for opening braces
@@ -171,17 +171,17 @@ ${importList}
     return formattedLines.join("\n");
   }
 
-  static generateConstant(name: string, value: string, type?: string): string {
-    const typeDecl = type ? ` ${type}` : "";
+  public static generateConstant(name: string, value: string, type?: string): string {
+    const typeDecl: string = type ? ` ${type}` : "";
     return `const ${name}${typeDecl} = ${value}`;
   }
 
-  static generateVariable(name: string, type: string, value?: string): string {
-    const assignment = value ? ` = ${value}` : "";
+  public static generateVariable(name: string, type: string, value?: string): string {
+    const assignment: string = value ? ` = ${value}` : "";
     return `var ${name} ${type}${assignment}`;
   }
 
-  static generateInterface(
+  public static generateInterface(
     name: string,
     methods: Array<{
       name: string;
@@ -190,9 +190,9 @@ ${importList}
       comment?: string;
     }>,
   ): string {
-    const methodList = methods
-      .map((method) => {
-        const comment = method.comment ? `    // ${method.comment}\n` : "";
+    const methodList: string = methods
+      .map((method: any) => {
+        const comment: string = method.comment ? `    // ${method.comment}\n` : "";
         return `${comment}    ${method.name}(${method.params}) ${method.returns}`;
       })
       .join("\n");
@@ -202,23 +202,23 @@ ${methodList}
 }`;
   }
 
-  static generateErrorCheck(
+  public static generateErrorCheck(
     errVar: string = "err",
     customMessage?: string,
   ): string {
-    const message = customMessage || "an error occurred";
+    const message: string = customMessage || "an error occurred";
     return `if ${errVar} != nil {
         return fmt.Errorf("${message}: %w", ${errVar})
     }`;
   }
 
-  static generateNilCheck(variable: string, action: string): string {
+  public static generateNilCheck(variable: string, action: string): string {
     return `if ${variable} == nil {
         ${action}
     }`;
   }
 
-  static generateTypeAssertion(
+  public static generateTypeAssertion(
     variable: string,
     targetType: string,
     okVar: string = "ok",
@@ -226,7 +226,7 @@ ${methodList}
     return `${variable}, ${okVar} := ${variable}.(${targetType})`;
   }
 
-  static sanitizeGoIdentifier(name: string): string {
+  public static sanitizeGoIdentifier(name: string): string {
     return StringUtils.sanitizeGoIdentifier(name);
   }
 }

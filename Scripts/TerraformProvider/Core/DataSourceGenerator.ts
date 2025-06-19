@@ -11,16 +11,16 @@ export class DataSourceGenerator {
   private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
 
-  constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
+  public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
-  async generateDataSources(): Promise<void> {
+  public async generateDataSources(): Promise<void> {
     // Create parser and set the spec to get data sources
-    const parser = new OpenAPIParser();
+    const parser: OpenAPIParser = new OpenAPIParser();
     parser.setSpec(this.spec);
-    const dataSources = parser.getDataSources();
+    const dataSources: TerraformDataSource[] = parser.getDataSources();
 
     // Generate each data source
     for (const dataSource of dataSources) {
@@ -34,8 +34,8 @@ export class DataSourceGenerator {
   private async generateDataSource(
     dataSource: TerraformDataSource,
   ): Promise<void> {
-    const dataSourceGoContent = this.generateDataSourceGoFile(dataSource);
-    const fileName = `data_source_${dataSource.name}.go`;
+    const dataSourceGoContent: string = this.generateDataSourceGoFile(dataSource);
+    const fileName: string = `data_source_${dataSource.name}.go`;
     await this.fileGenerator.writeFileInDir(
       "internal/provider",
       fileName,
@@ -44,8 +44,8 @@ export class DataSourceGenerator {
   }
 
   private generateDataSourceGoFile(dataSource: TerraformDataSource): string {
-    const dataSourceTypeName = StringUtils.toPascalCase(dataSource.name);
-    const dataSourceVarName = StringUtils.toCamelCase(dataSource.name);
+    const dataSourceTypeName: string = StringUtils.toPascalCase(dataSource.name);
+    const dataSourceVarName: string = StringUtils.toCamelCase(dataSource.name);
 
     return `package provider
 
@@ -135,8 +135,8 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     const fields: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const fieldName = StringUtils.toPascalCase(name);
-      const goType = this.mapTerraformTypeToGo(attr.type);
+      const fieldName: string = StringUtils.toPascalCase(name);
+      const goType: string = this.mapTerraformTypeToGo(attr.type);
       fields.push(`    ${fieldName} ${goType} \`tfsdk:"${name}"\``);
     }
 
@@ -147,7 +147,7 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     const attributes: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const schemaAttr = this.generateSchemaAttribute(name, attr);
+      const schemaAttr: string = this.generateSchemaAttribute(name, attr);
       attributes.push(`            "${name}": ${schemaAttr},`);
     }
 
@@ -155,7 +155,7 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
   }
 
   private generateSchemaAttribute(_name: string, attr: any): string {
-    const attrType = this.mapTerraformTypeToSchemaType(attr.type);
+    const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
     const options: string[] = [];
 
     if (attr.description) {
@@ -183,15 +183,15 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     dataSource: TerraformDataSource,
     dataSourceVarName: string,
   ): string {
-    let readCode = "";
+    let readCode: string = "";
 
     if (dataSource.operations.read) {
-      const operation = dataSource.operations.read;
-      let path = this.extractPathFromOperation(operation);
+      const operation: any = dataSource.operations.read;
+      let path: string = this.extractPathFromOperation(operation);
 
       // Replace path parameters with data values
-      path = path.replace(/{([^}]+)}/g, (_match, paramName) => {
-        const fieldName = StringUtils.toPascalCase(paramName);
+      path = path.replace(/{([^}]+)}/g, (_match: string, paramName: string) => {
+        const fieldName: string = StringUtils.toPascalCase(paramName);
         return `" + data.${fieldName}.ValueString() + "`;
       });
 
@@ -224,8 +224,8 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     // Update the model with response data
 ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     } else if (dataSource.operations.list) {
-      const operation = dataSource.operations.list;
-      const path = this.extractPathFromOperation(operation);
+      const operation: any = dataSource.operations.list;
+      const path: string = this.extractPathFromOperation(operation);
 
       readCode = `
     // Build query parameters
@@ -276,8 +276,8 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     const mappings: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const fieldName = StringUtils.toPascalCase(name);
-      const setter = this.generateResponseSetter(
+      const fieldName: string = StringUtils.toPascalCase(name);
+      const setter: string = this.generateResponseSetter(
         attr.type,
         `data.${fieldName}`,
         `${responseVar}["${name}"]`,
@@ -355,16 +355,16 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     dataSources: TerraformDataSource[],
   ): Promise<void> {
     // Generate the list of data source functions
-    const dataSourceFunctions = dataSources
-      .map((dataSource) => {
-        const dataSourceTypeName = StringUtils.toPascalCase(dataSource.name);
+    const dataSourceFunctions: string = dataSources
+      .map((dataSource: TerraformDataSource) => {
+        const dataSourceTypeName: string = StringUtils.toPascalCase(dataSource.name);
         return `        New${dataSourceTypeName}DataSource,`;
       })
       .join("\n");
 
     // This would update the provider.go file to include the data sources
     // For now, we'll create a separate file with the data source list
-    const dataSourceListContent = `package provider
+    const dataSourceListContent: string = `package provider
 
 import (
     "github.com/hashicorp/terraform-plugin-framework/datasource"

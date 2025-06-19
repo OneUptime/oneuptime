@@ -7,12 +7,12 @@ export class TerraformProviderGenerator {
   public config: TerraformProviderConfig;
   private fileGenerator: FileGenerator;
 
-  constructor(config: TerraformProviderConfig) {
+  public constructor(config: TerraformProviderConfig) {
     this.config = config;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
-  async generateBuildScripts(): Promise<void> {
+  public async generateBuildScripts(): Promise<void> {
     await this.generateMakefile();
     await this.generateInstallScript();
     await this.generateBuildScript();
@@ -20,7 +20,7 @@ export class TerraformProviderGenerator {
   }
 
   private async generateMakefile(): Promise<void> {
-    const makefileContent = `
+    const makefileContent: string = `
 # Terraform Provider Makefile
 
 HOSTNAME=registry.terraform.io
@@ -95,8 +95,8 @@ echo ""
 echo "terraform {"
 echo "  required_providers {"
 echo "    ${this.config.providerName} = {"
-echo "      source = \"oneuptime/${this.config.providerName}\""
-echo "      version = \"${this.config.providerVersion}\""
+echo "      source = "oneuptime/${this.config.providerName}""
+echo "      version = "${this.config.providerVersion}""
 echo "    }"
 echo "  }"
 echo "}"
@@ -154,7 +154,7 @@ echo "✅ Tests completed successfully!"
     await this.fileGenerator.writeFile("test.sh", scriptContent);
 
     // Make script executable
-    const scriptPath = path.join(this.config.outputDir, "test.sh");
+    const scriptPath: string = path.join(this.config.outputDir, "test.sh");
     fs.chmodSync(scriptPath, "755");
   }
 }

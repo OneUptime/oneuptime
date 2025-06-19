@@ -5,12 +5,12 @@ export class GoModuleGenerator {
   private config: TerraformProviderConfig;
   private fileGenerator: FileGenerator;
 
-  constructor(config: TerraformProviderConfig) {
+  public constructor(config: TerraformProviderConfig) {
     this.config = config;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
-  async generateModule(): Promise<void> {
+  public async generateModule(): Promise<void> {
     await this.generateGoMod();
     await this.generateGoSum();
     await this.generateMainGo();
@@ -18,7 +18,7 @@ export class GoModuleGenerator {
   }
 
   private async generateGoMod(): Promise<void> {
-    const goModContent = `module ${this.config.goModuleName}
+    const goModContent: string = `module ${this.config.goModuleName}
 
 go 1.21
 
@@ -33,7 +33,7 @@ require (
 
   private async generateGoSum(): Promise<void> {
     // go.sum will be generated when running go mod tidy
-    const goSumContent = `# This file will be generated when running 'go mod tidy'
+    const goSumContent: string = `# This file will be generated when running 'go mod tidy'
 # Run 'go mod tidy' after generating the provider to populate dependencies
 `;
 
@@ -41,7 +41,7 @@ require (
   }
 
   private async generateMainGo(): Promise<void> {
-    const mainGoContent = `package main
+    const mainGoContent: string = `package main
 
 import (
     "context"
@@ -93,7 +93,7 @@ func main() {
   }
 
   private async generateVersionGo(): Promise<void> {
-    const versionGoContent = `package main
+    const versionGoContent: string = `package main
 
 import (
     "fmt"

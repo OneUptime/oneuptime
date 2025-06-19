@@ -7,20 +7,20 @@ export class ProviderGenerator {
   private spec: OpenAPISpec;
   private fileGenerator: FileGenerator;
 
-  constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
+  public constructor(config: TerraformProviderConfig, spec: OpenAPISpec) {
     this.config = config;
     this.spec = spec;
     this.fileGenerator = new FileGenerator(config.outputDir);
   }
 
-  async generateProvider(): Promise<void> {
+  public async generateProvider(): Promise<void> {
     await this.generateProviderGo();
     await this.generateClientGo();
     await this.generateConfigGo();
   }
 
   private async generateProviderGo(): Promise<void> {
-    const providerGoContent = `package provider
+    const providerGoContent: string = `package provider
 
 import (
     "context"
@@ -153,7 +153,7 @@ func New(version string) func() provider.Provider {
   }
 
   private async generateClientGo(): Promise<void> {
-    const clientGoContent = `package provider
+    const clientGoContent: string = `package provider
 
 import (
     "bytes"
@@ -302,7 +302,7 @@ func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
   }
 
   private async generateConfigGo(): Promise<void> {
-    const configGoContent = `package provider
+    const configGoContent: string = `package provider
 
 import (
     "context"
