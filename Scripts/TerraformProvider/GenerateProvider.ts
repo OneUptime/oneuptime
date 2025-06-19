@@ -66,7 +66,10 @@ async function main(): Promise<void> {
         __dirname,
         "../../Terraform/ProviderCodeSpec.json",
       ),
-      outputPath: path.resolve(__dirname, "../../Terraform/terraform-provider-oneuptime"),
+      outputPath: path.resolve(
+        __dirname,
+        "../../Terraform/terraform-provider-oneuptime",
+      ),
       packageName: "oneuptime",
     });
     // Step 4: Generate Terraform provider code
