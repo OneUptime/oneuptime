@@ -153,10 +153,17 @@ export class OpenAPIParser {
   private getOperationType(method: string, path: string, operation: OpenAPIOperation): 
     "create" | "read" | "update" | "delete" | "list" | null {
     const lowerMethod = method.toLowerCase();
+    const hasIdParam = path.includes("{id}");
     
     switch (lowerMethod) {
       case "post":
-        return "create";
+        if (hasIdParam) {
+          // POST to /{resource}/{id} is usually a read operation in OneUptime API
+          return "read";
+        } else {
+          // POST to /{resource} is create
+          return "create";
+        }
       case "get":
         return this.isListOperation(path, operation) ? "list" : "read";
       case "put":
@@ -185,13 +192,15 @@ export class OpenAPIParser {
       computed: true
     };
 
-    // Extract schema from operations
+    // First pass: Extract schema from create/update operations (input fields)
     if (operations.create) {
       this.addSchemaFromOperation(schema, operations.create, false);
     }
     if (operations.update) {
       this.addSchemaFromOperation(schema, operations.update, false);
     }
+
+    // Second pass: Extract schema from read operations (ensure all output fields are included)
     if (operations.read) {
       this.addSchemaFromOperation(schema, operations.read, true);
     }
@@ -233,7 +242,7 @@ export class OpenAPIParser {
         if (param.in === "path" || param.name === "id") continue;
         
         schema[StringUtils.toSnakeCase(param.name)] = {
-          type: this.mapOpenAPITypeToTerraform(param.schema.type || "string"),
+          type: this.mapOpenAPITypeToTerraform(param.schema?.type || "string"),
           description: param.description || "",
           required: computed ? false : param.required || false,
           computed: computed
@@ -241,41 +250,129 @@ export class OpenAPIParser {
       }
     }
 
-    // Add request body schema fields
+    // Add request body schema fields - look inside the data wrapper
     if (operation.requestBody && !computed) {
-      const content = operation.requestBody.content["application/json"];
-      if (content && content.schema) {
-        this.addSchemaFromOpenAPISchema(schema, content.schema, computed);
+      const content = operation.requestBody.content?.["application/json"];
+      if (content?.schema?.properties?.['data']) {
+        const dataSchema = content.schema.properties['data'];
+        this.addSchemaFromOpenAPISchema(schema, dataSchema, computed);
       }
     }
 
-    // Add response schema fields for read operations
+    // Add response schema fields for read operations - look inside the data wrapper
     if (computed && operation.responses) {
       const successResponse = operation.responses["200"] || operation.responses["201"];
-      if (successResponse && successResponse.content) {
-        const content = successResponse.content["application/json"];
-        if (content && content.schema) {
-          this.addSchemaFromOpenAPISchema(schema, content.schema, true);
-        }
+      if (successResponse?.content?.["application/json"]?.schema?.properties?.['data']) {
+        const dataSchema = successResponse.content["application/json"].schema.properties['data'];
+        this.addSchemaFromOpenAPISchema(schema, dataSchema, true);
       }
     }
   }
 
   private addSchemaFromOpenAPISchema(schema: Record<string, TerraformAttribute>, openApiSchema: any, computed: boolean): void {
+    // Handle $ref schemas
+    if (openApiSchema.$ref) {
+      const resolvedSchema = this.resolveSchemaRef(openApiSchema.$ref);
+      if (resolvedSchema) {
+        this.addSchemaFromOpenAPISchema(schema, resolvedSchema, computed);
+      }
+      return;
+    }
+
+    // Debug logging
+    if (openApiSchema.description && openApiSchema.description.includes('Label')) {
+      console.log(`Processing schema with description: "${openApiSchema.description}"`);
+      console.log(`Has properties: ${!!openApiSchema.properties}`);
+      console.log(`Properties count: ${openApiSchema.properties ? Object.keys(openApiSchema.properties).length : 0}`);
+    }
+
+    // Check if this schema has properties defined
+    const hasProperties = openApiSchema.properties && Object.keys(openApiSchema.properties).length > 0;
+    
+    // If no properties are defined (empty CRUD schema), try to fallback to main model schema
+    if (!hasProperties && openApiSchema.description) {
+      const description = openApiSchema.description.toLowerCase();
+      if (description.includes('schema for') && description.includes('model')) {
+        // Extract model name from description like "Create schema for Label model. Create"
+        const modelNameMatch = description.match(/schema for (\w+) model/);
+        if (modelNameMatch) {
+          const modelName = modelNameMatch[1]; // Keep original case from the description
+          console.log(`Attempting fallback to main ${modelName} schema`);
+          const mainModelSchema = this.resolveSchemaRef(`#/components/schemas/${modelName}`);
+          if (mainModelSchema && mainModelSchema.properties) {
+            console.log(`Successfully falling back to ${modelName} schema with ${Object.keys(mainModelSchema.properties).length} properties`);
+            this.addSchemaFromOpenAPISchema(schema, mainModelSchema, computed);
+            return;
+          } else {
+            console.log(`Failed to find main ${modelName} schema or it has no properties`);
+          }
+        }
+      }
+    }
+
     if (openApiSchema.properties) {
       for (const [propName, propSchema] of Object.entries(openApiSchema.properties)) {
         const terraformName = StringUtils.toSnakeCase(propName);
-        if (terraformName === "id") continue; // Already handled
+        if (terraformName === "id" || terraformName === "_id") {
+          // Skip ID fields as they're handled separately
+          continue;
+        }
         
         const prop = propSchema as any;
+        let propType = prop.type || "string";
+        let description = prop.description || "";
+
+        // Handle nested $ref
+        if (prop.$ref) {
+          const resolvedProp = this.resolveSchemaRef(prop.$ref);
+          if (resolvedProp) {
+            propType = resolvedProp.type || "string";
+            description = resolvedProp.description || description;
+          }
+        }
+
+        // Skip computed fields for create/update operations
+        const isComputedField = ["createdAt", "updatedAt", "deletedAt", "version", "slug"].includes(propName);
+        if (!computed && isComputedField) {
+          continue;
+        }
+
+        // If field already exists and we're adding computed fields, don't override
+        if (computed && schema[terraformName] && !schema[terraformName].computed) {
+          // Just ensure the existing field is included in responses
+          continue;
+        }
+
         schema[terraformName] = {
-          type: this.mapOpenAPITypeToTerraform(prop.type || "string"),
-          description: prop.description || "",
+          type: this.mapOpenAPITypeToTerraform(propType),
+          description: description,
           required: computed ? false : (openApiSchema.required?.includes(propName) || false),
-          computed: computed
+          computed: computed || isComputedField
         };
       }
     }
+  }
+
+  private resolveSchemaRef(ref: string): any {
+    if (!this.spec || !ref.startsWith("#/components/schemas/")) {
+      return null;
+    }
+
+    const schemaName = ref.replace("#/components/schemas/", "");
+    const schema = this.spec.components?.schemas?.[schemaName] || null;
+    
+    // Debug logging for Label schema
+    if (schemaName === "Label") {
+      console.log(`DEBUG: Looking for schema "${schemaName}"`);
+      console.log(`DEBUG: Available schemas keys:`, Object.keys(this.spec.components?.schemas || {}));
+      console.log(`DEBUG: Found schema:`, !!schema);
+      if (schema) {
+        console.log(`DEBUG: Schema has properties:`, !!schema.properties);
+        console.log(`DEBUG: Properties count:`, schema.properties ? Object.keys(schema.properties).length : 0);
+      }
+    }
+    
+    return schema;
   }
 
   private mapOpenAPITypeToTerraform(openApiType: string): string {
