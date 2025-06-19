@@ -74,7 +74,11 @@ provider "${this.config.providerName}" {
 
     for (const resource of resources) {
       const resourceDoc = this.generateResourceDoc(resource);
-      await this.fileGenerator.writeFileInDir("docs/resources", `${resource.name}.md`, resourceDoc);
+      await this.fileGenerator.writeFileInDir(
+        "docs/resources",
+        `${resource.name}.md`,
+        resourceDoc,
+      );
     }
   }
 
@@ -88,20 +92,32 @@ provider "${this.config.providerName}" {
 
     for (const dataSource of dataSources) {
       const dataSourceDoc = this.generateDataSourceDoc(dataSource);
-      await this.fileGenerator.writeFileInDir("docs/data-sources", `${dataSource.name}.md`, dataSourceDoc);
+      await this.fileGenerator.writeFileInDir(
+        "docs/data-sources",
+        `${dataSource.name}.md`,
+        dataSourceDoc,
+      );
     }
   }
 
   private generateResourceDoc(resource: any): string {
-    const resourceName = StringUtils.capitalize(resource.name.replace(/_/g, " "));
-    
+    const resourceName = StringUtils.capitalize(
+      resource.name.replace(/_/g, " "),
+    );
+
     // Generate schema documentation
     const schemaItems: string[] = [];
     for (const [name, attr] of Object.entries(resource.schema)) {
       const attrInfo = attr as any;
-      const required = attrInfo.required ? "Required" : attrInfo.computed ? "Computed" : "Optional";
+      const required = attrInfo.required
+        ? "Required"
+        : attrInfo.computed
+          ? "Computed"
+          : "Optional";
       const sensitive = attrInfo.sensitive ? ", Sensitive" : "";
-      schemaItems.push(`- \`${name}\` (${StringUtils.capitalize(attrInfo.type)}${sensitive}) ${attrInfo.description || `${resourceName} ${name}`}. ${required}.`);
+      schemaItems.push(
+        `- \`${name}\` (${StringUtils.capitalize(attrInfo.type)}${sensitive}) ${attrInfo.description || `${resourceName} ${name}`}. ${required}.`,
+      );
     }
 
     return `---
@@ -140,15 +156,23 @@ terraform import ${this.config.providerName}_${resource.name}.example <id>
   }
 
   private generateDataSourceDoc(dataSource: any): string {
-    const dataSourceName = StringUtils.capitalize(dataSource.name.replace(/_/g, " "));
-    
+    const dataSourceName = StringUtils.capitalize(
+      dataSource.name.replace(/_/g, " "),
+    );
+
     // Generate schema documentation
     const schemaItems: string[] = [];
     for (const [name, attr] of Object.entries(dataSource.schema)) {
       const attrInfo = attr as any;
-      const required = attrInfo.required ? "Required" : attrInfo.computed ? "Computed" : "Optional";
+      const required = attrInfo.required
+        ? "Required"
+        : attrInfo.computed
+          ? "Computed"
+          : "Optional";
       const sensitive = attrInfo.sensitive ? ", Sensitive" : "";
-      schemaItems.push(`- \`${name}\` (${StringUtils.capitalize(attrInfo.type)}${sensitive}) ${attrInfo.description || `${dataSourceName} ${name}`}. ${required}.`);
+      schemaItems.push(
+        `- \`${name}\` (${StringUtils.capitalize(attrInfo.type)}${sensitive}) ${attrInfo.description || `${dataSourceName} ${name}`}. ${required}.`,
+      );
     }
 
     return `---
@@ -203,7 +227,11 @@ variable "${this.config.providerName}_api_key" {
 }
 `;
 
-    await this.fileGenerator.writeFileInDir("examples", "provider.tf", providerExample);
+    await this.fileGenerator.writeFileInDir(
+      "examples",
+      "provider.tf",
+      providerExample,
+    );
 
     // Generate resources example
     const parser = new OpenAPIParser();
@@ -226,7 +254,11 @@ output "${firstResource.name}_id" {
 }
 `;
 
-        await this.fileGenerator.writeFileInDir("examples", "resources.tf", resourceExample);
+        await this.fileGenerator.writeFileInDir(
+          "examples",
+          "resources.tf",
+          resourceExample,
+        );
       }
     }
 
@@ -248,7 +280,11 @@ output "${firstDataSource.name}_result" {
 }
 `;
 
-        await this.fileGenerator.writeFileInDir("examples", "data-sources.tf", dataSourceExample);
+        await this.fileGenerator.writeFileInDir(
+          "examples",
+          "data-sources.tf",
+          dataSourceExample,
+        );
       }
     }
   }

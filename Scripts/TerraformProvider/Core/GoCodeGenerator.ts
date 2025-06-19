@@ -1,17 +1,27 @@
 import { StringUtils } from "./StringUtils";
 
 export class GoCodeGenerator {
-  static generateStruct(name: string, fields: Array<{ name: string; type: string; tag?: string; comment?: string }>): string {
-    const structFields = fields.map(field => {
-      let line = `    ${field.name} ${field.type}`;
-      if (field.tag) {
-        line += ` \`${field.tag}\``;
-      }
-      if (field.comment) {
-        line += ` // ${field.comment}`;
-      }
-      return line;
-    }).join("\n");
+  static generateStruct(
+    name: string,
+    fields: Array<{
+      name: string;
+      type: string;
+      tag?: string;
+      comment?: string;
+    }>,
+  ): string {
+    const structFields = fields
+      .map((field) => {
+        let line = `    ${field.name} ${field.type}`;
+        if (field.tag) {
+          line += ` \`${field.tag}\``;
+        }
+        if (field.comment) {
+          line += ` // ${field.comment}`;
+        }
+        return line;
+      })
+      .join("\n");
 
     return `type ${name} struct {
 ${structFields}
@@ -19,15 +29,19 @@ ${structFields}
   }
 
   static generateFunction(
-    name: string, 
+    name: string,
     params: Array<{ name: string; type: string }>,
     returnType: string,
     body: string,
-    comment?: string
+    comment?: string,
   ): string {
-    const paramList = params.map(p => `${p.name} ${p.type}`).join(", ");
+    const paramList = params
+      .map((p) => {
+        return `${p.name} ${p.type}`;
+      })
+      .join(", ");
     const funcComment = comment ? `// ${comment}\n` : "";
-    
+
     return `${funcComment}func ${name}(${paramList}) ${returnType} {
 ${body}
 }`;
@@ -39,17 +53,26 @@ ${body}
     params: Array<{ name: string; type: string }>,
     returnType: string,
     body: string,
-    comment?: string
+    comment?: string,
   ): string {
-    const paramList = params.map(p => `${p.name} ${p.type}`).join(", ");
+    const paramList = params
+      .map((p) => {
+        return `${p.name} ${p.type}`;
+      })
+      .join(", ");
     const funcComment = comment ? `// ${comment}\n` : "";
-    
+
     return `${funcComment}func (${receiver.name} ${receiver.type}) ${name}(${paramList}) ${returnType} {
 ${body}
 }`;
   }
 
-  static generateMapAccess(mapVar: string, key: string, targetType: string, targetVar: string): string {
+  static generateMapAccess(
+    mapVar: string,
+    key: string,
+    targetType: string,
+    targetVar: string,
+  ): string {
     switch (targetType) {
       case "string":
         return `if val, ok := ${mapVar}["${key}"].(string); ok {
@@ -73,13 +96,19 @@ ${body}
   }
 
   static generateImports(imports: string[]): string {
-    if (imports.length === 0) return "";
-    
+    if (imports.length === 0) {
+      return "";
+    }
+
     if (imports.length === 1) {
       return `import "${imports[0]}"`;
     }
 
-    const importList = imports.map(imp => `    "${imp}"`).join("\n");
+    const importList = imports
+      .map((imp) => {
+        return `    "${imp}"`;
+      })
+      .join("\n");
     return `import (
 ${importList}
 )`;
@@ -89,11 +118,15 @@ ${importList}
     return `package ${packageName}`;
   }
 
-  static generateFileHeader(packageName: string, imports: string[], comment?: string): string {
+  static generateFileHeader(
+    packageName: string,
+    imports: string[],
+    comment?: string,
+  ): string {
     const header = comment ? `// ${comment}\n\n` : "";
     const pkg = this.generatePackageDeclaration(packageName);
     const imp = this.generateImports(imports);
-    
+
     return `${header}${pkg}\n\n${imp}\n\n`;
   }
 
@@ -114,7 +147,7 @@ ${importList}
 
     for (const line of lines) {
       const trimmedLine = line.trim();
-      
+
       if (trimmedLine === "") {
         formattedLines.push("");
         continue;
@@ -148,18 +181,31 @@ ${importList}
     return `var ${name} ${type}${assignment}`;
   }
 
-  static generateInterface(name: string, methods: Array<{ name: string; params: string; returns: string; comment?: string }>): string {
-    const methodList = methods.map(method => {
-      const comment = method.comment ? `    // ${method.comment}\n` : "";
-      return `${comment}    ${method.name}(${method.params}) ${method.returns}`;
-    }).join("\n");
+  static generateInterface(
+    name: string,
+    methods: Array<{
+      name: string;
+      params: string;
+      returns: string;
+      comment?: string;
+    }>,
+  ): string {
+    const methodList = methods
+      .map((method) => {
+        const comment = method.comment ? `    // ${method.comment}\n` : "";
+        return `${comment}    ${method.name}(${method.params}) ${method.returns}`;
+      })
+      .join("\n");
 
     return `type ${name} interface {
 ${methodList}
 }`;
   }
 
-  static generateErrorCheck(errVar: string = "err", customMessage?: string): string {
+  static generateErrorCheck(
+    errVar: string = "err",
+    customMessage?: string,
+  ): string {
     const message = customMessage || "an error occurred";
     return `if ${errVar} != nil {
         return fmt.Errorf("${message}: %w", ${errVar})
@@ -172,7 +218,11 @@ ${methodList}
     }`;
   }
 
-  static generateTypeAssertion(variable: string, targetType: string, okVar: string = "ok"): string {
+  static generateTypeAssertion(
+    variable: string,
+    targetType: string,
+    okVar: string = "ok",
+  ): string {
     return `${variable}, ${okVar} := ${variable}.(${targetType})`;
   }
 

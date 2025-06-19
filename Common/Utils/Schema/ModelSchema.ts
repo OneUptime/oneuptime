@@ -331,10 +331,10 @@ export class ModelSchema extends BaseSchema {
           });
       } else {
         // Fallback for unknown column types - use a generic object type
-        zodType = z.any().openapi({ 
-          type: "object", 
+        zodType = z.any().openapi({
+          type: "object",
           description: "Unknown type field",
-          example: null 
+          example: null,
         });
       }
 
@@ -1264,10 +1264,10 @@ export class ModelSchema extends BaseSchema {
       const entityArrayType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
       if (!entityArrayType) {
-        return z.any().openapi({ 
-          type: "array", 
+        return z.any().openapi({
+          type: "array",
           items: { type: "object" },
-          example: [] 
+          example: [],
         });
       }
 
@@ -1311,10 +1311,10 @@ export class ModelSchema extends BaseSchema {
         column.modelType;
 
       if (!entityType) {
-        return z.any().openapi({ 
-          type: "object", 
+        return z.any().openapi({
+          type: "object",
           description: "Entity reference",
-          example: { _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" } 
+          example: { _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
         });
       }
 
@@ -1444,7 +1444,7 @@ export class ModelSchema extends BaseSchema {
     const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
     const columnAccessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
-    
+
     const example: SchemaExample = {};
 
     for (const key in columns) {
@@ -1504,7 +1504,10 @@ export class ModelSchema extends BaseSchema {
       }
 
       // For create and update, only include required fields
-      if ((data.schemaType === "create" || data.schemaType === "update") && !column.required) {
+      if (
+        (data.schemaType === "create" || data.schemaType === "update") &&
+        !column.required
+      ) {
         continue;
       }
 
@@ -1556,7 +1559,7 @@ export class ModelSchema extends BaseSchema {
       case TableColumnType.Date:
         return {
           _type: "DateTime",
-          value: "2023-10-01T12:00:00Z"
+          value: "2023-10-01T12:00:00Z",
         };
 
       case TableColumnType.Color:
@@ -1567,20 +1570,20 @@ export class ModelSchema extends BaseSchema {
 
       case TableColumnType.Entity:
         return {
-          _id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+          _id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
         };
 
       case TableColumnType.EntityArray:
         return [
           { _id: "cccccccc-cccc-cccc-cccc-cccccccccccc" },
-          { _id: "dddddddd-dddd-dddd-dddd-dddddddddddd" }
+          { _id: "dddddddd-dddd-dddd-dddd-dddddddddddd" },
         ];
 
       case TableColumnType.File:
         return {
           _id: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
           name: "example-file.pdf",
-          type: "application/pdf"
+          type: "application/pdf",
         };
 
       case TableColumnType.Version:

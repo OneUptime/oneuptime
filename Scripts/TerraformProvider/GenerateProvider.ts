@@ -20,7 +20,10 @@ async function main(): Promise<void> {
   // Define paths
   const terraformDir = path.resolve(__dirname, "../../Terraform");
   const openApiSpecPath = path.resolve(terraformDir, "openapi.json");
-  const providerDir = path.resolve(terraformDir, "terraform-provider-oneuptime");
+  const providerDir = path.resolve(
+    terraformDir,
+    "terraform-provider-oneuptime",
+  );
 
   try {
     // Step 1: Clean up existing Terraform directory
@@ -78,21 +81,25 @@ async function main(): Promise<void> {
 
     // Step 11: Run go mod tidy
     Logger.info("📦 Step 10: Running go mod tidy...");
-    
+
     try {
-      await execAsync('go mod tidy', { cwd: providerDir });
+      await execAsync("go mod tidy", { cwd: providerDir });
       Logger.info("✅ go mod tidy completed successfully");
     } catch (error) {
-      Logger.warn(`⚠️  go mod tidy failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Logger.warn(
+        `⚠️  go mod tidy failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
 
     // Step 12: Build the provider
     Logger.info("🔨 Step 11: Building the provider...");
     try {
-      await execAsync('go build', { cwd: providerDir });
+      await execAsync("go build", { cwd: providerDir });
       Logger.info("✅ go build completed successfully");
     } catch (error) {
-      Logger.warn(`⚠️  go build failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Logger.warn(
+        `⚠️  go build failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
 
     Logger.info("✅ Terraform provider generation completed successfully!");
@@ -101,13 +108,14 @@ async function main(): Promise<void> {
     Logger.info("   1. cd Terraform/terraform-provider-oneuptime");
     Logger.info("   2. Run tests with: go test ./...");
     Logger.info("   3. Install locally with: ./install.sh");
-
   } catch (error) {
-    Logger.error(`❌ Error during Terraform provider generation: ${error instanceof Error ? error.message : "Unknown error"}`);
+    Logger.error(
+      `❌ Error during Terraform provider generation: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
     throw new Error(
       `Failed to generate Terraform provider: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }

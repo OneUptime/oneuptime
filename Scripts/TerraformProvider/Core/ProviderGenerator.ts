@@ -145,7 +145,11 @@ func New(version string) func() provider.Provider {
 }
 `;
 
-    await this.fileGenerator.writeFileInDir("internal/provider", "provider.go", providerGoContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "provider.go",
+      providerGoContent,
+    );
   }
 
   private async generateClientGo(): Promise<void> {
@@ -290,7 +294,11 @@ func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
 }
 `;
 
-    await this.fileGenerator.writeFileInDir("internal/provider", "client.go", clientGoContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "client.go",
+      clientGoContent,
+    );
   }
 
   private async generateConfigGo(): Promise<void> {
@@ -350,6 +358,10 @@ func NewConfig(ctx context.Context, model ${StringUtils.toPascalCase(this.config
 }
 `;
 
-    await this.fileGenerator.writeFileInDir("internal/provider", "config.go", configGoContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "config.go",
+      configGoContent,
+    );
   }
 }

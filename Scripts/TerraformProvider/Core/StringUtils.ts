@@ -2,8 +2,12 @@ export class StringUtils {
   static toPascalCase(str: string): string {
     return str
       .replace(/['`]/g, "") // Remove apostrophes and backticks
-      .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""))
-      .replace(/^[a-z]/, char => char.toUpperCase());
+      .replace(/[-_\s]+(.)?/g, (_, char) => {
+        return char ? char.toUpperCase() : "";
+      })
+      .replace(/^[a-z]/, (char) => {
+        return char.toUpperCase();
+      });
   }
 
   static toCamelCase(str: string): string {
@@ -52,7 +56,13 @@ export class StringUtils {
     if (str.endsWith("y")) {
       return str.slice(0, -1) + "ies";
     }
-    if (str.endsWith("s") || str.endsWith("sh") || str.endsWith("ch") || str.endsWith("x") || str.endsWith("z")) {
+    if (
+      str.endsWith("s") ||
+      str.endsWith("sh") ||
+      str.endsWith("ch") ||
+      str.endsWith("x") ||
+      str.endsWith("z")
+    ) {
       return str + "es";
     }
     return str + "s";

@@ -1,4 +1,4 @@
-// TODO: Build terraform provider from openapi spec. 
+// TODO: Build terraform provider from openapi spec.
 
 import { generateOpenAPISpec } from "../OpenAPI/GenerateSpec";
 import path from "path";
@@ -8,7 +8,9 @@ async function main(): Promise<void> {
   // eslint-disable-next-line no-console
   console.log("🚀 Starting Terraform Provider Generation Process...");
   // eslint-disable-next-line no-console
-  console.log("ℹ️  This file is deprecated. Please use 'npm run generate-terraform-provider' instead.");
+  console.log(
+    "ℹ️  This file is deprecated. Please use 'npm run generate-terraform-provider' instead.",
+  );
 
   // remove existing Terraform directory if it exists
   const terraformDir = path.resolve(__dirname, "../../Terraform");
@@ -24,7 +26,7 @@ async function main(): Promise<void> {
     console.log("\n📄 Step 1: Generating OpenAPI specification...");
     const openApiSpecPath: string = path.resolve(
       __dirname,
-      "../../Terraform/openapi.json"
+      "../../Terraform/openapi.json",
     );
 
     // Step 1: Generate OpenAPI specification
@@ -38,15 +40,13 @@ async function main(): Promise<void> {
     console.log("🎯 To generate the full Terraform provider, run:");
     // eslint-disable-next-line no-console
     console.log("   npm run generate-terraform-provider");
-
-    
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("❌ Error during Terraform provider generation:", error);
     throw new Error(
       `Failed to generate Terraform provider: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }

@@ -103,7 +103,7 @@ echo "}"
 `;
 
     await this.fileGenerator.writeFile("install.sh", scriptContent);
-    
+
     // Make script executable
     const scriptPath = path.join(this.config.outputDir, "install.sh");
     fs.chmodSync(scriptPath, "755");
@@ -126,7 +126,7 @@ echo "Binary: terraform-provider-${this.config.providerName}"
 `;
 
     await this.fileGenerator.writeFile("build.sh", scriptContent);
-    
+
     // Make script executable
     const scriptPath = path.join(this.config.outputDir, "build.sh");
     fs.chmodSync(scriptPath, "755");
@@ -152,7 +152,7 @@ echo "✅ Tests completed successfully!"
 `;
 
     await this.fileGenerator.writeFile("test.sh", scriptContent);
-    
+
     // Make script executable
     const scriptPath = path.join(this.config.outputDir, "test.sh");
     fs.chmodSync(scriptPath, "755");

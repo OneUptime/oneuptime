@@ -1,4 +1,8 @@
-import { TerraformProviderConfig, OpenAPISpec, TerraformResource } from "./Types";
+import {
+  TerraformProviderConfig,
+  OpenAPISpec,
+  TerraformResource,
+} from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
@@ -30,7 +34,11 @@ export class ResourceGenerator {
   private async generateResource(resource: TerraformResource): Promise<void> {
     const resourceGoContent = this.generateResourceGoFile(resource);
     const fileName = `resource_${resource.name}.go`;
-    await this.fileGenerator.writeFileInDir("internal/provider", fileName, resourceGoContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      fileName,
+      resourceGoContent,
+    );
   }
 
   private generateResourceGoFile(resource: TerraformResource): string {
@@ -45,19 +53,27 @@ export class ResourceGenerator {
       "github.com/hashicorp/terraform-plugin-framework/resource",
       "github.com/hashicorp/terraform-plugin-framework/resource/schema",
       "github.com/hashicorp/terraform-plugin-framework/types",
-      "github.com/hashicorp/terraform-plugin-log/tflog"
+      "github.com/hashicorp/terraform-plugin-log/tflog",
     ];
 
     // Add conditional imports only if they're actually used
     // Currently our generated code doesn't use net/http or strconv directly
     // The client handles HTTP calls internally
-    
+
     if (resource.operations.create || resource.operations.update) {
-      imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier");
-      imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier");
+      imports.push(
+        "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier",
+      );
+      imports.push(
+        "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier",
+      );
     }
 
-    const importStatements = imports.map(imp => `    "${imp}"`).join("\n");
+    const importStatements = imports
+      .map((imp) => {
+        return `    "${imp}"`;
+      })
+      .join("\n");
 
     return `package provider
 
@@ -127,7 +143,7 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
 
   private generateModelFields(resource: TerraformResource): string {
     const fields: string[] = [];
-    
+
     for (const [name, attr] of Object.entries(resource.schema)) {
       const fieldName = StringUtils.toPascalCase(name);
       const goType = this.mapTerraformTypeToGo(attr.type);
@@ -181,33 +197,53 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
             }`;
   }
 
-  private generateCRUDMethods(resource: TerraformResource, resourceTypeName: string, resourceVarName: string): string {
+  private generateCRUDMethods(
+    resource: TerraformResource,
+    resourceTypeName: string,
+    resourceVarName: string,
+  ): string {
     let methods = "";
 
     // Create method
     if (resource.operations.create) {
-      methods += this.generateCreateMethod(resource, resourceTypeName, resourceVarName);
+      methods += this.generateCreateMethod(
+        resource,
+        resourceTypeName,
+        resourceVarName,
+      );
     } else {
       methods += this.generateStubCreateMethod(resourceTypeName);
     }
 
     // Read method (always required)
     if (resource.operations.read) {
-      methods += this.generateReadMethod(resource, resourceTypeName, resourceVarName);
+      methods += this.generateReadMethod(
+        resource,
+        resourceTypeName,
+        resourceVarName,
+      );
     } else {
       methods += this.generateStubReadMethod(resourceTypeName);
     }
 
     // Update method
     if (resource.operations.update) {
-      methods += this.generateUpdateMethod(resource, resourceTypeName, resourceVarName);
+      methods += this.generateUpdateMethod(
+        resource,
+        resourceTypeName,
+        resourceVarName,
+      );
     } else {
       methods += this.generateStubUpdateMethod(resourceTypeName);
     }
 
     // Delete method
     if (resource.operations.delete) {
-      methods += this.generateDeleteMethod(resource, resourceTypeName, resourceVarName);
+      methods += this.generateDeleteMethod(
+        resource,
+        resourceTypeName,
+        resourceVarName,
+      );
     } else {
       methods += this.generateStubDeleteMethod(resourceTypeName);
     }
@@ -215,7 +251,11 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     return methods;
   }
 
-  private generateCreateMethod(resource: TerraformResource, resourceTypeName: string, resourceVarName: string): string {
+  private generateCreateMethod(
+    resource: TerraformResource,
+    resourceTypeName: string,
+    resourceVarName: string,
+  ): string {
     const operation = resource.operations.create!;
     const path = this.extractPathFromOperation(operation);
 
@@ -261,13 +301,20 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
 `;
   }
 
-  private generateReadMethod(resource: TerraformResource, resourceTypeName: string, resourceVarName: string): string {
+  private generateReadMethod(
+    resource: TerraformResource,
+    resourceTypeName: string,
+    resourceVarName: string,
+  ): string {
     const operation = resource.operations.read!;
-    let path = this.extractPathFromOperation(operation);
-    
+    const path = this.extractPathFromOperation(operation);
+
     // Replace path parameters
-    const pathWithParams = path.replace(/{([^}]+)}/g, `" + data.Id.ValueString() + "`);
-    
+    const pathWithParams = path.replace(
+      /{([^}]+)}/g,
+      `" + data.Id.ValueString() + "`,
+    );
+
     // Clean up the path string construction
     let finalPath: string;
     if (pathWithParams.includes('" + ')) {
@@ -277,7 +324,7 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
       } else {
         finalPath = `"${pathWithParams}"`;
       }
-      
+
       if (finalPath.endsWith(' + "')) {
         finalPath = finalPath.substring(0, finalPath.length - 4);
       }
@@ -325,13 +372,20 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
 `;
   }
 
-  private generateUpdateMethod(resource: TerraformResource, resourceTypeName: string, resourceVarName: string): string {
+  private generateUpdateMethod(
+    resource: TerraformResource,
+    resourceTypeName: string,
+    resourceVarName: string,
+  ): string {
     const operation = resource.operations.update!;
-    let path = this.extractPathFromOperation(operation);
-    
+    const path = this.extractPathFromOperation(operation);
+
     // Replace path parameters
-    const pathWithParams = path.replace(/{([^}]+)}/g, `" + data.Id.ValueString() + "`);
-    
+    const pathWithParams = path.replace(
+      /{([^}]+)}/g,
+      `" + data.Id.ValueString() + "`,
+    );
+
     // Clean up the path string construction
     let finalPath: string;
     if (pathWithParams.includes('" + ')) {
@@ -341,7 +395,7 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
       } else {
         finalPath = `"${pathWithParams}"`;
       }
-      
+
       if (finalPath.endsWith(' + "')) {
         finalPath = finalPath.substring(0, finalPath.length - 4);
       }
@@ -350,7 +404,10 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
       finalPath = `"${pathWithParams}"`;
     }
 
-    const httpMethod = operation.method && operation.method.toUpperCase() === "PATCH" ? "Patch" : "Put";
+    const httpMethod =
+      operation.method && operation.method.toUpperCase() === "PATCH"
+        ? "Patch"
+        : "Put";
 
     return `
 func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -391,13 +448,20 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
 `;
   }
 
-  private generateDeleteMethod(resource: TerraformResource, resourceTypeName: string, _resourceVarName: string): string {
+  private generateDeleteMethod(
+    resource: TerraformResource,
+    resourceTypeName: string,
+    _resourceVarName: string,
+  ): string {
     const operation = resource.operations.delete!;
-    let path = this.extractPathFromOperation(operation);
-    
+    const path = this.extractPathFromOperation(operation);
+
     // Replace path parameters
-    const pathWithParams = path.replace(/{([^}]+)}/g, `" + data.Id.ValueString() + "`);
-    
+    const pathWithParams = path.replace(
+      /{([^}]+)}/g,
+      `" + data.Id.ValueString() + "`,
+    );
+
     // Clean up the path string construction
     let finalPath: string;
     if (pathWithParams.includes('" + ')) {
@@ -407,7 +471,7 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
       } else {
         finalPath = `"${pathWithParams}"`;
       }
-      
+
       if (finalPath.endsWith(' + "')) {
         finalPath = finalPath.substring(0, finalPath.length - 4);
       }
@@ -483,31 +547,47 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
 
   private generateRequestBody(resource: TerraformResource): string {
     const fields: string[] = [];
-    
+
     for (const [name, attr] of Object.entries(resource.schema)) {
-      if (name === "id" || attr.computed) continue;
-      
+      if (name === "id" || attr.computed) {
+        continue;
+      }
+
       const fieldName = StringUtils.toPascalCase(name);
-      const value = this.getGoValueForTerraformType(attr.type, `data.${fieldName}`);
+      const value = this.getGoValueForTerraformType(
+        attr.type,
+        `data.${fieldName}`,
+      );
       fields.push(`        "${name}": ${value},`);
     }
 
     return fields.join("\n");
   }
 
-  private generateResponseMapping(resource: TerraformResource, responseVar: string): string {
+  private generateResponseMapping(
+    resource: TerraformResource,
+    responseVar: string,
+  ): string {
     const mappings: string[] = [];
-    
+
     for (const [name, attr] of Object.entries(resource.schema)) {
       const fieldName = StringUtils.toPascalCase(name);
-      const setter = this.generateResponseSetter(attr.type, `data.${fieldName}`, `${responseVar}["${name}"]`);
+      const setter = this.generateResponseSetter(
+        attr.type,
+        `data.${fieldName}`,
+        `${responseVar}["${name}"]`,
+      );
       mappings.push(`    ${setter}`);
     }
 
     return mappings.join("\n");
   }
 
-  private generateResponseSetter(terraformType: string, fieldName: string, responseValue: string): string {
+  private generateResponseSetter(
+    terraformType: string,
+    fieldName: string,
+    responseValue: string,
+  ): string {
     switch (terraformType) {
       case "string":
         return `if val, ok := ${responseValue}.(string); ok {
@@ -566,7 +646,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
   }
 
-  private getGoValueForTerraformType(terraformType: string, fieldRef: string): string {
+  private getGoValueForTerraformType(
+    terraformType: string,
+    fieldRef: string,
+  ): string {
     switch (terraformType) {
       case "string":
         return `${fieldRef}.ValueString()`;
@@ -579,12 +662,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
   }
 
-  private async updateProviderWithResources(resources: TerraformResource[]): Promise<void> {
+  private async updateProviderWithResources(
+    resources: TerraformResource[],
+  ): Promise<void> {
     // Generate the list of resource functions
-    const resourceFunctions = resources.map(resource => {
+    const resourceFunctions = resources
+      .map((resource) => {
         const resourceTypeName = StringUtils.toPascalCase(resource.name);
         return `        New${resourceTypeName}Resource,`;
-    }).join("\n");
+      })
+      .join("\n");
 
     // This would update the provider.go file to include the resources
     // For now, we'll create a separate file with the resource list
@@ -602,6 +689,10 @@ ${resourceFunctions}
 }
 `;
 
-    await this.fileGenerator.writeFileInDir("internal/provider", "resources.go", resourceListContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "resources.go",
+      resourceListContent,
+    );
   }
 }

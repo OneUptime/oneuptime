@@ -1,4 +1,8 @@
-import { TerraformProviderConfig, OpenAPISpec, TerraformDataSource } from "./Types";
+import {
+  TerraformProviderConfig,
+  OpenAPISpec,
+  TerraformDataSource,
+} from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
@@ -27,10 +31,16 @@ export class DataSourceGenerator {
     await this.updateProviderWithDataSources(dataSources);
   }
 
-  private async generateDataSource(dataSource: TerraformDataSource): Promise<void> {
+  private async generateDataSource(
+    dataSource: TerraformDataSource,
+  ): Promise<void> {
     const dataSourceGoContent = this.generateDataSourceGoFile(dataSource);
     const fileName = `data_source_${dataSource.name}.go`;
-    await this.fileGenerator.writeFileInDir("internal/provider", fileName, dataSourceGoContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      fileName,
+      dataSourceGoContent,
+    );
   }
 
   private generateDataSourceGoFile(dataSource: TerraformDataSource): string {
@@ -123,7 +133,7 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
 
   private generateModelFields(dataSource: TerraformDataSource): string {
     const fields: string[] = [];
-    
+
     for (const [name, attr] of Object.entries(dataSource.schema)) {
       const fieldName = StringUtils.toPascalCase(name);
       const goType = this.mapTerraformTypeToGo(attr.type);
@@ -169,19 +179,22 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
             }`;
   }
 
-  private generateReadMethod(dataSource: TerraformDataSource, dataSourceVarName: string): string {
+  private generateReadMethod(
+    dataSource: TerraformDataSource,
+    dataSourceVarName: string,
+  ): string {
     let readCode = "";
 
     if (dataSource.operations.read) {
       const operation = dataSource.operations.read;
       let path = this.extractPathFromOperation(operation);
-      
+
       // Replace path parameters with data values
       path = path.replace(/{([^}]+)}/g, (_match, paramName) => {
         const fieldName = StringUtils.toPascalCase(paramName);
         return `" + data.${fieldName}.ValueString() + "`;
       });
-      
+
       if (path.startsWith(`" + `)) {
         path = path.substring(4);
       }
@@ -256,19 +269,30 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     return readCode;
   }
 
-  private generateResponseMapping(dataSource: TerraformDataSource, responseVar: string): string {
+  private generateResponseMapping(
+    dataSource: TerraformDataSource,
+    responseVar: string,
+  ): string {
     const mappings: string[] = [];
-    
+
     for (const [name, attr] of Object.entries(dataSource.schema)) {
       const fieldName = StringUtils.toPascalCase(name);
-      const setter = this.generateResponseSetter(attr.type, `data.${fieldName}`, `${responseVar}["${name}"]`);
+      const setter = this.generateResponseSetter(
+        attr.type,
+        `data.${fieldName}`,
+        `${responseVar}["${name}"]`,
+      );
       mappings.push(`    ${setter}`);
     }
 
     return mappings.join("\n");
   }
 
-  private generateResponseSetter(terraformType: string, fieldName: string, responseValue: string): string {
+  private generateResponseSetter(
+    terraformType: string,
+    fieldName: string,
+    responseValue: string,
+  ): string {
     switch (terraformType) {
       case "string":
         return `if val, ok := ${responseValue}.(string); ok {
@@ -327,12 +351,16 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     }
   }
 
-  private async updateProviderWithDataSources(dataSources: TerraformDataSource[]): Promise<void> {
+  private async updateProviderWithDataSources(
+    dataSources: TerraformDataSource[],
+  ): Promise<void> {
     // Generate the list of data source functions
-    const dataSourceFunctions = dataSources.map(dataSource => {
+    const dataSourceFunctions = dataSources
+      .map((dataSource) => {
         const dataSourceTypeName = StringUtils.toPascalCase(dataSource.name);
         return `        New${dataSourceTypeName}DataSource,`;
-    }).join("\n");
+      })
+      .join("\n");
 
     // This would update the provider.go file to include the data sources
     // For now, we'll create a separate file with the data source list
@@ -350,6 +378,10 @@ ${dataSourceFunctions}
 }
 `;
 
-    await this.fileGenerator.writeFileInDir("internal/provider", "data_sources.go", dataSourceListContent);
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "data_sources.go",
+      dataSourceListContent,
+    );
   }
 }

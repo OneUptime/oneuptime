@@ -20,7 +20,11 @@ export class FileGenerator {
     fs.writeFileSync(fullPath, content, "utf-8");
   }
 
-  async writeFileInDir(directory: string, fileName: string, content: string): Promise<void> {
+  async writeFileInDir(
+    directory: string,
+    fileName: string,
+    content: string,
+  ): Promise<void> {
     const dirPath = path.join(this.outputDir, directory);
     const fullPath = path.join(dirPath, fileName);
 
@@ -43,7 +47,10 @@ export class FileGenerator {
     return fs.readFileSync(templatePath, "utf-8");
   }
 
-  replaceTemplateVariables(content: string, variables: Record<string, string>): string {
+  replaceTemplateVariables(
+    content: string,
+    variables: Record<string, string>,
+  ): string {
     let result = content;
     for (const [key, value] of Object.entries(variables)) {
       const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
