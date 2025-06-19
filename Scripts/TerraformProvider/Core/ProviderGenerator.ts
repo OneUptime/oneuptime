@@ -62,7 +62,7 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(c
 
         Attributes: map[string]schema.Attribute{
             "host": schema.StringAttribute{
-                MarkdownDescription: "The ${this.config.providerName} API host. Defaults to 'oneuptime.com/api' if not specified.",
+                MarkdownDescription: "The ${this.config.providerName} host (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the host.",
                 Optional:            true,
             },
             "api_key": schema.StringAttribute{
@@ -99,7 +99,7 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
     if data.Host.IsNull() {
         host = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_HOST")
         if host == "" {
-            host = "oneuptime.com/api"
+            host = "oneuptime.com"
         }
     } else {
         host = data.Host.ValueString()
@@ -174,6 +174,11 @@ func NewClient(host, apiKey string) (*Client, error) {
     // Ensure the host has the correct scheme
     if !strings.HasPrefix(host, "http://") && !strings.HasPrefix(host, "https://") {
         host = "https://" + host
+    }
+
+    // Append /api to the host
+    if !strings.HasSuffix(host, "/api") {
+        host = strings.TrimSuffix(host, "/") + "/api"
     }
 
     // Parse and validate the URL
@@ -315,7 +320,7 @@ func NewConfig(ctx context.Context, model ${StringUtils.toPascalCase(this.config
     if model.Host.IsNull() {
         config.Host = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_HOST")
         if config.Host == "" {
-            config.Host = "oneuptime.com/api"
+            config.Host = "oneuptime.com"
         }
     } else {
         config.Host = model.Host.ValueString()
