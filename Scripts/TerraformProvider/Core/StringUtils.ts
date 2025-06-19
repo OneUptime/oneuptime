@@ -1,0 +1,72 @@
+export class StringUtils {
+  static toPascalCase(str: string): string {
+    return str
+      .replace(/['`]/g, "") // Remove apostrophes and backticks
+      .replace(/[-_\s]+(.)?/g, (_, char) => (char ? char.toUpperCase() : ""))
+      .replace(/^[a-z]/, char => char.toUpperCase());
+  }
+
+  static toCamelCase(str: string): string {
+    const pascalCase = this.toPascalCase(str);
+    return pascalCase.charAt(0).toLowerCase() + pascalCase.slice(1);
+  }
+
+  static toSnakeCase(str: string): string {
+    return str
+      .replace(/['`]/g, "") // Remove apostrophes and backticks
+      .replace(/([A-Z])/g, "_$1")
+      .toLowerCase()
+      .replace(/^_/, "")
+      .replace(/[-\s]+/g, "_");
+  }
+
+  static toKebabCase(str: string): string {
+    return this.toSnakeCase(str).replace(/_/g, "-");
+  }
+
+  static toConstantCase(str: string): string {
+    return this.toSnakeCase(str).toUpperCase();
+  }
+
+  static capitalize(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  static sanitizeGoIdentifier(str: string): string {
+    // Remove special characters including apostrophes and ensure it starts with a letter
+    const sanitized = str.replace(/[^a-zA-Z0-9_]/g, "");
+    return /^[a-zA-Z]/.test(sanitized) ? sanitized : `_${sanitized}`;
+  }
+
+  static escapeGoString(str: string): string {
+    return str
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, "\\n")
+      .replace(/\r/g, "\\r")
+      .replace(/\t/g, "\\t");
+  }
+
+  static pluralize(str: string): string {
+    if (str.endsWith("y")) {
+      return str.slice(0, -1) + "ies";
+    }
+    if (str.endsWith("s") || str.endsWith("sh") || str.endsWith("ch") || str.endsWith("x") || str.endsWith("z")) {
+      return str + "es";
+    }
+    return str + "s";
+  }
+
+  static singularize(str: string): string {
+    if (str.endsWith("ies")) {
+      return str.slice(0, -3) + "y";
+    }
+    if (str.endsWith("es")) {
+      return str.slice(0, -2);
+    }
+    if (str.endsWith("s") && !str.endsWith("ss")) {
+      return str.slice(0, -1);
+    }
+    return str;
+  }
+}

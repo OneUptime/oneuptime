@@ -7,6 +7,8 @@ import fs from "fs";
 async function main(): Promise<void> {
   // eslint-disable-next-line no-console
   console.log("🚀 Starting Terraform Provider Generation Process...");
+  // eslint-disable-next-line no-console
+  console.log("ℹ️  This file is deprecated. Please use 'npm run generate-terraform-provider' instead.");
 
   // remove existing Terraform directory if it exists
   const terraformDir = path.resolve(__dirname, "../../Terraform");
@@ -30,7 +32,12 @@ async function main(): Promise<void> {
     console.log("Generating OpenAPI specification...");
     await generateOpenAPISpec(openApiSpecPath);
 
-    // now that we have OPENAPI spec, we can generate the Terraform provider
+    // eslint-disable-next-line no-console
+    console.log("✅ OpenAPI spec generated successfully!");
+    // eslint-disable-next-line no-console
+    console.log("🎯 To generate the full Terraform provider, run:");
+    // eslint-disable-next-line no-console
+    console.log("   npm run generate-terraform-provider");
 
     
   } catch (error) {
