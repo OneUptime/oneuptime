@@ -4,6 +4,7 @@ import GeneratorConfig from "./GeneratorConfig";
 import { ToolInstaller } from "./InstallTools";
 import ProviderCodeSpecGenerator from "./ProviderCodeSpecGenerator";
 import FrameworkGenerator from "./FrameworkGenerator";
+import { GoModuleSetup } from "./GoModuleSetup";
 
 async function main(): Promise<void> {
   // eslint-disable-next-line no-console
@@ -60,7 +61,7 @@ async function main(): Promise<void> {
 
     // eslint-disable-next-line no-console
     console.log("Provider code specification generated successfully!");
-
+     // Step 4: Generate Terraform provider code
     FrameworkGenerator.generateAll({
       specificationPath: path.resolve(
         __dirname,
@@ -72,7 +73,19 @@ async function main(): Promise<void> {
       ),
       packageName: "oneuptime",
     });
-    // Step 4: Generate Terraform provider code
+   
+
+    // Step 5: Init go module.
+    GoModuleSetup.initGoModule({
+      packageName: "oneuptime",
+      path: path.resolve(
+        __dirname,
+        "../../Terraform/terraform-provider-oneuptime",
+      ),
+    });
+
+    
+
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("❌ Error during Terraform provider generation:", error);
