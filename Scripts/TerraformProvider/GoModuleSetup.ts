@@ -28,5 +28,14 @@ export class GoModuleSetup {
 
     const mainGoPath: string = path.join(data.path, "main.go");
     fs.writeFileSync(mainGoPath, mainGoContent);
+
+    // copy provider.go file from ./provider.go to the specified path
+    const providerGoContent: string = fs.readFileSync(
+        path.join(__dirname, "../../Scripts/TerraformProvider/provider.go"),
+        "utf-8",
+    );
+
+    const providerGoPath: string = path.join(data.path + "/internal/provider", "provider.go");
+    fs.writeFileSync(providerGoPath, providerGoContent);
   }
 }
