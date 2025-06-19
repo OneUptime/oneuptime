@@ -9,6 +9,10 @@ import { ResourceGenerator } from "./Core/ResourceGenerator";
 import { DataSourceGenerator } from "./Core/DataSourceGenerator";
 import { ProviderGenerator } from "./Core/ProviderGenerator";
 import { DocumentationGenerator } from "./Core/DocumentationGenerator";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 async function main(): Promise<void> {
   Logger.info("🚀 Starting Terraform Provider Generation Process...");
@@ -72,13 +76,31 @@ async function main(): Promise<void> {
     Logger.info("🔨 Step 9: Generating build and installation scripts...");
     await generator.generateBuildScripts();
 
+    // Step 11: Run go mod tidy
+    Logger.info("📦 Step 10: Running go mod tidy...");
+    
+    try {
+      await execAsync('go mod tidy', { cwd: providerDir });
+      Logger.info("✅ go mod tidy completed successfully");
+    } catch (error) {
+      Logger.warn(`⚠️  go mod tidy failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // Step 12: Build the provider
+    Logger.info("🔨 Step 11: Building the provider...");
+    try {
+      await execAsync('go build', { cwd: providerDir });
+      Logger.info("✅ go build completed successfully");
+    } catch (error) {
+      Logger.warn(`⚠️  go build failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
     Logger.info("✅ Terraform provider generation completed successfully!");
     Logger.info(`📁 Provider generated at: ${providerDir}`);
     Logger.info("🎯 Next steps:");
     Logger.info("   1. cd Terraform/terraform-provider-oneuptime");
-    Logger.info("   2. go mod tidy");
-    Logger.info("   3. go build");
-    Logger.info("   4. Run tests with: go test ./...");
+    Logger.info("   2. Run tests with: go test ./...");
+    Logger.info("   3. Install locally with: ./install.sh");
 
   } catch (error) {
     Logger.error(`❌ Error during Terraform provider generation: ${error instanceof Error ? error.message : "Unknown error"}`);
