@@ -159,59 +159,63 @@ terraform import ${this.config.providerName}_${resource.name}.example <id>
 
   private generateExampleFields(resource: any): string {
     const fields: string[] = [];
-    
+
     // Add required fields first
     for (const [name, attr] of Object.entries(resource.schema)) {
       const attrInfo = attr as any;
-      if (attrInfo.required && name !== 'id') {
+      if (attrInfo.required && name !== "id") {
         const exampleValue = this.getExampleValue(name, attrInfo);
         fields.push(`  ${name} = ${exampleValue}`);
       }
     }
-    
+
     // Add some common optional fields for better examples
     for (const [name, attr] of Object.entries(resource.schema)) {
       const attrInfo = attr as any;
-      if (!attrInfo.required && !attrInfo.computed && ['name', 'description'].includes(name)) {
+      if (
+        !attrInfo.required &&
+        !attrInfo.computed &&
+        ["name", "description"].includes(name)
+      ) {
         const exampleValue = this.getExampleValue(name, attrInfo);
         fields.push(`  ${name} = ${exampleValue}`);
       }
     }
-    
-    return fields.join('\n');
+
+    return fields.join("\n");
   }
 
   private getExampleValue(fieldName: string, attrInfo: any): string {
     // Handle specific field types and names
-    if (fieldName.includes('id') && attrInfo.type === 'string') {
+    if (fieldName.includes("id") && attrInfo.type === "string") {
       return '"123e4567-e89b-12d3-a456-426614174000"';
     }
-    
-    if (fieldName === 'name') {
-      return `"example-${this.getResourceNameFromSchema(attrInfo) || 'resource'}"`;
+
+    if (fieldName === "name") {
+      return `"example-${this.getResourceNameFromSchema(attrInfo) || "resource"}"`;
     }
-    
-    if (fieldName === 'description') {
-      return `"Example ${this.getResourceNameFromSchema(attrInfo) || 'resource'}"`;
+
+    if (fieldName === "description") {
+      return `"Example ${this.getResourceNameFromSchema(attrInfo) || "resource"}"`;
     }
-    
-    if (fieldName === 'color' && attrInfo.type === 'map') {
+
+    if (fieldName === "color" && attrInfo.type === "map") {
       return `{\n    _type = "Color"\n    value = "#ff0000"\n  }`;
     }
-    
-    if (attrInfo.type === 'map' || attrInfo.type === 'object') {
+
+    if (attrInfo.type === "map" || attrInfo.type === "object") {
       return `{\n    id = "123e4567-e89b-12d3-a456-426614174000"\n  }`;
     }
-    
+
     switch (attrInfo.type) {
-      case 'string':
+      case "string":
         return `"example-${fieldName}"`;
-      case 'number':
-        return '1';
-      case 'boolean':
-        return 'true';
-      case 'list':
-        return '[]';
+      case "number":
+        return "1";
+      case "boolean":
+        return "true";
+      case "list":
+        return "[]";
       default:
         return `"example-${fieldName}"`;
     }

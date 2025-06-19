@@ -57,13 +57,15 @@ export class ResourceGenerator {
     ];
 
     // Add conditional imports only if they're actually used
-    const hasNumberFields = Object.values(resource.schema).some(attr => attr.type === "number");
+    const hasNumberFields = Object.values(resource.schema).some((attr) => {
+      return attr.type === "number";
+    });
     const hasReadOperation = resource.operations.read;
-    
+
     if (hasNumberFields) {
       imports.push("math/big");
     }
-    
+
     if (hasReadOperation) {
       imports.push("net/http");
     }
