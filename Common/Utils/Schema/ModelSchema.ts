@@ -330,7 +330,12 @@ export class ModelSchema extends BaseSchema {
             },
           });
       } else {
-        zodType = z.any().openapi({ type: "null", example: null });
+        // Fallback for unknown column types - use a generic object type
+        zodType = z.any().openapi({ 
+          type: "object", 
+          description: "Unknown type field",
+          example: null 
+        });
       }
 
       if (column.required) {
@@ -1078,9 +1083,7 @@ export class ModelSchema extends BaseSchema {
     }
 
     const schema: ModelSchemaType = z.object(shape).openapi({
-      type: "object",
-      description: `${data.description} schema for ${model.tableName || "model"} model. ${data.description}`,
-      example: data.example,
+       description: `${data.description} schema for ${model.tableName || "model"} model. ${data.description}`,
       additionalProperties: false,
     });
 
@@ -1260,7 +1263,11 @@ export class ModelSchema extends BaseSchema {
       const entityArrayType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
       if (!entityArrayType) {
-        return z.any().openapi({ type: "null", example: null });
+        return z.any().openapi({ 
+          type: "array", 
+          items: { type: "object" },
+          example: [] 
+        });
       }
 
       // Use the appropriate schema method based on the operation type
@@ -1303,7 +1310,11 @@ export class ModelSchema extends BaseSchema {
         column.modelType;
 
       if (!entityType) {
-        return z.any().openapi({ type: "null", example: null });
+        return z.any().openapi({ 
+          type: "object", 
+          description: "Entity reference",
+          example: { _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" } 
+        });
       }
 
       // Use the appropriate schema method based on the operation type
