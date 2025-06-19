@@ -65,20 +65,8 @@ export default class GeneratorConfig {
             operationId.startsWith("delete") || operationId.includes("remove");
 
           if (isReadOperation) {
-            // Generate data source for read operations
-            const dsName: string =
-              this.extractResourceNameFromPath(pathKey).toLowerCase();
-            if (dsName) {
-              if (!config.data_sources[dsName]) {
-                config.data_sources[dsName] = {};
-              }
-              config.data_sources[dsName]["read"] = {
-                path: pathKey,
-                method: method.toUpperCase(),
-              };
-            }
-
-            // Also add as resource read operation
+            // For read operations, we'll decide later whether to create data sources
+            // or add read operations to resources based on whether the resource has write operations
             const resourceName: string =
               this.extractResourceNameFromPath(pathKey).toLowerCase();
             if (resourceName) {
@@ -134,6 +122,27 @@ export default class GeneratorConfig {
       }
     }
 
+    // Now determine which resources should be data sources vs actual resources
+    // Resources that only have 'read' operations should become data sources
+    // Resources that have create/update/delete operations should remain as resources
+    for (const [resourceName, resourceConfig] of Object.entries(config.resources)) {
+      const resource: any = resourceConfig as any;
+      const hasWriteOperations: boolean = Boolean(
+        resource.create || resource.update || resource.delete
+      );
+
+      // If resource only has read operation, move it to data sources
+      if (!hasWriteOperations && resource.read) {
+        if (!config.data_sources[resourceName]) {
+          config.data_sources[resourceName] = {};
+        }
+        config.data_sources[resourceName]["read"] = resource.read;
+        
+        // Mark this resource for removal from resources
+        delete config.resources[resourceName];
+      }
+    }
+
     // Ensure every resource has both 'create' and 'read' operations
     // Remove resources that don't have the required operations
     const resourcesToRemove: string[] = [];
@@ -149,15 +158,8 @@ export default class GeneratorConfig {
         delete resource.post;
       }
 
-      // If resource doesn't have 'read', try to find it in data sources
-      if (!resource.read) {
-        const matchingDataSource: any = config.data_sources[resourceName];
-        if (matchingDataSource && matchingDataSource.read) {
-          resource.read = matchingDataSource.read;
-        }
-      }
-
-      // If resource still doesn't have both 'create' and 'read', remove it
+      // Resources must have both 'create' and 'read' operations to be valid Terraform resources
+      // If resource doesn't have 'create', it should have been moved to data sources already
       if (!resource.create || !resource.read) {
         // eslint-disable-next-line no-console
         console.log(
@@ -178,6 +180,23 @@ export default class GeneratorConfig {
     }
     if (Object.keys(config.data_sources).length === 0) {
       delete config.data_sources;
+    }
+
+    // Log summary of what was generated
+    const resourceCount = config.resources ? Object.keys(config.resources).length : 0;
+    const dataSourceCount = config.data_sources ? Object.keys(config.data_sources).length : 0;
+    
+    // eslint-disable-next-line no-console
+    console.log(`Generated ${resourceCount} resources and ${dataSourceCount} data sources`);
+    
+    if (resourceCount > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`Resources (manageable): ${Object.keys(config.resources || {}).slice(0, 5).join(', ')}${resourceCount > 5 ? '...' : ''}`);
+    }
+    
+    if (dataSourceCount > 0) {
+      // eslint-disable-next-line no-console
+      console.log(`Data sources (read-only): ${Object.keys(config.data_sources || {}).slice(0, 5).join(', ')}${dataSourceCount > 5 ? '...' : ''}`);
     }
 
     // Convert the config object to YAML
