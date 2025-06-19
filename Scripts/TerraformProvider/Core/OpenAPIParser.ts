@@ -279,13 +279,6 @@ export class OpenAPIParser {
       return;
     }
 
-    // Debug logging
-    if (openApiSchema.description && openApiSchema.description.includes('Label')) {
-      console.log(`Processing schema with description: "${openApiSchema.description}"`);
-      console.log(`Has properties: ${!!openApiSchema.properties}`);
-      console.log(`Properties count: ${openApiSchema.properties ? Object.keys(openApiSchema.properties).length : 0}`);
-    }
-
     // Check if this schema has properties defined
     const hasProperties = openApiSchema.properties && Object.keys(openApiSchema.properties).length > 0;
     
@@ -359,20 +352,7 @@ export class OpenAPIParser {
     }
 
     const schemaName = ref.replace("#/components/schemas/", "");
-    const schema = this.spec.components?.schemas?.[schemaName] || null;
-    
-    // Debug logging for Label schema
-    if (schemaName === "Label") {
-      console.log(`DEBUG: Looking for schema "${schemaName}"`);
-      console.log(`DEBUG: Available schemas keys:`, Object.keys(this.spec.components?.schemas || {}));
-      console.log(`DEBUG: Found schema:`, !!schema);
-      if (schema) {
-        console.log(`DEBUG: Schema has properties:`, !!schema.properties);
-        console.log(`DEBUG: Properties count:`, schema.properties ? Object.keys(schema.properties).length : 0);
-      }
-    }
-    
-    return schema;
+    return this.spec.components?.schemas?.[schemaName] || null;
   }
 
   private mapOpenAPITypeToTerraform(openApiType: string): string {
