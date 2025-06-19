@@ -78,7 +78,10 @@ export class OpenAPIParser {
     // Convert to array and generate schemas
     for (const resource of resourceMap.values()) {
       if (resource.name && resource.goTypeName && resource.operations) {
-        resource.schema = this.generateResourceSchema(resource.operations, resource.name);
+        resource.schema = this.generateResourceSchema(
+          resource.operations,
+          resource.name,
+        );
         resources.push(resource as TerraformResource);
       }
     }
@@ -230,16 +233,31 @@ export class OpenAPIParser {
     // First pass: Extract schema from create/update operations (input fields)
     // These define the required fields for the resource
     if (operations.create) {
-      this.addSchemaFromOperation(schema, operations.create, false, `${resourceName}-create`);
+      this.addSchemaFromOperation(
+        schema,
+        operations.create,
+        false,
+        `${resourceName}-create`,
+      );
     }
     if (operations.update) {
-      this.addSchemaFromOperation(schema, operations.update, false, `${resourceName}-update`);
+      this.addSchemaFromOperation(
+        schema,
+        operations.update,
+        false,
+        `${resourceName}-update`,
+      );
     }
 
     // Second pass: Extract schema from read operations (ensure all output fields are included)
     // But preserve the required status from create operations
     if (operations.read) {
-      this.addSchemaFromOperation(schema, operations.read, true, `${resourceName}-read`);
+      this.addSchemaFromOperation(
+        schema,
+        operations.read,
+        true,
+        `${resourceName}-read`,
+      );
     }
 
     // Store the required fields from create/update operations AFTER all processing
@@ -247,27 +265,43 @@ export class OpenAPIParser {
     for (const [fieldName, attr] of Object.entries(schema)) {
       if ((attr as any).required) {
         requiredFields.add(fieldName);
-        console.log(`[DEBUG] Found required field after all operations: ${fieldName}`, attr);
+        console.log(
+          `[DEBUG] Found required field after all operations: ${fieldName}`,
+          attr,
+        );
       }
     }
 
-    console.log(`[DEBUG] After all operations, requiredFields:`, Array.from(requiredFields));
+    console.log(
+      `[DEBUG] After all operations, requiredFields:`,
+      Array.from(requiredFields),
+    );
 
     // Restore required status for fields that were required in create operations
-    console.log(`[DEBUG] Before restoring required fields, color field:`, schema['color']);
+    console.log(
+      `[DEBUG] Before restoring required fields, color field:`,
+      schema["color"],
+    );
     for (const fieldName of requiredFields) {
       if (schema[fieldName]) {
         // Only restore if the field isn't already set to required (to avoid overriding correct OpenAPI processing)
         if (schema[fieldName].required !== true) {
-          console.log(`[DEBUG] Restoring required status for field: ${fieldName}`);
+          console.log(
+            `[DEBUG] Restoring required status for field: ${fieldName}`,
+          );
           schema[fieldName].required = true;
           schema[fieldName].computed = false;
         } else {
-          console.log(`[DEBUG] Skipping restoration for field: ${fieldName} (already required)`);
+          console.log(
+            `[DEBUG] Skipping restoration for field: ${fieldName} (already required)`,
+          );
         }
       }
     }
-    console.log(`[DEBUG] After restoring required fields, color field:`, schema['color']);
+    console.log(
+      `[DEBUG] After restoring required fields, color field:`,
+      schema["color"],
+    );
 
     return schema;
   }
@@ -292,10 +326,20 @@ export class OpenAPIParser {
 
     // Extract schema from read operations
     if (operations.read) {
-      this.addSchemaFromOperation(schema, operations.read, true, "datasource-read");
+      this.addSchemaFromOperation(
+        schema,
+        operations.read,
+        true,
+        "datasource-read",
+      );
     }
     if (operations.list) {
-      this.addSchemaFromOperation(schema, operations.list, true, "datasource-list");
+      this.addSchemaFromOperation(
+        schema,
+        operations.list,
+        true,
+        "datasource-list",
+      );
     }
 
     return schema;
@@ -328,7 +372,12 @@ export class OpenAPIParser {
       const content = operation.requestBody.content?.["application/json"];
       if (content?.schema?.properties?.["data"]) {
         const dataSchema = content.schema.properties["data"];
-        this.addSchemaFromOpenAPISchema(schema, dataSchema, computed, `${context}-requestBody`);
+        this.addSchemaFromOpenAPISchema(
+          schema,
+          dataSchema,
+          computed,
+          `${context}-requestBody`,
+        );
       }
     }
 
@@ -343,7 +392,12 @@ export class OpenAPIParser {
       ) {
         const dataSchema =
           successResponse.content["application/json"].schema.properties["data"];
-        this.addSchemaFromOpenAPISchema(schema, dataSchema, true, `${context}-response`);
+        this.addSchemaFromOpenAPISchema(
+          schema,
+          dataSchema,
+          true,
+          `${context}-response`,
+        );
       }
     }
   }
@@ -358,7 +412,12 @@ export class OpenAPIParser {
     if (openApiSchema.$ref) {
       const resolvedSchema = this.resolveSchemaRef(openApiSchema.$ref);
       if (resolvedSchema) {
-        this.addSchemaFromOpenAPISchema(schema, resolvedSchema, computed, `${context}-ref`);
+        this.addSchemaFromOpenAPISchema(
+          schema,
+          resolvedSchema,
+          computed,
+          `${context}-ref`,
+        );
       }
       return;
     }
@@ -384,7 +443,12 @@ export class OpenAPIParser {
             console.log(
               `Successfully falling back to ${modelName} schema with ${Object.keys(mainModelSchema.properties).length} properties`,
             );
-            this.addSchemaFromOpenAPISchema(schema, mainModelSchema, computed, `${context}-fallback-${modelName}`);
+            this.addSchemaFromOpenAPISchema(
+              schema,
+              mainModelSchema,
+              computed,
+              `${context}-fallback-${modelName}`,
+            );
             return;
           }
           console.log(
@@ -430,10 +494,7 @@ export class OpenAPIParser {
         }
 
         // If field already exists and we're adding computed fields, don't override required status
-        if (
-          computed &&
-          schema[terraformName]
-        ) {
+        if (computed && schema[terraformName]) {
           // Update description if it's better in the read schema
           if (description && !schema[terraformName].description) {
             schema[terraformName].description = description;
@@ -464,16 +525,17 @@ export class OpenAPIParser {
           fieldRequired = false; // Computed fields are never required
         } else {
           // Check if it's explicitly required in the current schema
-          const explicitlyRequired = openApiSchema.required?.includes(propName) || false;
-          
+          const explicitlyRequired =
+            openApiSchema.required?.includes(propName) || false;
+
           // If the field already exists and was previously marked as required, preserve that
           const existingField = schema[terraformName];
           const previouslyRequired = existingField?.required || false;
-          
+
           // Field is required if it's explicitly required OR was previously required
           fieldRequired = explicitlyRequired || previouslyRequired;
         }
-        
+
         schema[terraformName] = {
           type: this.mapOpenAPITypeToTerraform(propType),
           description: description,

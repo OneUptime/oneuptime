@@ -226,7 +226,9 @@ terraform import ${this.config.providerName}_${resource.name}.example <id>
     if (attrInfo.description) {
       const desc: string = attrInfo.description.toLowerCase();
       // Look for patterns like "Example label" or "Label name"
-      const match: RegExpMatchArray | null = desc.match(/example (\w+)|(\w+) name|(\w+) description/);
+      const match: RegExpMatchArray | null = desc.match(
+        /example (\w+)|(\w+) name|(\w+) description/,
+      );
       if (match) {
         return match[1] || match[2] || match[3] || null;
       }

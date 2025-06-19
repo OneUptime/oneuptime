@@ -171,12 +171,20 @@ ${importList}
     return formattedLines.join("\n");
   }
 
-  public static generateConstant(name: string, value: string, type?: string): string {
+  public static generateConstant(
+    name: string,
+    value: string,
+    type?: string,
+  ): string {
     const typeDecl: string = type ? ` ${type}` : "";
     return `const ${name}${typeDecl} = ${value}`;
   }
 
-  public static generateVariable(name: string, type: string, value?: string): string {
+  public static generateVariable(
+    name: string,
+    type: string,
+    value?: string,
+  ): string {
     const assignment: string = value ? ` = ${value}` : "";
     return `var ${name} ${type}${assignment}`;
   }
@@ -192,7 +200,9 @@ ${importList}
   ): string {
     const methodList: string = methods
       .map((method: any) => {
-        const comment: string = method.comment ? `    // ${method.comment}\n` : "";
+        const comment: string = method.comment
+          ? `    // ${method.comment}\n`
+          : "";
         return `${comment}    ${method.name}(${method.params}) ${method.returns}`;
       })
       .join("\n");

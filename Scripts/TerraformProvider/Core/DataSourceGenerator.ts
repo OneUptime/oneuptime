@@ -34,7 +34,8 @@ export class DataSourceGenerator {
   private async generateDataSource(
     dataSource: TerraformDataSource,
   ): Promise<void> {
-    const dataSourceGoContent: string = this.generateDataSourceGoFile(dataSource);
+    const dataSourceGoContent: string =
+      this.generateDataSourceGoFile(dataSource);
     const fileName: string = `data_source_${dataSource.name}.go`;
     await this.fileGenerator.writeFileInDir(
       "internal/provider",
@@ -44,7 +45,9 @@ export class DataSourceGenerator {
   }
 
   private generateDataSourceGoFile(dataSource: TerraformDataSource): string {
-    const dataSourceTypeName: string = StringUtils.toPascalCase(dataSource.name);
+    const dataSourceTypeName: string = StringUtils.toPascalCase(
+      dataSource.name,
+    );
     const dataSourceVarName: string = StringUtils.toCamelCase(dataSource.name);
 
     return `package provider
@@ -357,7 +360,9 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     // Generate the list of data source functions
     const dataSourceFunctions: string = dataSources
       .map((dataSource: TerraformDataSource) => {
-        const dataSourceTypeName: string = StringUtils.toPascalCase(dataSource.name);
+        const dataSourceTypeName: string = StringUtils.toPascalCase(
+          dataSource.name,
+        );
         return `        New${dataSourceTypeName}DataSource,`;
       })
       .join("\n");

@@ -57,10 +57,12 @@ export class ResourceGenerator {
     ];
 
     // Add conditional imports only if they're actually used
-    const hasNumberFields: boolean = Object.values(resource.schema).some((attr: any) => {
-      return attr.type === "number";
-    });
-    const hasReadOperation: boolean = !!resource.operations.read;
+    const hasNumberFields: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return attr.type === "number";
+      },
+    );
+    const hasReadOperation: boolean = Boolean(resource.operations.read);
 
     if (hasNumberFields) {
       imports.push("math/big");
@@ -701,7 +703,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     // Generate the list of resource functions
     const resourceFunctions: string = resources
       .map((resource: TerraformResource) => {
-        const resourceTypeName: string = StringUtils.toPascalCase(resource.name);
+        const resourceTypeName: string = StringUtils.toPascalCase(
+          resource.name,
+        );
         return `        New${resourceTypeName}Resource,`;
       })
       .join("\n");

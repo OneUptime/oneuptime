@@ -12,7 +12,9 @@ import { DocumentationGenerator } from "./Core/DocumentationGenerator";
 import { exec } from "child_process";
 import { promisify } from "util";
 
-const execAsync: (command: string) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
+const execAsync: (
+  command: string,
+) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
 
 async function main(): Promise<void> {
   Logger.info("🚀 Starting Terraform Provider Generation Process...");
@@ -43,36 +45,51 @@ async function main(): Promise<void> {
 
     // Step 4: Initialize Terraform provider generator
     Logger.info("⚙️ Step 3: Initializing Terraform provider generator...");
-    const generator: TerraformProviderGenerator = new TerraformProviderGenerator({
-      outputDir: providerDir,
-      providerName: "oneuptime",
-      providerVersion: "1.0.0",
-      goModuleName: "github.com/oneuptime/terraform-provider-oneuptime",
-    });
+    const generator: TerraformProviderGenerator =
+      new TerraformProviderGenerator({
+        outputDir: providerDir,
+        providerName: "oneuptime",
+        providerVersion: "1.0.0",
+        goModuleName: "github.com/oneuptime/terraform-provider-oneuptime",
+      });
 
     // Step 5: Generate Go module files
     Logger.info("📦 Step 4: Generating Go module files...");
-    const goModuleGen: GoModuleGenerator = new GoModuleGenerator(generator.config);
+    const goModuleGen: GoModuleGenerator = new GoModuleGenerator(
+      generator.config,
+    );
     await goModuleGen.generateModule();
 
     // Step 6: Generate provider main file
     Logger.info("🏗️ Step 5: Generating provider main file...");
-    const providerGen: ProviderGenerator = new ProviderGenerator(generator.config, apiSpec);
+    const providerGen: ProviderGenerator = new ProviderGenerator(
+      generator.config,
+      apiSpec,
+    );
     await providerGen.generateProvider();
 
     // Step 7: Generate resources
     Logger.info("📋 Step 6: Generating Terraform resources...");
-    const resourceGen: ResourceGenerator = new ResourceGenerator(generator.config, apiSpec);
+    const resourceGen: ResourceGenerator = new ResourceGenerator(
+      generator.config,
+      apiSpec,
+    );
     await resourceGen.generateResources();
 
     // Step 8: Generate data sources
     Logger.info("🔍 Step 7: Generating Terraform data sources...");
-    const dataSourceGen: DataSourceGenerator = new DataSourceGenerator(generator.config, apiSpec);
+    const dataSourceGen: DataSourceGenerator = new DataSourceGenerator(
+      generator.config,
+      apiSpec,
+    );
     await dataSourceGen.generateDataSources();
 
     // Step 9: Generate documentation
     Logger.info("📚 Step 8: Generating documentation...");
-    const docGen: DocumentationGenerator = new DocumentationGenerator(generator.config, apiSpec);
+    const docGen: DocumentationGenerator = new DocumentationGenerator(
+      generator.config,
+      apiSpec,
+    );
     await docGen.generateDocumentation();
 
     // Step 10: Generate build scripts
