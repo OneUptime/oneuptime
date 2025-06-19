@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	"terraform-provider-oneuptime/internal/provider"
+
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
