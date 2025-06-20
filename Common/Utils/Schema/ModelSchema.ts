@@ -1069,7 +1069,14 @@ export class ModelSchema extends BaseSchema {
         data.schemaType,
       );
 
-      // Make fields optional if specified
+      // Check if the column is required and make it optional if not
+      if (column.required) {
+        // leave as is
+      } else {
+        zodType = zodType.optional();
+      }
+
+      // Make fields optional if specified (for global override)
       if (data.makeOptional) {
         zodType = zodType.optional();
       }
