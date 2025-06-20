@@ -710,9 +710,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   ): string {
     switch (terraformType) {
       case "string":
-        return `if val, ok := ${responseValue}.(string); ok {
+        return `if val, ok := ${responseValue}.(string); ok && val != "" {
         ${fieldName} = types.StringValue(val)
-    } else if ${responseValue} == nil {
+    } else {
         ${fieldName} = types.StringNull()
     }`;
       case "number":
