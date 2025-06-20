@@ -121,4 +121,6 @@ openapi.json
 
 Terraform/**
 
+TerraformTest/**
+
 terraform-provider-example/** 
