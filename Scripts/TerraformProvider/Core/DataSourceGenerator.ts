@@ -138,9 +138,10 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     const fields: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const fieldName: string = StringUtils.toPascalCase(name);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const goType: string = this.mapTerraformTypeToGo(attr.type);
-      fields.push(`    ${fieldName} ${goType} \`tfsdk:"${name}"\``);
+      fields.push(`    ${fieldName} ${goType} \`tfsdk:"${sanitizedName}"\``);
     }
 
     return fields.join("\n");
@@ -150,11 +151,31 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     const attributes: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const schemaAttr: string = this.generateSchemaAttribute(name, attr);
-      attributes.push(`            "${name}": ${schemaAttr},`);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const schemaAttr: string = this.generateSchemaAttribute(sanitizedName, attr);
+      attributes.push(`            "${sanitizedName}": ${schemaAttr},`);
     }
 
     return attributes.join("\n");
+  }
+
+  private sanitizeAttributeName(name: string): string {
+    // List of reserved attribute names in Terraform
+    const reservedNames: string[] = [
+      "count",
+      "for_each",
+      "provider",
+      "lifecycle",
+      "depends_on",
+      "connection",
+      "provisioner",
+    ];
+
+    if (reservedNames.includes(name)) {
+      return `${name}_value`;
+    }
+
+    return name;
   }
 
   private generateSchemaAttribute(_name: string, attr: any): string {
@@ -175,6 +196,11 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
 
     if (attr.sensitive) {
       options.push("Sensitive: true");
+    }
+
+    // For collection attributes, add ElementType
+    if (attr.type === "map" || attr.type === "list") {
+      options.push("ElementType: types.StringType");
     }
 
     return `schema.${attrType}Attribute{

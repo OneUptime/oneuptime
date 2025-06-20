@@ -157,9 +157,10 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     const fields: string[] = [];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      const fieldName: string = StringUtils.toPascalCase(name);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const goType: string = this.mapTerraformTypeToGo(attr.type);
-      fields.push(`    ${fieldName} ${goType} \`tfsdk:"${name}"\``);
+      fields.push(`    ${fieldName} ${goType} \`tfsdk:"${sanitizedName}"\``);
     }
 
     return fields.join("\n");
@@ -169,11 +170,31 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
     const attributes: string[] = [];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      const schemaAttr: string = this.generateSchemaAttribute(name, attr);
-      attributes.push(`            "${name}": ${schemaAttr},`);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const schemaAttr: string = this.generateSchemaAttribute(sanitizedName, attr);
+      attributes.push(`            "${sanitizedName}": ${schemaAttr},`);
     }
 
     return attributes.join("\n");
+  }
+
+  private sanitizeAttributeName(name: string): string {
+    // List of reserved attribute names in Terraform
+    const reservedNames: string[] = [
+      "count",
+      "for_each",
+      "provider",
+      "lifecycle",
+      "depends_on",
+      "connection",
+      "provisioner",
+    ];
+
+    if (reservedNames.includes(name)) {
+      return `${name}_value`;
+    }
+
+    return name;
   }
 
   private generateSchemaAttribute(name: string, attr: any): string {
@@ -196,8 +217,8 @@ func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resou
       options.push("Sensitive: true");
     }
 
-    // For map attributes, add ElementType
-    if (attr.type === "map") {
+    // For collection attributes, add ElementType
+    if (attr.type === "map" || attr.type === "list") {
       options.push("ElementType: types.StringType");
     }
 
@@ -575,7 +596,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
-      const fieldName: string = StringUtils.toPascalCase(name);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const value: string = this.getGoValueForTerraformType(
         attr.type,
         `data.${fieldName}`,
@@ -593,7 +615,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const mappings: string[] = [];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      const fieldName: string = StringUtils.toPascalCase(name);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const setter: string = this.generateResponseSetter(
         attr.type,
         `data.${fieldName}`,
