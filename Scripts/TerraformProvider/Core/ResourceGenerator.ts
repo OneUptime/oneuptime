@@ -150,6 +150,28 @@ ${this.generateCRUDMethods(resource, resourceTypeName, resourceVarName)}
 func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
     resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
+
+// Helper method to convert Terraform map to Go interface{}
+func (r *${resourceTypeName}Resource) convertTerraformMapToInterface(terraformMap types.Map) interface{} {
+    if terraformMap.IsNull() || terraformMap.IsUnknown() {
+        return nil
+    }
+    
+    result := make(map[string]interface{})
+    terraformMap.ElementsAs(context.Background(), &result, false)
+    return result
+}
+
+// Helper method to convert Terraform list to Go interface{}
+func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformList types.List) interface{} {
+    if terraformList.IsNull() || terraformList.IsUnknown() {
+        return nil
+    }
+    
+    var result []interface{}
+    terraformList.ElementsAs(context.Background(), &result, false)
+    return result
+}
 `;
   }
 
@@ -310,7 +332,9 @@ func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.C
 
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
+        "data": map[string]interface{}{
 ${this.generateRequestBody(resource)}
+        },
     }
 
     // Make API call
@@ -460,7 +484,9 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
 
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
+        "data": map[string]interface{}{
 ${this.generateRequestBody(resource)}
+        },
     }
 
     // Make API call
@@ -591,18 +617,23 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
-      // Skip map and list types for now as they are complex objects
-      if (attr.type === "map" || attr.type === "list") {
-        continue;
-      }
-
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-      const value: string = this.getGoValueForTerraformType(
-        attr.type,
-        `data.${fieldName}`,
-      );
-      fields.push(`        "${name}": ${value},`);
+      
+      // Handle different field types
+      if (attr.type === "map") {
+        // Convert map types from Terraform state to Go interface{}
+        fields.push(`        "${name}": r.convertTerraformMapToInterface(data.${fieldName}),`);
+      } else if (attr.type === "list") {
+        // Convert list types from Terraform state to Go interface{}
+        fields.push(`        "${name}": r.convertTerraformListToInterface(data.${fieldName}),`);
+      } else {
+        const value: string = this.getGoValueForTerraformType(
+          attr.type,
+          `data.${fieldName}`,
+        );
+        fields.push(`        "${name}": ${value},`);
+      }
     }
 
     return fields.join("\n");
@@ -614,13 +645,22 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   ): string {
     const mappings: string[] = [];
 
+    // Extract data from the response wrapper
+    mappings.push(`    // Extract data from response wrapper`);
+    mappings.push(`    dataMap, ok := ${responseVar}["data"].(map[string]interface{})`);
+    mappings.push(`    if !ok {`);
+    mappings.push(`        resp.Diagnostics.AddError("Parse Error", "Unable to parse response data")`);
+    mappings.push(`        return`);
+    mappings.push(`    }`);
+    mappings.push(``);
+
     for (const [name, attr] of Object.entries(resource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const setter: string = this.generateResponseSetter(
         attr.type,
         `data.${fieldName}`,
-        `${responseVar}["${name}"]`,
+        `dataMap["${name}"]`,
       );
       mappings.push(`    ${setter}`);
     }
@@ -647,11 +687,17 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = types.BoolValue(val)
     }`;
       case "map":
-        return `// Map type field ${fieldName} - skipping complex object assignment
-    // TODO: Implement proper map handling for complex objects`;
+        return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
+        // Convert API response map to Terraform map
+        mapValue, _ := types.MapValueFrom(ctx, types.StringType, val)
+        ${fieldName} = mapValue
+    }`;
       case "list":
-        return `// List type field ${fieldName} - skipping list assignment
-    // TODO: Implement proper list handling`;
+        return `if val, ok := ${responseValue}.([]interface{}); ok {
+        // Convert API response list to Terraform list
+        listValue, _ := types.ListValueFrom(ctx, types.StringType, val)
+        ${fieldName} = listValue
+    }`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
