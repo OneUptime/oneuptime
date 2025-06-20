@@ -95,7 +95,7 @@ terraform {
 }
 
 provider "oneuptime" {
-  host    = "https://api.oneuptime.com"
+  host    = "https://oneuptime.com"
   api_key = var.oneuptime_api_key
 }
 
@@ -154,11 +154,11 @@ The provider supports multiple authentication methods:
 ```hcl
 provider "oneuptime" {
   # Method 1: API Key
-  host    = "https://api.oneuptime.com"
+  host    = "https://oneuptime.com"
   api_key = var.api_key
 
   # Method 2: Username/Password
-  host     = "https://api.oneuptime.com"
+  host     = "https://oneuptime.com"
   username = var.username
   password = var.password
 }

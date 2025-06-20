@@ -96,7 +96,7 @@ terraform {
 
 \`\`\`hcl
 provider "oneuptime" {
-  host    = "https://api.oneuptime.com"
+  host    = "https://oneuptime.com"
   api_key = var.oneuptime_api_key
 }
 \`\`\`

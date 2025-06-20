@@ -4,6 +4,8 @@
 
 set -e
 
+npm run generate-terraform-provider
+
 PROVIDER_NAME="oneuptime"
 PROVIDER_VERSION="1.0.0"
 PROVIDER_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/$PROVIDER_NAME/$PROVIDER_VERSION"
@@ -88,7 +90,7 @@ echo "  }"
 echo "}"
 echo ""
 echo "provider \"$PROVIDER_NAME\" {"
-echo "  host    = \"https://api.oneuptime.com\""
+echo "  host    = \"https://oneuptime.com\""
 echo "  api_key = var.oneuptime_api_key"
 echo "}"
 echo ""
