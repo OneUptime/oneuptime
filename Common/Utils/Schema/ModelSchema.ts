@@ -91,6 +91,11 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      // Skip Entity columns but keep EntityArray columns
+      if (column.type === TableColumnType.Entity) {
+        continue;
+      }
+
       // Filter out columns with no permissions (root-only access)
       const accessControl: ColumnAccessControl | undefined =
         columnAccessControl[key];
@@ -395,6 +400,10 @@ export class ModelSchema extends BaseSchema {
             return column ? { key, type: column.type } : null;
           })
           .filter((col: { key: string; type: any } | null) => {
+            // Skip Entity columns but keep EntityArray columns
+            if (col && col.type === TableColumnType.Entity) {
+              return false;
+            }
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -679,6 +688,10 @@ export class ModelSchema extends BaseSchema {
             return column ? { key, type: column.type } : null;
           })
           .filter((col: { key: string; type: any } | null) => {
+            // Skip Entity columns but keep EntityArray columns
+            if (col && col.type === TableColumnType.Entity) {
+              return false;
+            }
             return col !== null;
           }) as Array<{ key: string; type?: any }>;
       },
@@ -692,8 +705,8 @@ export class ModelSchema extends BaseSchema {
         if (
           column &&
           column.modelType &&
-          (column.type === TableColumnType.EntityArray ||
-            column.type === TableColumnType.Entity)
+          // Only allow EntityArray columns, exclude Entity columns
+          column.type === TableColumnType.EntityArray
         ) {
           return this.getSelectModelSchema({
             modelType: column.modelType as new () => DatabaseBaseModel,
@@ -722,6 +735,10 @@ export class ModelSchema extends BaseSchema {
             return column ? { key, type: column.type } : null;
           })
           .filter((col: { key: string; type: any } | null) => {
+            // Skip Entity columns but keep EntityArray columns
+            if (col && col.type === TableColumnType.Entity) {
+              return false;
+            }
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -1015,6 +1032,11 @@ export class ModelSchema extends BaseSchema {
       }
 
       if (column.hideColumnInDocumentation) {
+        continue;
+      }
+
+      // Skip Entity columns but keep EntityArray columns
+      if (column.type === TableColumnType.Entity) {
         continue;
       }
 
