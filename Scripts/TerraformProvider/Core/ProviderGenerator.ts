@@ -227,7 +227,7 @@ func (c *Client) DoRequest(method, path string, body interface{}) (*http.Respons
 
     // Set authentication
     if c.ApiKey != "" {
-        req.Header.Set("Authorization", "Bearer "+c.ApiKey)
+        req.Header.Set("APIKey", c.ApiKey)
     }
 
     resp, err := c.HTTPClient.Do(req)
