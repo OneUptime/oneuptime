@@ -18,11 +18,15 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
+// POST endpoint to test email sending functionality
 router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
+  // Parse request body as a JSON object
   const body: JSONObject = req.body;
 
+  // Extract and parse smtpConfigId from request
   const smtpConfigId: ObjectID = new ObjectID(body["smtpConfigId"] as string);
 
+  // Retrieve SMTP configuration from database using the ID
   const config: ProjectSmtpConfig | null =
     await ProjectSMTPConfigService.findOneById({
       id: smtpConfigId,
@@ -42,6 +46,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
       },
     });
 
+  // Check if config is found, else return an error response
   if (!config) {
     return Response.sendErrorResponse(
       req,
@@ -52,6 +57,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
     );
   }
 
+  // Extract and validate 'toEmail' from request body
   const toEmail: Email = new Email(body["toEmail"] as string);
 
   if (!toEmail) {
@@ -62,6 +68,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
     );
   }
 
+  // Construct the email message to be sent
   const mail: EmailMessage = {
     templateType: EmailTemplateType.SMTPTest,
     toEmail: new Email(body["toEmail"] as string),
@@ -70,6 +77,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
     body: "",
   };
 
+  // Construct the email server configuration
   const mailServer: EmailServer = {
     id: config.id!,
     host: config.hostname!,
@@ -82,6 +90,7 @@ router.post("/test", async (req: ExpressRequest, res: ExpressResponse) => {
   };
 
   try {
+    // Attempt to send the email
     await MailService.send(mail, {
       emailServer: mailServer,
       projectId: config.projectId!,
