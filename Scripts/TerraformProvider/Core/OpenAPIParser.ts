@@ -486,6 +486,8 @@ export class OpenAPIParser {
           "deletedAt",
           "version",
           "slug",
+          "createdByUserId",
+          "deletedByUserId",
         ].includes(propName);
         if (!computed && isComputedField) {
           continue;
