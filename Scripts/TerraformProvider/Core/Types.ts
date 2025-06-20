@@ -105,6 +105,7 @@ export interface TerraformAttribute {
   sensitive?: boolean;
   forceNew?: boolean;
   default?: any;
+  apiFieldName?: string; // Original OpenAPI field name for API requests
 }
 
 export interface GoType {

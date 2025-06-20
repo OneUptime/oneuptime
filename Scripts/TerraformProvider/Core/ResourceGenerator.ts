@@ -619,20 +619,21 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
 
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+      const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
       
       // Handle different field types
       if (attr.type === "map") {
         // Convert map types from Terraform state to Go interface{}
-        fields.push(`        "${name}": r.convertTerraformMapToInterface(data.${fieldName}),`);
+        fields.push(`        "${apiFieldName}": r.convertTerraformMapToInterface(data.${fieldName}),`);
       } else if (attr.type === "list") {
         // Convert list types from Terraform state to Go interface{}
-        fields.push(`        "${name}": r.convertTerraformListToInterface(data.${fieldName}),`);
+        fields.push(`        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`);
       } else {
         const value: string = this.getGoValueForTerraformType(
           attr.type,
           `data.${fieldName}`,
         );
-        fields.push(`        "${name}": ${value},`);
+        fields.push(`        "${apiFieldName}": ${value},`);
       }
     }
 
@@ -657,10 +658,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     for (const [name, attr] of Object.entries(resource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+      const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
       const setter: string = this.generateResponseSetter(
         attr.type,
         `data.${fieldName}`,
-        `dataMap["${name}"]`,
+        `dataMap["${apiFieldName}"]`,
       );
       mappings.push(`    ${setter}`);
     }

@@ -365,6 +365,7 @@ export class OpenAPIParser {
           description: param.description || "",
           required: computed ? false : param.required || false,
           computed: computed,
+          apiFieldName: param.name, // Preserve original OpenAPI parameter name
         };
       }
     }
@@ -512,6 +513,7 @@ export class OpenAPIParser {
             ...schema[terraformName],
             required: openApiSchema.required?.includes(propName) || false,
             computed: false, // This field can be both input and output
+            apiFieldName: propName, // Preserve original OpenAPI property name
           };
           continue;
         }
@@ -539,6 +541,7 @@ export class OpenAPIParser {
           description: description,
           required: fieldRequired,
           computed: computed || isComputedField,
+          apiFieldName: propName, // Preserve original OpenAPI property name
         };
       }
     }
