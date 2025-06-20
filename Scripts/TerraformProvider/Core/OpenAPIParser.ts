@@ -33,7 +33,10 @@ export class OpenAPIParser {
     }
 
     const resources: TerraformResource[] = [];
-    const resourceMap: Map<string, Partial<TerraformResource>> = new Map<string, Partial<TerraformResource>>();
+    const resourceMap: Map<string, Partial<TerraformResource>> = new Map<
+      string,
+      Partial<TerraformResource>
+    >();
 
     // Group operations by resource
     for (const [path, pathItem] of Object.entries(this.spec.paths)) {
@@ -46,7 +49,10 @@ export class OpenAPIParser {
           continue;
         }
 
-        const resourceName: string | null = this.extractResourceName(path, operation);
+        const resourceName: string | null = this.extractResourceName(
+          path,
+          operation,
+        );
         if (!resourceName) {
           continue;
         }
@@ -60,12 +66,22 @@ export class OpenAPIParser {
           });
         }
 
-        const resource: Partial<TerraformResource> = resourceMap.get(resourceName)!;
-        const operationType: "create" | "read" | "update" | "delete" | "list" | null = this.getOperationType(method, path, operation);
+        const resource: Partial<TerraformResource> =
+          resourceMap.get(resourceName)!;
+        const operationType:
+          | "create"
+          | "read"
+          | "update"
+          | "delete"
+          | "list"
+          | null = this.getOperationType(method, path, operation);
 
         if (operationType && resource.operations) {
           // Add method and path to operation for later use
-          const enhancedOperation: OpenAPIOperation & { method: string; path: string } = {
+          const enhancedOperation: OpenAPIOperation & {
+            method: string;
+            path: string;
+          } = {
             ...operation,
             method: method,
             path: path,
@@ -95,7 +111,10 @@ export class OpenAPIParser {
     }
 
     const dataSources: TerraformDataSource[] = [];
-    const dataSourceMap: Map<string, Partial<TerraformDataSource>> = new Map<string, Partial<TerraformDataSource>>();
+    const dataSourceMap: Map<string, Partial<TerraformDataSource>> = new Map<
+      string,
+      Partial<TerraformDataSource>
+    >();
 
     // Look for GET operations that can be used as data sources
     for (const [path, pathItem] of Object.entries(this.spec.paths)) {
@@ -109,7 +128,10 @@ export class OpenAPIParser {
           continue;
         }
 
-        const resourceName: string | null = this.extractResourceName(path, operation);
+        const resourceName: string | null = this.extractResourceName(
+          path,
+          operation,
+        );
         if (!resourceName) {
           continue;
         }
@@ -125,12 +147,16 @@ export class OpenAPIParser {
           });
         }
 
-        const dataSource: Partial<TerraformDataSource> = dataSourceMap.get(dataSourceName)!;
+        const dataSource: Partial<TerraformDataSource> =
+          dataSourceMap.get(dataSourceName)!;
         const isListOperation: boolean = this.isListOperation(path, operation);
 
         if (dataSource.operations) {
           // Add method and path to operation for later use
-          const enhancedOperation: OpenAPIOperation & { method: string; path: string } = {
+          const enhancedOperation: OpenAPIOperation & {
+            method: string;
+            path: string;
+          } = {
             ...operation,
             method: method,
             path: path,
@@ -172,7 +198,8 @@ export class OpenAPIParser {
       return segment && !segment.startsWith("{");
     });
     if (pathSegments.length > 0) {
-      const lastSegment: string | undefined = pathSegments[pathSegments.length - 1];
+      const lastSegment: string | undefined =
+        pathSegments[pathSegments.length - 1];
       if (lastSegment) {
         return StringUtils.toSnakeCase(lastSegment);
       }
@@ -407,7 +434,9 @@ export class OpenAPIParser {
       const description: string = openApiSchema.description.toLowerCase();
       if (description.includes("schema for") && description.includes("model")) {
         // Extract model name from description like "Create schema for Label model. Create"
-        const modelNameMatch: RegExpMatchArray | null = description.match(/schema for (\w+) model/);
+        const modelNameMatch: RegExpMatchArray | null = description.match(
+          /schema for (\w+) model/,
+        );
         if (modelNameMatch && modelNameMatch[1]) {
           const modelName: string = modelNameMatch[1]; // Keep original case from the description
           const mainModelSchema: any = this.resolveSchemaRef(
@@ -497,7 +526,8 @@ export class OpenAPIParser {
             openApiSchema.required?.includes(propName) || false;
 
           // If the field already exists and was previously marked as required, preserve that
-          const existingField: TerraformAttribute | undefined = schema[terraformName];
+          const existingField: TerraformAttribute | undefined =
+            schema[terraformName];
           const previouslyRequired: boolean = existingField?.required || false;
 
           // Field is required if it's explicitly required OR was previously required
