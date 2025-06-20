@@ -263,6 +263,14 @@ func (c *Client) Delete(path string) (*http.Response, error) {
     return c.DoRequest("DELETE", path, nil)
 }
 
+// PostWithSelect performs a POST request with select parameter to fetch full object
+func (c *Client) PostWithSelect(path string, selectParam interface{}) (*http.Response, error) {
+    requestBody := map[string]interface{}{
+        "select": selectParam,
+    }
+    return c.DoRequest("POST", path, requestBody)
+}
+
 // ParseResponse parses an HTTP response into a struct
 func (c *Client) ParseResponse(resp *http.Response, target interface{}) error {
     defer resp.Body.Close()

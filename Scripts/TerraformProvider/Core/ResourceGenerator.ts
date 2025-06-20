@@ -413,8 +413,13 @@ func (r *${resourceTypeName}Resource) Read(ctx context.Context, req resource.Rea
         return
     }
 
-    // Make API call
-    httpResp, err := r.client.Get(${finalPath})
+    // Create select parameter to get full object
+    selectParam := map[string]interface{}{
+${this.generateSelectParameter(resource)}
+    }
+
+    // Make API call with select parameter
+    httpResp, err := r.client.PostWithSelect(${finalPath}, selectParam)
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${resource.name}, got error: %s", err))
         return
@@ -446,63 +451,101 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
     resourceTypeName: string,
     resourceVarName: string,
   ): string {
-    const operation: any = resource.operations.update!;
-    const path: string = this.extractPathFromOperation(operation);
+    const updateOperation: any = resource.operations.update!;
+    const updatePath: string = this.extractPathFromOperation(updateOperation);
 
-    // Replace path parameters
-    const pathWithParams: string = path.replace(
+    // Also get the read path for refreshing after update
+    const readOperation: any = resource.operations.read!;
+    const readPath: string = this.extractPathFromOperation(readOperation);
+
+    // Replace path parameters for update
+    const updatePathWithParams: string = updatePath.replace(
       /{([^}]+)}/g,
       `" + data.Id.ValueString() + "`,
     );
 
-    // Clean up the path string construction
-    let finalPath: string;
-    if (pathWithParams.includes('" + ')) {
+    // Replace path parameters for read
+    const readPathWithParams: string = readPath.replace(
+      /{([^}]+)}/g,
+      `" + data.Id.ValueString() + "`,
+    );
+
+    // Clean up the update path string construction
+    let finalUpdatePath: string;
+    if (updatePathWithParams.includes('" + ')) {
       // Path has parameters
-      if (pathWithParams.startsWith('" + ')) {
-        finalPath = pathWithParams.substring(4);
+      if (updatePathWithParams.startsWith('" + ')) {
+        finalUpdatePath = updatePathWithParams.substring(4);
       } else {
-        finalPath = `"${pathWithParams}"`;
+        finalUpdatePath = `"${updatePathWithParams}"`;
       }
 
-      if (finalPath.endsWith(' + "')) {
-        finalPath = finalPath.substring(0, finalPath.length - 4);
+      if (finalUpdatePath.endsWith(' + "')) {
+        finalUpdatePath = finalUpdatePath.substring(0, finalUpdatePath.length - 4);
       }
     } else {
       // Path has no parameters
-      finalPath = `"${pathWithParams}"`;
+      finalUpdatePath = `"${updatePathWithParams}"`;
+    }
+
+    // Clean up the read path string construction
+    let finalReadPath: string;
+    if (readPathWithParams.includes('" + ')) {
+      // Path has parameters
+      if (readPathWithParams.startsWith('" + ')) {
+        finalReadPath = readPathWithParams.substring(4);
+      } else {
+        finalReadPath = `"${readPathWithParams}"`;
+      }
+
+      if (finalReadPath.endsWith(' + "')) {
+        finalReadPath = finalReadPath.substring(0, finalReadPath.length - 4);
+      }
+    } else {
+      // Path has no parameters
+      finalReadPath = `"${readPathWithParams}"`;
     }
 
     const httpMethod: string =
-      operation.method && operation.method.toUpperCase() === "PATCH"
+      updateOperation.method && updateOperation.method.toUpperCase() === "PATCH"
         ? "Patch"
         : "Put";
 
     return `
 func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
     var data ${resourceTypeName}ResourceModel
+    var state ${resourceTypeName}ResourceModel
 
-    // Read Terraform plan data into the model
-    resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
+    // Read Terraform current state data to get the ID
+    resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
     if resp.Diagnostics.HasError() {
         return
     }
 
+    // Read Terraform plan data to get the new values
+    resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // Use the ID from the current state
+    data.Id = state.Id
+
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
         "data": map[string]interface{}{
-${this.generateRequestBody(resource)}
+${this.generateUpdateRequestBody(resource)}
         },
     }
 
     // Make API call
-    httpResp, err := r.client.${httpMethod}(${finalPath}, ${resourceVarName}Request)
+    httpResp, err := r.client.${httpMethod}(${finalUpdatePath}, ${resourceVarName}Request)
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update ${resource.name}, got error: %s", err))
         return
     }
 
+    // Parse the update response
     var ${resourceVarName}Response map[string]interface{}
     err = r.client.ParseResponse(httpResp, &${resourceVarName}Response)
     if err != nil {
@@ -510,8 +553,26 @@ ${this.generateRequestBody(resource)}
         return
     }
 
-    // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response")}
+    // After successful update, fetch the current state by calling Read with select parameter
+    selectParam := map[string]interface{}{
+${this.generateSelectParameter(resource)}
+    }
+
+    readResp, err := r.client.PostWithSelect(${finalReadPath}, selectParam)
+    if err != nil {
+        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${resource.name} after update, got error: %s", err))
+        return
+    }
+
+    var readResponse map[string]interface{}
+    err = r.client.ParseResponse(readResp, &readResponse)
+    if err != nil {
+        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${resource.name} read response, got error: %s", err))
+        return
+    }
+
+    // Update the model with response data from the Read operation
+${this.generateResponseMapping(resource, "readResponse")}
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -617,10 +678,26 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   }
 
   private generateRequestBody(resource: TerraformResource): string {
+    return this.generateRequestBodyInternal(resource, false);
+  }
+
+  private generateUpdateRequestBody(resource: TerraformResource): string {
+    return this.generateRequestBodyInternal(resource, true);
+  }
+
+  private generateRequestBodyInternal(resource: TerraformResource, isUpdate: boolean): string {
     const fields: string[] = [];
+
+    // Fields that should not be included in update requests
+    const immutableFields = ["projectId", "project_id"];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
       if (name === "id" || attr.computed) {
+        continue;
+      }
+
+      // Skip immutable fields in update requests
+      if (isUpdate && immutableFields.includes(name)) {
         continue;
       }
 
@@ -645,6 +722,25 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
 
     return fields.join("\n");
+  }
+
+  private generateSelectParameter(resource: TerraformResource): string {
+    const selectFields: string[] = [];
+    
+    for (const [name, attr] of Object.entries(resource.schema)) {
+      // Skip the id field since it's computed and maps to _id
+      if (name === "id") {
+        continue;
+      }
+      
+      const apiFieldName: string = attr.apiFieldName || name;
+      selectFields.push(`        "${apiFieldName}": true,`);
+    }
+    
+    // Always include _id field which is the actual API field
+    selectFields.push(`        "_id": true,`);
+    
+    return selectFields.join("\n");
   }
 
   private generateResponseMapping(
