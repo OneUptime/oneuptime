@@ -157,9 +157,16 @@ func (r *${resourceTypeName}Resource) convertTerraformMapToInterface(terraformMa
         return nil
     }
     
-    result := make(map[string]interface{})
+    result := make(map[string]string)
     terraformMap.ElementsAs(context.Background(), &result, false)
-    return result
+    
+    // Convert map[string]string to map[string]interface{}
+    interfaceResult := make(map[string]interface{})
+    for key, value := range result {
+        interfaceResult[key] = value
+    }
+    
+    return interfaceResult
 }
 
 // Helper method to convert Terraform list to Go interface{}
@@ -648,10 +655,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
 
     // Extract data from the response wrapper
     mappings.push(`    // Extract data from response wrapper`);
-    mappings.push(`    dataMap, ok := ${responseVar}["data"].(map[string]interface{})`);
-    mappings.push(`    if !ok {`);
-    mappings.push(`        resp.Diagnostics.AddError("Parse Error", "Unable to parse response data")`);
-    mappings.push(`        return`);
+    mappings.push(`    var dataMap map[string]interface{}`);
+    mappings.push(`    if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {`);
+    mappings.push(`        // Response is wrapped in a data field`);
+    mappings.push(`        dataMap = wrapper`);
+    mappings.push(`    } else {`);
+    mappings.push(`        // Response is the direct object`);
+    mappings.push(`        dataMap = ${responseVar}`);
     mappings.push(`    }`);
     mappings.push(``);
 
@@ -659,13 +669,36 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
-      const setter: string = this.generateResponseSetter(
-        attr.type,
-        `data.${fieldName}`,
-        `dataMap["${apiFieldName}"]`,
-      );
-      mappings.push(`    ${setter}`);
+      
+      if (apiFieldName === "projectId") {
+        // Special handling for projectId which might come as ObjectID type
+        mappings.push(`    if obj, ok := dataMap["${apiFieldName}"].(map[string]interface{}); ok {`);
+        mappings.push(`        if val, ok := obj["value"].(string); ok {`);
+        mappings.push(`            data.${fieldName} = types.StringValue(val)`);
+        mappings.push(`        } else {`);
+        mappings.push(`            data.${fieldName} = types.StringNull()`);
+        mappings.push(`        }`);
+        mappings.push(`    } else if val, ok := dataMap["${apiFieldName}"].(string); ok {`);
+        mappings.push(`        data.${fieldName} = types.StringValue(val)`);
+        mappings.push(`    } else {`);
+        mappings.push(`        data.${fieldName} = types.StringNull()`);
+        mappings.push(`    }`);
+      } else {
+        const setter: string = this.generateResponseSetter(
+          attr.type,
+          `data.${fieldName}`,
+          `dataMap["${apiFieldName}"]`,
+        );
+        mappings.push(`    ${setter}`);
+      }
     }
+
+    // Handle the ID field mapping (_id -> id)
+    mappings.push(`    if val, ok := dataMap["_id"].(string); ok {`);
+    mappings.push(`        data.Id = types.StringValue(val)`);
+    mappings.push(`    } else {`);
+    mappings.push(`        data.Id = types.StringNull()`);
+    mappings.push(`    }`);
 
     return mappings.join("\n");
   }
@@ -679,30 +712,42 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       case "string":
         return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
+    } else if ${responseValue} == nil {
+        ${fieldName} = types.StringNull()
     }`;
       case "number":
         return `if val, ok := ${responseValue}.(float64); ok {
         ${fieldName} = types.NumberValue(big.NewFloat(val))
+    } else if ${responseValue} == nil {
+        ${fieldName} = types.NumberNull()
     }`;
       case "bool":
         return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
+    } else if ${responseValue} == nil {
+        ${fieldName} = types.BoolNull()
     }`;
       case "map":
         return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
         // Convert API response map to Terraform map
         mapValue, _ := types.MapValueFrom(ctx, types.StringType, val)
         ${fieldName} = mapValue
+    } else if ${responseValue} == nil {
+        ${fieldName} = types.MapNull(types.StringType)
     }`;
       case "list":
         return `if val, ok := ${responseValue}.([]interface{}); ok {
         // Convert API response list to Terraform list
         listValue, _ := types.ListValueFrom(ctx, types.StringType, val)
         ${fieldName} = listValue
+    } else if ${responseValue} == nil {
+        ${fieldName} = types.ListNull(types.StringType)
     }`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
+    } else if ${responseValue} == nil {
+        ${fieldName} = types.StringNull()
     }`;
     }
   }
