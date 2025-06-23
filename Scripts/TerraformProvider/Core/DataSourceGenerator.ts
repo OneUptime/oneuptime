@@ -152,7 +152,10 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
-      const schemaAttr: string = this.generateSchemaAttribute(sanitizedName, attr);
+      const schemaAttr: string = this.generateSchemaAttribute(
+        sanitizedName,
+        attr,
+      );
       attributes.push(`            "${sanitizedName}": ${schemaAttr},`);
     }
 

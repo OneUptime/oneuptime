@@ -200,7 +200,10 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
 
     for (const [name, attr] of Object.entries(resource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
-      const schemaAttr: string = this.generateSchemaAttribute(sanitizedName, attr);
+      const schemaAttr: string = this.generateSchemaAttribute(
+        sanitizedName,
+        attr,
+      );
       attributes.push(`            "${sanitizedName}": ${schemaAttr},`);
     }
 
@@ -481,7 +484,10 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response")}
       }
 
       if (finalUpdatePath.endsWith(' + "')) {
-        finalUpdatePath = finalUpdatePath.substring(0, finalUpdatePath.length - 4);
+        finalUpdatePath = finalUpdatePath.substring(
+          0,
+          finalUpdatePath.length - 4,
+        );
       }
     } else {
       // Path has no parameters
@@ -685,11 +691,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     return this.generateRequestBodyInternal(resource, true);
   }
 
-  private generateRequestBodyInternal(resource: TerraformResource, isUpdate: boolean): string {
+  private generateRequestBodyInternal(
+    resource: TerraformResource,
+    isUpdate: boolean,
+  ): string {
     const fields: string[] = [];
 
     // Fields that should not be included in update requests
-    const immutableFields = ["projectId", "project_id"];
+    const immutableFields: Array<string> = ["projectId", "project_id"];
 
     for (const [name, attr] of Object.entries(resource.schema)) {
       if (name === "id" || attr.computed) {
@@ -704,14 +713,18 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
-      
+
       // Handle different field types
       if (attr.type === "map") {
         // Convert map types from Terraform state to Go interface{}
-        fields.push(`        "${apiFieldName}": r.convertTerraformMapToInterface(data.${fieldName}),`);
+        fields.push(
+          `        "${apiFieldName}": r.convertTerraformMapToInterface(data.${fieldName}),`,
+        );
       } else if (attr.type === "list") {
         // Convert list types from Terraform state to Go interface{}
-        fields.push(`        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`);
+        fields.push(
+          `        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`,
+        );
       } else {
         const value: string = this.getGoValueForTerraformType(
           attr.type,
@@ -726,20 +739,20 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
 
   private generateSelectParameter(resource: TerraformResource): string {
     const selectFields: string[] = [];
-    
+
     for (const [name, attr] of Object.entries(resource.schema)) {
       // Skip the id field since it's computed and maps to _id
       if (name === "id") {
         continue;
       }
-      
+
       const apiFieldName: string = attr.apiFieldName || name;
       selectFields.push(`        "${apiFieldName}": true,`);
     }
-    
+
     // Always include _id field which is the actual API field
     selectFields.push(`        "_id": true,`);
-    
+
     return selectFields.join("\n");
   }
 
@@ -752,7 +765,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     // Extract data from the response wrapper
     mappings.push(`    // Extract data from response wrapper`);
     mappings.push(`    var dataMap map[string]interface{}`);
-    mappings.push(`    if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {`);
+    mappings.push(
+      `    if wrapper, ok := ${responseVar}["data"].(map[string]interface{}); ok {`,
+    );
     mappings.push(`        // Response is wrapped in a data field`);
     mappings.push(`        dataMap = wrapper`);
     mappings.push(`    } else {`);
@@ -765,16 +780,20 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
-      
+
       if (apiFieldName === "projectId") {
         // Special handling for projectId which might come as ObjectID type
-        mappings.push(`    if obj, ok := dataMap["${apiFieldName}"].(map[string]interface{}); ok {`);
+        mappings.push(
+          `    if obj, ok := dataMap["${apiFieldName}"].(map[string]interface{}); ok {`,
+        );
         mappings.push(`        if val, ok := obj["value"].(string); ok {`);
         mappings.push(`            data.${fieldName} = types.StringValue(val)`);
         mappings.push(`        } else {`);
         mappings.push(`            data.${fieldName} = types.StringNull()`);
         mappings.push(`        }`);
-        mappings.push(`    } else if val, ok := dataMap["${apiFieldName}"].(string); ok {`);
+        mappings.push(
+          `    } else if val, ok := dataMap["${apiFieldName}"].(string); ok {`,
+        );
         mappings.push(`        data.${fieldName} = types.StringValue(val)`);
         mappings.push(`    } else {`);
         mappings.push(`        data.${fieldName} = types.StringNull()`);
