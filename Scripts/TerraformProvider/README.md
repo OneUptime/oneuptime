@@ -95,7 +95,7 @@ terraform {
 }
 
 provider "oneuptime" {
-  host    = "https://oneuptime.com"
+  oneuptime_url    = "https://oneuptime.com"
   api_key = var.oneuptime_api_key
 }
 
