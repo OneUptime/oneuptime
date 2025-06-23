@@ -189,6 +189,12 @@ terraform import ${this.config.providerName}_${resource.name}.example <id>
   }
 
   private getExampleValue(fieldName: string, attrInfo: any): string {
+    // First, try to use the example from OpenAPI spec
+    if (attrInfo.example !== undefined && attrInfo.example !== null) {
+      return this.formatOpenAPIExample(attrInfo.example, attrInfo.type);
+    }
+
+    // Fallback to the existing hardcoded logic
     // Handle specific field types and names
     if (fieldName.includes("id") && attrInfo.type === "string") {
       return '"123e4567-e89b-12d3-a456-426614174000"';
@@ -476,5 +482,61 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 `;
 
     await this.fileGenerator.writeFile("README.md", readmeContent);
+  }
+
+  private formatOpenAPIExample(example: any, _fieldType?: string): string {
+    if (example === null || example === undefined) {
+      return '""';
+    }
+
+    // Handle different types of examples
+    if (typeof example === "string") {
+      return `"${example}"`;
+    }
+
+    if (typeof example === "number") {
+      return example.toString();
+    }
+
+    if (typeof example === "boolean") {
+      return example.toString();
+    }
+
+    if (Array.isArray(example)) {
+      if (example.length === 0) {
+        return "[]";
+      }
+      const items = example
+        .map((item) => this.formatOpenAPIExample(item, "string"))
+        .join(", ");
+      return `[${items}]`;
+    }
+
+    if (typeof example === "object") {
+      // Handle special OneUptime object types
+      if (example._type && example.value !== undefined) {
+        switch (example._type) {
+          case "DateTime":
+            return `"${example.value}"`;
+          case "Name":
+          case "Email":
+          case "Phone":
+            return `"${example.value}"`;
+          case "Color":
+            return `"${example.value}"`;
+          default:
+            return `"${example.value}"`;
+        }
+      }
+
+      // Handle generic objects as maps
+      const entries = Object.entries(example)
+        .map(([key, value]) => `    ${key} = ${this.formatOpenAPIExample(value, "string")}`)
+        .join("\n");
+      return `{\n${entries}\n  }`;
+    }
+
+    // Fallback to string representation
+    return `"${String(example)}"`;
   }
 }

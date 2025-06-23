@@ -469,6 +469,7 @@ export class OpenAPIParser {
         const prop: any = propSchema as any;
         let propType: string = prop.type || "string";
         let description: string = prop.description || "";
+        let example: any = prop.example;
 
         // Handle nested $ref
         if (prop.$ref) {
@@ -476,6 +477,7 @@ export class OpenAPIParser {
           if (resolvedProp) {
             propType = resolvedProp.type || "string";
             description = resolvedProp.description || description;
+            example = resolvedProp.example || example;
           }
         }
 
@@ -544,6 +546,7 @@ export class OpenAPIParser {
           required: fieldRequired,
           computed: computed || isComputedField,
           apiFieldName: propName, // Preserve original OpenAPI property name
+          example: example, // Extract example from OpenAPI schema
         };
       }
     }
