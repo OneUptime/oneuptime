@@ -47,10 +47,10 @@ terraform {
 
 provider "oneuptime" {
   # For Cloud customers
-  api_url = "https://oneuptime.com/api"
+  oneuptime_url = "https://oneuptime.com"
   
   # For Self-Hosted customers - use your instance URL
-  # api_url = "https://oneuptime.yourcompany.com"
+  # oneuptime_url = "https://oneuptime.yourcompany.com"
   
   api_key = var.oneuptime_api_key
 }
@@ -138,8 +138,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.com/api"
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.com"
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -156,8 +156,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.mycompany.com"  # Your self-hosted URL
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.mycompany.com"  # Your self-hosted URL
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -176,7 +176,7 @@ Error: Invalid API key
 **Solution**: 
 1. Verify your API key in OneUptime dashboard
 2. Check the API key has sufficient permissions
-3. Ensure `api_url` is correct for your instance
+3. Ensure `oneuptime_url` is correct for your instance
 
 ### Issue: Version mismatch (Self-Hosted)
 ```

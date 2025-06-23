@@ -74,8 +74,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.yourcompany.com"  # Your self-hosted URL
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.yourcompany.com"  # Your self-hosted URL
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -93,8 +93,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.yourcompany.com"
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.yourcompany.com"
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -122,7 +122,7 @@ terraform {
 }
 
 # variables.tf
-variable "oneuptime_api_url" {
+variable "oneuptime_url" {
   description = "OneUptime instance URL"
   type        = string
   default     = "https://oneuptime.yourcompany.com"
@@ -142,8 +142,8 @@ variable "environment" {
 
 # providers.tf
 provider "oneuptime" {
-  api_url = var.oneuptime_api_url
-  api_key = var.oneuptime_api_key
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.oneuptime_api_key
 }
 
 # variables.tf
@@ -281,7 +281,7 @@ output "status_page_url" {
 
 ```hcl
 # dev.tfvars
-oneuptime_api_url = "https://oneuptime-dev.yourcompany.com"
+oneuptime_url = "https://oneuptime-dev.yourcompany.com"
 environment = "development"
 ```
 
@@ -289,7 +289,7 @@ environment = "development"
 
 ```hcl
 # staging.tfvars
-oneuptime_api_url = "https://oneuptime-staging.yourcompany.com"  
+oneuptime_url = "https://oneuptime-staging.yourcompany.com"  
 environment = "staging"
 ```
 
@@ -297,7 +297,7 @@ environment = "staging"
 
 ```hcl
 # prod.tfvars
-oneuptime_api_url = "https://oneuptime.yourcompany.com"
+oneuptime_url = "https://oneuptime.yourcompany.com"
 environment = "production"
 ```
 
@@ -363,8 +363,8 @@ If OneUptime is on a private network:
 
 ```hcl
 provider "oneuptime" {
-  api_url = "https://10.0.1.100:443"  # Internal IP
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://10.0.1.100:443"  # Internal IP
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -392,8 +392,8 @@ Create API keys with minimal required permissions:
 ```hcl
 # Example with TLS verification
 provider "oneuptime" {
-  api_url = "https://oneuptime.yourcompany.com"
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.yourcompany.com"
+  api_key       = var.oneuptime_api_key
   
   # Additional security options if supported
   verify_ssl = true

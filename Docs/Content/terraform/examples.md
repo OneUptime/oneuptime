@@ -17,8 +17,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.com/api"  # Change for self-hosted
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.com"  # Change for self-hosted
+  api_key       = var.oneuptime_api_key
 }
 
 # Note: Projects must be created manually in the OneUptime dashboard
@@ -197,8 +197,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = var.oneuptime_api_url
-  api_key = var.oneuptime_api_key
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.oneuptime_api_key
 }
 
 # Note: Projects must be created manually in the OneUptime dashboard

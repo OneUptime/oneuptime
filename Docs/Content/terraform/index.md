@@ -30,8 +30,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.com/api"
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.com"
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -47,8 +47,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.yourcompany.com"
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.yourcompany.com"
+  api_key       = var.oneuptime_api_key
 }
 ```
 

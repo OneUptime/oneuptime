@@ -48,8 +48,8 @@ terraform {
 }
 
 provider "${this.config.providerName}" {
-  host     = "oneuptime.com"  # Optional, defaults to oneuptime.com (internally becomes oneuptime.com/api)
-  api_key  = var.${this.config.providerName}_api_key
+  oneuptime_url = "oneuptime.com"  # Optional, defaults to oneuptime.com (internally becomes oneuptime.com/api)
+  api_key       = var.${this.config.providerName}_api_key
 }
 \`\`\`
 
@@ -57,7 +57,7 @@ provider "${this.config.providerName}" {
 
 ### Optional
 
-- \`host\` (String) The ${this.config.providerName} host (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the host. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_HOST\` environment variable.
+- \`oneuptime_url\` (String) The ${this.config.providerName} URL (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the URL. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_URL\` environment variable.
 - \`api_key\` (String, Sensitive) API key for authentication. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_API_KEY\` environment variable.
 `;
 
@@ -406,8 +406,8 @@ terraform {
 }
 
 provider "${this.config.providerName}" {
-  host    = "https://api.${this.config.providerName}.com"
-  api_key = var.${this.config.providerName}_api_key
+  oneuptime_url = "https://api.${this.config.providerName}.com"
+  api_key       = var.${this.config.providerName}_api_key
 }
 \`\`\`
 

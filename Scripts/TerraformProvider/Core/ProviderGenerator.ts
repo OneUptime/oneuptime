@@ -47,8 +47,8 @@ type ${StringUtils.toPascalCase(this.config.providerName)}Provider struct {
 
 // ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel describes the provider data model.
 type ${StringUtils.toPascalCase(this.config.providerName)}ProviderModel struct {
-    Host     types.String \`tfsdk:"host"\`
-    ApiKey   types.String \`tfsdk:"api_key"\`
+    OneuptimeUrl types.String \`tfsdk:"oneuptime_url"\`
+    ApiKey       types.String \`tfsdk:"api_key"\`
 }
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -61,8 +61,8 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(c
         MarkdownDescription: "${this.spec.info.description || `Terraform provider for ${this.config.providerName}`}",
 
         Attributes: map[string]schema.Attribute{
-            "host": schema.StringAttribute{
-                MarkdownDescription: "The ${this.config.providerName} host (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the host.",
+            "oneuptime_url": schema.StringAttribute{
+                MarkdownDescription: "The ${this.config.providerName} URL (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the URL.",
                 Optional:            true,
             },
             "api_key": schema.StringAttribute{
@@ -84,25 +84,25 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
     }
 
     // Configuration values are now available.
-    var host string
+    var oneuptimeUrl string
     var apiKey string
 
-    if data.Host.IsUnknown() {
+    if data.OneuptimeUrl.IsUnknown() {
         // Cannot connect to client with an unknown value
         resp.Diagnostics.AddWarning(
             "Unable to create client",
-            "Cannot use unknown value as host",
+            "Cannot use unknown value as oneuptime_url",
         )
         return
     }
 
-    if data.Host.IsNull() {
-        host = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_HOST")
-        if host == "" {
-            host = "oneuptime.com"
+    if data.OneuptimeUrl.IsNull() {
+        oneuptimeUrl = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_URL")
+        if oneuptimeUrl == "" {
+            oneuptimeUrl = "oneuptime.com"
         }
     } else {
-        host = data.Host.ValueString()
+        oneuptimeUrl = data.OneuptimeUrl.ValueString()
     }
 
     if data.ApiKey.IsNull() {
@@ -111,7 +111,7 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
         apiKey = data.ApiKey.ValueString()
     }
 
-    client, err := NewClient(host, apiKey)
+    client, err := NewClient(oneuptimeUrl, apiKey)
     if err != nil {
         resp.Diagnostics.AddError(
             "Unable to Create ${StringUtils.toPascalCase(this.config.providerName)} API Client",
@@ -174,21 +174,21 @@ type Client struct {
 }
 
 // NewClient creates a new API client
-func NewClient(host, apiKey string) (*Client, error) {
-    // Ensure the host has the correct scheme
-    if !strings.HasPrefix(host, "http://") && !strings.HasPrefix(host, "https://") {
-        host = "https://" + host
+func NewClient(oneuptimeUrl, apiKey string) (*Client, error) {
+    // Ensure the oneuptimeUrl has the correct scheme
+    if !strings.HasPrefix(oneuptimeUrl, "http://") && !strings.HasPrefix(oneuptimeUrl, "https://") {
+        oneuptimeUrl = "https://" + oneuptimeUrl
     }
 
-    // Append /api to the host
-    if !strings.HasSuffix(host, "/api") {
-        host = strings.TrimSuffix(host, "/") + "/api"
+    // Append /api to the oneuptimeUrl
+    if !strings.HasSuffix(oneuptimeUrl, "/api") {
+        oneuptimeUrl = strings.TrimSuffix(oneuptimeUrl, "/") + "/api"
     }
 
     // Parse and validate the URL
-    parsedURL, err := url.Parse(host)
+    parsedURL, err := url.Parse(oneuptimeUrl)
     if err != nil {
-        return nil, fmt.Errorf("invalid host URL: %w", err)
+        return nil, fmt.Errorf("invalid oneuptime_url: %w", err)
     }
 
     client := &Client{
@@ -321,9 +321,9 @@ import (
 
 // Config holds the provider configuration
 type Config struct {
-    Host     string
-    ApiKey   string
-    Client   *Client
+    OneuptimeUrl string
+    ApiKey       string
+    Client       *Client
 }
 
 // NewConfig creates a new configuration from the provider model
@@ -332,14 +332,14 @@ func NewConfig(ctx context.Context, model ${StringUtils.toPascalCase(this.config
 
     config := &Config{}
 
-    // Set host
-    if model.Host.IsNull() {
-        config.Host = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_HOST")
-        if config.Host == "" {
-            config.Host = "oneuptime.com"
+    // Set oneuptime_url
+    if model.OneuptimeUrl.IsNull() {
+        config.OneuptimeUrl = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_URL")
+        if config.OneuptimeUrl == "" {
+            config.OneuptimeUrl = "oneuptime.com"
         }
     } else {
-        config.Host = model.Host.ValueString()
+        config.OneuptimeUrl = model.OneuptimeUrl.ValueString()
     }
 
     // Set API key
@@ -350,7 +350,7 @@ func NewConfig(ctx context.Context, model ${StringUtils.toPascalCase(this.config
     }
 
     // Create client
-    client, err := NewClient(config.Host, config.ApiKey)
+    client, err := NewClient(config.OneuptimeUrl, config.ApiKey)
     if err != nil {
         diags.AddError(
             "Unable to Create API Client",

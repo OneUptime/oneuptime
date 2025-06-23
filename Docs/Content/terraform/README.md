@@ -74,8 +74,8 @@ terraform {
 
 ```hcl
 provider "oneuptime" {
-  api_url = "https://your-oneuptime-instance.com"  # Or https://oneuptime.com/api for cloud
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://your-oneuptime-instance.com"  # Or https://oneuptime.com for cloud
+  api_key       = var.oneuptime_api_key
 }
 ```
 
@@ -84,7 +84,7 @@ provider "oneuptime" {
 You can configure the provider using environment variables:
 
 ```bash
-export ONEUPTIME_API_URL="https://your-oneuptime-instance.com"
+export ONEUPTIME_URL="https://your-oneuptime-instance.com"
 export ONEUPTIME_API_KEY="your-api-key-here"
 ```
 
@@ -100,7 +100,7 @@ provider "oneuptime" {
 
 | Argument | Environment Variable | Description | Required |
 |----------|---------------------|-------------|----------|
-| `api_url` | `ONEUPTIME_API_URL` | OneUptime API URL | Yes |
+| `oneuptime_url` | `ONEUPTIME_URL` | OneUptime URL | Yes |
 | `api_key` | `ONEUPTIME_API_KEY` | OneUptime API Key | Yes |
 
 ## Quick Start
@@ -130,8 +130,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.com/api"  # Use your instance URL
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.com"  # Use your instance URL
+  api_key       = var.oneuptime_api_key
 }
 
 # Note: Projects must be created manually in the OneUptime dashboard
@@ -258,10 +258,10 @@ variable "project_id" {
   type        = string
 }
 
-variable "oneuptime_api_url" {
-  description = "OneUptime API URL"
+variable "oneuptime_url" {
+  description = "OneUptime URL"
   type        = string
-  default     = "https://oneuptime.com/api"
+  default     = "https://oneuptime.com"
 }
 
 # Provider configuration
@@ -275,8 +275,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = var.oneuptime_api_url
-  api_key = var.oneuptime_api_key
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.oneuptime_api_key
 }
 
 # Team
@@ -395,8 +395,8 @@ terraform {
 }
 
 provider "oneuptime" {
-  api_url = "https://oneuptime.mycompany.com"  # Your self-hosted URL
-  api_key = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.mycompany.com"  # Your self-hosted URL
+  api_key       = var.oneuptime_api_key
 }
 
 # Rest of your configuration...
