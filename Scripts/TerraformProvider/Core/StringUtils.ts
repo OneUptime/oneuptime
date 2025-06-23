@@ -18,7 +18,9 @@ export class StringUtils {
   public static toSnakeCase(str: string): string {
     return str
       .replace(/['`]/g, "") // Remove apostrophes and backticks
-      .replace(/([A-Z])/g, "_$1")
+      // Handle consecutive uppercase letters (like "API" -> "api" instead of "a_p_i")
+      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2") // APIKey -> API_Key
+      .replace(/([a-z\d])([A-Z])/g, "$1_$2") // camelCase -> camel_Case
       .toLowerCase()
       .replace(/^_/, "")
       .replace(/[-\s]+/g, "_")
