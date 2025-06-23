@@ -1093,11 +1093,11 @@ export class ModelSchema extends BaseSchema {
 
       // Check if the column is required and make it optional if not
       // Also make columns with default values optional in create schemas
-      if (column.required) {
-        // leave as is
-      } else if(column.isDefaultValueColumn){
+      if(column.isDefaultValueColumn){
         // should be optional
         zodType = zodType.optional();
+      } else if (column.required) {
+        // leave as is
       } else {
         zodType = zodType.optional();
       }
