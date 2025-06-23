@@ -1096,6 +1096,9 @@ export class ModelSchema extends BaseSchema {
       if(column.isDefaultValueColumn){
         // should be optional
         zodType = zodType.optional();
+      } else if (column.title?.toLowerCase() === "project id" && column.type === TableColumnType.ObjectID) {
+        // this is optional in the API as well as it's derived from API key
+        zodType = zodType.optional();
       } else if (column.required) {
         // leave as is
       } else {
