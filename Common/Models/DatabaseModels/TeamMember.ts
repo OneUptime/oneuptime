@@ -384,6 +384,7 @@ export default class TeamMember extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Has Accepted Invitation",
     description: "Has this team member accepted invitation",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

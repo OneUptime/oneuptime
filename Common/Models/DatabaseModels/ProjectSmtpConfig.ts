@@ -511,7 +511,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.Boolean })
+  @TableColumn({ 
+    required: true, 
+    type: TableColumnType.Boolean,
+    defaultValue: true,
+  })
   @Column({
     nullable: false,
     type: ColumnType.Boolean,

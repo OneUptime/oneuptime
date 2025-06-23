@@ -300,6 +300,7 @@ export default class WorkflowVariable extends BaseModel {
     title: "Secret",
     description:
       "Is this variable a secret. If true, then it'll not be in the logs",
+    defaultValue: false,
   })
   @Column({
     nullable: false,

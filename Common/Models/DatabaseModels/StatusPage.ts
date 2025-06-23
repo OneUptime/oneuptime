@@ -873,6 +873,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Public Status Page",
     description: "Is this status page public?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -910,6 +911,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Incident Labels",
     description: "Show Incident Labels on Status Page?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -947,6 +949,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Scheduled Event Labels",
     description: "Show Scheduled Event Labels on Status Page?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -985,6 +988,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable Subscribers",
     description: "Can subscribers subscribe to this Status Page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1017,6 +1021,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable Email Subscribers",
     description: "Can email subscribers subscribe to this Status Page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1049,6 +1054,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Allow Subscribers to Choose Resources",
     description: "Can subscribers choose which resources to subscribe to?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1087,6 +1093,7 @@ export default class StatusPage extends BaseModel {
     title: "Allow Subscribers to subscribe to event types",
     description:
       "Can subscribers choose which event type like Announcements, Incidents, Scheduled Events to subscribe to?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1124,6 +1131,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable SMS Subscribers",
     description: "Can SMS subscribers subscribe to this Status Page?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1161,6 +1169,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable Slack Subscribers",
     description: "Can Slack subscribers subscribe to this Status Page?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1265,6 +1274,7 @@ export default class StatusPage extends BaseModel {
     isDefaultValueColumn: true,
     description: "Should SSO be required to login to Private Status Page",
     title: "Require SSO",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1452,6 +1462,7 @@ export default class StatusPage extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",
     description: "Are owners notified of when this resource is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

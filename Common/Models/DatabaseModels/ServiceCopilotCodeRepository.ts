@@ -174,6 +174,7 @@ export default class ServiceCopilotCodeRepository extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Path in Repository",
     description: "Path in your code repository where this service is located",
+    defaultValue: "/",
   })
   @Column({
     nullable: false,

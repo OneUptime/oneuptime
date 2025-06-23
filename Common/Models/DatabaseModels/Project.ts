@@ -431,6 +431,7 @@ export default class Project extends TenantModel {
     required: true,
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -462,6 +463,7 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     title: "Is Feature Flag Monitor Groups Enabled",
     description: "Is Feature Flag Monitor Groups Enabled",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -550,6 +552,7 @@ export default class Project extends TenantModel {
     required: true,
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -623,6 +626,7 @@ export default class Project extends TenantModel {
     required: true,
     title: "SMS or Call Current Balance",
     description: "Balance in USD for SMS or Call",
+    defaultValue: 0,
   })
   @Column({
     type: ColumnType.Number,
@@ -649,6 +653,7 @@ export default class Project extends TenantModel {
     required: true,
     title: "Auto Recharge Amount",
     description: "Auto recharge amount in USD for SMS or Call",
+    defaultValue: 20,
   })
   @Column({
     type: ColumnType.Number,
@@ -676,6 +681,7 @@ export default class Project extends TenantModel {
     title: "Auto Recharge when current balance falls to",
     description:
       "Auto recharge is triggered when current balance falls to this amount in USD for SMS or Call",
+    defaultValue: 10,
   })
   @Column({
     type: ColumnType.Number,
@@ -703,6 +709,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable SMS Notifications",
     description: "Enable SMS notifications for this project.",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -729,6 +736,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Call Notifications",
     description: "Enable call notifications for this project.",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -755,6 +763,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable auto recharge SMS or Call balance",
     description: "Enable auto recharge SMS or Call balance for this project.",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -775,6 +784,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Low Call and SMS Balance Notification Sent to Owners",
     description: "Low Call and SMS Balance Notification Sent to Owners",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -796,6 +806,7 @@ export default class Project extends TenantModel {
     title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
     description:
       "Failed Call and SMS Balance Charge Notification Sent to Owners",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -815,9 +826,10 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
-    title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
+    title: "Not Enabled SMS or Call Notification Sent to Owners",
     description:
-      "Failed Call and SMS Balance Charge Notification Sent to Owners",
+      "Not Enabled SMS or Call Notification Sent to Owners",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -1192,6 +1204,7 @@ export default class Project extends TenantModel {
     hideColumnInDocumentation: true,
     description:
       "OneUptime customer support can access this project. This is used for debugging purposes.",
+    defaultValue: false,
   })
   @Column({
     nullable: true,

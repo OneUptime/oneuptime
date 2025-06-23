@@ -779,6 +779,7 @@ export default class Alert extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Alert Creation?",
     description: "Are owners notified of when this alert is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -936,6 +937,7 @@ export default class Alert extends BaseModel {
     title: "Is created automatically?",
     description:
       "Is this alert created by OneUptime Probe or Workers automatically (and not created manually by a user)?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

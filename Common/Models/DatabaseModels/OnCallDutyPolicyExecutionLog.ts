@@ -847,6 +847,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     canReadOnRelationQuery: true,
     title: "On-Call Policy Execution Repeat Count",
     description: "How many times did we execute this on-call policy?",
+    defaultValue: 1,
   })
   @Column({
     type: ColumnType.Number,

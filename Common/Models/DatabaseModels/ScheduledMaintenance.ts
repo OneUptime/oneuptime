@@ -727,6 +727,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Status Page Subscribers Notified On Event Scheduled",
     description: "Status Page Subscribers Notified On Event Scheduled",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -754,6 +755,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified when event is created?",
     description: "Should subscribers be notified about this event creation?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -783,6 +785,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Should subscribers be notified when event is changed to ongoing?",
     description:
       "Should subscribers be notified about this event event is changed to ongoing?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -812,6 +815,7 @@ export default class ScheduledMaintenance extends BaseModel {
     title: "Should subscribers be notified when event is changed to ended?",
     description:
       "Should subscribers be notified about this event event is changed to ended?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -875,6 +879,7 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",
     description: "Are owners notified of when this resource is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1026,6 +1031,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should be visible on status page?",
     description: "Should this incident be visible on the status page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

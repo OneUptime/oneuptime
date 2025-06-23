@@ -901,6 +901,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -934,6 +935,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -967,6 +969,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Number,
+    defaultValue: 1,
   })
   @Column({
     type: ColumnType.Number,

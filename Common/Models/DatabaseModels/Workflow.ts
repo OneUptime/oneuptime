@@ -384,6 +384,7 @@ export default class Workflow extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Enabled",
     description: "Is this workflow enabled?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

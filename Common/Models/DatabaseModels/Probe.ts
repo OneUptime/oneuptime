@@ -462,6 +462,7 @@ export default class Probe extends BaseModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

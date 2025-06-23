@@ -867,6 +867,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified when event is created?",
     description: "Should subscribers be notified about this event creation?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -901,6 +902,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Should subscribers be notified when event is changed to ongoing?",
     description:
       "Should subscribers be notified about this event event is changed to ongoing?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -935,6 +937,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Should subscribers be notified when event is changed to ended?",
     description:
       "Should subscribers be notified about this event event is changed to ended?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

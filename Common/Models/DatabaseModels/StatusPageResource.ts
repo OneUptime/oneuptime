@@ -557,6 +557,7 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show current status",
     description: "Show current status like offline, operational or degraded.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -589,6 +590,7 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Uptime Percent",
     description: "Show uptime percent of this monitor for the last 90 days",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -654,6 +656,7 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show History Chart",
     description: "Show a 90 day uptime history of this monitor",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

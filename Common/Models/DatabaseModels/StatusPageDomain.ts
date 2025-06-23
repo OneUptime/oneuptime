@@ -462,6 +462,7 @@ export default class StatusPageDomain extends BaseModel {
     type: TableColumnType.Boolean,
     title: "CNAME Verified",
     description: "Is CNAME Verified?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -431,7 +431,11 @@ export default class TeamPermission extends BaseModel {
       Permission.EditProjectTeam,
     ],
   })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+  @TableColumn({ 
+    isDefaultValueColumn: true, 
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
   @Column({
     type: ColumnType.Boolean,
     default: false,

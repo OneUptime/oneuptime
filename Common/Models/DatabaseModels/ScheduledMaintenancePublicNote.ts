@@ -355,6 +355,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Are subscribers notified?",
     description: "Are subscribers notified about this note?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -382,6 +383,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this note?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -412,6 +414,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

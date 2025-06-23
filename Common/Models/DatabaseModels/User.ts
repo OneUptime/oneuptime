@@ -150,7 +150,7 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, defaultValue: false })
   @Column({
     type: ColumnType.Boolean,
     default: false,
@@ -286,6 +286,7 @@ class User extends UserModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -452,6 +453,7 @@ class User extends UserModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -485,6 +487,7 @@ class User extends UserModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -504,6 +507,7 @@ class User extends UserModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -711,6 +715,7 @@ class User extends UserModel {
     description: "Is two factor authentication enabled?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

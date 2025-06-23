@@ -354,6 +354,7 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     title: "Should subscribers be notified?",
     description:
       "Should subscribers be notified about announcements created from this template?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

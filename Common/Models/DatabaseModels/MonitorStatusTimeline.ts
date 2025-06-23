@@ -410,6 +410,7 @@ export default class MonitorStatusTimeline extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of status change?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -633,6 +633,7 @@ export default class Monitor extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",
     description: "Are owners notified of when this resource is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -668,6 +669,7 @@ export default class Monitor extends BaseModel {
     isDefaultValueColumn: true,
     title: "Disable Monitoring",
     description: "Disable active monitoring for this resource?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -785,6 +787,7 @@ export default class Monitor extends BaseModel {
     title: "Disable Monitoring because of Ongoing Scheduled Maintenance Event",
     description:
       "Disable Monitoring because of Ongoing Scheduled Maintenance Event",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -812,6 +815,7 @@ export default class Monitor extends BaseModel {
     title: "Disable Monitoring because of Manual Incident",
     description:
       "Disable Monitoring because of Incident which is creeated manually by user.",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -994,6 +998,7 @@ export default class Monitor extends BaseModel {
     title: "All Probes Disconnected From This Monitor",
     description:
       "All Probes Disconnected From This Monitor. Is this monitor not being monitored?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1018,6 +1023,7 @@ export default class Monitor extends BaseModel {
     title: "No Probe Enabled On This Monitor",
     description:
       "No Probe Enabled On This Monitor. Is this monitor not being monitored?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -252,6 +252,7 @@ class UserSMS extends BaseModel {
     description: "Is this verified?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

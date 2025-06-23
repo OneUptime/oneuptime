@@ -247,6 +247,7 @@ export default class CallLog extends BaseModel {
     description: "Call Cost in USD Cents",
     canReadOnRelationQuery: false,
     isDefaultValueColumn: true,
+    defaultValue: 0,
   })
   @Column({
     nullable: false,

@@ -440,6 +440,7 @@ export default class MonitorProbe extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

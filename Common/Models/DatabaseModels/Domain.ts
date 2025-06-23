@@ -317,6 +317,7 @@ export default class Domain extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Verified",
     description: "Is this domain verified?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
