@@ -12,6 +12,17 @@ import OneUptimeDate from "../../Types/Date";
 export type AnalyticsModelSchemaType = ZodSchema;
 
 export class AnalyticsModelSchema extends BaseSchema {
+  // Helper function to add default value to openapi schema if it exists
+  private static addDefaultToOpenApi(
+    openApiConfig: any,
+    column: AnalyticsTableColumn,
+  ) {
+    if (column.defaultValue !== undefined && column.defaultValue !== null) {
+      return { ...openApiConfig, default: column.defaultValue };
+    }
+    return openApiConfig;
+  }
+
   public static getModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
   }): AnalyticsModelSchemaType {
@@ -39,75 +50,78 @@ export class AnalyticsModelSchema extends BaseSchema {
       let zodType: ZodTypes.ZodTypeAny;
 
       if (column.type === TableColumnType.ObjectID) {
-        zodType = z.string().openapi({
+        zodType = z.string().openapi(this.addDefaultToOpenApi({
           type: "string",
           example: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        });
+        }, column));
       } else if (column.type === TableColumnType.Date) {
-        zodType = z.date().openapi({
+        zodType = z.date().openapi(this.addDefaultToOpenApi({
           type: "string",
           format: "date-time",
           example: "2023-01-15T12:30:00.000Z",
-        });
+        }, column));
       } else if (column.type === TableColumnType.Text) {
-        zodType = z.string().openapi({
+        zodType = z.string().openapi(this.addDefaultToOpenApi({
           type: "string",
           example: "Example text value",
-        });
+        }, column));
       } else if (column.type === TableColumnType.Number) {
-        zodType = z.number().openapi({ type: "number", example: 42 });
+        zodType = z.number().openapi(this.addDefaultToOpenApi({ type: "number", example: 42 }, column));
       } else if (column.type === TableColumnType.LongNumber) {
-        zodType = z.number().openapi({
+        zodType = z.number().openapi(this.addDefaultToOpenApi({
           type: "number",
           example: 1000000,
-        });
+        }, column));
       } else if (column.type === TableColumnType.Boolean) {
-        zodType = z.boolean().openapi({ type: "boolean", example: true });
+        zodType = z.boolean().openapi(this.addDefaultToOpenApi({ type: "boolean", example: true }, column));
       } else if (column.type === TableColumnType.JSON) {
-        zodType = z.any().openapi({
+        zodType = z.any().openapi(this.addDefaultToOpenApi({
           type: "object",
           example: { key: "value", nested: { data: 123 } },
-        });
+        }, column));
       } else if (column.type === TableColumnType.JSONArray) {
-        zodType = z.array(z.any()).openapi({
+        zodType = z.array(z.any()).openapi(this.addDefaultToOpenApi({
           type: "array",
           items: {
             type: "object",
           },
           example: [{ key: "value" }, { key2: "value2" }],
-        });
+        }, column));
       } else if (column.type === TableColumnType.Decimal) {
-        zodType = z.number().openapi({
+        zodType = z.number().openapi(this.addDefaultToOpenApi({
           type: "number",
           example: 123.45,
-        });
+        }, column));
       } else if (column.type === TableColumnType.ArrayNumber) {
-        zodType = z.array(z.number()).openapi({
+        zodType = z.array(z.number()).openapi(this.addDefaultToOpenApi({
           type: "array",
           items: {
             type: "number",
           },
           example: [1, 2, 3, 4, 5],
-        });
+        }, column));
       } else if (column.type === TableColumnType.ArrayText) {
-        zodType = z.array(z.string()).openapi({
+        zodType = z.array(z.string()).openapi(this.addDefaultToOpenApi({
           type: "array",
           items: {
             type: "string",
           },
           example: ["item1", "item2", "item3"],
-        });
+        }, column));
       } else if (column.type === TableColumnType.IP) {
         zodType = IP.getSchema();
       } else if (column.type === TableColumnType.Port) {
         zodType = Port.getSchema();
       } else {
         // Default fallback
-        zodType = z.any().openapi({
+        zodType = z.any().openapi(this.addDefaultToOpenApi({
           type: "string",
           example: "example_value",
-        });
+        }, column));
       }
+
+      // Apply default value if it exists
+      zodType = this.applyDefaultValue(zodType, column);
 
       if (column.required) {
         // leave as is
@@ -137,57 +151,68 @@ export class AnalyticsModelSchema extends BaseSchema {
       case TableColumnType.Date:
         return OneUptimeDate.getSchema();
       case TableColumnType.Text:
-        return z.string().openapi({
+        return z.string().openapi(this.addDefaultToOpenApi({
           type: "string",
           example: "Example text",
-        });
+        }, column));
       case TableColumnType.Number:
-        return z.number().openapi({ type: "number", example: 42 });
+        return z.number().openapi(this.addDefaultToOpenApi({ type: "number", example: 42 }, column));
       case TableColumnType.LongNumber:
-        return z.number().openapi({
+        return z.number().openapi(this.addDefaultToOpenApi({
           type: "number",
           example: 1000000,
-        });
+        }, column));
       case TableColumnType.Boolean:
-        return z.boolean().openapi({ type: "boolean", example: true });
+        return z.boolean().openapi(this.addDefaultToOpenApi({ type: "boolean", example: true }, column));
       case TableColumnType.JSON:
-        return z.any().openapi({
+        return z.any().openapi(this.addDefaultToOpenApi({
           type: "object",
           example: { key: "value" },
-        });
+        }, column));
       case TableColumnType.JSONArray:
-        return z.array(z.any()).openapi({
+        return z.array(z.any()).openapi(this.addDefaultToOpenApi({
           type: "array",
           items: { type: "object" },
           example: [{ key: "value" }],
-        });
+        }, column));
       case TableColumnType.Decimal:
-        return z.number().openapi({
+        return z.number().openapi(this.addDefaultToOpenApi({
           type: "number",
           example: 123.45,
-        });
+        }, column));
       case TableColumnType.ArrayNumber:
-        return z.array(z.number()).openapi({
+        return z.array(z.number()).openapi(this.addDefaultToOpenApi({
           type: "array",
           items: { type: "number" },
           example: [1, 2, 3],
-        });
+        }, column));
       case TableColumnType.ArrayText:
-        return z.array(z.string()).openapi({
+        return z.array(z.string()).openapi(this.addDefaultToOpenApi({
           type: "array",
           items: { type: "string" },
           example: ["item1", "item2"],
-        });
+        }, column));
       case TableColumnType.IP:
         return IP.getSchema();
       case TableColumnType.Port:
         return Port.getSchema();
       default:
-        return z.any().openapi({
+        return z.any().openapi(this.addDefaultToOpenApi({
           type: "string",
           example: "example_value",
-        });
+        }, column));
     }
+  }
+
+  private static applyDefaultValue(
+    zodType: ZodTypes.ZodTypeAny,
+    column: AnalyticsTableColumn,
+  ): ZodTypes.ZodTypeAny {
+    // Apply default value if it exists in the column metadata
+    if (column.defaultValue !== undefined && column.defaultValue !== null) {
+      zodType = zodType.default(column.defaultValue);
+    }
+    return zodType;
   }
 
   public static getCreateModelSchema(data: {
@@ -224,7 +249,10 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
-      const zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column);
+      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column);
+
+      // Apply default value if it exists
+      zodType = this.applyDefaultValue(zodType, column);
 
       if (column.required) {
         shape[key] = zodType;
