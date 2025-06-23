@@ -58,7 +58,7 @@ provider "${this.config.providerName}" {
 ### Optional
 
 - \`oneuptime_url\` (String) The ${this.config.providerName} URL (without /api path). Defaults to 'oneuptime.com' if not specified. The provider automatically appends '/api' to the URL. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_URL\` environment variable.
-- \`api_key\` (String, Sensitive) API key for authentication. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_API_KEY\` environment variable.
+- \`api_key\` (String, Sensitive) API key for authentication. Required. Can also be set via the \`${StringUtils.toConstantCase(this.config.providerName)}_API_KEY\` environment variable.
 `;
 
     await this.fileGenerator.writeFileInDir("docs", "index.md", providerDoc);

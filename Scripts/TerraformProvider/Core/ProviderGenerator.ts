@@ -67,7 +67,7 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(c
             },
             "api_key": schema.StringAttribute{
                 MarkdownDescription: "API key for authentication",
-                Optional:            true,
+                Required:            true,
                 Sensitive:           true,
             },
         },
@@ -105,8 +105,25 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Configur
         oneuptimeUrl = data.OneuptimeUrl.ValueString()
     }
 
+    if data.ApiKey.IsUnknown() {
+        // Cannot connect to client with an unknown value
+        resp.Diagnostics.AddWarning(
+            "Unable to create client",
+            "Cannot use unknown value as api_key",
+        )
+        return
+    }
+
     if data.ApiKey.IsNull() {
         apiKey = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_API_KEY")
+        if apiKey == "" {
+            resp.Diagnostics.AddError(
+                "Missing API Key",
+                "API key is required for authentication. "+
+                    "Please provide it via the api_key attribute or the ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY environment variable.",
+            )
+            return
+        }
     } else {
         apiKey = data.ApiKey.ValueString()
     }
@@ -345,6 +362,14 @@ func NewConfig(ctx context.Context, model ${StringUtils.toPascalCase(this.config
     // Set API key
     if model.ApiKey.IsNull() {
         config.ApiKey = os.Getenv("${StringUtils.toConstantCase(this.config.providerName)}_API_KEY")
+        if config.ApiKey == "" {
+            diags.AddError(
+                "Missing API Key",
+                "API key is required for authentication. "+
+                    "Please provide it via the api_key attribute or the ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY environment variable.",
+            )
+            return nil, diags
+        }
     } else {
         config.ApiKey = model.ApiKey.ValueString()
     }
