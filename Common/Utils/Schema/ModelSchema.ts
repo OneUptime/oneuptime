@@ -259,7 +259,7 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.MonitorType) {
         zodType = z.string().openapi({
           type: "string",
-          example: "HTTP",
+          example: "Manual",
         });
       } else if (column.type === TableColumnType.WorkflowStatus) {
         zodType = z.string().openapi({
@@ -1092,8 +1092,12 @@ export class ModelSchema extends BaseSchema {
       );
 
       // Check if the column is required and make it optional if not
+      // Also make columns with default values optional in create schemas
       if (column.required) {
         // leave as is
+      } else if(column.isDefaultValueColumn){
+        // should be optional
+        zodType = zodType.optional();
       } else {
         zodType = zodType.optional();
       }
@@ -1493,6 +1497,11 @@ export class ModelSchema extends BaseSchema {
 
       // Only include specified fields if includedFields is provided
       if (data.includedFields && !data.includedFields.includes(key)) {
+        continue;
+      }
+
+      // Skip default value columns in create schema examples
+      if (data.schemaType === "create" && column.isDefaultValueColumn) {
         continue;
       }
 
