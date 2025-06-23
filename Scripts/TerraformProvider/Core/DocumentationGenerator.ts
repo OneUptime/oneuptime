@@ -470,7 +470,7 @@ go generate
 
 ## Contributing
 
-1. Fork the repository
+1. This is a read-only repository. The source code is generated from the OneUptime OpenAPI specification. You can check the main repository at [OneUptime](https://github.com/oneuptime/oneuptime). Please fork the main repository and make changes there.
 2. Create your feature branch (\`git checkout -b feature/amazing-feature\`)
 3. Commit your changes (\`git commit -am 'Add some amazing feature'\`)
 4. Push to the branch (\`git push origin feature/amazing-feature\`)
