@@ -280,8 +280,17 @@ export class OpenAPIParser {
       );
     }
 
+    // Store which fields are in create/update operations before adding read fields
+    const createUpdateFields: Set<string> = new Set<string>();
+    const requiredFields: Set<string> = new Set<string>();
+    for (const [fieldName, attr] of Object.entries(schema)) {
+      createUpdateFields.add(fieldName);
+      if ((attr as any).required) {
+        requiredFields.add(fieldName);
+      }
+    }
+
     // Second pass: Extract schema from read operations (ensure all output fields are included)
-    // But preserve the required status from create operations
     if (operations.read) {
       this.addSchemaFromOperation(
         schema,
@@ -291,21 +300,32 @@ export class OpenAPIParser {
       );
     }
 
-    // Store the required fields from create/update operations AFTER all processing
-    const requiredFields: Set<string> = new Set<string>();
+    // Third pass: Identify fields that should be both optional and computed
+    // These are fields that:
+    // 1. Appear in both create/update AND read operations, but
+    // 2. Are not required in create/update operations
+    // This indicates server-managed fields that can be optionally set by users
     for (const [fieldName, attr] of Object.entries(schema)) {
-      if ((attr as any).required) {
-        requiredFields.add(fieldName);
-      }
-    }
-    // Restore required status for fields that were required in create operations
-    for (const fieldName of requiredFields) {
-      if (schema[fieldName]) {
-        // Only restore if the field isn't already set to required (to avoid overriding correct OpenAPI processing)
-        if (schema[fieldName].required !== true) {
-          schema[fieldName].required = true;
-          schema[fieldName].computed = false;
-        }
+      const isInCreateUpdate = createUpdateFields.has(fieldName);
+      const isRequired = requiredFields.has(fieldName);
+      const isComputed = attr.computed;
+
+      if (isInCreateUpdate && !isRequired && isComputed) {
+        // Field is optional in create/update but computed in read
+        // This means it should be both optional and computed
+        schema[fieldName] = {
+          ...attr,
+          required: false,
+          computed: true,
+          optional: true, // Mark as explicitly optional and computed
+        };
+      } else if (isRequired) {
+        // Restore required status for fields that were required in create operations
+        schema[fieldName] = {
+          ...attr,
+          required: true,
+          computed: false,
+        };
       }
     }
 
@@ -550,14 +570,22 @@ export class OpenAPIParser {
           continue;
         }
 
-        // If field already exists and we're adding computed fields, don't override required status
+        // If field already exists and we're adding computed fields, check if it should be both optional and computed
         if (computed && schema[terraformName]) {
           // Update description if it's better in the read schema
           if (description && !schema[terraformName].description) {
             schema[terraformName].description = description;
           }
-          // Keep the existing field but ensure it's available in responses
-          // Don't overwrite fields that were defined in create/update operations
+          
+          // If the field exists from create/update and now appears in read, 
+          // it should be marked as both optional and computed (server-managed field)
+          if (!schema[terraformName].required) {
+            schema[terraformName] = {
+              ...schema[terraformName],
+              computed: true,
+              optional: true, // Mark as explicitly optional and computed
+            };
+          }
           continue;
         }
 

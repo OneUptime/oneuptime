@@ -345,6 +345,10 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
 
     if (attr.required) {
       options.push("Required: true");
+    } else if (attr.optional && attr.computed) {
+      // Handle fields that are both optional and computed (server-managed with optional user input)
+      options.push("Optional: true");
+      options.push("Computed: true");
     } else if (attr.computed) {
       options.push("Computed: true");
     } else if (attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema) {
@@ -929,7 +933,12 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const immutableFields: Array<string> = ["projectId", "project_id"];
 
     for (const [name, attr] of Object.entries(schema)) {
-      if (name === "id" || attr.computed) {
+      if (name === "id") {
+        continue;
+      }
+
+      // Only exclude fields that are computed-only (not optional+computed)
+      if (attr.computed && !attr.optional) {
         continue;
       }
 

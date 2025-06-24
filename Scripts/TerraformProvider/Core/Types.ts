@@ -107,6 +107,7 @@ export interface TerraformAttribute {
   description?: string;
   required?: boolean;
   computed?: boolean;
+  optional?: boolean; // Explicitly mark as optional (useful for optional+computed fields)
   sensitive?: boolean;
   forceNew?: boolean;
   default?: any;
