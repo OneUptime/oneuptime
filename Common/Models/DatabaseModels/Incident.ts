@@ -562,7 +562,7 @@ export default class Incident extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    computed: true,
+    isDefaultValueColumn: true,
     required: true,
     title: "Current Incident State ID",
     description: "Current Incident State ID",

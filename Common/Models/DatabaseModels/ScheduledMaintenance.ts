@@ -566,6 +566,7 @@ export default class ScheduledMaintenance extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
+    isDefaultValueColumn: true,
     title: "Current Scheduled Maintenance State ID",
     description:
       "Scheduled Maintenance State ID. The state the event currently is in.",
