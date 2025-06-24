@@ -744,8 +744,10 @@ upload_release_assets() {
     local builds_dir="builds"
     
     if [[ ! -d "$builds_dir" ]]; then
-        print_error "Builds directory not found. Provider generation should have created builds."
-        print_error "Please ensure 'npm run generate-terraform-provider' includes the build step."
+        print_error "Builds directory not found. Provider generation should have created builds directory with multi-platform binaries."
+        print_error "Expected directory: $PROVIDER_FRAMEWORK_DIR/builds"
+        print_error "Please ensure 'npm run generate-terraform-provider' completed successfully and created the builds directory."
+        print_error "If the issue persists, try running 'make release' manually in the provider directory."
         exit 1
     fi
 

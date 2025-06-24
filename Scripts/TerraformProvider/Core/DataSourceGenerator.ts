@@ -6,6 +6,7 @@ import {
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
+import { GoCodeGenerator } from "./GoCodeGenerator";
 
 export class DataSourceGenerator {
   private spec: OpenAPISpec;
@@ -204,7 +205,7 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     const options: string[] = [];
 
     if (attr.description) {
-      options.push(`MarkdownDescription: "${attr.description}"`);
+      options.push(`MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`);
     }
 
     if (attr.required) {
@@ -434,7 +435,8 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
     const mappings: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
-      const fieldName: string = StringUtils.toPascalCase(name);
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const setter: string = this.generateResponseSetter(
         attr.type,
         `data.${fieldName}`,

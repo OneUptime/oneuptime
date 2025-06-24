@@ -1,6 +1,7 @@
 import { TerraformProviderConfig, OpenAPISpec } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
+import { GoCodeGenerator } from "./GoCodeGenerator";
 
 export class ProviderGenerator {
   private config: TerraformProviderConfig;
@@ -58,7 +59,7 @@ func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Metadata
 
 func (p *${StringUtils.toPascalCase(this.config.providerName)}Provider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${this.spec.info.description || `Terraform provider for ${this.config.providerName}`}",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(this.spec.info.description || `Terraform provider for ${this.config.providerName}`)}",
 
         Attributes: map[string]schema.Attribute{
             "oneuptime_url": schema.StringAttribute{

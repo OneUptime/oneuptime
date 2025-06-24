@@ -7,6 +7,7 @@ import {
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
+import { GoCodeGenerator } from "./GoCodeGenerator";
 
 export class ResourceGenerator {
   private spec: OpenAPISpec;
@@ -334,7 +335,7 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     const options: string[] = [];
 
     if (attr.description) {
-      options.push(`MarkdownDescription: "${attr.description}"`);
+      options.push(`MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`);
     }
 
     // Check if this field is in the create or update schema (for fields with defaults)

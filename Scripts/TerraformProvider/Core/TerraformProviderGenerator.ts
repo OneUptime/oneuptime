@@ -36,18 +36,19 @@ build:
 	go build -o \${BINARY}
 
 release:
-	GOOS=darwin GOARCH=amd64 go build -o ./bin/\${BINARY}_\${VERSION}_darwin_amd64
-	GOOS=freebsd GOARCH=386 go build -o ./bin/\${BINARY}_\${VERSION}_freebsd_386
-	GOOS=freebsd GOARCH=amd64 go build -o ./bin/\${BINARY}_\${VERSION}_freebsd_amd64
-	GOOS=freebsd GOARCH=arm go build -o ./bin/\${BINARY}_\${VERSION}_freebsd_arm
-	GOOS=linux GOARCH=386 go build -o ./bin/\${BINARY}_\${VERSION}_linux_386
-	GOOS=linux GOARCH=amd64 go build -o ./bin/\${BINARY}_\${VERSION}_linux_amd64
-	GOOS=linux GOARCH=arm go build -o ./bin/\${BINARY}_\${VERSION}_linux_arm
-	GOOS=openbsd GOARCH=386 go build -o ./bin/\${BINARY}_\${VERSION}_openbsd_386
-	GOOS=openbsd GOARCH=amd64 go build -o ./bin/\${BINARY}_\${VERSION}_openbsd_amd64
-	GOOS=solaris GOARCH=amd64 go build -o ./bin/\${BINARY}_\${VERSION}_solaris_amd64
-	GOOS=windows GOARCH=386 go build -o ./bin/\${BINARY}_\${VERSION}_windows_386
-	GOOS=windows GOARCH=amd64 go build -o ./bin/\${BINARY}_\${VERSION}_windows_amd64
+	mkdir -p ./builds
+	GOOS=darwin GOARCH=amd64 go build -o ./builds/\${BINARY}_darwin_amd64
+	GOOS=freebsd GOARCH=386 go build -o ./builds/\${BINARY}_freebsd_386
+	GOOS=freebsd GOARCH=amd64 go build -o ./builds/\${BINARY}_freebsd_amd64
+	GOOS=freebsd GOARCH=arm go build -o ./builds/\${BINARY}_freebsd_arm
+	GOOS=linux GOARCH=386 go build -o ./builds/\${BINARY}_linux_386
+	GOOS=linux GOARCH=amd64 go build -o ./builds/\${BINARY}_linux_amd64
+	GOOS=linux GOARCH=arm go build -o ./builds/\${BINARY}_linux_arm
+	GOOS=openbsd GOARCH=386 go build -o ./builds/\${BINARY}_openbsd_386
+	GOOS=openbsd GOARCH=amd64 go build -o ./builds/\${BINARY}_openbsd_amd64
+	GOOS=solaris GOARCH=amd64 go build -o ./builds/\${BINARY}_solaris_amd64
+	GOOS=windows GOARCH=386 go build -o ./builds/\${BINARY}_windows_386.exe
+	GOOS=windows GOARCH=amd64 go build -o ./builds/\${BINARY}_windows_amd64.exe
 
 install: build
 	mkdir -p ~/.terraform.d/plugins/\${HOSTNAME}/\${NAMESPACE}/\${NAME}/\${VERSION}/\${OS_ARCH}
@@ -62,7 +63,7 @@ testacc:
 
 clean:
 	rm -f \${BINARY}
-	rm -rf ./bin/*
+	rm -rf ./builds/*
 
 .PHONY: build release install test testacc clean
 `.trim();
