@@ -385,12 +385,7 @@ export default class IncidentOwnerTeam extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentOwnerTeam,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -402,6 +397,8 @@ export default class IncidentOwnerTeam extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",

@@ -340,12 +340,7 @@ export default class IncidentInternalNote extends BaseModel {
   public note?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentInternalNote,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -357,6 +352,8 @@ export default class IncidentInternalNote extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",

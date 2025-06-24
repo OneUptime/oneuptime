@@ -725,6 +725,8 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Status Page Subscribers Notified On Event Scheduled",
     description: "Status Page Subscribers Notified On Event Scheduled",
@@ -859,12 +861,7 @@ export default class ScheduledMaintenance extends BaseModel {
   public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectScheduledMaintenance,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -876,6 +873,8 @@ export default class ScheduledMaintenance extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",

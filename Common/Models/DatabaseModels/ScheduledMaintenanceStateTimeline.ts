@@ -386,12 +386,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   public scheduledMaintenanceStateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceStateTimeline,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -402,6 +397,8 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Are subscribers notified?",
     description: "Are subscribers notified about this incident state change?",
@@ -441,12 +438,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceStateTimeline,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -458,6 +450,8 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",

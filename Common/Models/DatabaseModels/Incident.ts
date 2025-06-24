@@ -743,6 +743,8 @@ export default class Incident extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Are subscribers notified?",
     description: "Are subscribers notified about this incident?",
@@ -817,12 +819,7 @@ export default class Incident extends BaseModel {
   public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -834,6 +831,8 @@ export default class Incident extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",

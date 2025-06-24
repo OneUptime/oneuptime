@@ -387,12 +387,7 @@ export default class IncidentStateTimeline extends BaseModel {
   public incidentStateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentStateTimeline,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -403,6 +398,8 @@ export default class IncidentStateTimeline extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Are subscribers notified?",
     description: "Are subscribers notified about this incident state change?",
@@ -442,12 +439,7 @@ export default class IncidentStateTimeline extends BaseModel {
   public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateIncidentStateTimeline,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -459,6 +451,8 @@ export default class IncidentStateTimeline extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",

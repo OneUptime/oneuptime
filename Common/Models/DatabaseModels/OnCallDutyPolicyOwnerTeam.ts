@@ -395,12 +395,7 @@ export default class OnCallDutyPolicyOwnerTeam extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateOnCallDutyPolicyOwnerTeam,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -412,6 +407,8 @@ export default class OnCallDutyPolicyOwnerTeam extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
