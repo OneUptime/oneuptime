@@ -112,6 +112,7 @@ export interface TerraformAttribute {
   default?: any;
   apiFieldName?: string; // Original OpenAPI field name for API requests
   example?: any; // Example value from OpenAPI spec
+  isComplexObject?: boolean; // Flag to indicate this string field is actually a complex object
 }
 
 export interface GoType {

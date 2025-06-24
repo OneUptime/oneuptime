@@ -603,6 +603,7 @@ export class OpenAPIParser {
           apiFieldName: propName, // Preserve original OpenAPI property name
           example: example, // Extract example from OpenAPI schema
           default: defaultValue, // Extract default value from OpenAPI schema
+          isComplexObject: propType === "object", // Flag to indicate this string field is actually a complex object
         };
       }
     }
@@ -627,7 +628,9 @@ export class OpenAPIParser {
       case "array":
         return "list";
       case "object":
-        return "map";
+        // For now, treat complex objects as JSON strings to handle nested structures
+        // This allows users to pass complex nested objects that will be serialized to JSON
+        return "string";
       default:
         return "string";
     }

@@ -78,6 +78,9 @@ export class ResourceGenerator {
       imports.push("net/http");
     }
 
+    // Always add encoding/json since we have helper methods that use it
+    imports.push("encoding/json");
+
     if (hasDefaultValues) {
       const hasDefaultBools: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
@@ -242,6 +245,21 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
     
     var result []interface{}
     terraformList.ElementsAs(context.Background(), &result, false)
+    return result
+}
+
+// Helper method to parse JSON field for complex objects
+func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.String) interface{} {
+    if terraformString.IsNull() || terraformString.IsUnknown() || terraformString.ValueString() == "" {
+        return nil
+    }
+    
+    var result interface{}
+    if err := json.Unmarshal([]byte(terraformString.ValueString()), &result); err != nil {
+        // If JSON parsing fails, return the raw string
+        return terraformString.ValueString()
+    }
+    
     return result
 }
 `;
@@ -847,10 +865,17 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         );
         
         if (attr.type === "string") {
-          // For strings, only include if not null and not empty
-          conditionalAssignments.push(
-            `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
-          );
+          if (attr.isComplexObject) {
+            // For complex object strings, parse JSON and convert to interface{}
+            conditionalAssignments.push(
+              `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        var ${fieldName.toLowerCase()}Data interface{}\n        if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {\n            requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data\n        }\n    }`,
+            );
+          } else {
+            // For regular strings, only include if not null and not empty
+            conditionalAssignments.push(
+              `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
+            );
+          }
         } else if (attr.type === "bool") {
           // For booleans, always include since they have meaningful defaults
           conditionalAssignments.push(
@@ -917,11 +942,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           `        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`,
         );
       } else {
-        const value: string = this.getGoValueForTerraformType(
-          attr.type,
-          `data.${fieldName}`,
-        );
-        fields.push(`        "${apiFieldName}": ${value},`);
+        if (attr.type === "string" && attr.isComplexObject) {
+          // For complex object strings, parse JSON and convert to interface{}
+          fields.push(`        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`);
+        } else {
+          const value: string = this.getGoValueForTerraformType(
+            attr.type,
+            `data.${fieldName}`,
+          );
+          fields.push(`        "${apiFieldName}": ${value},`);
+        }
       }
     }
 
@@ -995,6 +1025,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           `data.${fieldName}`,
           `dataMap["${apiFieldName}"]`,
           attr.default !== undefined && attr.default !== null, // hasDefault
+          attr.isComplexObject || false, // isComplexObject
         );
         mappings.push(`    ${setter}`);
       }
@@ -1015,14 +1046,30 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     fieldName: string,
     responseValue: string,
     hasDefault: boolean = false,
+    isComplexObject: boolean = false,
   ): string {
     switch (terraformType) {
       case "string":
-        return `if val, ok := ${responseValue}.(string); ok && val != "" {
+        if (isComplexObject) {
+          // For complex object strings, convert API object response to JSON string
+          return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
+        if jsonBytes, err := json.Marshal(val); err == nil {
+            ${fieldName} = types.StringValue(string(jsonBytes))
+        } else {
+            ${fieldName} = types.StringNull()
+        }
+    } else if val, ok := ${responseValue}.(string); ok && val != "" {
         ${fieldName} = types.StringValue(val)
     } else {
         ${fieldName} = types.StringNull()
     }`;
+        } else {
+          return `if val, ok := ${responseValue}.(string); ok && val != "" {
+        ${fieldName} = types.StringValue(val)
+    } else {
+        ${fieldName} = types.StringNull()
+    }`;
+        }
       case "number":
         return `if val, ok := ${responseValue}.(float64); ok {
         ${fieldName} = types.NumberValue(big.NewFloat(val))
