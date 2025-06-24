@@ -79,19 +79,28 @@ export class ResourceGenerator {
     }
 
     if (hasDefaultValues) {
-      const hasDefaultBools: boolean = Object.values(resource.schema).some(
-        (attr: any) => {
-          return attr.default !== undefined && attr.default !== null && attr.type === "bool";
+      const hasDefaultBools: boolean = Object.entries(resource.schema).some(
+        ([name, attr]: [string, any]) => {
+          const isInUpdateSchema = resource?.operationSchemas?.update && 
+                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
+          return attr.default !== undefined && attr.default !== null && attr.type === "bool" && 
+                 !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema);
         },
       );
-      const hasDefaultNumbers: boolean = Object.values(resource.schema).some(
-        (attr: any) => {
-          return attr.default !== undefined && attr.default !== null && attr.type === "number";
+      const hasDefaultNumbers: boolean = Object.entries(resource.schema).some(
+        ([name, attr]: [string, any]) => {
+          const isInUpdateSchema = resource?.operationSchemas?.update && 
+                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
+          return attr.default !== undefined && attr.default !== null && attr.type === "number" && 
+                 !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema);
         },
       );
-      const hasDefaultStrings: boolean = Object.values(resource.schema).some(
-        (attr: any) => {
-          return attr.default !== undefined && attr.default !== null && attr.type === "string";
+      const hasDefaultStrings: boolean = Object.entries(resource.schema).some(
+        ([name, attr]: [string, any]) => {
+          const isInUpdateSchema = resource?.operationSchemas?.update && 
+                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
+          return attr.default !== undefined && attr.default !== null && attr.type === "string" && 
+                 !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema);
         },
       );
 
@@ -104,6 +113,28 @@ export class ResourceGenerator {
       if (hasDefaultStrings) {
         imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault");
       }
+    }
+
+    // Check for list types that need the attr package (for response mapping)
+    const hasListTypes: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return attr.type === "list";
+      },
+    );
+
+    // Check for list types that need default empty lists
+    const hasListDefaults: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return attr.type === "list" && !attr.required && attr.default === undefined;
+      },
+    );
+
+    if (hasListTypes) {
+      imports.push("github.com/hashicorp/terraform-plugin-framework/attr");
+    }
+
+    if (hasListDefaults) {
+      imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault");
     }
 
     if (resource.operations.create || resource.operations.update) {
@@ -237,6 +268,7 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
       const schemaAttr: string = this.generateSchemaAttribute(
         sanitizedName,
         attr,
+        resource,
       );
       attributes.push(`            "${sanitizedName}": ${schemaAttr},`);
     }
@@ -263,7 +295,7 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
     return name;
   }
 
-  private generateSchemaAttribute(name: string, attr: any): string {
+  private generateSchemaAttribute(name: string, attr: any, resource?: TerraformResource): string {
     const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
     const options: string[] = [];
 
@@ -271,16 +303,24 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
       options.push(`MarkdownDescription: "${attr.description}"`);
     }
 
+    // Check if this field is in the update schema (for fields with defaults)
+    const isInUpdateSchema = resource?.operationSchemas?.update && 
+                             Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
+
     if (attr.required) {
       options.push("Required: true");
     } else if (attr.computed) {
+      options.push("Computed: true");
+    } else if (attr.default !== undefined && attr.default !== null && !isInUpdateSchema) {
+      // Fields with defaults that are not in update schema should be Computed only
+      // This prevents drift when the server manages these fields
       options.push("Computed: true");
     } else {
       options.push("Optional: true");
     }
 
-    // Attributes with default values must also be computed
-    if (attr.default !== undefined && attr.default !== null && !attr.required && !attr.computed) {
+    // Attributes with default values that are in the update schema must also be computed
+    if (attr.default !== undefined && attr.default !== null && !attr.required && !attr.computed && isInUpdateSchema) {
       options.push("Computed: true");
     }
 
@@ -288,8 +328,8 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
       options.push("Sensitive: true");
     }
 
-    // Add default value if available
-    if (attr.default !== undefined && attr.default !== null) {
+    // Add default value if available and field is not computed-only
+    if (attr.default !== undefined && attr.default !== null && !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema)) {
       if (attr.type === "bool") {
         // Convert various values to boolean
         let boolValue: boolean;
@@ -307,6 +347,15 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
         options.push(`Default: numberdefault.StaticBigFloat(big.NewFloat(${attr.default}))`);
       } else if (attr.type === "string") {
         options.push(`Default: stringdefault.StaticString("${attr.default}")`);
+      }
+    }
+
+    // Add default empty list for all list types to avoid null vs empty list inconsistencies
+    if (attr.type === "list" && !attr.required && attr.default === undefined) {
+      options.push("Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{}))");
+      // Ensure the attribute is also computed since it has a default
+      if (!options.includes("Computed: true")) {
+        options.push("Computed: true");
       }
     }
 
@@ -945,6 +994,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           attr.type,
           `data.${fieldName}`,
           `dataMap["${apiFieldName}"]`,
+          attr.default !== undefined && attr.default !== null, // hasDefault
         );
         mappings.push(`    ${setter}`);
       }
@@ -964,6 +1014,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     terraformType: string,
     fieldName: string,
     responseValue: string,
+    hasDefault: boolean = false,
   ): string {
     switch (terraformType) {
       case "string":
@@ -979,11 +1030,18 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = types.NumberNull()
     }`;
       case "bool":
-        return `if val, ok := ${responseValue}.(bool); ok {
+        if (hasDefault) {
+          // For boolean fields with defaults, don't set to null when missing - let the default value be used
+          return `if val, ok := ${responseValue}.(bool); ok {
+        ${fieldName} = types.BoolValue(val)
+    }`;
+        } else {
+          return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
     } else if ${responseValue} == nil {
         ${fieldName} = types.BoolNull()
     }`;
+        }
       case "map":
         return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
         // Convert API response map to Terraform map
@@ -997,8 +1055,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // Convert API response list to Terraform list
         listValue, _ := types.ListValueFrom(ctx, types.StringType, val)
         ${fieldName} = listValue
-    } else if ${responseValue} == nil {
-        ${fieldName} = types.ListNull(types.StringType)
+    } else {
+        // For lists, always use empty list instead of null to match default values
+        ${fieldName} = types.ListValueMust(types.StringType, []attr.Value{})
     }`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
