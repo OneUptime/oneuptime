@@ -509,10 +509,7 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      
     ],
     read: [
       Permission.ProjectOwner,
@@ -530,6 +527,7 @@ export default class Incident extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "currentIncidentStateId",
     type: TableColumnType.Entity,
+    computed: true,
     modelType: IncidentState,
     title: "Current Incident State",
     description:
@@ -550,10 +548,7 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
+      
     ],
     read: [
       Permission.ProjectOwner,
@@ -571,6 +566,7 @@ export default class Incident extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
+    computed: true,
     required: true,
     title: "Current Incident State ID",
     description: "Current Incident State ID",

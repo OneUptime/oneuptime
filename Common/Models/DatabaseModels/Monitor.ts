@@ -477,10 +477,7 @@ export default class Monitor extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
+      
     ],
     read: [
       Permission.ProjectOwner,
@@ -499,7 +496,7 @@ export default class Monitor extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    isDefaultValueColumn: true, // auto linked to operational state on monitor creation
+    computed: true, // auto linked to operational state on monitor creation
     title: "Current Monitor Status ID",
     description: "Whats the current status ID of this monitor?",
     canReadOnRelationQuery: true,
