@@ -276,6 +276,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     type: TableColumnType.Slug,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    computed: true,
   })
   @Column({
     nullable: false,

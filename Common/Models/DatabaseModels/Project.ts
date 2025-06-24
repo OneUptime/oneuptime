@@ -114,6 +114,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Slug,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    computed: true,
   })
   @Column({
     nullable: false,

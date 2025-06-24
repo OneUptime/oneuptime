@@ -105,7 +105,7 @@ class User extends UserModel {
 
   @Index()
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [],
     update: [],
   })
@@ -113,6 +113,7 @@ class User extends UserModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -538,7 +539,10 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.OTP })
+  @TableColumn({ 
+    type: TableColumnType.OTP,
+    computed: true,
+  })
   @Column({
     type: ColumnType.OTP,
     length: ColumnLength.OTP,
