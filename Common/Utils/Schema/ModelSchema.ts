@@ -382,15 +382,29 @@ export class ModelSchema extends BaseSchema {
       }
 
       // add title and description to the schema
-      if (column.title) {
-        zodType = zodType.describe(column.title);
+      let finalDescription = "";
+      
+      // Add column description first if it exists
+      if (column.description) {
+        finalDescription = column.description;
+      } else if (column.title) {
+        finalDescription = column.title;
       }
 
-      // Add permissions description to the schema
+      // Add permissions description, prefixed to the column description
       const permissionsDescription: string =
         this.getColumnPermissionsDescription(model, key);
       if (permissionsDescription) {
-        zodType = zodType.describe(permissionsDescription);
+        if (finalDescription) {
+          finalDescription = `${finalDescription}. ${permissionsDescription}`;
+        } else {
+          finalDescription = permissionsDescription;
+        }
+      }
+
+      // Set the final combined description
+      if (finalDescription) {
+        zodType = zodType.describe(finalDescription);
       }
 
       // Mark computed fields as readOnly in OpenAPI spec
@@ -1156,15 +1170,29 @@ export class ModelSchema extends BaseSchema {
       }
 
       // Add title and description to the schema
-      if (column.title) {
-        zodType = zodType.describe(column.title);
+      let finalDescription = "";
+      
+      // Add column description first if it exists
+      if (column.description) {
+        finalDescription = column.description;
+      } else if (column.title) {
+        finalDescription = column.title;
       }
 
-      // Add permissions description to the schema
+      // Add permissions description, prefixed to the column description
       const permissionsDescription: string =
         this.getColumnPermissionsDescription(model, key);
       if (permissionsDescription) {
-        zodType = zodType.describe(permissionsDescription);
+        if (finalDescription) {
+          finalDescription = `${finalDescription}. ${permissionsDescription}`;
+        } else {
+          finalDescription = permissionsDescription;
+        }
+      }
+
+      // Set the final combined description
+      if (finalDescription) {
+        zodType = zodType.describe(finalDescription);
       }
 
       shape[key] = zodType;
