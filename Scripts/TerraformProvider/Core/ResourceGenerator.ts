@@ -84,26 +84,32 @@ export class ResourceGenerator {
     if (hasDefaultValues) {
       const hasDefaultBools: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
+          const isInCreateSchema = resource?.operationSchemas?.create && 
+                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
           const isInUpdateSchema = resource?.operationSchemas?.update && 
                                    Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
           return attr.default !== undefined && attr.default !== null && attr.type === "bool" && 
-                 !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema);
+                 !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema);
         },
       );
       const hasDefaultNumbers: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
+          const isInCreateSchema = resource?.operationSchemas?.create && 
+                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
           const isInUpdateSchema = resource?.operationSchemas?.update && 
                                    Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
           return attr.default !== undefined && attr.default !== null && attr.type === "number" && 
-                 !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema);
+                 !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema);
         },
       );
       const hasDefaultStrings: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
+          const isInCreateSchema = resource?.operationSchemas?.create && 
+                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
           const isInUpdateSchema = resource?.operationSchemas?.update && 
                                    Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
           return attr.default !== undefined && attr.default !== null && attr.type === "string" && 
-                 !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema);
+                 !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema);
         },
       );
 
@@ -321,7 +327,9 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
       options.push(`MarkdownDescription: "${attr.description}"`);
     }
 
-    // Check if this field is in the update schema (for fields with defaults)
+    // Check if this field is in the create or update schema (for fields with defaults)
+    const isInCreateSchema = resource?.operationSchemas?.create && 
+                             Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
     const isInUpdateSchema = resource?.operationSchemas?.update && 
                              Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
 
@@ -329,16 +337,16 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
       options.push("Required: true");
     } else if (attr.computed) {
       options.push("Computed: true");
-    } else if (attr.default !== undefined && attr.default !== null && !isInUpdateSchema) {
-      // Fields with defaults that are not in update schema should be Computed only
+    } else if (attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema) {
+      // Fields with defaults that are not in create or update schema should be Computed only
       // This prevents drift when the server manages these fields
       options.push("Computed: true");
     } else {
       options.push("Optional: true");
     }
 
-    // Attributes with default values that are in the update schema must also be computed
-    if (attr.default !== undefined && attr.default !== null && !attr.required && !attr.computed && isInUpdateSchema) {
+    // Attributes with default values that are in the create or update schema must also be computed
+    if (attr.default !== undefined && attr.default !== null && !attr.required && !attr.computed && (isInCreateSchema || isInUpdateSchema)) {
       options.push("Computed: true");
     }
 
@@ -347,7 +355,7 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     }
 
     // Add default value if available and field is not computed-only
-    if (attr.default !== undefined && attr.default !== null && !(attr.default !== undefined && attr.default !== null && !isInUpdateSchema)) {
+    if (attr.default !== undefined && attr.default !== null && !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema)) {
       if (attr.type === "bool") {
         // Convert various values to boolean
         let boolValue: boolean;
