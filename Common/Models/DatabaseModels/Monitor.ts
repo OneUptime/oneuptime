@@ -496,7 +496,7 @@ export default class Monitor extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
-    computed: true, // auto linked to operational state on monitor creation
+    computed: true, 
     title: "Current Monitor Status ID",
     description: "Whats the current status ID of this monitor?",
     canReadOnRelationQuery: true,

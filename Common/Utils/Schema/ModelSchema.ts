@@ -1082,6 +1082,14 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      // Skip computed fields for create and update operations
+      if (
+        column.computed &&
+        (data.schemaType === "create")
+      ) {
+        continue;
+      }
+
       // Filter out columns with no permissions (root-only access)
       const accessControl: ColumnAccessControl | undefined =
         columnAccessControl[key];
