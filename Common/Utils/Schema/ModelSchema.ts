@@ -393,6 +393,11 @@ export class ModelSchema extends BaseSchema {
         zodType = zodType.describe(permissionsDescription);
       }
 
+      // Mark computed fields as readOnly in OpenAPI spec
+      if (column.computed) {
+        zodType = zodType.openapi({ readOnly: true });
+      }
+
       shape[key] = zodType;
     }
 
@@ -1085,7 +1090,7 @@ export class ModelSchema extends BaseSchema {
       // Skip computed fields for create and update operations
       if (
         column.computed &&
-        (data.schemaType === "create")
+        (data.schemaType === "create" || data.schemaType === "update")
       ) {
         continue;
       }
@@ -1153,6 +1158,13 @@ export class ModelSchema extends BaseSchema {
       // Add title and description to the schema
       if (column.title) {
         zodType = zodType.describe(column.title);
+      }
+
+      // Add permissions description to the schema
+      const permissionsDescription: string =
+        this.getColumnPermissionsDescription(model, key);
+      if (permissionsDescription) {
+        zodType = zodType.describe(permissionsDescription);
       }
 
       shape[key] = zodType;
@@ -1434,6 +1446,11 @@ export class ModelSchema extends BaseSchema {
     // Apply default value if it exists in the column metadata
     if (column.defaultValue !== undefined && column.defaultValue !== null) {
       zodType = zodType.default(column.defaultValue);
+    }
+
+    // Mark computed fields as readOnly in OpenAPI spec
+    if (column.computed) {
+      zodType = zodType.openapi({ readOnly: true });
     }
 
     return zodType;
