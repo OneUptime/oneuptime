@@ -129,7 +129,11 @@ export class ModelSchema extends BaseSchema {
         column.type === TableColumnType.Number ||
         column.type === TableColumnType.PositiveNumber
       ) {
-        zodType = z.number().openapi({ type: "number", example: 42 });
+        const openapiConfig: any = { type: "number", example: 42 };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Email) {
         zodType = Email.getSchema();
       } else if (column.type === TableColumnType.HashedString) {
@@ -141,15 +145,23 @@ export class ModelSchema extends BaseSchema {
           .string()
           .openapi({ type: "string", example: "example-slug-value" });
       } else if (column.type === TableColumnType.ShortText) {
+        const openapiConfig: any = { type: "string", example: "Example short text" };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
         zodType = z
           .string()
-          .openapi({ type: "string", example: "Example short text" });
+          .openapi(openapiConfig);
       } else if (column.type === TableColumnType.LongText) {
-        zodType = z.string().openapi({
+        const openapiConfig: any = {
           type: "string",
           example:
             "This is an example of longer text content that might be stored in this field.",
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.string().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Phone) {
         zodType = Phone.getSchema();
       } else if (column.type === TableColumnType.Version) {
@@ -227,25 +239,41 @@ export class ModelSchema extends BaseSchema {
           example: ["item1", "item2", "item3"],
         });
       } else if (column.type === TableColumnType.SmallPositiveNumber) {
-        zodType = z.number().int().nonnegative().openapi({
+        const openapiConfig: any = {
           type: "integer",
           example: 5,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().int().nonnegative().openapi(openapiConfig);
       } else if (column.type === TableColumnType.BigPositiveNumber) {
-        zodType = z.number().nonnegative().openapi({
+        const openapiConfig: any = {
           type: "number",
           example: 1000000,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().nonnegative().openapi(openapiConfig);
       } else if (column.type === TableColumnType.SmallNumber) {
-        zodType = z.number().int().openapi({
+        const openapiConfig: any = {
           type: "integer",
           example: 10,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().int().openapi(openapiConfig);
       } else if (column.type === TableColumnType.BigNumber) {
-        zodType = z.number().openapi({
+        const openapiConfig: any = {
           type: "number",
           example: 1000000,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Permission) {
         zodType = z.any().openapi({
           type: "object",
@@ -267,7 +295,11 @@ export class ModelSchema extends BaseSchema {
           example: "In Progress",
         });
       } else if (column.type === TableColumnType.Boolean) {
-        zodType = z.boolean().openapi({ type: "boolean", example: true });
+        const openapiConfig: any = { type: "boolean", example: true };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.boolean().openapi(openapiConfig);
       } else if (column.type === TableColumnType.JSON) {
         zodType = z.any().openapi({
           type: "object",

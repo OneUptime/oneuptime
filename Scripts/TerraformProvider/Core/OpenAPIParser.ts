@@ -470,6 +470,7 @@ export class OpenAPIParser {
         let propType: string = prop.type || "string";
         let description: string = prop.description || "";
         let example: any = prop.example;
+        let defaultValue: any = prop.default;
 
         // Handle nested $ref
         if (prop.$ref) {
@@ -478,6 +479,7 @@ export class OpenAPIParser {
             propType = resolvedProp.type || "string";
             description = resolvedProp.description || description;
             example = resolvedProp.example || example;
+            defaultValue = resolvedProp.default || defaultValue;
           }
         }
 
@@ -547,6 +549,7 @@ export class OpenAPIParser {
           computed: computed || isComputedField,
           apiFieldName: propName, // Preserve original OpenAPI property name
           example: example, // Extract example from OpenAPI schema
+          default: defaultValue, // Extract default value from OpenAPI schema
         };
       }
     }

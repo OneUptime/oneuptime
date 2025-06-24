@@ -63,6 +63,11 @@ export class ResourceGenerator {
       },
     );
     const hasReadOperation: boolean = Boolean(resource.operations.read);
+    const hasDefaultValues: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return attr.default !== undefined && attr.default !== null;
+      },
+    );
 
     if (hasNumberFields) {
       imports.push("math/big");
@@ -70,6 +75,34 @@ export class ResourceGenerator {
 
     if (hasReadOperation) {
       imports.push("net/http");
+    }
+
+    if (hasDefaultValues) {
+      const hasDefaultBools: boolean = Object.values(resource.schema).some(
+        (attr: any) => {
+          return attr.default !== undefined && attr.default !== null && attr.type === "bool";
+        },
+      );
+      const hasDefaultNumbers: boolean = Object.values(resource.schema).some(
+        (attr: any) => {
+          return attr.default !== undefined && attr.default !== null && attr.type === "number";
+        },
+      );
+      const hasDefaultStrings: boolean = Object.values(resource.schema).some(
+        (attr: any) => {
+          return attr.default !== undefined && attr.default !== null && attr.type === "string";
+        },
+      );
+
+      if (hasDefaultBools) {
+        imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault");
+      }
+      if (hasDefaultNumbers) {
+        imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/numberdefault");
+      }
+      if (hasDefaultStrings) {
+        imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault");
+      }
     }
 
     if (resource.operations.create || resource.operations.update) {
@@ -245,8 +278,35 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
       options.push("Optional: true");
     }
 
+    // Attributes with default values must also be computed
+    if (attr.default !== undefined && attr.default !== null && !attr.required && !attr.computed) {
+      options.push("Computed: true");
+    }
+
     if (attr.sensitive) {
       options.push("Sensitive: true");
+    }
+
+    // Add default value if available
+    if (attr.default !== undefined && attr.default !== null) {
+      if (attr.type === "bool") {
+        // Convert various values to boolean
+        let boolValue: boolean;
+        if (typeof attr.default === "boolean") {
+          boolValue = attr.default;
+        } else if (typeof attr.default === "number") {
+          boolValue = attr.default !== 0;
+        } else if (typeof attr.default === "string") {
+          boolValue = attr.default.toLowerCase() === "true";
+        } else {
+          boolValue = Boolean(attr.default);
+        }
+        options.push(`Default: booldefault.StaticBool(${boolValue})`);
+      } else if (attr.type === "number") {
+        options.push(`Default: numberdefault.StaticBigFloat(big.NewFloat(${attr.default}))`);
+      } else if (attr.type === "string") {
+        options.push(`Default: stringdefault.StaticString("${attr.default}")`);
+      }
     }
 
     // For collection attributes, add ElementType
