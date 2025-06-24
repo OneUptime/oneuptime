@@ -98,6 +98,10 @@ export class OpenAPIParser {
           resource.operations,
           resource.name,
         );
+        resource.operationSchemas = this.generateOperationSpecificSchemas(
+          resource.operations,
+          resource.name,
+        );
         resources.push(resource as TerraformResource);
       }
     }
@@ -306,6 +310,55 @@ export class OpenAPIParser {
     }
 
     return schema;
+  }
+
+  private generateOperationSpecificSchemas(
+    operations: any,
+    resourceName: string,
+  ): {
+    create?: Record<string, TerraformAttribute>;
+    update?: Record<string, TerraformAttribute>;
+    read?: Record<string, TerraformAttribute>;
+  } {
+    const operationSchemas: any = {};
+
+    // Generate schema for create operation
+    if (operations.create) {
+      const createSchema: Record<string, TerraformAttribute> = {};
+      this.addSchemaFromOperation(
+        createSchema,
+        operations.create,
+        false,
+        `${resourceName}-create-only`,
+      );
+      operationSchemas.create = createSchema;
+    }
+
+    // Generate schema for update operation
+    if (operations.update) {
+      const updateSchema: Record<string, TerraformAttribute> = {};
+      this.addSchemaFromOperation(
+        updateSchema,
+        operations.update,
+        false,
+        `${resourceName}-update-only`,
+      );
+      operationSchemas.update = updateSchema;
+    }
+
+    // Generate schema for read operation
+    if (operations.read) {
+      const readSchema: Record<string, TerraformAttribute> = {};
+      this.addSchemaFromOperation(
+        readSchema,
+        operations.read,
+        true,
+        `${resourceName}-read-only`,
+      );
+      operationSchemas.read = readSchema;
+    }
+
+    return operationSchemas;
   }
 
   private generateDataSourceSchema(

@@ -2,6 +2,7 @@ import {
   TerraformProviderConfig,
   OpenAPISpec,
   TerraformResource,
+  TerraformAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
@@ -599,10 +600,9 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
 
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
-        "data": map[string]interface{}{
-${this.generateUpdateRequestBody(resource)}
-        },
+        "data": map[string]interface{}{},
     }
+${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVarName)}
 
     // Make API call
     httpResp, err := r.client.${httpMethod}(${finalUpdatePath}, ${resourceVarName}Request)
@@ -747,12 +747,88 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     return this.generateRequestBodyInternal(resource, false);
   }
 
-  private generateUpdateRequestBody(resource: TerraformResource): string {
-    return this.generateRequestBodyInternal(resource, true);
+  private generateConditionalUpdateRequestBodyWithDeclaration(resource: TerraformResource, resourceVarName: string): string {
+    const updateSchema = resource.operationSchemas?.update || {};
+    const conditionalAssignments: string[] = [];
+
+    // Fields that should not be included in update requests
+    const immutableFields: Array<string> = ["projectId", "project_id"];
+
+    // Check if there are any fields to process
+    const hasFields = Object.entries(updateSchema).some(([name, attr]) => {
+      return name !== "id" && !attr.computed && !immutableFields.includes(name);
+    });
+
+    // If no fields to process, return empty string
+    if (!hasFields) {
+      return "";
+    }
+
+    // Add the declaration only if we have fields
+    conditionalAssignments.push("    requestDataMap := " + resourceVarName + "Request[\"data\"].(map[string]interface{})");
+    conditionalAssignments.push("");
+
+    for (const [name, attr] of Object.entries(updateSchema)) {
+      if (name === "id" || attr.computed) {
+        continue;
+      }
+
+      // Skip immutable fields in update requests
+      if (immutableFields.includes(name)) {
+        continue;
+      }
+
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+      const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
+
+      // Handle different field types with conditional assignment
+      if (attr.type === "map") {
+        conditionalAssignments.push(
+          `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})\n    }`,
+        );
+      } else if (attr.type === "list") {
+        conditionalAssignments.push(
+          `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})\n    }`,
+        );
+      } else {
+        const value: string = this.getGoValueForTerraformType(
+          attr.type,
+          `data.${fieldName}`,
+        );
+        
+        if (attr.type === "string") {
+          // For strings, only include if not null and not empty
+          conditionalAssignments.push(
+            `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
+          );
+        } else if (attr.type === "bool") {
+          // For booleans, always include since they have meaningful defaults
+          conditionalAssignments.push(
+            `    requestDataMap["${apiFieldName}"] = ${value}`,
+          );
+        } else {
+          // For other types (numbers, etc.), only include if not null
+          conditionalAssignments.push(
+            `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
+          );
+        }
+      }
+    }
+
+    return conditionalAssignments.join("\n");
   }
 
   private generateRequestBodyInternal(
     resource: TerraformResource,
+    isUpdate: boolean,
+  ): string {
+    return this.generateRequestBodyInternalWithSchema(resource, resource.schema, isUpdate);
+  }
+
+  private generateRequestBodyInternalWithSchema(
+    resource: TerraformResource,
+    schema: Record<string, TerraformAttribute>,
     isUpdate: boolean,
   ): string {
     const fields: string[] = [];
@@ -760,7 +836,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     // Fields that should not be included in update requests
     const immutableFields: Array<string> = ["projectId", "project_id"];
 
-    for (const [name, attr] of Object.entries(resource.schema)) {
+    for (const [name, attr] of Object.entries(schema)) {
       if (name === "id" || attr.computed) {
         continue;
       }
@@ -773,6 +849,12 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
+
+      // For update operations, only include the field if it exists in the resource's main schema
+      // This ensures we only send fields that are defined in the main resource
+      if (isUpdate && !resource.schema[name]) {
+        continue;
+      }
 
       // Handle different field types
       if (attr.type === "map") {

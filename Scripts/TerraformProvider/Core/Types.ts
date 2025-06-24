@@ -85,6 +85,11 @@ export interface TerraformResource {
     list?: OpenAPIOperation;
   };
   schema: Record<string, TerraformAttribute>;
+  operationSchemas?: {
+    create?: Record<string, TerraformAttribute>;
+    update?: Record<string, TerraformAttribute>;
+    read?: Record<string, TerraformAttribute>;
+  };
 }
 
 export interface TerraformDataSource {
