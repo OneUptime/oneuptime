@@ -43,7 +43,7 @@ export default class ColumnPermissions {
   public static getModelColumnsByPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     userPermissions: Array<UserPermission>,
-    requestType: DatabaseRequestType,
+    requestType: DatabaseRequestType
   ): Columns {
     const model: BaseModel = new modelType();
     const accessControl: Dictionary<ColumnAccessControl> =
@@ -54,7 +54,7 @@ export default class ColumnPermissions {
     const permissions: Array<Permission> = userPermissions.map(
       (item: UserPermission) => {
         return item.permission;
-      },
+      }
     );
 
     for (const key in accessControl) {
@@ -80,7 +80,7 @@ export default class ColumnPermissions {
         columnPermissions &&
         PermissionHelper.doesPermissionsIntersect(
           permissions,
-          columnPermissions,
+          columnPermissions
         )
       ) {
         columns.push(key);
@@ -95,19 +95,19 @@ export default class ColumnPermissions {
     modelType: { new (): TBaseModel },
     data: TBaseModel,
     props: DatabaseCommonInteractionProps,
-    requestType: DatabaseRequestType,
+    requestType: DatabaseRequestType
   ): void {
     const model: BaseModel = new modelType();
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
-        PermissionType.Allow,
+        PermissionType.Allow
       );
 
     const permissionColumns: Columns = this.getModelColumnsByPermissions(
       modelType,
       userPermissions,
-      requestType,
+      requestType
     );
 
     const excludedColumnNames: Array<string> = this.getExcludedColumnNames();
@@ -132,7 +132,7 @@ export default class ColumnPermissions {
 
       if (!tableColumnMetadata) {
         throw new BadDataException(
-          `No TableColumnMetadata found for ${key} column of ${model.singularName}`,
+          `No TableColumnMetadata found for ${key} column of ${model.singularName}`
         );
       }
 
@@ -151,8 +151,15 @@ export default class ColumnPermissions {
           continue; // this is a special case where we want to force the default value on create.
         }
 
+        if (
+          requestType === DatabaseRequestType.Create &&
+          tableColumnMetadata.computed
+        ) {
+          continue; // computed columns are not allowed to be updated.
+        }
+
         throw new BadDataException(
-          `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`,
+          `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`
         );
       }
 
@@ -172,13 +179,13 @@ export default class ColumnPermissions {
             !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
               billingAccessControl.create,
               props.currentPlan,
-              getAllEnvVars(),
+              getAllEnvVars()
             )
           ) {
             throw new PaymentRequiredException(
               "Please upgrade your plan to " +
                 billingAccessControl.create +
-                " to access this feature",
+                " to access this feature"
             );
           }
         }
@@ -191,13 +198,13 @@ export default class ColumnPermissions {
             !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
               billingAccessControl.read,
               props.currentPlan,
-              getAllEnvVars(),
+              getAllEnvVars()
             )
           ) {
             throw new PaymentRequiredException(
               "Please upgrade your plan to " +
                 billingAccessControl.read +
-                " to access this feature",
+                " to access this feature"
             );
           }
         }
@@ -210,13 +217,13 @@ export default class ColumnPermissions {
             !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
               billingAccessControl.update,
               props.currentPlan,
-              getAllEnvVars(),
+              getAllEnvVars()
             )
           ) {
             throw new PaymentRequiredException(
               "Please upgrade your plan to " +
                 billingAccessControl.update +
-                " to access this feature",
+                " to access this feature"
             );
           }
         }

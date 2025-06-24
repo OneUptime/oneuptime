@@ -14,6 +14,7 @@ export interface TableColumnMetadata {
   isDefaultValueColumn?: boolean;
   required?: boolean;
   unique?: boolean;
+  computed?: boolean;
   hashed?: boolean;
   encrypted?: boolean;
   manyToOneRelationColumn?: string;
