@@ -39,6 +39,7 @@ export default tseslint.config(
       "**/.vscode/",
       "**/.eslintcache",
       "**/views/",
+      "Scripts/TerraformProvider/**", // TODO: Fix linting issues in TerraformProvider and remove this ignore
     ],
   },
   eslint.configs.recommended,

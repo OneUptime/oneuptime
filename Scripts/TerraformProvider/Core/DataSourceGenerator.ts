@@ -53,21 +53,23 @@ export class DataSourceGenerator {
 
     // Check if we need the attr import (for list/map types)
     const needsAttrImport: boolean = Object.values(dataSource.schema).some(
-      (attr: any) => attr.type === "list" || attr.type === "map"
+      (attr: any) => {
+        return attr.type === "list" || attr.type === "map";
+      },
     );
 
     // Check if we need the math/big import (for number types)
     const needsMathBigImport: boolean = Object.values(dataSource.schema).some(
-      (attr: any) => attr.type === "number"
+      (attr: any) => {
+        return attr.type === "number";
+      },
     );
 
-    const attrImport: string = needsAttrImport 
-      ? '\n    "github.com/hashicorp/terraform-plugin-framework/attr"' 
-      : '';
+    const attrImport: string = needsAttrImport
+      ? '\n    "github.com/hashicorp/terraform-plugin-framework/attr"'
+      : "";
 
-    const mathBigImport: string = needsMathBigImport 
-      ? '\n    "math/big"' 
-      : '';
+    const mathBigImport: string = needsMathBigImport ? '\n    "math/big"' : "";
 
     return `package provider
 
@@ -205,7 +207,9 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     const options: string[] = [];
 
     if (attr.description) {
-      options.push(`MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`);
+      options.push(
+        `MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`,
+      );
     }
 
     if (attr.required) {
@@ -238,20 +242,22 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
 
     if (dataSource.operations.read) {
       const operation: any = dataSource.operations.read;
-      let path: string = this.extractPathFromOperation(operation);
+      const path: string = this.extractPathFromOperation(operation);
 
       // Replace path parameters with data values
       let finalPath: string;
-      
+
       // Check if path has parameters
       if (path.includes("{")) {
         // Split the path into parts and handle parameters
         const parts: string[] = [];
         const segments: string[] = path.split("/");
-        
+
         for (const segment of segments) {
-          if (!segment) continue; // Skip empty segments
-          
+          if (!segment) {
+            continue; // Skip empty segments
+          }
+
           if (segment.startsWith("{") && segment.endsWith("}")) {
             const paramName: string = segment.slice(1, -1);
             const fieldName: string = StringUtils.toPascalCase(paramName);
@@ -260,9 +266,9 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
             parts.push(`"${segment}"`);
           }
         }
-        
-        finalPath = parts.join(" + \"/\" + ");
-        
+
+        finalPath = parts.join(' + "/" + ');
+
         // Ensure it starts and ends with proper quotes
         if (!finalPath.startsWith('"')) {
           finalPath = '"/" + ' + finalPath;

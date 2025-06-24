@@ -16,15 +16,17 @@ export class StringUtils {
   }
 
   public static toSnakeCase(str: string): string {
-    return str
-      .replace(/['`]/g, "") // Remove apostrophes and backticks
-      // Handle consecutive uppercase letters (like "API" -> "api" instead of "a_p_i")
-      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2") // APIKey -> API_Key
-      .replace(/([a-z\d])([A-Z])/g, "$1_$2") // camelCase -> camel_Case
-      .toLowerCase()
-      .replace(/^_/, "")
-      .replace(/[-\s]+/g, "_")
-      .replace(/_+/g, "_"); // Replace multiple underscores with single underscore
+    return (
+      str
+        .replace(/['`]/g, "") // Remove apostrophes and backticks
+        // Handle consecutive uppercase letters (like "API" -> "api" instead of "a_p_i")
+        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2") // APIKey -> API_Key
+        .replace(/([a-z\d])([A-Z])/g, "$1_$2") // camelCase -> camel_Case
+        .toLowerCase()
+        .replace(/^_/, "")
+        .replace(/[-\s]+/g, "_")
+        .replace(/_+/g, "_") // Replace multiple underscores with single underscore
+    );
   }
 
   public static toKebabCase(str: string): string {
@@ -42,7 +44,7 @@ export class StringUtils {
   public static sanitizeGoIdentifier(str: string): string {
     // Remove special characters including apostrophes and ensure it starts with a letter
     const sanitized: string = str.replace(/[^a-zA-Z0-9_]/g, "");
-    return /^[a-zA-Z]/.test(sanitized) ? sanitized : `_${sanitized}`;
+    return (/^[a-zA-Z]/).test(sanitized) ? sanitized : `_${sanitized}`;
   }
 
   public static escapeGoString(str: string): string {

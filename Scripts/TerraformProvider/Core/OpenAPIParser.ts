@@ -132,7 +132,11 @@ export class OpenAPIParser {
         }
 
         // Check if this is a read operation (GET or POST with read-like operation)
-        const isReadOperation = this.isReadOperation(method, path, operation);
+        const isReadOperation: boolean = this.isReadOperation(
+          method,
+          path,
+          operation,
+        );
         if (!isReadOperation) {
           continue;
         }
@@ -231,7 +235,7 @@ export class OpenAPIParser {
         if (this.isReadOperation(method, path, operation)) {
           return this.isListOperation(path, operation) ? "list" : "read";
         }
-        
+
         if (hasIdParam) {
           // POST to /{resource}/{id} is usually a read operation in OneUptime API
           return "read";
@@ -255,19 +259,21 @@ export class OpenAPIParser {
     // Check if path ends with collection (not individual resource)
     const hasIdParam: boolean =
       path.includes("{id}") || (path.includes("{") && path.endsWith("}"));
-    
+
     // Check for explicit list patterns in the path
     const pathSegments: string[] = path.toLowerCase().split("/");
-    const hasListPathPattern: boolean = pathSegments.some((segment: string) => 
-      segment.includes("get-list") || 
-      segment.includes("list") ||
-      segment === "count"
-    );
-    
+    const hasListPathPattern: boolean = pathSegments.some((segment: string) => {
+      return (
+        segment.includes("get-list") ||
+        segment.includes("list") ||
+        segment === "count"
+      );
+    });
+
     // Check operation ID for list patterns
     const operationId: string = operation.operationId?.toLowerCase() || "";
     const hasListOperationId: boolean = operationId.includes("list");
-    
+
     return !hasIdParam || hasListPathPattern || hasListOperationId;
   }
 
@@ -329,9 +335,9 @@ export class OpenAPIParser {
     // 2. Are not required in create/update operations
     // This indicates server-managed fields that can be optionally set by users
     for (const [fieldName, attr] of Object.entries(schema)) {
-      const isInCreateUpdate = createUpdateFields.has(fieldName);
-      const isRequired = requiredFields.has(fieldName);
-      const isComputed = attr.computed;
+      const isInCreateUpdate: boolean = createUpdateFields.has(fieldName);
+      const isRequired: boolean = requiredFields.has(fieldName);
+      const isComputed: boolean = Boolean(attr.computed);
 
       if (isInCreateUpdate && !isRequired && isComputed) {
         // Field is optional in create/update but computed in read
@@ -599,8 +605,8 @@ export class OpenAPIParser {
           if (description && !schema[terraformName].description) {
             schema[terraformName].description = description;
           }
-          
-          // If the field exists from create/update and now appears in read, 
+
+          // If the field exists from create/update and now appears in read,
           // it should be marked as both optional and computed (server-managed field)
           if (!schema[terraformName].required) {
             schema[terraformName] = {
@@ -693,16 +699,16 @@ export class OpenAPIParser {
     operation: OpenAPIOperation,
   ): boolean {
     const lowerMethod: string = method.toLowerCase();
-    
+
     // Traditional GET operations are always read operations
     if (lowerMethod === "get") {
       return true;
     }
-    
+
     // Check for POST operations that are actually read operations
     if (lowerMethod === "post") {
       const operationId: string = operation.operationId?.toLowerCase() || "";
-      
+
       // Check operation ID patterns for read operations
       const readPatterns: string[] = [
         "get",
@@ -710,25 +716,31 @@ export class OpenAPIParser {
         "find",
         "search",
         "retrieve",
-        "fetch"
+        "fetch",
       ];
-      
-      const isReadOperationId: boolean = readPatterns.some((pattern: string) => 
-        operationId.includes(pattern)
+
+      const isReadOperationId: boolean = readPatterns.some(
+        (pattern: string) => {
+          return operationId.includes(pattern);
+        },
       );
-      
+
       // Check path patterns for read operations
       const pathSegments: string[] = path.toLowerCase().split("/");
-      const hasReadPathPattern: boolean = pathSegments.some((segment: string) => 
-        segment.includes("get-") || 
-        segment.includes("list") || 
-        segment.includes("search") ||
-        segment.includes("find")
+      const hasReadPathPattern: boolean = pathSegments.some(
+        (segment: string) => {
+          return (
+            segment.includes("get-") ||
+            segment.includes("list") ||
+            segment.includes("search") ||
+            segment.includes("find")
+          );
+        },
       );
-      
+
       return isReadOperationId || hasReadPathPattern;
     }
-    
+
     return false;
   }
 }

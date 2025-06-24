@@ -506,10 +506,11 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
       if (example.length === 0) {
         return "[]";
       }
-      const items = example
-        .map((item) => this.formatOpenAPIExample(item, "string"))
-        .join(", ");
-      return `[${items}]`;
+      const items: string[] = example.map((item: any) => {
+        return this.formatOpenAPIExample(item, "string");
+      });
+      const itemsString: string = items.join(", ");
+      return `[${itemsString}]`;
     }
 
     if (typeof example === "object") {
@@ -530,10 +531,14 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
       }
 
       // Handle generic objects as maps
-      const entries = Object.entries(example)
-        .map(([key, value]) => `    ${key} = ${this.formatOpenAPIExample(value, "string")}`)
-        .join("\n");
-      return `{\n${entries}\n  }`;
+      const entries: [string, any][] = Object.entries(example);
+      const entryStrings: string[] = entries.map(
+        ([key, value]: [string, any]) => {
+          return `    ${key} = ${this.formatOpenAPIExample(value, "string")}`;
+        },
+      );
+      const entriesString: string = entryStrings.join("\n");
+      return `{\n${entriesString}\n  }`;
     }
 
     // Fallback to string representation

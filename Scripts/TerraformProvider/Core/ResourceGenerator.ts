@@ -85,43 +85,102 @@ export class ResourceGenerator {
     if (hasDefaultValues) {
       const hasDefaultBools: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
-          const isInCreateSchema = resource?.operationSchemas?.create && 
-                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
-          const isInUpdateSchema = resource?.operationSchemas?.update && 
-                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
-          return attr.default !== undefined && attr.default !== null && attr.type === "bool" && 
-                 !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema);
+          const isInCreateSchema: boolean = Boolean(
+            resource?.operationSchemas?.create &&
+              Object.prototype.hasOwnProperty.call(
+                resource.operationSchemas.create,
+                name,
+              ),
+          );
+          const isInUpdateSchema: boolean = Boolean(
+            resource?.operationSchemas?.update &&
+              Object.prototype.hasOwnProperty.call(
+                resource.operationSchemas.update,
+                name,
+              ),
+          );
+          return (
+            attr.default !== undefined &&
+            attr.default !== null &&
+            attr.type === "bool" &&
+            !(
+              attr.default !== undefined &&
+              attr.default !== null &&
+              !isInCreateSchema &&
+              !isInUpdateSchema
+            )
+          );
         },
       );
       const hasDefaultNumbers: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
-          const isInCreateSchema = resource?.operationSchemas?.create && 
-                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
-          const isInUpdateSchema = resource?.operationSchemas?.update && 
-                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
-          return attr.default !== undefined && attr.default !== null && attr.type === "number" && 
-                 !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema);
+          const isInCreateSchema =
+            resource?.operationSchemas?.create &&
+            Object.prototype.hasOwnProperty.call(
+              resource.operationSchemas.create,
+              name,
+            );
+          const isInUpdateSchema =
+            resource?.operationSchemas?.update &&
+            Object.prototype.hasOwnProperty.call(
+              resource.operationSchemas.update,
+              name,
+            );
+          return (
+            attr.default !== undefined &&
+            attr.default !== null &&
+            attr.type === "number" &&
+            !(
+              attr.default !== undefined &&
+              attr.default !== null &&
+              !isInCreateSchema &&
+              !isInUpdateSchema
+            )
+          );
         },
       );
       const hasDefaultStrings: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
-          const isInCreateSchema = resource?.operationSchemas?.create && 
-                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
-          const isInUpdateSchema = resource?.operationSchemas?.update && 
-                                   Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
-          return attr.default !== undefined && attr.default !== null && attr.type === "string" && 
-                 !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema);
+          const isInCreateSchema =
+            resource?.operationSchemas?.create &&
+            Object.prototype.hasOwnProperty.call(
+              resource.operationSchemas.create,
+              name,
+            );
+          const isInUpdateSchema =
+            resource?.operationSchemas?.update &&
+            Object.prototype.hasOwnProperty.call(
+              resource.operationSchemas.update,
+              name,
+            );
+          return (
+            attr.default !== undefined &&
+            attr.default !== null &&
+            attr.type === "string" &&
+            !(
+              attr.default !== undefined &&
+              attr.default !== null &&
+              !isInCreateSchema &&
+              !isInUpdateSchema
+            )
+          );
         },
       );
 
       if (hasDefaultBools) {
-        imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault");
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault",
+        );
       }
       if (hasDefaultNumbers) {
-        imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/numberdefault");
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/numberdefault",
+        );
       }
       if (hasDefaultStrings) {
-        imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault");
+        imports.push(
+          "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault",
+        );
       }
     }
 
@@ -135,7 +194,9 @@ export class ResourceGenerator {
     // Check for list types that need default empty lists
     const hasListDefaults: boolean = Object.values(resource.schema).some(
       (attr: any) => {
-        return attr.type === "list" && !attr.required && attr.default === undefined;
+        return (
+          attr.type === "list" && !attr.required && attr.default === undefined
+        );
       },
     );
 
@@ -144,7 +205,9 @@ export class ResourceGenerator {
     }
 
     if (hasListDefaults) {
-      imports.push("github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault");
+      imports.push(
+        "github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault",
+      );
     }
 
     if (resource.operations.create || resource.operations.update) {
@@ -330,19 +393,33 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     return name;
   }
 
-  private generateSchemaAttribute(name: string, attr: any, resource?: TerraformResource): string {
+  private generateSchemaAttribute(
+    name: string,
+    attr: any,
+    resource?: TerraformResource,
+  ): string {
     const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
     const options: string[] = [];
 
     if (attr.description) {
-      options.push(`MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`);
+      options.push(
+        `MarkdownDescription: "${GoCodeGenerator.escapeString(attr.description)}"`,
+      );
     }
 
     // Check if this field is in the create or update schema (for fields with defaults)
-    const isInCreateSchema = resource?.operationSchemas?.create && 
-                             Object.prototype.hasOwnProperty.call(resource.operationSchemas.create, name);
-    const isInUpdateSchema = resource?.operationSchemas?.update && 
-                             Object.prototype.hasOwnProperty.call(resource.operationSchemas.update, name);
+    const isInCreateSchema =
+      resource?.operationSchemas?.create &&
+      Object.prototype.hasOwnProperty.call(
+        resource.operationSchemas.create,
+        name,
+      );
+    const isInUpdateSchema =
+      resource?.operationSchemas?.update &&
+      Object.prototype.hasOwnProperty.call(
+        resource.operationSchemas.update,
+        name,
+      );
 
     if (attr.required) {
       options.push("Required: true");
@@ -352,7 +429,12 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
       options.push("Computed: true");
     } else if (attr.computed) {
       options.push("Computed: true");
-    } else if (attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema) {
+    } else if (
+      attr.default !== undefined &&
+      attr.default !== null &&
+      !isInCreateSchema &&
+      !isInUpdateSchema
+    ) {
       // Fields with defaults that are not in create or update schema should be Computed only
       // This prevents drift when the server manages these fields
       options.push("Computed: true");
@@ -361,7 +443,13 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     }
 
     // Attributes with default values that are in the create or update schema must also be computed
-    if (attr.default !== undefined && attr.default !== null && !attr.required && !attr.computed && (isInCreateSchema || isInUpdateSchema)) {
+    if (
+      attr.default !== undefined &&
+      attr.default !== null &&
+      !attr.required &&
+      !attr.computed &&
+      (isInCreateSchema || isInUpdateSchema)
+    ) {
       options.push("Computed: true");
     }
 
@@ -370,7 +458,16 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     }
 
     // Add default value if available and field is not computed-only
-    if (attr.default !== undefined && attr.default !== null && !(attr.default !== undefined && attr.default !== null && !isInCreateSchema && !isInUpdateSchema)) {
+    if (
+      attr.default !== undefined &&
+      attr.default !== null &&
+      !(
+        attr.default !== undefined &&
+        attr.default !== null &&
+        !isInCreateSchema &&
+        !isInUpdateSchema
+      )
+    ) {
       if (attr.type === "bool") {
         // Convert various values to boolean
         let boolValue: boolean;
@@ -385,7 +482,9 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
         }
         options.push(`Default: booldefault.StaticBool(${boolValue})`);
       } else if (attr.type === "number") {
-        options.push(`Default: numberdefault.StaticBigFloat(big.NewFloat(${attr.default}))`);
+        options.push(
+          `Default: numberdefault.StaticBigFloat(big.NewFloat(${attr.default}))`,
+        );
       } else if (attr.type === "string") {
         options.push(`Default: stringdefault.StaticString("${attr.default}")`);
       }
@@ -393,7 +492,9 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
 
     // Add default empty list for all list types to avoid null vs empty list inconsistencies
     if (attr.type === "list" && !attr.required && attr.default === undefined) {
-      options.push("Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{}))");
+      options.push(
+        "Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{}))",
+      );
       // Ensure the attribute is also computed since it has a default
       if (!options.includes("Computed: true")) {
         options.push("Computed: true");
@@ -837,7 +938,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     return this.generateRequestBodyInternal(resource, false);
   }
 
-  private generateConditionalUpdateRequestBodyWithDeclaration(resource: TerraformResource, resourceVarName: string): string {
+  private generateConditionalUpdateRequestBodyWithDeclaration(
+    resource: TerraformResource,
+    resourceVarName: string,
+  ): string {
     const updateSchema = resource.operationSchemas?.update || {};
     const conditionalAssignments: string[] = [];
 
@@ -855,7 +959,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
 
     // Add the declaration only if we have fields
-    conditionalAssignments.push("    requestDataMap := " + resourceVarName + "Request[\"data\"].(map[string]interface{})");
+    conditionalAssignments.push(
+      "    requestDataMap := " +
+        resourceVarName +
+        'Request["data"].(map[string]interface{})',
+    );
     conditionalAssignments.push("");
 
     for (const [name, attr] of Object.entries(updateSchema)) {
@@ -886,7 +994,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           attr.type,
           `data.${fieldName}`,
         );
-        
+
         if (attr.type === "string") {
           if (attr.isComplexObject) {
             // For complex object strings, parse JSON and convert to interface{}
@@ -920,7 +1028,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     resource: TerraformResource,
     isUpdate: boolean,
   ): string {
-    return this.generateRequestBodyInternalWithSchema(resource, resource.schema, isUpdate);
+    return this.generateRequestBodyInternalWithSchema(
+      resource,
+      resource.schema,
+      isUpdate,
+    );
   }
 
   private generateRequestBodyInternalWithSchema(
@@ -972,7 +1084,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       } else {
         if (attr.type === "string" && attr.isComplexObject) {
           // For complex object strings, parse JSON and convert to interface{}
-          fields.push(`        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`);
+          fields.push(
+            `        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`,
+          );
         } else {
           const value: string = this.getGoValueForTerraformType(
             attr.type,

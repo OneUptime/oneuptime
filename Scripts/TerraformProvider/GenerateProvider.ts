@@ -116,25 +116,31 @@ async function main(): Promise<void> {
     try {
       const originalCwd: string = process.cwd();
       process.chdir(providerDir);
-      
+
       // First build for current platform
       await execAsync("go build");
       Logger.info("✅ go build completed successfully");
-      
+
       // Check if make is available for multi-platform build
       try {
         await execAsync("which make");
         // Then build for all platforms (this creates the builds directory)
         await execAsync("make release");
         Logger.info("✅ Multi-platform build completed successfully");
-      } catch (makeError) {
-        Logger.warn("⚠️  'make' command not available, building platforms manually...");
-        
+      } catch {
+        Logger.warn(
+          "⚠️  'make' command not available, building platforms manually...",
+        );
+
         // Create builds directory manually
         await execAsync("mkdir -p ./builds");
-        
+
         // Build for each platform manually
-        const platforms = [
+        const platforms: Array<{
+          os: string;
+          arch: string;
+          ext?: string;
+        }> = [
           { os: "darwin", arch: "amd64" },
           { os: "linux", arch: "amd64" },
           { os: "linux", arch: "386" },
@@ -148,22 +154,24 @@ async function main(): Promise<void> {
           { os: "openbsd", arch: "386" },
           { os: "solaris", arch: "amd64" },
         ];
-        
+
         for (const platform of platforms) {
-          const ext = platform.ext || "";
-          const binaryName = `terraform-provider-oneuptime_${platform.os}_${platform.arch}${ext}`;
-          const buildCmd = `GOOS=${platform.os} GOARCH=${platform.arch} go build -o ./builds/${binaryName}`;
-          
+          const ext: string = platform.ext || "";
+          const binaryName: string = `terraform-provider-oneuptime_${platform.os}_${platform.arch}${ext}`;
+          const buildCmd: string = `GOOS=${platform.os} GOARCH=${platform.arch} go build -o ./builds/${binaryName}`;
+
           try {
             await execAsync(buildCmd);
             Logger.info(`✅ Built ${binaryName}`);
           } catch (platformError) {
-            Logger.warn(`⚠️  Failed to build ${binaryName}: ${platformError instanceof Error ? platformError.message : "Unknown error"}`);
+            Logger.warn(
+              `⚠️  Failed to build ${binaryName}: ${platformError instanceof Error ? platformError.message : "Unknown error"}`,
+            );
           }
         }
         Logger.info("✅ Manual multi-platform build completed");
       }
-      
+
       process.chdir(originalCwd);
     } catch (error) {
       Logger.warn(
