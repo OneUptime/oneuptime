@@ -355,6 +355,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
+    computed: true,
     title: "Master API Key",
     description:
       "This API key has root access to all the resources in all the projects on OneUptime.",

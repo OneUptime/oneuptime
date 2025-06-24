@@ -425,12 +425,7 @@ export default class CopilotCodeRepository extends BaseModel {
   public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateCopilotCodeRepository,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -449,6 +444,7 @@ export default class CopilotCodeRepository extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Secret Token",
     description:
       "Secret Token for this code repository. This is used to connect this code repository to OneUptime.",

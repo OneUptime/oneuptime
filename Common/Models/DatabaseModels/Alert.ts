@@ -1030,6 +1030,7 @@ export default class Alert extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.Number,
+    computed: true,
     title: "Alert Number",
     description: "Alert Number",
   })

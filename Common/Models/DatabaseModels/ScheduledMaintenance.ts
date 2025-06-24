@@ -978,6 +978,7 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.Number,
+    computed: true,
     title: "Scheduled Maintenance Number",
     description: "Scheduled Maintenance Number",
   })

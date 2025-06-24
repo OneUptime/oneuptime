@@ -348,9 +348,7 @@ export default class ApiKey extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectApiKey,
+
     ],
     read: [
       Permission.ProjectOwner,
@@ -368,6 +366,7 @@ export default class ApiKey extends BaseModel {
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     title: "API Key",
+    computed: true,
     description: "Secret API Key",
   })
   @Column({

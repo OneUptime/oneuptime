@@ -855,12 +855,7 @@ export default class Monitor extends BaseModel {
   public serverMonitorRequestReceivedAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -879,6 +874,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Server Monitor Secret Key",
     description:
       "This field is for Server Monitor only. Secret Key to authenticate the request.",
@@ -891,12 +887,7 @@ export default class Monitor extends BaseModel {
   public serverMonitorSecretKey?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -915,6 +906,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Incoming Request Secret Key",
     description:
       "This field is for Incoming Request Monitor only. Secret Key to authenticate the request.",

@@ -284,11 +284,7 @@ export default class TelemetryIngestionKey extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadTelemetryIngestionKey,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -304,6 +300,7 @@ export default class TelemetryIngestionKey extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Telemetry Ingestion Key",
     description: "Secret Telemetry Ingestion Key",
   })

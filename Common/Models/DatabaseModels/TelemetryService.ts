@@ -418,12 +418,7 @@ export default class TelemetryService extends BaseModel {
 
   // This field is deprecared and is no longer used.
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateTelemetryService,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -442,6 +437,7 @@ export default class TelemetryService extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Service Token",
     description: "Service Token for this telemetry service",
   })
