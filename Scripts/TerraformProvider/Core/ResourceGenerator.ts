@@ -249,8 +249,18 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
         return nil
     }
     
+    var stringList []string
+    terraformList.ElementsAs(context.Background(), &stringList, false)
+    
+    // Convert string array to OneUptime format with _id fields
     var result []interface{}
-    terraformList.ElementsAs(context.Background(), &result, false)
+    for _, str := range stringList {
+        if str != "" {
+            result = append(result, map[string]interface{}{
+                "_id": str,
+            })
+        }
+    }
     return result
 }
 
@@ -1072,7 +1082,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = types.StringNull()
     }`;
         } else {
-          return `if val, ok := ${responseValue}.(string); ok && val != "" {
+          return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        // Handle ObjectID type responses
+        if val, ok := obj["_id"].(string); ok && val != "" {
+            ${fieldName} = types.StringValue(val)
+        } else if val, ok := obj["value"].(string); ok && val != "" {
+            ${fieldName} = types.StringValue(val)
+        } else {
+            ${fieldName} = types.StringNull()
+        }
+    } else if val, ok := ${responseValue}.(string); ok && val != "" {
         ${fieldName} = types.StringValue(val)
     } else {
         ${fieldName} = types.StringNull()
@@ -1081,6 +1100,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       case "number":
         return `if val, ok := ${responseValue}.(float64); ok {
         ${fieldName} = types.NumberValue(big.NewFloat(val))
+    } else if val, ok := ${responseValue}.(int); ok {
+        ${fieldName} = types.NumberValue(big.NewFloat(float64(val)))
+    } else if val, ok := ${responseValue}.(int64); ok {
+        ${fieldName} = types.NumberValue(big.NewFloat(float64(val)))
     } else if ${responseValue} == nil {
         ${fieldName} = types.NumberNull()
     }`;
@@ -1108,8 +1131,26 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       case "list":
         return `if val, ok := ${responseValue}.([]interface{}); ok {
         // Convert API response list to Terraform list
-        listValue, _ := types.ListValueFrom(ctx, types.StringType, val)
-        ${fieldName} = listValue
+        var listItems []attr.Value
+        for _, item := range val {
+            if itemMap, ok := item.(map[string]interface{}); ok {
+                // Handle objects with _id field (OneUptime format)
+                if id, ok := itemMap["_id"].(string); ok {
+                    listItems = append(listItems, types.StringValue(id))
+                } else if id, ok := itemMap["id"].(string); ok {
+                    listItems = append(listItems, types.StringValue(id))
+                } else {
+                    // Convert entire object to JSON string if no id field
+                    if jsonBytes, err := json.Marshal(itemMap); err == nil {
+                        listItems = append(listItems, types.StringValue(string(jsonBytes)))
+                    }
+                }
+            } else if str, ok := item.(string); ok {
+                // Handle direct string values
+                listItems = append(listItems, types.StringValue(str))
+            }
+        }
+        ${fieldName} = types.ListValueMust(types.StringType, listItems)
     } else {
         // For lists, always use empty list instead of null to match default values
         ${fieldName} = types.ListValueMust(types.StringType, []attr.Value{})
