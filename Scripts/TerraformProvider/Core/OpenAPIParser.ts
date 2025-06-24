@@ -120,15 +120,20 @@ export class OpenAPIParser {
       Partial<TerraformDataSource>
     >();
 
-    // Look for GET operations that can be used as data sources
+    // Look for GET and POST operations that can be used as data sources
     for (const [path, pathItem] of Object.entries(this.spec.paths)) {
       for (const [method, operation] of Object.entries(pathItem)) {
         if (
-          method !== "get" ||
           !operation.operationId ||
           !operation.tags ||
           operation.tags.length === 0
         ) {
+          continue;
+        }
+
+        // Check if this is a read operation (GET or POST with read-like operation)
+        const isReadOperation = this.isReadOperation(method, path, operation);
+        if (!isReadOperation) {
           continue;
         }
 
@@ -222,6 +227,11 @@ export class OpenAPIParser {
 
     switch (lowerMethod) {
       case "post":
+        // Check if this is a read operation based on operation ID or path
+        if (this.isReadOperation(method, path, operation)) {
+          return this.isListOperation(path, operation) ? "list" : "read";
+        }
+        
         if (hasIdParam) {
           // POST to /{resource}/{id} is usually a read operation in OneUptime API
           return "read";
@@ -241,11 +251,24 @@ export class OpenAPIParser {
     }
   }
 
-  private isListOperation(path: string, _operation: OpenAPIOperation): boolean {
+  private isListOperation(path: string, operation: OpenAPIOperation): boolean {
     // Check if path ends with collection (not individual resource)
     const hasIdParam: boolean =
       path.includes("{id}") || (path.includes("{") && path.endsWith("}"));
-    return !hasIdParam;
+    
+    // Check for explicit list patterns in the path
+    const pathSegments: string[] = path.toLowerCase().split("/");
+    const hasListPathPattern: boolean = pathSegments.some((segment: string) => 
+      segment.includes("get-list") || 
+      segment.includes("list") ||
+      segment === "count"
+    );
+    
+    // Check operation ID for list patterns
+    const operationId: string = operation.operationId?.toLowerCase() || "";
+    const hasListOperationId: boolean = operationId.includes("list");
+    
+    return !hasIdParam || hasListPathPattern || hasListOperationId;
   }
 
   private generateResourceSchema(
@@ -662,5 +685,50 @@ export class OpenAPIParser {
       default:
         return "string";
     }
+  }
+
+  private isReadOperation(
+    method: string,
+    path: string,
+    operation: OpenAPIOperation,
+  ): boolean {
+    const lowerMethod: string = method.toLowerCase();
+    
+    // Traditional GET operations are always read operations
+    if (lowerMethod === "get") {
+      return true;
+    }
+    
+    // Check for POST operations that are actually read operations
+    if (lowerMethod === "post") {
+      const operationId: string = operation.operationId?.toLowerCase() || "";
+      
+      // Check operation ID patterns for read operations
+      const readPatterns: string[] = [
+        "get",
+        "list",
+        "find",
+        "search",
+        "retrieve",
+        "fetch"
+      ];
+      
+      const isReadOperationId: boolean = readPatterns.some((pattern: string) => 
+        operationId.includes(pattern)
+      );
+      
+      // Check path patterns for read operations
+      const pathSegments: string[] = path.toLowerCase().split("/");
+      const hasReadPathPattern: boolean = pathSegments.some((segment: string) => 
+        segment.includes("get-") || 
+        segment.includes("list") || 
+        segment.includes("search") ||
+        segment.includes("find")
+      );
+      
+      return isReadOperationId || hasReadPathPattern;
+    }
+    
+    return false;
   }
 }

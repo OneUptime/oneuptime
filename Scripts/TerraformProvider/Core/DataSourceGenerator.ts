@@ -50,11 +50,29 @@ export class DataSourceGenerator {
     );
     const dataSourceVarName: string = StringUtils.toCamelCase(dataSource.name);
 
+    // Check if we need the attr import (for list/map types)
+    const needsAttrImport: boolean = Object.values(dataSource.schema).some(
+      (attr: any) => attr.type === "list" || attr.type === "map"
+    );
+
+    // Check if we need the math/big import (for number types)
+    const needsMathBigImport: boolean = Object.values(dataSource.schema).some(
+      (attr: any) => attr.type === "number"
+    );
+
+    const attrImport: string = needsAttrImport 
+      ? '\n    "github.com/hashicorp/terraform-plugin-framework/attr"' 
+      : '';
+
+    const mathBigImport: string = needsMathBigImport 
+      ? '\n    "math/big"' 
+      : '';
+
     return `package provider
 
 import (
     "context"
-    "fmt"
+    "fmt"${mathBigImport}${attrImport}
 
     "github.com/hashicorp/terraform-plugin-framework/datasource"
     "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -222,25 +240,83 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
       let path: string = this.extractPathFromOperation(operation);
 
       // Replace path parameters with data values
-      path = path.replace(/{([^}]+)}/g, (_match: string, paramName: string) => {
-        const fieldName: string = StringUtils.toPascalCase(paramName);
-        return `" + data.${fieldName}.ValueString() + "`;
-      });
-
-      if (path.startsWith(`" + `)) {
-        path = path.substring(4);
+      let finalPath: string;
+      
+      // Check if path has parameters
+      if (path.includes("{")) {
+        // Split the path into parts and handle parameters
+        const parts: string[] = [];
+        const segments: string[] = path.split("/");
+        
+        for (const segment of segments) {
+          if (!segment) continue; // Skip empty segments
+          
+          if (segment.startsWith("{") && segment.endsWith("}")) {
+            const paramName: string = segment.slice(1, -1);
+            const fieldName: string = StringUtils.toPascalCase(paramName);
+            parts.push(`data.${fieldName}.ValueString()`);
+          } else {
+            parts.push(`"${segment}"`);
+          }
+        }
+        
+        finalPath = parts.join(" + \"/\" + ");
+        
+        // Ensure it starts and ends with proper quotes
+        if (!finalPath.startsWith('"')) {
+          finalPath = '"/" + ' + finalPath;
+        } else {
+          finalPath = '"/" + ' + finalPath;
+        }
+      } else {
+        // No parameters, just quote the path
+        finalPath = `"${path}"`;
       }
-      if (path.endsWith(` + "`)) {
-        path = path.substring(0, path.length - 4);
-      }
-      path = `"${path}"`;
 
-      readCode = `
+      // Determine if this is a POST or GET operation
+      const method: string = operation.method?.toUpperCase() || "GET";
+      const httpMethod: string = method === "POST" ? "Post" : "Get";
+
+      if (method === "POST") {
+        // For POST operations, we need to send a request body with select fields
+        readCode = `
     // Build API path
-    apiPath := ${path}
+    apiPath := ${finalPath}
+    
+    // Prepare request body with select fields (if needed)
+    requestBody := map[string]interface{}{
+        "select": map[string]interface{}{}, // Add specific fields to select if needed
+    }
     
     // Make API call
-    httpResp, err := d.client.Get(apiPath)
+    httpResp, err := d.client.${httpMethod}(apiPath, requestBody)
+    if err != nil {
+        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
+        return
+    }
+
+    var ${dataSourceVarName}Response map[string]interface{}
+    err = d.client.ParseResponse(httpResp, &${dataSourceVarName}Response)
+    if err != nil {
+        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${dataSource.name} response, got error: %s", err))
+        return
+    }
+
+    // Extract data from response
+    if dataMap, ok := ${dataSourceVarName}Response["data"].(map[string]interface{}); ok {
+        ${dataSourceVarName}Response = dataMap
+    }
+
+    // Update the model with response data
+${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
+      } else {
+        // For GET operations, use the original logic
+        readCode = `
+    // Build API path
+    apiPath := ${finalPath}
+    
+    // Make API call
+    httpResp, err := d.client.${httpMethod}(apiPath)
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
         return
@@ -255,26 +331,36 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
 
     // Update the model with response data
 ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
+      }
     } else if (dataSource.operations.list) {
       const operation: any = dataSource.operations.list;
       const path: string = this.extractPathFromOperation(operation);
+      const method: string = operation.method?.toUpperCase() || "GET";
+      const httpMethod: string = method === "POST" ? "Post" : "Get";
 
-      readCode = `
-    // Build query parameters
-    queryParams := ""
+      if (method === "POST") {
+        // For POST list operations, send appropriate request body
+        readCode = `
+    // Build request body with query parameters
+    requestBody := map[string]interface{}{
+        "query": map[string]interface{}{},
+        "select": map[string]interface{}{},
+    }
+    
+    // Add filters based on data source inputs
+    queryFilters := map[string]interface{}{}
     if !data.Id.IsNull() {
-        queryParams += "?id=" + data.Id.ValueString()
+        queryFilters["_id"] = data.Id.ValueString()
     }
     if !data.Name.IsNull() {
-        if queryParams == "" {
-            queryParams += "?name=" + data.Name.ValueString()
-        } else {
-            queryParams += "&name=" + data.Name.ValueString()
-        }
+        queryFilters["name"] = data.Name.ValueString()
+    }
+    if len(queryFilters) > 0 {
+        requestBody["query"] = queryFilters
     }
     
     // Make API call
-    httpResp, err := d.client.Get("${path}" + queryParams)
+    httpResp, err := d.client.${httpMethod}("${path}", requestBody)
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
         return
@@ -296,6 +382,46 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
 
     // Update the model with response data
 ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
+      } else {
+        // For GET list operations, use query parameters
+        readCode = `
+    // Build query parameters
+    queryParams := ""
+    if !data.Id.IsNull() {
+        queryParams += "?id=" + data.Id.ValueString()
+    }
+    if !data.Name.IsNull() {
+        if queryParams == "" {
+            queryParams += "?name=" + data.Name.ValueString()
+        } else {
+            queryParams += "&name=" + data.Name.ValueString()
+        }
+    }
+    
+    // Make API call
+    httpResp, err := d.client.${httpMethod}("${path}" + queryParams)
+    if err != nil {
+        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
+        return
+    }
+
+    var ${dataSourceVarName}Response map[string]interface{}
+    err = d.client.ParseResponse(httpResp, &${dataSourceVarName}Response)
+    if err != nil {
+        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${dataSource.name} response, got error: %s", err))
+        return
+    }
+
+    // For list operations, take the first matching item
+    if items, ok := ${dataSourceVarName}Response["data"].([]interface{}); ok && len(items) > 0 {
+        if firstItem, ok := items[0].(map[string]interface{}); ok {
+            ${dataSourceVarName}Response = firstItem
+        }
+    }
+
+    // Update the model with response data
+${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
+      }
     }
 
     return readCode;
@@ -337,6 +463,32 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
       case "bool":
         return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
+    }`;
+      case "list":
+        return `if val, ok := ${responseValue}.([]interface{}); ok {
+        elements := make([]attr.Value, len(val))
+        for i, item := range val {
+            if strItem, ok := item.(string); ok {
+                elements[i] = types.StringValue(strItem)
+            } else {
+                elements[i] = types.StringValue("")
+            }
+        }
+        listValue, _ := types.ListValue(types.StringType, elements)
+        ${fieldName} = listValue
+    }`;
+      case "map":
+        return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
+        elements := make(map[string]attr.Value)
+        for key, item := range val {
+            if strItem, ok := item.(string); ok {
+                elements[key] = types.StringValue(strItem)
+            } else {
+                elements[key] = types.StringValue("")
+            }
+        }
+        mapValue, _ := types.MapValue(types.StringType, elements)
+        ${fieldName} = mapValue
     }`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
