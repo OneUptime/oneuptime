@@ -505,7 +505,10 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      
+       Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
     ],
     read: [
       Permission.ProjectOwner,
@@ -544,7 +547,10 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-      
+       Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectIncident,
     ],
     read: [
       Permission.ProjectOwner,

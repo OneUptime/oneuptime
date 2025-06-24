@@ -570,11 +570,13 @@ export default class Alert extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
+    isDefaultValueColumn: true,
     title: "Current Alert State ID",
     description: "Current Alert State ID",
   })
   @Column({
     type: ColumnType.ObjectID,
+    
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
