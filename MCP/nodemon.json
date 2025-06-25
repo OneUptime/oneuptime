@@ -1,8 +1,9 @@
 {
-    "watch": ["./","../Common/Server", "../Common/Types", "../Common/Utils", "../Common/Models"],
-    "ext": "ts,json,tsx,env,js,jsx,hbs",
-    "ignore": [
-        "greenlock.d/*"
-    ],
-    "exec": "node --inspect=0.0.0.0:9229 --require ts-node/register Index.ts"
+  "watch": ["**/*.ts"],
+  "ext": "ts",
+  "ignore": ["build/**/*", "node_modules/**/*"],
+  "exec": "ts-node Index.ts",
+  "env": {
+    "NODE_ENV": "development"
+  }
 }
