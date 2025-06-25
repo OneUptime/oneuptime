@@ -441,6 +441,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const tableColumnMetadata: TableColumnMetadata =
         this.model.getTableColumnMetadata(columnName);
 
+      // Handle base64 string conversion for file columns
+      if (this.model.isFileColumn(columnName)) {
+        const columnValue: JSONValue = (data as any)[columnName];
+        
+        if (
+          data &&
+          columnValue &&
+          typeof columnValue === "string" &&
+          Text.isBase64(columnValue)
+        ) {
+          try {
+            // Convert base64 string to Buffer for file storage
+            (data as any)[columnName] = Buffer.from(columnValue, "base64");
+          } catch (error) {
+            throw new BadDataException(
+              `Invalid base64 string provided for file field: ${columnName}`,
+            );
+          }
+        }
+      }
+
       if (this.model.isEntityColumn(columnName)) {
         const columnValue: JSONValue = (data as any)[columnName];
 
