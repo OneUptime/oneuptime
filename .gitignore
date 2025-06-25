@@ -124,3 +124,6 @@ Terraform/**
 TerraformTest/**
 
 terraform-provider-example/** 
+
+MCP/**
+MCP/**

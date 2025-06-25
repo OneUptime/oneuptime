@@ -111,12 +111,12 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         modelType={StatusPageAnnouncement}
         userPreferencesKey="status-page-announcements-table"
         id="table-status-page-note"
-        isDeleteable={true}
+        isDeleteable={false}
         isCreateable={false}
         showViewIdButton={true}
-        isEditable={true}
+        isEditable={false}
         name="Status Page > Announcements"
-        isViewable={false}
+        isViewable={true}
         createInitialValues={props.initialValues}
         query={{
           ...(props.query || {}),
@@ -132,7 +132,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={"No announcements found."}
         createEditModalWidth={ModalWidth.Large}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route)}
         filters={[
           {
             field: {
