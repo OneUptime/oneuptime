@@ -121,7 +121,7 @@
         "react-syntax-highlighter": "^15.5.0",
         "react-toggle": "^4.1.3",
         "reactflow": "^11.11.4",
-        "recharts": "^2.12.7",
+        "recharts": "^3.0.0",
         "redis-semaphore": "^5.5.1",
         "reflect-metadata": "^0.2.2",
         "remark-gfm": "^3.0.1",
