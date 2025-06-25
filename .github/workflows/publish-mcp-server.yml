@@ -145,13 +145,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcp-server-${{ steps.version.outputs.version }}
-          path: ./MCP-Generated/
+          path: ./MCP/
           retention-days: 90
 
       - name: Create GitHub Release Assets
         if: ${{ github.event_name == 'release' }}
         run: |
-          cd MCP-Generated
+          cd MCP
           npm pack
           PACKAGE_FILE=$(ls *.tgz)
           mv "$PACKAGE_FILE" "../oneuptime-mcp-server-${{ steps.version.outputs.version }}.tgz"
@@ -171,7 +171,7 @@ jobs:
         if: ${{ github.event_name == 'release' }}
         run: |
           # Count generated tools
-          TOOL_COUNT=$(grep -c "server.tool(" MCP-Generated/Service/MCP.ts || echo "0")
+          TOOL_COUNT=$(grep -c "server.tool(" MCP/Service/MCP.ts || echo "0")
           
           # Create enhanced release notes
           cat > enhanced-release-notes.md << EOF
@@ -216,7 +216,7 @@ jobs:
 
           ### 📚 Documentation
 
-          For detailed usage instructions, API documentation, and examples, see the [README](https://github.com/OneUptime/oneuptime/blob/main/MCP-Generated/README.md).
+          For detailed usage instructions, API documentation, and examples, see the [README](https://github.com/OneUptime/oneuptime/blob/main/MCP/README.md).
 
           ### 🔗 Links
 

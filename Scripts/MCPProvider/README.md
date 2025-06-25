@@ -31,7 +31,7 @@ This project provides a **dynamic MCP (Model Context Protocol) server generator*
 ## 📁 Generated Structure
 
 ```
-MCP-Generated/
+MCP/
 ├── package.json                 # NPM package configuration
 ├── Index.ts                     # Main MCP server entry point
 ├── README.md                    # Complete usage documentation
@@ -62,7 +62,7 @@ npm run generate-mcp-server
 
 ```bash
 # Navigate to the generated server
-cd MCP-Generated
+cd MCP
 
 # Install dependencies
 npm install
@@ -94,7 +94,7 @@ npm start
 
 ```bash
 # Build Docker image
-cd MCP-Generated
+cd MCP
 docker build -t oneuptime-mcp .
 
 # Run with environment variables
@@ -217,7 +217,7 @@ To modify the generator:
 
 1. Edit TypeScript files in `Scripts/MCPProvider/Core/`
 2. Run `npm run generate-mcp-server` to test changes
-3. Check generated code in `MCP-Generated/`
+3. Check generated code in `MCP/`
 4. Iterate and improve
 
 ### Key Files

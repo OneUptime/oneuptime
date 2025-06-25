@@ -235,7 +235,7 @@ if [ "$DRY_RUN" = false ]; then
 This release includes the OneUptime Model Context Protocol (MCP) Server generated from the OneUptime API specification.
 
 ### Features
-- Complete API coverage with $(find MCP-Generated -name "*.ts" | wc -l) generated TypeScript files
+- Complete API coverage with $(find MCP -name "*.ts" | wc -l) generated TypeScript files
 - Auto-generated from OpenAPI specification
 - Full support for OneUptime monitoring and incident management features
 - Type-safe MCP tools for LLM integration
@@ -262,7 +262,7 @@ oneuptime-mcp
 docker run -e ONEUPTIME_API_KEY=your-api-key-here oneuptime/mcp-server:$VERSION
 \`\`\`
 
-For more information, see the [README](https://github.com/OneUptime/oneuptime/blob/main/MCP-Generated/README.md).
+For more information, see the [README](https://github.com/OneUptime/oneuptime/blob/main/MCP/README.md).
 "
         
         echo "$RELEASE_NOTES" > release-notes.md
@@ -271,7 +271,7 @@ For more information, see the [README](https://github.com/OneUptime/oneuptime/bl
         gh release create "mcp-v$VERSION" \
             --title "MCP Server v$VERSION" \
             --notes-file release-notes.md \
-            MCP-Generated/*.tgz 2>/dev/null || echo "Note: No package files to attach to release"
+            MCP/*.tgz 2>/dev/null || echo "Note: No package files to attach to release"
         
         rm -f release-notes.md
         
@@ -291,4 +291,4 @@ if [ "$DRY_RUN" = false ]; then
     print_status "🐙 GitHub: https://github.com/OneUptime/oneuptime/releases/tag/mcp-v$VERSION"
 fi
 
-print_status "📚 Documentation: See MCP-Generated/README.md for usage instructions"
+print_status "📚 Documentation: See MCP/README.md for usage instructions"
