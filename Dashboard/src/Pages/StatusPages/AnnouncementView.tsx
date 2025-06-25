@@ -237,6 +237,9 @@ const AnnouncementView: FunctionComponent<
             modelId: modelId,
           }}
         />
+        <div className="mt-4">
+            
+        </div>
 
         <ModelDelete
           modelType={StatusPageAnnouncement}
