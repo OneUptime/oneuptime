@@ -9,13 +9,13 @@ async function main(): Promise<void> {
   Logger.info("🚀 Starting MCP Server Generation Process...");
 
   // Define paths
-  const mcpDir: string = path.resolve(__dirname, "../../MCP-Generated");
+  const mcpDir: string = path.resolve(__dirname, "../../MCP");
   const openApiSpecPath: string = path.resolve(mcpDir, "openapi.json");
 
   try {
     // Step 1: Clean up existing MCP directory
     if (fs.existsSync(mcpDir)) {
-      Logger.info("🗑️ Removing existing MCP-Generated directory...");
+      Logger.info("🗑️ Removing existing MCP directory...");
       fs.rmSync(mcpDir, { recursive: true, force: true });
     }
 
@@ -52,7 +52,7 @@ async function main(): Promise<void> {
     Logger.info("✅ MCP server generation completed successfully!");
     Logger.info(`📁 MCP server generated at: ${mcpDir}`);
     Logger.info("🎯 Next steps:");
-    Logger.info("   1. cd MCP-Generated");
+    Logger.info("   1. cd MCP");
     Logger.info("   2. npm install");
     Logger.info("   3. Set up your environment variables");
     Logger.info("   4. npm run build");

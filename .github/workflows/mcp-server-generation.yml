@@ -39,7 +39,7 @@ jobs:
 
       - name: Verify MCP server generation
         run: |
-          MCP_DIR="./MCP-Generated"
+          MCP_DIR="./MCP"
           
           # Check if MCP server directory was created
           if [ ! -d "$MCP_DIR" ]; then
@@ -76,7 +76,7 @@ jobs:
 
       - name: Test MCP server build
         run: |
-          MCP_DIR="./MCP-Generated"
+          MCP_DIR="./MCP"
           if [ -d "$MCP_DIR" ] && [ -f "$MCP_DIR/package.json" ]; then
             cd "$MCP_DIR"
             echo "🔨 Installing dependencies..."
@@ -95,6 +95,6 @@ jobs:
       - name: Upload MCP server as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MCP-Generated
-          path: ./MCP-Generated/
+          name: MCP
+          path: ./MCP/
           retention-days: 30

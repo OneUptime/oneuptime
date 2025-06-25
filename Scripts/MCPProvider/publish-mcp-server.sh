@@ -154,7 +154,7 @@ print_status "Step 4: Generating MCP server..."
 npm run generate-mcp-server
 
 # Check if MCP server was generated
-MCP_DIR="./MCP-Generated"
+MCP_DIR="./MCP"
 if [ ! -d "$MCP_DIR" ]; then
     print_error "MCP server generation failed - directory not created"
     exit 1

@@ -74,7 +74,7 @@ jobs:
 
       - name: Verify MCP server generation
         run: |
-          MCP_DIR="./MCP-Generated"
+          MCP_DIR="./MCP"
           
           if [ ! -d "$MCP_DIR" ]; then
             echo "❌ MCP server directory not created"
@@ -89,31 +89,31 @@ jobs:
 
       - name: Update package version
         run: |
-          cd MCP-Generated
+          cd MCP
           npm version ${{ steps.version.outputs.version }} --no-git-tag-version
 
       - name: Install dependencies and build
         run: |
-          cd MCP-Generated
+          cd MCP
           npm install
           npm run build
 
       - name: Run tests
         run: |
-          cd MCP-Generated
+          cd MCP
           npm test || echo "No tests found or tests failed, continuing..."
 
       - name: Publish to npm (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' || github.event_name == 'push' }}
         run: |
-          cd MCP-Generated
+          cd MCP
           npm pack --dry-run
           echo "✅ Dry run completed successfully"
 
       - name: Publish to npm
         if: ${{ github.event.inputs.dry_run != 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') }}
         run: |
-          cd MCP-Generated
+          cd MCP
           npm publish --access public
           echo "✅ Published @oneuptime/mcp-server@${{ steps.version.outputs.version }} to npm"
         env:
@@ -122,7 +122,7 @@ jobs:
       - name: Create Docker image
         if: ${{ github.event.inputs.dry_run != 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') }}
         run: |
-          cd MCP-Generated
+          cd MCP
           docker build -t oneuptime/mcp-server:${{ steps.version.outputs.version }} .
           docker tag oneuptime/mcp-server:${{ steps.version.outputs.version }} oneuptime/mcp-server:latest
           echo "✅ Created Docker image"
