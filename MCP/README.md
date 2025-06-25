@@ -25,7 +25,8 @@ npm install -g @oneuptime/mcp-server
 
 ```bash
 git clone https://github.com/OneUptime/oneuptime.git
-cd oneuptime/MCP-Generated
+npm run generate-mcp-server
+cd oneuptime/MCP
 npm install
 npm run build
 ```

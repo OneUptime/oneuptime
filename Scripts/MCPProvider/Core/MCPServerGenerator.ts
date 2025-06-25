@@ -432,7 +432,8 @@ npm install -g ${this.config.npmPackageName}
 
 \`\`\`bash
 git clone https://github.com/OneUptime/oneuptime.git
-cd oneuptime/MCP-Generated
+npm run generate-mcp-server
+cd oneuptime/MCP
 npm install
 npm run build
 \`\`\`
@@ -445,7 +446,7 @@ The MCP server requires the following environment variables:
 
 | Variable | Description | Required | Example |
 |----------|-------------|----------|---------|
-| \`ONEUPTIME_API_KEY\` | Your OneUptime API key | Yes | \`sk-xxxxxxxxxxxx\` |
+| \`ONEUPTIME_API_KEY\` | Your OneUptime API key | Yes | \`xxxxxxxx-xxxx-xxxx-xxxx\` |
 | \`ONEUPTIME_URL\` | Your OneUptime instance URL | No | \`https://oneuptime.com\` (default) |
 
 ### Getting Your API Key
