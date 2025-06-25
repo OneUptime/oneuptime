@@ -16,6 +16,8 @@ enum Permission {
   // All users in the project will have this permission.
   ProjectUser = "ProjectUser",
 
+  AuthenticatedRequest = "AuthenticatedRequest", // Authenticated request - could be API, User, MCP server or any other authenticated request.
+
   // Users who are in the project but do not have SSO authorization.
   UnAuthorizedSsoUser = "UnAuthorizedSsoUser",
 

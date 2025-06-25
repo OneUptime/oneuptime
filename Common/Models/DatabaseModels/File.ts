@@ -19,8 +19,8 @@ import { Entity } from "typeorm";
 })
 @CrudApiEndpoint(new Route("/file"))
 @TableAccessControl({
-  create: [Permission.CurrentUser],
-  read: [Permission.CurrentUser],
+  create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+  read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
   delete: [],
   update: [],
 })
