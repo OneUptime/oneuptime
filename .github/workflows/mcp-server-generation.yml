@@ -1,0 +1,100 @@
+name: MCP Server Generation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-mcp-server:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: 'npm'
+
+      - name: Install Common dependencies
+        run: cd Common && npm install
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install Script dependencies
+        run: cd Scripts && npm install
+
+      - name: Generate MCP server
+        run: npm run generate-mcp-server
+
+      - name: Verify MCP server generation
+        run: |
+          MCP_DIR="./MCP-Generated"
+          
+          # Check if MCP server directory was created
+          if [ ! -d "$MCP_DIR" ]; then
+            echo "❌ MCP server directory not created"
+            exit 1
+          fi
+          echo "✅ MCP server directory created: $MCP_DIR"
+          
+          # Count generated files
+          TS_FILES=$(find "$MCP_DIR" -name "*.ts" | wc -l)
+          echo "📊 Generated TypeScript files: $TS_FILES"
+          
+          if [ "$TS_FILES" -eq 0 ]; then
+            echo "❌ No TypeScript files were generated"
+            exit 1
+          fi
+          
+          # Check for essential files
+          if [ -f "$MCP_DIR/package.json" ]; then
+            echo "✅ Package.json file created"
+          fi
+          
+          if [ -f "$MCP_DIR/README.md" ]; then
+            echo "✅ Documentation created"
+          fi
+          
+          if [ -f "$MCP_DIR/Index.ts" ]; then
+            echo "✅ Main entry point created"
+          fi
+          
+          # Show directory structure for debugging
+          echo "📁 MCP server directory structure:"
+          ls -la "$MCP_DIR" || true
+
+      - name: Test MCP server build
+        run: |
+          MCP_DIR="./MCP-Generated"
+          if [ -d "$MCP_DIR" ] && [ -f "$MCP_DIR/package.json" ]; then
+            cd "$MCP_DIR"
+            echo "🔨 Installing dependencies..."
+            npm install
+            echo "🔨 Testing TypeScript build..."
+            npm run build
+            echo "✅ MCP server build successful"
+            
+            # Show build output
+            echo "📦 Build output:"
+            ls -la build/ || true
+          else
+            echo "⚠️ Cannot test build - missing package.json or MCP server directory"
+          fi
+
+      - name: Upload MCP server as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MCP-Generated
+          path: ./MCP-Generated/
+          retention-days: 30

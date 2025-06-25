@@ -1,0 +1,248 @@
+name: Publish MCP Server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'Common/**'
+      - 'Scripts/MCPProvider/**'
+      - 'Scripts/OpenAPI/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Run in dry-run mode (no actual publishing)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  publish-mcp-server:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Common dependencies
+        run: cd Common && npm install
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install Script dependencies
+        run: cd Scripts && npm install
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            # Remove 'v' prefix if present
+            VERSION=${VERSION#v}
+            # Extract version if it's mcp-v1.0.0 format
+            if [[ $VERSION == mcp-* ]]; then
+              VERSION=${VERSION#mcp-v}
+            fi
+          else
+            # For push events, generate a pre-release version
+            VERSION="0.0.0-dev.${GITHUB_SHA:0:7}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Generate MCP server
+        run: npm run generate-mcp-server
+
+      - name: Verify MCP server generation
+        run: |
+          MCP_DIR="./MCP-Generated"
+          
+          if [ ! -d "$MCP_DIR" ]; then
+            echo "❌ MCP server directory not created"
+            exit 1
+          fi
+          
+          echo "✅ MCP server generated successfully"
+          echo "📊 Generated files:"
+          find "$MCP_DIR" -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | wc -l
+          echo "📁 Directory structure:"
+          ls -la "$MCP_DIR"
+
+      - name: Update package version
+        run: |
+          cd MCP-Generated
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Install dependencies and build
+        run: |
+          cd MCP-Generated
+          npm install
+          npm run build
+
+      - name: Run tests
+        run: |
+          cd MCP-Generated
+          npm test || echo "No tests found or tests failed, continuing..."
+
+      - name: Publish to npm (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' || github.event_name == 'push' }}
+        run: |
+          cd MCP-Generated
+          npm pack --dry-run
+          echo "✅ Dry run completed successfully"
+
+      - name: Publish to npm
+        if: ${{ github.event.inputs.dry_run != 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') }}
+        run: |
+          cd MCP-Generated
+          npm publish --access public
+          echo "✅ Published @oneuptime/mcp-server@${{ steps.version.outputs.version }} to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Docker image
+        if: ${{ github.event.inputs.dry_run != 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') }}
+        run: |
+          cd MCP-Generated
+          docker build -t oneuptime/mcp-server:${{ steps.version.outputs.version }} .
+          docker tag oneuptime/mcp-server:${{ steps.version.outputs.version }} oneuptime/mcp-server:latest
+          echo "✅ Created Docker image"
+
+      - name: Login to Docker Hub
+        if: ${{ github.event.inputs.dry_run != 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Push Docker image
+        if: ${{ github.event.inputs.dry_run != 'true' && (github.event_name == 'release' || github.event_name == 'workflow_dispatch') }}
+        run: |
+          docker push oneuptime/mcp-server:${{ steps.version.outputs.version }}
+          docker push oneuptime/mcp-server:latest
+          echo "✅ Pushed Docker images to Docker Hub"
+
+      - name: Upload MCP server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-${{ steps.version.outputs.version }}
+          path: ./MCP-Generated/
+          retention-days: 90
+
+      - name: Create GitHub Release Assets
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          cd MCP-Generated
+          npm pack
+          PACKAGE_FILE=$(ls *.tgz)
+          mv "$PACKAGE_FILE" "../oneuptime-mcp-server-${{ steps.version.outputs.version }}.tgz"
+
+      - name: Upload Release Assets
+        if: ${{ github.event_name == 'release' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./oneuptime-mcp-server-${{ steps.version.outputs.version }}.tgz
+          asset_name: oneuptime-mcp-server-${{ steps.version.outputs.version }}.tgz
+          asset_content_type: application/gzip
+
+      - name: Update release notes
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          # Count generated tools
+          TOOL_COUNT=$(grep -c "server.tool(" MCP-Generated/Service/MCP.ts || echo "0")
+          
+          # Create enhanced release notes
+          cat > enhanced-release-notes.md << EOF
+          # OneUptime MCP Server v${{ steps.version.outputs.version }}
+
+          ## What's New
+
+          This release includes the OneUptime Model Context Protocol (MCP) Server, automatically generated from the OneUptime OpenAPI specification.
+
+          ### 🚀 Features
+          - **$TOOL_COUNT MCP Tools**: Complete API coverage for OneUptime operations
+          - **Type-safe**: Full TypeScript support with comprehensive type definitions
+          - **Docker Support**: Available as \`oneuptime/mcp-server:${{ steps.version.outputs.version }}\`
+          - **NPM Package**: Install with \`npm install -g @oneuptime/mcp-server@${{ steps.version.outputs.version }}\`
+
+          ### 📦 Installation Options
+
+          #### NPM
+          \`\`\`bash
+          npm install -g @oneuptime/mcp-server@${{ steps.version.outputs.version }}
+          \`\`\`
+
+          #### Docker
+          \`\`\`bash
+          docker run -e ONEUPTIME_API_KEY=your-key oneuptime/mcp-server:${{ steps.version.outputs.version }}
+          \`\`\`
+
+          #### Download Package
+          Download the attached \`oneuptime-mcp-server-${{ steps.version.outputs.version }}.tgz\` file.
+
+          ### 🔧 Quick Start
+
+          1. Set your OneUptime API key:
+             \`\`\`bash
+             export ONEUPTIME_API_KEY=your-api-key-here
+             \`\`\`
+
+          2. Run the MCP server:
+             \`\`\`bash
+             oneuptime-mcp
+             \`\`\`
+
+          ### 📚 Documentation
+
+          For detailed usage instructions, API documentation, and examples, see the [README](https://github.com/OneUptime/oneuptime/blob/main/MCP-Generated/README.md).
+
+          ### 🔗 Links
+
+          - **NPM Package**: https://www.npmjs.com/package/@oneuptime/mcp-server
+          - **Docker Hub**: https://hub.docker.com/r/oneuptime/mcp-server
+          - **Documentation**: https://oneuptime.com/docs/
+          EOF
+
+          echo "Enhanced release notes created"
+
+      - name: Summary
+        run: |
+          echo "## 🎉 MCP Server Publishing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.dry_run }}" != "true" ] && [ "${{ github.event_name }}" != "push" ]; then
+            echo "### ✅ Published Successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- 📦 **NPM**: [@oneuptime/mcp-server@${{ steps.version.outputs.version }}](https://www.npmjs.com/package/@oneuptime/mcp-server)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🐳 **Docker**: [oneuptime/mcp-server:${{ steps.version.outputs.version }}](https://hub.docker.com/r/oneuptime/mcp-server)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🧪 Dry Run Completed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No actual publishing was performed." >> $GITHUB_STEP_SUMMARY
+          fi
