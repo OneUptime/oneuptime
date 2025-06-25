@@ -165,6 +165,12 @@ const AnnouncementCreate: LazyExoticComponent<
   return import("../Pages/StatusPages/AnnouncementCreate");
 });
 
+const AnnouncementView: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/AnnouncementView");
+});
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -211,6 +217,18 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <AnnouncementCreate
               {...props}
               pageRoute={RouteMap[PageMap.ANNOUNCEMENT_CREATE] as Route}
+            />
+          </Suspense>
+        }
+      />
+
+      <PageRoute
+        path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW] || ""}
+        element={
+          <Suspense fallback={Loader}>
+            <AnnouncementView
+              {...props}
+              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route}
             />
           </Suspense>
         }
