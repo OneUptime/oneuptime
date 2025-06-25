@@ -39,7 +39,7 @@ The MCP server requires the following environment variables:
 
 | Variable | Description | Required | Example |
 |----------|-------------|----------|---------|
-| `ONEUPTIME_API_KEY` | Your OneUptime API key | Yes | `sk-xxxxxxxxxxxx` |
+| `ONEUPTIME_API_KEY` | Your OneUptime API key | Yes | `xxxxxxxx-xxxx-xxxx-xxxx` |
 | `ONEUPTIME_URL` | Your OneUptime instance URL | No | `https://oneuptime.com` (default) |
 
 ### Getting Your API Key
