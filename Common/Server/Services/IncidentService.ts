@@ -103,7 +103,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!incident.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Incident Project ID not found");
     }
 
     const resolvedIncidentState: IncidentState =
@@ -149,7 +149,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!incident.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Incident Project ID not found");
     }
 
     const ackIncidentState: IncidentState =
@@ -1584,7 +1584,7 @@ ${incidentSeverity.name}
     }
 
     if (!incident.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Incident Project ID not found");
     }
 
     // get incident state timeline
@@ -1617,7 +1617,7 @@ ${incidentSeverity.name}
     const firstIncidentStateTimeline: IncidentStateTimeline | undefined =
       incidentStateTimelines[0];
 
-    // delete all the incident metrics with this incident id because its a refresh.
+    // delete all the incident metrics with this incident id because it's a refresh.
 
     await MetricService.deleteBy({
       query: {

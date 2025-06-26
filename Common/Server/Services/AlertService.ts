@@ -87,7 +87,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!alert.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Alert Project ID not found");
     }
 
     const ackAlertState: AlertState =
@@ -1240,7 +1240,7 @@ ${alertSeverity.name}
     }
 
     if (!alert.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Alert Project ID not found");
     }
 
     const resolvedAlertState: AlertState =

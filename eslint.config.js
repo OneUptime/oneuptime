@@ -169,7 +169,7 @@ export default tseslint.config(
       "no-loop-func": "error",
       "no-duplicate-imports": "error",
       "no-promise-executor-return": "error",
-      "capitalized-comments": "off", // this is turned off because come commented code should not be capitalized.
+      "capitalized-comments": "off", // this is turned off because some commented code should not be capitalized.
       "for-direction": "error",
       "getter-return": "error",
       "no-async-promise-executor": "error",

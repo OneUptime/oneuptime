@@ -11,7 +11,7 @@ import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
 
-// TODO - make sure it  work for the IPV6
+// TODO - make sure it works for the IPV6
 export interface PingResponse {
   isOnline: boolean;
   responseTimeInMS?: PositiveNumber | undefined;

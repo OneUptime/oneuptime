@@ -1,7 +1,7 @@
 # Important: 
 # This script will setup MicroK8s and install OneUptime on it. 
 # This is used to install OneUptime on a standalone VM
-# This is usally used for CI/CD testing, and to update VM's on GCP, Azure and AWS. 
+# This is usually used for CI/CD testing, and to update VM's on GCP, Azure and AWS. 
 
 # If this is the first install, then helm wont be found. 
 if [[ ! $(which helm) ]]
