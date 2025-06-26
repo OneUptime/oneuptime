@@ -592,6 +592,8 @@ func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.C
         return
     }
 
+${this.generateOriginalValueStorage(resource)}
+
     // Create API request body
     ${resourceVarName}Request := map[string]interface{}{
         "data": map[string]interface{}{
@@ -614,7 +616,7 @@ ${this.generateRequestBody(resource)}
     }
 
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response")}
+${this.generateResponseMapping(resource, resourceVarName + "Response", true)}
 
     // Write logs using the tflog package
     tflog.Trace(ctx, "created a resource")
@@ -693,7 +695,7 @@ ${this.generateSelectParameter(resource)}
     }
 
     // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response")}
+${this.generateResponseMapping(resource, resourceVarName + "Response", false)}
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -829,7 +831,7 @@ ${this.generateSelectParameter(resource)}
     }
 
     // Update the model with response data from the Read operation
-${this.generateResponseMapping(resource, "readResponse")}
+${this.generateResponseMapping(resource, "readResponse", false)}
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -1122,6 +1124,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   private generateResponseMapping(
     resource: TerraformResource,
     responseVar: string,
+    isCreateMethod: boolean = false,
   ): string {
     const mappings: string[] = [];
 
@@ -1168,6 +1171,9 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           `dataMap["${apiFieldName}"]`,
           attr.default !== undefined && attr.default !== null, // hasDefault
           attr.isComplexObject || false, // isComplexObject
+          attr.format, // format
+          isCreateMethod, // isCreateMethod
+          sanitizedName, // fieldName for original value preservation
         );
         mappings.push(`    ${setter}`);
       }
@@ -1189,10 +1195,35 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     responseValue: string,
     hasDefault: boolean = false,
     isComplexObject: boolean = false,
+    format?: string,
+    isCreateMethod: boolean = false,
+    originalFieldName?: string,
   ): string {
+    
     switch (terraformType) {
       case "string":
-        if (isComplexObject) {
+        // Handle binary format fields (like base64 file content) specially
+        if (format === "binary") {
+          // For binary fields, treat the response as a simple string without complex object processing
+          if (isCreateMethod && originalFieldName) {
+            // In Create method, preserve original value if API doesn't return the file content
+            return `if val, ok := ${responseValue}.(string); ok {
+        ${fieldName} = types.StringValue(val)
+    } else {
+        // Preserve original value from the request since API doesn't return file content
+        ${fieldName} = types.StringValue(original${StringUtils.toPascalCase(originalFieldName)}Value)
+    }`;
+          } else {
+            // In Read/Update methods, preserve existing value if not present in API response
+            // This prevents drift detection when API doesn't return binary content
+            return `if val, ok := ${responseValue}.(string); ok {
+        ${fieldName} = types.StringValue(val)
+    } else {
+        // Keep existing value to prevent drift - API doesn't return binary content
+        // ${fieldName} value is already set from the existing state
+    }`;
+          }
+        } else if (isComplexObject) {
           // For complex object strings, convert API object response to JSON string
           return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
         if jsonBytes, err := json.Marshal(val); err == nil {
@@ -1383,5 +1414,22 @@ ${resourceFunctions}
       "resources.go",
       resourceListContent,
     );
+  }
+
+  private generateOriginalValueStorage(resource: TerraformResource): string {
+    const storage: string[] = [];
+    
+    // Find binary format fields and store their original values
+    for (const [name, attr] of Object.entries(resource.schema)) {
+      if (attr.format === "binary") {
+        const sanitizedName: string = this.sanitizeAttributeName(name);
+        const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+        storage.push(`    // Store the original ${sanitizedName} value since API won't return it`);
+        storage.push(`    original${fieldName}Value := data.${fieldName}.ValueString()`);
+        storage.push(``);
+      }
+    }
+    
+    return storage.join("\n");
   }
 }

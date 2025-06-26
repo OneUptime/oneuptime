@@ -570,6 +570,7 @@ export class OpenAPIParser {
 
         const prop: any = propSchema as any;
         let propType: string = prop.type || "string";
+        let propFormat: string | undefined = prop.format; // Capture the format field
         let description: string = prop.description || "";
         let example: any = prop.example;
         let defaultValue: any = prop.default;
@@ -579,6 +580,7 @@ export class OpenAPIParser {
           const resolvedProp: any = this.resolveSchemaRef(prop.$ref);
           if (resolvedProp) {
             propType = resolvedProp.type || "string";
+            propFormat = resolvedProp.format || propFormat; // Also capture format from resolved refs
             description = resolvedProp.description || description;
             example = resolvedProp.example || example;
             defaultValue = resolvedProp.default || defaultValue;
@@ -661,6 +663,7 @@ export class OpenAPIParser {
           example: example, // Extract example from OpenAPI schema
           default: defaultValue, // Extract default value from OpenAPI schema
           isComplexObject: propType === "object", // Flag to indicate this string field is actually a complex object
+          ...(propFormat && { format: propFormat }), // Only include format if it exists
         };
       }
     }
