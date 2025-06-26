@@ -523,8 +523,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (data as any)[columnName] &&
         typeof (data as any)[columnName] === Typeof.String
       ) {
-        console.log("Here!");
-
         const fileBuffer: Buffer = Buffer.from(
           (data as any)[columnName] as string,
           "base64",

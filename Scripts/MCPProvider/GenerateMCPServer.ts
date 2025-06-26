@@ -28,12 +28,12 @@ async function main(): Promise<void> {
 
     // Step 3: Parse OpenAPI spec
     Logger.info("🔍 Step 2: Parsing OpenAPI specification...");
-    const parser = new OpenAPIParser();
-    const apiSpec = await parser.parseOpenAPISpec(openApiSpecPath);
+    const parser: OpenAPIParser = new OpenAPIParser();
+    const apiSpec: any = await parser.parseOpenAPISpec(openApiSpecPath);
 
     // Step 4: Initialize MCP server generator
     Logger.info("⚙️ Step 3: Initializing MCP server generator...");
-    const generator = new MCPServerGenerator(
+    const generator: MCPServerGenerator = new MCPServerGenerator(
       {
         outputDir: mcpDir,
         serverName: "oneuptime-mcp",
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
 
 async function createAdditionalFiles(mcpDir: string): Promise<void> {
   // Create .env.example
-  const envExample = `# OneUptime MCP Server Configuration
+  const envExample: string = `# OneUptime MCP Server Configuration
 
 # Required: Your OneUptime API key
 ONEUPTIME_API_KEY=your-api-key-here
@@ -89,7 +89,7 @@ NODE_ENV=development
   fs.writeFileSync(path.join(mcpDir, ".env.example"), envExample);
 
   // Create .gitignore
-  const gitignore = `# Dependencies
+  const gitignore: string = `# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -153,7 +153,7 @@ Thumbs.db
   fs.writeFileSync(path.join(mcpDir, ".gitignore"), gitignore);
 
   // Create CHANGELOG.md
-  const changelog = `# Changelog
+  const changelog: string = `# Changelog
 
 All notable changes to the OneUptime MCP Server will be documented in this file.
 
@@ -184,7 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fs.writeFileSync(path.join(mcpDir, "CHANGELOG.md"), changelog);
 
   // Create LICENSE
-  const license = `Apache License
+  const license: string = `Apache License
 Version 2.0, January 2004
 http://www.apache.org/licenses/
 

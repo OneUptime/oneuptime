@@ -1,7 +1,7 @@
 export class StringUtils {
   public static toCamelCase(str: string): string {
     return str
-      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
+      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word: string, index: number) => {
         return index === 0 ? word.toLowerCase() : word.toUpperCase();
       })
       .replace(/\s+/g, "");
@@ -9,7 +9,7 @@ export class StringUtils {
 
   public static toPascalCase(str: string): string {
     return str
-      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word) => {
+      .replace(/(?:^\w|[A-Z]|\b\w)/g, (word: string) => {
         return word.toUpperCase();
       })
       .replace(/\s+/g, "");

@@ -119,7 +119,7 @@ export default class Text {
     }
 
     // Remove data URI prefix if present (e.g., data:image/jpeg;base64,)
-    const base64String = text.replace(/^data:[^;]+;base64,/, "");
+    const base64String: string = text.replace(/^data:[^;]+;base64,/, "");
 
     // Check if string is empty after removing prefix
     if (!base64String) {
@@ -143,7 +143,7 @@ export default class Text {
 
     // Check if it's a data URI
     if (text.startsWith("data:")) {
-      const base64Index = text.indexOf(";base64,");
+      const base64Index: number = text.indexOf(";base64,");
       if (base64Index !== -1) {
         return text.substring(base64Index + 8); // 8 is length of ';base64,'
       }
@@ -160,7 +160,7 @@ export default class Text {
 
     // Check if it's a data URI
     if (text.startsWith("data:")) {
-      const mimeTypeEnd = text.indexOf(";");
+      const mimeTypeEnd: number = text.indexOf(";");
       if (mimeTypeEnd !== -1) {
         return text.substring(5, mimeTypeEnd); // 5 is length of 'data:'
       }

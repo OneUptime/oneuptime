@@ -383,7 +383,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       // add title and description to the schema
-      let finalDescription = "";
+      let finalDescription: string = "";
 
       // Add column description first if it exists
       if (column.description) {
@@ -1174,7 +1174,7 @@ export class ModelSchema extends BaseSchema {
       }
 
       // Add title and description to the schema
-      let finalDescription = "";
+      let finalDescription: string = "";
 
       // Add column description first if it exists
       if (column.description) {
@@ -1219,7 +1219,9 @@ export class ModelSchema extends BaseSchema {
     let zodType: ZodTypes.ZodTypeAny;
 
     // Helper function to add default value to openapi schema if it exists
-    const addDefaultToOpenApi = (openApiConfig: any) => {
+    const addDefaultToOpenApi: (openApiConfig: any) => any = (
+      openApiConfig: any,
+    ): any => {
       if (column.defaultValue !== undefined && column.defaultValue !== null) {
         return { ...openApiConfig, default: column.defaultValue };
       }

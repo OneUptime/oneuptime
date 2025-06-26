@@ -27,7 +27,7 @@ export class MCPServerGenerator {
   }
 
   private async generatePackageJson(): Promise<void> {
-    const packageJson = {
+    const packageJson: any = {
       name: this.config.npmPackageName,
       version: this.config.serverVersion,
       description: this.config.description,
@@ -92,7 +92,7 @@ export class MCPServerGenerator {
   }
 
   private async generateIndexFile(): Promise<void> {
-    const indexContent = [
+    const indexContent: string = [
       "#!/usr/bin/env node",
       "",
       'import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";',
@@ -152,12 +152,12 @@ export class MCPServerGenerator {
   }
 
   private async generateMCPService(): Promise<void> {
-    const parser = new OpenAPIParser();
+    const parser: OpenAPIParser = new OpenAPIParser();
     parser.setSpec(this.spec);
-    const tools = parser.getMCPTools();
+    const tools: any[] = parser.getMCPTools();
 
-    const toolRegistrations = tools
-      .map((tool) => {
+    const toolRegistrations: string = tools
+      .map((tool: any) => {
         return [
           `    server.tool(`,
           `      "${tool.name}",`,
@@ -171,13 +171,13 @@ export class MCPServerGenerator {
       })
       .join("\n\n");
 
-    const toolMethods = tools
-      .map((tool) => {
+    const toolMethods: string = tools
+      .map((tool: any) => {
         return this.generateToolMethod(tool);
       })
       .join("\n\n");
 
-    const serviceContent = [
+    const serviceContent: string = [
       'import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";',
       'import { OneUptimeAPIClient } from "./APIClient.js";',
       "",
@@ -202,8 +202,8 @@ export class MCPServerGenerator {
   }
 
   private generateToolMethod(tool: MCPTool): string {
-    const methodName = StringUtils.toCamelCase(tool.name);
-    const operation = tool.operation;
+    const methodName: string = StringUtils.toCamelCase(tool.name);
+    const operation: any = tool.operation;
 
     return [
       `  private async ${methodName}(args: any): Promise<any> {`,
@@ -230,7 +230,7 @@ export class MCPServerGenerator {
   }
 
   private async generateAPIClient(): Promise<void> {
-    const clientContent = [
+    const clientContent: string = [
       'import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";',
       "",
       "export interface APIRequestConfig {",
@@ -355,7 +355,7 @@ export class MCPServerGenerator {
   }
 
   private async generateConfigUtils(): Promise<void> {
-    const configContent = [
+    const configContent: string = [
       "export const ServerConfig = {",
       `  name: "${this.config.serverName}",`,
       `  version: "${this.config.serverVersion}",`,
@@ -397,28 +397,28 @@ export class MCPServerGenerator {
   }
 
   private async generateReadme(): Promise<void> {
-    const parser = new OpenAPIParser();
+    const parser: OpenAPIParser = new OpenAPIParser();
     parser.setSpec(this.spec);
-    const tools = parser.getMCPTools();
-    const resourceTags = parser.getResourceTags();
+    const tools: any[] = parser.getMCPTools();
+    const resourceTags: string[] = parser.getResourceTags();
 
-    const toolList = tools
+    const toolList: string = tools
       .slice(0, 20)
-      .map((tool) => {
+      .map((tool: any) => {
         return `- **${tool.name}**: ${tool.description}`;
       })
       .join("\n");
 
-    const resourceList = resourceTags
-      .map((tag) => {
+    const resourceList: string = resourceTags
+      .map((tag: string) => {
         return `- **${StringUtils.toPascalCase(tag)}**`;
       })
       .join("\n");
 
-    const additionalToolsNote =
+    const additionalToolsNote: string =
       tools.length > 20 ? `\n...and ${tools.length - 20} more tools` : "";
 
-    const readmeContent = `# ${this.config.serverName}
+    const readmeContent: string = `# ${this.config.serverName}
 
 ${this.config.description}
 
@@ -560,7 +560,7 @@ Generated from OneUptime OpenAPI specification v${this.spec.info.version}
   }
 
   private async generateTsConfig(): Promise<void> {
-    const tsConfigContent = `{
+    const tsConfigContent: string = `{
   "compilerOptions": {
     "target": "ES2022",
     "module": "Node16",
@@ -608,7 +608,7 @@ Generated from OneUptime OpenAPI specification v${this.spec.info.version}
   }
 
   private async generateNodemonConfig(): Promise<void> {
-    const nodemonContent = `{
+    const nodemonContent: string = `{
   "watch": ["**/*.ts"],
   "ext": "ts",
   "ignore": ["build/**/*", "node_modules/**/*"],
@@ -623,7 +623,7 @@ Generated from OneUptime OpenAPI specification v${this.spec.info.version}
   }
 
   private async generateDockerfile(): Promise<void> {
-    const dockerContent = `FROM node:18-alpine
+    const dockerContent: string = `FROM node:18-alpine
 
 WORKDIR /app
 

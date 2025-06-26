@@ -114,18 +114,20 @@ export class ResourceGenerator {
       );
       const hasDefaultNumbers: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
-          const isInCreateSchema =
+          const isInCreateSchema: boolean = Boolean(
             resource?.operationSchemas?.create &&
-            Object.prototype.hasOwnProperty.call(
-              resource.operationSchemas.create,
-              name,
-            );
-          const isInUpdateSchema =
+              Object.prototype.hasOwnProperty.call(
+                resource.operationSchemas.create,
+                name,
+              ),
+          );
+          const isInUpdateSchema: boolean = Boolean(
             resource?.operationSchemas?.update &&
-            Object.prototype.hasOwnProperty.call(
-              resource.operationSchemas.update,
-              name,
-            );
+              Object.prototype.hasOwnProperty.call(
+                resource.operationSchemas.update,
+                name,
+              ),
+          );
           return (
             attr.default !== undefined &&
             attr.default !== null &&
@@ -141,18 +143,20 @@ export class ResourceGenerator {
       );
       const hasDefaultStrings: boolean = Object.entries(resource.schema).some(
         ([name, attr]: [string, any]) => {
-          const isInCreateSchema =
+          const isInCreateSchema: boolean = Boolean(
             resource?.operationSchemas?.create &&
-            Object.prototype.hasOwnProperty.call(
-              resource.operationSchemas.create,
-              name,
-            );
-          const isInUpdateSchema =
+              Object.prototype.hasOwnProperty.call(
+                resource.operationSchemas.create,
+                name,
+              ),
+          );
+          const isInUpdateSchema: boolean = Boolean(
             resource?.operationSchemas?.update &&
-            Object.prototype.hasOwnProperty.call(
-              resource.operationSchemas.update,
-              name,
-            );
+              Object.prototype.hasOwnProperty.call(
+                resource.operationSchemas.update,
+                name,
+              ),
+          );
           return (
             attr.default !== undefined &&
             attr.default !== null &&
@@ -408,18 +412,20 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     }
 
     // Check if this field is in the create or update schema (for fields with defaults)
-    const isInCreateSchema =
+    const isInCreateSchema: boolean = Boolean(
       resource?.operationSchemas?.create &&
-      Object.prototype.hasOwnProperty.call(
-        resource.operationSchemas.create,
-        name,
-      );
-    const isInUpdateSchema =
+        Object.prototype.hasOwnProperty.call(
+          resource.operationSchemas.create,
+          name,
+        ),
+    );
+    const isInUpdateSchema: boolean = Boolean(
       resource?.operationSchemas?.update &&
-      Object.prototype.hasOwnProperty.call(
-        resource.operationSchemas.update,
-        name,
-      );
+        Object.prototype.hasOwnProperty.call(
+          resource.operationSchemas.update,
+          name,
+        ),
+    );
 
     if (attr.required) {
       options.push("Required: true");
@@ -944,16 +950,20 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     resource: TerraformResource,
     resourceVarName: string,
   ): string {
-    const updateSchema = resource.operationSchemas?.update || {};
+    const updateSchema: any = resource.operationSchemas?.update || {};
     const conditionalAssignments: string[] = [];
 
     // Fields that should not be included in update requests
     const immutableFields: Array<string> = ["projectId", "project_id"];
 
     // Check if there are any fields to process
-    const hasFields = Object.entries(updateSchema).some(([name, attr]) => {
-      return name !== "id" && !attr.computed && !immutableFields.includes(name);
-    });
+    const hasFields: boolean = Object.entries(updateSchema).some(
+      ([name, attr]: [string, any]) => {
+        return (
+          name !== "id" && !attr.computed && !immutableFields.includes(name)
+        );
+      },
+    );
 
     // If no fields to process, return empty string
     if (!hasFields) {

@@ -16,7 +16,7 @@ export class AnalyticsModelSchema extends BaseSchema {
   private static addDefaultToOpenApi(
     openApiConfig: any,
     column: AnalyticsTableColumn,
-  ) {
+  ): any {
     if (column.defaultValue !== undefined && column.defaultValue !== null) {
       return { ...openApiConfig, default: column.defaultValue };
     }

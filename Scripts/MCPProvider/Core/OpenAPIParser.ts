@@ -78,8 +78,8 @@ export class OpenAPIParser {
     }
 
     // Fallback to tag + summary
-    const tag = operation.tags?.[0] || "api";
-    const summary = operation.summary || "operation";
+    const tag: string = operation.tags?.[0] || "api";
+    const summary: string = operation.summary || "operation";
     return StringUtils.toCamelCase(`${tag}_${summary}`);
   }
 
@@ -95,7 +95,7 @@ export class OpenAPIParser {
           param.in === "query" ||
           param.in === "header"
         ) {
-          const paramName = StringUtils.toCamelCase(param.name);
+          const paramName: string = StringUtils.toCamelCase(param.name);
           properties[paramName] = this.convertOpenAPISchemaToJsonSchema(
             param.schema,
           );
@@ -110,8 +110,8 @@ export class OpenAPIParser {
 
     // Add request body
     if (operation.requestBody) {
-      const content = operation.requestBody.content;
-      const jsonContent = content["application/json"];
+      const content: any = operation.requestBody.content;
+      const jsonContent: any = content["application/json"];
 
       if (jsonContent && jsonContent.schema) {
         if (jsonContent.schema.properties) {
@@ -145,7 +145,7 @@ export class OpenAPIParser {
 
   private convertOpenAPISchemaToJsonSchema(schema: OpenAPISchema): any {
     if (schema.$ref) {
-      const resolvedSchema = this.resolveSchemaRef(schema.$ref);
+      const resolvedSchema: OpenAPISchema = this.resolveSchemaRef(schema.$ref);
       return this.convertOpenAPISchemaToJsonSchema(resolvedSchema);
     }
 
@@ -190,13 +190,13 @@ export class OpenAPIParser {
     }
 
     // Handle #/components/schemas/SchemeName format
-    const refParts = ref.split("/");
+    const refParts: string[] = ref.split("/");
     if (
       refParts[0] === "#" &&
       refParts[1] === "components" &&
       refParts[2] === "schemas"
     ) {
-      const schemaName = refParts[3];
+      const schemaName: string | undefined = refParts[3];
       if (schemaName && this.spec.components?.schemas?.[schemaName]) {
         return this.spec.components.schemas[schemaName];
       }
@@ -210,12 +210,12 @@ export class OpenAPIParser {
       return [];
     }
 
-    const tags = new Set<string>();
+    const tags: Set<string> = new Set<string>();
 
     for (const [, pathItem] of Object.entries(this.spec.paths)) {
       for (const [, operation] of Object.entries(pathItem)) {
         if (operation.tags) {
-          operation.tags.forEach((tag) => {
+          operation.tags.forEach((tag: string) => {
             return tags.add(tag);
           });
         }
