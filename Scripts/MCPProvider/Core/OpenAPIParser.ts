@@ -198,7 +198,7 @@ export class OpenAPIParser {
     ) {
       const schemaName: string | undefined = refParts[3];
       if (schemaName && this.spec.components?.schemas?.[schemaName]) {
-        return this.spec.components.schemas[schemaName];
+        return this.spec.components.schemas[schemaName]!;
       }
     }
 

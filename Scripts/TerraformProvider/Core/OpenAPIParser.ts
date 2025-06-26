@@ -604,13 +604,13 @@ export class OpenAPIParser {
         // If field already exists and we're adding computed fields, check if it should be both optional and computed
         if (computed && schema[terraformName]) {
           // Update description if it's better in the read schema
-          if (description && !schema[terraformName].description) {
-            schema[terraformName].description = description;
+          if (description && !schema[terraformName]?.description) {
+            schema[terraformName].description = description!;
           }
 
           // If the field exists from create/update and now appears in read,
           // it should be marked as both optional and computed (server-managed field)
-          if (!schema[terraformName].required) {
+          if (!schema[terraformName]?.required) {
             schema[terraformName] = {
               ...schema[terraformName],
               computed: true,
