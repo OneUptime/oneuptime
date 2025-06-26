@@ -7,6 +7,13 @@ export class StringUtils {
       .replace(/\s+/g, "");
   }
 
+  public static fromCamelCase(str: string): string {
+    // Convert camelCase back to original parameter format (kebab-case or snake_case)
+    return str
+      .replace(/([a-z])([A-Z])/g, "$1-$2")
+      .toLowerCase();
+  }
+
   public static toPascalCase(str: string): string {
     return str
       .replace(/(?:^\w|[A-Z]|\b\w)/g, (word: string) => {

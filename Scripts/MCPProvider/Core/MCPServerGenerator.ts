@@ -205,13 +205,46 @@ export class MCPServerGenerator {
     const methodName: string = StringUtils.toCamelCase(tool.name);
     const operation: any = tool.operation;
 
+    // Extract path parameters from the operation
+    const pathParams: string[] = [];
+    if (operation.parameters) {
+      for (const param of operation.parameters) {
+        if (param.in === "path") {
+          pathParams.push(StringUtils.toCamelCase(param.name));
+        }
+      }
+    }
+
+    // Generate path replacement logic
+    let pathReplacement: string;
+    if (pathParams.length > 0) {
+      const replacements = pathParams
+        .map((param) => `replace(/{${StringUtils.fromCamelCase(param)}}/g, args.${param})`)
+        .join(".");
+      pathReplacement = `"${operation.path}".${replacements}`;
+    } else {
+      pathReplacement = `"${operation.path}"`;
+    }
+
+    // Separate path parameters from other data
+    const dataProcessing = pathParams.length > 0 
+      ? [
+          "      // Extract path parameters from args",
+          `      const pathParams = [${pathParams.map(p => `"${p}"`).join(", ")}];`,
+          "      const requestData = { ...args };",
+          "      pathParams.forEach(param => delete requestData[param]);",
+        ].join("\n")
+      : "      const requestData = args;";
+
     return [
       `  private async ${methodName}(args: any): Promise<any> {`,
       "    try {",
+      dataProcessing,
+      "",
       "      const response = await this.apiClient.request({",
       `        method: "${operation.method.toUpperCase()}",`,
-      `        path: "${operation.path}",`,
-      "        data: args,",
+      `        path: ${pathReplacement},`,
+      "        data: requestData,",
       "      });",
       "",
       "      return {",
