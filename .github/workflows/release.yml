@@ -73,6 +73,7 @@ jobs:
     needs: [generate-build-number]
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
+      NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
     permissions:
       contents: write  # For creating releases
       packages: write  # For publishing packages
@@ -87,7 +88,6 @@ jobs:
         with:
           node-version: latest
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install Common dependencies
         run: cd Common && npm install
@@ -123,6 +123,16 @@ jobs:
           echo "📁 Directory structure:"
           ls -la "$MCP_DIR"
 
+      - name: Setup npm authentication
+        run: |
+          # Clean up any existing npm configuration that might cause warnings
+          rm -f ~/.npmrc
+          # Create npmrc file with authentication
+          touch ~/.npmrc
+          echo "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" >> ~/.npmrc
+          echo "//registry.npmjs.org/:email=npm@oneuptime.com" >> ~/.npmrc
+          echo "✅ npm authentication configured"
+
       - name: Update package version
         run: |
           cd MCP
@@ -133,19 +143,33 @@ jobs:
           cd MCP
           npm install
           npm run build
+          # Ensure bin file is executable and verify shebang
+          chmod +x build/Index.js
+          echo "✅ Build completed and bin file permissions set"
+          echo "📋 Verifying bin file:"
+          head -1 build/Index.js
+          ls -la build/Index.js
 
       - name: Run tests
         run: |
           cd MCP
           npm test || echo "No tests found or tests failed, continuing..."
 
+      - name: Verify package before publish
+        run: |
+          cd MCP
+          echo "📦 Package information:"
+          npm pack --dry-run
+          echo "📋 Package.json bin configuration:"
+          cat package.json | grep -A 5 -B 5 '"bin"'
+          echo "📁 Build directory contents:"
+          ls -la build/
+
       - name: Publish to npm
         run: |
           cd MCP
           npm publish --access public
           echo "✅ Published @oneuptime/mcp-server@${{ steps.version.outputs.version }} to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
