@@ -505,7 +505,7 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-       Permission.ProjectOwner,
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.CreateProjectIncident,
@@ -547,7 +547,7 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-       Permission.ProjectOwner,
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.CreateProjectIncident,
@@ -1100,9 +1100,7 @@ export default class Incident extends BaseModel {
   public telemetryQuery?: TelemetryQuery = undefined;
 
   @ColumnAccessControl({
-    create: [
-     
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

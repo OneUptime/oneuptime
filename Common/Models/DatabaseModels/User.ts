@@ -151,7 +151,11 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, defaultValue: false })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
   @Column({
     type: ColumnType.Boolean,
     default: false,
@@ -539,7 +543,7 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ 
+  @TableColumn({
     type: TableColumnType.OTP,
     computed: true,
   })

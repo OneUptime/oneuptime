@@ -165,11 +165,10 @@ const AnnouncementCreate: LazyExoticComponent<
   return import("../Pages/StatusPages/AnnouncementCreate");
 });
 
-const AnnouncementView: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/AnnouncementView");
-});
+const AnnouncementView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/StatusPages/AnnouncementView");
+  });
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

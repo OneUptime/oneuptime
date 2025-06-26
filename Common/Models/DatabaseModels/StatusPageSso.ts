@@ -552,8 +552,8 @@ export default class StatusPageSSO extends BaseModel {
       Permission.EditStatusPageSSO,
     ],
   })
-  @TableColumn({ 
-    isDefaultValueColumn: true, 
+  @TableColumn({
+    isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
   })
@@ -578,8 +578,8 @@ export default class StatusPageSSO extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ 
-    isDefaultValueColumn: true, 
+  @TableColumn({
+    isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
   })

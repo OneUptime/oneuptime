@@ -1083,19 +1083,17 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         fields.push(
           `        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`,
         );
+      } else if (attr.type === "string" && attr.isComplexObject) {
+        // For complex object strings, parse JSON and convert to interface{}
+        fields.push(
+          `        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`,
+        );
       } else {
-        if (attr.type === "string" && attr.isComplexObject) {
-          // For complex object strings, parse JSON and convert to interface{}
-          fields.push(
-            `        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`,
-          );
-        } else {
-          const value: string = this.getGoValueForTerraformType(
-            attr.type,
-            `data.${fieldName}`,
-          );
-          fields.push(`        "${apiFieldName}": ${value},`);
-        }
+        const value: string = this.getGoValueForTerraformType(
+          attr.type,
+          `data.${fieldName}`,
+        );
+        fields.push(`        "${apiFieldName}": ${value},`);
       }
     }
 
@@ -1199,7 +1197,6 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     isCreateMethod: boolean = false,
     originalFieldName?: string,
   ): string {
-    
     switch (terraformType) {
       case "string":
         // Handle binary format fields (like base64 file content) specially
@@ -1213,16 +1210,15 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // Preserve original value from the request since API doesn't return file content
         ${fieldName} = types.StringValue(original${StringUtils.toPascalCase(originalFieldName)}Value)
     }`;
-          } else {
-            // In Read/Update methods, preserve existing value if not present in API response
-            // This prevents drift detection when API doesn't return binary content
-            return `if val, ok := ${responseValue}.(string); ok {
+          }
+          // In Read/Update methods, preserve existing value if not present in API response
+          // This prevents drift detection when API doesn't return binary content
+          return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
     } else {
         // Keep existing value to prevent drift - API doesn't return binary content
         // ${fieldName} value is already set from the existing state
     }`;
-          }
         } else if (isComplexObject) {
           // For complex object strings, convert API object response to JSON string
           return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
@@ -1236,8 +1232,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     } else {
         ${fieldName} = types.StringNull()
     }`;
-        } else {
-          return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        }
+        return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
         // Handle ObjectID type responses
         if val, ok := obj["_id"].(string); ok && val != "" {
             ${fieldName} = types.StringValue(val)
@@ -1251,7 +1247,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     } else {
         ${fieldName} = types.StringNull()
     }`;
-        }
+
       case "number":
         return `if val, ok := ${responseValue}.(float64); ok {
         ${fieldName} = types.NumberValue(big.NewFloat(val))
@@ -1268,13 +1264,13 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
           return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
     }`;
-        } else {
-          return `if val, ok := ${responseValue}.(bool); ok {
+        }
+        return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
     } else if ${responseValue} == nil {
         ${fieldName} = types.BoolNull()
     }`;
-        }
+
       case "map":
         return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
         // Convert API response map to Terraform map
@@ -1418,18 +1414,22 @@ ${resourceFunctions}
 
   private generateOriginalValueStorage(resource: TerraformResource): string {
     const storage: string[] = [];
-    
+
     // Find binary format fields and store their original values
     for (const [name, attr] of Object.entries(resource.schema)) {
       if (attr.format === "binary") {
         const sanitizedName: string = this.sanitizeAttributeName(name);
         const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-        storage.push(`    // Store the original ${sanitizedName} value since API won't return it`);
-        storage.push(`    original${fieldName}Value := data.${fieldName}.ValueString()`);
+        storage.push(
+          `    // Store the original ${sanitizedName} value since API won't return it`,
+        );
+        storage.push(
+          `    original${fieldName}Value := data.${fieldName}.ValueString()`,
+        );
         storage.push(``);
       }
     }
-    
+
     return storage.join("\n");
   }
 }

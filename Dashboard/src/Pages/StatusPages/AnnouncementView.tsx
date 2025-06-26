@@ -101,8 +101,7 @@ const AnnouncementView: FunctionComponent<
               },
               title: "Show announcement on these status pages",
               stepId: "status-pages",
-              description:
-                "Select status pages to show this announcement on",
+              description: "Select status pages to show this announcement on",
               fieldType: FormFieldSchemaType.MultiSelectDropdown,
               dropdownModal: {
                 type: StatusPage,
@@ -237,9 +236,7 @@ const AnnouncementView: FunctionComponent<
             modelId: modelId,
           }}
         />
-        <div className="mt-4">
-            
-        </div>
+        <div className="mt-4"></div>
 
         <ModelDelete
           modelType={StatusPageAnnouncement}

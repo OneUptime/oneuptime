@@ -33,13 +33,17 @@ async function main(): Promise<void> {
 
     // Step 4: Initialize MCP server generator
     Logger.info("⚙️ Step 3: Initializing MCP server generator...");
-    const generator = new MCPServerGenerator({
-      outputDir: mcpDir,
-      serverName: "oneuptime-mcp",
-      serverVersion: "1.0.0",
-      npmPackageName: "@oneuptime/mcp-server",
-      description: "OneUptime Model Context Protocol (MCP) Server - Provides access to OneUptime APIs for LLMs",
-    }, apiSpec);
+    const generator = new MCPServerGenerator(
+      {
+        outputDir: mcpDir,
+        serverName: "oneuptime-mcp",
+        serverVersion: "1.0.0",
+        npmPackageName: "@oneuptime/mcp-server",
+        description:
+          "OneUptime Model Context Protocol (MCP) Server - Provides access to OneUptime APIs for LLMs",
+      },
+      apiSpec,
+    );
 
     // Step 5: Generate MCP server
     Logger.info("🏗️ Step 4: Generating MCP server files...");
@@ -57,7 +61,6 @@ async function main(): Promise<void> {
     Logger.info("   3. Set up your environment variables");
     Logger.info("   4. npm run build");
     Logger.info("   5. Test with npm start");
-
   } catch (error) {
     Logger.error("💥 MCP server generation failed:");
     Logger.error(error instanceof Error ? error.message : "Unknown error");
@@ -157,7 +160,7 @@ All notable changes to the OneUptime MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - ${new Date().toISOString().split('T')[0]}
+## [1.0.0] - ${new Date().toISOString().split("T")[0]}
 
 ### Added
 - Initial release of OneUptime MCP Server

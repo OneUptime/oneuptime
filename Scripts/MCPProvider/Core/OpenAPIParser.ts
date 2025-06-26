@@ -1,10 +1,5 @@
 import fs from "fs";
-import {
-  OpenAPISpec,
-  OpenAPIOperation,
-  MCPTool,
-  OpenAPISchema,
-} from "./Types";
+import { OpenAPISpec, OpenAPIOperation, MCPTool, OpenAPISchema } from "./Types";
 import { StringUtils } from "./StringUtils";
 
 export class OpenAPIParser {
@@ -36,7 +31,11 @@ export class OpenAPIParser {
     // Group operations by resource/tag
     for (const [path, pathItem] of Object.entries(this.spec.paths)) {
       for (const [method, operation] of Object.entries(pathItem)) {
-        if (!operation.operationId || !operation.tags || operation.tags.length === 0) {
+        if (
+          !operation.operationId ||
+          !operation.tags ||
+          operation.tags.length === 0
+        ) {
           continue;
         }
 
@@ -48,10 +47,17 @@ export class OpenAPIParser {
     return tools;
   }
 
-  private createMCPTool(path: string, method: string, operation: OpenAPIOperation): MCPTool {
+  private createMCPTool(
+    path: string,
+    method: string,
+    operation: OpenAPIOperation,
+  ): MCPTool {
     const toolName: string = this.generateToolName(operation);
-    const description: string = operation.description || operation.summary || `${method.toUpperCase()} ${path}`;
-    
+    const description: string =
+      operation.description ||
+      operation.summary ||
+      `${method.toUpperCase()} ${path}`;
+
     const inputSchema: any = this.generateInputSchema(operation);
 
     return {
@@ -84,11 +90,17 @@ export class OpenAPIParser {
     // Add path parameters
     if (operation.parameters) {
       for (const param of operation.parameters) {
-        if (param.in === "path" || param.in === "query" || param.in === "header") {
+        if (
+          param.in === "path" ||
+          param.in === "query" ||
+          param.in === "header"
+        ) {
           const paramName = StringUtils.toCamelCase(param.name);
-          properties[paramName] = this.convertOpenAPISchemaToJsonSchema(param.schema);
+          properties[paramName] = this.convertOpenAPISchemaToJsonSchema(
+            param.schema,
+          );
           properties[paramName].description = param.description || "";
-          
+
           if (param.required || param.in === "path") {
             required.push(paramName);
           }
@@ -100,17 +112,23 @@ export class OpenAPIParser {
     if (operation.requestBody) {
       const content = operation.requestBody.content;
       const jsonContent = content["application/json"];
-      
+
       if (jsonContent && jsonContent.schema) {
         if (jsonContent.schema.properties) {
           // Flatten the request body properties into the main properties
-          Object.assign(properties, this.convertOpenAPISchemaToJsonSchema(jsonContent.schema).properties);
+          Object.assign(
+            properties,
+            this.convertOpenAPISchemaToJsonSchema(jsonContent.schema)
+              .properties,
+          );
           if (jsonContent.schema.required) {
             required.push(...jsonContent.schema.required);
           }
         } else {
           // If it's a reference or complex schema, add as 'data' property
-          properties.data = this.convertOpenAPISchemaToJsonSchema(jsonContent.schema);
+          properties.data = this.convertOpenAPISchemaToJsonSchema(
+            jsonContent.schema,
+          );
           if (operation.requestBody.required) {
             required.push("data");
           }
@@ -154,7 +172,8 @@ export class OpenAPIParser {
     if (schema.properties) {
       jsonSchema.properties = {};
       for (const [propName, propSchema] of Object.entries(schema.properties)) {
-        jsonSchema.properties[propName] = this.convertOpenAPISchemaToJsonSchema(propSchema);
+        jsonSchema.properties[propName] =
+          this.convertOpenAPISchemaToJsonSchema(propSchema);
       }
     }
 
@@ -172,7 +191,11 @@ export class OpenAPIParser {
 
     // Handle #/components/schemas/SchemeName format
     const refParts = ref.split("/");
-    if (refParts[0] === "#" && refParts[1] === "components" && refParts[2] === "schemas") {
+    if (
+      refParts[0] === "#" &&
+      refParts[1] === "components" &&
+      refParts[2] === "schemas"
+    ) {
       const schemaName = refParts[3];
       if (schemaName && this.spec.components?.schemas?.[schemaName]) {
         return this.spec.components.schemas[schemaName];
@@ -188,11 +211,13 @@ export class OpenAPIParser {
     }
 
     const tags = new Set<string>();
-    
+
     for (const [, pathItem] of Object.entries(this.spec.paths)) {
       for (const [, operation] of Object.entries(pathItem)) {
         if (operation.tags) {
-          operation.tags.forEach(tag => tags.add(tag));
+          operation.tags.forEach((tag) => {
+            return tags.add(tag);
+          });
         }
       }
     }

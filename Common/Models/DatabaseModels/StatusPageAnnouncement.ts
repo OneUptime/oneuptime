@@ -451,8 +451,8 @@ export default class StatusPageAnnouncement extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ 
-    isDefaultValueColumn: true, 
+  @TableColumn({
+    isDefaultValueColumn: true,
     computed: true,
     hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,

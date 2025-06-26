@@ -132,7 +132,9 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         noItemsMessage={"No announcements found."}
         createEditModalWidth={ModalWidth.Large}
         showRefreshButton={true}
-        viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route)}
+        viewPageRoute={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
+        )}
         filters={[
           {
             field: {

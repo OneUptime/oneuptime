@@ -576,7 +576,7 @@ export default class Alert extends BaseModel {
   })
   @Column({
     type: ColumnType.ObjectID,
-    
+
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })

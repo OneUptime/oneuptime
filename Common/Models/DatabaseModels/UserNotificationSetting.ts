@@ -245,8 +245,8 @@ class UserNotificationSetting extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ 
-    isDefaultValueColumn: true, 
+  @TableColumn({
+    isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
   })
@@ -261,8 +261,8 @@ class UserNotificationSetting extends BaseModel {
     read: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
   })
-  @TableColumn({ 
-    isDefaultValueColumn: true, 
+  @TableColumn({
+    isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
   })

@@ -828,8 +828,7 @@ export default class Project extends TenantModel {
     hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Not Enabled SMS or Call Notification Sent to Owners",
-    description:
-      "Not Enabled SMS or Call Notification Sent to Owners",
+    description: "Not Enabled SMS or Call Notification Sent to Owners",
     defaultValue: false,
   })
   @Column({

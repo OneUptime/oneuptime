@@ -517,13 +517,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (data as any)[columnName] = null;
       }
 
-      // if table columntype is file and file is base64 stirng then convert to buffer to save. 
+      // if table columntype is file and file is base64 stirng then convert to buffer to save.
       if (
         tableColumnMetadata.type === TableColumnType.File &&
         (data as any)[columnName] &&
         typeof (data as any)[columnName] === Typeof.String
       ) {
-
         console.log("Here!");
 
         const fileBuffer: Buffer = Buffer.from(
