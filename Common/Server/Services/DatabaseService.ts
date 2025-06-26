@@ -441,38 +441,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const tableColumnMetadata: TableColumnMetadata =
         this.model.getTableColumnMetadata(columnName);
 
-      // Handle base64 string conversion for file columns
-      if (this.model.isFileColumn(columnName)) {
-        const columnValue: JSONValue = (data as any)[columnName];
-        
-        if (
-          data &&
-          columnValue &&
-          typeof columnValue === "string" &&
-          Text.isBase64(columnValue)
-        ) {
-          try {
-            // Extract MIME type from data URI if present
-            const mimeType = Text.extractMimeTypeFromDataUri(columnValue);
-            if (mimeType && columnName === 'file') {
-              // Set the fileType field for file uploads
-              // TypeScript enums can be assigned string values at runtime
-              (data as any)['fileType'] = mimeType as any;
-            }
-            
-            // Extract Base64 data from data URI if present
-            const base64Data = Text.extractBase64FromDataUri(columnValue);
-            
-            // Convert base64 string to Buffer for file storage
-            (data as any)[columnName] = Buffer.from(base64Data, "base64");
-          } catch (error) {
-            throw new BadDataException(
-              `Invalid base64 string provided for file field: ${columnName}`,
-            );
-          }
-        }
-      }
-
       if (this.model.isEntityColumn(columnName)) {
         const columnValue: JSONValue = (data as any)[columnName];
 
@@ -547,6 +515,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         tableColumnMetadata.type === TableColumnType.Date
       ) {
         (data as any)[columnName] = null;
+      }
+
+      // if table columntype is file and file is base64 stirng then convert to buffer to save. 
+      if (
+        tableColumnMetadata.type === TableColumnType.File &&
+        (data as any)[columnName] &&
+        typeof (data as any)[columnName] === Typeof.String
+      ) {
+
+        console.log("Here!");
+
+        const fileBuffer: Buffer = Buffer.from(
+          (data as any)[columnName] as string,
+          "base64",
+        );
+        (data as any)[columnName] = fileBuffer;
       }
     }
 
