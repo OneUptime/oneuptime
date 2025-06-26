@@ -145,6 +145,17 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "MCP Server",
+    links: [
+      { title: "Overview", url: "/docs/mcp/index" },
+      { title: "Installation", url: "/docs/mcp/installation" },
+      { title: "Quick Start", url: "/docs/mcp/quick-start" },
+      { title: "Configuration", url: "/docs/mcp/configuration" },
+      { title: "Usage Examples", url: "/docs/mcp/examples" },
+      { title: "Available Resources", url: "/docs/mcp/resources" },
+    ],
+  },
+  {
     title: "API Reference",
     links: [
       {
