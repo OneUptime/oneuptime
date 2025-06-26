@@ -138,17 +138,10 @@ jobs:
           cd MCP
           npm version ${{ steps.version.outputs.version }} --no-git-tag-version
 
-      - name: Install dependencies and build
+      - name: Install dependencies
         run: |
           cd MCP
           npm install
-          npm run build
-          # Ensure bin file is executable and verify shebang
-          chmod +x build/Index.js
-          echo "✅ Build completed and bin file permissions set"
-          echo "📋 Verifying bin file:"
-          head -1 build/Index.js
-          ls -la build/Index.js
 
       - name: Run tests
         run: |
@@ -159,7 +152,7 @@ jobs:
         run: |
           cd MCP
           echo "📦 Package information:"
-          npm pack --dry-run
+          npm publish --dry-run
           echo "📋 Package.json bin configuration:"
           cat package.json | grep -A 5 -B 5 '"bin"'
           echo "📁 Build directory contents:"

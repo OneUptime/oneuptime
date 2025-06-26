@@ -39,17 +39,17 @@ export class MCPServerGenerator {
       scripts: {
         start:
           "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
-        build: "tsc",
-        compile: "tsc",
+        build: "rm -rf build && tsc",
+        compile: "npm run build",
         dev: "npx nodemon",
         "clear-modules":
           "rm -rf node_modules && rm package-lock.json && npm install",
         audit: "npm audit --audit-level=low",
         "dep-check":
           "npm install -g depcheck && depcheck ./ --skip-missing=true",
-        test: "rm -rf build && jest --detectOpenHandles --passWithNoTests",
+        test: "jest --detectOpenHandles --passWithNoTests",
         coverage: "jest --detectOpenHandles --coverage",
-        prepublishOnly: "npm run build",
+        prepublishOnly: "npm run build && chmod +x build/Index.js",
       },
       keywords: [
         "mcp",
