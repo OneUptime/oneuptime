@@ -5,7 +5,7 @@
 
 # Pull base image nodejs image.
 
-# Note: Alpine Images doesnt work with Playwright.
+# Note: Alpine Images don't work with Playwright.
 FROM public.ecr.aws/docker/library/node:21.6
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 

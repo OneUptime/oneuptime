@@ -7,7 +7,7 @@ describe("MarkdownEditor with SpellCheck", () => {
   test("should enable spell check by default", () => {
     render(
       <MarkdownEditor
-        initialValue="This is a test with speling errors"
+        initialValue="This is a test with spelling errors"
         placeholder="Enter markdown here..."
       />,
     );
@@ -21,7 +21,7 @@ describe("MarkdownEditor with SpellCheck", () => {
   test("should disable spell check when disableSpellCheck is true", () => {
     render(
       <MarkdownEditor
-        initialValue="This is a test with speling errors"
+        initialValue="This is a test with spelling errors"
         placeholder="Enter markdown here..."
         disableSpellCheck={true}
       />,
@@ -36,7 +36,7 @@ describe("MarkdownEditor with SpellCheck", () => {
   test("should handle spell check prop changes", () => {
     const { rerender } = render(
       <MarkdownEditor
-        initialValue="This is a test with speling errors"
+        initialValue="This is a test with spelling errors"
         placeholder="Enter markdown here..."
         disableSpellCheck={false}
       />,
@@ -49,7 +49,7 @@ describe("MarkdownEditor with SpellCheck", () => {
 
     rerender(
       <MarkdownEditor
-        initialValue="This is a test with speling errors"
+        initialValue="This is a test with spelling errors"
         placeholder="Enter markdown here..."
         disableSpellCheck={true}
       />,

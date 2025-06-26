@@ -118,7 +118,7 @@ RunCron(
               const shouldNotifySubscriber: boolean =
                 StatusPageSubscriberService.shouldSendNotification({
                   subscriber: subscriber,
-                  statusPageResources: [], // this is an announcement so we dont care about resources
+                  statusPageResources: [], // this is an announcement so we don't care about resources
                   statusPage: statuspage,
                   eventType: StatusPageEventType.Announcement,
                 });

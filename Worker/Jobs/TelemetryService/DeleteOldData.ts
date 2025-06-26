@@ -34,11 +34,11 @@ RunCron(
       });
 
     for (const service of telemetryService) {
-      let dataRententionDays: number | undefined =
+      let dataRetentionDays: number | undefined =
         service.retainTelemetryDataForDays;
 
-      if (!dataRententionDays) {
-        dataRententionDays = 15; // default to 15 days.
+      if (!dataRetentionDays) {
+        dataRetentionDays = 15; // default to 15 days.
       }
 
       if (!service.id) {
@@ -50,7 +50,7 @@ RunCron(
       await LogService.deleteBy({
         query: {
           createdAt: QueryHelper.lessThan(
-            OneUptimeDate.getSomeDaysAgo(dataRententionDays),
+            OneUptimeDate.getSomeDaysAgo(dataRetentionDays),
           ),
           serviceId: service.id!,
           projectId: service.projectId,
@@ -65,7 +65,7 @@ RunCron(
       await SpanService.deleteBy({
         query: {
           createdAt: QueryHelper.lessThan(
-            OneUptimeDate.getSomeDaysAgo(dataRententionDays),
+            OneUptimeDate.getSomeDaysAgo(dataRetentionDays),
           ),
           serviceId: service.id!,
           projectId: service.projectId,
@@ -75,7 +75,7 @@ RunCron(
         },
       });
 
-      // TOOD: delete metrics.
+      // TODO: delete metrics.
     }
   },
 );

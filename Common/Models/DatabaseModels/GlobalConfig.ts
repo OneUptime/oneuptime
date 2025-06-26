@@ -260,7 +260,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
     unique: false,
   })
-  public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers seperated by comma
+  public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers separated by comma
 
   @ColumnAccessControl({
     create: [],

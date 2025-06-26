@@ -111,7 +111,7 @@ const AlertsRoutes: React.LazyExoticComponent<
 const ScheduledMaintenanceEventsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>
 > = lazy(() => {
-  return import("./Routes/ScheduleMaintenaceEventsRoutes");
+  return import("./Routes/ScheduleMaintenanceEventsRoutes");
 });
 const SettingsRoutes: React.LazyExoticComponent<
   React.FunctionComponent<PageComponentProps>

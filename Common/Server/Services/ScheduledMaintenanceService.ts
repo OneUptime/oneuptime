@@ -351,7 +351,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       });
 
       if (!scheduledMaintenance) {
-        throw new BadDataException("Scheduled Maintennace Event not found");
+        throw new BadDataException("Scheduled Maintenance Event not found");
       }
 
       const startsAt: Date =
@@ -454,7 +454,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         logger.debug(`Notification date is in the past. Skipping.`);
       }
 
-      // if this new date is less than the recurring date then set it to recuring date. We need to get the least date.
+      // if this new date is less than the recurring date then set it to recurring date. We need to get the least date.
       if (recurringDate) {
         if (
           OneUptimeDate.isBefore(notificationDate, recurringDate) &&
@@ -482,7 +482,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.data.projectId) {
       throw new BadDataException(
-        "ProjectId required to create scheduled maintenane.",
+        "ProjectId required to create scheduled maintenance.",
       );
     }
 
@@ -666,13 +666,13 @@ ${createdItem.description || "No description provided."}
       new ScheduledMaintenanceStateTimeline();
     timeline.projectId = createdItem.projectId!;
     timeline.scheduledMaintenanceId = createdItem.id!;
-    timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, you don't have to notify them for timeline event.
+    timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, no need to notify them for timeline event.
     timeline.shouldStatusPageSubscribersBeNotified = Boolean(
       createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
     );
     timeline.isStatusPageSubscribersNotified = Boolean(
       createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
-    ); // ignore notifying subscribers because you already notify for Scheduled Event, you don't have to notify them for timeline event.
+    ); // ignore notifying subscribers because you already notify for Scheduled Event, no need to notify them for timeline event.
     timeline.scheduledMaintenanceStateId =
       createdItem.currentScheduledMaintenanceStateId!;
 
@@ -1233,7 +1233,7 @@ ${labels
     }
 
     if (!scheduledMaintenance.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Incident Project ID not found");
     }
 
     const resolvedScheduledMaintenanceState: ScheduledMaintenanceState =
@@ -1308,7 +1308,7 @@ ${labels
     }
 
     if (!scheduledMaintenance.projectId) {
-      throw new BadDataException("Incient Project ID not found");
+      throw new BadDataException("Incident Project ID not found");
     }
 
     const ackScheduledMaintenanceState: ScheduledMaintenanceState =
