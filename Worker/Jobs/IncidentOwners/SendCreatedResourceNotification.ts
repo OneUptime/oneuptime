@@ -171,7 +171,7 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.IncidentOwnerResourceCreated,
             vars: vars,
-            subject: "[New Incident] " + incident.title!,
+            subject: `[Incident ${incident.currentIncidentState!.name!}] ${incident.title!}`,
           };
 
           const sms: SMSMessage = {

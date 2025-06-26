@@ -194,8 +194,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerAdded,
           vars: vars,
-          subject:
-            "You have been added as the owner of the scheduled maintenance event.",
+          subject: `[Scheduled Maintenance ${scheduledMaintenance.currentScheduledMaintenanceState!.name!}] You have been added as the owner`,
         };
 
         const sms: SMSMessage = {

@@ -94,7 +94,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.MonitorOwnerResourceCreated,
           vars: vars,
-          subject: "[Monitor Created] " + monitor.name!,
+          subject: `[Monitor ${monitor.currentMonitorStatus!.name!}] ${monitor.name!}`,
         };
 
         const sms: SMSMessage = {
