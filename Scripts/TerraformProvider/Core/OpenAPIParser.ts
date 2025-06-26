@@ -604,15 +604,16 @@ export class OpenAPIParser {
         // If field already exists and we're adding computed fields, check if it should be both optional and computed
         if (computed && schema[terraformName]) {
           // Update description if it's better in the read schema
-          if (description && !schema[terraformName]?.description) {
-            schema[terraformName].description = description!;
+          const existingField = schema[terraformName];
+          if (existingField && description && !existingField.description) {
+            existingField.description = description;
           }
 
           // If the field exists from create/update and now appears in read,
           // it should be marked as both optional and computed (server-managed field)
-          if (!schema[terraformName]?.required) {
+          if (existingField && !existingField.required) {
             schema[terraformName] = {
-              ...schema[terraformName],
+              ...existingField,
               computed: true,
               optional: true, // Mark as explicitly optional and computed
             };
@@ -624,15 +625,18 @@ export class OpenAPIParser {
         if (
           !computed &&
           schema[terraformName] &&
-          schema[terraformName].computed
+          schema[terraformName]?.computed
         ) {
           // Update the existing computed field to also be an input field
-          schema[terraformName] = {
-            ...schema[terraformName],
-            required: openApiSchema.required?.includes(propName) || false,
-            computed: false, // This field can be both input and output
-            apiFieldName: propName, // Preserve original OpenAPI property name
-          };
+          const existingField = schema[terraformName];
+          if (existingField) {
+            schema[terraformName] = {
+              ...existingField,
+              required: openApiSchema.required?.includes(propName) || false,
+              computed: false, // This field can be both input and output
+              apiFieldName: propName, // Preserve original OpenAPI property name
+            };
+          }
           continue;
         }
 

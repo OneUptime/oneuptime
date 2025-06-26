@@ -979,7 +979,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     conditionalAssignments.push("");
 
     for (const [name, attr] of Object.entries(updateSchema)) {
-      if (name === "id" || attr.computed) {
+      const terraformAttr = attr as TerraformAttribute;
+      if (name === "id" || terraformAttr.computed) {
         continue;
       }
 
@@ -990,25 +991,25 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
 
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-      const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
+      const apiFieldName: string = terraformAttr.apiFieldName || name; // Use original OpenAPI field name
 
       // Handle different field types with conditional assignment
-      if (attr.type === "map") {
+      if (terraformAttr.type === "map") {
         conditionalAssignments.push(
           `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})\n    }`,
         );
-      } else if (attr.type === "list") {
+      } else if (terraformAttr.type === "list") {
         conditionalAssignments.push(
           `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})\n    }`,
         );
       } else {
         const value: string = this.getGoValueForTerraformType(
-          attr.type,
+          terraformAttr.type,
           `data.${fieldName}`,
         );
 
-        if (attr.type === "string") {
-          if (attr.isComplexObject) {
+        if (terraformAttr.type === "string") {
+          if (terraformAttr.isComplexObject) {
             // For complex object strings, parse JSON and convert to interface{}
             conditionalAssignments.push(
               `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        var ${fieldName.toLowerCase()}Data interface{}\n        if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {\n            requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data\n        }\n    }`,
@@ -1019,7 +1020,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
               `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
             );
           }
-        } else if (attr.type === "bool") {
+        } else if (terraformAttr.type === "bool") {
           // For booleans, always include since they have meaningful defaults
           conditionalAssignments.push(
             `    requestDataMap["${apiFieldName}"] = ${value}`,
