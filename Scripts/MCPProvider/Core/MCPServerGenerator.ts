@@ -215,6 +215,20 @@ export class MCPServerGenerator {
       }
     }
 
+    // Generate parameter validation
+    const requiredParams = tool.inputSchema?.required || [];
+    const paramValidation = requiredParams.length > 0 
+      ? [
+          "      // Validate required parameters",
+          `      const requiredParams = [${requiredParams.map((p: string) => `"${p}"`).join(", ")}];`,
+          "      for (const param of requiredParams) {",
+          "        if (args[param] === undefined || args[param] === null) {",
+          "          throw new Error(`Missing required parameter: ${param}`);",
+          "        }",
+          "      }",
+        ].join("\n")
+      : "";
+
     // Generate path replacement logic
     let pathReplacement: string;
     if (pathParams.length > 0) {
@@ -239,6 +253,8 @@ export class MCPServerGenerator {
     return [
       `  private async ${methodName}(args: any): Promise<any> {`,
       "    try {",
+      paramValidation,
+      paramValidation ? "" : "",
       dataProcessing,
       "",
       "      const response = await this.apiClient.request({",
