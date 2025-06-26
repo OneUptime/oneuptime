@@ -452,8 +452,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           Text.isBase64(columnValue)
         ) {
           try {
+            // Extract MIME type from data URI if present
+            const mimeType = Text.extractMimeTypeFromDataUri(columnValue);
+            if (mimeType && columnName === 'file') {
+              // Set the fileType field for file uploads
+              // TypeScript enums can be assigned string values at runtime
+              (data as any)['fileType'] = mimeType as any;
+            }
+            
+            // Extract Base64 data from data URI if present
+            const base64Data = Text.extractBase64FromDataUri(columnValue);
+            
             // Convert base64 string to Buffer for file storage
-            (data as any)[columnName] = Buffer.from(columnValue, "base64");
+            (data as any)[columnName] = Buffer.from(base64Data, "base64");
           } catch (error) {
             throw new BadDataException(
               `Invalid base64 string provided for file field: ${columnName}`,
