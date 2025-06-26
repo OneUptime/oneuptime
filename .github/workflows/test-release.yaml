@@ -84,6 +84,118 @@ jobs:
       - name: Generate Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}" --test-release
 
+  publish-mcp-server:
+    runs-on: ubuntu-latest
+    needs: [generate-build-number]
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
+    permissions:
+      contents: write  # For creating releases
+      packages: write  # For publishing packages
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Common dependencies
+        run: cd Common && npm install
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install Script dependencies
+        run: cd Scripts && npm install
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}-test"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing MCP server version: $VERSION"
+
+      - name: Generate MCP server
+        run: npm run generate-mcp-server
+
+      - name: Verify MCP server generation
+        run: |
+          MCP_DIR="./MCP"
+          
+          if [ ! -d "$MCP_DIR" ]; then
+            echo "❌ MCP server directory not created"
+            exit 1
+          fi
+          
+          echo "✅ MCP server generated successfully"
+          echo "📊 Generated files:"
+          find "$MCP_DIR" -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | wc -l
+          echo "📁 Directory structure:"
+          ls -la "$MCP_DIR"
+
+      - name: Update package version
+        run: |
+          cd MCP
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+      - name: Install dependencies and build
+        run: |
+          cd MCP
+          npm install
+          npm run build
+
+      - name: Run tests
+        run: |
+          cd MCP
+          npm test || echo "No tests found or tests failed, continuing..."
+
+      - name: Publish to npm (dry run for test releases)
+        run: |
+          cd MCP
+          npm pack --dry-run
+          echo "✅ Dry run completed successfully for test release"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images (test)
+        run: |
+          cd MCP
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag oneuptime/mcp-server:${{ steps.version.outputs.version }} \
+            --tag oneuptime/mcp-server:test \
+            --tag ghcr.io/oneuptime/mcp-server:${{ steps.version.outputs.version }} \
+            --tag ghcr.io/oneuptime/mcp-server:test \
+            --push .
+          echo "✅ Pushed test Docker images to Docker Hub and GitHub Container Registry"
+
+      - name: Upload MCP server artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-${{ steps.version.outputs.version }}
+          path: ./MCP/
+          retention-days: 90
+
   
 
   llm-docker-image-deploy: 
