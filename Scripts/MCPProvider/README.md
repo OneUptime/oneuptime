@@ -148,8 +148,9 @@ The MCP server supports OneUptime API key authentication:
 # Set your API key
 export ONEUPTIME_API_KEY=your-api-key-here
 
-# Optional: Set custom OneUptime URL
-export ONEUPTIME_URL=https://your-instance.oneuptime.com
+# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
+# Defaults to https://oneuptime.com
+export ONEUPTIME_URL=https://oneuptime.com
 ```
 
 Environment variables supported:

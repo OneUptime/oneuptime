@@ -491,7 +491,7 @@ Add the following to your Claude Desktop configuration file:
       "command": "${this.config.serverName}",
       "env": {
         "ONEUPTIME_API_KEY": "your-api-key-here",
-        "ONEUPTIME_URL": "https://your-instance.oneuptime.com"
+        "ONEUPTIME_URL": "https://oneuptime.com"
       }
     }
   }

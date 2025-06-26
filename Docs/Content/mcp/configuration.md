@@ -24,7 +24,7 @@ The recommended way is to set environment variables in your Claude Desktop confi
       "command": "oneuptime-mcp",
       "env": {
         "ONEUPTIME_API_KEY": "your-api-key-here",
-        "ONEUPTIME_URL": "https://your-instance.oneuptime.com"
+        "ONEUPTIME_URL": "https://oneuptime.com" // Replace with your instance URL if you are self-hosting
       }
     }
   }
@@ -38,13 +38,15 @@ Alternatively, you can set system environment variables:
 **macOS/Linux**:
 ```bash
 export ONEUPTIME_API_KEY="your-api-key-here"
-export ONEUPTIME_URL="https://your-instance.oneuptime.com"
+# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
+export ONEUPTIME_URL="https://oneuptime.com"
 ```
 
 **Windows**:
 ```cmd
 set ONEUPTIME_API_KEY=your-api-key-here
-set ONEUPTIME_URL=https://your-instance.oneuptime.com
+# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
+set ONEUPTIME_URL=https://oneuptime.com
 ```
 
 ### Using .env File
@@ -53,7 +55,8 @@ For development, you can create a `.env` file in your working directory:
 
 ```env
 ONEUPTIME_API_KEY=your-api-key-here
-ONEUPTIME_URL=https://your-instance.oneuptime.com
+# Optional: Set custom OneUptime URL. Replace with your instance if self-hosted
+ONEUPTIME_URL=https://oneuptime.com
 ```
 
 ## API Key Permissions
