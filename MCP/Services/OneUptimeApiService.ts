@@ -30,7 +30,7 @@ export default class OneUptimeApiService {
     const url = URL.fromString(config.url);
     const protocol = url.protocol;
     const hostname = url.hostname;
-    const baseRoute = url.route.toString() === '/' ? new Route('/api/v1') : url.route;
+    const baseRoute = url.route.toString() === '/' ? new Route('/api') : url.route;
     
     this.api = new API(protocol, hostname, baseRoute);
     
@@ -146,7 +146,7 @@ export default class OneUptimeApiService {
     };
 
     if (this.config.apiKey) {
-      headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+      headers['APIKey'] = this.config.apiKey;
     }
 
     return headers;
