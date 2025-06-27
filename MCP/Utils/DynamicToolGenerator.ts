@@ -36,7 +36,7 @@ export default class DynamicToolGenerator {
         return {
           type: "object",
           properties: {},
-          additionalProperties: false
+          additionalProperties: true
         };
       }
 
@@ -75,14 +75,14 @@ export default class DynamicToolGenerator {
         type: "object",
         properties,
         required: required.length > 0 ? required : undefined,
-        additionalProperties: false
+        additionalProperties: true
       };
     } catch (error) {
       MCPLogger.warn(`Failed to convert Zod schema to JSON Schema: ${error}`);
       return {
         type: "object",
         properties: {},
-        additionalProperties: false
+        additionalProperties: true
       };
     }
   }
@@ -162,7 +162,8 @@ export default class DynamicToolGenerator {
         properties: {
           data: this.zodToJsonSchema(createSchema)
         },
-        required: ["data"]
+        required: ["data"],
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Create,
@@ -185,7 +186,8 @@ export default class DynamicToolGenerator {
             description: `ID of the ${singularName} to retrieve`,
           }
         },
-        required: ["id"]
+        required: ["id"],
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Read,
@@ -214,7 +216,8 @@ export default class DynamicToolGenerator {
             description: "Maximum number of records to return",
           },
           sort: this.zodToJsonSchema(sortSchema)
-        }
+        },
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.List,
@@ -238,7 +241,8 @@ export default class DynamicToolGenerator {
           },
           data: this.zodToJsonSchema(updateSchema)
         },
-        required: ["id", "data"]
+        required: ["id", "data"],
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Update,
@@ -261,7 +265,8 @@ export default class DynamicToolGenerator {
             description: `ID of the ${singularName} to delete`,
           }
         },
-        required: ["id"]
+        required: ["id"],
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Delete,
@@ -280,7 +285,8 @@ export default class DynamicToolGenerator {
         type: "object",
         properties: {
           query: this.zodToJsonSchema(querySchema)
-        }
+        },
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Count,
@@ -345,7 +351,8 @@ export default class DynamicToolGenerator {
         properties: {
           data: this.zodToJsonSchema(createSchema)
         },
-        required: ["data"]
+        required: ["data"],
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Create,
@@ -374,7 +381,8 @@ export default class DynamicToolGenerator {
             description: "Maximum number of records to return",
           },
           sort: this.zodToJsonSchema(sortSchema)
-        }
+        },
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.List,
@@ -393,7 +401,8 @@ export default class DynamicToolGenerator {
         type: "object",
         properties: {
           query: this.zodToJsonSchema(querySchema)
-        }
+        },
+        additionalProperties: true
       },
       modelName,
       operation: OneUptimeOperation.Count,
