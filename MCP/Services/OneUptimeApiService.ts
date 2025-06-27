@@ -4,8 +4,6 @@ import { OneUptimeToolCallArgs } from "../Types/McpTypes";
 import Logger from "Common/Server/Utils/Logger";
 import API from "Common/Utils/API";
 import URL from "Common/Types/API/URL";
-import Protocol from "Common/Types/API/Protocol";
-import Hostname from "Common/Types/API/Hostname";
 import Route from "Common/Types/API/Route";
 import Headers from "Common/Types/API/Headers";
 import HTTPResponse from "Common/Types/API/HTTPResponse";

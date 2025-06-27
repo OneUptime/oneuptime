@@ -68,7 +68,6 @@ export default class DynamicToolGenerator {
       };
     }
 
-    const baseToolName = singularName.toLowerCase().replace(/\s+/g, '_');
     
     // CREATE Tool
     tools.push({
@@ -265,7 +264,6 @@ export default class DynamicToolGenerator {
       };
     }
 
-    const baseToolName = singularName.toLowerCase().replace(/\s+/g, '_');
 
     // CREATE Tool for Analytics
     tools.push({

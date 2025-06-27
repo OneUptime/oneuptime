@@ -43,8 +43,8 @@ class OneUptimeMCPServer {
   private initializeServices(): void {
     // Initialize OneUptime API Service
     const config: OneUptimeApiConfig = {
-      url: process.env.ONEUPTIME_URL || "https://oneuptime.com",
-      apiKey: process.env.ONEUPTIME_API_KEY,
+      url: process.env['ONEUPTIME_URL'] || "https://oneuptime.com",
+      apiKey: process.env['ONEUPTIME_API_KEY'],
     };
 
     OneUptimeApiService.initialize(config);
