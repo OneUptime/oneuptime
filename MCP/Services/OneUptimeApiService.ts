@@ -32,7 +32,7 @@ export default class OneUptimeApiService {
     const hostname = url.hostname;
     
     // Initialize with no base route to avoid route accumulation
-    this.api = new API(protocol, hostname, new Route("/"));
+    this.api = new API(protocol, hostname, new Route("/api"));
     
     MCPLogger.info(`OneUptime API Service initialized with: ${config.url}`);
   }
