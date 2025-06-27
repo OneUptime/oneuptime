@@ -2,15 +2,14 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["es6"],
+    "lib": ["es6", "es2017", "es2020"],
     "allowJs": true,
     "outDir": "./build",
-    "rootDir": "./",
     "strict": true,
     "moduleResolution": "node",
-    "baseUrl": "./",
+    "baseUrl": "../",
     "paths": {
-      "Common/*": ["../Common/*"]
+      "Common/*": ["Common/*"]
     },
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -21,7 +20,19 @@
     "resolveJsonModule": true
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "../Common/Models/**/*.ts",
+    "../Common/Types/API/**/*.ts",
+    "../Common/Types/Database/**/*.ts",
+    "../Common/Types/AnalyticsDatabase/**/*.ts",
+    "../Common/Types/JSON.ts",
+    "../Common/Types/ObjectID.ts",
+    "../Common/Types/Permission.ts",
+    "../Common/Types/Dictionary.ts",
+    "../Common/Types/Sleep.ts",
+    "../Common/Types/Exception/**/*.ts",
+    "../Common/Server/Utils/Logger.ts",
+    "../Common/Utils/API.ts"
   ],
   "exclude": [
     "node_modules",
