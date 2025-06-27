@@ -12,6 +12,18 @@ import { AnalyticsModelSchema, AnalyticsModelSchemaType } from "Common/Utils/Sch
 export default class DynamicToolGenerator {
   
   /**
+   * Sanitize a name to be valid for MCP tool names
+   * MCP tool names can only contain [a-z0-9_-]
+   */
+  private static sanitizeToolName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '_')  // Replace invalid characters with underscores
+      .replace(/_+/g, '_')           // Replace multiple underscores with single underscore
+      .replace(/^_|_$/g, '');        // Remove leading/trailing underscores
+  }
+
+  /**
    * Convert a Zod schema to JSON Schema format for MCP tools
    * This is a simple converter that extracts the OpenAPI specification from Zod schemas
    */
@@ -143,7 +155,7 @@ export default class DynamicToolGenerator {
 
     // CREATE Tool
     tools.push({
-      name: `oneuptime_create${singularName.replace(/\s+/g, '')}`,
+      name: `oneuptime_create${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} in OneUptime`,
       inputSchema: {
         type: "object",
@@ -163,7 +175,7 @@ export default class DynamicToolGenerator {
 
     // READ Tool  
     tools.push({
-      name: `oneuptime_get${singularName.replace(/\s+/g, '')}`,
+      name: `oneuptime_get${this.sanitizeToolName(singularName)}`,
       description: `Retrieve a single ${singularName} by ID from OneUptime`,
       inputSchema: {
         type: "object",
@@ -186,7 +198,7 @@ export default class DynamicToolGenerator {
 
     // LIST Tool
     tools.push({
-      name: `oneuptime_list${pluralName.replace(/\s+/g, '')}`,
+      name: `oneuptime_list${this.sanitizeToolName(pluralName)}`,
       description: `List all ${pluralName} from OneUptime`,
       inputSchema: {
         type: "object",
@@ -215,7 +227,7 @@ export default class DynamicToolGenerator {
 
     // UPDATE Tool
     tools.push({
-      name: `oneuptime_update${singularName.replace(/\s+/g, '')}`,
+      name: `oneuptime_update${this.sanitizeToolName(singularName)}`,
       description: `Update an existing ${singularName} in OneUptime`,
       inputSchema: {
         type: "object",
@@ -239,7 +251,7 @@ export default class DynamicToolGenerator {
 
     // DELETE Tool
     tools.push({
-      name: `oneuptime_delete${singularName.replace(/\s+/g, '')}`,
+      name: `oneuptime_delete${this.sanitizeToolName(singularName)}`,
       description: `Delete a ${singularName} from OneUptime`,
       inputSchema: {
         type: "object",
@@ -262,7 +274,7 @@ export default class DynamicToolGenerator {
 
     // COUNT Tool
     tools.push({
-      name: `oneuptime_count${pluralName.replace(/\s+/g, '')}`,
+      name: `oneuptime_count${this.sanitizeToolName(pluralName)}`,
       description: `Count the number of ${pluralName} in OneUptime`,
       inputSchema: {
         type: "object",
@@ -326,7 +338,7 @@ export default class DynamicToolGenerator {
 
     // CREATE Tool for Analytics
     tools.push({
-      name: `oneuptime_create${singularName.replace(/\s+/g, '')}`,
+      name: `oneuptime_create${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} analytics record in OneUptime`,
       inputSchema: {
         type: "object",
@@ -346,7 +358,7 @@ export default class DynamicToolGenerator {
 
     // LIST Tool for Analytics (most common operation)
     tools.push({
-      name: `oneuptime_list${pluralName.replace(/\s+/g, '')}`,
+      name: `oneuptime_list${this.sanitizeToolName(pluralName)}`,
       description: `Query ${pluralName} analytics data from OneUptime`,
       inputSchema: {
         type: "object",
@@ -375,7 +387,7 @@ export default class DynamicToolGenerator {
 
     // COUNT Tool for Analytics
     tools.push({
-      name: `oneuptime_count${pluralName.replace(/\s+/g, '')}`,
+      name: `oneuptime_count${this.sanitizeToolName(pluralName)}`,
       description: `Count ${pluralName} analytics records in OneUptime`,
       inputSchema: {
         type: "object",
