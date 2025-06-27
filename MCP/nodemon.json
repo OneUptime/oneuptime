@@ -1,0 +1,6 @@
+{
+  "watch": ["Index.ts"],
+  "ext": "ts",
+  "ignore": ["build/*"],
+  "exec": "npm start"
+}
