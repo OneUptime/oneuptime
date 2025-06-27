@@ -12,7 +12,7 @@ import { JSONObject } from "Common/Types/JSON";
 
 export interface OneUptimeApiConfig {
   url: string;
-  apiKey?: string;
+  apiKey: string;
 }
 
 export default class OneUptimeApiService {
@@ -20,6 +20,10 @@ export default class OneUptimeApiService {
   private static config: OneUptimeApiConfig;
 
   public static initialize(config: OneUptimeApiConfig): void {
+    if (!config.apiKey) {
+      throw new Error("OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.");
+    }
+
     this.config = config;
     
     // Parse the URL to extract protocol, hostname, and path

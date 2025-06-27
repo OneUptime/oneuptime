@@ -42,9 +42,14 @@ class OneUptimeMCPServer {
 
   private initializeServices(): void {
     // Initialize OneUptime API Service
+    const apiKey = process.env['ONEUPTIME_API_KEY'];
+    if (!apiKey) {
+      throw new Error("OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.");
+    }
+
     const config: OneUptimeApiConfig = {
       url: process.env['ONEUPTIME_URL'] || "https://oneuptime.com",
-      ...(process.env['ONEUPTIME_API_KEY'] && { apiKey: process.env['ONEUPTIME_API_KEY'] }),
+      apiKey: apiKey,
     };
 
     OneUptimeApiService.initialize(config);
