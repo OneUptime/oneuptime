@@ -6,8 +6,74 @@ import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
 import Logger from "Common/Server/Utils/Logger";
+import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
+import { AnalyticsModelSchema, AnalyticsModelSchemaType } from "Common/Utils/Schema/AnalyticsModelSchema";
 
 export default class DynamicToolGenerator {
+  
+  /**
+   * Convert a Zod schema to JSON Schema format for MCP tools
+   * This is a simple converter that extracts the OpenAPI specification from Zod schemas
+   */
+  private static zodToJsonSchema(zodSchema: ModelSchemaType | AnalyticsModelSchemaType): any {
+    try {
+      // The Zod schemas in this project are extended with OpenAPI metadata
+      // We can extract the shape and create a basic JSON schema
+      const shape = (zodSchema as any)._def?.shape;
+      if (!shape) {
+        return {
+          type: "object",
+          properties: {},
+          additionalProperties: false
+        };
+      }
+
+      const properties: any = {};
+      const required: string[] = [];
+
+      for (const [key, value] of Object.entries(shape)) {
+        const zodField = value as any;
+        
+        // Extract OpenAPI metadata if available
+        const openApiConfig = zodField._def?.openapi;
+        
+        if (openApiConfig) {
+          properties[key] = {
+            type: openApiConfig.type || "string",
+            description: openApiConfig.description || `${key} field`,
+            ...(openApiConfig.example && { example: openApiConfig.example }),
+            ...(openApiConfig.format && { format: openApiConfig.format }),
+            ...(openApiConfig.default !== undefined && { default: openApiConfig.default })
+          };
+        } else {
+          // Fallback for fields without OpenAPI metadata
+          properties[key] = {
+            type: "string",
+            description: `${key} field`
+          };
+        }
+
+        // Check if field is required (not optional)
+        if (!zodField._def?.typeName || zodField._def.typeName !== 'ZodOptional') {
+          required.push(key);
+        }
+      }
+
+      return {
+        type: "object",
+        properties,
+        required: required.length > 0 ? required : undefined,
+        additionalProperties: false
+      };
+    } catch (error) {
+      Logger.warn(`Failed to convert Zod schema to JSON Schema: ${error}`);
+      return {
+        type: "object",
+        properties: {},
+        additionalProperties: false
+      };
+    }
+  }
   
   /**
    * Generate all MCP tools for all OneUptime models
@@ -68,7 +134,13 @@ export default class DynamicToolGenerator {
       };
     }
 
-    
+    // Generate schemas using ModelSchema
+    const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({ modelType: ModelClass });
+    const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({ modelType: ModelClass });
+    const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({ modelType: ModelClass });
+    const selectSchema: ModelSchemaType = ModelSchema.getSelectModelSchema({ modelType: ModelClass });
+    const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({ modelType: ModelClass });
+
     // CREATE Tool
     tools.push({
       name: `oneuptime_create${singularName.replace(/\s+/g, '')}`,
@@ -76,10 +148,7 @@ export default class DynamicToolGenerator {
       inputSchema: {
         type: "object",
         properties: {
-          data: {
-            type: "object",
-            description: `${singularName} data to create`,
-          }
+          data: this.zodToJsonSchema(createSchema)
         },
         required: ["data"]
       },
@@ -122,14 +191,8 @@ export default class DynamicToolGenerator {
       inputSchema: {
         type: "object",
         properties: {
-          query: {
-            type: "object",
-            description: `Query filters for ${pluralName}`,
-          },
-          select: {
-            type: "object", 
-            description: "Fields to select",
-          },
+          query: this.zodToJsonSchema(querySchema),
+          select: this.zodToJsonSchema(selectSchema),
           skip: {
             type: "number",
             description: "Number of records to skip",
@@ -138,10 +201,7 @@ export default class DynamicToolGenerator {
             type: "number",
             description: "Maximum number of records to return",
           },
-          sort: {
-            type: "object",
-            description: "Sort order",
-          }
+          sort: this.zodToJsonSchema(sortSchema)
         }
       },
       modelName,
@@ -164,10 +224,7 @@ export default class DynamicToolGenerator {
             type: "string",
             description: `ID of the ${singularName} to update`,
           },
-          data: {
-            type: "object",
-            description: `Updated ${singularName} data`,
-          }
+          data: this.zodToJsonSchema(updateSchema)
         },
         required: ["id", "data"]
       },
@@ -210,10 +267,7 @@ export default class DynamicToolGenerator {
       inputSchema: {
         type: "object",
         properties: {
-          query: {
-            type: "object",
-            description: `Query filters for counting ${pluralName}`,
-          }
+          query: this.zodToJsonSchema(querySchema)
         }
       },
       modelName,
@@ -264,6 +318,11 @@ export default class DynamicToolGenerator {
       };
     }
 
+    // Generate schemas using AnalyticsModelSchema
+    const createSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({ modelType: ModelClass });
+    const querySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getQueryModelSchema({ modelType: ModelClass });
+    const selectSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSelectModelSchema({ modelType: ModelClass });
+    const sortSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSortModelSchema({ modelType: ModelClass });
 
     // CREATE Tool for Analytics
     tools.push({
@@ -272,10 +331,7 @@ export default class DynamicToolGenerator {
       inputSchema: {
         type: "object",
         properties: {
-          data: {
-            type: "object",
-            description: `${singularName} analytics data to create`,
-          }
+          data: this.zodToJsonSchema(createSchema)
         },
         required: ["data"]
       },
@@ -295,14 +351,8 @@ export default class DynamicToolGenerator {
       inputSchema: {
         type: "object",
         properties: {
-          query: {
-            type: "object",
-            description: `Query filters for ${pluralName} analytics data`,
-          },
-          select: {
-            type: "object", 
-            description: "Fields to select",
-          },
+          query: this.zodToJsonSchema(querySchema),
+          select: this.zodToJsonSchema(selectSchema),
           skip: {
             type: "number",
             description: "Number of records to skip",
@@ -311,10 +361,7 @@ export default class DynamicToolGenerator {
             type: "number",
             description: "Maximum number of records to return",
           },
-          sort: {
-            type: "object",
-            description: "Sort order",
-          }
+          sort: this.zodToJsonSchema(sortSchema)
         }
       },
       modelName,
@@ -333,10 +380,7 @@ export default class DynamicToolGenerator {
       inputSchema: {
         type: "object",
         properties: {
-          query: {
-            type: "object",
-            description: `Query filters for counting ${pluralName} analytics data`,
-          }
+          query: this.zodToJsonSchema(querySchema)
         }
       },
       modelName,
