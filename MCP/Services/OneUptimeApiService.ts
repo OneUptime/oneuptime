@@ -62,18 +62,21 @@ export default class OneUptimeApiService {
     try {
       let response: HTTPResponse<any> | HTTPErrorResponse;
 
+      // Create a direct URL to avoid base route accumulation
+      const url = new URL(this.api.protocol, this.api.hostname, route);
+
       switch (operation) {
         case OneUptimeOperation.Create:
         case OneUptimeOperation.Count:
         case OneUptimeOperation.List:
         case OneUptimeOperation.Read:
-          response = await this.api.post(route, data, headers);
+          response = await API.post(url, data, headers);
           break;
         case OneUptimeOperation.Update:
-          response = await this.api.put(route, data, headers);
+          response = await API.put(url, data, headers);
           break;
         case OneUptimeOperation.Delete:
-          response = await this.api.delete(route, data, headers);
+          response = await API.delete(url, data, headers);
           break;
         default:
           throw new Error(`Unsupported operation: ${operation}`);
@@ -120,8 +123,8 @@ export default class OneUptimeApiService {
         break;
     }
 
-    // Create an absolute route that won't be concatenated with the base route
-    return Route.fromString(fullPath);
+    // Create a new route that is completely independent
+    return new Route(fullPath);
   }
 
   private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs): JSONObject | undefined {
