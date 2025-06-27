@@ -13,6 +13,8 @@ import DatabaseModels from "Common/Models/DatabaseModels/Index";
 import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
 import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
+import { getTableColumns } from "Common/Types/Database/TableColumn";
+import Permission from "Common/Types/Permission";
 
 export interface OneUptimeApiConfig {
   url: string;
@@ -132,6 +134,8 @@ export default class OneUptimeApiService {
   }
 
   private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs, tableName: string, modelType: ModelType): JSONObject | undefined {
+    MCPLogger.info(`Preparing request data for operation: ${operation}, tableName: ${tableName}`);
+    
     switch (operation) {
       case OneUptimeOperation.Create:
         return { data: args.data } as JSONObject;
@@ -139,17 +143,25 @@ export default class OneUptimeApiService {
         return { data: args.data } as JSONObject;
       case OneUptimeOperation.List:
       case OneUptimeOperation.Count:
-        return {
+        const generatedSelect = args.select || this.generateAllFieldsSelect(tableName, modelType);
+        const requestData = {
           query: args.query || {},
-          select: args.select || this.generateAllFieldsSelect(tableName, modelType),
+          select: generatedSelect,
           skip: args.skip,
           limit: args.limit,
           sort: args.sort,
         } as JSONObject;
+        
+        MCPLogger.info(`Request data for ${operation}: ${JSON.stringify(requestData, null, 2)}`);
+        return requestData;
       case OneUptimeOperation.Read:
-        return {
-          select: args.select || this.generateAllFieldsSelect(tableName, modelType),
+        const readSelect = args.select || this.generateAllFieldsSelect(tableName, modelType);
+        const readRequestData = {
+          select: readSelect,
         } as JSONObject;
+        
+        MCPLogger.info(`Request data for Read: ${JSON.stringify(readRequestData, null, 2)}`);
+        return readRequestData;
       case OneUptimeOperation.Delete:
       default:
         return undefined;
@@ -160,19 +172,35 @@ export default class OneUptimeApiService {
    * Generate a select object that includes all fields from the select schema
    */
   private static generateAllFieldsSelect(tableName: string, modelType: ModelType): JSONObject {
+    MCPLogger.info(`Generating select for tableName: ${tableName}, modelType: ${modelType}`);
+    
     try {
       let ModelClass: any = null;
       
       // Find the model class by table name
       if (modelType === ModelType.Database) {
+        MCPLogger.info(`Searching DatabaseModels for tableName: ${tableName}`);
         ModelClass = DatabaseModels.find((Model: any) => {
-          const instance = new Model();
-          return instance.tableName === tableName;
+          try {
+            const instance = new Model();
+            const instanceTableName = instance.tableName;
+            MCPLogger.info(`Checking model ${Model.name} with tableName: ${instanceTableName}`);
+            return instanceTableName === tableName;
+          } catch (error) {
+            MCPLogger.warn(`Error instantiating model ${Model.name}: ${error}`);
+            return false;
+          }
         });
       } else if (modelType === ModelType.Analytics) {
+        MCPLogger.info(`Searching AnalyticsModels for tableName: ${tableName}`);
         ModelClass = AnalyticsModels.find((Model: any) => {
-          const instance = new Model();
-          return instance.tableName === tableName;
+          try {
+            const instance = new Model();
+            return instance.tableName === tableName;
+          } catch (error) {
+            MCPLogger.warn(`Error instantiating analytics model ${Model.name}: ${error}`);
+            return false;
+          }
         });
       }
 
@@ -181,11 +209,63 @@ export default class OneUptimeApiService {
         return {};
       }
 
-      // Generate the select schema to get all available fields (not read schema which has permission restrictions)
+      MCPLogger.info(`Found ModelClass: ${ModelClass.name} for tableName: ${tableName}`);
+
+      // Try to get raw table columns first (most reliable approach)
+      try {
+        const modelInstance = new ModelClass();
+        const tableColumns = getTableColumns(modelInstance);
+        const columnNames = Object.keys(tableColumns);
+        
+        MCPLogger.info(`Raw table columns (${columnNames.length}): ${columnNames.slice(0, 10).join(', ')}`);
+        
+        if (columnNames.length > 0) {
+          // Get access control information to filter out restricted fields
+          const accessControlForColumns = modelInstance.getColumnAccessControlForAllColumns();
+          const selectObject: JSONObject = {};
+          let filteredCount = 0;
+          
+          for (const columnName of columnNames) {
+            const accessControl = accessControlForColumns[columnName];
+            
+            // Include the field if:
+            // 1. No access control defined (open access)
+            // 2. Has read permissions that are not empty
+            // 3. Read permissions don't only contain Permission.CurrentUser
+            if (!accessControl || 
+                (accessControl.read && 
+                 accessControl.read.length > 0 && 
+                 !(accessControl.read.length === 1 && accessControl.read[0] === Permission.CurrentUser))) {
+              selectObject[columnName] = true;
+            } else {
+              filteredCount++;
+              MCPLogger.info(`Filtered out restricted field: ${columnName}`);
+            }
+          }
+          
+          MCPLogger.info(`Generated select from table columns for ${tableName} with ${Object.keys(selectObject).length} fields (filtered out ${filteredCount} restricted fields)`);
+          
+          // Ensure we have at least some basic fields
+          if (Object.keys(selectObject).length === 0) {
+            MCPLogger.warn(`All fields were filtered out, adding safe basic fields`);
+            selectObject["_id"] = true;
+            selectObject["createdAt"] = true;
+            selectObject["updatedAt"] = true;
+          }
+          
+          return selectObject;
+        }
+      } catch (tableColumnError) {
+        MCPLogger.warn(`Failed to get table columns for ${tableName}: ${tableColumnError}`);
+      }
+
+      // Fallback to schema approach if table columns fail
       let selectSchema: any;
       if (modelType === ModelType.Database) {
+        MCPLogger.info(`Generating select schema for database model: ${ModelClass.name}`);
         selectSchema = ModelSchema.getSelectModelSchema({ modelType: ModelClass });
       } else {
+        MCPLogger.info(`Generating schema for analytics model: ${ModelClass.name}`);
         // For analytics models, use the general model schema
         selectSchema = AnalyticsModelSchema.getModelSchema({ modelType: ModelClass });
       }
@@ -194,17 +274,36 @@ export default class OneUptimeApiService {
       const selectObject: JSONObject = {};
       const shape = selectSchema._def?.shape;
       
+      MCPLogger.info(`Schema shape keys: ${shape ? Object.keys(shape).length : 0}`);
+      
       if (shape) {
-        for (const fieldName of Object.keys(shape)) {
+        const fieldNames = Object.keys(shape);
+        MCPLogger.info(`Available fields: ${fieldNames.slice(0, 10).join(', ')}${fieldNames.length > 10 ? '...' : ''}`);
+        
+        for (const fieldName of fieldNames) {
           selectObject[fieldName] = true;
         }
       }
 
       MCPLogger.info(`Generated select for ${tableName} with ${Object.keys(selectObject).length} fields`);
+      
+      // Force include some basic fields if select is empty
+      if (Object.keys(selectObject).length === 0) {
+        MCPLogger.warn(`No fields found, adding basic fields for ${tableName}`);
+        selectObject['_id'] = true;
+        selectObject['createdAt'] = true;
+        selectObject['updatedAt'] = true;
+      }
+      
       return selectObject;
     } catch (error) {
       MCPLogger.error(`Error generating select for ${tableName}: ${error}`);
-      return {};
+      // Return some basic fields as fallback
+      return {
+        '_id': true,
+        'createdAt': true,
+        'updatedAt': true
+      };
     }
   }
 
