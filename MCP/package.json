@@ -1,11 +1,15 @@
 {
-    "name": "@oneuptime/mcp-hello-world",
+    "name": "@oneuptime/mcp-server",
     "version": "1.0.0",
-    "description": "OneUptime Hello World MCP Server",
+    "description": "OneUptime MCP Server",
     "main": "Index.ts",
     "type": "module",
+    "bin": {
+        "oneuptime-mcp-server": "./build/Index.js"
+    },
     "scripts": {
         "start": "export NODE_OPTIONS='--max-old-space-size=8096' && node --require ts-node/register Index.ts",
+        "build": "npm run compile",
         "compile": "tsc",
         "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
         "dev": "npx nodemon",
@@ -16,7 +20,7 @@
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",
     "dependencies": {
-        "Common": "file:./Common",
+        "Common": "file:../Common",
         "@modelcontextprotocol/sdk": "^0.6.0",
         "ts-node": "^10.9.1",
         "dotenv": "^16.4.5"

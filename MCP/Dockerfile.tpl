@@ -1,5 +1,5 @@
 #
-# OneUptime MCP Hello World Dockerfile
+# OneUptime MCP Server Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -41,13 +41,15 @@ COPY ./Common /usr/src/Common
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./mcp-hello-world/package*.json /usr/src/app/
+COPY ./MCP/package*.json /usr/src/app/
 RUN npm install --only=production
-COPY ./mcp-hello-world /usr/src/app
+COPY ./MCP /usr/src/app
+
+# Build the application
+RUN npm run build
 
 # Expose Port
 EXPOSE 3002
 
 #Run the app
-RUN npm run compile
 CMD [ "npm", "start" ]
