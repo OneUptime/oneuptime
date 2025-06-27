@@ -30,10 +30,9 @@ export default class OneUptimeApiService {
     const url = URL.fromString(config.url);
     const protocol = url.protocol;
     const hostname = url.hostname;
-    const routeStr = url.route.toString();
-    const baseRoute = (routeStr === '/' || routeStr === '') ? new Route('/api') : url.route;
     
-    this.api = new API(protocol, hostname, baseRoute);
+    // Initialize with no base route to avoid route accumulation
+    this.api = new API(protocol, hostname, new Route("/"));
     
     MCPLogger.info(`OneUptime API Service initialized with: ${config.url}`);
   }
@@ -93,33 +92,35 @@ export default class OneUptimeApiService {
   }
 
   private static buildApiRoute(apiPath: string, operation: OneUptimeOperation, id?: string): Route {
-    let route = new Route(apiPath);
+    // Start with the API base path
+    let fullPath = `/api${apiPath}`;
     
     switch (operation) {
       case OneUptimeOperation.Read:
         if (id) {
-          route = route.addRoute(new Route(`/${id}/get-item`));
+          fullPath = `/api${apiPath}/${id}/get-item`;
         }
         break;
       case OneUptimeOperation.Update:
       case OneUptimeOperation.Delete:
         if (id) {
-          route = route.addRoute(new Route(`/${id}`));
+          fullPath = `/api${apiPath}/${id}/`;
         }
         break;
       case OneUptimeOperation.Count:
-        route = route.addRoute(new Route('/count'));
+        fullPath = `/api${apiPath}/count`;
         break;
       case OneUptimeOperation.List:
-        route = route.addRoute(new Route('/get-list'));
+        fullPath = `/api${apiPath}/get-list`;
         break;
       case OneUptimeOperation.Create:
       default:
-        // No additional path needed
+        // Use the base API path
+        fullPath = `/api${apiPath}`;
         break;
     }
 
-    return route;
+    return new Route(fullPath);
   }
 
   private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs): JSONObject | undefined {
