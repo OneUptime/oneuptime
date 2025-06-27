@@ -63,7 +63,7 @@ export default class DynamicToolGenerator {
           singularName,
           pluralName,
           modelType: ModelType.Database,
-          apiPath
+          ...(apiPath && { apiPath })
         }
       };
     }

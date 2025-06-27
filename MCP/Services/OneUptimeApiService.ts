@@ -39,7 +39,7 @@ export default class OneUptimeApiService {
   public static async executeOperation(
     modelName: string,
     operation: OneUptimeOperation,
-    modelType: ModelType,
+    _modelType: ModelType,
     apiPath: string,
     args: OneUptimeToolCallArgs
   ): Promise<any> {
