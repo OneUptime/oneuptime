@@ -13,8 +13,6 @@ import OneUptimeApiService, { OneUptimeApiConfig } from "./Services/OneUptimeApi
 import { McpToolInfo, OneUptimeToolCallArgs } from "./Types/McpTypes";
 import OneUptimeOperation from "./Types/OneUptimeOperation";
 import ModelType from "./Types/ModelType";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
 
 // Load environment variables
 dotenv.config();
@@ -48,11 +46,8 @@ class OneUptimeMCPServer {
   private initializeServices(): void {
     // Initialize OneUptime API Service
     const config: OneUptimeApiConfig = {
-      hostname: process.env.ONEUPTIME_HOSTNAME || "localhost:3002",
-      protocol: process.env.ONEUPTIME_PROTOCOL === "http" ? Protocol.HTTP : Protocol.HTTPS,
+      url: process.env.ONEUPTIME_URL || "https://oneuptime.com",
       apiKey: process.env.ONEUPTIME_API_KEY,
-      projectId: process.env.ONEUPTIME_PROJECT_ID,
-      baseRoute: new Route(process.env.ONEUPTIME_BASE_ROUTE || "/api/v1"),
     };
 
     OneUptimeApiService.initialize(config);

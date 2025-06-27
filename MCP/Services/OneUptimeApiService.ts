@@ -13,11 +13,8 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 
 export interface OneUptimeApiConfig {
-  hostname: string;
-  protocol?: Protocol;
+  url: string;
   apiKey?: string;
-  projectId?: string;
-  baseRoute?: Route;
 }
 
 export default class OneUptimeApiService {
@@ -27,13 +24,15 @@ export default class OneUptimeApiService {
   public static initialize(config: OneUptimeApiConfig): void {
     this.config = config;
     
-    const protocol = config.protocol || Protocol.HTTPS;
-    const hostname = new Hostname(config.hostname);
-    const baseRoute = config.baseRoute || new Route("/api/v1");
+    // Parse the URL to extract protocol, hostname, and path
+    const url = URL.fromString(config.url);
+    const protocol = url.protocol;
+    const hostname = url.hostname;
+    const baseRoute = url.route.toString() === '/' ? new Route('/api/v1') : url.route;
     
     this.api = new API(protocol, hostname, baseRoute);
     
-    Logger.info(`OneUptime API Service initialized with: ${protocol}://${hostname}${baseRoute}`);
+    Logger.info(`OneUptime API Service initialized with: ${config.url}`);
   }
 
   /**
@@ -146,10 +145,6 @@ export default class OneUptimeApiService {
 
     if (this.config.apiKey) {
       headers['Authorization'] = `Bearer ${this.config.apiKey}`;
-    }
-
-    if (this.config.projectId) {
-      headers['X-Project-ID'] = this.config.projectId;
     }
 
     return headers;

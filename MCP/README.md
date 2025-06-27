@@ -39,18 +39,11 @@ The server automatically generates tools for all OneUptime models including:
 Copy `.env.example` to `.env` and configure:
 
 ```bash
-# OneUptime Instance Configuration
-ONEUPTIME_HOSTNAME=localhost:3002
-ONEUPTIME_PROTOCOL=http
-ONEUPTIME_BASE_ROUTE=/api/v1
+# OneUptime API Key (Required)
+ONEUPTIME_API_KEY=your_oneuptime_api_key_here
 
-# Authentication (Required for production)
-ONEUPTIME_API_KEY=your_oneuptime_api_key_here  
-ONEUPTIME_PROJECT_ID=your_project_id_here
-
-# Server Configuration
-NODE_ENV=development
-LOG_LEVEL=info
+# OneUptime Instance URL (Optional - defaults to https://oneuptime.com)
+ONEUPTIME_URL=https://oneuptime.com
 ```
 
 ## Installation
