@@ -102,7 +102,7 @@ class OneUptimeMCPServer {
 
         // Execute the OneUptime operation
         const result = await OneUptimeApiService.executeOperation(
-          tool.modelName,
+          tool.tableName,
           tool.operation,
           tool.modelType,
           tool.apiPath || "",

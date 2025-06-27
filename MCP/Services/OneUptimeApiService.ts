@@ -9,6 +9,10 @@ import Headers from "Common/Types/API/Headers";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import DatabaseModels from "Common/Models/DatabaseModels/Index";
+import AnalyticsModels from "Common/Models/AnalyticsModels/Index";
+import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
+import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
 
 export interface OneUptimeApiConfig {
   url: string;
@@ -38,12 +42,12 @@ export default class OneUptimeApiService {
   }
 
   /**
-   * Execute a OneUptime API operation
+   * Execute a OneUptime operation
    */
   public static async executeOperation(
-    modelName: string,
+    tableName: string,
     operation: OneUptimeOperation,
-    _modelType: ModelType,
+    modelType: ModelType,
     apiPath: string,
     args: OneUptimeToolCallArgs
   ): Promise<any> {
@@ -55,9 +59,9 @@ export default class OneUptimeApiService {
 
     const route = this.buildApiRoute(apiPath, operation, args.id);
     const headers = this.getHeaders();
-    const data = this.getRequestData(operation, args);
+    const data = this.getRequestData(operation, args, tableName, modelType);
 
-    MCPLogger.info(`Executing ${operation} operation for ${modelName} at ${route.toString()}`);
+    MCPLogger.info(`Executing ${operation} operation for ${tableName} at ${route.toString()}`);
 
     try {
       let response: HTTPResponse<any> | HTTPErrorResponse;
@@ -86,10 +90,10 @@ export default class OneUptimeApiService {
         throw new Error(`API request failed: ${response.statusCode} - ${response.message}`);
       }
 
-      MCPLogger.info(`Successfully executed ${operation} operation for ${modelName}`);
+      MCPLogger.info(`Successfully executed ${operation} operation for ${tableName}`);
       return response.data;
     } catch (error) {
-      MCPLogger.error(`Error executing ${operation} operation for ${modelName}: ${error}`);
+      MCPLogger.error(`Error executing ${operation} operation for ${tableName}: ${error}`);
       throw error;
     }
   }
@@ -127,7 +131,7 @@ export default class OneUptimeApiService {
     return new Route(fullPath);
   }
 
-  private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs): JSONObject | undefined {
+  private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs, tableName: string, modelType: ModelType): JSONObject | undefined {
     switch (operation) {
       case OneUptimeOperation.Create:
         return { data: args.data } as JSONObject;
@@ -137,18 +141,70 @@ export default class OneUptimeApiService {
       case OneUptimeOperation.Count:
         return {
           query: args.query || {},
-          select: args.select,
+          select: args.select || this.generateAllFieldsSelect(tableName, modelType),
           skip: args.skip,
           limit: args.limit,
           sort: args.sort,
         } as JSONObject;
       case OneUptimeOperation.Read:
         return {
-          select: args.select,
+          select: args.select || this.generateAllFieldsSelect(tableName, modelType),
         } as JSONObject;
       case OneUptimeOperation.Delete:
       default:
         return undefined;
+    }
+  }
+
+  /**
+   * Generate a select object that includes all fields from the select schema
+   */
+  private static generateAllFieldsSelect(tableName: string, modelType: ModelType): JSONObject {
+    try {
+      let ModelClass: any = null;
+      
+      // Find the model class by table name
+      if (modelType === ModelType.Database) {
+        ModelClass = DatabaseModels.find((Model: any) => {
+          const instance = new Model();
+          return instance.tableName === tableName;
+        });
+      } else if (modelType === ModelType.Analytics) {
+        ModelClass = AnalyticsModels.find((Model: any) => {
+          const instance = new Model();
+          return instance.tableName === tableName;
+        });
+      }
+
+      if (!ModelClass) {
+        MCPLogger.warn(`Model class not found for ${tableName}, using empty select`);
+        return {};
+      }
+
+      // Generate the select schema to get all available fields (not read schema which has permission restrictions)
+      let selectSchema: any;
+      if (modelType === ModelType.Database) {
+        selectSchema = ModelSchema.getSelectModelSchema({ modelType: ModelClass });
+      } else {
+        // For analytics models, use the general model schema
+        selectSchema = AnalyticsModelSchema.getModelSchema({ modelType: ModelClass });
+      }
+
+      // Extract field names from the schema
+      const selectObject: JSONObject = {};
+      const shape = selectSchema._def?.shape;
+      
+      if (shape) {
+        for (const fieldName of Object.keys(shape)) {
+          selectObject[fieldName] = true;
+        }
+      }
+
+      MCPLogger.info(`Generated select for ${tableName} with ${Object.keys(selectObject).length} fields`);
+      return selectObject;
+    } catch (error) {
+      MCPLogger.error(`Error generating select for ${tableName}: ${error}`);
+      return {};
     }
   }
 
