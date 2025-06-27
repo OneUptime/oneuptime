@@ -120,7 +120,8 @@ export default class OneUptimeApiService {
         break;
     }
 
-    return new Route(fullPath);
+    // Create an absolute route that won't be concatenated with the base route
+    return Route.fromString(fullPath);
   }
 
   private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs): JSONObject | undefined {
