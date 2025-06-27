@@ -66,11 +66,9 @@ export default class OneUptimeApiService {
       switch (operation) {
         case OneUptimeOperation.Create:
         case OneUptimeOperation.Count:
-          response = await this.api.post(route, data, headers);
-          break;
-        case OneUptimeOperation.Read:
         case OneUptimeOperation.List:
-          response = await this.api.get(route, data, headers);
+        case OneUptimeOperation.Read:
+          response = await this.api.post(route, data, headers);
           break;
         case OneUptimeOperation.Update:
           response = await this.api.put(route, data, headers);
@@ -99,6 +97,10 @@ export default class OneUptimeApiService {
     
     switch (operation) {
       case OneUptimeOperation.Read:
+        if (id) {
+          route = route.addRoute(new Route(`/${id}/get-item`));
+        }
+        break;
       case OneUptimeOperation.Update:
       case OneUptimeOperation.Delete:
         if (id) {
@@ -123,9 +125,9 @@ export default class OneUptimeApiService {
   private static getRequestData(operation: OneUptimeOperation, args: OneUptimeToolCallArgs): JSONObject | undefined {
     switch (operation) {
       case OneUptimeOperation.Create:
-        return args.data;
+        return { data: args.data } as JSONObject;
       case OneUptimeOperation.Update:
-        return args.data;
+        return { data: args.data } as JSONObject;
       case OneUptimeOperation.List:
       case OneUptimeOperation.Count:
         return {
@@ -136,6 +138,9 @@ export default class OneUptimeApiService {
           sort: args.sort,
         } as JSONObject;
       case OneUptimeOperation.Read:
+        return {
+          select: args.select,
+        } as JSONObject;
       case OneUptimeOperation.Delete:
       default:
         return undefined;
