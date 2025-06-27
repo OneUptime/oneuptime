@@ -64,6 +64,12 @@ cp .env.example .env
 npm run build
 ```
 
+4. (Optional) Link for global CLI usage:
+```bash
+npm run link
+```
+
+
 ## Usage
 
 ### Development
