@@ -291,3 +291,15 @@ jobs:
           node-version: latest
       - run: cd Common && npm install
       - run: cd TestServer && npm install && npm run compile && npm run dep-check
+
+  compile-mcp:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: latest
+      - run: cd Common && npm install
+      - run: cd MCP && npm install && npm run compile && npm run dep-check
