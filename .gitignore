@@ -125,6 +125,7 @@ TerraformTest/**
 
 terraform-provider-example/**
 
-# MCP Hello World Server
-mcp-hello-world/build/
-mcp-hello-world/.env 
+# MCP Server
+MCP/build/
+MCP/.env
+MCP/node_modules 
