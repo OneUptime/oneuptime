@@ -1,4 +1,4 @@
-name: MCP Server Generation
+name: MCP Server Verification
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch: # Allow manual trigger
 
 jobs:
-  generate-mcp-server:
+  verify-mcp-server:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
@@ -28,46 +28,50 @@ jobs:
       - name: Install Common dependencies
         run: cd Common && npm install
 
-      - name: Install root dependencies
-        run: npm install
-
-      - name: Install Script dependencies
-        run: cd Scripts && npm install
-
-      - name: Generate MCP server
-        run: npm run generate-mcp-server
-
-      - name: Verify MCP server generation
+      - name: Verify MCP server directory
         run: |
           MCP_DIR="./MCP"
           
-          # Check if MCP server directory was created
+          # Check if MCP server directory exists
           if [ ! -d "$MCP_DIR" ]; then
-            echo "❌ MCP server directory not created"
+            echo "❌ MCP server directory not found"
             exit 1
           fi
-          echo "✅ MCP server directory created: $MCP_DIR"
+          echo "✅ MCP server directory found: $MCP_DIR"
           
-          # Count generated files
+          # Count source files
           TS_FILES=$(find "$MCP_DIR" -name "*.ts" | wc -l)
-          echo "📊 Generated TypeScript files: $TS_FILES"
+          echo "📊 TypeScript source files: $TS_FILES"
           
           if [ "$TS_FILES" -eq 0 ]; then
-            echo "❌ No TypeScript files were generated"
+            echo "❌ No TypeScript files found"
             exit 1
           fi
           
           # Check for essential files
           if [ -f "$MCP_DIR/package.json" ]; then
-            echo "✅ Package.json file created"
+            echo "✅ Package.json file exists"
+          else
+            echo "❌ Package.json file missing"
+            exit 1
           fi
           
           if [ -f "$MCP_DIR/README.md" ]; then
-            echo "✅ Documentation created"
+            echo "✅ Documentation exists"
           fi
           
           if [ -f "$MCP_DIR/Index.ts" ]; then
-            echo "✅ Main entry point created"
+            echo "✅ Main entry point exists"
+          else
+            echo "❌ Main entry point missing"
+            exit 1
+          fi
+          
+          if [ -f "$MCP_DIR/Dockerfile.tpl" ]; then
+            echo "✅ Dockerfile template exists"
+          else
+            echo "❌ Dockerfile template missing"
+            exit 1
           fi
           
           # Show directory structure for debugging
@@ -88,13 +92,17 @@ jobs:
             # Show build output
             echo "📦 Build output:"
             ls -la build/ || true
+            
+            echo "🧪 Running tests..."
+            npm test || echo "⚠️ No tests found or tests failed"
           else
-            echo "⚠️ Cannot test build - missing package.json or MCP server directory"
+            echo "❌ Cannot test build - missing package.json or MCP server directory"
+            exit 1
           fi
 
       - name: Upload MCP server as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MCP
+          name: mcp-server-build
           path: ./MCP/
           retention-days: 30

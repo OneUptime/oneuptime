@@ -121,20 +121,17 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing MCP server version: $VERSION"
 
-      - name: Generate MCP server
-        run: npm run generate-mcp-server
-
-      - name: Verify MCP server generation
+      - name: Verify MCP server directory
         run: |
           MCP_DIR="./MCP"
           
           if [ ! -d "$MCP_DIR" ]; then
-            echo "❌ MCP server directory not created"
+            echo "❌ MCP server directory not found"
             exit 1
           fi
           
-          echo "✅ MCP server generated successfully"
-          echo "📊 Generated files:"
+          echo "✅ MCP server directory found"
+          echo "📊 Source files:"
           find "$MCP_DIR" -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | wc -l
           echo "📁 Directory structure:"
           ls -la "$MCP_DIR"
@@ -179,13 +176,15 @@ jobs:
 
       - name: Build and push Docker images (test)
         run: |
-          cd MCP
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
+            --file ./MCP/Dockerfile.tpl \
             --tag oneuptime/mcp-server:${{ steps.version.outputs.version }} \
             --tag oneuptime/mcp-server:test \
             --tag ghcr.io/oneuptime/mcp-server:${{ steps.version.outputs.version }} \
             --tag ghcr.io/oneuptime/mcp-server:test \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            --build-arg APP_VERSION=${{ steps.version.outputs.version }} \
             --push .
           echo "✅ Pushed test Docker images to Docker Hub and GitHub Container Registry"
 
