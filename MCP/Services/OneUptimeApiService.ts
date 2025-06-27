@@ -30,7 +30,8 @@ export default class OneUptimeApiService {
     const url = URL.fromString(config.url);
     const protocol = url.protocol;
     const hostname = url.hostname;
-    const baseRoute = url.route.toString() === '/' ? new Route('/api') : url.route;
+    const routeStr = url.route.toString();
+    const baseRoute = (routeStr === '/' || routeStr === '') ? new Route('/api') : url.route;
     
     this.api = new API(protocol, hostname, baseRoute);
     
@@ -64,11 +65,11 @@ export default class OneUptimeApiService {
 
       switch (operation) {
         case OneUptimeOperation.Create:
+        case OneUptimeOperation.Count:
           response = await this.api.post(route, data, headers);
           break;
         case OneUptimeOperation.Read:
         case OneUptimeOperation.List:
-        case OneUptimeOperation.Count:
           response = await this.api.get(route, data, headers);
           break;
         case OneUptimeOperation.Update:
@@ -108,6 +109,8 @@ export default class OneUptimeApiService {
         route = route.addRoute(new Route('/count'));
         break;
       case OneUptimeOperation.List:
+        route = route.addRoute(new Route('/get-list'));
+        break;
       case OneUptimeOperation.Create:
       default:
         // No additional path needed
