@@ -8,17 +8,20 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from "@modelcontextprotocol/sdk/types.js";
-import logger from "Common/Server/Utils/Logger";
 import dotenv from "dotenv";
 import DynamicToolGenerator from "./Utils/DynamicToolGenerator";
 import OneUptimeApiService, { OneUptimeApiConfig } from "./Services/OneUptimeApiService";
 import { McpToolInfo, OneUptimeToolCallArgs } from "./Types/McpTypes";
 import OneUptimeOperation from "./Types/OneUptimeOperation";
+import MCPLogger from "./Utils/MCPLogger";
 
-// Load environment variables
+// Load environment variables (suppress console output)
+const originalConsoleLog = console.log;
+console.log = () => {}; // Temporarily disable console.log
 dotenv.config();
+console.log = originalConsoleLog; // Restore console.log
 
-logger.info("OneUptime MCP Server is starting...");
+MCPLogger.info("OneUptime MCP Server is starting...");
 
 class OneUptimeMCPServer {
   private server: Server;
@@ -55,15 +58,15 @@ class OneUptimeMCPServer {
     };
 
     OneUptimeApiService.initialize(config);
-    logger.info("OneUptime API Service initialized");
+    MCPLogger.info("OneUptime API Service initialized");
   }
 
   private generateTools(): void {
     try {
       this.tools = DynamicToolGenerator.generateAllTools();
-      logger.info(`Generated ${this.tools.length} OneUptime MCP tools`);
+      MCPLogger.info(`Generated ${this.tools.length} OneUptime MCP tools`);
     } catch (error) {
-      logger.error(`Failed to generate tools: ${error}`);
+      MCPLogger.error(`Failed to generate tools: ${error}`);
       throw error;
     }
   }
@@ -77,7 +80,7 @@ class OneUptimeMCPServer {
         inputSchema: tool.inputSchema,
       }));
 
-      logger.info(`Listing ${mcpTools.length} available tools`);
+      MCPLogger.info(`Listing ${mcpTools.length} available tools`);
       return { tools: mcpTools };
     });
 
@@ -95,7 +98,7 @@ class OneUptimeMCPServer {
           );
         }
 
-        logger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
+        MCPLogger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
 
         // Execute the OneUptime operation
         const result = await OneUptimeApiService.executeOperation(
@@ -118,7 +121,7 @@ class OneUptimeMCPServer {
           ],
         };
       } catch (error) {
-        logger.error(`Error executing tool ${name}: ${error}`);
+        MCPLogger.error(`Error executing tool ${name}: ${error}`);
         
         if (error instanceof McpError) {
           throw error;
@@ -184,12 +187,12 @@ class OneUptimeMCPServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
-    logger.info("OneUptime MCP Server is running!");
-    logger.info(`Available tools: ${this.tools.length} total`);
+    MCPLogger.info("OneUptime MCP Server is running!");
+    MCPLogger.info(`Available tools: ${this.tools.length} total`);
     
     // Log some example tools
     const exampleTools = this.tools.slice(0, 5).map(t => t.name);
-    logger.info(`Example tools: ${exampleTools.join(', ')}`);
+    MCPLogger.info(`Example tools: ${exampleTools.join(', ')}`);
   }
 }
 
@@ -199,24 +202,24 @@ async function main(): Promise<void> {
     const mcpServer = new OneUptimeMCPServer();
     await mcpServer.run();
   } catch (error) {
-    logger.error(`Failed to start MCP server: ${error}`);
+    MCPLogger.error(`Failed to start MCP server: ${error}`);
     process.exit(1);
   }
 }
 
 // Handle graceful shutdown
 process.on("SIGINT", () => {
-  logger.info("Received SIGINT, shutting down gracefully...");
+  MCPLogger.info("Received SIGINT, shutting down gracefully...");
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-  logger.info("Received SIGTERM, shutting down gracefully...");
+  MCPLogger.info("Received SIGTERM, shutting down gracefully...");
   process.exit(0);
 });
 
 // Start the server
 main().catch((error) => {
-  logger.error(`Unhandled error: ${error}`);
+  MCPLogger.error(`Unhandled error: ${error}`);
   process.exit(1);
 });

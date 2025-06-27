@@ -134,6 +134,19 @@ npm start
 }
 ```
 
+## Troubleshooting
+
+### MCP Logging Compatibility
+
+This server uses a custom `MCPLogger` class that ensures all log messages are directed to `stderr` instead of `stdout`. This is critical for MCP protocol compliance, as `stdout` is reserved for JSON-RPC messages.
+
+**Fixed Issues:**
+- `Failed to parse message` warnings caused by log messages going to stdout
+- Dotenv initialization messages interfering with MCP protocol
+- All informational logging now properly directed to stderr
+
+If you encounter parsing warnings, ensure no code is writing to stdout directly - use `MCPLogger` instead of console methods.
+
 ## Architecture
 
 - **DynamicToolGenerator**: Automatically discovers and generates tools for all OneUptime models

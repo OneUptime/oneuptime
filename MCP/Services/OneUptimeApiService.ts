@@ -1,7 +1,7 @@
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { OneUptimeToolCallArgs } from "../Types/McpTypes";
-import Logger from "Common/Server/Utils/Logger";
+import MCPLogger from "../Utils/MCPLogger";
 import API from "Common/Utils/API";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
@@ -35,7 +35,7 @@ export default class OneUptimeApiService {
     
     this.api = new API(protocol, hostname, baseRoute);
     
-    Logger.info(`OneUptime API Service initialized with: ${config.url}`);
+    MCPLogger.info(`OneUptime API Service initialized with: ${config.url}`);
   }
 
   /**
@@ -58,7 +58,7 @@ export default class OneUptimeApiService {
     const headers = this.getHeaders();
     const data = this.getRequestData(operation, args);
 
-    Logger.info(`Executing ${operation} operation for ${modelName} at ${route.toString()}`);
+    MCPLogger.info(`Executing ${operation} operation for ${modelName} at ${route.toString()}`);
 
     try {
       let response: HTTPResponse<any> | HTTPErrorResponse;
@@ -84,10 +84,10 @@ export default class OneUptimeApiService {
         throw new Error(`API request failed: ${response.statusCode} - ${response.message}`);
       }
 
-      Logger.info(`Successfully executed ${operation} operation for ${modelName}`);
+      MCPLogger.info(`Successfully executed ${operation} operation for ${modelName}`);
       return response.data;
     } catch (error) {
-      Logger.error(`Error executing ${operation} operation for ${modelName}: ${error}`);
+      MCPLogger.error(`Error executing ${operation} operation for ${modelName}: ${error}`);
       throw error;
     }
   }

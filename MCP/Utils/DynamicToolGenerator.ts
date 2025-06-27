@@ -5,7 +5,7 @@ import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
-import Logger from "Common/Server/Utils/Logger";
+import MCPLogger from "./MCPLogger";
 import { ModelSchema, ModelSchemaType } from "Common/Utils/Schema/ModelSchema";
 import { AnalyticsModelSchema, AnalyticsModelSchemaType } from "Common/Utils/Schema/AnalyticsModelSchema";
 
@@ -78,7 +78,7 @@ export default class DynamicToolGenerator {
         additionalProperties: false
       };
     } catch (error) {
-      Logger.warn(`Failed to convert Zod schema to JSON Schema: ${error}`);
+      MCPLogger.warn(`Failed to convert Zod schema to JSON Schema: ${error}`);
       return {
         type: "object",
         properties: {},
@@ -100,7 +100,7 @@ export default class DynamicToolGenerator {
         const tools = this.generateToolsForDatabaseModel(model, ModelClass);
         allTools.push(...tools.tools);
       } catch (error) {
-        Logger.error(`Error generating tools for database model ${ModelClass.name}: ${error}`);
+        MCPLogger.error(`Error generating tools for database model ${ModelClass.name}: ${error}`);
       }
     }
     
@@ -111,11 +111,11 @@ export default class DynamicToolGenerator {
         const tools = this.generateToolsForAnalyticsModel(model, ModelClass);
         allTools.push(...tools.tools);
       } catch (error) {
-        Logger.error(`Error generating tools for analytics model ${ModelClass.name}: ${error}`);
+        MCPLogger.error(`Error generating tools for analytics model ${ModelClass.name}: ${error}`);
       }
     }
     
-    Logger.info(`Generated ${allTools.length} MCP tools for OneUptime models`);
+    MCPLogger.info(`Generated ${allTools.length} MCP tools for OneUptime models`);
     return allTools;
   }
 
