@@ -12,12 +12,9 @@ import DynamicToolGenerator from "./Utils/DynamicToolGenerator";
 import OneUptimeApiService, { OneUptimeApiConfig } from "./Services/OneUptimeApiService";
 import { McpToolInfo, OneUptimeToolCallArgs } from "./Types/McpTypes";
 import OneUptimeOperation from "./Types/OneUptimeOperation";
-import ModelType from "./Types/ModelType";
 
 // Load environment variables
 dotenv.config();
-
-const APP_NAME: string = "oneuptime-mcp-server";
 
 logger.info("OneUptime MCP Server is starting...");
 
