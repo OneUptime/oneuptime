@@ -155,7 +155,7 @@ export default class DynamicToolGenerator {
 
     // CREATE Tool
     tools.push({
-      name: `oneuptime_create${this.sanitizeToolName(singularName)}`,
+      name: `create_${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} in OneUptime`,
       inputSchema: {
         type: "object",
@@ -175,7 +175,7 @@ export default class DynamicToolGenerator {
 
     // READ Tool  
     tools.push({
-      name: `oneuptime_get${this.sanitizeToolName(singularName)}`,
+      name: `get_${this.sanitizeToolName(singularName)}`,
       description: `Retrieve a single ${singularName} by ID from OneUptime`,
       inputSchema: {
         type: "object",
@@ -198,7 +198,7 @@ export default class DynamicToolGenerator {
 
     // LIST Tool
     tools.push({
-      name: `oneuptime_list${this.sanitizeToolName(pluralName)}`,
+      name: `list_${this.sanitizeToolName(pluralName)}`,
       description: `List all ${pluralName} from OneUptime`,
       inputSchema: {
         type: "object",
@@ -227,7 +227,7 @@ export default class DynamicToolGenerator {
 
     // UPDATE Tool
     tools.push({
-      name: `oneuptime_update${this.sanitizeToolName(singularName)}`,
+      name: `update_${this.sanitizeToolName(singularName)}`,
       description: `Update an existing ${singularName} in OneUptime`,
       inputSchema: {
         type: "object",
@@ -251,7 +251,7 @@ export default class DynamicToolGenerator {
 
     // DELETE Tool
     tools.push({
-      name: `oneuptime_delete${this.sanitizeToolName(singularName)}`,
+      name: `delete_${this.sanitizeToolName(singularName)}`,
       description: `Delete a ${singularName} from OneUptime`,
       inputSchema: {
         type: "object",
@@ -274,7 +274,7 @@ export default class DynamicToolGenerator {
 
     // COUNT Tool
     tools.push({
-      name: `oneuptime_count${this.sanitizeToolName(pluralName)}`,
+      name: `count_${this.sanitizeToolName(pluralName)}`,
       description: `Count the number of ${pluralName} in OneUptime`,
       inputSchema: {
         type: "object",
@@ -338,7 +338,7 @@ export default class DynamicToolGenerator {
 
     // CREATE Tool for Analytics
     tools.push({
-      name: `oneuptime_create${this.sanitizeToolName(singularName)}`,
+      name: `create_${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} analytics record in OneUptime`,
       inputSchema: {
         type: "object",
@@ -358,7 +358,7 @@ export default class DynamicToolGenerator {
 
     // LIST Tool for Analytics (most common operation)
     tools.push({
-      name: `oneuptime_list${this.sanitizeToolName(pluralName)}`,
+      name: `list_${this.sanitizeToolName(pluralName)}`,
       description: `Query ${pluralName} analytics data from OneUptime`,
       inputSchema: {
         type: "object",
@@ -387,7 +387,7 @@ export default class DynamicToolGenerator {
 
     // COUNT Tool for Analytics
     tools.push({
-      name: `oneuptime_count${this.sanitizeToolName(pluralName)}`,
+      name: `count_${this.sanitizeToolName(pluralName)}`,
       description: `Count ${pluralName} analytics records in OneUptime`,
       inputSchema: {
         type: "object",
