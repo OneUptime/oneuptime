@@ -188,7 +188,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerNotePosted,
           vars: vars,
-          subject: "[Incident Update] " + incident.title,
+          subject: `[Incident ${incident.currentIncidentState!.name!}] ${incident.title}`,
         };
 
         const sms: SMSMessage = {
