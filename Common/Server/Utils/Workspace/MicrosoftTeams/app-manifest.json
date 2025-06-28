@@ -1,0 +1,103 @@
+{
+    "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.16",
+    "version": "1.0.0",
+    "id": "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+    "packageName": "com.oneuptime.teams",
+    "developer": {
+        "name": "OneUptime",
+        "websiteUrl": "https://oneuptime.com",
+        "privacyUrl": "https://oneuptime.com/legal/privacy-policy",
+        "termsOfUseUrl": "https://oneuptime.com/legal/terms-of-service"
+    },
+    "icons": {
+        "color": "{{SERVER_URL}}/static/teams-icon-color.png",
+        "outline": "{{SERVER_URL}}/static/teams-icon-outline.png"
+    },
+    "name": {
+        "short": "OneUptime",
+        "full": "OneUptime - Complete Open-Source Observability Platform"
+    },
+    "description": {
+        "short": "Monitor and manage your online services",
+        "full": "OneUptime is a comprehensive solution for monitoring and managing your online services. Whether you need to check the availability of your website, dashboard, API, or any other online resource, OneUptime can alert your team when downtime happens and keep your customers informed with a status page. OneUptime also helps you handle incidents, set up on-call rotations, run tests, secure your services, analyze logs, track performance, and debug errors."
+    },
+    "accentColor": "#000000",
+    "bots": [
+        {
+            "botId": "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+            "scopes": [
+                "personal",
+                "team",
+                "groupchat"
+            ],
+            "supportsFiles": false,
+            "isNotificationOnly": false,
+            "commandLists": [
+                {
+                    "scopes": [
+                        "personal",
+                        "team",
+                        "groupchat"
+                    ],
+                    "commands": [
+                        {
+                            "title": "incident",
+                            "description": "Create a new incident in OneUptime"
+                        },
+                        {
+                            "title": "maintenance",
+                            "description": "Create a new scheduled maintenance in OneUptime"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "composeExtensions": [
+        {
+            "botId": "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+            "commands": [
+                {
+                    "id": "createIncident",
+                    "type": "action",
+                    "title": "Create Incident",
+                    "description": "Create a new incident in OneUptime",
+                    "initialRun": true,
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "title": "Incident Title",
+                            "description": "Title of the incident"
+                        }
+                    ]
+                },
+                {
+                    "id": "createMaintenance",
+                    "type": "action",
+                    "title": "Create Maintenance",
+                    "description": "Create a new scheduled maintenance in OneUptime",
+                    "initialRun": true,
+                    "parameters": [
+                        {
+                            "name": "title",
+                            "title": "Maintenance Title",
+                            "description": "Title of the scheduled maintenance"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": [
+        "{{SERVER_DOMAIN}}"
+    ],
+    "webApplicationInfo": {
+        "id": "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+        "resource": "https://graph.microsoft.com"
+    }
+}
