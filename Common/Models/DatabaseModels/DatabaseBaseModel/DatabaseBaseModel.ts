@@ -702,7 +702,7 @@ export default class DatabaseBaseModel extends BaseEntity {
       if (id) {
         (baseModel as any)._id = id.toString();
       }
-      baseModel.removeValue("id");
+      delete (baseModel as any).id;
     }
 
     return baseModel as T;
