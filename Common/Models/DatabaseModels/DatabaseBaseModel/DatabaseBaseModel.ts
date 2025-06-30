@@ -660,6 +660,8 @@ export default class DatabaseBaseModel extends BaseEntity {
 
       if(key === "id") {
         key = "_id";
+        json["_id"] = json["id"];
+        delete json["id"];
       }
 
       const tableColumnMetadata: TableColumnMetadata =
@@ -700,7 +702,7 @@ export default class DatabaseBaseModel extends BaseEntity {
         }
       }
     }
-    
+
     return baseModel as T;
   }
 
