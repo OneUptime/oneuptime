@@ -656,7 +656,12 @@ export default class DatabaseBaseModel extends BaseEntity {
     json = JSONFunctions.deserialize(json);
     const baseModel: T = new type();
 
-    for (const key of Object.keys(json)) {
+    for (let key of Object.keys(json)) {
+
+      if(key === "id") {
+        key = "_id";
+      }
+
       const tableColumnMetadata: TableColumnMetadata =
         baseModel.getTableColumnMetadata(key);
       if (tableColumnMetadata) {
@@ -695,16 +700,7 @@ export default class DatabaseBaseModel extends BaseEntity {
         }
       }
     }
-
-    // check if the column has id change it to _id
-    if(baseModel["id"]) {
-      const id: ObjectID | null = (baseModel as any).id;
-      if (id) {
-        (baseModel as any)._id = id.toString();
-      }
-      delete (baseModel as any).id;
-    }
-
+    
     return baseModel as T;
   }
 

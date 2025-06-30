@@ -403,6 +403,8 @@ export default class BaseAPI<
     await this.onBeforeCreate(req, res);
     const body: JSONObject = req.body;
 
+    
+
     const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
       body["data"] as JSONObject,
       this.entityType,
