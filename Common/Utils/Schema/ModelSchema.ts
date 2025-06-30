@@ -437,6 +437,7 @@ export class ModelSchema extends BaseSchema {
 
   public static getQueryModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
+    disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
@@ -474,6 +475,7 @@ export class ModelSchema extends BaseSchema {
       getExampleValueForColumn: (columnType: TableColumnType) => {
         return this.getExampleValueForColumn(columnType);
       },
+      disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
   }
 
@@ -698,6 +700,7 @@ export class ModelSchema extends BaseSchema {
 
   public static getSortModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
+    disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
@@ -719,6 +722,7 @@ export class ModelSchema extends BaseSchema {
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
+      disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
   }
 
@@ -1067,6 +1071,7 @@ export class ModelSchema extends BaseSchema {
     description: string;
     example: SchemaExample;
     makeOptional?: boolean;
+    disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
     const modelType: new () => DatabaseBaseModel = data.modelType;
     const model: DatabaseBaseModel = new modelType();
@@ -1149,6 +1154,7 @@ export class ModelSchema extends BaseSchema {
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
         column,
         data.schemaType,
+        data.disableOpenApiSchema || false,
       );
 
       // Check if the column is required and make it optional if not
@@ -1215,6 +1221,7 @@ export class ModelSchema extends BaseSchema {
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
     schemaType: "create" | "read" | "update" | "delete",
+    disableOpenApiSchema: boolean = false,
   ): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny;
 
@@ -1226,6 +1233,14 @@ export class ModelSchema extends BaseSchema {
         return { ...openApiConfig, default: column.defaultValue };
       }
       return openApiConfig;
+    };
+
+    // Helper function to conditionally apply OpenAPI schema
+    const applyOpenApi = (baseType: ZodTypes.ZodTypeAny, openApiConfig: any): ZodTypes.ZodTypeAny => {
+      if (disableOpenApiSchema) {
+        return baseType;
+      }
+      return baseType.openapi(addDefaultToOpenApi(openApiConfig));
     };
 
     if (column.type === TableColumnType.ObjectID) {
@@ -1241,143 +1256,103 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Date) {
       zodType = OneUptimeDate.getSchema();
     } else if (column.type === TableColumnType.VeryLongText) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example:
-            "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example:
+          "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
+      });
     } else if (
       column.type === TableColumnType.Number ||
       column.type === TableColumnType.PositiveNumber
     ) {
-      zodType = z
-        .number()
-        .openapi(addDefaultToOpenApi({ type: "number", example: 42 }));
+      zodType = applyOpenApi(z.number(), { type: "number", example: 42 });
     } else if (column.type === TableColumnType.Email) {
       zodType = Email.getSchema();
     } else if (column.type === TableColumnType.HashedString) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "hashed_string_value",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "hashed_string_value",
+      });
     } else if (column.type === TableColumnType.Slug) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "example-slug-value",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "example-slug-value",
+      });
     } else if (column.type === TableColumnType.ShortText) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "Example short text",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "Example short text",
+      });
     } else if (column.type === TableColumnType.LongText) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example:
-            "This is an example of longer text content that might be stored in this field.",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example:
+          "This is an example of longer text content that might be stored in this field.",
+      });
     } else if (column.type === TableColumnType.Phone) {
       zodType = Phone.getSchema();
     } else if (column.type === TableColumnType.Version) {
       zodType = Version.getSchema();
     } else if (column.type === TableColumnType.Password) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          format: "password",
-          example: "••••••••",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        format: "password",
+        example: "••••••••",
+      });
     } else if (column.type === TableColumnType.Name) {
       zodType = Name.getSchema();
     } else if (column.type === TableColumnType.Description) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "This is a description of the item",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "This is a description of the item",
+      });
     } else if (column.type === TableColumnType.File) {
-      zodType = z.any().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          format: "binary",
-        }),
-      );
+      zodType = applyOpenApi(z.any(), {
+        type: "string",
+        format: "binary",
+      });
     } else if (column.type === TableColumnType.Buffer) {
-      zodType = z.any().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          format: "binary",
-        }),
-      );
+      zodType = applyOpenApi(z.any(), {
+        type: "string",
+        format: "binary",
+      });
     } else if (column.type === TableColumnType.ShortURL) {
-      zodType = z
-        .string()
-        .url()
-        .openapi(
-          addDefaultToOpenApi({
-            type: "string",
-            example: "https://short.url/abc123",
-          }),
-        );
+      zodType = applyOpenApi(z.string().url(), {
+        type: "string",
+        example: "https://short.url/abc123",
+      });
     } else if (column.type === TableColumnType.Markdown) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "# Heading\n\nThis is **markdown** content",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "# Heading\n\nThis is **markdown** content",
+      });
     } else if (column.type === TableColumnType.Domain) {
       zodType = Domain.getSchema();
     } else if (column.type === TableColumnType.LongURL) {
-      zodType = z
-        .string()
-        .url()
-        .openapi(
-          addDefaultToOpenApi({
-            type: "string",
-            example: "https://www.example.com/path/to/resource?param=value",
-          }),
-        );
+      zodType = applyOpenApi(z.string().url(), {
+        type: "string",
+        example: "https://www.example.com/path/to/resource?param=value",
+      });
     } else if (column.type === TableColumnType.OTP) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "123456",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "123456",
+      });
     } else if (column.type === TableColumnType.HTML) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "<div><h1>Title</h1><p>Content</p></div>",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "<div><h1>Title</h1><p>Content</p></div>",
+      });
     } else if (column.type === TableColumnType.JavaScript) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "function example() { return true; }",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "function example() { return true; }",
+      });
     } else if (column.type === TableColumnType.CSS) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "body { color: #333; margin: 0; }",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "body { color: #333; margin: 0; }",
+      });
     } else if (column.type === TableColumnType.Array) {
       zodType = z.array(z.any()).openapi(
         addDefaultToOpenApi({
@@ -1427,55 +1402,41 @@ export class ModelSchema extends BaseSchema {
         }),
       );
     } else if (column.type === TableColumnType.Permission) {
-      zodType = z.any().openapi(
-        addDefaultToOpenApi({
-          type: "object",
-          example: { read: true, write: false, delete: false },
-        }),
-      );
+      zodType = applyOpenApi(z.any(), {
+        type: "object",
+        example: { read: true, write: false, delete: false },
+      });
     } else if (column.type === TableColumnType.CustomFieldType) {
-      zodType = z.any().openapi(
-        addDefaultToOpenApi({
-          type: "object",
-          example: { type: "text", required: true },
-        }),
-      );
+      zodType = applyOpenApi(z.any(), {
+        type: "object",
+        example: { type: "text", required: true },
+      });
     } else if (column.type === TableColumnType.MonitorType) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "HTTP",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "HTTP",
+      });
     } else if (column.type === TableColumnType.WorkflowStatus) {
-      zodType = z.string().openapi(
-        addDefaultToOpenApi({
-          type: "string",
-          example: "In Progress",
-        }),
-      );
+      zodType = applyOpenApi(z.string(), {
+        type: "string",
+        example: "In Progress",
+      });
     } else if (column.type === TableColumnType.Boolean) {
-      zodType = z
-        .boolean()
-        .openapi(addDefaultToOpenApi({ type: "boolean", example: true }));
+      zodType = applyOpenApi(z.boolean(), { type: "boolean", example: true });
     } else if (column.type === TableColumnType.JSON) {
-      zodType = z.any().openapi(
-        addDefaultToOpenApi({
-          type: "object",
-          example: { key: "value", nested: { data: 123 } },
-        }),
-      );
+      zodType = applyOpenApi(z.any(), {
+        type: "object",
+        example: { key: "value", nested: { data: 123 } },
+      });
     } else if (column.type === TableColumnType.EntityArray) {
       const entityArrayType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
       if (!entityArrayType) {
-        return z.any().openapi(
-          addDefaultToOpenApi({
-            type: "array",
-            items: { type: "object" },
-            example: [],
-          }),
-        );
+        return applyOpenApi(z.any(), {
+          type: "array",
+          items: { type: "object" },
+          example: [],
+        });
       }
 
       // Use the appropriate schema method based on the operation type
@@ -1495,16 +1456,17 @@ export class ModelSchema extends BaseSchema {
           break;
       }
 
-      zodType = z
-        .array(
-          z.lazy(() => {
-            return schemaMethod({
-              modelType: entityArrayType as new () => DatabaseBaseModel,
-            });
-          }),
-        )
-        .openapi(
-          addDefaultToOpenApi({
+      const arrayType = z.array(
+        z.lazy(() => {
+          return schemaMethod({
+            modelType: entityArrayType as new () => DatabaseBaseModel,
+          });
+        }),
+      );
+
+      zodType = disableOpenApiSchema 
+        ? arrayType 
+        : arrayType.openapi(addDefaultToOpenApi({
             type: "array",
             items: {
               type: "object",
@@ -1513,20 +1475,17 @@ export class ModelSchema extends BaseSchema {
               },
             },
             example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
-          }),
-        );
+          }));
     } else if (column.type === TableColumnType.Entity) {
       const entityType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
 
       if (!entityType) {
-        return z.any().openapi(
-          addDefaultToOpenApi({
-            type: "object",
-            description: "Entity reference",
-            example: { _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
-          }),
-        );
+        return applyOpenApi(z.any(), {
+          type: "object",
+          description: "Entity reference",
+          example: { _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
+        });
       }
 
       // Use the appropriate schema method based on the operation type
@@ -1546,20 +1505,18 @@ export class ModelSchema extends BaseSchema {
           break;
       }
 
-      zodType = z
-        .lazy(() => {
-          return schema;
-        })
-        .openapi(
-          addDefaultToOpenApi({
+      const lazyType = z.lazy(() => {
+        return schema;
+      });
+
+      zodType = disableOpenApiSchema
+        ? lazyType
+        : lazyType.openapi(addDefaultToOpenApi({
             type: "object",
             example: { id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
-          }),
-        );
+          }));
     } else {
-      zodType = z
-        .any()
-        .openapi(addDefaultToOpenApi({ type: "null", example: null }));
+      zodType = applyOpenApi(z.any(), { type: "null", example: null });
     }
 
     // Apply default value if it exists in the column metadata
@@ -1568,7 +1525,7 @@ export class ModelSchema extends BaseSchema {
     }
 
     // Mark computed fields as readOnly in OpenAPI spec
-    if (column.computed) {
+    if (column.computed && !disableOpenApiSchema) {
       zodType = zodType.openapi({ readOnly: true });
     }
 
@@ -1577,6 +1534,7 @@ export class ModelSchema extends BaseSchema {
 
   public static getCreateModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
+    disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
     // Auto-generated fields to exclude from create schema
     const excludedFields: Array<string> = [
@@ -1597,6 +1555,7 @@ export class ModelSchema extends BaseSchema {
         schemaType: "create",
         excludedFields,
       }),
+      disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
   }
 
@@ -1617,6 +1576,7 @@ export class ModelSchema extends BaseSchema {
 
   public static getUpdateModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
+    disableOpenApiSchema?: boolean;
   }): ModelSchemaType {
     // Auto-generated fields to exclude from update schema (but allow _id for identification)
     const excludedFields: Array<string> = [
@@ -1637,6 +1597,7 @@ export class ModelSchema extends BaseSchema {
         excludedFields,
       }),
       makeOptional: true, // All fields are optional for updates
+      disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
   }
 

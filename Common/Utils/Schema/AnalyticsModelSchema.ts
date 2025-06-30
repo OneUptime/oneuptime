@@ -205,6 +205,7 @@ export class AnalyticsModelSchema extends BaseSchema {
 
   private static getZodTypeForColumn(
     column: AnalyticsTableColumn,
+    disableOpenApiSchema: boolean = false,
   ): ZodTypes.ZodTypeAny {
     switch (column.type) {
       case TableColumnType.ObjectID:
@@ -212,7 +213,8 @@ export class AnalyticsModelSchema extends BaseSchema {
       case TableColumnType.Date:
         return OneUptimeDate.getSchema();
       case TableColumnType.Text:
-        return z.string().openapi(
+        return this.applyOpenApi(
+          z.string(),
           this.addDefaultToOpenApi(
             {
               type: "string",
@@ -220,15 +222,17 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.Number:
-        return z
-          .number()
-          .openapi(
-            this.addDefaultToOpenApi({ type: "number", example: 42 }, column),
-          );
+        return this.applyOpenApi(
+          z.number(),
+          this.addDefaultToOpenApi({ type: "number", example: 42 }, column),
+          disableOpenApiSchema,
+        );
       case TableColumnType.LongNumber:
-        return z.number().openapi(
+        return this.applyOpenApi(
+          z.number(),
           this.addDefaultToOpenApi(
             {
               type: "number",
@@ -236,18 +240,17 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.Boolean:
-        return z
-          .boolean()
-          .openapi(
-            this.addDefaultToOpenApi(
-              { type: "boolean", example: true },
-              column,
-            ),
-          );
+        return this.applyOpenApi(
+          z.boolean(),
+          this.addDefaultToOpenApi({ type: "boolean", example: true }, column),
+          disableOpenApiSchema,
+        );
       case TableColumnType.JSON:
-        return z.any().openapi(
+        return this.applyOpenApi(
+          z.any(),
           this.addDefaultToOpenApi(
             {
               type: "object",
@@ -255,9 +258,11 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.JSONArray:
-        return z.array(z.any()).openapi(
+        return this.applyOpenApi(
+          z.array(z.any()),
           this.addDefaultToOpenApi(
             {
               type: "array",
@@ -266,9 +271,11 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.Decimal:
-        return z.number().openapi(
+        return this.applyOpenApi(
+          z.number(),
           this.addDefaultToOpenApi(
             {
               type: "number",
@@ -276,9 +283,11 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.ArrayNumber:
-        return z.array(z.number()).openapi(
+        return this.applyOpenApi(
+          z.array(z.number()),
           this.addDefaultToOpenApi(
             {
               type: "array",
@@ -287,9 +296,11 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.ArrayText:
-        return z.array(z.string()).openapi(
+        return this.applyOpenApi(
+          z.array(z.string()),
           this.addDefaultToOpenApi(
             {
               type: "array",
@@ -298,20 +309,23 @@ export class AnalyticsModelSchema extends BaseSchema {
             },
             column,
           ),
+          disableOpenApiSchema,
         );
       case TableColumnType.IP:
         return IP.getSchema();
       case TableColumnType.Port:
         return Port.getSchema();
       default:
-        return z.any().openapi(
+        return this.applyOpenApi(
+          z.any(),
           this.addDefaultToOpenApi(
             {
               type: "string",
-              example: "example_value",
+              example: "unknown",
             },
             column,
           ),
+          disableOpenApiSchema,
         );
     }
   }
@@ -329,6 +343,7 @@ export class AnalyticsModelSchema extends BaseSchema {
 
   public static getCreateModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
+    disableOpenApiSchema?: boolean;
   }): AnalyticsModelSchemaType {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
@@ -361,7 +376,7 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
-      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column);
+      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column, data.disableOpenApiSchema || false);
 
       // Apply default value if it exists
       zodType = this.applyDefaultValue(zodType, column);
@@ -373,16 +388,21 @@ export class AnalyticsModelSchema extends BaseSchema {
       }
     }
 
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Create schema for ${model.tableName || "analytics model"}`,
-      example: this.getCreateSchemaExample(modelType),
-      additionalProperties: false,
-    });
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        type: "object",
+        description: `Create schema for ${model.tableName || "analytics model"}`,
+        example: this.getCreateSchemaExample(modelType),
+        additionalProperties: false,
+      },
+      data.disableOpenApiSchema || false,
+    );
   }
 
   public static getQueryModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
+    disableOpenApiSchema?: boolean;
   }): AnalyticsModelSchemaType {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
@@ -411,6 +431,7 @@ export class AnalyticsModelSchema extends BaseSchema {
       getExampleValueForColumn: (columnType: TableColumnType) => {
         return this.getExampleValueForColumn(columnType);
       },
+      disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
   }
 
@@ -437,6 +458,7 @@ export class AnalyticsModelSchema extends BaseSchema {
 
   public static getSortModelSchema(data: {
     modelType: new () => AnalyticsBaseModel;
+    disableOpenApiSchema?: boolean;
   }): AnalyticsModelSchemaType {
     const modelType: new () => AnalyticsBaseModel = data.modelType;
     const model: AnalyticsBaseModel = new modelType();
@@ -453,6 +475,7 @@ export class AnalyticsModelSchema extends BaseSchema {
           return { key: column.key, type: column.type };
         });
       },
+      disableOpenApiSchema: data.disableOpenApiSchema || false,
     });
   }
 

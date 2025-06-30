@@ -150,10 +150,10 @@ export default class DynamicToolGenerator {
     }
 
     // Generate schemas using ModelSchema
-    const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({ modelType: ModelClass });
-    const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({ modelType: ModelClass });
-    const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({ modelType: ModelClass });
-    const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({ modelType: ModelClass });
+    const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
+    const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
+    const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
+    const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
 
     // CREATE Tool
     const createSchemaProperties = this.zodToJsonSchema(createSchema);
@@ -338,10 +338,10 @@ export default class DynamicToolGenerator {
     }
 
     // Generate schemas using AnalyticsModelSchema
-    const createSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({ modelType: ModelClass });
-    const querySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getQueryModelSchema({ modelType: ModelClass });
+    const createSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getCreateModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
+    const querySchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getQueryModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
     const selectSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSelectModelSchema({ modelType: ModelClass });
-    const sortSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSortModelSchema({ modelType: ModelClass });
+    const sortSchema: AnalyticsModelSchemaType = AnalyticsModelSchema.getSortModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
 
     // CREATE Tool for Analytics
     const analyticsCreateSchemaProperties = this.zodToJsonSchema(createSchema);

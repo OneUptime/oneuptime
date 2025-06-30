@@ -38,6 +38,7 @@ export abstract class BaseSchema {
     tableName?: string;
     getSortableTypes: () => Array<any>;
     getColumnsForSorting: (model: T) => Array<{ key: string; type: any }>;
+    disableOpenApiSchema?: boolean;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
     const columns: Array<{ key: string; type: any }> =
@@ -51,23 +52,28 @@ export abstract class BaseSchema {
         continue;
       }
 
-      shape[key] = z
-        .enum([SortOrder.Ascending, SortOrder.Descending])
-        .optional()
-        .openapi({
+      shape[key] = this.applyOpenApi(
+        z.enum([SortOrder.Ascending, SortOrder.Descending]).optional(),
+        {
           type: "string",
           enum: [SortOrder.Ascending, SortOrder.Descending],
           description: `Sort order for ${key} field`,
           example: SortOrder.Ascending,
-        });
+        },
+        data.disableOpenApiSchema || false,
+      );
     }
 
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Sort schema for ${data.tableName || "model"}. Only sortable fields are included.`,
-      example: { createdAt: SortOrder.Descending },
-      additionalProperties: false,
-    });
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        type: "object",
+        description: `Sort schema for ${data.tableName || "model"}. Only sortable fields are included.`,
+        example: { createdAt: SortOrder.Descending },
+        additionalProperties: false,
+      },
+      data.disableOpenApiSchema || false,
+    );
   }
 
   /**
@@ -180,6 +186,7 @@ export abstract class BaseSchema {
     ) => ZodTypes.ZodTypeAny;
     getQuerySchemaExample: (model: T) => SchemaExample;
     getExampleValueForColumn: (columnType: any) => unknown;
+    disableOpenApiSchema?: boolean;
   }): BaseSchemaType {
     const shape: ShapeRecord = {};
     const columns: Array<{ key: string; type: any }> = data.getColumns(
@@ -233,24 +240,32 @@ export abstract class BaseSchema {
           .optional();
       }
 
-      columnSchema = columnSchema.openapi({
-        type: "object",
-        description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(", ")}`,
-        example: {
-          _type: "EqualTo",
-          value: data.getExampleValueForColumn(column.type),
+      columnSchema = this.applyOpenApi(
+        columnSchema,
+        {
+          type: "object",
+          description: `Query operators for ${key} field of type ${column.type}. Supported operators: ${validOperators.join(", ")}`,
+          example: {
+            _type: "EqualTo",
+            value: data.getExampleValueForColumn(column.type),
+          },
         },
-      });
+        data.disableOpenApiSchema || false,
+      );
 
       shape[key] = columnSchema;
     }
 
-    return z.object(shape).openapi({
-      type: "object",
-      description: `Query schema for ${data.tableName || "model"}. Each field can use various operators based on its data type.`,
-      example: data.getQuerySchemaExample(data.model),
-      additionalProperties: false,
-    });
+    return this.applyOpenApi(
+      z.object(shape),
+      {
+        type: "object",
+        description: `Query schema for ${data.tableName || "model"}. Each field can use various operators based on its data type.`,
+        example: data.getQuerySchemaExample(data.model),
+        additionalProperties: false,
+      },
+      data.disableOpenApiSchema || false,
+    );
   }
 
   /**
@@ -446,5 +461,19 @@ export abstract class BaseSchema {
     logger.debug(
       `${schemaType} schema for ${tableName} created with shape keys: ${Object.keys(shape).join(", ")}`,
     );
+  }
+
+  /**
+   * Helper method to conditionally apply OpenAPI schema
+   */
+  protected static applyOpenApi<T extends ZodTypes.ZodTypeAny>(
+    baseType: T,
+    openApiConfig: any,
+    disableOpenApiSchema: boolean = false,
+  ): T {
+    if (disableOpenApiSchema) {
+      return baseType;
+    }
+    return baseType.openapi(openApiConfig) as T;
   }
 }
