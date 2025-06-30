@@ -22,6 +22,7 @@ import { CompareType } from "../../../Types/Database/CompareBase";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
+import EqualTo from "../../../Types/BaseDatabase/EqualTo";
 
 export default class QueryUtil {
   @CaptureSpan()
@@ -51,6 +52,14 @@ export default class QueryUtil {
         tableColumnMetadata
       ) {
         query[key] = QueryHelper.equalToOrNull(
+          query[key] as any,
+        ) as FindOperator<any> as any;
+      }else if (
+        query[key] &&
+        query[key] instanceof EqualTo &&
+        tableColumnMetadata
+      ) {
+        query[key] = QueryHelper.equalTo(
           query[key] as any,
         ) as FindOperator<any> as any;
       } else if (
