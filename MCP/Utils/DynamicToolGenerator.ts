@@ -17,10 +17,15 @@ export default class DynamicToolGenerator {
    */
   private static sanitizeToolName(name: string): string {
     return name
+      // First convert camelCase to snake_case by adding underscores before uppercase letters
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
       .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, '_')  // Replace invalid characters with underscores
-      .replace(/_+/g, '_')           // Replace multiple underscores with single underscore
-      .replace(/^_|_$/g, '');        // Remove leading/trailing underscores
+      // Replace any non-alphanumeric characters (including spaces, hyphens) with underscores
+      .replace(/[^a-z0-9]/g, '_')
+      // Replace multiple consecutive underscores with single underscore
+      .replace(/_+/g, '_')
+      // Remove leading/trailing underscores
+      .replace(/^_|_$/g, '');
   }
 
   /**
