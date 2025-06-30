@@ -34,8 +34,6 @@ export default class DynamicToolGenerator {
       const shape = (zodSchema as any)._def?.shape;
 
       if (!shape) {
-
-       
         return {
           type: "object",
           properties: {},
@@ -49,27 +47,36 @@ export default class DynamicToolGenerator {
       for (const [key, value] of Object.entries(shape())) {
         const zodField = value as any;
         
-        // Extract OpenAPI metadata if available
-        const openApiConfig = zodField._def?.openapi;
+        // Handle ZodOptional fields by looking at the inner type
+        let actualField = zodField;
+        let isOptional = false;
         
-        if (openApiConfig) {
+        if (zodField._def?.typeName === 'ZodOptional') {
+          actualField = zodField._def.innerType;
+          isOptional = true;
+        }
+        
+        // Extract OpenAPI metadata - it's stored in _def.openapi.metadata
+        const openApiMetadata = actualField._def?.openapi?.metadata || zodField._def?.openapi?.metadata;
+        
+        if (openApiMetadata) {
           properties[key] = {
-            type: openApiConfig.type || "string",
-            description: openApiConfig.description || `${key} field`,
-            ...(openApiConfig.example && { example: openApiConfig.example }),
-            ...(openApiConfig.format && { format: openApiConfig.format }),
-            ...(openApiConfig.default !== undefined && { default: openApiConfig.default })
+            type: openApiMetadata.type || "string",
+            description: zodField._def?.description || openApiMetadata.description || `${key} field`,
+            ...(openApiMetadata.example !== undefined && { example: openApiMetadata.example }),
+            ...(openApiMetadata.format && { format: openApiMetadata.format }),
+            ...(openApiMetadata.default !== undefined && { default: openApiMetadata.default })
           };
         } else {
           // Fallback for fields without OpenAPI metadata
           properties[key] = {
             type: "string",
-            description: `${key} field`
+            description: zodField._def?.description || `${key} field`
           };
         }
 
         // Check if field is required (not optional)
-        if (!zodField._def?.typeName || zodField._def.typeName !== 'ZodOptional') {
+        if (!isOptional) {
           required.push(key);
         }
       }
@@ -81,7 +88,6 @@ export default class DynamicToolGenerator {
         additionalProperties: false
       };
     } catch (error) {
-      
       return {
         type: "object",
         properties: {},
