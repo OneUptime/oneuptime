@@ -78,7 +78,7 @@ export default class DynamicToolGenerator {
           };
           
           // Handle array types - ensure they have proper items schema for MCP validation
-          if (openApiMetadata.type === "array") {
+          if (openApiMetadata?.type === "array") {
             fieldSchema.items = openApiMetadata.items || {
               type: "string",
               description: `${key} item`
