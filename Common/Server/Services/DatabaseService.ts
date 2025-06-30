@@ -484,7 +484,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 (item as JSONObject)["_id"] as string
               ).toString();
               itemsArray.push(basemodelItem);
-            }else if (
+            } else if (
               item &&
               typeof item === Typeof.Object &&
               (item as JSONObject)["id"] &&

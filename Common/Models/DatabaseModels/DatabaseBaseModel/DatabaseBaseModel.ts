@@ -696,6 +696,15 @@ export default class DatabaseBaseModel extends BaseEntity {
       }
     }
 
+    // check if the column has id change it to _id
+    if(baseModel["id"]) {
+      const id: ObjectID | null = (baseModel as any).id;
+      if (id) {
+        (baseModel as any)._id = id.toString();
+      }
+      baseModel.removeValue("id");
+    }
+
     return baseModel as T;
   }
 
