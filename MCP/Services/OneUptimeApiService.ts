@@ -138,9 +138,23 @@ export default class OneUptimeApiService {
     
     switch (operation) {
       case OneUptimeOperation.Create:
-        return { data: args.data } as JSONObject;
+        // For create operations, all properties except reserved ones are part of the data
+        const createData: JSONObject = {};
+        for (const [key, value] of Object.entries(args)) {
+          if (!['id', 'query', 'select', 'skip', 'limit', 'sort'].includes(key)) {
+            createData[key] = value;
+          }
+        }
+        return { data: createData } as JSONObject;
       case OneUptimeOperation.Update:
-        return { data: args.data } as JSONObject;
+        // For update operations, all properties except reserved ones are part of the data
+        const updateData: JSONObject = {};
+        for (const [key, value] of Object.entries(args)) {
+          if (!['id'].includes(key)) {
+            updateData[key] = value;
+          }
+        }
+        return { data: updateData } as JSONObject;
       case OneUptimeOperation.List:
       case OneUptimeOperation.Count:
         const generatedSelect = args.select || this.generateAllFieldsSelect(tableName, modelType);
@@ -326,8 +340,12 @@ export default class OneUptimeApiService {
   public static validateOperationArgs(operation: OneUptimeOperation, args: OneUptimeToolCallArgs): void {
     switch (operation) {
       case OneUptimeOperation.Create:
-        if (!args.data) {
-          throw new Error('Data is required for create operation');
+        // For create operations, we need at least one data field (excluding reserved fields)
+        const createDataFields = Object.keys(args).filter(key => 
+          !['id', 'query', 'select', 'skip', 'limit', 'sort'].includes(key)
+        );
+        if (createDataFields.length === 0) {
+          throw new Error('At least one data field is required for create operation');
         }
         break;
       case OneUptimeOperation.Read:
@@ -336,8 +354,14 @@ export default class OneUptimeApiService {
         if (!args.id) {
           throw new Error(`ID is required for ${operation} operation`);
         }
-        if (operation === OneUptimeOperation.Update && !args.data) {
-          throw new Error('Data is required for update operation');
+        if (operation === OneUptimeOperation.Update) {
+          // For update operations, we need at least one data field (excluding reserved fields)
+          const updateDataFields = Object.keys(args).filter(key => 
+            !['id', 'query', 'select', 'skip', 'limit', 'sort'].includes(key)
+          );
+          if (updateDataFields.length === 0) {
+            throw new Error('At least one data field is required for update operation');
+          }
         }
         break;
       case OneUptimeOperation.List:
