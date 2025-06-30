@@ -150,10 +150,10 @@ export default class DynamicToolGenerator {
     }
 
     // Generate schemas using ModelSchema
-    const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
-    const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
-    const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
-    const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({ modelType: ModelClass, disableOpenApiSchema: true });
+    const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({ modelType: ModelClass });
+    const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({ modelType: ModelClass});
+    const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({ modelType: ModelClass});
+    const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({ modelType: ModelClass });
 
     // CREATE Tool
     const createSchemaProperties = this.zodToJsonSchema(createSchema);
