@@ -1,6 +1,6 @@
 export enum OneUptimeOperation {
   Create = "create",
-  Read = "read", 
+  Read = "read",
   List = "list",
   Update = "update",
   Delete = "delete",

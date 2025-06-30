@@ -376,7 +376,10 @@ export class AnalyticsModelSchema extends BaseSchema {
         continue;
       }
 
-      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(column, data.disableOpenApiSchema || false);
+      let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
+        column,
+        data.disableOpenApiSchema || false,
+      );
 
       // Apply default value if it exists
       zodType = this.applyDefaultValue(zodType, column);

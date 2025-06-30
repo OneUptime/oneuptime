@@ -1236,7 +1236,10 @@ export class ModelSchema extends BaseSchema {
     };
 
     // Helper function to conditionally apply OpenAPI schema
-    const applyOpenApi = (baseType: ZodTypes.ZodTypeAny, openApiConfig: any): ZodTypes.ZodTypeAny => {
+    const applyOpenApi = (
+      baseType: ZodTypes.ZodTypeAny,
+      openApiConfig: any,
+    ): ZodTypes.ZodTypeAny => {
       if (disableOpenApiSchema) {
         return baseType;
       }
@@ -1464,18 +1467,20 @@ export class ModelSchema extends BaseSchema {
         }),
       );
 
-      zodType = disableOpenApiSchema 
-        ? arrayType 
-        : arrayType.openapi(addDefaultToOpenApi({
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                id: { type: "string" },
+      zodType = disableOpenApiSchema
+        ? arrayType
+        : arrayType.openapi(
+            addDefaultToOpenApi({
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                },
               },
-            },
-            example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
-          }));
+              example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
+            }),
+          );
     } else if (column.type === TableColumnType.Entity) {
       const entityType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
@@ -1511,10 +1516,12 @@ export class ModelSchema extends BaseSchema {
 
       zodType = disableOpenApiSchema
         ? lazyType
-        : lazyType.openapi(addDefaultToOpenApi({
-            type: "object",
-            example: { id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
-          }));
+        : lazyType.openapi(
+            addDefaultToOpenApi({
+              type: "object",
+              example: { id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+            }),
+          );
     } else {
       zodType = applyOpenApi(z.any(), { type: "null", example: null });
     }

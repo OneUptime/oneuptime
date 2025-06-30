@@ -439,7 +439,10 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText, hideColumnInDocumentation: true  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
@@ -560,7 +563,10 @@ class User extends UserModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -574,7 +580,10 @@ class User extends UserModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -588,7 +597,10 @@ class User extends UserModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -602,7 +614,10 @@ class User extends UserModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -616,7 +631,10 @@ class User extends UserModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -630,7 +648,10 @@ class User extends UserModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText, hideColumnInDocumentation: true })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,

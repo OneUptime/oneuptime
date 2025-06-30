@@ -54,7 +54,7 @@ export default class QueryUtil {
         query[key] = QueryHelper.equalToOrNull(
           query[key] as any,
         ) as FindOperator<any> as any;
-      }else if (
+      } else if (
         query[key] &&
         query[key] instanceof EqualTo &&
         tableColumnMetadata

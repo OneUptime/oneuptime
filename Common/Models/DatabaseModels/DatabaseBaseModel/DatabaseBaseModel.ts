@@ -657,8 +657,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     const baseModel: T = new type();
 
     for (let key of Object.keys(json)) {
-
-      if(key === "id") {
+      if (key === "id") {
         key = "_id";
         json["_id"] = json["id"];
         delete json["id"];
