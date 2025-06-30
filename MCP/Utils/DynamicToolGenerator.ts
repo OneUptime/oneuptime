@@ -69,13 +69,23 @@ export default class DynamicToolGenerator {
         const cleanDescription = this.cleanDescription(rawDescription);
         
         if (openApiMetadata) {
-          properties[key] = {
+          const fieldSchema: any = {
             type: openApiMetadata.type || "string",
             description: cleanDescription,
             ...(openApiMetadata.example !== undefined && { example: openApiMetadata.example }),
             ...(openApiMetadata.format && { format: openApiMetadata.format }),
             ...(openApiMetadata.default !== undefined && { default: openApiMetadata.default })
           };
+          
+          // Handle array types - ensure they have proper items schema for MCP validation
+          if (openApiMetadata.type === "array") {
+            fieldSchema.items = openApiMetadata.items || {
+              type: "string",
+              description: `${key} item`
+            };
+          }
+          
+          properties[key] = fieldSchema;
         } else {
           // Fallback for fields without OpenAPI metadata
           properties[key] = {
