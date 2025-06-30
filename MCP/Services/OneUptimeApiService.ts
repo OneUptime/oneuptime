@@ -150,7 +150,7 @@ export default class OneUptimeApiService {
         // For update operations, all properties except reserved ones are part of the data
         const updateData: JSONObject = {};
         for (const [key, value] of Object.entries(args)) {
-          if (!['id'].includes(key)) {
+          if (!['id', 'query', 'select', 'skip', 'limit', 'sort'].includes(key)) {
             updateData[key] = value;
           }
         }
