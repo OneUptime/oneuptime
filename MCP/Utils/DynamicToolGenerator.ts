@@ -153,7 +153,6 @@ export default class DynamicToolGenerator {
     const createSchema: ModelSchemaType = ModelSchema.getCreateModelSchema({ modelType: ModelClass });
     const updateSchema: ModelSchemaType = ModelSchema.getUpdateModelSchema({ modelType: ModelClass });
     const querySchema: ModelSchemaType = ModelSchema.getQueryModelSchema({ modelType: ModelClass });
-    const selectSchema: ModelSchemaType = ModelSchema.getSelectModelSchema({ modelType: ModelClass });
     const sortSchema: ModelSchemaType = ModelSchema.getSortModelSchema({ modelType: ModelClass });
 
     // CREATE Tool
@@ -208,14 +207,13 @@ export default class DynamicToolGenerator {
         type: "object",
         properties: {
           query: this.zodToJsonSchema(querySchema),
-          select: this.zodToJsonSchema(selectSchema),
           skip: {
             type: "number",
-            description: "Number of records to skip",
+            description: "Number of records to skip. This can be used for pagination.",
           },
           limit: {
             type: "number",
-            description: "Maximum number of records to return",
+            description: "Maximum number of records to return. This can be used for pagination. Maximum value is 100.",
           },
           sort: this.zodToJsonSchema(sortSchema)
         },
