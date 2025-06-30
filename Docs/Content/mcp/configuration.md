@@ -64,28 +64,17 @@ ONEUPTIME_URL=https://oneuptime.com
 Your API key needs appropriate permissions based on what operations you want to perform:
 
 ### Read-Only Access
-For viewing data only:
-- `Project:Read`
-- `Monitor:Read`
-- `Incident:Read`
-- `Team:Read`
-- `StatusPage:Read`
+
+For viewing data only, Please add read permissions for this API Key, 
 
 ### Full Access
-For complete management capabilities:
-- `Project:Read,Create,Update,Delete`
-- `Monitor:Read,Create,Update,Delete`
-- `Incident:Read,Create,Update,Delete`
-- `Team:Read,Create,Update,Delete`
-- `StatusPage:Read,Create,Update,Delete`
-- And other permissions as needed
 
-### Minimal Permissions Example
-For basic monitoring and incident response:
-- `Project:Read`
-- `Monitor:Read,Create,Update`
-- `Incident:Read,Create,Update`
-- `Team:Read`
+For full access to create, update, and delete resources, ensure your API key has the following permissions:
+- Project Admin
+
+### Minimal Permissions
+
+It is recommended to have minimum set of permissions assigned to your API key for your use-case. 
 
 ## Advanced Configuration
 

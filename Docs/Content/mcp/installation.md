@@ -32,16 +32,14 @@ git clone https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
 # Generate the MCP server
-npm run generate-mcp-server
-
-# Navigate to the MCP directory
 cd MCP
 
-# Install dependencies
-npm install
 
-# Build the project
-npm run build
+# Install dependencies
+npm install && npm link
+
+# This should now execute
+oneuptime-mcp --version
 ```
 
 ## Getting Your API Key

@@ -6,11 +6,6 @@ Learn how to use the OneUptime MCP Server with practical examples and common use
 
 ### Basic Information Queries
 
-**List all projects:**
-```
-"Show me all my OneUptime projects"
-```
-
 **Check monitor status:**
 ```
 "What's the current status of all my monitors?"
