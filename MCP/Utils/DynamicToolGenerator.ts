@@ -64,10 +64,14 @@ export default class DynamicToolGenerator {
         // Extract OpenAPI metadata - it's stored in _def.openapi.metadata
         const openApiMetadata = actualField._def?.openapi?.metadata || zodField._def?.openapi?.metadata;
         
+        // Clean up description by removing permission information
+        const rawDescription = zodField._def?.description || openApiMetadata?.description || `${key} field`;
+        const cleanDescription = this.cleanDescription(rawDescription);
+        
         if (openApiMetadata) {
           properties[key] = {
             type: openApiMetadata.type || "string",
-            description: zodField._def?.description || openApiMetadata.description || `${key} field`,
+            description: cleanDescription,
             ...(openApiMetadata.example !== undefined && { example: openApiMetadata.example }),
             ...(openApiMetadata.format && { format: openApiMetadata.format }),
             ...(openApiMetadata.default !== undefined && { default: openApiMetadata.default })
@@ -76,7 +80,7 @@ export default class DynamicToolGenerator {
           // Fallback for fields without OpenAPI metadata
           properties[key] = {
             type: "string",
-            description: zodField._def?.description || `${key} field`
+            description: cleanDescription
           };
         }
 
@@ -434,5 +438,41 @@ export default class DynamicToolGenerator {
         apiPath
       }
     };
+  }
+
+  /**
+   * Clean up description by removing permission information and other internal details
+   */
+  private static cleanDescription(description: string): string {
+    if (!description) {
+      return description;
+    }
+    
+    // Remove everything after "Permissions -" (including the word "Permissions")
+    const permissionsIndex = description.indexOf('. Permissions -');
+    if (permissionsIndex !== -1) {
+      // Get the text before ". Permissions -", and add back the period if it makes sense
+      const beforeText = description.substring(0, permissionsIndex);
+      // Add period back if the text doesn't already end with punctuation
+      if (beforeText && !beforeText.endsWith('.') && !beforeText.endsWith('!') && !beforeText.endsWith('?')) {
+        return beforeText + '.';
+      }
+      return beforeText;
+    }
+    
+    // Also handle cases where it starts with "Permissions -" without a preceding sentence
+    const permissionsStartIndex = description.indexOf('Permissions -');
+    if (permissionsStartIndex !== -1) {
+      const beforePermissions = description.substring(0, permissionsStartIndex).trim();
+      // If there's meaningful content before "Permissions", return that
+      if (beforePermissions && beforePermissions.length > 0) {
+        // Add a period if it doesn't end with punctuation
+        return beforePermissions.endsWith('.') || beforePermissions.endsWith('!') || beforePermissions.endsWith('?') 
+          ? beforePermissions 
+          : beforePermissions + '.';
+      }
+    }
+    
+    return description;
   }
 }
