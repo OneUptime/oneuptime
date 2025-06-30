@@ -484,6 +484,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
                 (item as JSONObject)["_id"] as string
               ).toString();
               itemsArray.push(basemodelItem);
+            }else if (
+              item &&
+              typeof item === Typeof.Object &&
+              (item as JSONObject)["id"] &&
+              typeof (item as JSONObject)["id"] === Typeof.String
+            ) {
+              const basemodelItem: BaseModel =
+                new tableColumnMetadata.modelType();
+              basemodelItem._id = (
+                (item as JSONObject)["id"] as string
+              ).toString();
+              itemsArray.push(basemodelItem);
             } else if (item instanceof BaseModel) {
               itemsArray.push(item);
             }
