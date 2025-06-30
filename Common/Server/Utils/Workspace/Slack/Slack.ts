@@ -60,6 +60,10 @@ export default class SlackUtil extends WorkspaceBase {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
+        {
+          retries: 3,
+          exponentialBackoff: true,
+        },
       );
 
     logger.debug("Response from Slack API for getting user info:");
@@ -121,6 +125,10 @@ export default class SlackUtil extends WorkspaceBase {
       {
         Authorization: `Bearer ${data.authToken}`,
         ["Content-Type"]: "application/json",
+      },
+      {
+        retries: 3,
+        exponentialBackoff: true,
       },
     );
 
@@ -202,6 +210,10 @@ export default class SlackUtil extends WorkspaceBase {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
           },
+          {
+            retries: 3,
+            exponentialBackoff: true,
+          },
         );
 
       logger.debug("Response from Slack API for archiving channel:");
@@ -244,6 +256,10 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        {
+          retries: 3,
+          exponentialBackoff: true,
         },
       );
 
@@ -300,6 +316,10 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        {
+          retries: 3,
+          exponentialBackoff: true,
         },
       );
 
@@ -449,6 +469,10 @@ export default class SlackUtil extends WorkspaceBase {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
+        {
+          retries: 3,
+          exponentialBackoff: true,
+        },
       );
 
     logger.debug("Response from Slack API for getting channel info:");
@@ -518,6 +542,10 @@ export default class SlackUtil extends WorkspaceBase {
           {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+          {
+            retries: 3,
+            exponentialBackoff: true,
           },
         );
 
@@ -779,6 +807,10 @@ export default class SlackUtil extends WorkspaceBase {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/json",
         },
+        {
+          retries: 3,
+          exponentialBackoff: true,
+        },
       );
 
     logger.debug("Response from Slack API for sending message:");
@@ -852,6 +884,10 @@ export default class SlackUtil extends WorkspaceBase {
         {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        {
+          retries: 3,
+          exponentialBackoff: true,
         },
       );
 
@@ -1233,6 +1269,10 @@ export default class SlackUtil extends WorkspaceBase {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
         },
+        {
+          retries: 3,
+          exponentialBackoff: true,
+        },
       );
 
     if (response instanceof HTTPErrorResponse) {
@@ -1296,6 +1336,10 @@ export default class SlackUtil extends WorkspaceBase {
           {
             Authorization: `Bearer ${data.authToken}`,
             ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+          {
+            retries: 3,
+            exponentialBackoff: true,
           },
         );
 
@@ -1373,17 +1417,25 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
-      await API.post(data.url, {
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `${data.text}`,
+      await API.post(
+        data.url,
+        {
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `${data.text}`,
+              },
             },
-          },
-        ],
-      });
+          ],
+        },
+        undefined,
+        {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      );
 
     logger.debug("Response from Slack API for sending message via webhook:");
     logger.debug(apiResult);

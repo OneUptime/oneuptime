@@ -49,6 +49,35 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Terraform Provider",
+    links: [
+      {
+        title: "Overview",
+        url: "/docs/terraform/index",
+      },
+      {
+        title: "Quick Start",
+        url: "/docs/terraform/quick-start",
+      },
+      {
+        title: "Complete Guide",
+        url: "/docs/terraform/README",
+      },
+      {
+        title: "Self-Hosted Setup",
+        url: "/docs/terraform/self-hosted",
+      },
+      {
+        title: "Examples",
+        url: "/docs/terraform/examples",
+      },
+      {
+        title: "Registry Usage",
+        url: "/docs/terraform/registry",
+      },
+    ],
+  },
+  {
     title: "Monitor",
     links: [
       {
@@ -113,6 +142,17 @@ const DocsNav: NavGroup[] = [
     links: [
       { title: "Installation", url: "/docs/copilot/introduction" },
       { title: "Deploy LLM Server", url: "/docs/copilot/deploy-llm-server" },
+    ],
+  },
+  {
+    title: "MCP Server",
+    links: [
+      { title: "Overview", url: "/docs/mcp/index" },
+      { title: "Installation", url: "/docs/mcp/installation" },
+      { title: "Quick Start", url: "/docs/mcp/quick-start" },
+      { title: "Configuration", url: "/docs/mcp/configuration" },
+      { title: "Usage Examples", url: "/docs/mcp/examples" },
+      { title: "Available Resources", url: "/docs/mcp/resources" },
     ],
   },
   {

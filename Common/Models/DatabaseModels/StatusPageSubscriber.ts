@@ -521,6 +521,7 @@ export default class StatusPageSubscriber extends BaseModel {
     title: "Is Subscription Confirmed",
     description:
       "Has subscriber confirmed their subscription? (for example, by clicking on a confirmation link in an email)",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -577,6 +578,7 @@ export default class StatusPageSubscriber extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Unsubscribed",
     description: "Is Subscriber Unsubscribed?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

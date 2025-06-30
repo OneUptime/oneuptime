@@ -76,6 +76,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Password",
                 required: true,
                 showEvenIfPermissionDoesNotExist: true,
+                disableSpellCheck: true,
               },
               {
                 field: {
@@ -90,6 +91,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 title: "Confirm Password",
                 required: true,
                 showEvenIfPermissionDoesNotExist: true,
+                disableSpellCheck: true,
               },
             ]}
             formType={FormType.Update}

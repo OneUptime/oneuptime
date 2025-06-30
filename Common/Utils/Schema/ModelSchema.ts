@@ -6,7 +6,6 @@ import {
 } from "../../Types/Database/TableColumn";
 import Dictionary from "../../Types/Dictionary";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import logger from "../../Server/Utils/Logger";
 import Color from "../../Types/Color";
 import { z as ZodTypes } from "zod";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -22,6 +21,7 @@ import Name from "../../Types/Name";
 import IP from "../../Types/IP/IP";
 import Port from "../../Types/Port";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import OneUptimeDate from "../../Types/Date";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -91,6 +91,11 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      // Skip Entity columns but keep EntityArray columns
+      if (column.type === TableColumnType.Entity) {
+        continue;
+      }
+
       // Filter out columns with no permissions (root-only access)
       const accessControl: ColumnAccessControl | undefined =
         columnAccessControl[key];
@@ -113,11 +118,7 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.MonitorSteps) {
         zodType = MonitorSteps.getSchema();
       } else if (column.type === TableColumnType.Date) {
-        zodType = z.date().openapi({
-          type: "string",
-          format: "date-time",
-          example: "2023-01-15T12:30:00.000Z",
-        });
+        zodType = OneUptimeDate.getSchema();
       } else if (column.type === TableColumnType.VeryLongText) {
         zodType = z.string().openapi({
           type: "string",
@@ -128,7 +129,11 @@ export class ModelSchema extends BaseSchema {
         column.type === TableColumnType.Number ||
         column.type === TableColumnType.PositiveNumber
       ) {
-        zodType = z.number().openapi({ type: "number", example: 42 });
+        const openapiConfig: any = { type: "number", example: 42 };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Email) {
         zodType = Email.getSchema();
       } else if (column.type === TableColumnType.HashedString) {
@@ -140,15 +145,24 @@ export class ModelSchema extends BaseSchema {
           .string()
           .openapi({ type: "string", example: "example-slug-value" });
       } else if (column.type === TableColumnType.ShortText) {
-        zodType = z
-          .string()
-          .openapi({ type: "string", example: "Example short text" });
+        const openapiConfig: any = {
+          type: "string",
+          example: "Example short text",
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.string().openapi(openapiConfig);
       } else if (column.type === TableColumnType.LongText) {
-        zodType = z.string().openapi({
+        const openapiConfig: any = {
           type: "string",
           example:
             "This is an example of longer text content that might be stored in this field.",
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.string().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Phone) {
         zodType = Phone.getSchema();
       } else if (column.type === TableColumnType.Version) {
@@ -226,25 +240,41 @@ export class ModelSchema extends BaseSchema {
           example: ["item1", "item2", "item3"],
         });
       } else if (column.type === TableColumnType.SmallPositiveNumber) {
-        zodType = z.number().int().nonnegative().openapi({
+        const openapiConfig: any = {
           type: "integer",
           example: 5,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().int().nonnegative().openapi(openapiConfig);
       } else if (column.type === TableColumnType.BigPositiveNumber) {
-        zodType = z.number().nonnegative().openapi({
+        const openapiConfig: any = {
           type: "number",
           example: 1000000,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().nonnegative().openapi(openapiConfig);
       } else if (column.type === TableColumnType.SmallNumber) {
-        zodType = z.number().int().openapi({
+        const openapiConfig: any = {
           type: "integer",
           example: 10,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().int().openapi(openapiConfig);
       } else if (column.type === TableColumnType.BigNumber) {
-        zodType = z.number().openapi({
+        const openapiConfig: any = {
           type: "number",
           example: 1000000,
-        });
+        };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Permission) {
         zodType = z.any().openapi({
           type: "object",
@@ -258,7 +288,7 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.MonitorType) {
         zodType = z.string().openapi({
           type: "string",
-          example: "HTTP",
+          example: "Manual",
         });
       } else if (column.type === TableColumnType.WorkflowStatus) {
         zodType = z.string().openapi({
@@ -266,7 +296,11 @@ export class ModelSchema extends BaseSchema {
           example: "In Progress",
         });
       } else if (column.type === TableColumnType.Boolean) {
-        zodType = z.boolean().openapi({ type: "boolean", example: true });
+        const openapiConfig: any = { type: "boolean", example: true };
+        if (column.defaultValue !== undefined) {
+          openapiConfig.default = column.defaultValue;
+        }
+        zodType = z.boolean().openapi(openapiConfig);
       } else if (column.type === TableColumnType.JSON) {
         zodType = z.any().openapi({
           type: "object",
@@ -276,7 +310,6 @@ export class ModelSchema extends BaseSchema {
         const entityArrayType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;
         if (!entityArrayType) {
-          logger.debug(`Entity type is not defined for column ${key}`);
           continue;
         }
         zodType = z
@@ -292,17 +325,24 @@ export class ModelSchema extends BaseSchema {
             items: {
               type: "object",
               properties: {
-                id: { type: "string" },
+                _id: {
+                  type: "string",
+                  format: "uuid",
+                  description: "Unique identifier for the entity",
+                },
               },
             },
-            example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
+            example: [
+              {
+                _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+              },
+            ],
           });
       } else if (column.type === TableColumnType.Entity) {
         const entityType: (new () => DatabaseBaseModel) | undefined =
           column.modelType;
 
         if (!entityType) {
-          logger.debug(`Entity type is not defined for column ${key}`);
           continue;
         }
 
@@ -315,10 +355,25 @@ export class ModelSchema extends BaseSchema {
           })
           .openapi({
             type: "object",
-            example: { id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+            properties: {
+              _id: {
+                type: "string",
+                format: "uuid",
+                description: "Unique identifier for the entity",
+                example: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+              },
+            },
+            example: {
+              _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            },
           });
       } else {
-        zodType = z.any().openapi({ type: "null", example: null });
+        // Fallback for unknown column types - use a generic object type
+        zodType = z.any().openapi({
+          type: "object",
+          description: "Unknown type field",
+          example: null,
+        });
       }
 
       if (column.required) {
@@ -328,29 +383,40 @@ export class ModelSchema extends BaseSchema {
       }
 
       // add title and description to the schema
-      if (column.title) {
-        zodType = zodType.describe(column.title);
+      let finalDescription: string = "";
+
+      // Add column description first if it exists
+      if (column.description) {
+        finalDescription = column.description;
+      } else if (column.title) {
+        finalDescription = column.title;
       }
 
-      // Add permissions description to the schema
+      // Add permissions description, prefixed to the column description
       const permissionsDescription: string =
         this.getColumnPermissionsDescription(model, key);
       if (permissionsDescription) {
-        zodType = zodType.describe(permissionsDescription);
+        if (finalDescription) {
+          finalDescription = `${finalDescription}. ${permissionsDescription}`;
+        } else {
+          finalDescription = permissionsDescription;
+        }
+      }
+
+      // Set the final combined description
+      if (finalDescription) {
+        zodType = zodType.describe(finalDescription);
+      }
+
+      // Mark computed fields as readOnly in OpenAPI spec
+      if (column.computed) {
+        zodType = zodType.openapi({ readOnly: true });
       }
 
       shape[key] = zodType;
     }
 
     const schema: ModelSchemaType = z.object(shape);
-
-    logger.debug(
-      `Model schema for ${model.tableName} created with shape: ${JSON.stringify(
-        shape,
-        null,
-        2,
-      )}`,
-    );
 
     return schema;
   }
@@ -386,6 +452,10 @@ export class ModelSchema extends BaseSchema {
             return column ? { key, type: column.type } : null;
           })
           .filter((col: { key: string; type: any } | null) => {
+            // Skip Entity columns but keep EntityArray columns
+            if (col && col.type === TableColumnType.Entity) {
+              return false;
+            }
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -490,6 +560,8 @@ export class ModelSchema extends BaseSchema {
 
     switch (operatorType) {
       case "EqualTo":
+        return baseValue;
+
       case "NotEqual":
       case "EqualToOrNull":
         return z.object({
@@ -668,6 +740,10 @@ export class ModelSchema extends BaseSchema {
             return column ? { key, type: column.type } : null;
           })
           .filter((col: { key: string; type: any } | null) => {
+            // Skip Entity columns but keep EntityArray columns
+            if (col && col.type === TableColumnType.Entity) {
+              return false;
+            }
             return col !== null;
           }) as Array<{ key: string; type?: any }>;
       },
@@ -681,8 +757,8 @@ export class ModelSchema extends BaseSchema {
         if (
           column &&
           column.modelType &&
-          (column.type === TableColumnType.EntityArray ||
-            column.type === TableColumnType.Entity)
+          // Only allow EntityArray columns, exclude Entity columns
+          column.type === TableColumnType.EntityArray
         ) {
           return this.getSelectModelSchema({
             modelType: column.modelType as new () => DatabaseBaseModel,
@@ -711,6 +787,10 @@ export class ModelSchema extends BaseSchema {
             return column ? { key, type: column.type } : null;
           })
           .filter((col: { key: string; type: any } | null) => {
+            // Skip Entity columns but keep EntityArray columns
+            if (col && col.type === TableColumnType.Entity) {
+              return false;
+            }
             return col !== null;
           }) as Array<{ key: string; type: any }>;
       },
@@ -850,10 +930,7 @@ export class ModelSchema extends BaseSchema {
         example[key] = { _type: "GreaterThan", value: 10 };
         exampleCount++;
       } else if (validOperators.includes("EqualTo")) {
-        example[key] = {
-          _type: "EqualTo",
-          value: this.getExampleValueForColumn(column.type),
-        };
+        example[key] = this.getExampleValueForColumn(column.type);
         exampleCount++;
       }
     }
@@ -1006,6 +1083,15 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      if (column.hideColumnInDocumentation) {
+        continue;
+      }
+
+      // Skip Entity columns but keep EntityArray columns
+      if (column.type === TableColumnType.Entity) {
+        continue;
+      }
+
       // Skip excluded fields
       if (data.excludedFields && data.excludedFields.includes(key)) {
         continue;
@@ -1013,6 +1099,14 @@ export class ModelSchema extends BaseSchema {
 
       // Only include specified fields if includedFields is provided
       if (data.includedFields && !data.includedFields.includes(key)) {
+        continue;
+      }
+
+      // Skip computed fields for create and update operations
+      if (
+        column.computed &&
+        (data.schemaType === "create" || data.schemaType === "update")
+      ) {
         continue;
       }
 
@@ -1054,37 +1148,65 @@ export class ModelSchema extends BaseSchema {
 
       let zodType: ZodTypes.ZodTypeAny = this.getZodTypeForColumn(
         column,
-        key,
         data.schemaType,
       );
 
-      // Make fields optional if specified
+      // Check if the column is required and make it optional if not
+      // Also make columns with default values optional in create schemas
+      if (column.isDefaultValueColumn) {
+        // should be optional
+        zodType = zodType.optional();
+      } else if (
+        column.title?.toLowerCase() === "project id" &&
+        column.type === TableColumnType.ObjectID
+      ) {
+        // this is optional in the API as well as it's derived from API key
+        zodType = zodType.optional();
+      } else if (column.required) {
+        // leave as is
+      } else {
+        zodType = zodType.optional();
+      }
+
+      // Make fields optional if specified (for global override)
       if (data.makeOptional) {
         zodType = zodType.optional();
       }
 
       // Add title and description to the schema
-      if (column.title) {
-        zodType = zodType.describe(column.title);
+      let finalDescription: string = "";
+
+      // Add column description first if it exists
+      if (column.description) {
+        finalDescription = column.description;
+      } else if (column.title) {
+        finalDescription = column.title;
+      }
+
+      // Add permissions description, prefixed to the column description
+      const permissionsDescription: string =
+        this.getColumnPermissionsDescription(model, key);
+      if (permissionsDescription) {
+        if (finalDescription) {
+          finalDescription = `${finalDescription}. ${permissionsDescription}`;
+        } else {
+          finalDescription = permissionsDescription;
+        }
+      }
+
+      // Set the final combined description
+      if (finalDescription) {
+        zodType = zodType.describe(finalDescription);
       }
 
       shape[key] = zodType;
     }
 
     const schema: ModelSchemaType = z.object(shape).openapi({
-      type: "object",
       description: `${data.description} schema for ${model.tableName || "model"} model. ${data.description}`,
-      example: data.example,
       additionalProperties: false,
+      example: data.example,
     });
-
-    logger.debug(
-      `${data.schemaType} model schema for ${model.tableName} created with shape: ${JSON.stringify(
-        shape,
-        null,
-        2,
-      )}`,
-    );
 
     return schema;
   }
@@ -1092,10 +1214,19 @@ export class ModelSchema extends BaseSchema {
   // Helper method to get Zod type for a column
   private static getZodTypeForColumn(
     column: TableColumnMetadata,
-    key: string,
     schemaType: "create" | "read" | "update" | "delete",
   ): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny;
+
+    // Helper function to add default value to openapi schema if it exists
+    const addDefaultToOpenApi: (openApiConfig: any) => any = (
+      openApiConfig: any,
+    ): any => {
+      if (column.defaultValue !== undefined && column.defaultValue !== null) {
+        return { ...openApiConfig, default: column.defaultValue };
+      }
+      return openApiConfig;
+    };
 
     if (column.type === TableColumnType.ObjectID) {
       zodType = ObjectID.getSchema();
@@ -1108,167 +1239,243 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Color) {
       zodType = Color.getSchema();
     } else if (column.type === TableColumnType.Date) {
-      zodType = z.date().openapi({
-        type: "string",
-        format: "date-time",
-        example: "2023-01-15T12:30:00.000Z",
-      });
+      zodType = OneUptimeDate.getSchema();
     } else if (column.type === TableColumnType.VeryLongText) {
-      zodType = z.string().openapi({
-        type: "string",
-        example:
-          "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example:
+            "This is an example of very long text content that might be stored in this field. It can contain a lot of information, such as detailed descriptions, comments, or any other lengthy text data that needs to be stored in the database.",
+        }),
+      );
     } else if (
       column.type === TableColumnType.Number ||
       column.type === TableColumnType.PositiveNumber
     ) {
-      zodType = z.number().openapi({ type: "number", example: 42 });
+      zodType = z
+        .number()
+        .openapi(addDefaultToOpenApi({ type: "number", example: 42 }));
     } else if (column.type === TableColumnType.Email) {
       zodType = Email.getSchema();
     } else if (column.type === TableColumnType.HashedString) {
-      zodType = z
-        .string()
-        .openapi({ type: "string", example: "hashed_string_value" });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "hashed_string_value",
+        }),
+      );
     } else if (column.type === TableColumnType.Slug) {
-      zodType = z
-        .string()
-        .openapi({ type: "string", example: "example-slug-value" });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "example-slug-value",
+        }),
+      );
     } else if (column.type === TableColumnType.ShortText) {
-      zodType = z
-        .string()
-        .openapi({ type: "string", example: "Example short text" });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "Example short text",
+        }),
+      );
     } else if (column.type === TableColumnType.LongText) {
-      zodType = z.string().openapi({
-        type: "string",
-        example:
-          "This is an example of longer text content that might be stored in this field.",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example:
+            "This is an example of longer text content that might be stored in this field.",
+        }),
+      );
     } else if (column.type === TableColumnType.Phone) {
       zodType = Phone.getSchema();
     } else if (column.type === TableColumnType.Version) {
       zodType = Version.getSchema();
     } else if (column.type === TableColumnType.Password) {
-      zodType = z.string().openapi({
-        type: "string",
-        format: "password",
-        example: "••••••••",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          format: "password",
+          example: "••••••••",
+        }),
+      );
     } else if (column.type === TableColumnType.Name) {
       zodType = Name.getSchema();
     } else if (column.type === TableColumnType.Description) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "This is a description of the item",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "This is a description of the item",
+        }),
+      );
     } else if (column.type === TableColumnType.File) {
-      zodType = z.any().openapi({
-        type: "string",
-        format: "binary",
-      });
+      zodType = z.any().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          format: "binary",
+        }),
+      );
     } else if (column.type === TableColumnType.Buffer) {
-      zodType = z.any().openapi({
-        type: "string",
-        format: "binary",
-      });
+      zodType = z.any().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          format: "binary",
+        }),
+      );
     } else if (column.type === TableColumnType.ShortURL) {
-      zodType = z.string().url().openapi({
-        type: "string",
-        example: "https://short.url/abc123",
-      });
+      zodType = z
+        .string()
+        .url()
+        .openapi(
+          addDefaultToOpenApi({
+            type: "string",
+            example: "https://short.url/abc123",
+          }),
+        );
     } else if (column.type === TableColumnType.Markdown) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "# Heading\n\nThis is **markdown** content",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "# Heading\n\nThis is **markdown** content",
+        }),
+      );
     } else if (column.type === TableColumnType.Domain) {
       zodType = Domain.getSchema();
     } else if (column.type === TableColumnType.LongURL) {
-      zodType = z.string().url().openapi({
-        type: "string",
-        example: "https://www.example.com/path/to/resource?param=value",
-      });
+      zodType = z
+        .string()
+        .url()
+        .openapi(
+          addDefaultToOpenApi({
+            type: "string",
+            example: "https://www.example.com/path/to/resource?param=value",
+          }),
+        );
     } else if (column.type === TableColumnType.OTP) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "123456",
-      });
-    } else if (column.type === TableColumnType.HTML) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "<div><h1>Title</h1><p>Content</p></div>",
-      });
-    } else if (column.type === TableColumnType.JavaScript) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "function example() { return true; }",
-      });
-    } else if (column.type === TableColumnType.CSS) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "body { color: #333; margin: 0; }",
-      });
-    } else if (column.type === TableColumnType.Array) {
-      zodType = z.array(z.any()).openapi({
-        type: "array",
-        items: {
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
           type: "string",
-        },
-        example: ["item1", "item2", "item3"],
-      });
+          example: "123456",
+        }),
+      );
+    } else if (column.type === TableColumnType.HTML) {
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "<div><h1>Title</h1><p>Content</p></div>",
+        }),
+      );
+    } else if (column.type === TableColumnType.JavaScript) {
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "function example() { return true; }",
+        }),
+      );
+    } else if (column.type === TableColumnType.CSS) {
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "body { color: #333; margin: 0; }",
+        }),
+      );
+    } else if (column.type === TableColumnType.Array) {
+      zodType = z.array(z.any()).openapi(
+        addDefaultToOpenApi({
+          type: "array",
+          items: {
+            type: "string",
+          },
+          example: ["item1", "item2", "item3"],
+        }),
+      );
     } else if (column.type === TableColumnType.SmallPositiveNumber) {
-      zodType = z.number().int().nonnegative().openapi({
-        type: "integer",
-        example: 5,
-      });
+      zodType = z
+        .number()
+        .int()
+        .nonnegative()
+        .openapi(
+          addDefaultToOpenApi({
+            type: "integer",
+            example: 5,
+          }),
+        );
     } else if (column.type === TableColumnType.BigPositiveNumber) {
-      zodType = z.number().nonnegative().openapi({
-        type: "number",
-        example: 1000000,
-      });
+      zodType = z
+        .number()
+        .nonnegative()
+        .openapi(
+          addDefaultToOpenApi({
+            type: "number",
+            example: 1000000,
+          }),
+        );
     } else if (column.type === TableColumnType.SmallNumber) {
-      zodType = z.number().int().openapi({
-        type: "integer",
-        example: 10,
-      });
+      zodType = z
+        .number()
+        .int()
+        .openapi(
+          addDefaultToOpenApi({
+            type: "integer",
+            example: 10,
+          }),
+        );
     } else if (column.type === TableColumnType.BigNumber) {
-      zodType = z.number().openapi({
-        type: "number",
-        example: 1000000,
-      });
+      zodType = z.number().openapi(
+        addDefaultToOpenApi({
+          type: "number",
+          example: 1000000,
+        }),
+      );
     } else if (column.type === TableColumnType.Permission) {
-      zodType = z.any().openapi({
-        type: "object",
-        example: { read: true, write: false, delete: false },
-      });
+      zodType = z.any().openapi(
+        addDefaultToOpenApi({
+          type: "object",
+          example: { read: true, write: false, delete: false },
+        }),
+      );
     } else if (column.type === TableColumnType.CustomFieldType) {
-      zodType = z.any().openapi({
-        type: "object",
-        example: { type: "text", required: true },
-      });
+      zodType = z.any().openapi(
+        addDefaultToOpenApi({
+          type: "object",
+          example: { type: "text", required: true },
+        }),
+      );
     } else if (column.type === TableColumnType.MonitorType) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "HTTP",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "HTTP",
+        }),
+      );
     } else if (column.type === TableColumnType.WorkflowStatus) {
-      zodType = z.string().openapi({
-        type: "string",
-        example: "In Progress",
-      });
+      zodType = z.string().openapi(
+        addDefaultToOpenApi({
+          type: "string",
+          example: "In Progress",
+        }),
+      );
     } else if (column.type === TableColumnType.Boolean) {
-      zodType = z.boolean().openapi({ type: "boolean", example: true });
+      zodType = z
+        .boolean()
+        .openapi(addDefaultToOpenApi({ type: "boolean", example: true }));
     } else if (column.type === TableColumnType.JSON) {
-      zodType = z.any().openapi({
-        type: "object",
-        example: { key: "value", nested: { data: 123 } },
-      });
+      zodType = z.any().openapi(
+        addDefaultToOpenApi({
+          type: "object",
+          example: { key: "value", nested: { data: 123 } },
+        }),
+      );
     } else if (column.type === TableColumnType.EntityArray) {
       const entityArrayType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
       if (!entityArrayType) {
-        logger.debug(`Entity type is not defined for column ${key}`);
-        return z.any().openapi({ type: "null", example: null });
+        return z.any().openapi(
+          addDefaultToOpenApi({
+            type: "array",
+            items: { type: "object" },
+            example: [],
+          }),
+        );
       }
 
       // Use the appropriate schema method based on the operation type
@@ -1296,23 +1503,30 @@ export class ModelSchema extends BaseSchema {
             });
           }),
         )
-        .openapi({
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              id: { type: "string" },
+        .openapi(
+          addDefaultToOpenApi({
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+              },
             },
-          },
-          example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
-        });
+            example: [{ id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" }],
+          }),
+        );
     } else if (column.type === TableColumnType.Entity) {
       const entityType: (new () => DatabaseBaseModel) | undefined =
         column.modelType;
 
       if (!entityType) {
-        logger.debug(`Entity type is not defined for column ${key}`);
-        return z.any().openapi({ type: "null", example: null });
+        return z.any().openapi(
+          addDefaultToOpenApi({
+            type: "object",
+            description: "Entity reference",
+            example: { _id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
+          }),
+        );
       }
 
       // Use the appropriate schema method based on the operation type
@@ -1336,12 +1550,26 @@ export class ModelSchema extends BaseSchema {
         .lazy(() => {
           return schema;
         })
-        .openapi({
-          type: "object",
-          example: { id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
-        });
+        .openapi(
+          addDefaultToOpenApi({
+            type: "object",
+            example: { id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+          }),
+        );
     } else {
-      zodType = z.any().openapi({ type: "null", example: null });
+      zodType = z
+        .any()
+        .openapi(addDefaultToOpenApi({ type: "null", example: null }));
+    }
+
+    // Apply default value if it exists in the column metadata
+    if (column.defaultValue !== undefined && column.defaultValue !== null) {
+      zodType = zodType.default(column.defaultValue);
+    }
+
+    // Mark computed fields as readOnly in OpenAPI spec
+    if (column.computed) {
+      zodType = zodType.openapi({ readOnly: true });
     }
 
     return zodType;
@@ -1364,7 +1592,11 @@ export class ModelSchema extends BaseSchema {
       excludedFields,
       schemaType: "create",
       description: "Create",
-      example: this.getCreateSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "create",
+        excludedFields,
+      }),
     });
   }
 
@@ -1376,7 +1608,10 @@ export class ModelSchema extends BaseSchema {
       modelType: data.modelType,
       schemaType: "read",
       description: "Read",
-      example: this.getReadSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "read",
+      }),
     });
   }
 
@@ -1396,7 +1631,11 @@ export class ModelSchema extends BaseSchema {
       excludedFields,
       schemaType: "update",
       description: "Update",
-      example: this.getUpdateSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "update",
+        excludedFields,
+      }),
       makeOptional: true, // All fields are optional for updates
     });
   }
@@ -1412,40 +1651,196 @@ export class ModelSchema extends BaseSchema {
       includedFields,
       schemaType: "delete",
       description: "Delete",
-      example: this.getDeleteSchemaExample(),
+      example: this.generateDynamicExample({
+        modelType: data.modelType,
+        schemaType: "delete",
+        includedFields,
+      }),
     });
   }
 
-  private static getCreateSchemaExample(): SchemaExample {
-    return {
-      name: "John Doe",
-      email: "john@example.com",
-      description: "Example user description",
-    };
+  private static generateDynamicExample(data: {
+    modelType: new () => DatabaseBaseModel;
+    schemaType: "create" | "read" | "update" | "delete";
+    excludedFields?: Array<string>;
+    includedFields?: Array<string>;
+  }): SchemaExample {
+    const model: DatabaseBaseModel = new data.modelType();
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const columnAccessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    const example: SchemaExample = {};
+
+    for (const key in columns) {
+      const column: TableColumnMetadata | undefined = columns[key];
+      if (!column) {
+        continue;
+      }
+
+      if (column.hideColumnInDocumentation) {
+        continue;
+      }
+
+      // Skip excluded fields
+      if (data.excludedFields && data.excludedFields.includes(key)) {
+        continue;
+      }
+
+      // Only include specified fields if includedFields is provided
+      if (data.includedFields && !data.includedFields.includes(key)) {
+        continue;
+      }
+
+      // Skip default value columns in create schema examples
+      if (data.schemaType === "create" && column.isDefaultValueColumn) {
+        continue;
+      }
+
+      // Filter out columns with no permissions (root-only access)
+      const accessControl: ColumnAccessControl | undefined =
+        columnAccessControl[key];
+      if (accessControl) {
+        let hasPermissions: boolean = false;
+
+        // Check if column has any permissions defined for the current operation
+        if (
+          data.schemaType === "create" &&
+          accessControl.create &&
+          accessControl.create.length > 0
+        ) {
+          hasPermissions = true;
+        } else if (
+          data.schemaType === "read" &&
+          accessControl.read &&
+          accessControl.read.length > 0
+        ) {
+          hasPermissions = true;
+        } else if (
+          data.schemaType === "update" &&
+          accessControl.update &&
+          accessControl.update.length > 0
+        ) {
+          hasPermissions = true;
+        } else if (data.schemaType === "delete") {
+          // For delete operations, we don't filter by column permissions
+          hasPermissions = true;
+        }
+
+        // If no permissions are defined for this operation, exclude the column
+        if (!hasPermissions) {
+          continue;
+        }
+      }
+
+      // For create and update, only include required fields
+      if (
+        (data.schemaType === "create" || data.schemaType === "update") &&
+        !column.required
+      ) {
+        continue;
+      }
+
+      // Generate example value based on column type
+      example[key] = this.generateExampleValueForColumn(column);
+    }
+
+    return example;
   }
 
-  private static getReadSchemaExample(): SchemaExample {
-    return {
-      _id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      name: "John Doe",
-      email: "john@example.com",
-      description: "Example user description",
-      createdAt: "2023-01-15T12:30:00.000Z",
-      updatedAt: "2023-01-15T12:30:00.000Z",
-      version: 1,
-    };
+  private static generateExampleValueForColumn(
+    column: TableColumnMetadata,
+  ): any {
+    switch (column.type) {
+      case TableColumnType.ObjectID:
+        return "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+      case TableColumnType.ShortText:
+        return this.getShortTextExample();
+
+      case TableColumnType.LongText:
+        return this.getLongTextExample();
+
+      case TableColumnType.Email:
+        return "user@example.com";
+
+      case TableColumnType.Phone:
+        return "+1-555-0123";
+
+      case TableColumnType.LongURL:
+        return "https://example.com";
+
+      case TableColumnType.ShortURL:
+        return "https://example.com";
+
+      case TableColumnType.Number:
+      case TableColumnType.SmallNumber:
+      case TableColumnType.BigNumber:
+        return 42;
+
+      case TableColumnType.PositiveNumber:
+      case TableColumnType.SmallPositiveNumber:
+      case TableColumnType.BigPositiveNumber:
+        return 100;
+
+      case TableColumnType.Boolean:
+        return true;
+
+      case TableColumnType.Date:
+        return {
+          _type: "DateTime",
+          value: "2023-10-01T12:00:00Z",
+        };
+
+      case TableColumnType.Color:
+        return "#FF0000";
+
+      case TableColumnType.JSON:
+        return { key: "value", nested: { data: 123 } };
+
+      case TableColumnType.Entity:
+        return {
+          _id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        };
+
+      case TableColumnType.EntityArray:
+        return [
+          { _id: "cccccccc-cccc-cccc-cccc-cccccccccccc" },
+          { _id: "dddddddd-dddd-dddd-dddd-dddddddddddd" },
+        ];
+
+      case TableColumnType.File:
+        return {
+          _id: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+          name: "example-file.pdf",
+          type: "application/pdf",
+        };
+
+      case TableColumnType.Version:
+        return 1;
+
+      case TableColumnType.Port:
+        return 8080;
+
+      case TableColumnType.HashedString:
+        return "hashed_value_here";
+
+      case TableColumnType.Slug:
+        return "example-slug";
+
+      case TableColumnType.Permission:
+        return "read";
+
+      default:
+        return null;
+    }
   }
 
-  private static getUpdateSchemaExample(): SchemaExample {
-    return {
-      name: "Jane Doe",
-      email: "jane@example.com",
-    };
+  private static getShortTextExample(): string {
+    return "Example Text";
   }
 
-  private static getDeleteSchemaExample(): SchemaExample {
-    return {
-      _id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-    };
+  private static getLongTextExample(): string {
+    return "This is an example of longer text content that provides detailed information.";
   }
 }

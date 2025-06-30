@@ -13,7 +13,7 @@ import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-export interface ComponentProps extends PageComponentProps {}
+export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,

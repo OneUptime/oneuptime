@@ -114,6 +114,8 @@ export const DashboardsRoutePath: Dictionary<string> = {
 
 export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
+  [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
+  [PageMap.ANNOUNCEMENT_VIEW]: `announcements/${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.STATUS_PAGE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
@@ -220,6 +222,10 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_INCIDENT_TEMPLATES_VIEW]: `incident-templates/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES]: "incident-note-templates",
   [PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES_VIEW]: `incident-note-templates/${RouteParams.ModelID}`,
+
+  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]:
+    "status-page-announcement-templates",
+  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW]: `status-page-announcement-templates/${RouteParams.ModelID}`,
 
   [PageMap.SETTINGS_ALERT_CUSTOM_FIELDS]: "alert-custom-fields",
   [PageMap.SETTINGS_ALERTS_STATE]: "alerts-state",
@@ -952,6 +958,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ANNOUNCEMENT_CREATE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_CREATE]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW]
+    }`,
+  ),
+
   [PageMap.STATUS_PAGE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW]
@@ -1565,6 +1583,20 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[
+        PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES_VIEW
+      ]
     }`,
   ),
 

@@ -188,6 +188,7 @@ export default class Dashboard extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })

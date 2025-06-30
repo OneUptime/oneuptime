@@ -35,7 +35,7 @@ export default class StatusCode {
       }
 
       return false;
-    } catch (err) {
+    } catch {
       return false;
     }
   }

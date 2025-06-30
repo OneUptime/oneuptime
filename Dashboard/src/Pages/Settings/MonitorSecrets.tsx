@@ -94,6 +94,7 @@ const MonitorSecrets: FunctionComponent<
               noNumbers: true,
               noSpecialCharacters: true,
             },
+            disableSpellCheck: true,
           },
           {
             field: {
@@ -212,7 +213,7 @@ const MonitorSecrets: FunctionComponent<
               });
 
               setCurrentlyEditingItem(null);
-            } catch (err) {
+            } catch {
               // do nothing
             }
 

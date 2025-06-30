@@ -352,9 +352,12 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Are subscribers notified?",
     description: "Are subscribers notified about this note?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -382,6 +385,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this note?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -391,12 +395,7 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenancePublicNote,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -408,10 +407,13 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -144,6 +144,7 @@ describe("ProjectMiddleware", () => {
 
     const mockedApiModel: ApiKey = {
       id: mockedObjectId,
+      projectId: mockedObjectId,
     } as ApiKey;
 
     beforeEach(
@@ -167,6 +168,9 @@ describe("ProjectMiddleware", () => {
     });
 
     test("should throw BadDataException when getProjectId returns null", async () => {
+      // Mock ApiKeyService.findOneBy to return null first
+      getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue(null);
+
       const spyFindOneBy: jest.SpyInstance = getJestSpyOn(
         GlobalConfigService,
         "findOneBy",
@@ -196,7 +200,7 @@ describe("ProjectMiddleware", () => {
       });
 
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("ProjectID not found in the request header."),
+        new BadDataException("Invalid API Key"),
       );
     });
 
@@ -210,7 +214,9 @@ describe("ProjectMiddleware", () => {
       );
 
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("ApiKey not found in the request"),
+        new BadDataException(
+          "API Key not found in the request header. Please provide a valid API Key in the request header.",
+        ),
       );
     });
 
@@ -232,18 +238,18 @@ describe("ProjectMiddleware", () => {
 
       expect(spyFindOneBy).toHaveBeenCalledWith({
         query: {
-          projectId: mockedObjectId,
           apiKey: mockedObjectId,
           expiresAt: QueryHelper.greaterThan(OneUptimeDate.getCurrentDate()),
         },
         select: {
           _id: true,
+          projectId: true,
         },
         props: { isRoot: true },
       });
 
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("Invalid Project ID or API Key"),
+        new BadDataException("Invalid API Key"),
       );
     });
 
@@ -263,7 +269,7 @@ describe("ProjectMiddleware", () => {
       expect(spyGetApiTenantAccessPermission).toHaveBeenCalled();
       // check first param of next
       expect(next).toHaveBeenCalledWith(
-        new BadDataException("Invalid Project ID or API Key"),
+        new BadDataException("Invalid API Key"),
       );
     });
 

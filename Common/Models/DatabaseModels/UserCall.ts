@@ -268,6 +268,7 @@ class UserCall extends BaseModel {
     title: "Verification Code",
     description: "Temporary Verification Code",
     isDefaultValueColumn: true,
+    computed: true,
     required: true,
     type: TableColumnType.ShortText,
     forceGetDefaultValueOnCreate: () => {

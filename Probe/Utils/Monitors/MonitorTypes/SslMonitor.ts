@@ -130,7 +130,7 @@ export default class SSLMonitor {
         port,
         rejectUnauthorized: true,
       });
-    } catch (err) {
+    } catch {
       try {
         certificate = await this.getCertificate({
           host,

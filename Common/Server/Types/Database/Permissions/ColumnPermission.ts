@@ -151,6 +151,13 @@ export default class ColumnPermissions {
           continue; // this is a special case where we want to force the default value on create.
         }
 
+        if (
+          requestType === DatabaseRequestType.Create &&
+          tableColumnMetadata.computed
+        ) {
+          continue; // computed columns are not allowed to be updated.
+        }
+
         throw new BadDataException(
           `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`,
         );

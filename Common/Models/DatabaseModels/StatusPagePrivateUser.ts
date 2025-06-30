@@ -437,6 +437,7 @@ export default class StatusPagePrivateUser extends BaseModel {
     type: TableColumnType.Boolean,
     title: "SSO User",
     description: "Did this user sign up via SSO?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

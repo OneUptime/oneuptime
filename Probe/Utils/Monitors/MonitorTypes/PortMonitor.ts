@@ -14,7 +14,7 @@ import logger from "Common/Server/Utils/Logger";
 import net from "net";
 import Register from "../../../Services/Register";
 
-// TODO - make sure it  work for the IPV6
+// TODO - make sure it works for the IPV6
 export interface PortMonitorResponse {
   isOnline: boolean;
   responseTimeInMS?: PositiveNumber | undefined;

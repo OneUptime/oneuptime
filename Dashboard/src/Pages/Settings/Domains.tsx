@@ -100,6 +100,7 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            disableSpellCheck: true,
           },
         ]}
         selectMoreFields={{

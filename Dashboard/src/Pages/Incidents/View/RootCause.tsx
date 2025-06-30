@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -32,6 +33,9 @@ const IncidentDelete: FunctionComponent<
           fieldType: FormFieldSchemaType.Markdown,
           required: false,
           placeholder: "Root Cause",
+          description: MarkdownUtil.getMarkdownCheatsheet(
+            "Describe the root cause of this incident here",
+          ),
         },
       ]}
       modelDetailProps={{

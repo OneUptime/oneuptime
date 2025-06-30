@@ -21,8 +21,8 @@ export default class FileModel extends BaseModel {
   }
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
   @TableColumn({
@@ -37,8 +37,8 @@ export default class FileModel extends BaseModel {
   public file?: Buffer = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
   @TableColumn({
@@ -56,8 +56,8 @@ export default class FileModel extends BaseModel {
   public name?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
   @TableColumn({
@@ -70,11 +70,11 @@ export default class FileModel extends BaseModel {
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public type?: MimeType = undefined;
+  public fileType?: MimeType = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
   @TableColumn({
@@ -91,8 +91,8 @@ export default class FileModel extends BaseModel {
   public slug?: string = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
+    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
   @TableColumn({

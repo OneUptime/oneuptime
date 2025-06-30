@@ -1,6 +1,7 @@
 import AuthenticationServiceHandler from "./Service/Authentication";
 import DataTypeServiceHandler from "./Service/DataType";
 import ErrorServiceHandler from "./Service/Errors";
+import OpenAPIServiceHandler from "./Service/OpenAPI";
 import IntroductionServiceHandler from "./Service/Introduction";
 import ModelServiceHandler from "./Service/Model";
 import PageNotFoundServiceHandler from "./Service/PageNotFound";
@@ -65,6 +66,8 @@ const APIReferenceFeatureSet: FeatureSet = {
           return ErrorServiceHandler.executeResponse(req, res);
         } else if (req.params["page"] === "introduction") {
           return IntroductionServiceHandler.executeResponse(req, res);
+        } else if (req.params["page"] === "openapi") {
+          return OpenAPIServiceHandler.executeResponse(req, res);
         } else if (req.params["page"] === "status") {
           return StatusServiceHandler.executeResponse(req, res);
         } else if (req.params["page"] === "data-types") {

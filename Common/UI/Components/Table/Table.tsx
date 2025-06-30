@@ -232,11 +232,11 @@ const Table: TableFunction = <T extends GenericObject>(
         <BulkUpdateForm
           buttons={props.bulkActions.buttons}
           onClearSelectionClick={() => {
-            props.onBulkClearAllItems && props.onBulkClearAllItems();
+            props.onBulkClearAllItems?.();
             setIsAllItemsSelected(false);
           }}
           onSelectAllClick={() => {
-            props.onBulkSelectAllItems && props.onBulkSelectAllItems();
+            props.onBulkSelectAllItems?.();
             setIsAllItemsSelected(true);
           }}
           selectedItems={bulkSelectedItems}
@@ -247,16 +247,16 @@ const Table: TableFunction = <T extends GenericObject>(
           onActionEnd={() => {
             setIsAllItemsSelected(false);
             setBulkSelectedItems([]);
-            props.onBulkActionEnd && props.onBulkActionEnd();
+            props.onBulkActionEnd?.();
           }}
           itemToString={props.bulkItemToString}
         />
       )}
       <DragDropContext
         onDragEnd={(result: DropResult) => {
-          result.destination?.index &&
-            props.onDragDrop &&
+          if (result.destination?.index && props.onDragDrop) {
             props.onDragDrop(result.draggableId, result.destination.index);
+          }
         }}
       >
         <div className="-my-2 overflow-x-auto -mx-6">
@@ -279,11 +279,12 @@ const Table: TableFunction = <T extends GenericObject>(
                   isBulkActionsEnabled={isBulkActionsEnabled}
                   onAllItemsDeselected={() => {
                     setIsAllItemsSelected(false);
-                    props.onBulkClearAllItems && props.onBulkClearAllItems();
+                    props.onBulkClearAllItems?.();
                   }}
                   onAllItemsOnThePageSelected={() => {
-                    props.onBulkSelectItemsOnCurrentPage &&
+                    if (props.onBulkSelectItemsOnCurrentPage) {
                       props.onBulkSelectItemsOnCurrentPage();
+                    }
                   }}
                   isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
                   hasTableItems={props.data.length > 0}

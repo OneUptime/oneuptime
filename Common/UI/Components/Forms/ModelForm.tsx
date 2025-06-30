@@ -159,7 +159,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
           (relationSelect as JSONObject)[key] = {
             file: true,
             _id: true,
-            type: true,
+            fileType: true,
             name: true,
           };
         } else if (key && model.isEntityColumn(key)) {
@@ -587,7 +587,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         await fetchItem();
       } catch (err) {
         setError(API.getFriendlyMessage(err));
-        props.onError && props.onError(API.getFriendlyMessage(err));
+        props.onError?.(API.getFriendlyMessage(err));
       }
 
       setLoading(false);
@@ -773,7 +773,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
           setNewFormValues: (newValues: FormValues<TBaseModel>) => void,
         ) => {
           if (!isLoading) {
-            props.onChange && props.onChange(values, setNewFormValues);
+            props.onChange?.(values, setNewFormValues);
           }
         }}
         showAsColumns={props.showAsColumns}

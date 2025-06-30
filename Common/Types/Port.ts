@@ -39,7 +39,7 @@ export default class Port extends DatabaseProperty {
     if (typeof port === Typeof.String) {
       try {
         port = Number.parseInt(port.toString().trim(), 10);
-      } catch (error) {
+      } catch {
         return false;
       }
     }

@@ -1,3 +1,4 @@
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import UserElement from "../../../Components/User/User";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
@@ -164,8 +165,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             title: "Public Incident Note",
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
-            description:
-              "This note is visible on your Status Page. This is in Markdown.",
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "This note is visible on your Status Page",
+            ),
           },
           {
             field: {

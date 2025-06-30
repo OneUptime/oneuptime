@@ -72,37 +72,3 @@ jobs:
           name: openapi-spec
           path: ./openapi.json
           retention-days: 30
-
-      - name: Comment PR with spec info (on PR)
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = './openapi.json';
-            
-            if (fs.existsSync(path)) {
-              const spec = JSON.parse(fs.readFileSync(path, 'utf8'));
-              const pathCount = Object.keys(spec.paths || {}).length;
-              const version = spec.info?.version || 'Unknown';
-              const title = spec.info?.title || 'Unknown';
-              
-              const comment = `## 📋 OpenAPI Spec Generation Results
-              
-              ✅ **OpenAPI specification generated successfully!**
-              
-              **Details:**
-              - 📝 **Title:** ${title}
-              - 🏷️ **Version:** ${version}
-              - 🛣️ **API Paths:** ${pathCount}
-              - 📄 **File Size:** ${(fs.statSync(path).size / 1024).toFixed(2)} KB
-              
-              The generated OpenAPI specification is available as an artifact in this workflow run.`;
-              
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-            }

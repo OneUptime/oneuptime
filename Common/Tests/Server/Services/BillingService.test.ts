@@ -44,7 +44,7 @@ describe("BillingService", () => {
   beforeEach(
     async () => {
       jest.clearAllMocks();
-      billingService = mockIsBillingEnabled(true);
+      billingService = await mockIsBillingEnabled(true);
     },
     10 * 1000, // 10 second timeout because setting up the DB is slow
   );
@@ -69,7 +69,7 @@ describe("BillingService", () => {
       });
 
       it("should throw an exception if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(billingService.createCustomer(customer)).rejects.toThrow(
           Errors.BillingService.BILLING_NOT_ENABLED,
@@ -91,7 +91,7 @@ describe("BillingService", () => {
       });
 
       it("should throw an exception if billing is not enabled for updating customer name", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.updateCustomerName("cust_123", "Jane Doe"),
@@ -109,7 +109,7 @@ describe("BillingService", () => {
       });
 
       it("should throw an exception if billing is not enabled for deleting customer", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(billingService.deleteCustomer("cust_123")).rejects.toThrow(
           Errors.BillingService.BILLING_NOT_ENABLED,
@@ -234,7 +234,7 @@ describe("BillingService", () => {
 
     describe("subscribeToPlan", () => {
       it("should not subscribe to plan if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.subscribeToPlan(meteredSubscription),
@@ -416,7 +416,7 @@ describe("BillingService", () => {
 
     describe("changeQuantity", () => {
       it("should not change quantity if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.changeQuantity(mockSubscription.id, 1),
@@ -479,7 +479,7 @@ describe("BillingService", () => {
       const newPlan: ChangePlan = getChangePlanData(getSubscriptionPlanData());
 
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(billingService.changePlan(newPlan)).rejects.toThrow(
           Errors.BillingService.BILLING_NOT_ENABLED,
@@ -570,7 +570,6 @@ describe("BillingService", () => {
         const inactiveStatuses: Array<SubscriptionStatus> = [
           SubscriptionStatus.Incomplete,
           SubscriptionStatus.IncompleteExpired,
-          SubscriptionStatus.PastDue,
           SubscriptionStatus.Canceled,
           SubscriptionStatus.Unpaid,
         ];
@@ -585,7 +584,7 @@ describe("BillingService", () => {
       const quantity: number = 10;
 
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.addOrUpdateMeteredPricingOnSubscription(
@@ -674,7 +673,7 @@ describe("BillingService", () => {
 
     describe("isPromoCodeValid", () => {
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.isPromoCodeValid("INVALID_PROMO_CODE"),
@@ -744,7 +743,7 @@ describe("BillingService", () => {
       const isMeteredSubscriptionItem: boolean = false;
 
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.removeSubscriptionItem(
@@ -848,7 +847,7 @@ describe("BillingService", () => {
 
     describe("getSubscriptionItems", () => {
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.getSubscriptionItems(mockSubscription.id),
@@ -938,7 +937,7 @@ describe("BillingService", () => {
 
     describe("deletePaymentMethod", () => {
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.deletePaymentMethod(customerId, paymentMethodId),
@@ -1011,7 +1010,7 @@ describe("BillingService", () => {
 
     describe("getPaymentMethods", () => {
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.getPaymentMethods(customerId),
@@ -1138,7 +1137,7 @@ describe("BillingService", () => {
 
       it("should not cancel a subscription if billing is not enabled", async () => {
         const subscriptionId: string = "sub_123";
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.cancelSubscription(subscriptionId),
@@ -1185,7 +1184,7 @@ describe("BillingService", () => {
 
     describe("getSubscription", () => {
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.getSubscription(subscriptionId),
@@ -1389,7 +1388,7 @@ describe("BillingService", () => {
       };
 
       it("should throw if billing is not enabled", async () => {
-        billingService = mockIsBillingEnabled(false);
+        billingService = await mockIsBillingEnabled(false);
 
         await expect(
           billingService.payInvoice(customerId, invoiceId),

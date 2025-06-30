@@ -53,7 +53,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
           title={props.closeButtonText ? props.closeButtonText : "Cancel"}
           data-dismiss="modal"
           onClick={() => {
-            props.onClose && props.onClose();
+            props.onClose?.();
           }}
           dataTestId="modal-footer-close-button"
         />

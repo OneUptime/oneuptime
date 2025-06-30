@@ -114,6 +114,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Slug,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    computed: true,
   })
   @Column({
     nullable: false,
@@ -431,6 +432,7 @@ export default class Project extends TenantModel {
     required: true,
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -462,6 +464,7 @@ export default class Project extends TenantModel {
     isDefaultValueColumn: true,
     title: "Is Feature Flag Monitor Groups Enabled",
     description: "Is Feature Flag Monitor Groups Enabled",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -550,6 +553,7 @@ export default class Project extends TenantModel {
     required: true,
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -595,7 +599,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Number })
+  @TableColumn({
+    type: TableColumnType.Number,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.Number,
     nullable: true,
@@ -620,6 +627,7 @@ export default class Project extends TenantModel {
     required: true,
     title: "SMS or Call Current Balance",
     description: "Balance in USD for SMS or Call",
+    defaultValue: 0,
   })
   @Column({
     type: ColumnType.Number,
@@ -646,6 +654,7 @@ export default class Project extends TenantModel {
     required: true,
     title: "Auto Recharge Amount",
     description: "Auto recharge amount in USD for SMS or Call",
+    defaultValue: 20,
   })
   @Column({
     type: ColumnType.Number,
@@ -673,6 +682,7 @@ export default class Project extends TenantModel {
     title: "Auto Recharge when current balance falls to",
     description:
       "Auto recharge is triggered when current balance falls to this amount in USD for SMS or Call",
+    defaultValue: 10,
   })
   @Column({
     type: ColumnType.Number,
@@ -700,6 +710,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable SMS Notifications",
     description: "Enable SMS notifications for this project.",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -726,6 +737,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Call Notifications",
     description: "Enable call notifications for this project.",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -752,6 +764,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable auto recharge SMS or Call balance",
     description: "Enable auto recharge SMS or Call balance for this project.",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -768,9 +781,11 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Low Call and SMS Balance Notification Sent to Owners",
     description: "Low Call and SMS Balance Notification Sent to Owners",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -788,9 +803,11 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    hideColumnInDocumentation: true,
     title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
     description:
       "Failed Call and SMS Balance Charge Notification Sent to Owners",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -808,10 +825,11 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
-    title: "Failed Call and SMS Balance Charge Notification Sent to Owners",
-    description:
-      "Failed Call and SMS Balance Charge Notification Sent to Owners",
+    title: "Not Enabled SMS or Call Notification Sent to Owners",
+    description: "Not Enabled SMS or Call Notification Sent to Owners",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -838,6 +856,7 @@ export default class Project extends TenantModel {
     title: "Plan Name",
     description: "Name of the plan this project is subscribed to.",
     canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
   })
   @Column({
     nullable: true,
@@ -865,7 +884,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Phone })
+  @TableColumn({ type: TableColumnType.Phone, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Phone,
     length: ColumnLength.Phone,
@@ -880,7 +899,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Email })
+  @TableColumn({ type: TableColumnType.Email, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Email,
     length: ColumnLength.Email,
@@ -895,7 +914,7 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Name })
+  @TableColumn({ type: TableColumnType.Name, hideColumnInDocumentation: true })
   @Column({
     type: ColumnType.Name,
     length: ColumnLength.Name,
@@ -910,7 +929,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -924,7 +946,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -938,7 +963,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -952,7 +980,10 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
@@ -980,10 +1011,14 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.LongText })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.LongText,
     length: ColumnLength.LongText,
+
     nullable: true,
     unique: false,
   })
@@ -994,9 +1029,13 @@ export default class Project extends TenantModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.ShortText })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
   @Column({
     type: ColumnType.ShortText,
+
     length: ColumnLength.ShortText,
     nullable: true,
     unique: false,
@@ -1011,6 +1050,7 @@ export default class Project extends TenantModel {
   @TableColumn({
     manyToOneRelationColumn: "resellerId",
     type: TableColumnType.Entity,
+    hideColumnInDocumentation: true,
     modelType: Reseller,
     title: "Reseller",
     description: "Relation to Reseller Resource in which this object belongs",
@@ -1046,6 +1086,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
     title: "Reseller ID",
     description: "ID of your OneUptime Reseller in which this object belongs",
   })
@@ -1065,6 +1106,7 @@ export default class Project extends TenantModel {
     manyToOneRelationColumn: "ResellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
+    hideColumnInDocumentation: true,
     title: "ResellerPlan",
     description:
       "Relation to ResellerPlan Resource in which this object belongs",
@@ -1093,6 +1135,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    hideColumnInDocumentation: true,
     title: "Reseller Plan ID",
     description:
       "ID of your OneUptime Reseller Plan in which this object belongs",
@@ -1113,6 +1156,7 @@ export default class Project extends TenantModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "License ID",
+    hideColumnInDocumentation: true,
     description: "License ID from a OneUptime Reseller",
     canReadOnRelationQuery: true,
   })
@@ -1132,6 +1176,7 @@ export default class Project extends TenantModel {
     required: false,
     type: TableColumnType.Number,
     title: "Enterprise Annual Contract Value",
+    hideColumnInDocumentation: true,
     description:
       "Annual contract value for this project (in USD). This field is only applicable for enterprise customers and is manually edited.",
   })
@@ -1156,8 +1201,10 @@ export default class Project extends TenantModel {
     required: false,
     type: TableColumnType.Boolean,
     title: "Let Customer Support Access Project",
+    hideColumnInDocumentation: true,
     description:
       "OneUptime customer support can access this project. This is used for debugging purposes.",
+    defaultValue: false,
   })
   @Column({
     nullable: true,

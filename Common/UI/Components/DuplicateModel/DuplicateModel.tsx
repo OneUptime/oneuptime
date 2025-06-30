@@ -78,7 +78,7 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
         throw new Error(`Could not create ${model.singularName}`);
       }
 
-      props.onDuplicateSuccess && props.onDuplicateSuccess(newItem.data);
+      props.onDuplicateSuccess?.(newItem.data);
 
       if (props.navigateToOnSuccess) {
         Navigation.navigate(

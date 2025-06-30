@@ -10,7 +10,7 @@ export enum Size {
 
 export interface ComponentProps {
   title?: string | undefined;
-  description?: string | undefined;
+  description?: string | ReactElement | undefined;
   alignClassName?: string | undefined;
   sideLink?: DetailSideLink | undefined;
   size?: Size | undefined;

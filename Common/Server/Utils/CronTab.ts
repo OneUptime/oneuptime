@@ -1,5 +1,6 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import CronParser, { CronExpression } from "cron-parser";
+import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
 export default class CronTab {
@@ -10,6 +11,7 @@ export default class CronTab {
       const nextExecutionTime: Date = interval.next().toDate();
       return nextExecutionTime;
     } catch (error) {
+      logger.error(error);
       throw new BadDataException(`Invalid cron expression: ${crontab}`);
     }
   }

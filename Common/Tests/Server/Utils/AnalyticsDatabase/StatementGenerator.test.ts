@@ -13,7 +13,6 @@ import AnalyticsTableEngine from "../../../../Types/AnalyticsDatabase/AnalyticsT
 import AnalyticsTableColumn from "../../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import OneUptimeDate from "../../../../Types/Date";
-import GenericObject from "../../../../Types/GenericObject";
 
 function expectStatement(actual: Statement, expected: Statement): void {
   expect(actual.query).toBe(expected.query);
@@ -72,8 +71,8 @@ describe("StatementGenerator", () => {
     beforeEach(() => {
       updateBy = {
         data: new TestModel(),
-        query: "<query>" as GenericObject,
-        props: "<props>" as GenericObject,
+        query: {},
+        props: {},
       };
       generator.toSetStatement = jest.fn(() => {
         return SQL`<set-statement>`;
@@ -94,7 +93,7 @@ describe("StatementGenerator", () => {
       const statement: Statement = generator.toUpdateStatement(updateBy);
 
       expect(generator.toSetStatement).toBeCalledWith(updateBy.data);
-      expect(generator.toWhereStatement).toBeCalledWith("<query>");
+      expect(generator.toWhereStatement).toBeCalledWith(updateBy.query);
 
       expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
       expect(jest.mocked(logger.debug)).toHaveBeenNthCalledWith(
@@ -293,11 +292,11 @@ describe("StatementGenerator", () => {
       /* eslint-disable prettier/prettier */
             const expectedStatement: Statement = SQL`
                 CREATE TABLE IF NOT EXISTS ${'oneuptime'}.${'<table-name>'}
-            (
-                <columns-create-statement>
+            (\n<columns-create-statement>
             )
             ENGINE = MergeTree
         PARTITION BY (column_ObjectID)
+        
             PRIMARY KEY (${'column_ObjectID'})
             ORDER BY (${'column_ObjectID'})
             `;

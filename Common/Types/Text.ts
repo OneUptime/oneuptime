@@ -114,8 +114,59 @@ export default class Text {
   }
 
   public static isBase64(text: string): boolean {
-    const regex: RegExp = /^[a-zA-Z0-9+/]*={0,2}$/;
-    return regex.test(text);
+    if (!text || typeof text !== "string") {
+      return false;
+    }
+
+    // Remove data URI prefix if present (e.g., data:image/jpeg;base64,)
+    const base64String: string = text.replace(/^data:[^;]+;base64,/, "");
+
+    // Check if string is empty after removing prefix
+    if (!base64String) {
+      return false;
+    }
+
+    // Base64 string length should be a multiple of 4
+    if (base64String.length % 4 !== 0) {
+      return false;
+    }
+
+    // Improved regex for Base64 validation
+    const regex: RegExp = /^[A-Za-z0-9+/]*={0,2}$/;
+    return regex.test(base64String);
+  }
+
+  public static extractBase64FromDataUri(text: string): string {
+    if (!text || typeof text !== "string") {
+      return text;
+    }
+
+    // Check if it's a data URI
+    if (text.startsWith("data:")) {
+      const base64Index: number = text.indexOf(";base64,");
+      if (base64Index !== -1) {
+        return text.substring(base64Index + 8); // 8 is length of ';base64,'
+      }
+    }
+
+    // Return original string if not a data URI
+    return text;
+  }
+
+  public static extractMimeTypeFromDataUri(text: string): string | null {
+    if (!text || typeof text !== "string") {
+      return null;
+    }
+
+    // Check if it's a data URI
+    if (text.startsWith("data:")) {
+      const mimeTypeEnd: number = text.indexOf(";");
+      if (mimeTypeEnd !== -1) {
+        return text.substring(5, mimeTypeEnd); // 5 is length of 'data:'
+      }
+    }
+
+    return null;
   }
 
   public static generateRandomText(length?: number): string {

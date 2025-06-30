@@ -9,12 +9,23 @@ export interface ComponentProps {
 const TechStackView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Convert TechStack enum values to objects for compatibility with TableColumnListComponent
+  const techStackItems: {
+    id: number;
+    value: TechStack;
+  }[] = props.techStack.map((techStack: TechStack, index: number) => {
+    return {
+      id: index,
+      value: techStack,
+    };
+  });
+
   return (
     <TableColumnListComponent
-      items={props.techStack}
+      items={techStackItems}
       moreText="more"
-      getEachElement={(techStack: TechStack) => {
-        return <p>{techStack}</p>;
+      getEachElement={(item: { id: number; value: TechStack }) => {
+        return <p>{item.value}</p>;
       }}
       noItemsMessage="No tech stack."
     />

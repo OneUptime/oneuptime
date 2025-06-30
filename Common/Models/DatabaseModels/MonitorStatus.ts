@@ -192,6 +192,7 @@ export default class MonitorStatus extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -418,6 +419,7 @@ export default class MonitorStatus extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Is Operational State",
     description: "Is this monitor in operational state?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

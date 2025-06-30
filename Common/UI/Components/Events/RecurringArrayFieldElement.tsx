@@ -63,7 +63,7 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
                     const newData: Array<Recurring> = [...(recurrings || [])];
                     newData.splice(index, 1);
                     setRecurrings(newData);
-                    props.onChange && props.onChange(newData);
+                    props.onChange?.(newData);
                   }}
                 />
               </div>
@@ -87,7 +87,7 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
 
             newData.push(recurring);
             setRecurrings(newData);
-            props.onChange && props.onChange(newData);
+            props.onChange?.(newData);
           }}
         />
       </div>

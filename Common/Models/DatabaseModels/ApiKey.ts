@@ -201,6 +201,7 @@ export default class ApiKey extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -347,11 +348,7 @@ export default class ApiKey extends BaseModel {
   public expiresAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectApiKey,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -368,6 +365,7 @@ export default class ApiKey extends BaseModel {
     type: TableColumnType.ObjectID,
     isDefaultValueColumn: false,
     title: "API Key",
+    computed: true,
     description: "Secret API Key",
   })
   @Column({

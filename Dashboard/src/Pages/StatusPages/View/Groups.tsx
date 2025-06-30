@@ -12,6 +12,7 @@ import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -81,6 +82,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             stepId: "group-details",
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Describe the status page group here",
+            ),
           },
           {
             field: {

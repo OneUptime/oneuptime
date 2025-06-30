@@ -33,7 +33,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import SubscriberUtil from "Common/UI/Utils/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
-export interface ComponentProps extends SubscribePageProps {}
+export type ComponentProps = SubscribePageProps;
 
 const SubscribePage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

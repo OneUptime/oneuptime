@@ -31,11 +31,11 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
           },
           select: {
             file: true,
-            type: true,
+            fileType: true,
           },
         });
 
-        if (!file || !file.file || !file.type) {
+        if (!file || !file.file || !file.fileType) {
           return Response.sendErrorResponse(
             req,
             res,

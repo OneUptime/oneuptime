@@ -28,6 +28,7 @@ Init()
       // change back to main branch.
       await CodeRepositoryUtil.checkoutMainBranch();
     } catch (e) {
+      logger.error(e);
       // do nothing.
     }
 

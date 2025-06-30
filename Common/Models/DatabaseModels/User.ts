@@ -105,7 +105,7 @@ class User extends UserModel {
 
   @Index()
   @ColumnAccessControl({
-    create: [Permission.User],
+    create: [],
     read: [],
     update: [],
   })
@@ -113,6 +113,7 @@ class User extends UserModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -150,7 +151,11 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
   @Column({
     type: ColumnType.Boolean,
     default: false,
@@ -286,6 +291,7 @@ class User extends UserModel {
     required: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -452,6 +458,7 @@ class User extends UserModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -485,6 +492,7 @@ class User extends UserModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -504,6 +512,7 @@ class User extends UserModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -534,7 +543,10 @@ class User extends UserModel {
 
     update: [],
   })
-  @TableColumn({ type: TableColumnType.OTP })
+  @TableColumn({
+    type: TableColumnType.OTP,
+    computed: true,
+  })
   @Column({
     type: ColumnType.OTP,
     length: ColumnLength.OTP,
@@ -711,6 +723,7 @@ class User extends UserModel {
     description: "Is two factor authentication enabled?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

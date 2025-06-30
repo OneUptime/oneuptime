@@ -99,7 +99,7 @@ router.post(
           // check if its parseable to json
           try {
             logItem = JSON.parse(logItem);
-          } catch (err) {
+          } catch {
             // do nothing
           }
         }

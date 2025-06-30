@@ -99,7 +99,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
           fileModel.file = Buffer.from(fileBuffer);
           fileModel.isPublic = false;
-          fileModel.type = acceptedFile.type as MimeType;
+          fileModel.fileType = acceptedFile.type as MimeType;
 
           const result: HTTPResponse<FileModel> =
             (await ModelAPI.create<FileModel>({
@@ -114,8 +114,8 @@ const FilePicker: FunctionComponent<ComponentProps> = (
 
         setFilesModel(filesResult);
 
-        props.onBlur && props.onBlur();
-        props.onChange && props.onChange(filesResult);
+        props.onBlur?.();
+        props.onChange?.(filesResult);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -132,7 +132,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
       }
 
       const blob: Blob = new Blob([file.file as Uint8Array], {
-        type: file.type as string,
+        type: file.fileType as string,
       });
       const url: string = URL.createObjectURL(blob);
 
@@ -147,7 +147,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 const tempFileModel: Array<FileModel> = [...filesModel];
                 tempFileModel.splice(i, 1);
                 setFilesModel(tempFileModel);
-                props.onChange && props.onChange(tempFileModel);
+                props.onChange?.(tempFileModel);
               }}
             />
           </div>
@@ -177,8 +177,8 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     <div>
       <div
         onClick={() => {
-          props.onClick && props.onClick();
-          props.onFocus && props.onFocus();
+          props.onClick?.();
+          props.onFocus?.();
         }}
         data-testid={props.dataTestId}
         className="flex max-w-lg justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6"

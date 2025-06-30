@@ -39,7 +39,7 @@ import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMet
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 
-export interface ComponentProps extends PageComponentProps {}
+export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,

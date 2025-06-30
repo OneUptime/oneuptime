@@ -602,7 +602,7 @@ export default class ModelPermission {
 
       // this means the record is not publicly createable and the user is not logged in.
       throw new NotAuthenticatedException(
-        `A user should be logged in to ${type} record of ${
+        `Authenticated user or a valid API key is needed to ${type} record of ${
           new modelType().singularName
         }.`,
       );

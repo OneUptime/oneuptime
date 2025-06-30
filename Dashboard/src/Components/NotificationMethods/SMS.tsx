@@ -135,6 +135,7 @@ const SMS: () => JSX.Element = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            disableSpellCheck: true,
           },
         ]}
         showRefreshButton={true}

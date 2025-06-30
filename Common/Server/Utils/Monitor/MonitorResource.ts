@@ -1244,6 +1244,7 @@ export default class MonitorResourceUtil {
               .responseBody as string) || "{}",
           );
         } catch (err) {
+          logger.error(err);
           responseBody = (input.dataToProcess as ProbeMonitorResponse)
             .responseBody as JSONObject;
         }

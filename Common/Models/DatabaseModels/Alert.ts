@@ -217,7 +217,7 @@ export default class Alert extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Short description of this alert. This is in markdown and will be visible on the status page.",
+      "Short description of this alert. This will be visible on the status page. This is in markdown.",
   })
   @Column({
     nullable: true,
@@ -570,11 +570,13 @@ export default class Alert extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
+    isDefaultValueColumn: true,
     title: "Current Alert State ID",
     description: "Current Alert State ID",
   })
   @Column({
     type: ColumnType.ObjectID,
+
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
@@ -758,12 +760,7 @@ export default class Alert extends BaseModel {
   public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateAlert,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -775,10 +772,13 @@ export default class Alert extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Alert Creation?",
     description: "Are owners notified of when this alert is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -936,6 +936,7 @@ export default class Alert extends BaseModel {
     title: "Is created automatically?",
     description:
       "Is this alert created by OneUptime Probe or Workers automatically (and not created manually by a user)?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1028,6 +1029,7 @@ export default class Alert extends BaseModel {
     isDefaultValueColumn: false,
     required: false,
     type: TableColumnType.Number,
+    computed: true,
     title: "Alert Number",
     description: "Alert Number",
   })

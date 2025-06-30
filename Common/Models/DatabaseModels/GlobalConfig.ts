@@ -260,7 +260,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
     unique: false,
   })
-  public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers seperated by comma
+  public twilioSecondaryPhoneNumbers?: string = undefined; // phone numbers separated by comma
 
   @ColumnAccessControl({
     create: [],
@@ -355,6 +355,7 @@ export default class GlobalConfig extends GlobalConfigModel {
   })
   @TableColumn({
     type: TableColumnType.ObjectID,
+    computed: true,
     title: "Master API Key",
     description:
       "This API key has root access to all the resources in all the projects on OneUptime.",

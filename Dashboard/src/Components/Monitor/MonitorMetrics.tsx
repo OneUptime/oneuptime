@@ -169,7 +169,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
               if (typeof attributes === "string") {
                 try {
                   attributes = JSONFunctions.parseJSONObject(attributes);
-                } catch (err) {
+                } catch {
                   return {
                     title:
                       MonitorMetricTypeUtil.getTitleByMonitorMetricType(
@@ -231,7 +231,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
               if (typeof attributes === "string") {
                 try {
                   attributes = JSONFunctions.parseJSONObject(attributes);
-                } catch (err) {
+                } catch {
                   return {
                     title:
                       MonitorMetricTypeUtil.getTitleByMonitorMetricType(

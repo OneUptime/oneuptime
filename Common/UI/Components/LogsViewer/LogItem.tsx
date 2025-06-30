@@ -6,6 +6,7 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import { Logger } from "../../Utils/Logger";
 
 export interface ComponentProps {
   log: Log;
@@ -58,6 +59,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
     logBody = JSON.stringify(JSON.parse(logBody), null, 2);
     isBodyInJSON = true;
   } catch (e) {
+    Logger.error(e as Error);
     isBodyInJSON = false;
   }
 

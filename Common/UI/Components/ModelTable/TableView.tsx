@@ -173,7 +173,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           className="text-gray-600 hover:text-gray-800"
           icon={IconProp.Window}
           onClick={() => {
-            props.onViewChange && props.onViewChange(item);
+            props.onViewChange?.(item);
             setCurrentlySelectedView(item);
           }}
         />
@@ -318,7 +318,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           setShowCreateNewViewModel(false);
           await fetchTableViews();
           // set as current view
-          props.onViewChange && props.onViewChange(tableView);
+          props.onViewChange?.(tableView);
         }}
         formProps={{
           name: "Save New View",
@@ -365,7 +365,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
             className="h-4 w-4 rounded-full bg-gray-500 text-white hover:bg-gray-800 ml-3 -mr-1 p-1"
             onClick={() => {
               setCurrentlySelectedView(null);
-              props.onViewChange && props.onViewChange(null);
+              props.onViewChange?.(null);
               closeDropdownMenu();
             }}
           >

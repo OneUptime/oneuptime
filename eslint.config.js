@@ -25,7 +25,20 @@ export default tseslint.config(
       "**/playwright-videos",
       "**/service-worker.js", // TODO: Remove this ignore
       "**/Static/", // TODO: Remove this ignore
-      "**/*.js" // TODO: Remove this ignore
+      "**/*.js", // TODO: Remove this ignore
+      "**/tmp/",
+      "**/temp/",
+      "**/.tmp/",
+      "**/.temp/",
+      "**/logs/",
+      "**/*.log",
+      "**/greenlock/",
+      "**/Certs/",
+      "**/Backups/",
+      "**/.git/",
+      "**/.vscode/",
+      "**/.eslintcache",
+      "**/views/",
     ],
   },
   eslint.configs.recommended,
@@ -156,7 +169,7 @@ export default tseslint.config(
       "no-loop-func": "error",
       "no-duplicate-imports": "error",
       "no-promise-executor-return": "error",
-      "capitalized-comments": "off", // this is turned off because come commented code should not be capitalized.
+      "capitalized-comments": "off", // this is turned off because some commented code should not be capitalized.
       "for-direction": "error",
       "getter-return": "error",
       "no-async-promise-executor": "error",
@@ -223,7 +236,12 @@ export default tseslint.config(
       parserOptions: {
         project: ["./tsconfig.json"], // Specify it only for TypeScript files
         // or `project: true` in typescript-eslint version >= 5.52.0
+        createDefaultProgram: false,
+        tsconfigRootDir: ".",
       },
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: false, // Disable for performance
     },
   },
 );

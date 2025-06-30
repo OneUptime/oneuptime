@@ -160,7 +160,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
         metricTypes[0].name
       ) {
         // then  add a default query which would be the first
-        props.onChange &&
+        if (props.onChange) {
           props.onChange({
             ...props.data,
             queryConfigs: [
@@ -181,6 +181,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               },
             ],
           });
+        }
       }
 
       if (props.data) {
@@ -239,11 +240,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   type={StartAndEndDateType.DateTime}
                   value={props.data.startAndEndDate || undefined}
                   onValueChanged={(startAndEndDate: InBetween<Date> | null) => {
-                    props.onChange &&
+                    if (props.onChange) {
                       props.onChange({
                         ...props.data,
                         startAndEndDate: startAndEndDate,
                       });
+                    }
                   }}
                 />
               </div>
@@ -263,11 +265,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         ...props.data.queryConfigs,
                       ];
                       newGraphConfigs[index] = data;
-                      props.onChange &&
+                      if (props.onChange) {
                         props.onChange({
                           ...props.data,
                           queryConfigs: newGraphConfigs,
                         });
+                      }
                     }}
                     data={queryConfig}
                     hideCard={props.hideCardInQueryElements}
@@ -284,11 +287,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                       ];
                       newGraphConfigs.splice(index, 1);
 
-                      props.onChange &&
+                      if (props.onChange) {
                         props.onChange({
                           ...props.data,
                           queryConfigs: newGraphConfigs,
                         });
+                      }
                     }}
                   />
                 );
@@ -311,11 +315,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         ...props.data.formulaConfigs,
                       ];
                       newGraphConfigs[index] = data;
-                      props.onChange &&
+                      if (props.onChange) {
                         props.onChange({
                           ...props.data,
                           formulaConfigs: newGraphConfigs,
                         });
+                      }
                     }}
                     data={formulaConfig}
                     onRemove={() => {
@@ -323,11 +328,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         ...props.data.formulaConfigs,
                       ];
                       newGraphConfigs.splice(index, 1);
-                      props.onChange &&
+                      if (props.onChange) {
                         props.onChange({
                           ...props.data,
                           formulaConfigs: newGraphConfigs,
                         });
+                      }
                     }}
                   />
                 );
@@ -341,7 +347,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                   title="Add Metric"
                   buttonSize={ButtonSize.Small}
                   onClick={() => {
-                    props.onChange &&
+                    if (props.onChange) {
                       props.onChange({
                         ...props.data,
                         queryConfigs: [
@@ -349,6 +355,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                           getEmptyQueryConfigData(),
                         ],
                       });
+                    }
                   }}
                 />
                 {/* <Button

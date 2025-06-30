@@ -392,13 +392,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
           group._id?.toString() === resource.statusPageGroupId.toString()) ||
         (!resource.statusPageGroupId && !group)
       ) {
-        // if its not a monitor or a monitor group, then continue. This should ideally not happen.
+        // if it's not a monitor or a monitor group, then continue. This should ideally not happen.
 
         if (!resource.monitor && !resource.monitorGroupId) {
           continue;
         }
 
-        // if its a monitor
+        // if it's a monitor
 
         if (resource.monitor) {
           let currentStatus: MonitorStatus | undefined = monitorStatuses.find(
@@ -450,7 +450,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           );
         }
 
-        // if its a monitor group, then...
+        // if it's a monitor group, then...
 
         if (resource.monitorGroupId) {
           let currentStatus: MonitorStatus | undefined = monitorStatuses.find(

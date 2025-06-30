@@ -42,7 +42,7 @@ export interface CategoryCheckboxProps {
 export default interface Field<TEntity> {
   name?: string; // form field name, should be unique in thr form. If not provided, the field will be auto generated.
   title?: string;
-  description?: string;
+  description?: string | ReactElement;
   field?: SelectFormFields<TEntity> | undefined;
   placeholder?: string;
   showEvenIfPermissionDoesNotExist?: boolean; // show this field even if user does not have permissions to view.
@@ -113,6 +113,9 @@ export default interface Field<TEntity> {
   jsonKeysForDictionary?: Array<string> | undefined;
 
   hideOptionalLabel?: boolean | undefined;
+
+  // Spell check configuration (primarily for Markdown and text fields)
+  disableSpellCheck?: boolean | undefined;
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
 }

@@ -47,7 +47,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           aria-expanded="false"
           aria-haspopup="true"
           onClick={() => {
-            props.onClick && props.onClick();
+            props.onClick?.();
             setIsComponentVisible(!isDropdownVisible);
           }}
         >
@@ -56,7 +56,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
             <Image
               className="h-8 w-8 rounded-full"
               onClick={() => {
-                props.onClick && props.onClick();
+                props.onClick?.();
               }}
               imageUrl={Route.fromString(`${props.iconImageUrl}`)}
               alt={props.name}

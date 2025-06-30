@@ -139,6 +139,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
         fieldType: FormFieldSchemaType.URL,
         required: true,
         placeholder: "https://hooks.slack.com/services/...",
+        disableSpellCheck: true,
       },
       {
         field: {

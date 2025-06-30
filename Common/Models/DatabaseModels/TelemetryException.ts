@@ -901,6 +901,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -934,6 +935,7 @@ export default class TelemetryException extends DatabaseBaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -963,10 +965,11 @@ export default class TelemetryException extends DatabaseBaseModel {
   })
   @TableColumn({
     title: "Occurances",
-    description: "Number of times this exception has occured",
+    description: "Number of times this exception has occurred",
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Number,
+    defaultValue: 1,
   })
   @Column({
     type: ColumnType.Number,

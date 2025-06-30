@@ -48,7 +48,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           );
         setUnresolvedIncidentStates(unresolvedIncidentStates);
       }
-    } catch (err) {
+    } catch {
       // maybe show an error message
     }
   };
@@ -60,7 +60,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           await AlertStateUtil.getUnresolvedAlertStates(props.project?.id);
         setUnresolvedAlertStates(unresolvedAlertStates);
       }
-    } catch (err) {
+    } catch {
       // maybe show an error message
     }
   };

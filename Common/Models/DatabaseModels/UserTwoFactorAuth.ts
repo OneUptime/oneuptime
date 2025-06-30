@@ -107,6 +107,7 @@ class UserTwoFactorAuth extends BaseModel {
     isDefaultValueColumn: true,
     description:
       "Is this two factor authentication verified and validated (has user entered the tokent to verify it)",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

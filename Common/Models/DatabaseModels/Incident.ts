@@ -229,12 +229,7 @@ export default class Incident extends BaseModel {
 
   @Index()
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -247,6 +242,7 @@ export default class Incident extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -530,6 +526,7 @@ export default class Incident extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "currentIncidentStateId",
     type: TableColumnType.Entity,
+    computed: true,
     modelType: IncidentState,
     title: "Current Incident State",
     description:
@@ -571,6 +568,7 @@ export default class Incident extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
+    isDefaultValueColumn: true,
     required: true,
     title: "Current Incident State ID",
     description: "Current Incident State ID",
@@ -745,9 +743,12 @@ export default class Incident extends BaseModel {
   })
   @TableColumn({
     isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
     type: TableColumnType.Boolean,
     title: "Are subscribers notified?",
     description: "Are subscribers notified about this incident?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -775,6 +776,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this incident?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -817,12 +819,7 @@ export default class Incident extends BaseModel {
   public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -834,10 +831,13 @@ export default class Incident extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",
     description: "Are owners notified of when this resource is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1025,6 +1025,7 @@ export default class Incident extends BaseModel {
     title: "Is created automatically?",
     description:
       "Is this incident created by OneUptime Probe or Workers automatically (and not created manually by a user)?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1099,12 +1100,7 @@ export default class Incident extends BaseModel {
   public telemetryQuery?: TelemetryQuery = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1120,6 +1116,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Number,
     title: "Incident Number",
     description: "Incident Number",
+    computed: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -1171,6 +1168,7 @@ export default class Incident extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should be visible on status page?",
     description: "Should this incident be visible on the status page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

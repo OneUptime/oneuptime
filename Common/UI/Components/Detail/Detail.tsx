@@ -230,12 +230,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
       if (
         props.item[fieldKey] &&
         (props.item[fieldKey] as unknown as FileModel).file &&
-        (props.item[fieldKey] as unknown as FileModel).type
+        (props.item[fieldKey] as unknown as FileModel).fileType
       ) {
         const blob: Blob = new Blob(
           [(props.item[fieldKey] as unknown as FileModel).file as Uint8Array],
           {
-            type: (props.item[fieldKey] as unknown as FileModel).type as string,
+            type: (props.item[fieldKey] as unknown as FileModel)
+              .fileType as string,
           },
         );
 
@@ -306,7 +307,9 @@ const Detail: DetailFunction = <T extends GenericObject>(
               "Cant format json for field: " +
                 field.title +
                 " with value: " +
-                data,
+                data +
+                " Error: " +
+                e,
             );
           }
         }

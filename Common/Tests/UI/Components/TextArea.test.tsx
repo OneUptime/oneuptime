@@ -25,6 +25,7 @@ describe("TextArea", () => {
         tabIndex={1}
         error="error"
         autoFocus={true}
+        disableSpellCheck={false}
       />,
     );
     const textarea: HTMLElement = getByRole("textbox");
@@ -149,5 +150,26 @@ describe("TextArea", () => {
     expect(onChange).toHaveBeenCalledWith("");
     expect(getByDisplayValue("")).toBeInTheDocument();
     expect(queryByDisplayValue("\n")).not.toBeInTheDocument();
+  });
+
+  test("enables spellcheck by default", () => {
+    const { getByRole } = render(<TextArea />);
+    const textarea: HTMLElement = getByRole("textbox");
+
+    expect(textarea).toHaveAttribute("spellcheck", "true");
+  });
+
+  test("disables spellcheck when disableSpellCheck is true", () => {
+    const { getByRole } = render(<TextArea disableSpellCheck={true} />);
+    const textarea: HTMLElement = getByRole("textbox");
+
+    expect(textarea).toHaveAttribute("spellcheck", "false");
+  });
+
+  test("enables spellcheck when disableSpellCheck is false", () => {
+    const { getByRole } = render(<TextArea disableSpellCheck={false} />);
+    const textarea: HTMLElement = getByRole("textbox");
+
+    expect(textarea).toHaveAttribute("spellcheck", "true");
   });
 });

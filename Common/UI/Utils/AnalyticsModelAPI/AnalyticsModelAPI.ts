@@ -24,8 +24,8 @@ import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import Query from "../../../Types/BaseDatabase/Query";
 
-export interface ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel>
-  extends BaseListResult<TAnalyticsBaseModel> {}
+export type ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel> =
+  BaseListResult<TAnalyticsBaseModel>;
 
 export default class ModelAPI {
   public static async create<

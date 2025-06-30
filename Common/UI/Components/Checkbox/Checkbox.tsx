@@ -4,7 +4,7 @@ export type CategoryCheckboxValue = string | number | boolean;
 
 export interface CategoryProps {
   title?: string | ReactElement | undefined;
-  description?: string | undefined;
+  description?: string | ReactElement | undefined;
   initialValue?: undefined | boolean;
   onChange?: undefined | ((value: boolean, interminate?: boolean) => void);
   value?: boolean | undefined;

@@ -59,7 +59,7 @@ const ModelList: <TBaseModel extends BaseModel>(
   const [searchText, setSearchText] = useState<string>("");
 
   useEffect(() => {
-    props.onSelectChange && props.onSelectChange(selectedList);
+    props.onSelectChange?.(selectedList);
   }, [selectedList]);
 
   useEffect(() => {
@@ -145,7 +145,7 @@ const ModelList: <TBaseModel extends BaseModel>(
         });
       }
 
-      props.onListLoaded && props.onListLoaded(listResult.data);
+      props.onListLoaded?.(listResult.data);
       setModalList(listResult.data);
     } catch (err) {
       setError(API.getFriendlyMessage(err));

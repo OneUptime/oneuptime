@@ -378,7 +378,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   useEffect(() => {
     if (!showModel) {
-      props.onCreateEditModalClose && props.onCreateEditModalClose();
+      props.onCreateEditModalClose?.();
     }
   }, [showModel]);
 
@@ -424,7 +424,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           (relationSelect as JSONObject)[key] = {
             file: true,
             _id: true,
-            type: true,
+            fileType: true,
             name: true,
           };
         } else if (key && model.isEntityColumn(key)) {
@@ -454,7 +454,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     try {
       await props.callbacks.deleteItem(item);
 
-      props.onItemDeleted && props.onItemDeleted(item);
+      props.onItemDeleted?.(item);
 
       if (data.length === 1 && currentPageNumber > 1) {
         setCurrentPageNumber(currentPageNumber - 1);

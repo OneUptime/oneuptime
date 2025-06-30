@@ -318,7 +318,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     required: true,
     type: TableColumnType.Markdown,
     title: "Announcement Description",
-    description: "Text of the announcement. This is in Markdown.",
+    description: "Text of the announcement. This can be in Markdown format.",
   })
   @Column({
     nullable: false,
@@ -451,7 +451,13 @@ export default class StatusPageAnnouncement extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
   @Column({
     type: ColumnType.Boolean,
     default: false,
@@ -486,12 +492,7 @@ export default class StatusPageAnnouncement extends BaseModel {
   public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateStatusPageAnnouncement,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -503,6 +504,8 @@ export default class StatusPageAnnouncement extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified",

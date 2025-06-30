@@ -252,6 +252,7 @@ class UserEmail extends BaseModel {
     description: "Is this verified?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -268,6 +269,7 @@ class UserEmail extends BaseModel {
     title: "Verification Code",
     description: "Temporary Verification Code",
     isDefaultValueColumn: true,
+    computed: true,
     required: true,
     type: TableColumnType.ShortText,
     forceGetDefaultValueOnCreate: () => {

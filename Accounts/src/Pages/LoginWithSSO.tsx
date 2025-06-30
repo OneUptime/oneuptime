@@ -196,6 +196,7 @@ const LoginPage: () => JSX.Element = () => {
                 required: true,
                 title: "Email",
                 dataTestId: "email",
+                disableSpellCheck: true,
               },
             ]}
             maxPrimaryButtonWidth={true}

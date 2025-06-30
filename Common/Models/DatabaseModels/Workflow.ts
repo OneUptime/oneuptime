@@ -196,6 +196,7 @@ export default class Workflow extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -384,6 +385,7 @@ export default class Workflow extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Enabled",
     description: "Is this workflow enabled?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

@@ -54,6 +54,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Email",
             description:
               "You will have to verify your email again if you change it",
+            disableSpellCheck: true,
           },
           {
             field: {

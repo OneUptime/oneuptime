@@ -58,14 +58,15 @@ const FormField: <T extends GenericObject>(
   type onChangeFunction = (value: JSONValue) => void;
 
   const onChange: onChangeFunction = (value: JSONValue): void => {
-    props.field.onChange &&
+    if (props.field.onChange) {
       props.field.onChange(
         value,
         props.currentValues,
         (newFormValues: FormValues<T>) => {
-          props.setFormValues && props.setFormValues(newFormValues);
+          props.setFormValues?.(newFormValues);
         },
       );
+    }
   };
 
   type GetFieldTypeFunction = (fieldType: FormFieldSchemaType) => string;
@@ -197,7 +198,8 @@ const FormField: <T extends GenericObject>(
       codeType = CodeType.JavaScript;
     }
 
-    let fieldDescription: string | undefined = props.field.description;
+    let fieldDescription: string | ReactElement | undefined =
+      props.field.description;
 
     if (
       props.field.fieldType === FormFieldSchemaType.DateTime ||
@@ -340,7 +342,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
               }}
               onEnterPress={() => {
-                props.submitForm && props.submitForm();
+                props.submitForm?.();
               }}
               initialValue={
                 props.currentValues &&
@@ -423,6 +425,7 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               tabIndex={index}
               dataTestId={props.field.dataTestId}
+              disableSpellCheck={props.field.disableSpellCheck}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -475,6 +478,7 @@ const FormField: <T extends GenericObject>(
               dataTestId={props.field.dataTestId}
               tabIndex={index}
               type={CodeType.Markdown}
+              disableSpellCheck={props.field.disableSpellCheck}
               onChange={async (value: string) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
@@ -675,7 +679,7 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
               }}
               onEnterPress={() => {
-                props.submitForm && props.submitForm();
+                props.submitForm?.();
               }}
               onBlur={() => {
                 props.setFieldTouched(props.fieldName, true);

@@ -64,7 +64,7 @@ export class Service extends DatabaseService<Model> {
 
       billingPaymentMethod.projectId = project.id!;
 
-      billingPaymentMethod.type = paymentMethod.type;
+      billingPaymentMethod.paymentMethodType = paymentMethod.type;
       billingPaymentMethod.last4Digits = paymentMethod.last4Digits;
       billingPaymentMethod.isDefault = paymentMethod.isDefault;
       billingPaymentMethod.paymentProviderPaymentMethodId = paymentMethod.id;

@@ -15,7 +15,7 @@ export interface DetailSideLink {
 
 export interface FieldBase<T> {
   title?: string;
-  description?: string;
+  description?: string | ReactElement;
   fieldTitleSize?: Size | undefined;
   fieldType?: FieldType;
   dropdownOptions?: Array<DropdownOption> | undefined;

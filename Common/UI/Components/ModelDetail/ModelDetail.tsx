@@ -94,7 +94,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
           (relationSelect as JSONObject)[key] = {
             file: true,
             _id: true,
-            type: true,
+            fileType: true,
             name: true,
           };
         } else if (key && new props.modelType()?.isEntityColumn(key)) {
@@ -171,7 +171,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     // get item.
     setIsLoading(true);
-    props.onLoadingChange && props.onLoadingChange(true);
+    props.onLoadingChange?.(true);
     setError("");
     try {
       if (props.onBeforeFetch) {
@@ -205,10 +205,10 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       setItem(item);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
-      props.onError && props.onError(API.getFriendlyMessage(err));
+      props.onError?.(API.getFriendlyMessage(err));
     }
     setIsLoading(false);
-    props.onLoadingChange && props.onLoadingChange(false);
+    props.onLoadingChange?.(false);
   };
 
   useAsyncEffect(async () => {

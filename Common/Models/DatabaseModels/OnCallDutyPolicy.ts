@@ -276,6 +276,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     type: TableColumnType.Slug,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    computed: true,
   })
   @Column({
     nullable: false,
@@ -421,6 +422,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Repeat Policy If No One Acknowledges",
     description: "Repeat the policy if no one acknowledges the alert",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
@@ -457,6 +459,7 @@ export default class OnCallDutyPolicy extends BaseModel {
     title: "Repeat Policy Times If No One Acknowledges",
     description:
       "Repeat the policy X number of times if no one acknowledges the alert",
+    defaultValue: 0,
   })
   @Column({
     nullable: false,

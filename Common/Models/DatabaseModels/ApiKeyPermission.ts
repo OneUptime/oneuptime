@@ -425,7 +425,11 @@ export default class APIKeyPermission extends BaseModel {
       Permission.EditProjectApiKey,
     ],
   })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
   @Column({
     type: ColumnType.Boolean,
     default: false,

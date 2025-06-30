@@ -19,7 +19,7 @@ export interface ComponentProps {
 export class ImageFunctions {
   public static getImageURL(file: File): string {
     const blob: Blob = new Blob([file.file as Uint8Array], {
-      type: (file as File).type as string,
+      type: (file as File).fileType as string,
     });
 
     const url: string = URL.createObjectURL(blob);
@@ -38,7 +38,7 @@ const Image: FunctionComponent<ComponentProps> = (
     return (
       <img
         onClick={() => {
-          props.onClick && props.onClick();
+          props.onClick?.();
         }}
         data-testid={props["data-testid"]}
         alt={props.alt}
@@ -54,7 +54,7 @@ const Image: FunctionComponent<ComponentProps> = (
     return getImageElement(props.imageUrl.toString());
   }
 
-  if (props.file && props.file.file && props.file.type) {
+  if (props.file && props.file.file && props.file.fileType) {
     const url: string = ImageFunctions.getImageURL(props.file);
     return getImageElement(url);
   }

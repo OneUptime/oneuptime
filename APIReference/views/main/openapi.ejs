@@ -1,0 +1,53 @@
+<main class="py-16">
+    <article class="prose ">
+        <h1>OneUptime OpenAPI Specification</h1>
+        <p class="lead">In this guide, we will look at how to import and work with the OneUptime OpenAPI specification. The OpenAPI spec provides a comprehensive reference for all available API endpoints.</p>
+        <p>The OneUptime API follows the OpenAPI 3.0 specification, which provides a standardized way to describe REST APIs. You can import our OpenAPI spec into various tools like Swagger Editor, Postman, or other API documentation tools to explore and test our endpoints.</p>
+        <h2 id="importing-spec" class="scroll-mt-24">
+            Importing the OpenAPI Spec
+        </h2>
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p>To import the OneUptime OpenAPI specification into Swagger Editor, follow these simple steps:</p>
+                <div class="my-6">
+                    <ol class="list-decimal pl-6">
+                        <li class="mb-2">Open <a href="https://editor.swagger.io" target="_blank" class="text-blue-600 hover:text-blue-800">editor.swagger.io</a> in your web browser</li>
+                        <li class="mb-2">Click on <strong>File</strong> in the menu bar</li>
+                        <li class="mb-2">Select <strong>Import URL</strong> from the dropdown menu</li>
+                        <li class="mb-2">Enter the URL: <code class="inline-code"><%= pageData.hostUrl  %>api/openapi/spec</code></li>
+                        <li class="mb-2">Click <strong>Import</strong> to load the specification</li>
+                    </ol>
+                </div>
+                <h2 id="spec-url" class="scroll-mt-24">
+                    Specification URL
+                </h2>
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0  list-none divide-y divide-zinc-900/5 p-0 ">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Endpoint</dt>
+                                <dd><code class="inline-code"><%= pageData.hostUrl %>api/openapi/spec</code></dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Complete OpenAPI 3.0 specification for the OneUptime API including all endpoints, request/response schemas, and authentication methods.</p>
+                                </dd>
+                            </dl>
+                        </li>
+                    </ul>
+                </div>
+                <h2 id="benefits" class="scroll-mt-24">
+                    Benefits of Using the OpenAPI Spec
+                </h2>
+                <div class="my-6">
+                    <ul class="list-disc pl-6">
+                        <li class="mb-2"><strong>Interactive Documentation:</strong> Test API endpoints directly in Swagger Editor</li>
+                        <li class="mb-2"><strong>Code Generation:</strong> Generate client SDKs in multiple programming languages</li>
+                        <li class="mb-2"><strong>Validation:</strong> Ensure your requests match the expected schema</li>
+                        <li class="mb-2"><strong>Import to Tools:</strong> Use with Postman, Insomnia, or other API testing tools</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </article>
+</main>

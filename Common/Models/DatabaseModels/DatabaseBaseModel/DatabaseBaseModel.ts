@@ -92,8 +92,9 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   @TableColumn({
     title: "Version",
-    type: TableColumnType.Version,
+    type: TableColumnType.Number,
     description: "Object version",
+    hideColumnInDocumentation: true,
   })
   @VersionColumn()
   public version?: number = undefined;

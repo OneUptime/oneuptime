@@ -4,6 +4,7 @@ import Email from "../../Types/Email";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import Typeof from "../../Types/Typeof";
+import { Logger } from "./Logger";
 
 export default class LocalStorage {
   public static setItem(key: string, value: JSONValue | Email | URL): void {
@@ -27,6 +28,7 @@ export default class LocalStorage {
       }
       return value;
     } catch (err) {
+      Logger.error(err as string);
       return value;
     }
   }

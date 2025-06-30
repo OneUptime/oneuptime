@@ -11,7 +11,6 @@ import Models from "../../Models/DatabaseModels/Index";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModels from "../../Models/AnalyticsModels/Index";
 import { JSONObject, JSONValue } from "../../Types/JSON";
-import logger from "./Logger";
 import { ModelSchema, ModelSchemaType } from "../../Utils/Schema/ModelSchema";
 import {
   AnalyticsModelSchema,
@@ -54,7 +53,6 @@ export default class OpenAPIUtil {
     );
 
     if (cachedSpec) {
-      logger.debug("Returning cached OpenAPI spec");
       return cachedSpec as JSONObject;
     }
 
@@ -73,16 +71,10 @@ export default class OpenAPIUtil {
       // check if enable documentation is enabled
 
       if (!model.enableDocumentation) {
-        logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it is disabled.`,
-        );
         continue;
       }
 
       if (!model.crudApiPath) {
-        logger.debug(
-          `Skipping OpenAPI documentation for model ${modelName} as it does not have a CRUD API path defined.`,
-        );
         continue;
       }
 
@@ -134,9 +126,6 @@ export default class OpenAPIUtil {
       }
 
       if (!analyticsModel.crudApiPath) {
-        logger.debug(
-          `Skipping OpenAPI documentation for Analytics model ${modelName} as it does not have a CRUD API path defined.`,
-        );
         continue;
       }
 
@@ -216,7 +205,7 @@ export default class OpenAPIUtil {
     }
 
     (spec["components"] as JSONObject)["securitySchemes"] = {
-      ApiKeyAuth: {
+      ApiKey: {
         type: "apiKey",
         in: "header",
         name: "APIKey",
@@ -227,7 +216,7 @@ export default class OpenAPIUtil {
 
     spec["security"] = [
       {
-        ApiKeyAuth: [],
+        ApiKey: [],
       },
     ];
 
@@ -249,11 +238,11 @@ export default class OpenAPIUtil {
     const querySchemaName: string = `${tableName}QuerySchema`;
     const selectSchemaName: string = `${tableName}SelectSchema`;
     const sortSchemaName: string = `${tableName}SortSchema`;
-    const groupBySchemaName: string = `${tableName}GroupBySchema`;
 
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/get-list`,
+      operationId: `list${tableName}`,
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
@@ -268,7 +257,6 @@ export default class OpenAPIUtil {
                 query: { $ref: `#/components/schemas/${querySchemaName}` },
                 select: { $ref: `#/components/schemas/${selectSchemaName}` },
                 sort: { $ref: `#/components/schemas/${sortSchemaName}` },
-                groupBy: { $ref: `#/components/schemas/${groupBySchemaName}` },
               },
             },
           },
@@ -314,6 +302,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
+      operationId: `count${tableName}`,
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
@@ -366,12 +355,12 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
-    const selectSchemaName: string = `${tableName}SelectSchema`;
     const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
+      operationId: `create${tableName}`,
       summary: `Create ${singularModelName}`,
       description: `Endpoint to create a new ${singularModelName}`,
       tags: [singularModelName],
@@ -385,12 +374,6 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
                 },
-                miscDataProps: {
-                  type: "object",
-                  description: "Additional data properties for creation",
-                  additionalProperties: true,
-                },
-                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
@@ -478,7 +461,8 @@ export default class OpenAPIUtil {
 
     data.registry.registerPath({
       method: "post",
-      path: `${model.crudApiPath}/{id}`,
+      path: `${model.crudApiPath}/{id}/get-item`,
+      operationId: `get${tableName}`,
       summary: `Get ${singularModelName}`,
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       tags: [singularModelName],
@@ -551,12 +535,12 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const updateSchemaName: string = `${tableName}UpdateSchema`;
-    const selectSchemaName: string = `${tableName}SelectSchema`;
     const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `update${tableName}`,
       summary: `Update ${singularModelName}`,
       description: `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
@@ -583,7 +567,6 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${updateSchemaName}`,
                 },
-                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
@@ -628,6 +611,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `delete${tableName}`,
       summary: `Delete ${singularModelName}`,
       description: `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],
@@ -872,6 +856,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/get-list`,
+      operationId: `list${tableName}`,
       summary: `List ${singularModelName}`,
       description: `Endpoint to list all ${singularModelName} items`,
       tags: [singularModelName],
@@ -932,6 +917,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/count`,
+      operationId: `count${tableName}`,
       summary: `Count ${singularModelName}`,
       description: `Endpoint to count ${singularModelName} items`,
       tags: [singularModelName],
@@ -984,12 +970,12 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const createSchemaName: string = `${tableName}CreateSchema`;
-    const selectSchemaName: string = `${tableName}SelectSchema`;
     const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}`,
+      operationId: `create${tableName}`,
       summary: `Create ${singularModelName}`,
       description: `Endpoint to create a new ${singularModelName}`,
       tags: [singularModelName],
@@ -1003,12 +989,6 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${createSchemaName}`,
                 },
-                miscDataProps: {
-                  type: "object",
-                  description: "Additional data properties for creation",
-                  additionalProperties: true,
-                },
-                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
@@ -1056,6 +1036,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "post",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `get${tableName}`,
       summary: `Get ${singularModelName}`,
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,
       tags: [singularModelName],
@@ -1122,12 +1103,12 @@ export default class OpenAPIUtil {
 
     // Use schema names that are already registered
     const updateSchemaName: string = `${tableName}UpdateSchema`;
-    const selectSchemaName: string = `${tableName}SelectSchema`;
     const readSchemaName: string = `${tableName}ReadSchema`;
 
     data.registry.registerPath({
       method: "put",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `update${tableName}`,
       summary: `Update ${singularModelName}`,
       description: `Endpoint to update an existing ${singularModelName}`,
       tags: [singularModelName],
@@ -1154,7 +1135,6 @@ export default class OpenAPIUtil {
                 data: {
                   $ref: `#/components/schemas/${updateSchemaName}`,
                 },
-                select: { $ref: `#/components/schemas/${selectSchemaName}` },
               },
               required: ["data"],
             },
@@ -1199,6 +1179,7 @@ export default class OpenAPIUtil {
     data.registry.registerPath({
       method: "delete",
       path: `${model.crudApiPath}/{id}`,
+      operationId: `delete${tableName}`,
       summary: `Delete ${singularModelName}`,
       description: `Endpoint to delete a ${singularModelName}`,
       tags: [singularModelName],

@@ -17,6 +17,7 @@ import ObjectID from "../../../Types/ObjectID";
 import React from "react";
 import { act } from "react-test-renderer";
 import Select from "../../../Types/BaseDatabase/Select";
+import * as Navigation from "../../../UI/Utils/Navigation";
 
 @TableMetaData({
   tableName: "Foo",
@@ -61,9 +62,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
-    navigate: jest.fn(),
+    default: {
+      navigate: jest.fn(),
+    },
   };
 });
+
+// Type assertion for the mocked Navigation module
+const MockedNavigation: jest.Mocked<typeof Navigation> =
+  Navigation as jest.Mocked<typeof Navigation>;
 
 describe("DuplicateModel", () => {
   const fieldsToDuplicate: Select<TestModel> = {};
@@ -158,11 +165,12 @@ describe("DuplicateModel", () => {
       });
     });
     await waitFor(() => {
-      return expect(
-        require("../../../UI/Utils/Navigation").navigate,
-      ).toBeCalledWith(new Route("/done/foobar"), {
-        forceNavigate: true,
-      });
+      return expect(MockedNavigation.default.navigate).toBeCalledWith(
+        new Route("/done/foobar"),
+        {
+          forceNavigate: true,
+        },
+      );
     });
   });
   it("closes confirmation dialog when close button is clicked", () => {

@@ -51,7 +51,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
-            type: true,
+            customFieldType: true,
             description: true,
           } as any,
           sort: {},
@@ -134,7 +134,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                 key: (schemaItem as any).name,
                 title: (schemaItem as any).name,
                 description: (schemaItem as any).description,
-                fieldType: (schemaItem as any).type,
+                fieldType: (schemaItem as any).customFieldType,
                 placeholder: "No data entered",
               };
             })}
@@ -160,7 +160,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
                   },
                   title: (schemaItem as any).name,
                   description: (schemaItem as any).description,
-                  fieldType: (schemaItem as any).type,
+                  fieldType: (schemaItem as any).customFieldType,
                   required: false,
                   placeholder: "",
                 };

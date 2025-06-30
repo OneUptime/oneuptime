@@ -69,7 +69,7 @@ export default class IP extends DatabaseProperty {
             if ((ipInt & mask) === (networkInt & mask)) {
               return true;
             }
-          } catch (error) {
+          } catch {
             continue;
           }
         }

@@ -53,7 +53,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               // remove the criteria filter
               newCriteriaFilters.splice(index, 1);
 
-              props.onChange && props.onChange(newCriteriaFilters);
+              props.onChange?.(newCriteriaFilters);
             }}
             onChange={(value: CriteriaFilter) => {
               const index: number = criteriaFilters.indexOf(i);
@@ -61,7 +61,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
                 ...criteriaFilters,
               ];
               newCriteriaFilters[index] = value;
-              props.onChange && props.onChange(newCriteriaFilters);
+              props.onChange?.(newCriteriaFilters);
             }}
           />
         );
@@ -81,7 +81,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
               value: "",
             });
 
-            props.onChange && props.onChange(newCriteriaFilters);
+            props.onChange?.(newCriteriaFilters);
           }}
         />
       </div>

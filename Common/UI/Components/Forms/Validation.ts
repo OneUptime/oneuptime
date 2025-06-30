@@ -14,6 +14,7 @@ import Exception from "../../../Types/Exception/Exception";
 import GenericObject from "../../../Types/GenericObject";
 import { JSONObject } from "../../../Types/JSON";
 import Phone from "../../../Types/Phone";
+import { Logger } from "../../Utils/Logger";
 import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
 
@@ -83,6 +84,7 @@ export default class Validation {
         try {
           content = parseInt(content);
         } catch (e) {
+          Logger.error(e as string);
           return `${field.title || name} should be a number.`;
         }
       }

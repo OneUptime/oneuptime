@@ -287,7 +287,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Markdown,
     title: "Description",
     description:
-      "Description of this scheduled event that will show up on Status Page. This is in markdown.",
+      "Description of this scheduled event that will show up on Status Page. This is a markdown field.",
   })
   @Column({
     nullable: true,
@@ -297,12 +297,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
 
   @Index()
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateScheduledMaintenanceTemplate,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -315,6 +310,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -867,6 +863,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified when event is created?",
     description: "Should subscribers be notified about this event creation?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -901,6 +898,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Should subscribers be notified when event is changed to ongoing?",
     description:
       "Should subscribers be notified about this event event is changed to ongoing?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -935,6 +933,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     title: "Should subscribers be notified when event is changed to ended?",
     description:
       "Should subscribers be notified about this event event is changed to ended?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

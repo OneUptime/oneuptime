@@ -177,6 +177,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     type: TableColumnType.Slug,
     title: "Slug",
     description: "Friendly globally unique name for your object",
+    computed: true,
   })
   @Column({
     nullable: false,
@@ -511,7 +512,11 @@ export default class ProjectSmtpConfig extends BaseModel {
       Permission.EditProjectSMTPConfig,
     ],
   })
-  @TableColumn({ required: true, type: TableColumnType.Boolean })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    defaultValue: true,
+  })
   @Column({
     nullable: false,
     type: ColumnType.Boolean,

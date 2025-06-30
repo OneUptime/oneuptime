@@ -15,20 +15,20 @@ import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 
-type MockIsBillingEnabledFunction = (value: boolean) => BillingService;
+type MockIsBillingEnabledFunction = (value: boolean) => Promise<BillingService>;
 
-const mockIsBillingEnabled: MockIsBillingEnabledFunction = (
+const mockIsBillingEnabled: MockIsBillingEnabledFunction = async (
   value: boolean,
-): BillingService => {
+): Promise<BillingService> => {
   jest.resetModules();
   jest.doMock("../../../../Server/BillingConfig", () => {
     return {
       IsBillingEnabled: value,
     };
   });
-  const {
-    BillingService,
-  } = require("../../../../Server/Services/BillingService");
+  const { BillingService } = await import(
+    "../../../../Server/Services/BillingService"
+  );
   return new BillingService();
 };
 

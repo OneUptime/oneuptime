@@ -247,6 +247,7 @@ export default class SmsLog extends BaseModel {
     description: "SMS Cost in USD Cents",
     canReadOnRelationQuery: false,
     isDefaultValueColumn: true,
+    defaultValue: 0,
   })
   @Column({
     nullable: false,

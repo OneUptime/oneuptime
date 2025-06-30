@@ -1,3 +1,4 @@
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import UserElement from "../../../Components/User/User";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageComponentProps from "../../PageComponentProps";
@@ -160,8 +161,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             title: "Private Incident Note",
             fieldType: FormFieldSchemaType.Markdown,
             required: true,
-            description:
-              "Add a private note to this incident here. This is private to your team and is not visible on Status Page. This is in Markdown.",
+            description: MarkdownUtil.getMarkdownCheatsheet(
+              "Add a private note to this incident here. This is private to your team and is not visible on Status Page",
+            ),
           },
         ]}
         showAs={ShowAs.List}

@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -240,6 +241,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   stepId: "event-info",
                   fieldType: FormFieldSchemaType.Markdown,
                   required: false,
+                  description: MarkdownUtil.getMarkdownCheatsheet(
+                    "Describe the scheduled maintenance event here",
+                  ),
                 },
                 {
                   field: {

@@ -221,12 +221,7 @@ export default class Monitor extends BaseModel {
 
   @Index()
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -239,6 +234,7 @@ export default class Monitor extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -480,7 +476,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
+      Permission.CreateProjectIncident,
     ],
     read: [
       Permission.ProjectOwner,
@@ -499,6 +495,7 @@ export default class Monitor extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
+    isDefaultValueColumn: true,
     title: "Current Monitor Status ID",
     description: "Whats the current status ID of this monitor?",
     canReadOnRelationQuery: true,
@@ -611,12 +608,7 @@ export default class Monitor extends BaseModel {
   public customFields?: JSONObject = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -628,10 +620,13 @@ export default class Monitor extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.Boolean,
+    computed: true,
+    hideColumnInDocumentation: true,
     required: true,
     isDefaultValueColumn: true,
     title: "Are Owners Notified Of Resource Creation?",
     description: "Are owners notified of when this resource is created?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -667,6 +662,7 @@ export default class Monitor extends BaseModel {
     isDefaultValueColumn: true,
     title: "Disable Monitoring",
     description: "Disable active monitoring for this resource?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -784,6 +780,7 @@ export default class Monitor extends BaseModel {
     title: "Disable Monitoring because of Ongoing Scheduled Maintenance Event",
     description:
       "Disable Monitoring because of Ongoing Scheduled Maintenance Event",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -811,6 +808,7 @@ export default class Monitor extends BaseModel {
     title: "Disable Monitoring because of Manual Incident",
     description:
       "Disable Monitoring because of Incident which is creeated manually by user.",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -850,12 +848,7 @@ export default class Monitor extends BaseModel {
   public serverMonitorRequestReceivedAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -874,6 +867,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Server Monitor Secret Key",
     description:
       "This field is for Server Monitor only. Secret Key to authenticate the request.",
@@ -886,12 +880,7 @@ export default class Monitor extends BaseModel {
   public serverMonitorSecretKey?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectMonitor,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -910,6 +899,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     isDefaultValueColumn: false,
+    computed: true,
     title: "Incoming Request Secret Key",
     description:
       "This field is for Incoming Request Monitor only. Secret Key to authenticate the request.",
@@ -993,6 +983,7 @@ export default class Monitor extends BaseModel {
     title: "All Probes Disconnected From This Monitor",
     description:
       "All Probes Disconnected From This Monitor. Is this monitor not being monitored?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1017,6 +1008,7 @@ export default class Monitor extends BaseModel {
     title: "No Probe Enabled On This Monitor",
     description:
       "No Probe Enabled On This Monitor. Is this monitor not being monitored?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

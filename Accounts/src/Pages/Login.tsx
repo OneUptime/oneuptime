@@ -122,6 +122,7 @@ const LoginPage: () => JSX.Element = () => {
                   disabled: Boolean(initialValues && initialValues["email"]),
                   title: "Email",
                   dataTestId: "email",
+                  disableSpellCheck: true,
                 },
                 {
                   field: {
@@ -139,6 +140,7 @@ const LoginPage: () => JSX.Element = () => {
                     openLinkInNewTab: false,
                   },
                   dataTestId: "password",
+                  disableSpellCheck: true,
                 },
               ]}
               createOrUpdateApiUrl={apiUrl}

@@ -1,532 +1,203 @@
-import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
-import Logger from "Common/Server/Utils/Logger";
 import { generateOpenAPISpec } from "../OpenAPI/GenerateSpec";
+import path from "path";
+import fs from "fs";
+import Logger from "Common/Server/Utils/Logger";
+import { TerraformProviderGenerator } from "./Core/TerraformProviderGenerator";
+import { OpenAPIParser } from "./Core/OpenAPIParser";
+import { GoModuleGenerator } from "./Core/GoModuleGenerator";
+import { ResourceGenerator } from "./Core/ResourceGenerator";
+import { DataSourceGenerator } from "./Core/DataSourceGenerator";
+import { ProviderGenerator } from "./Core/ProviderGenerator";
+import { DocumentationGenerator } from "./Core/DocumentationGenerator";
+import { exec } from "child_process";
+import { promisify } from "util";
 
-interface GeneratorConfig {
-  version: string;
-  generator: string;
-  output_dir: string;
-  package_name: string;
-  provider_name: string;
-}
+const execAsync: (
+  command: string,
+) => Promise<{ stdout: string; stderr: string }> = promisify(exec);
 
-async function generateTerraformProvider(): Promise<void> {
-  await generateOpenAPISpec();
+async function main(): Promise<void> {
+  Logger.info("🚀 Starting Terraform Provider Generation Process...");
 
-  const openApiSpecPath: string = "./openapi.json";
-  const outputDir: string = "./Terraform";
-  const configPath: string = "./generator_config.yml";
+  // Define paths
+  const terraformDir: string = path.resolve(__dirname, "../../Terraform");
+  const openApiSpecPath: string = path.resolve(terraformDir, "openapi.json");
+  const providerDir: string = path.resolve(
+    terraformDir,
+    "terraform-provider-oneuptime",
+  );
 
   try {
-    // Check if OpenAPI spec exists
-    if (!fs.existsSync(openApiSpecPath)) {
-      throw new Error(
-        "OpenAPI specification file not found. Please run 'npm run generate-openapi-spec' first.",
-      );
+    // Step 1: Clean up existing Terraform directory
+    if (fs.existsSync(terraformDir)) {
+      Logger.info("🗑️ Removing existing Terraform directory...");
+      fs.rmSync(terraformDir, { recursive: true, force: true });
     }
 
-    Logger.info("🔍 Found OpenAPI specification");
+    // Step 2: Generate OpenAPI spec
+    Logger.info("📄 Step 1: Generating OpenAPI specification...");
+    await generateOpenAPISpec(openApiSpecPath);
 
-    // Read OpenAPI spec to get version info
-    const specContent: string = fs.readFileSync(openApiSpecPath, "utf8");
-    const spec: any = JSON.parse(specContent);
-    const apiVersion: string = spec.info?.version || "1.0.0";
-    const apiTitle: string = spec.info?.title || "OneUptime API";
+    // Step 3: Parse OpenAPI spec
+    Logger.info("🔍 Step 2: Parsing OpenAPI specification...");
+    const parser: OpenAPIParser = new OpenAPIParser();
+    const apiSpec: any = await parser.parseOpenAPISpec(openApiSpecPath);
 
-    Logger.info(`📋 API Title: ${apiTitle}`);
-    Logger.info(`🏷️ API Version: ${apiVersion}`);
+    // Step 4: Initialize Terraform provider generator
+    Logger.info("⚙️ Step 3: Initializing Terraform provider generator...");
+    const generator: TerraformProviderGenerator =
+      new TerraformProviderGenerator({
+        outputDir: providerDir,
+        providerName: "oneuptime",
+        providerVersion: "1.0.0",
+        goModuleName: "github.com/oneuptime/terraform-provider-oneuptime",
+      });
 
-    // Clean up existing output directory
-    if (fs.existsSync(outputDir)) {
-      Logger.info("🧹 Cleaning up existing provider directory");
-      fs.rmSync(outputDir, { recursive: true, force: true });
-    }
-
-    // Create generator configuration
-    const generatorConfig: GeneratorConfig = {
-      version: "1.0",
-      generator: "terraform-provider",
-      output_dir: outputDir,
-      package_name: "github.com/oneuptime/Terraform",
-      provider_name: "oneuptime",
-    };
-
-    const configYaml: string = `version: "${generatorConfig.version}"
-generator: "${generatorConfig.generator}"
-output_dir: "${generatorConfig.output_dir}"
-package_name: "${generatorConfig.package_name}"
-provider_name: "${generatorConfig.provider_name}"
-
-# Provider configuration
-provider:
-  name: "oneuptime"
-  version: "${apiVersion}"
-
-# Generator settings
-settings:
-  go_package_name: "oneuptime"
-  generate_docs: true
-  generate_examples: true
-`;
-
-    fs.writeFileSync(configPath, configYaml, "utf8");
-    Logger.info("⚙️ Generator configuration created");
-
-    // Install terraform-plugin-codegen-openapi if not present
-    Logger.info("📦 Installing terraform-plugin-codegen-openapi...");
-    const goPath: string = execSync("go env GOPATH", {
-      encoding: "utf8",
-    }).trim();
-    const tfplugigenPath: string = path.join(
-      goPath,
-      "bin",
-      "tfplugingen-openapi",
+    // Step 5: Generate Go module files
+    Logger.info("📦 Step 4: Generating Go module files...");
+    const goModuleGen: GoModuleGenerator = new GoModuleGenerator(
+      generator.config,
     );
+    await goModuleGen.generateModule();
+
+    // Step 6: Generate provider main file
+    Logger.info("🏗️ Step 5: Generating provider main file...");
+    const providerGen: ProviderGenerator = new ProviderGenerator(
+      generator.config,
+      apiSpec,
+    );
+    await providerGen.generateProvider();
+
+    // Step 7: Generate resources
+    Logger.info("📋 Step 6: Generating Terraform resources...");
+    const resourceGen: ResourceGenerator = new ResourceGenerator(
+      generator.config,
+      apiSpec,
+    );
+    await resourceGen.generateResources();
+
+    // Step 8: Generate data sources
+    Logger.info("🔍 Step 7: Generating Terraform data sources...");
+    const dataSourceGen: DataSourceGenerator = new DataSourceGenerator(
+      generator.config,
+      apiSpec,
+    );
+    await dataSourceGen.generateDataSources();
+
+    // Step 9: Generate documentation
+    Logger.info("📚 Step 8: Generating documentation...");
+    const docGen: DocumentationGenerator = new DocumentationGenerator(
+      generator.config,
+      apiSpec,
+    );
+    await docGen.generateDocumentation();
+
+    // Step 10: Generate build scripts
+    Logger.info("🔨 Step 9: Generating build and installation scripts...");
+    await generator.generateBuildScripts();
+
+    // Step 11: Run go mod tidy
+    Logger.info("📦 Step 10: Running go mod tidy...");
 
     try {
-      if (!fs.existsSync(tfplugigenPath)) {
-        throw new Error("tfplugingen-openapi not found");
-      }
-      Logger.info("✅ terraform-plugin-codegen-openapi already installed");
-    } catch {
-      Logger.info("📥 Installing terraform-plugin-codegen-openapi...");
-      execSync(
-        "go install github.com/hashicorp/terraform-plugin-codegen-openapi/cmd/tfplugingen-openapi@latest",
-        {
-          stdio: "inherit",
-        },
+      const originalCwd: string = process.cwd();
+      process.chdir(providerDir);
+      await execAsync("go mod tidy");
+      process.chdir(originalCwd);
+      Logger.info("✅ go mod tidy completed successfully");
+    } catch (error) {
+      Logger.warn(
+        `⚠️  go mod tidy failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
 
-    // Generate Terraform provider
-    Logger.info("🏗️ Generating Terraform provider...");
-    const generateCommand: string = `"${tfplugigenPath}" generate --config ${configPath} --output ${outputDir} ${openApiSpecPath}`;
-
+    // Step 12: Build the provider for multiple platforms
+    Logger.info("🔨 Step 11: Building the provider for multiple platforms...");
     try {
-      execSync(generateCommand, { stdio: "inherit" });
-      Logger.info("✅ Terraform provider generated successfully");
-    } catch (error: any) {
-      Logger.error("❌ Provider generation failed with tfplugingen-openapi");
-      Logger.info(
-        "🔄 Trying alternative approach with direct Go generation...",
-      );
+      const originalCwd: string = process.cwd();
+      process.chdir(providerDir);
 
-      // Fallback: Create a basic provider structure manually
-      await createBasicProviderStructure(outputDir, generatorConfig, spec);
-    }
+      // First build for current platform
+      await execAsync("go build");
+      Logger.info("✅ go build completed successfully");
 
-    // Validate generation
-    await validateProviderGeneration(outputDir);
+      // Check if make is available for multi-platform build
+      try {
+        await execAsync("which make");
+        // Then build for all platforms (this creates the builds directory)
+        await execAsync("make release");
+        Logger.info("✅ Multi-platform build completed successfully");
+      } catch {
+        Logger.warn(
+          "⚠️  'make' command not available, building platforms manually...",
+        );
 
-    // Create go.mod if it doesn't exist
-    await ensureGoModule(outputDir, generatorConfig);
+        // Create builds directory manually
+        await execAsync("mkdir -p ./builds");
 
-    // Create provider documentation
-    await createProviderDocumentation(outputDir, spec);
+        // Build for each platform manually
+        const platforms: Array<{
+          os: string;
+          arch: string;
+          ext?: string;
+        }> = [
+          { os: "darwin", arch: "amd64" },
+          { os: "linux", arch: "amd64" },
+          { os: "linux", arch: "386" },
+          { os: "linux", arch: "arm" },
+          { os: "windows", arch: "amd64", ext: ".exe" },
+          { os: "windows", arch: "386", ext: ".exe" },
+          { os: "freebsd", arch: "amd64" },
+          { os: "freebsd", arch: "386" },
+          { os: "freebsd", arch: "arm" },
+          { os: "openbsd", arch: "amd64" },
+          { os: "openbsd", arch: "386" },
+          { os: "solaris", arch: "amd64" },
+        ];
 
-    // Clean up temporary config
-    if (fs.existsSync(configPath)) {
-      fs.unlinkSync(configPath);
-    }
+        for (const platform of platforms) {
+          const ext: string = platform.ext || "";
+          const binaryName: string = `terraform-provider-oneuptime_${platform.os}_${platform.arch}${ext}`;
+          const buildCmd: string = `GOOS=${platform.os} GOARCH=${platform.arch} go build -o ./builds/${binaryName}`;
 
-    Logger.info("🎉 Terraform provider generation completed!");
-    Logger.info(`📁 Provider location: ${outputDir}`);
-  } catch (error: any) {
-    Logger.error("❌ Error generating Terraform provider:");
-    Logger.error(error.message || error);
-    process.exit(1);
-  }
-}
-
-async function createBasicProviderStructure(
-  outputDir: string,
-  config: GeneratorConfig,
-  spec: any,
-): Promise<void> {
-  Logger.info("🔨 Creating basic provider structure...");
-
-  // Create output directory
-  fs.mkdirSync(outputDir, { recursive: true });
-
-  // Extract API info from spec
-  const apiVersion: string = spec?.info?.version || "dev";
-
-  // Create main.go using config information
-  const mainGoContent: string = `package main
-
-import (
-	"context"
-	"flag"
-	"log"
-
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"${config.package_name}/internal/provider"
-)
-
-var (
-	version string = "${apiVersion}"
-)
-
-func main() {
-	var debug bool
-
-	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
-	flag.Parse()
-
-	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/${config.provider_name}/${config.provider_name}",
-		Debug:   debug,
-	}
-
-	err := providerserver.Serve(context.Background(), provider.New(version), opts)
-
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-}
-`;
-
-  fs.writeFileSync(path.join(outputDir, "main.go"), mainGoContent);
-
-  // Create internal/provider directory
-  const providerDir: string = path.join(outputDir, "internal", "provider");
-  fs.mkdirSync(providerDir, { recursive: true });
-
-  // Create provider.go using config and spec information
-  const providerName: string = config.provider_name;
-  const providerDisplayName: string = (
-    spec?.info?.title || "OneUptime"
-  ).replace(/[^a-zA-Z0-9]/g, ""); // Remove spaces and special chars for Go struct names
-  const providerGoContent: string = `package provider
-
-import (
-	"context"
-	"net/http"
-	"os"
-
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
-	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-)
-
-var _ provider.Provider = &${providerDisplayName}Provider{}
-
-type ${providerDisplayName}Provider struct {
-	version string
-}
-
-type ${providerDisplayName}ProviderModel struct {
-	ApiKey  types.String \`tfsdk:"api_key"\`
-	BaseUrl types.String \`tfsdk:"base_url"\`
-}
-
-func (p *${providerDisplayName}Provider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "${providerName}"
-	resp.Version = p.version
-}
-
-func (p *${providerDisplayName}Provider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"api_key": schema.StringAttribute{
-				MarkdownDescription: "${providerDisplayName} API Key",
-				Optional:            true,
-				Sensitive:           true,
-			},
-			"base_url": schema.StringAttribute{
-				MarkdownDescription: "${providerDisplayName} API Base URL",
-				Optional:            true,
-			},
-		},
-	}
-}
-
-func (p *${providerDisplayName}Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ${providerDisplayName}ProviderModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Configuration values are now available.
-	if data.ApiKey.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_key"),
-			"Unknown ${providerDisplayName} API Key",
-			"The provider cannot create the ${providerDisplayName} API client as there is an unknown configuration value for the ${providerDisplayName} API key. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the ${providerName.toUpperCase()}_API_KEY environment variable.",
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Default values to environment variables, but override
-	// with Terraform configuration value if set.
-
-	apiKey := os.Getenv("${providerName.toUpperCase()}_API_KEY")
-	baseUrl := "${spec?.servers?.[0]?.url || "https://oneuptime.com/api"}"
-
-	if !data.ApiKey.IsNull() {
-		apiKey = data.ApiKey.ValueString()
-	}
-
-	if !data.BaseUrl.IsNull() {
-		baseUrl = data.BaseUrl.ValueString()
-	}
-
-	// If any of the expected configurations are missing, return
-	// errors with provider-specific guidance.
-
-	if apiKey == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_key"),
-			"Missing ${providerDisplayName} API Key",
-			"The provider requires a ${providerDisplayName} API key. Set the api_key attribute in the provider configuration or use the ${providerName.toUpperCase()}_API_KEY environment variable.",
-		)
-	}
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Create a new ${providerDisplayName} client using the configuration values
-	client := &http.Client{}
-	
-	// Example client configuration would go here
-	_ = client
-	_ = apiKey
-	_ = baseUrl
-
-	// Make the ${providerDisplayName} client available during DataSource and Resource
-	// type Configure methods.
-	resp.DataSourceData = client
-	resp.ResourceData = client
-}
-
-func (p *${providerDisplayName}Provider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
-		// Add your resources here
-	}
-}
-
-func (p *${providerDisplayName}Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		// Add your data sources here
-	}
-}
-
-func New(version string) func() provider.Provider {
-	return func() provider.Provider {
-		return &${providerDisplayName}Provider{
-			version: version,
-		}
-	}
-}
-`;
-
-  fs.writeFileSync(path.join(providerDir, "provider.go"), providerGoContent);
-
-  Logger.info("✅ Basic provider structure created");
-}
-
-async function validateProviderGeneration(outputDir: string): Promise<void> {
-  Logger.info("🔍 Validating provider generation...");
-
-  if (!fs.existsSync(outputDir)) {
-    throw new Error("Provider output directory was not created");
-  }
-
-  // Check for Go files
-  const goFiles: string[] = [];
-  const findGoFiles: (dir: string) => void = (dir: string): void => {
-    const items: string[] = fs.readdirSync(dir);
-    for (const item of items) {
-      const fullPath: string = path.join(dir, item);
-      const stat: fs.Stats = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        findGoFiles(fullPath);
-      } else if (item.endsWith(".go")) {
-        goFiles.push(fullPath);
+          try {
+            await execAsync(buildCmd);
+            Logger.info(`✅ Built ${binaryName}`);
+          } catch (platformError) {
+            Logger.warn(
+              `⚠️  Failed to build ${binaryName}: ${platformError instanceof Error ? platformError.message : "Unknown error"}`,
+            );
+          }
+        }
+        Logger.info("✅ Manual multi-platform build completed");
       }
+
+      process.chdir(originalCwd);
+    } catch (error) {
+      Logger.warn(
+        `⚠️  Build failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
-  };
 
-  findGoFiles(outputDir);
-
-  if (goFiles.length === 0) {
-    throw new Error("No Go files were generated");
-  }
-
-  Logger.info(`✅ Found ${goFiles.length} Go files`);
-  Logger.info("✅ Provider validation passed");
-}
-
-async function ensureGoModule(
-  outputDir: string,
-  config: GeneratorConfig,
-): Promise<void> {
-  const goModPath: string = path.join(outputDir, "go.mod");
-
-  if (!fs.existsSync(goModPath)) {
-    Logger.info("📦 Creating go.mod file...");
-
-    const goModContent: string = `module ${config.package_name}
-
-go 1.21
-
-require (
-	github.com/hashicorp/terraform-plugin-framework v1.4.2
-	github.com/hashicorp/terraform-plugin-testing v1.5.1
-)
-`;
-
-    fs.writeFileSync(goModPath, goModContent);
-    Logger.info("✅ go.mod file created");
+    Logger.info("✅ Terraform provider generation completed successfully!");
+    Logger.info(`📁 Provider generated at: ${providerDir}`);
+    Logger.info("🎯 Next steps:");
+    Logger.info("   1. cd Terraform/terraform-provider-oneuptime");
+    Logger.info("   2. Run tests with: go test ./...");
+    Logger.info("   3. Install locally with: ./install.sh");
+  } catch (error) {
+    Logger.error(
+      `❌ Error during Terraform provider generation: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    throw new Error(
+      `Failed to generate Terraform provider: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    );
   }
 }
 
-async function createProviderDocumentation(
-  outputDir: string,
-  spec: any,
-): Promise<void> {
-  const readmePath: string = path.join(outputDir, "README.md");
-  const apiVersion: string = spec.info?.version || "1.0.0";
-  const apiTitle: string = spec.info?.title || "OneUptime API";
-  const pathCount: number = Object.keys(spec.paths || {}).length;
-
-  const readmeContent: string = `# Terraform Provider for OneUptime
-
-This Terraform provider was auto-generated from the OneUptime OpenAPI specification.
-
-## Overview
-
-This provider allows you to manage OneUptime resources using Terraform. It includes:
-- Data sources for reading OneUptime resources
-- Resources for creating, updating, and deleting OneUptime resources
-
-**Generated from:**
-- **API:** ${apiTitle}
-- **Version:** ${apiVersion}
-- **API Paths:** ${pathCount}
-- **Generated on:** ${new Date().toISOString()}
-
-## Installation
-
-\`\`\`hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source = "oneuptime/oneuptime"
-      version = "~> 1.0"
-    }
-  }
-}
-
-provider "oneuptime" {
-  api_key = var.oneuptime_api_key
-  base_url = "https://oneuptime.com/api" # Optional, defaults to this value
-}
-\`\`\`
-
-## Authentication
-
-The provider requires an API key for authentication. You can provide this in several ways:
-
-1. **Provider configuration:**
-   \`\`\`hcl
-   provider "oneuptime" {
-     api_key = "your-api-key-here"
-   }
-   \`\`\`
-
-2. **Environment variable:**
-   \`\`\`bash
-   export ONEUPTIME_API_KEY="your-api-key-here"
-   \`\`\`
-
-3. **Terraform variables:**
-   \`\`\`hcl
-   variable "oneuptime_api_key" {
-     description = "OneUptime API Key"
-     type        = string
-     sensitive   = true
-   }
-   
-   provider "oneuptime" {
-     api_key = var.oneuptime_api_key
-   }
-   \`\`\`
-
-## Usage Examples
-
-\`\`\`hcl
-# Example data source
-data "oneuptime_project" "example" {
-  id = "your-project-id"
-}
-
-# Example resource
-resource "oneuptime_monitor" "example" {
-  name = "My Monitor"
-  project_id = data.oneuptime_project.example.id
-  # Additional configuration...
-}
-\`\`\`
-
-## Development
-
-This provider was generated using HashiCorp's terraform-plugin-codegen-openapi tool.
-
-### Building the Provider
-
-\`\`\`bash
-go mod download
-go build -v ./...
-\`\`\`
-
-### Testing the Provider
-
-\`\`\`bash
-go test -v ./...
-\`\`\`
-
-### Installing the Provider Locally
-
-\`\`\`bash
-go build -o Terraform
-mkdir -p ~/.terraform.d/plugins/local/oneuptime/oneuptime/1.0.0/darwin_amd64/
-cp Terraform ~/.terraform.d/plugins/local/oneuptime/oneuptime/1.0.0/darwin_amd64/
-\`\`\`
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test your changes
-5. Submit a pull request
-
-## License
-
-This provider is licensed under the same license as the OneUptime project.
-`;
-
-  fs.writeFileSync(readmePath, readmeContent);
-  Logger.info("✅ Provider documentation created");
-}
-
-// Execute the main function
-generateTerraformProvider().catch((error: Error) => {
-  Logger.error("❌ Failed to generate Terraform provider:");
-  Logger.error(error.message || error);
+main().catch((err: Error) => {
+  Logger.error(`💥 Unexpected error: ${err.message}`);
   process.exit(1);
 });

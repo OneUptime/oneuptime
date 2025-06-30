@@ -119,6 +119,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                   showEvenIfPermissionDoesNotExist: true,
                   fieldType: FormFieldSchemaType.Email,
                   required: true,
+                  disableSpellCheck: true,
                 },
               ]}
               onSuccess={() => {

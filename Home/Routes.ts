@@ -710,6 +710,15 @@ const HomeFeatureSet: FeatureSet = {
               },
             },
             {
+              name: "Terraform Support",
+              plans: {
+                free: false,
+                growth: true,
+                scale: true,
+                enterprise: true,
+              },
+            },
+            {
               name: "Integrate with Issue Tracker",
               plans: {
                 free: false,

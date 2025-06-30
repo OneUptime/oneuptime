@@ -57,7 +57,9 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
             )}
             onChange={(changedValue: boolean) => {
               if (changedValue) {
-                props.onChecked && props.onChecked(option.value);
+                if (props.onChecked) {
+                  props.onChecked(option.value);
+                }
 
                 // add the option.value to the currentValues array
                 const newValues: Array<CategoryCheckboxValue> = [
@@ -72,7 +74,9 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
                 setCurrentValues(newValues);
                 props.onChange(newValues);
               } else {
-                props.onUnchecked && props.onUnchecked(option.value);
+                if (props.onUnchecked) {
+                  props.onUnchecked(option.value);
+                }
 
                 // remove the option.value from the currentValues array
 

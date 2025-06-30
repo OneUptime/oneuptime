@@ -576,6 +576,12 @@ import OnCallDutyPolicyTimeLogService, {
   Service as OnCallDutyPolicyTimeLogServiceType,
 } from "Common/Server/Services/OnCallDutyPolicyTimeLogService";
 
+// statu spage announcement templates
+import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
+import StatusPageAnnouncementTemplateService, {
+  Service as StatusPageAnnouncementTemplateServiceType,
+} from "Common/Server/Services/StatusPageAnnouncementTemplateService";
+
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
 
@@ -608,6 +614,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
+      ).getRouter(),
+    );
+
+    // status page announcement templates
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StatusPageAnnouncementTemplate,
+        StatusPageAnnouncementTemplateServiceType
+      >(
+        StatusPageAnnouncementTemplate,
+        StatusPageAnnouncementTemplateService,
       ).getRouter(),
     );
 

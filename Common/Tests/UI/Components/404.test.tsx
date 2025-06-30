@@ -6,13 +6,20 @@ import URL from "../../../Types/API/URL";
 import Email from "../../../Types/Email";
 import * as React from "react";
 import { describe, expect, jest } from "@jest/globals";
+import * as Navigation from "../../../UI/Utils/Navigation";
 
 // Mock the Navigation module to avoid real navigation
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
-    navigate: jest.fn(),
+    default: {
+      navigate: jest.fn(),
+    },
   };
 });
+
+// Type assertion for the mocked Navigation module
+const MockedNavigation: jest.Mocked<typeof Navigation> =
+  Navigation as jest.Mocked<typeof Navigation>;
 
 describe("NotFound Component", () => {
   const mockProps: ComponentProps = {
@@ -55,18 +62,16 @@ describe("NotFound Component", () => {
   test('should navigate to the home route when "Go Home" button is clicked', () => {
     const goHomeButton: HTMLElement = screen.getByText("Go Home");
     fireEvent.click(goHomeButton);
-    expect(
-      require("../../../UI/Utils/Navigation").navigate,
-    ).toHaveBeenCalledWith(mockProps.homeRoute);
+    expect(MockedNavigation.default.navigate).toHaveBeenCalledWith(
+      mockProps.homeRoute,
+    );
   });
 
   test('should navigate to the support email when "Contact Support" button is clicked', () => {
     const contactSupportButton: HTMLElement =
       screen.getByText("Contact Support");
     fireEvent.click(contactSupportButton);
-    expect(
-      require("../../../UI/Utils/Navigation").navigate,
-    ).toHaveBeenCalledWith(
+    expect(MockedNavigation.default.navigate).toHaveBeenCalledWith(
       URL.fromString("mailto:" + mockProps.supportEmail.toString()),
     );
   });

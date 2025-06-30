@@ -97,7 +97,9 @@ const Button: FunctionComponent<ComponentProps> = ({
       switch (event.key) {
         case shortcutKey.toUpperCase():
         case shortcutKey.toLowerCase():
-          onClick && onClick();
+          if (onClick) {
+            onClick();
+          }
           return;
         default:
           return;

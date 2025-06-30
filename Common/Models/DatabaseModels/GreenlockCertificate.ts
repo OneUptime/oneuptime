@@ -61,7 +61,7 @@ export default class GreenlockCertificate extends BaseModel {
     read: [],
     update: [],
   })
-  @TableColumn({ type: TableColumnType.Boolean })
+  @TableColumn({ type: TableColumnType.Boolean, defaultValue: false })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,

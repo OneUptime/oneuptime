@@ -34,7 +34,7 @@ export default class RefreshOnCallSchedulesToAddCurrentUserOnRoster extends Data
         logger.error(
           `Error refreshing current user and handoff time for schedule: ${schedule.id}`,
         );
-         logger.error(err);
+        logger.error(err);
       }
     }
   }

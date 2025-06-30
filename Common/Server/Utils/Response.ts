@@ -75,7 +75,7 @@ export default class Response {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
     /** Set the proper content type */
-    oneUptimeResponse.set("Content-Type", file.type);
+    oneUptimeResponse.set("Content-Type", file.fileType);
     oneUptimeResponse.status(200);
     /** Return response */
     // readstream.pipe(res);

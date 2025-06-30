@@ -405,6 +405,7 @@ export default class IncidentOwnerUser extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of this resource ownership?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

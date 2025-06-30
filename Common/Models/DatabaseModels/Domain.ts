@@ -170,6 +170,7 @@ export default class Domain extends BaseModel {
     required: true,
     unique: true,
     type: TableColumnType.Slug,
+    computed: true,
     title: "Slug",
     description: "Friendly globally unique name for your object",
   })
@@ -317,6 +318,7 @@ export default class Domain extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Verified",
     description: "Is this domain verified?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

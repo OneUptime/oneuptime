@@ -34,7 +34,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
         hideSubmitButton={true}
         initialValues={props.initialValue}
         onChange={(values: FormValues<CriteriaAlert>) => {
-          props.onChange && props.onChange(values as CriteriaAlert);
+          props.onChange?.(values as CriteriaAlert);
         }}
         disableAutofocus={true}
         fields={[

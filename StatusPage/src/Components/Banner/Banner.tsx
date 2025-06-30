@@ -18,7 +18,9 @@ const Banner: FunctionComponent<ComponentProps> = (
     <div>
       <Image
         onClick={() => {
-          props.onClick && props.onClick();
+          if (props.onClick) {
+            props.onClick();
+          }
         }}
         className="rounded-xl w-full mt-5 mb-5"
         file={props.file}
