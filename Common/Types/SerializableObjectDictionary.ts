@@ -1,6 +1,7 @@
 import Hostname from "./API/Hostname";
 import Route from "./API/Route";
 import URL from "./API/URL";
+import EqualTo from "./BaseDatabase/EqualTo";
 import EqualToOrNull from "./BaseDatabase/EqualToOrNull";
 import GreaterThan from "./BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "./BaseDatabase/GreaterThanOrEqual";
@@ -38,6 +39,7 @@ const SerializableObjectDictionary: Dictionary<any> = {
   [ObjectType.DateTime]: OneUptimeDate,
   [ObjectType.ObjectID]: ObjectID,
   [ObjectType.Name]: Name,
+  [ObjectType.EqualTo]: EqualTo,
   [ObjectType.EqualToOrNull]: EqualToOrNull,
   [ObjectType.MonitorSteps]: MonitorSteps,
   [ObjectType.MonitorStep]: MonitorStep,

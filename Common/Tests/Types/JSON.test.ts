@@ -4,6 +4,7 @@ describe("ObjectType", () => {
   const expectedFields: Array<keyof typeof ObjectType> = [
     "ObjectID",
     "Name",
+    "EqualTo",
     "EqualToOrNull",
     "NotEqual",
     "Email",

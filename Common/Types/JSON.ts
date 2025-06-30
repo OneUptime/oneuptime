@@ -1,6 +1,7 @@
 import Hostname from "./API/Hostname";
 import Route from "./API/Route";
 import URL from "./API/URL";
+import EqualTo from "./BaseDatabase/EqualTo";
 import EqualToOrNull from "./BaseDatabase/EqualToOrNull";
 import GreaterThan from "./BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "./BaseDatabase/GreaterThanOrEqual";
@@ -35,6 +36,7 @@ export enum ObjectType {
   ObjectID = "ObjectID",
   Decimal = "Decimal",
   Name = "Name",
+  EqualTo = "EqualTo",
   EqualToOrNull = "EqualToOrNull",
   MonitorSteps = "MonitorSteps",
   MonitorStep = "MonitorStep",
@@ -115,6 +117,8 @@ export type JSONValue =
   | Domain
   | Array<Domain>
   | Array<Search<string>>
+  | EqualTo<CompareType>
+  | Array<EqualTo<CompareType>>
   | EqualToOrNull<CompareType>
   | Array<EqualToOrNull<CompareType>>
   | NotEqual<CompareType>
