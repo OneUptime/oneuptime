@@ -56,6 +56,7 @@ export default class DatabaseBaseModel extends BaseEntity {
     title: "ID",
     type: TableColumnType.ObjectID,
     description: "ID of this object",
+    computed: true,
   })
   @PrimaryGeneratedColumn("uuid")
   public _id?: string = undefined;
@@ -63,6 +64,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
     title: "Created At",
     type: TableColumnType.Date,
+    computed: true,
     description: "Date and Time when the object was created.",
   })
   @CreateDateColumn({
@@ -73,6 +75,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
     title: "Updated At",
     type: TableColumnType.Date,
+    computed: true,
     description: "Date and Time when the object was updated.",
   })
   @UpdateDateColumn({
@@ -83,6 +86,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
     title: "Deleted At",
     type: TableColumnType.Date,
+    computed: true,
     description: "Date and Time when the object was deleted.",
   })
   @DeleteDateColumn({
@@ -93,6 +97,7 @@ export default class DatabaseBaseModel extends BaseEntity {
   @TableColumn({
     title: "Version",
     type: TableColumnType.Number,
+    computed: true,
     description: "Object version",
     hideColumnInDocumentation: true,
   })
