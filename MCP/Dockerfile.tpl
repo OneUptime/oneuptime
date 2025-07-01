@@ -31,7 +31,7 @@ RUN npm install typescript -g
 
 USER root
 
-RUN mkdir /usr/src
+RUN mkdir -p /usr/src
 
 WORKDIR /usr/src/Common
 COPY ./Common/package*.json /usr/src/Common/
