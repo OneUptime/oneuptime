@@ -8,7 +8,7 @@ describe("MCP Hello World Server", () => {
 
   it("should export required tools", () => {
     // Test for tool definitions
-    const expectedTools = ["hello", "get_time", "echo"];
+    const expectedTools: string[] = ["hello", "get_time", "echo"];
     expect(expectedTools).toContain("hello");
     expect(expectedTools).toContain("get_time");
     expect(expectedTools).toContain("echo");

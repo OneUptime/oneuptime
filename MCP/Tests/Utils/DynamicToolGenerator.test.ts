@@ -80,7 +80,9 @@ describe("DynamicToolGenerator", () => {
       console.log("Number of tools:", tools.tools.length);
 
       // Check the create tool specifically
-      const createTool = tools.tools.find((tool) => {return tool.operation === OneUptimeOperation.Create});
+      const createTool = tools.tools.find((tool) => {
+        return tool.operation === OneUptimeOperation.Create;
+      });
       if (createTool) {
         console.log(
           "Create tool input schema properties:",
@@ -182,9 +184,12 @@ describe("DynamicToolGenerator", () => {
     });
 
     // Check that tool names are properly formatted
-    const createTool = tools.tools.find((tool) => {return tool.operation === OneUptimeOperation.Create});
-    const listTool = tools.tools.find((tool) => {return tool.operation === OneUptimeOperation.List});
-    );
+    const createTool = tools.tools.find((tool) => {
+      return tool.operation === OneUptimeOperation.Create;
+    });
+    const listTool = tools.tools.find((tool) => {
+      return tool.operation === OneUptimeOperation.List;
+    });
 
     // Should be create_escalation_rule not create_escalation_rule_s or something weird
     expect(createTool?.name).toMatch(/^create_[a-z_]+$/);

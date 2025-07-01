@@ -1236,7 +1236,10 @@ export class ModelSchema extends BaseSchema {
     };
 
     // Helper function to conditionally apply OpenAPI schema
-    const applyOpenApi = (
+    const applyOpenApi: (
+      baseType: ZodTypes.ZodTypeAny,
+      openApiConfig: any,
+    ) => ZodTypes.ZodTypeAny = (
       baseType: ZodTypes.ZodTypeAny,
       openApiConfig: any,
     ): ZodTypes.ZodTypeAny => {
@@ -1459,7 +1462,9 @@ export class ModelSchema extends BaseSchema {
           break;
       }
 
-      const arrayType = z.array(
+      const arrayType: ZodTypes.ZodArray<
+        ZodTypes.ZodLazy<ZodTypes.ZodTypeAny>
+      > = z.array(
         z.lazy(() => {
           return schemaMethod({
             modelType: entityArrayType as new () => DatabaseBaseModel,
@@ -1510,7 +1515,7 @@ export class ModelSchema extends BaseSchema {
           break;
       }
 
-      const lazyType = z.lazy(() => {
+      const lazyType: ZodTypes.ZodLazy<ZodTypes.ZodTypeAny> = z.lazy(() => {
         return schema;
       });
 

@@ -604,7 +604,7 @@ export class OpenAPIParser {
         // If field already exists and we're adding computed fields, check if it should be both optional and computed
         if (computed && schema[terraformName]) {
           // Update description if it's better in the read schema
-          const existingField = schema[terraformName];
+          const existingField: any = schema[terraformName];
           if (existingField && description && !existingField.description) {
             existingField.description = description;
           }
@@ -628,7 +628,7 @@ export class OpenAPIParser {
           schema[terraformName]?.computed
         ) {
           // Update the existing computed field to also be an input field
-          const existingField = schema[terraformName];
+          const existingField: any = schema[terraformName];
           if (existingField) {
             schema[terraformName] = {
               ...existingField,

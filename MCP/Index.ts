@@ -18,9 +18,11 @@ import OneUptimeOperation from "./Types/OneUptimeOperation";
 import MCPLogger from "./Utils/MCPLogger";
 
 // Load environment variables (suppress console output)
-const originalConsoleLog = console.log;
+const originalConsoleLog: (...data: any[]) => void = console.log;
+// eslint-disable-next-line no-console
 console.log = () => {}; // Temporarily disable console.log
 dotenv.config();
+// eslint-disable-next-line no-console
 console.log = originalConsoleLog; // Restore console.log
 
 MCPLogger.info("OneUptime MCP Server is starting...");
@@ -29,7 +31,7 @@ class OneUptimeMCPServer {
   private server: Server;
   private tools: McpToolInfo[] = [];
 
-  constructor() {
+  public constructor() {
     this.server = new Server(
       {
         name: "oneuptime-mcp",
@@ -49,7 +51,7 @@ class OneUptimeMCPServer {
 
   private initializeServices(): void {
     // Initialize OneUptime API Service
-    const apiKey = process.env["ONEUPTIME_API_KEY"];
+    const apiKey: string | undefined = process.env["ONEUPTIME_API_KEY"];
     if (!apiKey) {
       throw new Error(
         "OneUptime API key is required. Please set ONEUPTIME_API_KEY environment variable.",
@@ -78,7 +80,11 @@ class OneUptimeMCPServer {
   private setupHandlers(): void {
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      const mcpTools = this.tools.map((tool) => {
+      const mcpTools: Array<{
+        name: string;
+        description: string;
+        inputSchema: any;
+      }> = this.tools.map((tool: McpToolInfo) => {
         return {
           name: tool.name,
           description: tool.description,
@@ -91,57 +97,67 @@ class OneUptimeMCPServer {
     });
 
     // Handle tool calls
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+    this.server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request: any) => {
+        const { name, arguments: args } = request.params;
 
-      try {
-        // Find the tool by name
-        const tool = this.tools.find((t) => {
-          return t.name === name;
-        });
-        if (!tool) {
-          throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
-        }
-
-        MCPLogger.info(`Executing tool: ${name} for model: ${tool.modelName}`);
-
-        // Execute the OneUptime operation
-        const result = await OneUptimeApiService.executeOperation(
-          tool.tableName,
-          tool.operation,
-          tool.modelType,
-          tool.apiPath || "",
-          args as OneUptimeToolCallArgs,
-        );
-
-        // Format the response
-        const responseText = this.formatToolResponse(
-          tool,
-          result,
-          args as OneUptimeToolCallArgs,
-        );
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: responseText,
+        try {
+          // Find the tool by name
+          const tool: McpToolInfo | undefined = this.tools.find(
+            (t: McpToolInfo) => {
+              return t.name === name;
             },
-          ],
-        };
-      } catch (error) {
-        MCPLogger.error(`Error executing tool ${name}: ${error}`);
+          );
+          if (!tool) {
+            throw new McpError(
+              ErrorCode.MethodNotFound,
+              `Unknown tool: ${name}`,
+            );
+          }
 
-        if (error instanceof McpError) {
-          throw error;
+          MCPLogger.info(
+            `Executing tool: ${name} for model: ${tool.modelName}`,
+          );
+
+          // Execute the OneUptime operation
+          const result: any = await OneUptimeApiService.executeOperation(
+            tool.tableName,
+            tool.operation,
+            tool.modelType,
+            tool.apiPath || "",
+            args as OneUptimeToolCallArgs,
+          );
+
+          // Format the response
+          const responseText: string = this.formatToolResponse(
+            tool,
+            result,
+            args as OneUptimeToolCallArgs,
+          );
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: responseText,
+              },
+            ],
+          };
+        } catch (error) {
+          MCPLogger.error(`Error executing tool ${name}: ${error}`);
+
+          if (error instanceof McpError) {
+            throw error;
+          }
+
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Failed to execute ${name}: ${error}`,
+          );
         }
-
-        throw new McpError(
-          ErrorCode.InternalError,
-          `Failed to execute ${name}: ${error}`,
-        );
-      }
-    });
+      },
+    );
   }
 
   private formatToolResponse(
@@ -149,9 +165,9 @@ class OneUptimeMCPServer {
     result: any,
     args: OneUptimeToolCallArgs,
   ): string {
-    const operation = tool.operation;
-    const modelName = tool.singularName;
-    const pluralName = tool.pluralName;
+    const operation: OneUptimeOperation = tool.operation;
+    const modelName: string = tool.singularName;
+    const pluralName: string = tool.pluralName;
 
     switch (operation) {
       case OneUptimeOperation.Create:
@@ -163,24 +179,28 @@ class OneUptimeMCPServer {
         }
         return `❌ ${modelName} not found with ID: ${args.id}`;
 
-      case OneUptimeOperation.List:
-        const items = Array.isArray(result) ? result : result?.data || [];
-        const count = items.length;
-        const summary = `📊 Found ${count} ${count === 1 ? modelName : pluralName}`;
+      case OneUptimeOperation.List: {
+        const items: any[] = Array.isArray(result)
+          ? result
+          : result?.data || [];
+        const count: number = items.length;
+        const summary: string = `📊 Found ${count} ${count === 1 ? modelName : pluralName}`;
 
         if (count === 0) {
           return `${summary}. No items match the criteria.`;
         }
 
-        const limitedItems = items.slice(0, 5); // Show first 5 items
-        const itemsText = limitedItems
+        const limitedItems: any[] = items.slice(0, 5); // Show first 5 items
+        const itemsText: string = limitedItems
           .map((item: any, index: number) => {
             return `${index + 1}. ${JSON.stringify(item, null, 2)}`;
           })
           .join("\n");
 
-        const hasMore = count > 5 ? `\n... and ${count - 5} more items` : "";
+        const hasMore: string =
+          count > 5 ? `\n... and ${count - 5} more items` : "";
         return `${summary}:\n${itemsText}${hasMore}`;
+      }
 
       case OneUptimeOperation.Update:
         return `✅ Successfully updated ${modelName} (ID: ${args.id}): ${JSON.stringify(result, null, 2)}`;
@@ -188,26 +208,29 @@ class OneUptimeMCPServer {
       case OneUptimeOperation.Delete:
         return `🗑️ Successfully deleted ${modelName} (ID: ${args.id})`;
 
-      case OneUptimeOperation.Count:
-        const totalCount = result?.count || result || 0;
+      case OneUptimeOperation.Count: {
+        const totalCount: number = result?.count || result || 0;
         return `📊 Total count of ${pluralName}: ${totalCount}`;
+      }
 
       default:
         return `✅ Operation ${operation} completed successfully: ${JSON.stringify(result, null, 2)}`;
     }
   }
 
-  async run(): Promise<void> {
-    const transport = new StdioServerTransport();
+  public async run(): Promise<void> {
+    const transport: StdioServerTransport = new StdioServerTransport();
     await this.server.connect(transport);
 
     MCPLogger.info("OneUptime MCP Server is running!");
     MCPLogger.info(`Available tools: ${this.tools.length} total`);
 
     // Log some example tools
-    const exampleTools = this.tools.slice(0, 5).map((t) => {
-      return t.name;
-    });
+    const exampleTools: string[] = this.tools
+      .slice(0, 5)
+      .map((t: McpToolInfo) => {
+        return t.name;
+      });
     MCPLogger.info(`Example tools: ${exampleTools.join(", ")}`);
   }
 }
@@ -215,7 +238,7 @@ class OneUptimeMCPServer {
 // Start the server
 async function main(): Promise<void> {
   try {
-    const mcpServer = new OneUptimeMCPServer();
+    const mcpServer: OneUptimeMCPServer = new OneUptimeMCPServer();
     await mcpServer.run();
   } catch (error) {
     MCPLogger.error(`Failed to start MCP server: ${error}`);
@@ -235,7 +258,9 @@ process.on("SIGTERM", () => {
 });
 
 // Start the server
-main().catch((error) => {
-  MCPLogger.error(`Unhandled error: ${error}`);
+main().catch((error: unknown) => {
+  const errorMessage: string =
+    error instanceof Error ? error.message : String(error);
+  MCPLogger.error(`Unhandled error: ${errorMessage}`);
   process.exit(1);
 });

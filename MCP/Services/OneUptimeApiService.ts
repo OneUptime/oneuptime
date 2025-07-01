@@ -35,9 +35,9 @@ export default class OneUptimeApiService {
     this.config = config;
 
     // Parse the URL to extract protocol, hostname, and path
-    const url = URL.fromString(config.url);
-    const protocol = url.protocol;
-    const hostname = url.hostname;
+    const url: any = URL.fromString(config.url);
+    const protocol: any = url.protocol;
+    const hostname: any = url.hostname;
 
     // Initialize with no base route to avoid route accumulation
     this.api = new API(protocol, hostname, new Route("/"));
@@ -63,9 +63,14 @@ export default class OneUptimeApiService {
 
     this.validateOperationArgs(operation, args);
 
-    const route = this.buildApiRoute(apiPath, operation, args.id);
-    const headers = this.getHeaders();
-    const data = this.getRequestData(operation, args, tableName, modelType);
+    const route: any = this.buildApiRoute(apiPath, operation, args.id);
+    const headers: any = this.getHeaders();
+    const data: any = this.getRequestData(
+      operation,
+      args,
+      tableName,
+      modelType,
+    );
 
     MCPLogger.info(
       `Executing ${operation} operation for ${tableName} at ${route.toString()}`,
@@ -75,7 +80,7 @@ export default class OneUptimeApiService {
       let response: HTTPResponse<any> | HTTPErrorResponse;
 
       // Create a direct URL to avoid base route accumulation
-      const url = new URL(this.api.protocol, this.api.hostname, route);
+      const url: any = new URL(this.api.protocol, this.api.hostname, route);
 
       switch (operation) {
         case OneUptimeOperation.Create:
@@ -118,7 +123,7 @@ export default class OneUptimeApiService {
     id?: string,
   ): Route {
     // Start with the API base path
-    let fullPath = `/api${apiPath}`;
+    let fullPath: string = `/api${apiPath}`;
 
     switch (operation) {
       case OneUptimeOperation.Read:
@@ -183,10 +188,10 @@ export default class OneUptimeApiService {
         }
         return { data: updateData } as JSONObject;
       case OneUptimeOperation.List:
-      case OneUptimeOperation.Count:
-        const generatedSelect =
+      case OneUptimeOperation.Count: {
+        const generatedSelect: any =
           args.select || this.generateAllFieldsSelect(tableName, modelType);
-        const requestData = {
+        const requestData: JSONObject = {
           query: args.query || {},
           select: generatedSelect,
           skip: args.skip,
@@ -198,10 +203,11 @@ export default class OneUptimeApiService {
           `Request data for ${operation}: ${JSON.stringify(requestData, null, 2)}`,
         );
         return requestData;
-      case OneUptimeOperation.Read:
-        const readSelect =
+      }
+      case OneUptimeOperation.Read: {
+        const readSelect: any =
           args.select || this.generateAllFieldsSelect(tableName, modelType);
-        const readRequestData = {
+        const readRequestData: JSONObject = {
           select: readSelect,
         } as JSONObject;
 
@@ -209,6 +215,7 @@ export default class OneUptimeApiService {
           `Request data for Read: ${JSON.stringify(readRequestData, null, 2)}`,
         );
         return readRequestData;
+      }
       case OneUptimeOperation.Delete:
       default:
         return undefined;
@@ -234,8 +241,8 @@ export default class OneUptimeApiService {
         MCPLogger.info(`Searching DatabaseModels for tableName: ${tableName}`);
         ModelClass = DatabaseModels.find((Model: any) => {
           try {
-            const instance = new Model();
-            const instanceTableName = instance.tableName;
+            const instance: any = new Model();
+            const instanceTableName: string = instance.tableName;
             MCPLogger.info(
               `Checking model ${Model.name} with tableName: ${instanceTableName}`,
             );
@@ -249,7 +256,7 @@ export default class OneUptimeApiService {
         MCPLogger.info(`Searching AnalyticsModels for tableName: ${tableName}`);
         ModelClass = AnalyticsModels.find((Model: any) => {
           try {
-            const instance = new Model();
+            const instance: any = new Model();
             return instance.tableName === tableName;
           } catch (error) {
             MCPLogger.warn(
@@ -273,9 +280,9 @@ export default class OneUptimeApiService {
 
       // Try to get raw table columns first (most reliable approach)
       try {
-        const modelInstance = new ModelClass();
-        const tableColumns = getTableColumns(modelInstance);
-        const columnNames = Object.keys(tableColumns);
+        const modelInstance: any = new ModelClass();
+        const tableColumns: any = getTableColumns(modelInstance);
+        const columnNames: string[] = Object.keys(tableColumns);
 
         MCPLogger.info(
           `Raw table columns (${columnNames.length}): ${columnNames.slice(0, 10).join(", ")}`,
@@ -283,13 +290,13 @@ export default class OneUptimeApiService {
 
         if (columnNames.length > 0) {
           // Get access control information to filter out restricted fields
-          const accessControlForColumns =
+          const accessControlForColumns: any =
             modelInstance.getColumnAccessControlForAllColumns();
           const selectObject: JSONObject = {};
-          let filteredCount = 0;
+          let filteredCount: number = 0;
 
           for (const columnName of columnNames) {
-            const accessControl = accessControlForColumns[columnName];
+            const accessControl: any = accessControlForColumns[columnName];
 
             // Include the field if:
             // 1. No access control defined (open access)
@@ -354,14 +361,14 @@ export default class OneUptimeApiService {
 
       // Extract field names from the schema
       const selectObject: JSONObject = {};
-      const shape = selectSchema._def?.shape;
+      const shape: any = selectSchema._def?.shape;
 
       MCPLogger.info(
         `Schema shape keys: ${shape ? Object.keys(shape).length : 0}`,
       );
 
       if (shape) {
-        const fieldNames = Object.keys(shape);
+        const fieldNames: string[] = Object.keys(shape);
         MCPLogger.info(
           `Available fields: ${fieldNames.slice(0, 10).join(", ")}${fieldNames.length > 10 ? "..." : ""}`,
         );
@@ -416,19 +423,22 @@ export default class OneUptimeApiService {
     args: OneUptimeToolCallArgs,
   ): void {
     switch (operation) {
-      case OneUptimeOperation.Create:
+      case OneUptimeOperation.Create: {
         // For create operations, we need at least one data field (excluding reserved fields)
-        const createDataFields = Object.keys(args).filter((key) => {
-          return !["id", "query", "select", "skip", "limit", "sort"].includes(
-            key,
-          );
-        });
+        const createDataFields: string[] = Object.keys(args).filter(
+          (key: string) => {
+            return !["id", "query", "select", "skip", "limit", "sort"].includes(
+              key,
+            );
+          },
+        );
         if (createDataFields.length === 0) {
           throw new Error(
             "At least one data field is required for create operation",
           );
         }
         break;
+      }
       case OneUptimeOperation.Read:
       case OneUptimeOperation.Update:
       case OneUptimeOperation.Delete:
@@ -437,11 +447,18 @@ export default class OneUptimeApiService {
         }
         if (operation === OneUptimeOperation.Update) {
           // For update operations, we need at least one data field (excluding reserved fields)
-          const updateDataFields = Object.keys(args).filter((key) => {
-            return !["id", "query", "select", "skip", "limit", "sort"].includes(
-              key,
-            );
-          });
+          const updateDataFields: string[] = Object.keys(args).filter(
+            (key: string) => {
+              return ![
+                "id",
+                "query",
+                "select",
+                "skip",
+                "limit",
+                "sort",
+              ].includes(key);
+            },
+          );
           if (updateDataFields.length === 0) {
             throw new Error(
               "At least one data field is required for update operation",

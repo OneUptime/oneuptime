@@ -979,7 +979,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     conditionalAssignments.push("");
 
     for (const [name, attr] of Object.entries(updateSchema)) {
-      const terraformAttr = attr as TerraformAttribute;
+      const terraformAttr: TerraformAttribute = attr as TerraformAttribute;
       if (name === "id" || terraformAttr.computed) {
         continue;
       }

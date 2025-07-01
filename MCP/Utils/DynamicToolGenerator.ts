@@ -42,7 +42,7 @@ export default class DynamicToolGenerator {
     try {
       // The Zod schemas in this project are extended with OpenAPI metadata
       // We can extract the shape and create a basic JSON schema
-      const shape = (zodSchema as any)._def?.shape;
+      const shape: any = (zodSchema as any)._def?.shape;
 
       if (!shape) {
         return {
@@ -56,11 +56,11 @@ export default class DynamicToolGenerator {
       const required: string[] = [];
 
       for (const [key, value] of Object.entries(shape())) {
-        const zodField = value as any;
+        const zodField: any = value as any;
 
         // Handle ZodOptional fields by looking at the inner type
-        let actualField = zodField;
-        let isOptional = false;
+        let actualField: any = zodField;
+        let isOptional: boolean = false;
 
         if (zodField._def?.typeName === "ZodOptional") {
           actualField = zodField._def.innerType;
@@ -68,16 +68,16 @@ export default class DynamicToolGenerator {
         }
 
         // Extract OpenAPI metadata - it's stored in _def.openapi.metadata
-        const openApiMetadata =
+        const openApiMetadata: any =
           actualField._def?.openapi?.metadata ||
           zodField._def?.openapi?.metadata;
 
         // Clean up description by removing permission information
-        const rawDescription =
+        const rawDescription: string =
           zodField._def?.description ||
           openApiMetadata?.description ||
           `${key} field`;
-        const cleanDescription = this.cleanDescription(rawDescription);
+        const cleanDescription: string = this.cleanDescription(rawDescription);
 
         if (openApiMetadata) {
           const fieldSchema: any = {
@@ -121,7 +121,7 @@ export default class DynamicToolGenerator {
         required: required.length > 0 ? required : undefined,
         additionalProperties: false,
       };
-    } catch (error) {
+    } catch (_error: unknown) {
       return {
         type: "object",
         properties: {},
@@ -140,7 +140,8 @@ export default class DynamicToolGenerator {
     for (const ModelClass of DatabaseModels) {
       try {
         const model: DatabaseBaseModel = new ModelClass();
-        const tools = this.generateToolsForDatabaseModel(model, ModelClass);
+        const tools: { tools: McpToolInfo[] } =
+          this.generateToolsForDatabaseModel(model, ModelClass);
         allTools.push(...tools.tools);
       } catch (error) {
         MCPLogger.error(
@@ -153,7 +154,8 @@ export default class DynamicToolGenerator {
     for (const ModelClass of AnalyticsModels) {
       try {
         const model: AnalyticsBaseModel = new ModelClass();
-        const tools = this.generateToolsForAnalyticsModel(model, ModelClass);
+        const tools: { tools: McpToolInfo[] } =
+          this.generateToolsForAnalyticsModel(model, ModelClass);
         allTools.push(...tools.tools);
       } catch (error) {
         MCPLogger.error(
@@ -176,10 +178,10 @@ export default class DynamicToolGenerator {
     ModelClass: { new (): DatabaseBaseModel },
   ): ModelToolsResult {
     const tools: McpToolInfo[] = [];
-    const modelName = model.tableName || ModelClass.name;
-    const singularName = model.singularName || modelName;
-    const pluralName = model.pluralName || `${singularName}s`;
-    const apiPath = model.crudApiPath?.toString();
+    const modelName: string = model.tableName || ModelClass.name;
+    const singularName: string = model.singularName || modelName;
+    const pluralName: string = model.pluralName || `${singularName}s`;
+    const apiPath: string | undefined = model.crudApiPath?.toString();
 
     // Skip if model doesn't have required properties or documentation is disabled
     if (!modelName || !model.enableDocumentation || !apiPath) {
@@ -210,7 +212,7 @@ export default class DynamicToolGenerator {
     });
 
     // CREATE Tool
-    const createSchemaProperties = this.zodToJsonSchema(createSchema);
+    const createSchemaProperties: any = this.zodToJsonSchema(createSchema);
     tools.push({
       name: `create_${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} in OneUptime`,
@@ -285,7 +287,7 @@ export default class DynamicToolGenerator {
     });
 
     // UPDATE Tool
-    const updateSchemaProperties = this.zodToJsonSchema(updateSchema);
+    const updateSchemaProperties: any = this.zodToJsonSchema(updateSchema);
     tools.push({
       name: `update_${this.sanitizeToolName(singularName)}`,
       description: `Update an existing ${singularName} in OneUptime`,
@@ -374,10 +376,10 @@ export default class DynamicToolGenerator {
     ModelClass: { new (): AnalyticsBaseModel },
   ): ModelToolsResult {
     const tools: McpToolInfo[] = [];
-    const modelName = model.tableName || ModelClass.name;
-    const singularName = model.singularName || modelName;
-    const pluralName = model.pluralName || `${singularName}s`;
-    const apiPath = model.crudApiPath?.toString();
+    const modelName: string = model.tableName || ModelClass.name;
+    const singularName: string = model.singularName || modelName;
+    const pluralName: string = model.pluralName || `${singularName}s`;
+    const apiPath: string | undefined = model.crudApiPath?.toString();
 
     // Skip if model doesn't have required properties
     if (!modelName || !apiPath) {
@@ -413,7 +415,8 @@ export default class DynamicToolGenerator {
       });
 
     // CREATE Tool for Analytics
-    const analyticsCreateSchemaProperties = this.zodToJsonSchema(createSchema);
+    const analyticsCreateSchemaProperties: any =
+      this.zodToJsonSchema(createSchema);
     tools.push({
       name: `create_${this.sanitizeToolName(singularName)}`,
       description: `Create a new ${singularName} analytics record in OneUptime`,
@@ -503,10 +506,10 @@ export default class DynamicToolGenerator {
     }
 
     // Remove everything after "Permissions -" (including the word "Permissions")
-    const permissionsIndex = description.indexOf(". Permissions -");
+    const permissionsIndex: number = description.indexOf(". Permissions -");
     if (permissionsIndex !== -1) {
       // Get the text before ". Permissions -", and add back the period if it makes sense
-      const beforeText = description.substring(0, permissionsIndex);
+      const beforeText: string = description.substring(0, permissionsIndex);
       // Add period back if the text doesn't already end with punctuation
       if (
         beforeText &&
@@ -520,9 +523,9 @@ export default class DynamicToolGenerator {
     }
 
     // Also handle cases where it starts with "Permissions -" without a preceding sentence
-    const permissionsStartIndex = description.indexOf("Permissions -");
+    const permissionsStartIndex: number = description.indexOf("Permissions -");
     if (permissionsStartIndex !== -1) {
-      const beforePermissions = description
+      const beforePermissions: string = description
         .substring(0, permissionsStartIndex)
         .trim();
       // If there's meaningful content before "Permissions", return that
