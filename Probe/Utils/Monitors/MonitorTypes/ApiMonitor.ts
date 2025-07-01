@@ -201,6 +201,11 @@ export default class ApiMonitor {
         apiResponse.isTimeout = true;
       }
 
+      // if AggregateError is thrown, it means that the request failed
+      if ((err as any).toString().includes("AggregateError") ) {
+        return null;
+      }
+
       logger.error(
         `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
           apiResponse,

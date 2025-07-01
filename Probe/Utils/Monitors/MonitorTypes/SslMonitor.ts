@@ -109,6 +109,12 @@ export default class SSLMonitor {
         };
       }
 
+         // if AggregateError is thrown, it means that the request failed
+      if ((err as any).toString().includes("AggregateError") ) {
+        return null;
+      }
+
+
       return {
         isOnline: false,
         isTimeout: false,
