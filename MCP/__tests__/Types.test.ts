@@ -30,33 +30,28 @@ describe("OneUptime Types", () => {
     });
 
     it("should be usable in switch statements", () => {
-      const testOperation = OneUptimeOperation.Create;
-      let result = "";
+      const getOperationName = (testOperation: OneUptimeOperation): string => {
+        switch (testOperation) {
+          case OneUptimeOperation.Create:
+            return "create";
+          case OneUptimeOperation.Read:
+            return "read";
+          case OneUptimeOperation.List:
+            return "list";
+          case OneUptimeOperation.Update:
+            return "update";
+          case OneUptimeOperation.Delete:
+            return "delete";
+          case OneUptimeOperation.Count:
+            return "count";
+          default:
+            return "unknown";
+        }
+      };
 
-      switch (testOperation) {
-        case OneUptimeOperation.Create:
-          result = "create";
-          break;
-        case OneUptimeOperation.Read:
-          result = "read";
-          break;
-        case OneUptimeOperation.List:
-          result = "list";
-          break;
-        case OneUptimeOperation.Update:
-          result = "update";
-          break;
-        case OneUptimeOperation.Delete:
-          result = "delete";
-          break;
-        case OneUptimeOperation.Count:
-          result = "count";
-          break;
-        default:
-          result = "unknown";
-      }
-
-      expect(result).toBe("create");
+      expect(getOperationName(OneUptimeOperation.Create)).toBe("create");
+      expect(getOperationName(OneUptimeOperation.Read)).toBe("read");
+      expect(getOperationName(OneUptimeOperation.Update)).toBe("update");
     });
   });
 
@@ -76,7 +71,7 @@ describe("OneUptime Types", () => {
 
       expect(databaseModel === ModelType.Database).toBe(true);
       expect(analyticsModel === ModelType.Analytics).toBe(true);
-      expect(databaseModel === analyticsModel).toBe(false);
+      expect(databaseModel.toString() === analyticsModel.toString()).toBe(false);
     });
   });
 

@@ -15,6 +15,8 @@ import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
 import Permission from "Common/Types/Permission";
+import Protocol from "Common/Types/API/Protocol";
+import Hostname from "Common/Types/API/Hostname";
 
 export interface OneUptimeApiConfig {
   url: string;
@@ -35,12 +37,16 @@ export default class OneUptimeApiService {
     this.config = config;
 
     // Parse the URL to extract protocol, hostname, and path
-    const url: any = URL.fromString(config.url);
-    const protocol: any = url.protocol;
-    const hostname: any = url.hostname;
+    try {
+      const url: URL = URL.fromString(config.url);
+      const protocol: Protocol = url.protocol;
+      const hostname: Hostname = url.hostname;
 
-    // Initialize with no base route to avoid route accumulation
-    this.api = new API(protocol, hostname, new Route("/"));
+      // Initialize with no base route to avoid route accumulation
+      this.api = new API(protocol, hostname, new Route("/"));
+    } catch (error) {
+      throw new Error(`Invalid URL format: ${config.url}. Error: ${error}`);
+    }
 
     MCPLogger.info(`OneUptime API Service initialized with: ${config.url}`);
   }

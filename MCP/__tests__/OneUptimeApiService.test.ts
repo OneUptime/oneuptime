@@ -15,8 +15,47 @@ import { OneUptimeToolCallArgs } from "../Types/McpTypes";
 
 // Mock the Common dependencies
 jest.mock("Common/Utils/API");
-jest.mock("Common/Types/API/URL");
+jest.mock("Common/Types/API/URL", () => {
+  return {
+    default: class MockURL {
+      protocol: any;
+      hostname: any;
+      
+      constructor(protocol: any, hostname: any, _route?: any) {
+        this.protocol = protocol;
+        this.hostname = typeof hostname === 'string' ? { toString: () => hostname } : hostname;
+      }
+      
+      toString() {
+        return `${this.protocol}://${this.hostname.toString()}`;
+      }
+      
+      static fromString(url: unknown) {
+        return {
+          protocol: "https://",
+          hostname: { toString: () => "test.oneuptime.com" },
+          toString: () => url,
+        };
+      }
+      
+      static getDatabaseTransformer() {
+        return {
+          to: (value: any) => value?.toString(),
+          from: (value: any) => value,
+        };
+      }
+    },
+  };
+});
 jest.mock("Common/Types/API/Route");
+jest.mock("Common/Server/EnvironmentConfig", () => ({
+  LogLevel: "debug",
+  AdminDashboardClientURL: {
+    toString: () => "https://test.oneuptime.com",
+    protocol: "https://",
+    hostname: { toString: () => "test.oneuptime.com" },
+  },
+}));
 jest.mock("../Utils/MCPLogger");
 
 describe("OneUptimeApiService", () => {

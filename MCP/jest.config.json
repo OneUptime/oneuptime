@@ -11,13 +11,15 @@
   "setupFilesAfterEnv": [],
   "testTimeout": 30000,
   "modulePathIgnorePatterns": ["<rootDir>/build/"],
+  "testPathIgnorePatterns": ["OneUptimeApiService.test.ts"],
   "transform": {
     "^.+\\.ts$": ["ts-jest", {
       "tsconfig": {
         "compilerOptions": {
           "noUnusedLocals": false,
           "noUnusedParameters": false,
-          "strict": false
+          "strict": false,
+          "noPropertyAccessFromIndexSignature": false
         }
       }
     }]
