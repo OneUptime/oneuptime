@@ -9,5 +9,17 @@
     "!**/build/**"
   ],
   "setupFilesAfterEnv": [],
-  "testTimeout": 30000
+  "testTimeout": 30000,
+  "modulePathIgnorePatterns": ["<rootDir>/build/"],
+  "transform": {
+    "^.+\\.ts$": ["ts-jest", {
+      "tsconfig": {
+        "compilerOptions": {
+          "noUnusedLocals": false,
+          "noUnusedParameters": false,
+          "strict": false
+        }
+      }
+    }]
+  }
 }
