@@ -297,7 +297,7 @@ describe("DynamicToolGenerator", () => {
       testCases.forEach(({ operation, expectedProps, requiredProps }) => {
         // Verify operation is defined
         expect(operation).toBeDefined();
-        
+
         // Create expected schema structure
         const schema = {
           type: "object",

@@ -71,7 +71,9 @@ describe("OneUptime Types", () => {
 
       expect(databaseModel === ModelType.Database).toBe(true);
       expect(analyticsModel === ModelType.Analytics).toBe(true);
-      expect(databaseModel.toString() === analyticsModel.toString()).toBe(false);
+      expect(databaseModel.toString() === analyticsModel.toString()).toBe(
+        false,
+      );
     });
   });
 

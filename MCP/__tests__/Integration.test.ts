@@ -49,13 +49,15 @@ describe("MCP Server Integration", () => {
     });
 
     it("should handle validation errors", () => {
-      const validationError = "❌ Validation failed: Missing required field 'name'";
+      const validationError =
+        "❌ Validation failed: Missing required field 'name'";
       expect(validationError).toContain("Validation failed");
       expect(validationError).toContain("name");
     });
 
     it("should handle network errors", () => {
-      const networkError = "❌ Network error: Unable to connect to OneUptime API";
+      const networkError =
+        "❌ Network error: Unable to connect to OneUptime API";
       expect(networkError).toContain("Network error");
       expect(networkError).toContain("OneUptime API");
     });
@@ -65,14 +67,16 @@ describe("MCP Server Integration", () => {
     it("should validate tool names follow convention", () => {
       const validToolNames = [
         "create_project",
-        "read_monitor", 
+        "read_monitor",
         "update_incident",
         "delete_user",
-        "list_alerts"
+        "list_alerts",
       ];
 
-      validToolNames.forEach(name => {
-        expect(name).toMatch(/^(create|read|update|delete|list|count)_[a-z_]+$/);
+      validToolNames.forEach((name) => {
+        expect(name).toMatch(
+          /^(create|read|update|delete|list|count)_[a-z_]+$/,
+        );
       });
     });
 

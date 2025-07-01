@@ -34,7 +34,7 @@ describe("Mock Tests", () => {
     it("should test mock resolved values", async () => {
       mockApiCall.mockResolvedValue({ id: "123", name: "Test" });
 
-      const result = await mockApiCall() as { id: string; name: string };
+      const result = (await mockApiCall()) as { id: string; name: string };
 
       expect(result.id).toBe("123");
       expect(result.name).toBe("Test");
@@ -112,7 +112,10 @@ describe("Mock Tests", () => {
         return { id, processed: true };
       });
 
-      const result = await mockApiCall("test-id") as { id: string; processed: boolean };
+      const result = (await mockApiCall("test-id")) as {
+        id: string;
+        processed: boolean;
+      };
 
       expect(result.id).toBe("test-id");
       expect(result.processed).toBe(true);
@@ -199,7 +202,11 @@ describe("Mock Tests", () => {
       };
 
       mockApiCall.mockReturnValue(validResponse);
-      const result = mockApiCall() as { success: boolean; data: object; timestamp: string };
+      const result = mockApiCall() as {
+        success: boolean;
+        data: object;
+        timestamp: string;
+      };
 
       expect(result).toHaveProperty("success");
       expect(result).toHaveProperty("data");

@@ -1,9 +1,18 @@
-import { describe, it, expect, jest, beforeEach, afterEach } from "@jest/globals";
+import {
+  describe,
+  it,
+  expect,
+  jest,
+  beforeEach,
+  afterEach,
+} from "@jest/globals";
 
 describe("MCPLogger", () => {
   beforeEach(() => {
     // Mock process.stderr.write since MCPLogger uses it
-    jest.spyOn(process.stderr, "write").mockImplementation(() => true);
+    jest.spyOn(process.stderr, "write").mockImplementation(() => {
+      return true;
+    });
   });
 
   afterEach(() => {

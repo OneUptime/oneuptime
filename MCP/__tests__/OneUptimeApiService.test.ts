@@ -20,42 +20,67 @@ jest.mock("Common/Types/API/URL", () => {
     default: class MockURL {
       protocol: any;
       hostname: any;
-      
+
       constructor(protocol: any, hostname: any, _route?: any) {
         this.protocol = protocol;
-        this.hostname = typeof hostname === 'string' ? { toString: () => hostname } : hostname;
+        this.hostname =
+          typeof hostname === "string"
+            ? {
+                toString: () => {
+                  return hostname;
+                },
+              }
+            : hostname;
       }
-      
+
       toString() {
         return `${this.protocol}://${this.hostname.toString()}`;
       }
-      
+
       static fromString(url: unknown) {
         return {
           protocol: "https://",
-          hostname: { toString: () => "test.oneuptime.com" },
-          toString: () => url,
+          hostname: {
+            toString: () => {
+              return "test.oneuptime.com";
+            },
+          },
+          toString: () => {
+            return url;
+          },
         };
       }
-      
+
       static getDatabaseTransformer() {
         return {
-          to: (value: any) => value?.toString(),
-          from: (value: any) => value,
+          to: (value: any) => {
+            return value?.toString();
+          },
+          from: (value: any) => {
+            return value;
+          },
         };
       }
     },
   };
 });
 jest.mock("Common/Types/API/Route");
-jest.mock("Common/Server/EnvironmentConfig", () => ({
-  LogLevel: "debug",
-  AdminDashboardClientURL: {
-    toString: () => "https://test.oneuptime.com",
-    protocol: "https://",
-    hostname: { toString: () => "test.oneuptime.com" },
-  },
-}));
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  return {
+    LogLevel: "debug",
+    AdminDashboardClientURL: {
+      toString: () => {
+        return "https://test.oneuptime.com";
+      },
+      protocol: "https://",
+      hostname: {
+        toString: () => {
+          return "test.oneuptime.com";
+        },
+      },
+    },
+  };
+});
 jest.mock("../Utils/MCPLogger");
 
 describe("OneUptimeApiService", () => {

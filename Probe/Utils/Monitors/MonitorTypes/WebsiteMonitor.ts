@@ -198,8 +198,8 @@ export default class WebsiteMonitor {
         return probeWebsiteResponse;
       }
 
-            // if AggregateError is thrown, it means that the request failed
-      if ((err as any).toString().includes("AggregateError") ) {
+      // if AggregateError is thrown, it means that the request failed
+      if ((err as any).toString().includes("AggregateError")) {
         return null;
       }
 
