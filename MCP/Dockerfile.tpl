@@ -42,11 +42,14 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./MCP/package*.json /usr/src/app/
-RUN npm install --only=production
+RUN npm install
 COPY ./MCP /usr/src/app
 
 # Build the application
 RUN npm run build
+
+# Remove dev dependencies after build
+RUN npm prune --production
 
 # Expose Port
 EXPOSE 3002
