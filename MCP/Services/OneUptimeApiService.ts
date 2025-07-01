@@ -165,7 +165,7 @@ export default class OneUptimeApiService {
     );
 
     switch (operation) {
-      case OneUptimeOperation.Create:
+      case OneUptimeOperation.Create: {
         // For create operations, all properties except reserved ones are part of the data
         const createData: JSONObject = {};
         for (const [key, value] of Object.entries(args)) {
@@ -176,7 +176,8 @@ export default class OneUptimeApiService {
           }
         }
         return { data: createData } as JSONObject;
-      case OneUptimeOperation.Update:
+      }
+      case OneUptimeOperation.Update: {
         // For update operations, all properties except reserved ones are part of the data
         const updateData: JSONObject = {};
         for (const [key, value] of Object.entries(args)) {
@@ -187,6 +188,7 @@ export default class OneUptimeApiService {
           }
         }
         return { data: updateData } as JSONObject;
+      }
       case OneUptimeOperation.List:
       case OneUptimeOperation.Count: {
         const generatedSelect: any =

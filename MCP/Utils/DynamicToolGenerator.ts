@@ -121,7 +121,7 @@ export default class DynamicToolGenerator {
         required: required.length > 0 ? required : undefined,
         additionalProperties: false,
       };
-    } catch (_error: unknown) {
+    } catch {
       return {
         type: "object",
         properties: {},

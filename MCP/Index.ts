@@ -17,13 +17,8 @@ import { McpToolInfo, OneUptimeToolCallArgs } from "./Types/McpTypes";
 import OneUptimeOperation from "./Types/OneUptimeOperation";
 import MCPLogger from "./Utils/MCPLogger";
 
-// Load environment variables (suppress console output)
-const originalConsoleLog: (...data: any[]) => void = console.log;
-// eslint-disable-next-line no-console
-console.log = () => {}; // Temporarily disable console.log
+// Load environment variables
 dotenv.config();
-// eslint-disable-next-line no-console
-console.log = originalConsoleLog; // Restore console.log
 
 MCPLogger.info("OneUptime MCP Server is starting...");
 
