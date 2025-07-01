@@ -21,7 +21,7 @@ describe("DynamicToolGenerator", () => {
         // Look at a few fields to understand the structure
         const fields: [string, any][] = Object.entries(shapeResult).slice(0, 3);
 
-        for (const [_key, value] of fields) {
+        for (const [, value] of fields) {
           // Check different possible locations for OpenAPI metadata
           const fieldDef: any = (value as any)._def;
 
@@ -128,12 +128,12 @@ describe("DynamicToolGenerator", () => {
   test("should generate proper tool names for OnCallDutyPolicyEscalationRule model", () => {
     // Test the actual model that was mentioned in the issue
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const OnCallDutyModel: any =
-      require("Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule").default;
-    const onCallDutyModel: any = new OnCallDutyModel();
+
+    const OnCallDutyPolicyEscalationRule: any =
+      new OnCallDutyPolicyEscalationRule();
     const tools: any = DynamicToolGenerator.generateToolsForDatabaseModel(
-      onCallDutyModel,
-      OnCallDutyModel,
+      OnCallDutyPolicyEscalationRule,
+      OnCallDutyPolicyEscalationRule,
     );
 
     expect(tools.tools.length).toBeGreaterThan(0);
