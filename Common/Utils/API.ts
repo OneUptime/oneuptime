@@ -49,7 +49,7 @@ export default class API {
   public constructor(
     protocol: Protocol,
     hostname: Hostname,
-    baseRoute?: Route
+    baseRoute?: Route,
   ) {
     this.protocol = protocol;
     this.hostname = hostname;
@@ -67,13 +67,13 @@ export default class API {
     path: Route,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.get<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
-      options
+      options,
     );
   }
 
@@ -83,13 +83,13 @@ export default class API {
     path: Route,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.delete<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
-      options
+      options,
     );
   }
 
@@ -99,13 +99,13 @@ export default class API {
     path: Route,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.head<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
-      options
+      options,
     );
   }
 
@@ -115,13 +115,13 @@ export default class API {
     path: Route,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.put<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
-      options
+      options,
     );
   }
 
@@ -131,13 +131,13 @@ export default class API {
     path: Route,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.patch<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
-      options
+      options,
     );
   }
 
@@ -147,24 +147,24 @@ export default class API {
     path: Route,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.post<T>(
       new URL(this.protocol, this.hostname, this.baseRoute.addRoute(path)),
       data,
       headers,
-      options
+      options,
     );
   }
 
   protected static handleError(
-    error: HTTPErrorResponse | APIException
+    error: HTTPErrorResponse | APIException,
   ): HTTPErrorResponse | APIException {
     return error;
   }
 
   protected static async onResponseSuccessHeaders(
-    headers: Dictionary<string>
+    headers: Dictionary<string>,
   ): Promise<Dictionary<string>> {
     return Promise.resolve(headers);
   }
@@ -204,7 +204,7 @@ export default class API {
     url: URL,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch<T>(
       HTTPMethod.GET,
@@ -212,7 +212,7 @@ export default class API {
       data,
       headers,
       undefined,
-      options
+      options,
     );
   }
 
@@ -228,7 +228,7 @@ export default class API {
     url: URL,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch(
       HTTPMethod.DELETE,
@@ -236,7 +236,7 @@ export default class API {
       data,
       headers,
       undefined,
-      options
+      options,
     );
   }
 
@@ -252,7 +252,7 @@ export default class API {
     url: URL,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch(
       HTTPMethod.HEAD,
@@ -260,7 +260,7 @@ export default class API {
       data,
       headers,
       undefined,
-      options
+      options,
     );
   }
 
@@ -276,7 +276,7 @@ export default class API {
     url: URL,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch(
       HTTPMethod.PUT,
@@ -284,7 +284,7 @@ export default class API {
       data,
       headers,
       undefined,
-      options
+      options,
     );
   }
 
@@ -300,7 +300,7 @@ export default class API {
     url: URL,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch(
       HTTPMethod.PATCH,
@@ -308,7 +308,7 @@ export default class API {
       data,
       headers,
       undefined,
-      options
+      options,
     );
   }
 
@@ -324,7 +324,7 @@ export default class API {
     url: URL,
     data?: JSONObject | JSONArray,
     headers?: Headers,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await this.fetch(
       HTTPMethod.POST,
@@ -332,7 +332,7 @@ export default class API {
       data,
       headers,
       undefined,
-      options
+      options,
     );
   }
 
@@ -350,7 +350,7 @@ export default class API {
     data?: JSONObject | JSONArray,
     headers?: Headers,
     params?: Dictionary<string>,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     const apiHeaders: Headers = this.getHeaders(headers);
 
@@ -421,13 +421,13 @@ export default class API {
       }
 
       result.headers = await this.onResponseSuccessHeaders(
-        result.headers as Dictionary<string>
+        result.headers as Dictionary<string>,
       );
 
       const response: HTTPResponse<T> = new HTTPResponse<T>(
         result.status,
         result.data,
-        result.headers as Dictionary<string>
+        result.headers as Dictionary<string>,
       );
 
       return response;
@@ -451,7 +451,7 @@ export default class API {
       return new HTTPErrorResponse(
         error.response.status,
         error.response.data as JSONObject | JSONArray,
-        error.response.headers as Dictionary<string>
+        error.response.headers as Dictionary<string>,
       );
     }
 
@@ -476,10 +476,14 @@ export default class API {
       (error as any).name === "AggregateError" &&
       (error as any).errors
     ) {
-      const aggregateErrors = (error as any).errors as Error[];
-      const errorMessages = aggregateErrors
-        .map((err: Error) => err.message || err.toString())
-        .filter((msg: string) => msg && msg.trim().length > 0);
+      const aggregateErrors: Error[] = (error as any).errors as Error[];
+      const errorMessages: string[] = aggregateErrors
+        .map((err: Error) => {
+          return err.message || err.toString();
+        })
+        .filter((msg: string) => {
+          return msg && msg.trim().length > 0;
+        });
 
       if (errorMessages.length > 0) {
         errorString = errorMessages.join("; ");
