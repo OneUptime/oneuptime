@@ -23,13 +23,11 @@
         "Common": "file:../Common",
         "@modelcontextprotocol/sdk": "^0.6.0",
         "ts-node": "^10.9.1",
-        "dotenv": "^16.4.5",
-        "node-fetch": "^3.3.2"
+        "dotenv": "^16.4.5"
     },
     "devDependencies": {
         "@types/jest": "^27.5.0",
         "@types/node": "^17.0.31",
-        "@types/node-fetch": "^2.6.4",
         "jest": "^28.1.0",
         "nodemon": "^2.0.20",
         "ts-jest": "^28.0.2",
