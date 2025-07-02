@@ -34,7 +34,7 @@ export default class PortMonitor {
   public static async ping(
     host: Hostname | IPv4 | IPv6 | URL,
     port: Port,
-    pingOptions?: PingOptions,
+    pingOptions?: PingOptions
   ): Promise<PortMonitorResponse | null> {
     if (!pingOptions) {
       pingOptions = {};
@@ -68,7 +68,7 @@ export default class PortMonitor {
     logger.debug(
       `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${
         pingOptions?.currentRetryCount
-      }`,
+      }`
     );
 
     try {
@@ -77,7 +77,7 @@ export default class PortMonitor {
       const promiseResult: Promise<PositiveNumber> = new Promise(
         (
           resolve: (responseTimeInMS: PositiveNumber) => void,
-          reject: PromiseRejectErrorFunction,
+          reject: PromiseRejectErrorFunction
         ) => {
           const startTime: [number, number] = process.hrtime();
 
@@ -96,11 +96,11 @@ export default class PortMonitor {
           socket.connect(port.toNumber(), hostAddress, () => {
             const endTime: [number, number] = process.hrtime(startTime);
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
-              Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
+              Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000)
             );
 
             logger.debug(
-              `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port!.toString()} success: Response Time ${responseTimeInMS} ms`,
+              `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port!.toString()} success: Response Time ${responseTimeInMS} ms`
             );
 
             socket.destroy(); // Close the connection after success
@@ -124,7 +124,7 @@ export default class PortMonitor {
                 port.toNumber() === 25
               ) {
                 logger.debug(
-                  "Ping monitoring is disabled because this is deployed in the cloud",
+                  "Ping monitoring is disabled because this is deployed in the cloud"
                 );
                 resolve(new PositiveNumber(timeout));
               } else {
@@ -147,7 +147,7 @@ export default class PortMonitor {
             hasPromiseResolved = true;
             return;
           });
-        },
+        }
       );
 
       const responseTimeInMS: PositiveNumber =
@@ -171,7 +171,7 @@ export default class PortMonitor {
       };
     } catch (err: unknown) {
       logger.debug(
-        `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port.toString()} error: `,
+        `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port.toString()} error: `
       );
 
       logger.debug(err);
@@ -194,7 +194,7 @@ export default class PortMonitor {
       if (!pingOptions.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorPortMonitors())) {
           logger.error(
-            `PortMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
+            `PortMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`
           );
           return null;
         }
@@ -210,6 +210,11 @@ export default class PortMonitor {
           failureCause: (err as any).toString(),
           isTimeout: true,
         };
+      }
+
+      // if AggregateError is thrown, it means that the request failed
+      if ((err as any).toString().includes("AggregateError")) {
+        return null;
       }
 
       return {
