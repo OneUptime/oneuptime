@@ -19,18 +19,20 @@ describe("OneUptime Types", () => {
     });
 
     it("should contain exactly 6 operations", () => {
-      const operations = Object.values(OneUptimeOperation);
+      const operations: string[] = Object.values(OneUptimeOperation);
       expect(operations).toHaveLength(6);
     });
 
     it("should have string values for all operations", () => {
-      Object.values(OneUptimeOperation).forEach((operation) => {
+      Object.values(OneUptimeOperation).forEach((operation: string) => {
         expect(typeof operation).toBe("string");
       });
     });
 
     it("should be usable in switch statements", () => {
-      const getOperationName = (testOperation: OneUptimeOperation): string => {
+      const getOperationName: (testOperation: OneUptimeOperation) => string = (
+        testOperation: OneUptimeOperation,
+      ): string => {
         switch (testOperation) {
           case OneUptimeOperation.Create:
             return "create";
@@ -66,8 +68,8 @@ describe("OneUptime Types", () => {
     });
 
     it("should be usable for type checking", () => {
-      const databaseModel = ModelType.Database;
-      const analyticsModel = ModelType.Analytics;
+      const databaseModel: ModelType = ModelType.Database;
+      const analyticsModel: ModelType = ModelType.Analytics;
 
       expect(databaseModel === ModelType.Database).toBe(true);
       expect(analyticsModel === ModelType.Analytics).toBe(true);
@@ -123,9 +125,10 @@ describe("OneUptime Types", () => {
     });
 
     it("should support all operations", () => {
-      const operations = Object.values(OneUptimeOperation);
+      const operations: OneUptimeOperation[] =
+        Object.values(OneUptimeOperation);
 
-      operations.forEach((operation) => {
+      operations.forEach((operation: OneUptimeOperation) => {
         const toolInfo: McpToolInfo = {
           name: `${operation}_test`,
           description: `Test ${operation} operation`,
@@ -286,7 +289,7 @@ describe("OneUptime Types", () => {
         OneUptimeOperation.Count,
       ];
 
-      validOperations.forEach((op) => {
+      validOperations.forEach((op: OneUptimeOperation) => {
         expect(Object.values(OneUptimeOperation)).toContain(op);
       });
     });
@@ -297,7 +300,7 @@ describe("OneUptime Types", () => {
         ModelType.Analytics,
       ];
 
-      validModelTypes.forEach((type) => {
+      validModelTypes.forEach((type: ModelType) => {
         expect(Object.values(ModelType)).toContain(type);
       });
     });
@@ -305,7 +308,7 @@ describe("OneUptime Types", () => {
 
   describe("JSON Schema Compatibility", () => {
     it("should work with JSON schema structures", () => {
-      const jsonSchema = {
+      const jsonSchema: any = {
         type: "object",
         properties: {
           name: {

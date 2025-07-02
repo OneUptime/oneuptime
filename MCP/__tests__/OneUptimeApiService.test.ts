@@ -18,26 +18,26 @@ jest.mock("Common/Utils/API");
 jest.mock("Common/Types/API/URL", () => {
   return {
     default: class MockURL {
-      protocol: any;
-      hostname: any;
+      public protocol: any;
+      public hostname: any;
 
-      constructor(protocol: any, hostname: any, _route?: any) {
+      public constructor(protocol: any, hostname: any, _route?: any) {
         this.protocol = protocol;
         this.hostname =
           typeof hostname === "string"
             ? {
-                toString: () => {
+                toString: (): string => {
                   return hostname;
                 },
               }
             : hostname;
       }
 
-      toString() {
+      public toString(): string {
         return `${this.protocol}://${this.hostname.toString()}`;
       }
 
-      static fromString(url: unknown) {
+      public static fromString(url: unknown): any {
         return {
           protocol: "https://",
           hostname: {
@@ -51,7 +51,7 @@ jest.mock("Common/Types/API/URL", () => {
         };
       }
 
-      static getDatabaseTransformer() {
+      public static getDatabaseTransformer(): any {
         return {
           to: (value: any) => {
             return value?.toString();
@@ -120,13 +120,13 @@ describe("OneUptimeApiService", () => {
     });
 
     it("should handle different URL formats", () => {
-      const configs = [
+      const configs: Array<{ url: string; apiKey: string }> = [
         { url: "https://oneuptime.com", apiKey: "key1" },
         { url: "http://localhost:3000", apiKey: "key2" },
         { url: "https://custom.domain.com:8080/api", apiKey: "key3" },
       ];
 
-      configs.forEach((config) => {
+      configs.forEach((config: { url: string; apiKey: string }) => {
         expect(() => {
           OneUptimeApiService.initialize(config);
         }).not.toThrow();
@@ -249,7 +249,11 @@ describe("OneUptimeApiService", () => {
     });
 
     it("should build correct request data for different operations", () => {
-      const testCases = [
+      const testCases: Array<{
+        operation: OneUptimeOperation;
+        args: any;
+        expectedData: any;
+      }> = [
         {
           operation: OneUptimeOperation.Create,
           args: { data: { name: "Test" } },
@@ -287,11 +291,17 @@ describe("OneUptimeApiService", () => {
         },
       ];
 
-      testCases.forEach((testCase) => {
-        // Test the internal getRequestData method if it were public
-        // This would require exposing the method or testing through executeOperation
-        expect(testCase.expectedData).toBeDefined();
-      });
+      testCases.forEach(
+        (testCase: {
+          operation: OneUptimeOperation;
+          args: any;
+          expectedData: any;
+        }) => {
+          // Test the internal getRequestData method if it were public
+          // This would require exposing the method or testing through executeOperation
+          expect(testCase.expectedData).toBeDefined();
+        },
+      );
     });
   });
 
@@ -312,7 +322,7 @@ describe("OneUptimeApiService", () => {
       OneUptimeApiService.initialize(mockConfig);
 
       // Access the private config through type assertion for testing
-      const storedConfig = (OneUptimeApiService as any).config;
+      const storedConfig: any = (OneUptimeApiService as any).config;
       expect(storedConfig).toEqual(mockConfig);
     });
 
@@ -328,7 +338,7 @@ describe("OneUptimeApiService", () => {
         OneUptimeApiService.initialize(newConfig);
       }).not.toThrow();
 
-      const storedConfig = (OneUptimeApiService as any).config;
+      const storedConfig: any = (OneUptimeApiService as any).config;
       expect(storedConfig).toEqual(newConfig);
     });
   });

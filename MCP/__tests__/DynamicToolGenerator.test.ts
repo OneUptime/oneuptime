@@ -16,7 +16,10 @@ describe("DynamicToolGenerator", () => {
   describe("Tool Name Sanitization", () => {
     it("should sanitize tool names correctly", () => {
       // Test the sanitization logic that converts names to valid MCP tool names
-      const testCases = [
+      const testCases: Array<{
+        input: string;
+        expected: string;
+      }> = [
         { input: "CreateProject", expected: "create_project" },
         { input: "listAllUsers", expected: "list_all_users" },
         { input: "Update-Status", expected: "update_status" },
@@ -27,24 +30,26 @@ describe("DynamicToolGenerator", () => {
         { input: "_leading_trailing_", expected: "leading_trailing" },
       ];
 
-      testCases.forEach(({ input, expected }) => {
-        // Since sanitizeToolName is private, we test it through the public API
-        // or we could expose it for testing purposes
-        const sanitized = input
-          .replace(/([a-z])([A-Z])/g, "$1_$2")
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "_")
-          .replace(/_+/g, "_")
-          .replace(/^_|_$/g, "");
+      testCases.forEach(
+        ({ input, expected }: { input: string; expected: string }) => {
+          // Since sanitizeToolName is private, we test it through the public API
+          // or we could expose it for testing purposes
+          const sanitized: string = input
+            .replace(/([a-z])([A-Z])/g, "$1_$2")
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_|_$/g, "");
 
-        expect(sanitized).toBe(expected);
-      });
+          expect(sanitized).toBe(expected);
+        },
+      );
     });
   });
 
   describe("Tool Generation", () => {
     it("should generate tools for all operations", () => {
-      const mockDatabaseModels = {
+      const mockDatabaseModels: Record<string, any> = {
         Project: {
           tableName: "Project",
           singularName: "project",
@@ -57,7 +62,7 @@ describe("DynamicToolGenerator", () => {
         },
       };
 
-      const mockAnalyticsModels = {
+      const mockAnalyticsModels: Record<string, any> = {
         Log: {
           tableName: "Log",
           singularName: "log",
@@ -74,7 +79,8 @@ describe("DynamicToolGenerator", () => {
       });
 
       // Test that tools are generated for each operation
-      const operations = Object.values(OneUptimeOperation);
+      const operations: OneUptimeOperation[] =
+        Object.values(OneUptimeOperation);
       expect(operations).toContain(OneUptimeOperation.Create);
       expect(operations).toContain(OneUptimeOperation.Read);
       expect(operations).toContain(OneUptimeOperation.List);
@@ -116,7 +122,7 @@ describe("DynamicToolGenerator", () => {
     it("should handle Zod schema to JSON schema conversion", () => {
       // This test validates that schema conversion would work
       // Mock Zod schema structure
-      const mockZodSchema = {
+      const mockZodSchema: Record<string, any> = {
         _def: {
           shape: {
             name: { _def: { typeName: "string" } },
@@ -128,7 +134,11 @@ describe("DynamicToolGenerator", () => {
       };
 
       // Test the conversion logic
-      const expectedJsonSchema = {
+      const expectedJsonSchema: {
+        type: string;
+        properties: Record<string, any>;
+        required: string[];
+      } = {
         type: "object",
         properties: {
           name: { type: "string" },
@@ -140,14 +150,18 @@ describe("DynamicToolGenerator", () => {
       };
 
       // Since zodToJsonSchema is private, we test the expected structure
-      expect(mockZodSchema._def.shape).toHaveProperty("name");
+      expect(mockZodSchema["_def"]["shape"]).toHaveProperty("name");
       expect(expectedJsonSchema.type).toBe("object");
       expect(expectedJsonSchema.properties).toHaveProperty("name");
       expect(expectedJsonSchema.properties).toHaveProperty("email");
     });
 
     it("should handle empty schemas", () => {
-      const emptySchema = {
+      const emptySchema: {
+        type: string;
+        properties: Record<string, any>;
+        required: string[];
+      } = {
         type: "object",
         properties: {},
         required: [],
@@ -160,15 +174,19 @@ describe("DynamicToolGenerator", () => {
 
   describe("Model Type Handling", () => {
     it("should distinguish between database and analytics models", () => {
-      const databaseModelTypes = [ModelType.Database];
-      const analyticsModelTypes = [ModelType.Analytics];
+      const databaseModelTypes: ModelType[] = [ModelType.Database];
+      const analyticsModelTypes: ModelType[] = [ModelType.Analytics];
 
       expect(databaseModelTypes).toContain(ModelType.Database);
       expect(analyticsModelTypes).toContain(ModelType.Analytics);
     });
 
     it("should generate different API paths for different model types", () => {
-      const testCases = [
+      const testCases: Array<{
+        modelType: ModelType;
+        tableName: string;
+        expectedPath: string;
+      }> = [
         {
           modelType: ModelType.Database,
           tableName: "Project",
@@ -181,17 +199,31 @@ describe("DynamicToolGenerator", () => {
         },
       ];
 
-      testCases.forEach(({ modelType, tableName, expectedPath }) => {
-        const apiPath = `/api/${tableName.toLowerCase()}`;
-        expect(apiPath).toBe(expectedPath);
-        expect(modelType).toBeDefined(); // Use modelType to avoid unused variable warning
-      });
+      testCases.forEach(
+        ({
+          modelType,
+          tableName,
+          expectedPath,
+        }: {
+          modelType: ModelType;
+          tableName: string;
+          expectedPath: string;
+        }) => {
+          const apiPath: string = `/api/${tableName.toLowerCase()}`;
+          expect(apiPath).toBe(expectedPath);
+          expect(modelType).toBeDefined(); // Use modelType to avoid unused variable warning
+        },
+      );
     });
   });
 
   describe("Tool Description Generation", () => {
     it("should generate appropriate descriptions for each operation", () => {
-      const testCases = [
+      const testCases: Array<{
+        operation: OneUptimeOperation;
+        modelName: string;
+        expectedDescription: string;
+      }> = [
         {
           operation: OneUptimeOperation.Create,
           modelName: "Project",
@@ -227,41 +259,55 @@ describe("DynamicToolGenerator", () => {
         },
       ];
 
-      testCases.forEach(({ operation, modelName, expectedDescription }) => {
-        const singularName = modelName.toLowerCase();
-        let description: string;
+      testCases.forEach(
+        ({
+          operation,
+          modelName,
+          expectedDescription,
+        }: {
+          operation: OneUptimeOperation;
+          modelName: string;
+          expectedDescription: string;
+        }) => {
+          const singularName: string = modelName.toLowerCase();
+          let description: string;
 
-        switch (operation) {
-          case OneUptimeOperation.Create:
-            description = `Create a new ${singularName} in OneUptime`;
-            break;
-          case OneUptimeOperation.Read:
-            description = `Retrieve a specific ${singularName} from OneUptime by ID`;
-            break;
-          case OneUptimeOperation.List:
-            description = `List and search ${modelName.toLowerCase()}s in OneUptime with optional filtering, pagination, and sorting`;
-            break;
-          case OneUptimeOperation.Update:
-            description = `Update an existing ${singularName} in OneUptime`;
-            break;
-          case OneUptimeOperation.Delete:
-            description = `Delete a ${singularName} from OneUptime`;
-            break;
-          case OneUptimeOperation.Count:
-            description = `Count the total number of ${modelName.toLowerCase()}s in OneUptime with optional filtering`;
-            break;
-          default:
-            description = `Perform ${operation} operation on ${singularName}`;
-        }
+          switch (operation) {
+            case OneUptimeOperation.Create:
+              description = `Create a new ${singularName} in OneUptime`;
+              break;
+            case OneUptimeOperation.Read:
+              description = `Retrieve a specific ${singularName} from OneUptime by ID`;
+              break;
+            case OneUptimeOperation.List:
+              description = `List and search ${modelName.toLowerCase()}s in OneUptime with optional filtering, pagination, and sorting`;
+              break;
+            case OneUptimeOperation.Update:
+              description = `Update an existing ${singularName} in OneUptime`;
+              break;
+            case OneUptimeOperation.Delete:
+              description = `Delete a ${singularName} from OneUptime`;
+              break;
+            case OneUptimeOperation.Count:
+              description = `Count the total number of ${modelName.toLowerCase()}s in OneUptime with optional filtering`;
+              break;
+            default:
+              description = `Perform ${operation} operation on ${singularName}`;
+          }
 
-        expect(description).toBe(expectedDescription);
-      });
+          expect(description).toBe(expectedDescription);
+        },
+      );
     });
   });
 
   describe("Input Schema Generation", () => {
     it("should generate appropriate schemas for different operations", () => {
-      const testCases = [
+      const testCases: Array<{
+        operation: OneUptimeOperation;
+        expectedProps: string[];
+        requiredProps: string[];
+      }> = [
         {
           operation: OneUptimeOperation.Create,
           expectedProps: ["data"],
@@ -294,68 +340,82 @@ describe("DynamicToolGenerator", () => {
         },
       ];
 
-      testCases.forEach(({ operation, expectedProps, requiredProps }) => {
-        // Verify operation is defined
-        expect(operation).toBeDefined();
+      testCases.forEach(
+        ({
+          operation,
+          expectedProps,
+          requiredProps,
+        }: {
+          operation: OneUptimeOperation;
+          expectedProps: string[];
+          requiredProps: string[];
+        }) => {
+          // Verify operation is defined
+          expect(operation).toBeDefined();
 
-        // Create expected schema structure
-        const schema = {
-          type: "object",
-          properties: {} as any,
-          required: requiredProps,
-        };
+          // Create expected schema structure
+          const schema: {
+            type: string;
+            properties: Record<string, any>;
+            required: string[];
+          } = {
+            type: "object",
+            properties: {} as any,
+            required: requiredProps,
+          };
 
-        expectedProps.forEach((prop) => {
-          switch (prop) {
-            case "id":
-              schema.properties[prop] = {
-                type: "string",
-                description: "The unique identifier",
-              };
-              break;
-            case "data":
-              schema.properties[prop] = {
-                type: "object",
-                description: "The data to create/update",
-              };
-              break;
-            case "query":
-              schema.properties[prop] = {
-                type: "object",
-                description: "Query filters",
-              };
-              break;
-            case "limit":
-              schema.properties[prop] = {
-                type: "number",
-                description: "Maximum number of results",
-              };
-              break;
-            case "skip":
-              schema.properties[prop] = {
-                type: "number",
-                description: "Number of results to skip",
-              };
-              break;
-            case "sort":
-              schema.properties[prop] = {
-                type: "object",
-                description: "Sort criteria",
-              };
-              break;
-            case "select":
-              schema.properties[prop] = {
-                type: "object",
-                description: "Fields to select",
-              };
-              break;
-          }
-        });
+          expectedProps.forEach((prop: string) => {
+            switch (prop) {
+              case "id":
+                schema.properties[prop] = {
+                  type: "string",
+                  description: "The unique identifier",
+                };
+                break;
+              case "data":
+                schema.properties[prop] = {
+                  type: "object",
+                  description: "The data to create/update",
+                };
+                break;
+              case "query":
+                schema.properties[prop] = {
+                  type: "object",
+                  description: "Query filters",
+                };
+                break;
+              case "limit":
+                schema.properties[prop] = {
+                  type: "number",
+                  description: "Maximum number of results",
+                };
+                break;
+              case "skip":
+                schema.properties[prop] = {
+                  type: "number",
+                  description: "Number of results to skip",
+                };
+                break;
+              case "sort":
+                schema.properties[prop] = {
+                  type: "object",
+                  description: "Sort criteria",
+                };
+                break;
+              case "select":
+                schema.properties[prop] = {
+                  type: "object",
+                  description: "Fields to select",
+                };
+                break;
+            }
+          });
 
-        expect(schema.type).toBe("object");
-        expect(Object.keys(schema.properties)).toEqual(expectedProps);
-        expect(schema.required).toEqual(requiredProps);
-      });
+          expect(schema.type).toBe("object");
+          expect(Object.keys(schema.properties)).toEqual(expectedProps);
+          expect(schema.required).toEqual(requiredProps);
+        },
+      );
     });
   });
 
@@ -370,12 +430,12 @@ describe("DynamicToolGenerator", () => {
       });
 
       // Test that it doesn't crash with empty models
-      const emptyModels = {};
+      const emptyModels: Record<string, any> = {};
       expect(Object.keys(emptyModels)).toHaveLength(0);
     });
 
     it("should handle invalid schema definitions", () => {
-      const invalidSchema = {
+      const invalidSchema: { _def: null } = {
         _def: null,
       };
 
@@ -383,7 +443,11 @@ describe("DynamicToolGenerator", () => {
       expect(invalidSchema._def).toBeNull();
 
       // Should fall back to basic schema
-      const fallbackSchema = {
+      const fallbackSchema: {
+        type: string;
+        properties: Record<string, any>;
+        required: any[];
+      } = {
         type: "object",
         properties: {},
         required: [],
@@ -396,13 +460,20 @@ describe("DynamicToolGenerator", () => {
 
   describe("Tool Naming Conventions", () => {
     it("should follow consistent naming patterns", () => {
-      const testModels = ["Project", "Monitor", "Alert", "Team", "User"];
-      const operations = Object.values(OneUptimeOperation);
+      const testModels: string[] = [
+        "Project",
+        "Monitor",
+        "Alert",
+        "Team",
+        "User",
+      ];
+      const operations: OneUptimeOperation[] =
+        Object.values(OneUptimeOperation);
 
-      testModels.forEach((model) => {
-        operations.forEach((operation) => {
-          const expectedName = `${operation}_${model.toLowerCase()}`;
-          const sanitizedName = expectedName
+      testModels.forEach((model: string) => {
+        operations.forEach((operation: OneUptimeOperation) => {
+          const expectedName: string = `${operation}_${model.toLowerCase()}`;
+          const sanitizedName: string = expectedName
             .replace(/([a-z])([A-Z])/g, "$1_$2")
             .toLowerCase()
             .replace(/[^a-z0-9]/g, "_")

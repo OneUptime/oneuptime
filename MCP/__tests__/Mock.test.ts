@@ -1,8 +1,14 @@
 import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 
 // Mock functions for testing with proper typing
-const mockApiCall = jest.fn() as jest.MockedFunction<(...args: any[]) => any>;
-const mockLogger = {
+const mockApiCall: jest.MockedFunction<(...args: any[]) => any> =
+  jest.fn() as jest.MockedFunction<(...args: any[]) => any>;
+const mockLogger: {
+  info: jest.MockedFunction<any>;
+  error: jest.MockedFunction<any>;
+  warn: jest.MockedFunction<any>;
+  debug: jest.MockedFunction<any>;
+} = {
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
@@ -25,7 +31,10 @@ describe("Mock Tests", () => {
     it("should test mock return values", () => {
       mockApiCall.mockReturnValue({ success: true, data: "test" });
 
-      const result = mockApiCall() as { success: boolean; data: string };
+      const result: { success: boolean; data: string } = mockApiCall() as {
+        success: boolean;
+        data: string;
+      };
 
       expect(result.success).toBe(true);
       expect(result.data).toBe("test");
@@ -34,7 +43,10 @@ describe("Mock Tests", () => {
     it("should test mock resolved values", async () => {
       mockApiCall.mockResolvedValue({ id: "123", name: "Test" });
 
-      const result = (await mockApiCall()) as { id: string; name: string };
+      const result: { id: string; name: string } = (await mockApiCall()) as {
+        id: string;
+        name: string;
+      };
 
       expect(result.id).toBe("123");
       expect(result.name).toBe("Test");
@@ -106,13 +118,15 @@ describe("Mock Tests", () => {
 
     it("should test async mock implementation", async () => {
       mockApiCall.mockImplementation(async (id: unknown) => {
-        await new Promise((resolve) => {
-          return setTimeout(resolve, 10);
+        await new Promise((resolve: (value?: unknown) => void) => {
+          setTimeout(resolve, 10);
         });
         return { id, processed: true };
       });
 
-      const result = (await mockApiCall("test-id")) as {
+      const result: { id: string; processed: boolean } = (await mockApiCall(
+        "test-id",
+      )) as {
         id: string;
         processed: boolean;
       };
@@ -152,7 +166,7 @@ describe("Mock Tests", () => {
     });
 
     it("should handle different error types", async () => {
-      const customError = {
+      const customError: { code: string; message: string } = {
         code: "CUSTOM_ERROR",
         message: "Custom error message",
       };
@@ -195,16 +209,24 @@ describe("Mock Tests", () => {
     });
 
     it("should validate response format", () => {
-      const validResponse = {
+      const validResponse: {
+        success: boolean;
+        data: { id: string; name: string };
+        timestamp: string;
+      } = {
         success: true,
         data: { id: "123", name: "Test" },
         timestamp: new Date().toISOString(),
       };
 
       mockApiCall.mockReturnValue(validResponse);
-      const result = mockApiCall() as {
+      const result: {
         success: boolean;
-        data: object;
+        data: Record<string, unknown>;
+        timestamp: string;
+      } = mockApiCall() as {
+        success: boolean;
+        data: Record<string, unknown>;
         timestamp: string;
       };
 

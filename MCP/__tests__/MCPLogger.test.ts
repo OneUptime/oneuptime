@@ -26,13 +26,13 @@ describe("MCPLogger", () => {
 
   it("should handle basic logging functionality", () => {
     // Test that we can mock stderr.write
-    const mockWrite = jest.spyOn(process.stderr, "write");
+    const mockWrite: any = jest.spyOn(process.stderr, "write");
     expect(mockWrite).toBeDefined();
   });
 
   it("should have proper mock setup", () => {
     // Verify our mocking approach works
-    const mockWrite = jest.spyOn(process.stderr, "write");
+    const mockWrite: any = jest.spyOn(process.stderr, "write");
     process.stderr.write("test message");
     expect(mockWrite).toHaveBeenCalledWith("test message");
   });

@@ -59,7 +59,7 @@ describe("OneUptime MCP Server", () => {
     it("should throw error when API key is missing", () => {
       // Mock the service to throw error for missing API key
       (OneUptimeApiService.initialize as jest.Mock).mockImplementation(
-        (config) => {
+        (config: any) => {
           if (!config.apiKey) {
             throw new Error("OneUptime API key is required");
           }
@@ -121,7 +121,7 @@ describe("OneUptime MCP Server", () => {
         mockTools,
       );
 
-      const tools = DynamicToolGenerator.generateAllTools();
+      const tools: any[] = DynamicToolGenerator.generateAllTools();
 
       expect(tools).toHaveLength(2);
       expect(tools[0]?.name).toBe("create_monitor");
