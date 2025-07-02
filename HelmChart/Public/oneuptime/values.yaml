@@ -214,6 +214,7 @@ probes:
     syntheticMonitorScriptTimeoutInMs: 60000
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
+    disableAutoscaler: false
 #   resources:
 #   additionalContainers:
 # two:
@@ -225,6 +226,8 @@ probes:
 #   replicaCount: 1
 #   syntheticMonitorScriptTimeoutInMs: 60000
 #   customCodeMonitorScriptTimeoutInMs: 60000
+#   disableTelemetryCollection: false
+#   disableAutoscaler: false
 #   resources:
 #   additionalContainers:
 

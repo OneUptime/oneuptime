@@ -14,10 +14,10 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name (printf "probe-%s" $key)  }}
-  {{- if $val.replicaCount }}
+  {{- if and (ne $val.replicaCount nil) $val.disableAutoscaler }}
   replicas: {{ $val.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($val.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -110,11 +110,12 @@ spec:
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
-
+{{- if not $val.disableAutoscaler }}
 # OneUptime probe autoscaler
 {{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
 ---
+{{- end }}
 
 {{- end }}
 
