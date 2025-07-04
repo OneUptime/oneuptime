@@ -183,10 +183,12 @@ export default class SSLMonitor {
     host: string;
     port: number;
     rejectUnauthorized: boolean;
+    retry?: number;
+    currentRetryCount?: number;
   }): Promise<tls.PeerCertificate> {
     const { host, rejectUnauthorized } = data;
 
-    let { port } = data;
+    let { port, retry = 3, currentRetryCount = 1 } = data;
 
     if (!port) {
       port = 443;
@@ -231,9 +233,26 @@ export default class SSLMonitor {
       },
     );
 
-    const certificate: tls.PeerCertificate = await sslPromise;
+    try {
+      const certificate: tls.PeerCertificate = await sslPromise;
+      return certificate;
+    } catch (err: unknown) {
+      logger.debug(
+        `getCertificate failed for host ${host}:${port} - Retry: ${currentRetryCount} - Error: ${err}`,
+      );
 
-    return certificate;
+      if (currentRetryCount < retry) {
+        await Sleep.sleep(1000);
+        return await this.getCertificate({
+          host,
+          port,
+          rejectUnauthorized,
+          retry,
+          currentRetryCount: currentRetryCount + 1,
+        });
+      }
+      throw err;
+    }
   }
 
   private static getOptions(
