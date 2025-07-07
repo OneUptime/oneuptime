@@ -82,6 +82,11 @@ ${createdItem.note}
         },
         select: {
           scheduledMaintenanceId: true,
+          scheduledMaintenance: {
+            _id: true,
+            scheduledMaintenanceNumber: true,
+            projectId: true,
+          },
           projectId: true,
           note: true,
           createdByUserId: true,

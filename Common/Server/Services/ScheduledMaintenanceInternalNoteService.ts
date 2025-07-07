@@ -96,6 +96,8 @@ ${createdItem.note}
           },
           scheduledMaintenance: {
             scheduledMaintenanceNumber: true,
+            projectId: true,
+            _id: true,
           },
         },
       });

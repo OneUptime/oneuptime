@@ -103,6 +103,11 @@ ${createdItem.note}
         select: {
           incidentId: true,
           projectId: true,
+          incident: {
+            _id: true,
+            incidentNumber: true,
+            projectId: true,
+          },
           note: true,
           createdByUserId: true,
           createdByUser: {

@@ -91,6 +91,7 @@ ${createdItem.note}
           alert: {
             projectId: true,
             alertNumber: true,
+            _id: true,
           },
           createdByUser: {
             _id: true,
