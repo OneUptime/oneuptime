@@ -14,20 +14,20 @@ const Header: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       <div
         className={
-          props.className || "relative flex h-16 justify-between bg-white"
+          props.className || "relative flex h-16 justify-between items-center bg-white px-4 sm:px-6 lg:px-8"
         }
       >
-        <div className="relative z-20 flex px-2 lg:px-0">
+        <div className="flex items-center">
           {props.leftComponents}
         </div>
 
         {props.centerComponents && (
-          <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
+          <div className="hidden sm:flex flex-1 items-center justify-center px-2">
             {props.centerComponents}
           </div>
         )}
 
-        <div className="hidden lg:relative lg:z-10 lg:ml-4 lg:flex lg:items-center">
+        <div className="flex items-center space-x-4">
           {props.rightComponents}
         </div>
       </div>

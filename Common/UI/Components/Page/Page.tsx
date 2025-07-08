@@ -54,7 +54,7 @@ const Page: FunctionComponent<ComponentProps> = (
           {props.title && (
             <div className="mt-2 md:flex md:items-center md:justify-between">
               <div className="min-w-0">
-                <h2 className="text-xl leading-7  text-gray-900 sm:truncate sm:text-2xl sm:tracking-tight">
+                <h2 className="text-xl leading-7 text-gray-900 sm:truncate sm:text-2xl sm:tracking-tight">
                   {props.title}
                 </h2>
               </div>
@@ -64,12 +64,12 @@ const Page: FunctionComponent<ComponentProps> = (
       )}
 
       {props.sideMenu && (
-        <main className="mx-auto max-w-full pb-10 mr-5">
+        <main className="mx-auto max-w-full pb-10 mr-0 lg:mr-5">
           <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
             {props.sideMenu}
 
             {!props.isLoading && (
-              <div className="space-y-6 sm:px-6 lg:col-span-10 md:col-span-9 lg:px-0">
+              <div className="space-y-6 px-0 sm:px-6 lg:col-span-10 md:col-span-9 lg:px-0 mt-6 lg:mt-0">
                 {props.children}
               </div>
             )}

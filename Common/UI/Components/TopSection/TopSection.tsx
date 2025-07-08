@@ -13,8 +13,14 @@ const TopSection: FunctionComponent<ComponentProps> = (
   return (
     <header className={props.className || "bg-white shadow"}>
       <div className="w-full px-2 sm:px-4 lg:divide-y lg:divide-gray-200 lg:px-8">
-        {!props.hideHeader && props.header}
-        {props.navbar}
+        {!props.hideHeader && (
+          <div className="flex items-center justify-between">
+            {props.header}
+          </div>
+        )}
+        <div className="w-full">
+          {props.navbar}
+        </div>
       </div>
     </header>
   );

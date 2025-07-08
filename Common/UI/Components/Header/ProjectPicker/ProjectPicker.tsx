@@ -36,7 +36,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
   }, [isComponentVisible]);
 
   return (
-    <div className="w-64 mr-3">
+    <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:w-64 mr-3">
       <div className="relative mt-3 w-full">
         <button
           onClick={() => {
@@ -54,7 +54,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
               className="h-6 w-6 flex-shrink-0 rounded-full"
             />
 
-            <span className="ml-3 block truncate">
+            <span className="ml-3 block truncate text-sm sm:text-base">
               {props.selectedProjectName}
             </span>
           </span>

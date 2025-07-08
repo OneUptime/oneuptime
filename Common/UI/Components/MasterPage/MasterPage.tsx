@@ -41,9 +41,9 @@ const MasterPage: FunctionComponent<ComponentProps> = (
   return (
     <React.Fragment>
       {isOnline && (
-        <div className={props.className}>
+        <div className={props.className || "min-h-screen bg-gray-50"}>
           <div
-            className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
+            className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-40"}
           >
             <TopSection
               hideHeader={props.hideHeader}
@@ -53,9 +53,15 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          {props.children}
+          <main className="flex-1 overflow-y-auto">
+            {props.children}
+          </main>
 
-          {props.footer && props.footer}
+          {props.footer && (
+            <footer className="mt-auto">
+              {props.footer}
+            </footer>
+          )}
         </div>
       )}
       <OfflineIndicator

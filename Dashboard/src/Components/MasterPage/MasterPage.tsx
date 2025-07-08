@@ -116,9 +116,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
         isLoading={props.isLoading}
         error={error}
-        className="flex flex-col h-screen justify-between"
+        className="flex flex-col min-h-screen"
       >
-        {props.children}
+        <div className="flex-1">
+          {props.children}
+        </div>
       </MasterPage>
     </div>
   );
