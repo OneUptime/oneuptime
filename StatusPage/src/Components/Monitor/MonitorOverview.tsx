@@ -89,9 +89,10 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
   return (
     <div className={props.className}>
       <div>
-        <div className="flex justify-between" style={{ marginBottom: "3px" }}>
-          <div className="flex">
-            <div className="">{props.monitorName}</div>
+        {/* Monitor header: responsive layout for name, tooltip, and status */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start" style={{ marginBottom: "3px" }}>
+          <div className="flex items-center mb-2 sm:mb-0">
+            <div className="text-base md:text-lg font-medium">{props.monitorName}</div>
             {props.tooltip && (
               <Tooltip key={1} text={props.tooltip || "Not available"}>
                 <div className="ml-1">
@@ -103,16 +104,23 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
               </Tooltip>
             )}
           </div>
-          {getCurrentStatus()}
+          {/* Status: Stack below name on mobile, inline on larger screens */}
+          <div className="text-sm sm:text-base font-medium">
+            {getCurrentStatus()}
+          </div>
         </div>
-        <div className="mb-2 text-sm">
+        
+        {/* Description: Responsive text size */}
+        <div className="mb-2 text-xs sm:text-sm">
           {props.description && (
             <MarkdownViewer text={props.description || ""} />
           )}
         </div>
       </div>
+      
+      {/* Uptime graph: Ensure it's responsive */}
       {props.showHistoryChart && (
-        <div>
+        <div className="w-full overflow-hidden">
           <MonitorUptimeGraph
             error={undefined}
             barColorRules={props.statusPageHistoryChartBarColorRules}
@@ -126,8 +134,10 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
+      
+      {/* Time labels: Responsive text size */}
       {props.showHistoryChart && (
-        <div className="text-sm text-gray-400 mt-1 flex justify-between">
+        <div className="text-xs sm:text-sm text-gray-400 mt-1 flex justify-between">
           <div>90 days ago</div>
           <div>Today</div>
         </div>

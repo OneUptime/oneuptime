@@ -15,14 +15,14 @@ const Banner: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
+    <div className="w-full">
       <Image
         onClick={() => {
           if (props.onClick) {
             props.onClick();
           }
         }}
-        className="rounded-xl w-full mt-5 mb-5"
+        className="rounded-xl w-full mt-3 mb-3 md:mt-5 md:mb-5 object-cover max-h-48 md:max-h-64 lg:max-h-80"
         file={props.file}
       />
     </div>

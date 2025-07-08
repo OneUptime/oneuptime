@@ -2,8 +2,10 @@ import Logo from "../Logo/Logo";
 import Link from "Common/Types/Link";
 import Header from "Common/UI/Components/Header/Header";
 import UILink from "Common/UI/Components/Link/Link";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import File from "Common/Models/DatabaseModels/File";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState, useEffect } from "react";
 
 export interface ComponentProps {
   links: Array<Link>;
@@ -14,6 +16,44 @@ export interface ComponentProps {
 const StatusPageHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileMenuOpen && event.target instanceof Element) {
+        const mobileMenu = document.querySelector('[data-mobile-header-menu]');
+        const mobileToggle = document.querySelector('[data-mobile-header-toggle]');
+        
+        if (mobileMenu && mobileToggle && 
+            !mobileMenu.contains(event.target) && 
+            !mobileToggle.contains(event.target)) {
+          setIsMobileMenuOpen(false);
+        }
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {}; // Return cleanup function for all paths
+  }, [isMobileMenuOpen]);
+
   if (!props.logo && props.links.length === 0) {
     return <></>;
   }
@@ -43,23 +83,60 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
           rightComponents={
             <>
               {props.links && props.links.length > 0 && (
-                <div key={"links"}>
-                  <div className="flex space-x-4 ">
-                    {props.links &&
-                      props.links.map((link: Link, i: number) => {
-                        return (
-                          <div key={i} className="flex items-center ">
-                            <UILink
-                              className="flex w-full flex-col items-center text-gray-400 hover:text-gray-600 font-medium font-mono"
-                              to={link.to}
-                              openInNewTab={link.openInNewTab}
-                            >
-                              {link.title}
-                            </UILink>
-                          </div>
-                        );
-                      })}
+                <div key={"links"} className="relative">
+                  {/* Desktop: Show all links */}
+                  <div className="hidden md:flex space-x-4">
+                    {props.links.map((link: Link, i: number) => {
+                      return (
+                        <div key={i} className="flex items-center">
+                          <UILink
+                            className="flex w-full flex-col items-center text-gray-400 hover:text-gray-600 font-medium font-mono"
+                            to={link.to}
+                            openInNewTab={link.openInNewTab}
+                          >
+                            {link.title}
+                          </UILink>
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {/* Mobile: Show hamburger menu */}
+                  {isMobile && (
+                    <div className="md:hidden">
+                      <Button
+                        buttonStyle={ButtonStyleType.OUTLINE}
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        className="p-2"
+                        icon={isMobileMenuOpen ? IconProp.Close : IconProp.More}
+                        dataTestId="mobile-header-toggle"
+                        data-mobile-header-toggle
+                      />
+                      
+                      {/* Mobile dropdown menu */}
+                      {isMobileMenuOpen && (
+                        <div 
+                          className="absolute top-full right-0 z-50 mt-2 min-w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2"
+                          data-mobile-header-menu
+                        >
+                          {props.links.map((link: Link, i: number) => {
+                            return (
+                              <div key={i} className="block">
+                                <UILink
+                                  className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium"
+                                  to={link.to}
+                                  openInNewTab={link.openInNewTab}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  {link.title}
+                                </UILink>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </>
