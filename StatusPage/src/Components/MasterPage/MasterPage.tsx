@@ -267,7 +267,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   });
 
   return (
-    <div className="max-w-5xl m-auto px-5">
+    <div className="max-w-5xl m-auto px-3 sm:px-5">
       {
         <div>
           <Banner
@@ -329,7 +329,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           {!footerHtml ? (
             <Footer
               hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
-              className="mx-auto w-full py-5 px-0 md:flex md:items-center md:justify-between lg:px-0"
+              className="mx-auto w-full py-3 px-0 sm:py-5 md:flex md:items-center md:justify-between lg:px-0"
               copyright={
                 (JSONFunctions.getJSONValueInPath(
                   masterPageData || {},

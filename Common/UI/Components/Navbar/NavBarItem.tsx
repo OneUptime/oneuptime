@@ -41,10 +41,10 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
 
   if (props.isRenderedOnMobile) {
     classNames =
-      "text-gray-900 hover:bg-gray-50 hover:text-gray-900 block rounded-md py-2 px-3 text-base font-medium";
+      "text-gray-900 hover:bg-gray-50 hover:text-gray-900 inline-flex items-center rounded-md py-2 px-3 text-base font-medium";
     if (isActive) {
       classNames =
-        "bg-gray-100 text-gray-900 block rounded-md py-2 px-3 text-base font-medium";
+        "bg-gray-100 text-gray-900 inline-flex items-center rounded-md py-2 px-3 text-base font-medium";
     }
   }
 

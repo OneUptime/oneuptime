@@ -419,6 +419,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           elements.push(
             <MonitorOverview
               key={Math.random()}
+              className="mb-3 sm:mb-5"
               monitorName={resource.displayName || resource.monitor?.name || ""}
               statusPageHistoryChartBarColorRules={
                 statusPageHistoryChartBarColorRules
@@ -473,6 +474,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           elements.push(
             <MonitorOverview
               key={Math.random()}
+              className="mb-3 sm:mb-5"
               monitorName={resource.displayName || resource.monitor?.name || ""}
               showUptimePercent={Boolean(resource.showUptimePercent)}
               uptimePrecision={
@@ -678,7 +680,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           </div>
 
           {statusPageResources.length > 0 && (
-            <div className="bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5 mb-6">
+            <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 mt-5 rounded-xl shadow space-y-3 sm:space-y-5 mb-6">
               <AccordionGroup>
                 {statusPageResources.filter((resources: StatusPageResource) => {
                   return !resources.statusPageGroupId;
