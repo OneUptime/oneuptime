@@ -190,14 +190,15 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               title={activeItem.title}
               icon={activeItem.icon}
               exact={true}
-              route={activeItem.route}
+              route={undefined}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             />
             
             <Button
               buttonStyle={ButtonStyleType.OUTLINE}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="ml-2 p-2"
-              icon={isMobileMenuOpen ? IconProp.Close : IconProp.More}
+              icon={isMobileMenuOpen ? IconProp.Close : IconProp.Bars3}
               dataTestId="mobile-nav-toggle"
               data-mobile-nav-toggle
             />
