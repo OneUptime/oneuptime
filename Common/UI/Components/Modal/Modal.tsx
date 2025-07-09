@@ -57,12 +57,13 @@ const Modal: FunctionComponent<ComponentProps> = (
       role="dialog"
       aria-modal="true"
     >
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+      {/* Grey background - hidden on mobile */}
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity hidden sm:block"></div>
 
       <div className="fixed inset-0 z-20 overflow-y-auto">
-        <div className="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div className="flex min-h-screen items-end justify-center text-center sm:items-center sm:p-4">
           <div
-            className={`relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${
+            className={`relative transform bg-white text-left shadow-xl transition-all w-full h-full sm:h-auto sm:rounded-lg sm:my-8 sm:w-full ${
               props.modalWidth && props.modalWidth === ModalWidth.Large
                 ? "sm:max-w-7xl"
                 : ""
@@ -74,7 +75,7 @@ const Modal: FunctionComponent<ComponentProps> = (
             data-testid="modal"
           >
             {props.onClose && (
-              <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
+              <div className="absolute top-0 right-0 pt-4 pr-4 sm:hidden md:block">
                 <Button
                   buttonStyle={ButtonStyleType.ICON}
                   icon={IconProp.Close}
@@ -85,7 +86,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                 />
               </div>
             )}
-            <div className="sm:p-6">
+            <div className="p-4 sm:p-6">
               {props.icon && (
                 <div
                   className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
