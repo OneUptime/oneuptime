@@ -168,7 +168,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   if (isMobile && activeItem) {
     return (
       <div className="relative md:hidden">
-        <nav className="bg-white text-center justify-between py-2 mt-5 px-1">
+        <nav className="bg-white text-center justify-between py-2 mt-5">
           {/* Mobile: Show only active item and hamburger menu */}
           <div className="flex items-center justify-between w-full">
             
