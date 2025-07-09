@@ -35,7 +35,7 @@ const Card: FunctionComponent<ComponentProps> = (
       <div data-testid="card" className={props.className}>
         <div className="shadow sm:rounded-md">
           <div className="bg-white py-6 px-4 sm:p-6">
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row sm:justify-between">
               <div className={`${noRightElementsOrButtons ? "w-full" : ""}`}>
                 {props.title && (
                   <h2
@@ -55,49 +55,53 @@ const Card: FunctionComponent<ComponentProps> = (
                   </p>
                 )}
               </div>
-              <div className="flex w-fit">
-                {props.rightElement}
-                {props.buttons?.map(
-                  (button: CardButtonSchema | ReactElement, i: number) => {
-                    return (
-                      <div
-                        style={
-                          i > 0
-                            ? {
-                                marginLeft: "10px",
-                              }
-                            : {}
-                        }
-                        key={i}
-                      >
-                        {React.isValidElement(button) ? button : null}
-                        {React.isValidElement(button) ? null : (
-                          <Button
-                            key={i}
-                            title={(button as CardButtonSchema).title}
-                            buttonStyle={
-                              (button as CardButtonSchema).buttonStyle
-                            }
-                            className={(button as CardButtonSchema).className}
-                            onClick={() => {
-                              if ((button as CardButtonSchema).onClick) {
-                                (button as CardButtonSchema).onClick();
-                              }
-                            }}
-                            disabled={(button as CardButtonSchema).disabled}
-                            icon={(button as CardButtonSchema).icon}
-                            shortcutKey={
-                              (button as CardButtonSchema).shortcutKey
-                            }
-                            dataTestId="card-button"
-                            isLoading={(button as CardButtonSchema).isLoading}
-                          />
-                        )}
-                      </div>
-                    );
-                  },
-                )}
-              </div>
+              {(props.rightElement || (props.buttons && props.buttons.length > 0)) && (
+                <div className="flex flex-col sm:flex-row sm:w-fit mt-4 sm:mt-0 gap-2 sm:gap-0">
+                  {props.rightElement && (
+                    <div className="mb-2 sm:mb-0 sm:mr-2">
+                      {props.rightElement}
+                    </div>
+                  )}
+                  {props.buttons && props.buttons.length > 0 && (
+                    <div className="flex flex-wrap gap-2 sm:gap-0">
+                      {props.buttons.map(
+                        (button: CardButtonSchema | ReactElement, i: number) => {
+                          return (
+                            <div
+                              className="sm:ml-2 first:sm:ml-0"
+                              key={i}
+                            >
+                              {React.isValidElement(button) ? button : null}
+                              {React.isValidElement(button) ? null : (
+                                <Button
+                                  key={i}
+                                  title={(button as CardButtonSchema).title}
+                                  buttonStyle={
+                                    (button as CardButtonSchema).buttonStyle
+                                  }
+                                  className={(button as CardButtonSchema).className}
+                                  onClick={() => {
+                                    if ((button as CardButtonSchema).onClick) {
+                                      (button as CardButtonSchema).onClick();
+                                    }
+                                  }}
+                                  disabled={(button as CardButtonSchema).disabled}
+                                  icon={(button as CardButtonSchema).icon}
+                                  shortcutKey={
+                                    (button as CardButtonSchema).shortcutKey
+                                  }
+                                  dataTestId="card-button"
+                                  isLoading={(button as CardButtonSchema).isLoading}
+                                />
+                              )}
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {props.children && (
