@@ -14,7 +14,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
   links,
 }: ComponentProps): ReactElement => {
   return (
-    <nav className="flex" aria-label="Breadcrumb">
+    <nav className="flex hidden md:block" aria-label="Breadcrumb">
       <ol role="list" className="flex items-center space-x-1">
         {links &&
           links.length > 0 &&
