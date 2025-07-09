@@ -135,7 +135,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                 )}
                 {props.element && <div>{props.element}</div>}
                 {props.moreTextInMarkdown && (
-                  <div className="-ml-3">
+                  <div className="-ml-3 w-fit">
                     <Button
                       onClick={() => {
                         return setShowMoreInformationModal(true);
