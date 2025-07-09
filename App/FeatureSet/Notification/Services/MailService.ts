@@ -242,12 +242,36 @@ export default class MailService {
     const mailer: Transporter = this.createMailer(options.emailServer, {
       timeout: options.timeout,
     });
-    await mailer.sendMail({
-      from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
-      to: mail.toEmail.toString(),
-      subject: mail.subject,
-      html: mail.body,
-    });
+
+    let lastError: any;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await mailer.sendMail({
+          from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
+          to: mail.toEmail.toString(),
+          subject: mail.subject,
+          html: mail.body,
+        });
+        return; // Success, exit the function
+      } catch (error) {
+        lastError = error;
+        logger.error(`Email send attempt ${attempt} failed:`);
+        logger.error(error);
+        
+        if (attempt === maxRetries) {
+          break; // Don't wait after the last attempt
+        }
+        
+        // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+        const waitTime = Math.pow(2, attempt - 1) * 1000;
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+    
+    // If we reach here, all retries failed
+    throw lastError;
   }
 
   public static async send(
