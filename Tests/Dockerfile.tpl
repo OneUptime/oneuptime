@@ -25,5 +25,7 @@ RUN apk add bash
 COPY ./Tests .
 
 RUN chmod -R +x Scripts
+# Set permission to write logs and cache in case container run as non root
+RUN chown -R 1000:1000 "/tmp/npm" && chmod -R 2777 "/tmp/npm"
 
 CMD ["bash start.sh"]
