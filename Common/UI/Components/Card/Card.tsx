@@ -33,9 +33,9 @@ const Card: FunctionComponent<ComponentProps> = (
   return (
     <React.Fragment>
       <div data-testid="card" className={props.className}>
-        <div className="shadow sm:rounded-md">
-          <div className="bg-white py-6 px-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between">
+        <div className="shadow md:rounded-md">
+          <div className="bg-white py-6 px-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:justify-between">
               <div className={`${noRightElementsOrButtons ? "w-full" : ""}`}>
                 {props.title && (
                   <h2
@@ -56,19 +56,19 @@ const Card: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               {(props.rightElement || (props.buttons && props.buttons.length > 0)) && (
-                <div className="flex flex-col sm:flex-row sm:w-fit mt-4 sm:mt-0 gap-2 sm:gap-0">
+                <div className="flex flex-col md:flex-row md:w-fit mt-4 md:mt-0 gap-2 md:gap-0">
                   {props.rightElement && (
-                    <div className="mb-2 sm:mb-0 sm:mr-2">
+                    <div className="mb-2 md:mb-0 md:mr-2">
                       {props.rightElement}
                     </div>
                   )}
                   {props.buttons && props.buttons.length > 0 && (
-                    <div className="flex flex-wrap gap-2 sm:gap-0">
+                    <div className="flex flex-wrap gap-2 md:gap-0">
                       {props.buttons.map(
                         (button: CardButtonSchema | ReactElement, i: number) => {
                           return (
                             <div
-                              className="sm:ml-2 first:sm:ml-0"
+                              className="md:ml-2 first:md:ml-0"
                               key={i}
                             >
                               {React.isValidElement(button) ? button : null}

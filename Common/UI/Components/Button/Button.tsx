@@ -260,7 +260,9 @@ const Button: FunctionComponent<ComponentProps> = ({
           />
         )}
 
-        {title && buttonStyle !== ButtonStyleType.ICON ? title : ``}
+        {title && buttonStyle !== ButtonStyleType.ICON ? (
+          <span className={icon ? "hidden md:inline" : ""}>{title}</span>
+        ) : ``}
 
         {shortcutKey && (
           <div className="ml-2">
