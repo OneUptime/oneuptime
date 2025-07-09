@@ -23,7 +23,7 @@ const Footer: FunctionComponent<ComponentProps> = (
   return (
     <React.Fragment>
       <footer
-        className={props.className || "bg-white h-16 inset-x-0 bottom-0"}
+        className={props.className || "bg-white min-h-16 inset-x-0 bottom-0"}
         style={props.style}
       >
         <div className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-0">
