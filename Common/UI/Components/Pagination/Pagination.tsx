@@ -71,8 +71,8 @@ const Pagination: FunctionComponent<ComponentProps> = (
       className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
       data-testid={props.dataTestId}
     >
-      <div>
-        <p className="text-sm text-gray-500 hidden md:block">
+      <div className="hidden md:block">
+        <p className="text-sm text-gray-500">
           {!props.isLoading && (
             <span>
               {props.totalItemsCount.toLocaleString()}{" "}
