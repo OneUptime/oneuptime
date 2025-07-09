@@ -18,7 +18,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="bg-gray-50 px-4 py-3 flex flex-row-reverse gap-3 sm:px-6">
+    <div className="bg-gray-50 px-4 py-3 flex flex-row-reverse gap-3 sm:px-6 mt-auto flex-shrink-0">
       {props.onSubmit ? (
         <Button
           buttonStyle={
