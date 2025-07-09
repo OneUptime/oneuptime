@@ -67,7 +67,7 @@ const DashboardFooter: () => JSX.Element = () => {
   return (
     <>
       <Footer
-        className="bg-white inset-x-0 bottom-0 px-8"
+        className="bg-white px-8"
         copyright="HackerBay, Inc."
         links={[
           {
