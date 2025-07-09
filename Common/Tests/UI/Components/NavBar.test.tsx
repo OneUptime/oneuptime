@@ -1,9 +1,10 @@
-import Navbar, { ComponentProps } from "../../../UI/Components/Navbar/NavBar";
+import Navbar, { ComponentProps, NavItem } from "../../../UI/Components/Navbar/NavBar";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen } from "@testing-library/react";
 import React from "react";
-import { ReactElement } from "react-markdown/lib/react-markdown";
+import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 
 describe("Navbar", () => {
   const defaultProps: ComponentProps = {
@@ -26,7 +27,12 @@ describe("Navbar", () => {
   });
 
   it("renders with a rightElement", () => {
-    const rightElement: ReactElement = <div>Right Element</div>;
+    const rightElement: NavItem = {
+      id: "test-right-element",
+      title: "Right Element",
+      icon: IconProp.User,
+      route: new Route("/test"),
+    };
     const customProps: ComponentProps = { ...defaultProps, rightElement };
     render(<Navbar {...customProps} />);
     expect(screen.getByText("Right Element")).toBeInTheDocument();
