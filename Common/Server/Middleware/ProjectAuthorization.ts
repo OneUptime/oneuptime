@@ -64,7 +64,7 @@ export default class ProjectMiddleware {
   public static async isValidProjectIdAndApiKeyMiddleware(
     req: ExpressRequest,
     _res: ExpressResponse,
-    next: NextFunction,
+    next: NextFunction
   ): Promise<void> {
     try {
       let tenantId: ObjectID | null = this.getProjectId(req);
@@ -77,7 +77,7 @@ export default class ProjectMiddleware {
 
       if (!apiKey) {
         throw new BadDataException(
-          "API Key not found in the request header. Please provide a valid API Key in the request header.",
+          "API Key not found in the request header. Please provide a valid API Key in the request header."
         );
       }
 
@@ -96,38 +96,40 @@ export default class ProjectMiddleware {
           props: { isRoot: true },
         });
 
-        tenantId = apiKeyModel?.projectId || null;
-
-        if (!tenantId) {
-          throw new BadDataException("Invalid API Key");
-        }
-
-        (req as OneUptimeRequest).tenantId = tenantId;
-
         if (apiKeyModel) {
-          (req as OneUptimeRequest).userType = UserType.API;
-          // TODO: Add API key permissions.
-          // (req as OneUptimeRequest).permissions =
-          //     apiKeyModel.permissions || [];
-          (req as OneUptimeRequest).userGlobalAccessPermission =
-            await APIKeyAccessPermission.getDefaultApiGlobalPermission(
-              tenantId,
-            );
+          tenantId = apiKeyModel?.projectId || null;
 
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await APIKeyAccessPermission.getApiTenantAccessPermission(
-              tenantId,
-              apiKeyModel.id!,
-            );
+          if (!tenantId) {
+            throw new BadDataException("Invalid API Key");
+          }
 
-          if (userTenantAccessPermission) {
-            (req as OneUptimeRequest).userTenantAccessPermission = {};
-            (
-              (req as OneUptimeRequest)
-                .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
-            )[tenantId.toString()] = userTenantAccessPermission;
+          (req as OneUptimeRequest).tenantId = tenantId;
 
-            return next();
+          if (apiKeyModel) {
+            (req as OneUptimeRequest).userType = UserType.API;
+            // TODO: Add API key permissions.
+            // (req as OneUptimeRequest).permissions =
+            //     apiKeyModel.permissions || [];
+            (req as OneUptimeRequest).userGlobalAccessPermission =
+              await APIKeyAccessPermission.getDefaultApiGlobalPermission(
+                tenantId
+              );
+
+            const userTenantAccessPermission: UserTenantAccessPermission | null =
+              await APIKeyAccessPermission.getApiTenantAccessPermission(
+                tenantId,
+                apiKeyModel.id!
+              );
+
+            if (userTenantAccessPermission) {
+              (req as OneUptimeRequest).userTenantAccessPermission = {};
+              (
+                (req as OneUptimeRequest)
+                  .userTenantAccessPermission as Dictionary<UserTenantAccessPermission>
+              )[tenantId.toString()] = userTenantAccessPermission;
+
+              return next();
+            }
           }
         }
       }
@@ -170,7 +172,7 @@ export default class ProjectMiddleware {
 
           if (!user) {
             throw new BadDataException(
-              "Master Admin user not found. Please make sure you have created a master admin user.",
+              "Master Admin user not found. Please make sure you have created a master admin user."
             );
           }
 
@@ -193,7 +195,7 @@ export default class ProjectMiddleware {
 
       if (!tenantId) {
         throw new BadDataException(
-          "ProjectID not found in the request header.",
+          "ProjectID not found in the request header."
         );
       }
 
