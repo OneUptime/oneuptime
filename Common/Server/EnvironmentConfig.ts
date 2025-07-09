@@ -327,3 +327,10 @@ export const SlackAppClientSecret: string | null =
   process.env["SLACK_APP_CLIENT_SECRET"] || null;
 export const SlackAppSigningSecret: string | null =
   process.env["SLACK_APP_SIGNING_SECRET"] || null;
+
+export const MicrosoftTeamsAppClientId: string | null =
+  process.env["MICROSOFT_TEAMS_APP_CLIENT_ID"] || null;
+export const MicrosoftTeamsAppClientSecret: string | null =
+  process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
+export const MicrosoftTeamsAppTenantId: string | null =
+  process.env["MICROSOFT_TEAMS_APP_TENANT_ID"] || null;

@@ -513,3 +513,8 @@ slackApp:
   clientId:
   clientSecret:
   signingSecret:
+
+microsoftTeamsApp: 
+  clientId:
+  clientSecret:
+  tenantId:
