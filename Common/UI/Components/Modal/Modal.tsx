@@ -61,9 +61,9 @@ const Modal: FunctionComponent<ComponentProps> = (
       <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity hidden sm:block"></div>
 
       <div className="fixed inset-0 z-20 overflow-y-auto">
-        <div className="flex justify-center text-center sm:p-4 min-h-screen sm:min-h-0">
+        <div className="flex justify-center items-center text-center sm:p-4 min-h-screen">
           <div
-            className={`relative transform bg-white text-left shadow-xl transition-all w-full h-full flex flex-col sm:h-auto sm:rounded-lg sm:my-8 sm:w-full ${
+            className={`relative transform bg-white text-left shadow-xl transition-all w-full max-h-full flex flex-col sm:h-auto sm:rounded-lg sm:my-8 sm:w-full ${
               props.modalWidth && props.modalWidth === ModalWidth.Large
           ? "sm:max-w-7xl"
           : ""
@@ -130,7 +130,7 @@ const Modal: FunctionComponent<ComponentProps> = (
               <div data-testid="right-element">{props.rightElement}</div>
             )}
           </div>
-          <div className="mt-2 flex-1 overflow-y-auto">
+          <div className="mt-2 flex-1 overflow-y-auto px-1 -mx-1">
             <ModalBody error={props.error}>
               {!props.isBodyLoading ? (
                 props.children
