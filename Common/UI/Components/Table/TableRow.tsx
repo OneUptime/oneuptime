@@ -106,7 +106,9 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             </td>
           )}
           {props.columns &&
-            props.columns.map((column: Column<T>, i: number) => {
+            props.columns
+              .filter((column: Column<T>) => !(column.hideOnMobile && isMobile))
+              .map((column: Column<T>, i: number) => {
               let className: string =
                 "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
               if (i === props.columns.length - 1) {

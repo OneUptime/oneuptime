@@ -28,6 +28,7 @@ export default interface Columns<
   actionButtons?: Array<ActionButton>;
   alignItem?: AlignItem | undefined;
   noValueMessage?: string | undefined;
+  hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   getElement?:
     | ((item: TEntity, onBeforeFetchData?: TEntity | undefined) => ReactElement)
     | undefined;

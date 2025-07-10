@@ -398,6 +398,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         colSpan: column.colSpan,
         contentClassName: column.contentClassName,
         alignItem: column.alignItem,
+        hideOnMobile: column.hideOnMobile, // Propagate hideOnMobile property
         getElement: column.getElement
           ? (item: TBaseModel): ReactElement => {
               return column.getElement!(item, onBeforeFetchData);

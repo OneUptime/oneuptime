@@ -14,6 +14,7 @@ export default interface Column<T extends GenericObject> {
   contentClassName?: string | undefined;
   alignItem?: AlignItem | undefined;
   key?: keyof T | null; //can be null because actions column does not have a key.
+  hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   getElement?:
     | ((item: T, onBeforeFetchData?: T | undefined) => ReactElement)
     | undefined;

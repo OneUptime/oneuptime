@@ -23,6 +23,7 @@ export interface FieldBase<T> {
   alignItem?: AlignItem | undefined;
   contentClassName?: string | undefined;
   showIf?: ((item: T) => boolean) | undefined;
+  hideOnMobile?: boolean | undefined; // Hide field on mobile devices
   getElement?:
     | ((
         item: T,

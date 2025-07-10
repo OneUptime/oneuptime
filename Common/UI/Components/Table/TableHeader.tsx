@@ -6,7 +6,7 @@ import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   columns: Columns<T>;
@@ -29,6 +29,22 @@ type TableHeaderFunction = <T extends GenericObject>(
 const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  // Track mobile view for responsive behavior
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkMobile = (): void => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
   const selectBulkSelectCheckbox: boolean = Boolean(
     props.isAllItemsOnThePageSelected && props.hasTableItems,
   );
@@ -56,7 +72,9 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             </div>
           </th>
         )}
-        {props.columns.map((column: Column<T>, i: number) => {
+        {props.columns
+          .filter((column: Column<T>) => !(column.hideOnMobile && isMobile))
+          .map((column: Column<T>, i: number) => {
           const canSort: boolean = !column.disableSort && Boolean(column.key);
 
           return (
