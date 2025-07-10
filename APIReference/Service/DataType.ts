@@ -88,8 +88,7 @@ export default class ServiceHandler {
       },
     );
 
-
-        pageData.includesCode = await LocalCache.getOrSetString(
+    pageData.includesCode = await LocalCache.getOrSetString(
       "data-type",
       "includes",
       async () => {

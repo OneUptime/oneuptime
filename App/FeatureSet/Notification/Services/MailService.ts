@@ -43,19 +43,28 @@ class TransporterPool {
   private static semaphore: Map<string, number> = new Map();
   private static readonly MAX_CONCURRENT_CONNECTIONS = 100;
 
-  public static getTransporter(emailServer: EmailServer, options: { timeout?: number | undefined }): Transporter {
-    const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
-    
+  public static getTransporter(
+    emailServer: EmailServer,
+    options: { timeout?: number | undefined },
+  ): Transporter {
+    const key: string = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || "noauth"}`;
+
     if (!this.pools.has(key)) {
-      const transporter = this.createTransporter(emailServer, options);
+      const transporter: Transporter = this.createTransporter(
+        emailServer,
+        options,
+      );
       this.pools.set(key, transporter);
       this.semaphore.set(key, 0);
     }
-    
+
     return this.pools.get(key)!;
   }
 
-  private static createTransporter(emailServer: EmailServer, options: { timeout?: number | undefined }): Transporter {
+  private static createTransporter(
+    emailServer: EmailServer,
+    options: { timeout?: number | undefined },
+  ): Transporter {
     let tlsOptions: tls.ConnectionOptions | undefined = undefined;
 
     if (!emailServer.secure) {
@@ -78,38 +87,42 @@ class TransporterPool {
           : undefined,
       connectionTimeout: options.timeout || 60000,
       pool: true, // Enable connection pooling
-      maxConnections: this.MAX_CONCURRENT_CONNECTIONS
+      maxConnections: this.MAX_CONCURRENT_CONNECTIONS,
     });
   }
 
-  public static async acquireConnection(emailServer: EmailServer): Promise<void> {
-    const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
-    
+  public static async acquireConnection(
+    emailServer: EmailServer,
+  ): Promise<void> {
+    const key: string = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || "noauth"}`;
+
     while ((this.semaphore.get(key) || 0) >= this.MAX_CONCURRENT_CONNECTIONS) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 100);
+      });
     }
-    
+
     this.semaphore.set(key, (this.semaphore.get(key) || 0) + 1);
   }
 
   public static releaseConnection(emailServer: EmailServer): void {
-    const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
-    const current = this.semaphore.get(key) || 0;
+    const key: string = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || "noauth"}`;
+    const current: number = this.semaphore.get(key) || 0;
     this.semaphore.set(key, Math.max(0, current - 1));
   }
 
   public static async cleanup(): Promise<void> {
     const closePromises: Promise<void>[] = [];
-    
+
     for (const [, transporter] of this.pools) {
       closePromises.push(
-        new Promise<void>((resolve) => {
+        new Promise<void>((resolve: () => void) => {
           transporter.close();
           resolve();
-        })
+        }),
       );
     }
-    
+
     await Promise.all(closePromises);
     this.pools.clear();
     this.semaphore.clear();
@@ -328,7 +341,7 @@ export default class MailService {
           const baseWaitTime: number = Math.pow(2, attempt - 1) * 1000;
           const jitter: number = Math.random() * 1000; // Add up to 1 second of jitter
           const waitTime: number = baseWaitTime + jitter;
-          
+
           await new Promise<void>((resolve: (value: void) => void) => {
             setTimeout(resolve, waitTime);
           });
