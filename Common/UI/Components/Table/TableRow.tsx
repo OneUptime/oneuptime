@@ -12,7 +12,7 @@ import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import get from "lodash/get";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useState, useEffect } from "react";
 import { Draggable, DraggableProvided } from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
 
@@ -48,6 +48,22 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   const [tooltipModalText, setTooltipModalText] = useState<string>("");
 
   const [error, setError] = useState<string>("");
+
+  // Track mobile view for responsive behavior
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkMobile = (): void => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
   type GetRowFunction = (provided?: DraggableProvided) => ReactElement;
 
@@ -204,6 +220,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                             button.isVisible &&
                             !button.isVisible(props.item)
                           ) {
+                            return <div key={i}></div>;
+                          }
+
+                          // Hide button on mobile if hideOnMobile is true
+                          if (button.hideOnMobile && isMobile) {
                             return <div key={i}></div>;
                           }
 

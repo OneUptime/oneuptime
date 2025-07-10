@@ -2,7 +2,7 @@ import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import Button, { ButtonSize } from "../Button/Button";
 import ConfirmModal from "../Modal/ConfirmModal";
 import GenericObject from "../../../Types/GenericObject";
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useState, useEffect } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -27,6 +27,22 @@ const Item: ItemFunction = <T extends GenericObject>(
   );
 
   const [error, setError] = useState<string>("");
+
+  // Track mobile view for responsive behavior
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkMobile = (): void => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
   return (
     <div className="text-center border border-gray-300 rounded p-10 space-y-4 w-fit">
@@ -71,6 +87,11 @@ const Item: ItemFunction = <T extends GenericObject>(
         {props.actionButtons?.map(
           (button: ActionButtonSchema<T>, i: number) => {
             if (button.isVisible && !button.isVisible(props.item)) {
+              return <></>;
+            }
+
+            // Hide button on mobile if hideOnMobile is true
+            if (button.hideOnMobile && isMobile) {
               return <></>;
             }
 

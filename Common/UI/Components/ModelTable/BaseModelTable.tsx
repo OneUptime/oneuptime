@@ -1130,6 +1130,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       actionsSchema.push({
         title: "Show ID",
         buttonStyleType: ButtonStyleType.OUTLINE,
+        hideOnMobile: true,
         onClick: async (
           item: TBaseModel,
           onCompleteAction: VoidFunction,

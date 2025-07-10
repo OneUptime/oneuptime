@@ -9,6 +9,7 @@ interface ActionButtonSchema<T extends GenericObject> {
   buttonStyleType: ButtonStyleType;
   isLoading?: boolean | undefined;
   isVisible?: (item: T) => boolean | undefined;
+  hideOnMobile?: boolean | undefined;
   onClick: (
     item: T,
     onCompleteAction: VoidFunction,
