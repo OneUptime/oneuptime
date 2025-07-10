@@ -41,7 +41,7 @@ import * as tls from "tls";
 class TransporterPool {
   private static pools: Map<string, Transporter> = new Map();
   private static semaphore: Map<string, number> = new Map();
-  private static readonly MAX_CONCURRENT_CONNECTIONS = 5;
+  private static readonly MAX_CONCURRENT_CONNECTIONS = 100;
 
   public static getTransporter(emailServer: EmailServer, options: { timeout?: number | undefined }): Transporter {
     const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
