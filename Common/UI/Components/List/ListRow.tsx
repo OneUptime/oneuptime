@@ -78,7 +78,7 @@ const ListRow: ListRowFunction = <T extends GenericObject>(
               </div>
               <Detail
                 item={props.item}
-                fields={props.fields.filter((field: Field<T>) => !(field.hideOnMobile && isMobile))}
+                fields={props.fields}
                 showDetailsInNumberOfColumns={
                   props.listDetailOptions?.showDetailsInNumberOfColumns || 1
                 }
@@ -88,7 +88,7 @@ const ListRow: ListRowFunction = <T extends GenericObject>(
           {!props.enableDragAndDrop && (
             <Detail
               item={props.item}
-              fields={props.fields.filter((field: Field<T>) => !(field.hideOnMobile && isMobile))}
+              fields={props.fields}
               showDetailsInNumberOfColumns={
                 props.listDetailOptions?.showDetailsInNumberOfColumns || 1
               }

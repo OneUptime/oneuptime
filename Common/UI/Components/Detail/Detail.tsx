@@ -20,7 +20,7 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import get from "lodash/get";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -36,6 +36,22 @@ type DetailFunction = <T extends GenericObject>(
 const Detail: DetailFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  // Track mobile view for responsive behavior
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkMobile = (): void => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
   type GetMarkdownViewerFunction = (text: string) => ReactElement;
 
   const getMarkdownViewer: GetMarkdownViewerFunction = (
@@ -410,6 +426,11 @@ const Detail: DetailFunction = <T extends GenericObject>(
         props.fields.length > 0 &&
         props.fields
           .filter((field: Field<T>) => {
+            // Filter out fields with hideOnMobile on mobile devices
+            if (field.hideOnMobile && isMobile) {
+              return false;
+            }
+
             // check if showIf exists.
             if (field.showIf) {
               return field.showIf(props.item);
