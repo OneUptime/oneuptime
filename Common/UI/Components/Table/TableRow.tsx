@@ -107,167 +107,170 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           )}
           {props.columns &&
             props.columns
-              .filter((column: Column<T>) => !(column.hideOnMobile && isMobile))
+              .filter((column: Column<T>) => {
+                return !(column.hideOnMobile && isMobile);
+              })
               .map((column: Column<T>, i: number) => {
-              let className: string =
-                "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-              if (i === props.columns.length - 1) {
-                className =
-                  "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
-              }
-              return (
-                <td
-                  key={i}
-                  className={className}
-                  style={{
-                    textAlign:
-                      column.type === FieldType.Actions ? "right" : "left",
-                  }}
-                  onClick={() => {
-                    if (column.tooltipText) {
-                      setTooltipModalText(column.tooltipText(props.item));
-                    }
-                  }}
-                >
-                  {column.key && !column.getElement ? (
-                    column.type === FieldType.Date ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsLocalFormattedString(
-                          props.item[column.key] as string,
-                          true,
+                let className: string =
+                  "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+                if (i === props.columns.length - 1) {
+                  className =
+                    "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+                }
+                return (
+                  <td
+                    key={i}
+                    className={className}
+                    style={{
+                      textAlign:
+                        column.type === FieldType.Actions ? "right" : "left",
+                    }}
+                    onClick={() => {
+                      if (column.tooltipText) {
+                        setTooltipModalText(column.tooltipText(props.item));
+                      }
+                    }}
+                  >
+                    {column.key && !column.getElement ? (
+                      column.type === FieldType.Date ? (
+                        props.item[column.key] ? (
+                          OneUptimeDate.getDateAsLocalFormattedString(
+                            props.item[column.key] as string,
+                            true,
+                          )
+                        ) : (
+                          column.noValueMessage || ""
+                        )
+                      ) : column.type === FieldType.DateTime ? (
+                        props.item[column.key] ? (
+                          OneUptimeDate.getDateAsLocalFormattedString(
+                            props.item[column.key] as string,
+                            false,
+                          )
+                        ) : (
+                          column.noValueMessage || ""
+                        )
+                      ) : column.type === FieldType.USDCents ? (
+                        props.item[column.key] ? (
+                          ((props.item[column.key] as number) || 0) / 100 +
+                          " USD"
+                        ) : (
+                          column.noValueMessage || "0 USD"
+                        )
+                      ) : column.type === FieldType.Percent ? (
+                        props.item[column.key] ? (
+                          props.item[column.key] + "%"
+                        ) : (
+                          column.noValueMessage || "0%"
+                        )
+                      ) : column.type === FieldType.Color ? (
+                        props.item[column.key] ? (
+                          <ColorInput value={props.item[column.key] as Color} />
+                        ) : (
+                          column.noValueMessage || "0%"
+                        )
+                      ) : column.type === FieldType.LongText ? (
+                        props.item[column.key] ? (
+                          <LongTextViewer
+                            text={props.item[column.key] as string}
+                          />
+                        ) : (
+                          column.noValueMessage || ""
+                        )
+                      ) : column.type === FieldType.Boolean ? (
+                        props.item[column.key] ? (
+                          <Icon
+                            icon={IconProp.Check}
+                            className={"h-5 w-5 text-gray-500"}
+                            thick={ThickProp.Thick}
+                          />
+                        ) : (
+                          <Icon
+                            icon={IconProp.False}
+                            className={"h-5 w-5 text-gray-500"}
+                            thick={ThickProp.Thick}
+                          />
                         )
                       ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.DateTime ? (
-                      props.item[column.key] ? (
-                        OneUptimeDate.getDateAsLocalFormattedString(
-                          props.item[column.key] as string,
-                          false,
-                        )
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.USDCents ? (
-                      props.item[column.key] ? (
-                        ((props.item[column.key] as number) || 0) / 100 + " USD"
-                      ) : (
-                        column.noValueMessage || "0 USD"
-                      )
-                    ) : column.type === FieldType.Percent ? (
-                      props.item[column.key] ? (
-                        props.item[column.key] + "%"
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.Color ? (
-                      props.item[column.key] ? (
-                        <ColorInput value={props.item[column.key] as Color} />
-                      ) : (
-                        column.noValueMessage || "0%"
-                      )
-                    ) : column.type === FieldType.LongText ? (
-                      props.item[column.key] ? (
-                        <LongTextViewer
-                          text={props.item[column.key] as string}
-                        />
-                      ) : (
-                        column.noValueMessage || ""
-                      )
-                    ) : column.type === FieldType.Boolean ? (
-                      props.item[column.key] ? (
-                        <Icon
-                          icon={IconProp.Check}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
-                      ) : (
-                        <Icon
-                          icon={IconProp.False}
-                          className={"h-5 w-5 text-gray-500"}
-                          thick={ThickProp.Thick}
-                        />
+                        get(props.item, column.key, "")?.toString() ||
+                        column.noValueMessage ||
+                        ""
                       )
                     ) : (
-                      get(props.item, column.key, "")?.toString() ||
-                      column.noValueMessage ||
-                      ""
-                    )
-                  ) : (
-                    <></>
-                  )}
+                      <></>
+                    )}
 
-                  {column.key && column.getElement ? (
-                    column.getElement(props.item)
-                  ) : (
-                    <></>
-                  )}
-                  {column.type === FieldType.Actions && (
-                    <div className="flex justify-end">
-                      {error && (
-                        <div className="text-align-left">
-                          <ConfirmModal
-                            title={`Error`}
-                            description={error}
-                            submitButtonText={"Close"}
-                            onSubmit={() => {
-                              return setError("");
-                            }}
-                          />
-                        </div>
-                      )}
-                      {props.actionButtons?.map(
-                        (button: ActionButtonSchema<T>, i: number) => {
-                          if (
-                            button.isVisible &&
-                            !button.isVisible(props.item)
-                          ) {
-                            return <div key={i}></div>;
-                          }
+                    {column.key && column.getElement ? (
+                      column.getElement(props.item)
+                    ) : (
+                      <></>
+                    )}
+                    {column.type === FieldType.Actions && (
+                      <div className="flex justify-end">
+                        {error && (
+                          <div className="text-align-left">
+                            <ConfirmModal
+                              title={`Error`}
+                              description={error}
+                              submitButtonText={"Close"}
+                              onSubmit={() => {
+                                return setError("");
+                              }}
+                            />
+                          </div>
+                        )}
+                        {props.actionButtons?.map(
+                          (button: ActionButtonSchema<T>, i: number) => {
+                            if (
+                              button.isVisible &&
+                              !button.isVisible(props.item)
+                            ) {
+                              return <div key={i}></div>;
+                            }
 
-                          // Hide button on mobile if hideOnMobile is true
-                          if (button.hideOnMobile && isMobile) {
-                            return <div key={i}></div>;
-                          }
+                            // Hide button on mobile if hideOnMobile is true
+                            if (button.hideOnMobile && isMobile) {
+                              return <div key={i}></div>;
+                            }
 
-                          return (
-                            <div key={i}>
-                              <Button
-                                buttonSize={ButtonSize.Small}
-                                title={button.title}
-                                icon={button.icon}
-                                buttonStyle={button.buttonStyleType}
-                                isLoading={isButtonLoading[i]}
-                                onClick={() => {
-                                  if (button.onClick) {
-                                    isButtonLoading[i] = true;
-                                    setIsButtonLoading(isButtonLoading);
+                            return (
+                              <div key={i}>
+                                <Button
+                                  buttonSize={ButtonSize.Small}
+                                  title={button.title}
+                                  icon={button.icon}
+                                  buttonStyle={button.buttonStyleType}
+                                  isLoading={isButtonLoading[i]}
+                                  onClick={() => {
+                                    if (button.onClick) {
+                                      isButtonLoading[i] = true;
+                                      setIsButtonLoading(isButtonLoading);
 
-                                    button.onClick(
-                                      props.item,
-                                      () => {
-                                        // on action complete
-                                        isButtonLoading[i] = false;
-                                        setIsButtonLoading(isButtonLoading);
-                                      },
-                                      (err: Error) => {
-                                        isButtonLoading[i] = false;
-                                        setIsButtonLoading(isButtonLoading);
-                                        setError((err as Error).message);
-                                      },
-                                    );
-                                  }
-                                }}
-                              />
-                            </div>
-                          );
-                        },
-                      )}
-                    </div>
-                  )}
-                </td>
-              );
-            })}
+                                      button.onClick(
+                                        props.item,
+                                        () => {
+                                          // on action complete
+                                          isButtonLoading[i] = false;
+                                          setIsButtonLoading(isButtonLoading);
+                                        },
+                                        (err: Error) => {
+                                          isButtonLoading[i] = false;
+                                          setIsButtonLoading(isButtonLoading);
+                                          setError((err as Error).message);
+                                        },
+                                      );
+                                    }
+                                  }}
+                                />
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    )}
+                  </td>
+                );
+              })}
         </tr>
         {tooltipModalText && (
           <ConfirmModal

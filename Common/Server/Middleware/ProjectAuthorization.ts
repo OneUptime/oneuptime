@@ -64,7 +64,7 @@ export default class ProjectMiddleware {
   public static async isValidProjectIdAndApiKeyMiddleware(
     req: ExpressRequest,
     _res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       let tenantId: ObjectID | null = this.getProjectId(req);
@@ -77,7 +77,7 @@ export default class ProjectMiddleware {
 
       if (!apiKey) {
         throw new BadDataException(
-          "API Key not found in the request header. Please provide a valid API Key in the request header."
+          "API Key not found in the request header. Please provide a valid API Key in the request header.",
         );
       }
 
@@ -112,13 +112,13 @@ export default class ProjectMiddleware {
             //     apiKeyModel.permissions || [];
             (req as OneUptimeRequest).userGlobalAccessPermission =
               await APIKeyAccessPermission.getDefaultApiGlobalPermission(
-                tenantId
+                tenantId,
               );
 
             const userTenantAccessPermission: UserTenantAccessPermission | null =
               await APIKeyAccessPermission.getApiTenantAccessPermission(
                 tenantId,
-                apiKeyModel.id!
+                apiKeyModel.id!,
               );
 
             if (userTenantAccessPermission) {
@@ -172,7 +172,7 @@ export default class ProjectMiddleware {
 
           if (!user) {
             throw new BadDataException(
-              "Master Admin user not found. Please make sure you have created a master admin user."
+              "Master Admin user not found. Please make sure you have created a master admin user.",
             );
           }
 
@@ -195,7 +195,7 @@ export default class ProjectMiddleware {
 
       if (!tenantId) {
         throw new BadDataException(
-          "ProjectID not found in the request header."
+          "ProjectID not found in the request header.",
         );
       }
 

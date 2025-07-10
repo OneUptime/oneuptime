@@ -55,7 +55,8 @@ const Card: FunctionComponent<ComponentProps> = (
                   </p>
                 )}
               </div>
-              {(props.rightElement || (props.buttons && props.buttons.length > 0)) && (
+              {(props.rightElement ||
+                (props.buttons && props.buttons.length > 0)) && (
                 <div className="flex flex-col md:flex-row md:w-fit mt-4 md:mt-0 gap-2 md:gap-0">
                   {props.rightElement && (
                     <div className="mb-2 md:mb-0 md:mr-2">
@@ -65,12 +66,12 @@ const Card: FunctionComponent<ComponentProps> = (
                   {props.buttons && props.buttons.length > 0 && (
                     <div className="flex flex-wrap gap-2 md:gap-0">
                       {props.buttons.map(
-                        (button: CardButtonSchema | ReactElement, i: number) => {
+                        (
+                          button: CardButtonSchema | ReactElement,
+                          i: number,
+                        ) => {
                           return (
-                            <div
-                              className="md:ml-2 first:md:ml-0"
-                              key={i}
-                            >
+                            <div className="md:ml-2 first:md:ml-0" key={i}>
                               {React.isValidElement(button) ? button : null}
                               {React.isValidElement(button) ? null : (
                                 <Button
@@ -79,19 +80,25 @@ const Card: FunctionComponent<ComponentProps> = (
                                   buttonStyle={
                                     (button as CardButtonSchema).buttonStyle
                                   }
-                                  className={(button as CardButtonSchema).className}
+                                  className={
+                                    (button as CardButtonSchema).className
+                                  }
                                   onClick={() => {
                                     if ((button as CardButtonSchema).onClick) {
                                       (button as CardButtonSchema).onClick();
                                     }
                                   }}
-                                  disabled={(button as CardButtonSchema).disabled}
+                                  disabled={
+                                    (button as CardButtonSchema).disabled
+                                  }
                                   icon={(button as CardButtonSchema).icon}
                                   shortcutKey={
                                     (button as CardButtonSchema).shortcutKey
                                   }
                                   dataTestId="card-button"
-                                  isLoading={(button as CardButtonSchema).isLoading}
+                                  isLoading={
+                                    (button as CardButtonSchema).isLoading
+                                  }
                                 />
                               )}
                             </div>

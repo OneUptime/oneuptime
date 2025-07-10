@@ -6,7 +6,12 @@ import NavBar from "Common/UI/Components/Navbar/NavBar";
 import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
 import Navigation from "Common/UI/Utils/Navigation";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import React, { FunctionComponent, ReactElement, useState, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
 
 export interface ComponentProps {
   show: boolean;
@@ -34,31 +39,38 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      return window.removeEventListener("resize", checkMobile);
+    };
   }, []);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isMobileMenuOpen && event.target instanceof Element) {
-        const mobileMenu = document.querySelector('[data-mobile-nav-menu]');
-        const mobileToggle = document.querySelector('[data-mobile-nav-toggle]');
-        
-        if (mobileMenu && mobileToggle && 
-            !mobileMenu.contains(event.target) && 
-            !mobileToggle.contains(event.target)) {
+        const mobileMenu = document.querySelector("[data-mobile-nav-menu]");
+        const mobileToggle = document.querySelector("[data-mobile-nav-toggle]");
+
+        if (
+          mobileMenu &&
+          mobileToggle &&
+          !mobileMenu.contains(event.target) &&
+          !mobileToggle.contains(event.target)
+        ) {
           setIsMobileMenuOpen(false);
         }
       }
     };
 
     if (isMobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        return document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
-    
+
     return () => {}; // Return cleanup function for all paths
   }, [isMobileMenuOpen]);
 
@@ -138,10 +150,12 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   }
 
   // Subscribe item
-  if (props.showSubscriberPageOnStatusPage &&
-      (props.enableEmailSubscribers ||
-       props.enableSMSSubscribers ||
-       props.enableSlackSubscribers)) {
+  if (
+    props.showSubscriberPageOnStatusPage &&
+    (props.enableEmailSubscribers ||
+      props.enableSMSSubscribers ||
+      props.enableSlackSubscribers)
+  ) {
     const subscribeRoute = RouteUtil.populateRouteParams(
       props.isPreview
         ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
@@ -173,7 +187,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   }
 
   // Find the currently active item
-  const activeItem = navItems.find(item => item.isActive) || navItems[0];
+  const activeItem =
+    navItems.find((item) => {
+      return item.isActive;
+    }) || navItems[0];
 
   const spaceAroundClassName: string = "justify-between";
 
@@ -191,12 +208,16 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               icon={activeItem.icon}
               exact={true}
               route={undefined}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => {
+                return setIsMobileMenuOpen(!isMobileMenuOpen);
+              }}
             />
-            
+
             <Button
               buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => {
+                return setIsMobileMenuOpen(!isMobileMenuOpen);
+              }}
               className="ml-2 p-2"
               icon={isMobileMenuOpen ? IconProp.Close : IconProp.Bars3}
               dataTestId="mobile-nav-toggle"
@@ -207,24 +228,28 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
         {/* Mobile dropdown menu */}
         {isMobileMenuOpen && (
-          <div 
+          <div
             className="absolute top-full left-0 right-0 z-50 mt-1 animate-in slide-in-from-top-2 duration-200"
             data-mobile-nav-menu
           >
             <NavBar className="bg-white rounded-lg shadow-lg px-5 py-2 space-y-1 border border-gray-200">
-              {navItems.map((item) => (
-                <div key={item.id} className="block">
-                  <NavBarItem
-                    id={item.id}
-                    title={item.title}
-                    icon={item.icon}
-                    exact={true}
-                    route={item.route}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    isRenderedOnMobile={true}
-                  />
-                </div>
-              ))}
+              {navItems.map((item) => {
+                return (
+                  <div key={item.id} className="block">
+                    <NavBarItem
+                      id={item.id}
+                      title={item.title}
+                      icon={item.icon}
+                      exact={true}
+                      route={item.route}
+                      onClick={() => {
+                        return setIsMobileMenuOpen(false);
+                      }}
+                      isRenderedOnMobile={true}
+                    />
+                  </div>
+                );
+              })}
             </NavBar>
           </div>
         )}

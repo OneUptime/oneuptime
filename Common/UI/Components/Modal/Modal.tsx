@@ -65,115 +65,115 @@ const Modal: FunctionComponent<ComponentProps> = (
           <div
             className={`relative transform bg-white text-left shadow-xl transition-all w-full max-h-full flex flex-col sm:h-auto sm:rounded-lg sm:my-8 sm:w-full ${
               props.modalWidth && props.modalWidth === ModalWidth.Large
-          ? "sm:max-w-7xl"
-          : ""
+                ? "sm:max-w-7xl"
+                : ""
             } ${
               props.modalWidth && props.modalWidth === ModalWidth.Medium
-          ? "sm:max-w-3xl"
-          : ""
+                ? "sm:max-w-3xl"
+                : ""
             } ${!props.modalWidth ? "sm:max-w-lg" : ""} `}
             data-testid="modal"
           >
             {props.onClose && (
               <div className="absolute top-0 right-0 pt-4 pr-4 sm:hidden md:block">
-          <Button
-            buttonStyle={ButtonStyleType.ICON}
-            icon={IconProp.Close}
-            iconSize={SizeProp.Large}
-            title="Close"
-            dataTestId="close-button"
-            onClick={props.onClose}
-          />
+                <Button
+                  buttonStyle={ButtonStyleType.ICON}
+                  icon={IconProp.Close}
+                  iconSize={SizeProp.Large}
+                  title="Close"
+                  dataTestId="close-button"
+                  onClick={props.onClose}
+                />
               </div>
             )}
             <div className="p-4 sm:p-6 flex-1 flex flex-col">
               {props.icon && (
-          <div
-            className={`mx-auto flex h-12 w-12 flex-shrink-0 justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
-            data-testid="icon"
-          >
-            <Icon
-              thick={ThickProp.Thick}
-              type={
-                props.iconType === undefined
-            ? IconType.Info
-            : props.iconType
-              }
-              className={"text-red-600 h-6 w-6 stroke-2"}
-              icon={props.icon}
-              size={SizeProp.Large}
-            />
-          </div>
-              )}
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left flex-1 flex flex-col">
-          <div className="flex justify-between">
-            <div>
-              <h3
-                data-testid="modal-title"
-                className={`text-lg font-medium leading-6 text-gray-900 ${
-            props.icon ? "ml-10 -mt-8 mb-5" : ""
-                }`}
-                id="modal-title"
-              >
-                {props.title}
-              </h3>
-              {props.description && (
-                <h3
-            data-testid="modal-description"
-            className="text-sm leading-6 text-gray-500"
+                <div
+                  className={`mx-auto flex h-12 w-12 flex-shrink-0 justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
+                  data-testid="icon"
                 >
-            {props.description}
-                </h3>
-              )}
-            </div>
-            {props.rightElement && (
-              <div data-testid="right-element">{props.rightElement}</div>
-            )}
-          </div>
-          <div className="mt-2 flex-1 overflow-y-auto px-1 -mx-1">
-            <ModalBody error={props.error}>
-              {!props.isBodyLoading ? (
-                props.children
-              ) : (
-                <div className="modal-body mt-20 mb-20 flex justify-center">
-            <Loader
-              loaderType={LoaderType.Bar}
-              color={VeryLightGray}
-              size={200}
-            />
+                  <Icon
+                    thick={ThickProp.Thick}
+                    type={
+                      props.iconType === undefined
+                        ? IconType.Info
+                        : props.iconType
+                    }
+                    className={"text-red-600 h-6 w-6 stroke-2"}
+                    icon={props.icon}
+                    size={SizeProp.Large}
+                  />
                 </div>
               )}
-            </ModalBody>
-          </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left flex-1 flex flex-col">
+                <div className="flex justify-between">
+                  <div>
+                    <h3
+                      data-testid="modal-title"
+                      className={`text-lg font-medium leading-6 text-gray-900 ${
+                        props.icon ? "ml-10 -mt-8 mb-5" : ""
+                      }`}
+                      id="modal-title"
+                    >
+                      {props.title}
+                    </h3>
+                    {props.description && (
+                      <h3
+                        data-testid="modal-description"
+                        className="text-sm leading-6 text-gray-500"
+                      >
+                        {props.description}
+                      </h3>
+                    )}
+                  </div>
+                  {props.rightElement && (
+                    <div data-testid="right-element">{props.rightElement}</div>
+                  )}
+                </div>
+                <div className="mt-2 flex-1 overflow-y-auto px-1 -mx-1">
+                  <ModalBody error={props.error}>
+                    {!props.isBodyLoading ? (
+                      props.children
+                    ) : (
+                      <div className="modal-body mt-20 mb-20 flex justify-center">
+                        <Loader
+                          loaderType={LoaderType.Bar}
+                          color={VeryLightGray}
+                          size={200}
+                        />
+                      </div>
+                    )}
+                  </ModalBody>
+                </div>
               </div>
             </div>
             <ModalFooter
               submitButtonType={
-          props.submitButtonType
-            ? props.submitButtonType
-            : ButtonType.Button
+                props.submitButtonType
+                  ? props.submitButtonType
+                  : ButtonType.Button
               }
               submitButtonStyleType={
-          props.submitButtonStyleType
-            ? props.submitButtonStyleType
-            : ButtonStyleType.PRIMARY
+                props.submitButtonStyleType
+                  ? props.submitButtonStyleType
+                  : ButtonStyleType.PRIMARY
               }
               closeButtonStyleType={
-          props.closeButtonStyleType
-            ? props.closeButtonStyleType
-            : ButtonStyleType.NORMAL
+                props.closeButtonStyleType
+                  ? props.closeButtonStyleType
+                  : ButtonStyleType.NORMAL
               }
               submitButtonText={
-          props.submitButtonText ? props.submitButtonText : "Save"
+                props.submitButtonText ? props.submitButtonText : "Save"
               }
               closeButtonText={
-          props.closeButtonText ? props.closeButtonText : "Cancel"
+                props.closeButtonText ? props.closeButtonText : "Cancel"
               }
               onSubmit={props.onSubmit}
               onClose={props.onClose ? props.onClose : undefined}
               isLoading={props.isLoading || false}
               disableSubmitButton={
-          props.isBodyLoading || props.disableSubmitButton
+                props.isBodyLoading || props.disableSubmitButton
               }
             />
           </div>

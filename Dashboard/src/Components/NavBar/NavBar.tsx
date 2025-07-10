@@ -3,7 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar, { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
+import NavBar, {
+  NavItem,
+  MoreMenuItem,
+} from "Common/UI/Components/Navbar/NavBar";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -44,28 +47,36 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       id: "incidents-nav-bar-item",
       title: "Incidents",
       icon: IconProp.Alert,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.INCIDENTS] as Route,
+      ),
       activeRoute: RouteMap[PageMap.INCIDENTS],
     },
     {
       id: "telemetry-nav-bar-item",
       title: "Telemetry and APM",
       icon: IconProp.Cube,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TELEMETRY] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.TELEMETRY] as Route,
+      ),
       activeRoute: RouteMap[PageMap.TELEMETRY],
     },
     {
       id: "status-pages-nav-bar-item",
       title: "Status Pages",
       icon: IconProp.CheckCircle,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGES] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STATUS_PAGES] as Route,
+      ),
       activeRoute: RouteMap[PageMap.STATUS_PAGES],
     },
     {
       id: "dashboards-nav-bar-item",
       title: "Dashboards",
       icon: IconProp.Window,
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.DASHBOARDS] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DASHBOARDS] as Route,
+      ),
       activeRoute: RouteMap[PageMap.DASHBOARDS],
     },
   ];
@@ -75,31 +86,41 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     {
       title: "Reliability Copilot",
       description: "Fix and improve your code automatically.",
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.RELIABILITY_COPILOT] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RELIABILITY_COPILOT] as Route,
+      ),
       icon: IconProp.Bolt,
     },
     {
       title: "Service Catalog",
       description: "Manage your services and their dependencies.",
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICE_CATALOG] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SERVICE_CATALOG] as Route,
+      ),
       icon: IconProp.SquareStack,
     },
     {
       title: "Scheduled Maintenance",
       description: "Manage your scheduled maintenance events.",
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
+      ),
       icon: IconProp.Clock,
     },
     {
       title: "On-Call Duty",
       description: "Manage your on-call schedules, escalations and more.",
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.ON_CALL_DUTY] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.ON_CALL_DUTY] as Route,
+      ),
       icon: IconProp.Call,
     },
     {
       title: "Workflows",
       description: "Integrate OneUptime with the rest of your ecosystem.",
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.WORKFLOWS] as Route),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.WORKFLOWS] as Route,
+      ),
       icon: IconProp.Workflow,
     },
     {
@@ -115,15 +136,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     id: "user-settings-nav-bar-item",
     title: "User Settings",
     icon: IconProp.User,
-    route: RouteUtil.populateRouteParams(RouteMap[PageMap.USER_SETTINGS] as Route),
+    route: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.USER_SETTINGS] as Route,
+    ),
     activeRoute: RouteMap[PageMap.USER_SETTINGS],
   };
 
   // Define the more menu footer
   const moreMenuFooter = {
     title: "Report a bug or request a feature.",
-    description: "We embrace open source! Please report any issue you find and make feature requests on GitHub.",
-    link: URL.fromString("https://github.com/OneUptime/oneuptime/issues/new/choose"),
+    description:
+      "We embrace open source! Please report any issue you find and make feature requests on GitHub.",
+    link: URL.fromString(
+      "https://github.com/OneUptime/oneuptime/issues/new/choose",
+    ),
   };
 
   return (

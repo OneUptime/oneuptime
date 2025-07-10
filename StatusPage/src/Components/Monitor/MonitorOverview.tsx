@@ -90,9 +90,14 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     <div className={props.className}>
       <div>
         {/* Monitor header: responsive layout for name, tooltip, and status */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start" style={{ marginBottom: "3px" }}>
+        <div
+          className="flex flex-col sm:flex-row sm:justify-between sm:items-start"
+          style={{ marginBottom: "3px" }}
+        >
           <div className="flex items-center mb-2 sm:mb-0">
-            <div className="text-base md:text-lg font-medium">{props.monitorName}</div>
+            <div className="text-base md:text-lg font-medium">
+              {props.monitorName}
+            </div>
             {props.tooltip && (
               <Tooltip key={1} text={props.tooltip || "Not available"}>
                 <div className="ml-1">
@@ -109,7 +114,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             {getCurrentStatus()}
           </div>
         </div>
-        
+
         {/* Description: Responsive text size */}
         <div className="mb-2 text-xs sm:text-sm">
           {props.description && (
@@ -117,7 +122,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </div>
-      
+
       {/* Uptime graph: Hidden on mobile, visible on larger screens */}
       {props.showHistoryChart && (
         <div className="w-full overflow-hidden hidden sm:block">
@@ -134,7 +139,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           />
         </div>
       )}
-      
+
       {/* Time labels: Hidden on mobile, visible on larger screens */}
       {props.showHistoryChart && (
         <div className="text-xs sm:text-sm text-gray-400 mt-1 justify-between hidden sm:flex">

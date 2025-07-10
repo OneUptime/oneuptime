@@ -5,7 +5,12 @@ import UILink from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import File from "Common/Models/DatabaseModels/File";
-import React, { FunctionComponent, ReactElement, useState, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
+} from "react";
 
 export interface ComponentProps {
   links: Array<Link>;
@@ -26,31 +31,40 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      return window.removeEventListener("resize", checkMobile);
+    };
   }, []);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isMobileMenuOpen && event.target instanceof Element) {
-        const mobileMenu = document.querySelector('[data-mobile-header-menu]');
-        const mobileToggle = document.querySelector('[data-mobile-header-toggle]');
-        
-        if (mobileMenu && mobileToggle && 
-            !mobileMenu.contains(event.target) && 
-            !mobileToggle.contains(event.target)) {
+        const mobileMenu = document.querySelector("[data-mobile-header-menu]");
+        const mobileToggle = document.querySelector(
+          "[data-mobile-header-toggle]",
+        );
+
+        if (
+          mobileMenu &&
+          mobileToggle &&
+          !mobileMenu.contains(event.target) &&
+          !mobileToggle.contains(event.target)
+        ) {
           setIsMobileMenuOpen(false);
         }
       }
     };
 
     if (isMobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        return document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
-    
+
     return () => {}; // Return cleanup function for all paths
   }, [isMobileMenuOpen]);
 
@@ -106,16 +120,18 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                     <div className="md:hidden">
                       <Button
                         buttonStyle={ButtonStyleType.OUTLINE}
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        onClick={() => {
+                          return setIsMobileMenuOpen(!isMobileMenuOpen);
+                        }}
                         className="p-2"
                         icon={isMobileMenuOpen ? IconProp.Close : IconProp.More}
                         dataTestId="mobile-header-toggle"
                         data-mobile-header-toggle
                       />
-                      
+
                       {/* Mobile dropdown menu */}
                       {isMobileMenuOpen && (
-                        <div 
+                        <div
                           className="absolute top-full right-0 z-50 mt-2 min-w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2"
                           data-mobile-header-menu
                         >
@@ -126,7 +142,9 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                                   className="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium"
                                   to={link.to}
                                   openInNewTab={link.openInNewTab}
-                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  onClick={() => {
+                                    return setIsMobileMenuOpen(false);
+                                  }}
                                 >
                                   {link.title}
                                 </UILink>

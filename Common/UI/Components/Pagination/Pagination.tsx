@@ -77,12 +77,12 @@ const Pagination: FunctionComponent<ComponentProps> = (
             <span>
               {props.totalItemsCount.toLocaleString()}{" "}
               {props.totalItemsCount > 1
-          ? props.pluralLabel
-          : props.singularLabel}{" "}
+                ? props.pluralLabel
+                : props.singularLabel}{" "}
               {`in total. Showing ${
-          props.itemsOnPage * (props.currentPageNumber - 1) + 1
+                props.itemsOnPage * (props.currentPageNumber - 1) + 1
               } to ${
-          props.itemsOnPage * props.currentPageNumber
+                props.itemsOnPage * props.currentPageNumber
               } on this page.`}
             </span>
           )}
