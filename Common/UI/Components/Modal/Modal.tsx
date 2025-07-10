@@ -57,13 +57,12 @@ const Modal: FunctionComponent<ComponentProps> = (
       role="dialog"
       aria-modal="true"
     >
-      {/* Grey background - hidden on mobile */}
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity hidden sm:block"></div>
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
       <div className="fixed inset-0 z-20 overflow-y-auto">
-        <div className="flex justify-center items-center text-center sm:p-4 min-h-screen">
+        <div className="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
           <div
-            className={`relative transform bg-white text-left shadow-xl transition-all w-full max-h-full flex flex-col sm:h-auto sm:rounded-lg sm:my-8 sm:w-full ${
+            className={`relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${
               props.modalWidth && props.modalWidth === ModalWidth.Large
                 ? "sm:max-w-7xl"
                 : ""
@@ -75,7 +74,7 @@ const Modal: FunctionComponent<ComponentProps> = (
             data-testid="modal"
           >
             {props.onClose && (
-              <div className="absolute top-0 right-0 pt-4 pr-4 sm:hidden md:block">
+              <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
                 <Button
                   buttonStyle={ButtonStyleType.ICON}
                   icon={IconProp.Close}
@@ -86,10 +85,10 @@ const Modal: FunctionComponent<ComponentProps> = (
                 />
               </div>
             )}
-            <div className="p-4 sm:p-6 flex-1 flex flex-col">
+            <div className="sm:p-6">
               {props.icon && (
                 <div
-                  className={`mx-auto flex h-12 w-12 flex-shrink-0 justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
+                  className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
                   data-testid="icon"
                 >
                   <Icon
@@ -105,7 +104,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               )}
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left flex-1 flex flex-col">
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
                 <div className="flex justify-between">
                   <div>
                     <h3
@@ -130,7 +129,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                     <div data-testid="right-element">{props.rightElement}</div>
                   )}
                 </div>
-                <div className="mt-2 flex-1 overflow-y-auto px-1 -mx-1">
+                <div className="mt-2">
                   <ModalBody error={props.error}>
                     {!props.isBodyLoading ? (
                       props.children
