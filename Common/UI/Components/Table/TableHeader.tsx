@@ -33,7 +33,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(() => {
-    const checkMobile = (): void => {
+    const checkMobile: () => void = (): void => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
 

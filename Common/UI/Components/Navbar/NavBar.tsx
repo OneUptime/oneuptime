@@ -70,7 +70,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
 
   // Check if we're on mobile
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobile: () => void = (): void => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
 
@@ -83,7 +83,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   }, []);
 
   // More menu functions
-  const hideMoreMenu = (): void => {
+  const hideMoreMenu: () => void = (): void => {
     if (moreMenuTimeout) {
       clearTimeout(moreMenuTimeout);
       setMoreMenuTimeout(null);
@@ -96,7 +96,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
     setMoreMenuTimeout(timeout);
   };
 
-  const forceHideMoreMenu = (): void => {
+  const forceHideMoreMenu: () => void = (): void => {
     if (moreMenuTimeout) {
       clearTimeout(moreMenuTimeout);
       setMoreMenuTimeout(null);
@@ -105,7 +105,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
     setIsMoreMenuVisible(false);
   };
 
-  const showMoreMenu = (): void => {
+  const showMoreMenu: () => void = (): void => {
     if (moreMenuTimeout) {
       clearTimeout(moreMenuTimeout);
     }
@@ -143,10 +143,10 @@ const Navbar: FunctionComponent<ComponentProps> = (
   }
 
   // Build all nav items including more menu items for mobile
-  const allNavItems = [...props.items];
+  const allNavItems: Array<any> = [...props.items];
   if (props.moreMenuItems) {
     allNavItems.push(
-      ...props.moreMenuItems.map((item) => {
+      ...props.moreMenuItems.map((item: any) => {
         return {
           id: `more-${item.title.toLowerCase().replace(/\s+/g, "-")}`,
           title: item.title,
@@ -171,9 +171,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
   }
 
   // Find the currently active item
-  const activeItem =
-    allNavItems.find((item) => {
-      const routeToCheck = item.activeRoute || item.route;
+  const activeItem: any =
+    allNavItems.find((item: any) => {
+      const routeToCheck: any = item.activeRoute || item.route;
       return item.exact
         ? Navigation.isOnThisPage(routeToCheck)
         : Navigation.isStartWith(routeToCheck);
@@ -217,7 +217,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             className="absolute top-full left-0 right-0 z-50 mt-1 transition-all duration-200 ease-in-out"
           >
             <nav className="bg-white rounded-lg shadow-lg px-3 py-3 space-y-1 border border-gray-200">
-              {allNavItems.map((item) => {
+              {allNavItems.map((item: any) => {
                 return (
                   <div key={item.id} className="block w-full">
                     <NavBarItem
@@ -250,7 +250,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   return (
     <nav className={props.rightElement ? `flex justify-between` : ""}>
       <div data-testid="nav-children" className={className}>
-        {props.items.map((item) => {
+        {props.items.map((item: any) => {
           return (
             <NavBarItem
               key={item.id}
@@ -277,7 +277,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               {isMoreMenuVisible &&
                 (props.moreMenuFooter ? (
                   <NavBarMenu footer={props.moreMenuFooter}>
-                    {props.moreMenuItems.map((item) => {
+                    {props.moreMenuItems.map((item: any) => {
                       return (
                         <NavBarMenuItem
                           key={item.title}
@@ -292,7 +292,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   </NavBarMenu>
                 ) : (
                   <NavBarMenu>
-                    {props.moreMenuItems.map((item) => {
+                    {props.moreMenuItems.map((item: any) => {
                       return (
                         <NavBarMenuItem
                           key={item.title}

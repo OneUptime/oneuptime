@@ -143,7 +143,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   };
 
   // Define the more menu footer
-  const moreMenuFooter = {
+  const moreMenuFooter: any = {
     title: "Report a bug or request a feature.",
     description:
       "We embrace open source! Please report any issue you find and make feature requests on GitHub.",

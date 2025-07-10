@@ -23,7 +23,7 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
   );
 
   useEffect(() => {
-    const handleResize = () => {
+    const handleResize: () => void = (): void => {
       setWindowWidth(window.innerWidth);
     };
 
@@ -35,7 +35,7 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  const isMobile = windowWidth <= 768;
+  const isMobile: boolean = windowWidth <= 768;
   return (
     <div
       className="md:flex bottom-Gray500-border"

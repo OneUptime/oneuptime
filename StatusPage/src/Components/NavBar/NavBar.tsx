@@ -34,7 +34,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Check if we're on mobile
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobile: () => void = (): void => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
 
@@ -48,10 +48,16 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Close mobile menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
       if (isMobileMenuOpen && event.target instanceof Element) {
-        const mobileMenu = document.querySelector("[data-mobile-nav-menu]");
-        const mobileToggle = document.querySelector("[data-mobile-nav-toggle]");
+        const mobileMenu: Element | null = document.querySelector(
+          "[data-mobile-nav-menu]",
+        );
+        const mobileToggle: Element | null = document.querySelector(
+          "[data-mobile-nav-toggle]",
+        );
 
         if (
           mobileMenu &&
@@ -88,7 +94,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   }> = [];
 
   // Overview item
-  const overviewRoute = RouteUtil.populateRouteParams(
+  const overviewRoute: Route = RouteUtil.populateRouteParams(
     props.isPreview
       ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
       : (RouteMap[PageMap.OVERVIEW] as Route),
@@ -103,7 +109,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Incidents item
   if (props.showIncidentsOnStatusPage) {
-    const incidentsRoute = RouteUtil.populateRouteParams(
+    const incidentsRoute: Route = RouteUtil.populateRouteParams(
       props.isPreview
         ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
         : (RouteMap[PageMap.INCIDENT_LIST] as Route),
@@ -119,7 +125,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Announcements item
   if (props.showAnnouncementsOnStatusPage) {
-    const announcementsRoute = RouteUtil.populateRouteParams(
+    const announcementsRoute: Route = RouteUtil.populateRouteParams(
       props.isPreview
         ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
         : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route),
@@ -135,7 +141,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Scheduled Events item
   if (props.showScheduledMaintenanceEventsOnStatusPage) {
-    const scheduledEventsRoute = RouteUtil.populateRouteParams(
+    const scheduledEventsRoute: Route = RouteUtil.populateRouteParams(
       props.isPreview
         ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
         : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route),
@@ -156,7 +162,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       props.enableSMSSubscribers ||
       props.enableSlackSubscribers)
   ) {
-    const subscribeRoute = RouteUtil.populateRouteParams(
+    const subscribeRoute: Route = RouteUtil.populateRouteParams(
       props.isPreview
         ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
         : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route),
@@ -172,7 +178,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   // Logout item
   if (props.isPrivateStatusPage) {
-    const logoutRoute = RouteUtil.populateRouteParams(
+    const logoutRoute: Route = RouteUtil.populateRouteParams(
       props.isPreview
         ? (RouteMap[PageMap.PREVIEW_LOGOUT] as Route)
         : (RouteMap[PageMap.LOGOUT] as Route),
@@ -187,8 +193,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   }
 
   // Find the currently active item
-  const activeItem =
-    navItems.find((item) => {
+  const activeItem: any =
+    navItems.find((item: any) => {
       return item.isActive;
     }) || navItems[0];
 
@@ -233,7 +239,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             data-mobile-nav-menu
           >
             <NavBar className="bg-white rounded-lg shadow-lg px-5 py-2 space-y-1 border border-gray-200">
-              {navItems.map((item) => {
+              {navItems.map((item: any) => {
                 return (
                   <div key={item.id} className="block">
                     <NavBarItem

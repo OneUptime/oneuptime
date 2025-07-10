@@ -26,7 +26,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
 
   // Check if we're on mobile
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobile: () => void = (): void => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
 
@@ -40,10 +40,14 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
 
   // Close mobile menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside: (event: MouseEvent) => void = (
+      event: MouseEvent,
+    ): void => {
       if (isMobileMenuOpen && event.target instanceof Element) {
-        const mobileMenu = document.querySelector("[data-mobile-header-menu]");
-        const mobileToggle = document.querySelector(
+        const mobileMenu: Element | null = document.querySelector(
+          "[data-mobile-header-menu]",
+        );
+        const mobileToggle: Element | null = document.querySelector(
           "[data-mobile-header-toggle]",
         );
 
