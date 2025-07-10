@@ -22,10 +22,10 @@ const StatusPageDelete: FunctionComponent<
   return (
     <Fragment>
       <CardModelDetail<StatusPage>
-        name="Status Page > Branding > Subscriber"
+        name="Status Page > Branding > Subscriber > Email"
         cardProps={{
-          title: "Subscriber Settings",
-          description: "Subscriber settings for this status page.",
+          title: "Email Subscribers",
+          description: "Email subscriber settings for this status page.",
         }}
         isEditable={true}
         formFields={[
@@ -38,6 +38,32 @@ const StatusPageDelete: FunctionComponent<
             required: false,
             placeholder: "Can email subscribers subscribe to this status page?",
           },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-email-subscribers",
+          fields: [
+            {
+              field: {
+                enableEmailSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Email Subscribers",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Branding > Subscriber > SMS"
+        cardProps={{
+          title: "SMS Subscribers",
+          description: "SMS subscriber settings for this status page.",
+        }}
+        isEditable={true}
+        formFields={[
           {
             field: {
               enableSmsSubscribers: true,
@@ -47,7 +73,32 @@ const StatusPageDelete: FunctionComponent<
             required: false,
             placeholder: "Can SMS subscribers subscribe to this status page?",
           },
-          // slack subscribers.
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-sms-subscribers",
+          fields: [
+            {
+              field: {
+                enableSmsSubscribers: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable SMS Subscribers",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Branding > Subscriber > Slack"
+        cardProps={{
+          title: "Slack Subscribers",
+          description: "Slack subscriber settings for this status page.",
+        }}
+        isEditable={true}
+        formFields={[
           {
             field: {
               enableSlackSubscribers: true,
@@ -61,22 +112,8 @@ const StatusPageDelete: FunctionComponent<
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
           modelType: StatusPage,
-          id: "model-detail-status-page",
+          id: "model-detail-slack-subscribers",
           fields: [
-            {
-              field: {
-                enableEmailSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable Email Subscribers",
-            },
-            {
-              field: {
-                enableSmsSubscribers: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable SMS Subscribers",
-            },
             {
               field: {
                 enableSlackSubscribers: true,
