@@ -88,6 +88,17 @@ export default class ServiceHandler {
       },
     );
 
+
+        pageData.includesCode = await LocalCache.getOrSetString(
+      "data-type",
+      "includes",
+      async () => {
+        return await LocalFile.read(
+          `${CodeExamplesPath}/DataTypes/Includes.md`,
+        );
+      },
+    );
+
     pageData.lessThanOrNullCode = await LocalCache.getOrSetString(
       "data-type",
       "less-than-or-equal",

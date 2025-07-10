@@ -395,5 +395,41 @@
             </div>
         </div>
 
+        <h3 id="example-using-cursors" class="scroll-mt-24">
+            Inlcudes
+        </h3>
+
+        <div class="grid grid-cols-1 items-start gap-x-16 gap-y-10 xl:max-w-none xl:grid-cols-2">
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <p> 
+                    Here is how to use `includes` to query with OneUptime List API:
+                </p>
+
+                <div class="my-6">
+                    <ul role="list"
+                        class="m-0 max-w-[calc(theme(maxWidth.lg)-theme(spacing.8))] list-none divide-y divide-zinc-900/5 p-0 ">
+                        <li class="m-0 px-0 py-4 first:pt-0 last:pb-0">
+                            <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
+                                <dt class="sr-only">Query</dt>
+                                <dd><code class="inline-code">query</code></dd>
+                                <dt class="sr-only">Type</dt>
+                                <dd class="font-mono text-xs text-zinc-400 ">Query</dd>
+                                <dt class="sr-only">Description</dt>
+                                <dd class="w-full flex-none [&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                                    <p>Here is an example of a less than or equal query</p>
+                                </dd>
+                            </dl>
+                        </li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="[&amp;>:first-child]:mt-0 [&amp;>:last-child]:mb-0">
+                <%- include('../partials/code', {title: "Example Not EqualTo Request Body" , requestUrl: "" , requestType: "" ,
+                    code: pageData.includesCode }) -%>
+
+            </div>
+        </div>
+
     </article>
 </main>
