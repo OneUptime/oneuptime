@@ -74,7 +74,7 @@ const Page: FunctionComponent<ComponentProps> = (
               </div>
             )}
             {props.isLoading && (
-              <div className="col-span-10">
+              <div className="lg:col-span-10 md:col-span-9">
                 <PageLoader isVisible={true} />
               </div>
             )}
