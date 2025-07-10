@@ -37,6 +37,88 @@ import nodemailer, { Transporter } from "nodemailer";
 import Path from "path";
 import * as tls from "tls";
 
+// Connection pool for email transporters
+class TransporterPool {
+  private static pools: Map<string, Transporter> = new Map();
+  private static semaphore: Map<string, number> = new Map();
+  private static readonly MAX_CONCURRENT_CONNECTIONS = 5;
+
+  public static getTransporter(emailServer: EmailServer, options: { timeout?: number | undefined }): Transporter {
+    const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
+    
+    if (!this.pools.has(key)) {
+      const transporter = this.createTransporter(emailServer, options);
+      this.pools.set(key, transporter);
+      this.semaphore.set(key, 0);
+    }
+    
+    return this.pools.get(key)!;
+  }
+
+  private static createTransporter(emailServer: EmailServer, options: { timeout?: number | undefined }): Transporter {
+    let tlsOptions: tls.ConnectionOptions | undefined = undefined;
+
+    if (!emailServer.secure) {
+      tlsOptions = {
+        rejectUnauthorized: false,
+      };
+    }
+
+    return nodemailer.createTransport({
+      host: emailServer.host.toString(),
+      port: emailServer.port.toNumber(),
+      secure: emailServer.secure,
+      tls: tlsOptions,
+      auth:
+        emailServer.username && emailServer.password
+          ? {
+              user: emailServer.username,
+              pass: emailServer.password,
+            }
+          : undefined,
+      connectionTimeout: options.timeout || 60000,
+      pool: true, // Enable connection pooling
+      maxConnections: this.MAX_CONCURRENT_CONNECTIONS,
+      maxMessages: 100, // Limit messages per connection
+      rateDelta: 1000, // Rate limiting: 1 second
+      rateLimit: 5, // Max 5 messages per rateDelta
+    });
+  }
+
+  public static async acquireConnection(emailServer: EmailServer): Promise<void> {
+    const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
+    
+    while ((this.semaphore.get(key) || 0) >= this.MAX_CONCURRENT_CONNECTIONS) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    this.semaphore.set(key, (this.semaphore.get(key) || 0) + 1);
+  }
+
+  public static releaseConnection(emailServer: EmailServer): void {
+    const key = `${emailServer.host.toString()}:${emailServer.port.toNumber()}:${emailServer.username || 'noauth'}`;
+    const current = this.semaphore.get(key) || 0;
+    this.semaphore.set(key, Math.max(0, current - 1));
+  }
+
+  public static async cleanup(): Promise<void> {
+    const closePromises: Promise<void>[] = [];
+    
+    for (const [, transporter] of this.pools) {
+      closePromises.push(
+        new Promise<void>((resolve) => {
+          transporter.close();
+          resolve();
+        })
+      );
+    }
+    
+    await Promise.all(closePromises);
+    this.pools.clear();
+    this.semaphore.clear();
+  }
+}
+
 export default class MailService {
   public static isSMTPConfigValid(obj: JSONObject): boolean {
     if (!obj["SMTP_USERNAME"]) {
@@ -205,30 +287,7 @@ export default class MailService {
       timeout?: number | undefined;
     },
   ): Transporter {
-    let tlsOptions: tls.ConnectionOptions | undefined = undefined;
-
-    if (!emailServer.secure) {
-      tlsOptions = {
-        rejectUnauthorized: false,
-      };
-    }
-
-    const privateMailer: Transporter = nodemailer.createTransport({
-      host: emailServer.host.toString(),
-      port: emailServer.port.toNumber(),
-      secure: emailServer.secure,
-      tls: tlsOptions,
-      auth:
-        emailServer.username && emailServer.password
-          ? {
-              user: emailServer.username,
-              pass: emailServer.password,
-            }
-          : undefined,
-      connectionTimeout: options.timeout || undefined,
-    });
-
-    return privateMailer;
+    return TransporterPool.getTransporter(emailServer, options);
   }
 
   private static async transportMail(
@@ -246,34 +305,45 @@ export default class MailService {
     let lastError: any;
     const maxRetries: number = 3;
 
-    for (let attempt: number = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await mailer.sendMail({
-          from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
-          to: mail.toEmail.toString(),
-          subject: mail.subject,
-          html: mail.body,
-        });
-        return; // Success, exit the function
-      } catch (error) {
-        lastError = error;
-        logger.error(`Email send attempt ${attempt} failed:`);
-        logger.error(error);
+    // Acquire connection slot to prevent overwhelming the server
+    await TransporterPool.acquireConnection(options.emailServer);
 
-        if (attempt === maxRetries) {
-          break; // Don't wait after the last attempt
+    try {
+      for (let attempt: number = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await mailer.sendMail({
+            from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
+            to: mail.toEmail.toString(),
+            subject: mail.subject,
+            html: mail.body,
+          });
+          return; // Success, exit the function
+        } catch (error) {
+          lastError = error;
+          logger.error(`Email send attempt ${attempt} failed:`);
+          logger.error(error);
+
+          if (attempt === maxRetries) {
+            break; // Don't wait after the last attempt
+          }
+
+          // Wait before retrying with jitter to prevent thundering herd
+          const baseWaitTime: number = Math.pow(2, attempt - 1) * 1000;
+          const jitter: number = Math.random() * 1000; // Add up to 1 second of jitter
+          const waitTime: number = baseWaitTime + jitter;
+          
+          await new Promise<void>((resolve: (value: void) => void) => {
+            setTimeout(resolve, waitTime);
+          });
         }
-
-        // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-        const waitTime: number = Math.pow(2, attempt - 1) * 1000;
-        await new Promise<void>((resolve: (value: void) => void) => {
-          setTimeout(resolve, waitTime);
-        });
       }
-    }
 
-    // If we reach here, all retries failed
-    throw lastError;
+      // If we reach here, all retries failed
+      throw lastError;
+    } finally {
+      // Always release the connection slot
+      TransporterPool.releaseConnection(options.emailServer);
+    }
   }
 
   public static async send(
@@ -543,5 +613,9 @@ export default class MailService {
 
       throw err;
     }
+  }
+
+  public static async cleanup(): Promise<void> {
+    await TransporterPool.cleanup();
   }
 }
