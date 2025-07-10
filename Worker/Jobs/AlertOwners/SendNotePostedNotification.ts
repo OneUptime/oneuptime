@@ -150,7 +150,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerNotePosted,
           vars: vars,
-          subject: "[Alert Update] " + alert.title,
+          subject: `[Alert ${alert.currentAlertState!.name!}] ${alert.title}`,
         };
 
         const sms: SMSMessage = {

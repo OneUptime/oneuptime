@@ -172,15 +172,7 @@ RunCron(
           vars["isOwner"] = "true";
         }
 
-        let subjectLine: string = `[Incident] ${incident.title!}`;
-
-        if (incidentState.isResolvedState) {
-          if (resourcesAffected) {
-            subjectLine = `[Incident] Incident on ${resourcesAffected} is resolved`;
-          } else {
-            subjectLine = `[Incident] Incident is resolved`;
-          }
-        }
+        let subjectLine: string = `[Incident ${incidentState!.name!}] ${incident.title!}`;
 
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerStateChanged,

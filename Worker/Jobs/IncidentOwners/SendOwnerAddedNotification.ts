@@ -185,7 +185,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.IncidentOwnerAdded,
           vars: vars,
-          subject: "You have been added as the owner of the incident.",
+          subject: `[Incident ${incident.currentIncidentState!.name!}] You have been added as the owner`,
         };
 
         const sms: SMSMessage = {

@@ -179,7 +179,7 @@ RunCron(
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.AlertOwnerAdded,
           vars: vars,
-          subject: "You have been added as the owner of the alert.",
+          subject: `[Alert ${alert.currentAlertState!.name!}] You have been added as the owner`,
         };
 
         const sms: SMSMessage = {
