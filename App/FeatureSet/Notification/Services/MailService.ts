@@ -78,10 +78,7 @@ class TransporterPool {
           : undefined,
       connectionTimeout: options.timeout || 60000,
       pool: true, // Enable connection pooling
-      maxConnections: this.MAX_CONCURRENT_CONNECTIONS,
-      maxMessages: 100, // Limit messages per connection
-      rateDelta: 1000, // Rate limiting: 1 second
-      rateLimit: 5, // Max 5 messages per rateDelta
+      maxConnections: this.MAX_CONCURRENT_CONNECTIONS
     });
   }
 
