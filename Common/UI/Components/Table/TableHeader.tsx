@@ -33,7 +33,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(() => {
-    const checkMobile = (): void => {
+    const checkMobile: () => void = (): void => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
 
@@ -73,65 +73,67 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
           </th>
         )}
         {props.columns
-          .filter((column: Column<T>) => !(column.hideOnMobile && isMobile))
+          .filter((column: Column<T>) => {
+            return !(column.hideOnMobile && isMobile);
+          })
           .map((column: Column<T>, i: number) => {
-          const canSort: boolean = !column.disableSort && Boolean(column.key);
+            const canSort: boolean = !column.disableSort && Boolean(column.key);
 
-          return (
-            <th
-              key={i}
-              className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
-                canSort ? "cursor-pointer" : ""
-              }`}
-              onClick={() => {
-                if (!column.key) {
-                  return;
-                }
-
-                if (!canSort) {
-                  return;
-                }
-
-                const sortOrder: SortOrder =
-                  props.sortOrder === SortOrder.Ascending
-                    ? SortOrder.Descending
-                    : SortOrder.Ascending;
-
-                const currentSortColumn: keyof T = column.key;
-
-                props.onSortChanged(currentSortColumn, sortOrder);
-              }}
-            >
-              <div
-                className={`flex ${
-                  column.type === FieldType.Actions
-                    ? "justify-end"
-                    : "justify-start"
+            return (
+              <th
+                key={i}
+                className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
+                  canSort ? "cursor-pointer" : ""
                 }`}
+                onClick={() => {
+                  if (!column.key) {
+                    return;
+                  }
+
+                  if (!canSort) {
+                    return;
+                  }
+
+                  const sortOrder: SortOrder =
+                    props.sortOrder === SortOrder.Ascending
+                      ? SortOrder.Descending
+                      : SortOrder.Ascending;
+
+                  const currentSortColumn: keyof T = column.key;
+
+                  props.onSortChanged(currentSortColumn, sortOrder);
+                }}
               >
-                {column.title}
-                {canSort &&
-                  props.sortBy === column.key &&
-                  props.sortOrder === SortOrder.Ascending && (
-                    <Icon
-                      icon={IconProp.ChevronUp}
-                      thick={ThickProp.Thick}
-                      className="ml-2  p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
-                    />
-                  )}
-                {canSort &&
-                  props.sortBy === column.key &&
-                  props.sortOrder === SortOrder.Descending && (
-                    <Icon
-                      icon={IconProp.ChevronDown}
-                      thick={ThickProp.Thick}
-                      className="ml-2 p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
-                    />
-                  )}
-              </div>
-            </th>
-          );
-        })}
+                <div
+                  className={`flex ${
+                    column.type === FieldType.Actions
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
+                >
+                  {column.title}
+                  {canSort &&
+                    props.sortBy === column.key &&
+                    props.sortOrder === SortOrder.Ascending && (
+                      <Icon
+                        icon={IconProp.ChevronUp}
+                        thick={ThickProp.Thick}
+                        className="ml-2  p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
+                      />
+                    )}
+                  {canSort &&
+                    props.sortBy === column.key &&
+                    props.sortOrder === SortOrder.Descending && (
+                      <Icon
+                        icon={IconProp.ChevronDown}
+                        thick={ThickProp.Thick}
+                        className="ml-2 p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
+                      />
+                    )}
+                </div>
+              </th>
+            );
+          })}
       </tr>
     </thead>
   );

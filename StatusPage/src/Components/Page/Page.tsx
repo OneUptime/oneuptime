@@ -7,7 +7,10 @@ const StatusPagePage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
-    <Page {...props} className="w-full mt-3 mb-16 sm:mt-5 sm:mb-20 h-full p-0" />
+    <Page
+      {...props}
+      className="w-full mt-3 mb-16 sm:mt-5 sm:mb-20 h-full p-0"
+    />
   );
 };
 

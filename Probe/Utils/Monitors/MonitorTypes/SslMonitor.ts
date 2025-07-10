@@ -110,7 +110,9 @@ export default class SSLMonitor {
       }
 
       // if AggregateError is thrown, it means that the request failed
-      if (API.getFriendlyErrorMessage(err as Error).includes("AggregateError")) {
+      if (
+        API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
+      ) {
         return null;
       }
 
@@ -188,7 +190,9 @@ export default class SSLMonitor {
   }): Promise<tls.PeerCertificate> {
     const { host, rejectUnauthorized } = data;
 
-    let { port, retry = 3, currentRetryCount = 1 } = data;
+    let { port } = data;
+    const retry: number = data.retry || 3;
+    const currentRetryCount: number = data.currentRetryCount || 1;
 
     if (!port) {
       port = 443;

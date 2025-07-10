@@ -137,19 +137,22 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.DANGER) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm ${disabled ? "hover:bg-red-700" : ""
-      } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm ${
+      disabled ? "hover:bg-red-700" : ""
+    } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm ${disabled ? "hover:bg-red-50" : ""
-      } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm ${
+      disabled ? "hover:bg-red-50" : ""
+    } focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.PRIMARY) {
     loadingIconClassName += ` text-indigo-100`;
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm ${disabled ? "hover:bg-indigo-700" : ""
-      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm ${
+      disabled ? "hover:bg-indigo-700" : ""
+    } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
 
     if (disabled) {
       buttonStyleCssClass += ` bg-indigo-300`;
@@ -158,8 +161,9 @@ const Button: FunctionComponent<ComponentProps> = ({
 
   if (buttonStyle === ButtonStyleType.SECONDARY) {
     loadingIconClassName += ` text-indigo-500`;
-    buttonStyleCssClass = `inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 ${disabled ? "hover:bg-indigo-200" : ""
-      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
+    buttonStyleCssClass = `inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 ${
+      disabled ? "hover:bg-indigo-200" : ""
+    } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
 
     if (disabled) {
       buttonStyleCssClass += ` bg-indigo-300`;
@@ -167,13 +171,15 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
-    buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${disabled ? "hover:text-gray-500" : ""
-      }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
+    buttonStyleCssClass = `rounded-md bg-white text-gray-400 ${
+      disabled ? "hover:text-gray-500" : ""
+    }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
   }
 
   if (buttonStyle === ButtonStyleType.ICON) {
-    buttonStyleCssClass = `rounded-md bg-white text-gray-600 ${disabled ? "hover:text-gray-900" : ""
-      }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
+    buttonStyleCssClass = `rounded-md bg-white text-gray-600 ${
+      disabled ? "hover:text-gray-900" : ""
+    }  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`;
   }
 
   if (
@@ -198,23 +204,27 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm ${disabled ? "hover:bg-green-700" : ""
-      }  focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm ${
+      disabled ? "hover:bg-green-700" : ""
+    }  focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm ${disabled ? "hover:bg-green-50" : ""
-      }  focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm ${
+      disabled ? "hover:bg-green-50" : ""
+    }  focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.WARNING) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm  ${disabled ? "hover:bg-yellow-700" : ""
-      }  focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm  ${
+      disabled ? "hover:bg-yellow-700" : ""
+    }  focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${disabled ? "hover:bg-yellow-50" : ""
-      }   focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm ${
+      disabled ? "hover:bg-yellow-50" : ""
+    }   focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm`;
   }
 
   buttonStyleCssClass += ` ` + buttonSize;

@@ -199,7 +199,9 @@ export default class WebsiteMonitor {
       }
 
       // if AggregateError is thrown, it means that the request failed
-      if (API.getFriendlyErrorMessage(err as Error).includes("AggregateError")) {
+      if (
+        API.getFriendlyErrorMessage(err as Error).includes("AggregateError")
+      ) {
         return null;
       }
 

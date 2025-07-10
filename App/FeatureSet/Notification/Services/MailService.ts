@@ -244,9 +244,9 @@ export default class MailService {
     });
 
     let lastError: any;
-    const maxRetries = 3;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const maxRetries: number = 3;
+
+    for (let attempt: number = 1; attempt <= maxRetries; attempt++) {
       try {
         await mailer.sendMail({
           from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
@@ -259,17 +259,19 @@ export default class MailService {
         lastError = error;
         logger.error(`Email send attempt ${attempt} failed:`);
         logger.error(error);
-        
+
         if (attempt === maxRetries) {
           break; // Don't wait after the last attempt
         }
-        
+
         // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-        const waitTime = Math.pow(2, attempt - 1) * 1000;
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        const waitTime: number = Math.pow(2, attempt - 1) * 1000;
+        await new Promise<void>((resolve: (value: void) => void) => {
+          setTimeout(resolve, waitTime);
+        });
       }
     }
-    
+
     // If we reach here, all retries failed
     throw lastError;
   }
