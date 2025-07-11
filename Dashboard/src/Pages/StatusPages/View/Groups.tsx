@@ -167,6 +167,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Expanded on Status Page by Default",
             type: FieldType.Boolean,
+            hideOnMobile: true,
           },
         ]}
       />

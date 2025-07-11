@@ -91,6 +91,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       title: "From Email",
       type: FieldType.Email,
+      hideOnMobile: true,
     },
 
     {
@@ -100,6 +101,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       title: "To Email",
       type: FieldType.Email,
+
     },
     {
       field: {
@@ -107,6 +109,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "Sent at",
       type: FieldType.DateTime,
+
     },
     {
       field: {
@@ -114,6 +117,7 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "Status",
       type: FieldType.Text,
+
       getElement: (item: EmailLog): ReactElement => {
         if (item["status"]) {
           return (

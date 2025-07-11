@@ -313,6 +313,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Monitors Affected",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return <MonitorsElement monitors={item["monitors"] || []} />;
@@ -328,6 +329,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Shown on Status Page",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return (
@@ -341,6 +343,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Starts At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -348,6 +351,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Ends At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -358,6 +362,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;

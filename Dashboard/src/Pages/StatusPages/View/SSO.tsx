@@ -252,6 +252,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
               },
               title: "Description",
               type: FieldType.Text,
+              hideOnMobile: true,
             },
 
             {
@@ -260,6 +261,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
               },
               title: "Enabled",
               type: FieldType.Boolean,
+              hideOnMobile: true,
             },
           ]}
         />

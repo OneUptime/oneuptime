@@ -164,6 +164,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Link",
             type: FieldType.URL,
+            hideOnMobile: true,
           },
         ]}
       />

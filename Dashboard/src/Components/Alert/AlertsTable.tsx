@@ -213,6 +213,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             title: "State",
             type: FieldType.Entity,
 
+
             getElement: (item: Alert): ReactElement => {
               if (item["currentAlertState"]) {
                 return (
@@ -237,6 +238,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             title: "Severity",
             type: FieldType.Entity,
+
             getElement: (item: Alert): ReactElement => {
               if (item["alertSeverity"]) {
                 return (
@@ -262,6 +264,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             title: "Monitor Affected",
             type: FieldType.EntityArray,
 
+
             getElement: (item: Alert): ReactElement => {
               if (item["monitor"]) {
                 return <MonitorElement monitor={item["monitor"]!} />;
@@ -275,6 +278,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Created",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -285,6 +289,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: Alert): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;

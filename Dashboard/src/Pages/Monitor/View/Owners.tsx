@@ -115,6 +115,7 @@ const MonitorOwners: FunctionComponent<
             },
             title: "Owner since",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />
@@ -214,6 +215,7 @@ const MonitorOwners: FunctionComponent<
             },
             title: "Owner since",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />

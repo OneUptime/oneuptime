@@ -341,6 +341,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Subscribed At",
                 type: FieldType.Date,
+                hideOnMobile: true,
               },
             ]}
           />

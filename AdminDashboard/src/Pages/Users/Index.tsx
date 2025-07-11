@@ -109,6 +109,7 @@ const Users: FunctionComponent = (): ReactElement => {
             },
             title: "Email",
             type: FieldType.Email,
+
           },
           {
             field: {
@@ -116,6 +117,7 @@ const Users: FunctionComponent = (): ReactElement => {
             },
             title: "Email Verified",
             type: FieldType.Boolean,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -123,6 +125,7 @@ const Users: FunctionComponent = (): ReactElement => {
             },
             title: "Created At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />

@@ -174,6 +174,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -181,6 +182,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Status",
             type: FieldType.Text,
+
             getElement: (item: Probe): ReactElement => {
               if (
                 item &&

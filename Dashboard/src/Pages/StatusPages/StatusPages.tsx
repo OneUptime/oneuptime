@@ -116,6 +116,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -126,6 +127,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: StatusPage): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;

@@ -301,6 +301,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           title: "Monitor Type",
           type: FieldType.Text,
+          hideOnMobile: true,
         },
         {
           field: {
@@ -312,6 +313,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
           title: "Monitor Status",
           type: FieldType.Entity,
+
           getElement: (item: Monitor): ReactElement => {
             if (!item["currentMonitorStatus"]) {
               throw new BadDataException("Monitor Status not found");
@@ -365,6 +367,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           },
           title: "Labels",
           type: FieldType.EntityArray,
+          hideOnMobile: true,
 
           getElement: (item: Monitor): ReactElement => {
             return <LabelsElement labels={item["labels"] || []} />;

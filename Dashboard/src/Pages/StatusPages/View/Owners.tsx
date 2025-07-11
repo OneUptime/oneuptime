@@ -116,6 +116,7 @@ const StatusPageOwners: FunctionComponent<
             },
             title: "Owner since",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />
@@ -218,6 +219,7 @@ const StatusPageOwners: FunctionComponent<
             },
             title: "Owner since",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />

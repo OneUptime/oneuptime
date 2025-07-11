@@ -126,6 +126,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -136,6 +137,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: Dashboard): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;

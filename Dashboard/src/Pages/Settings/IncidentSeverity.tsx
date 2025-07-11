@@ -58,6 +58,7 @@ const IncidentSeverityPage: FunctionComponent<
             },
             title: "Description",
             type: FieldType.LongText,
+            hideOnMobile: true,
 
             getElement: (item: IncidentSeverity): ReactElement => {
               return (

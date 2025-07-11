@@ -82,6 +82,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       title: "From Number",
       type: FieldType.Phone,
+      hideOnMobile: true,
     },
     {
       field: {
@@ -128,6 +129,7 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "SMS Cost",
       type: FieldType.USDCents,
+      hideOnMobile: true,
     } as Column<SmsLog>);
   }
 

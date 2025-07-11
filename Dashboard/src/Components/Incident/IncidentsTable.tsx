@@ -268,6 +268,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Title",
             type: FieldType.Element,
+
             getElement: (item: Incident): ReactElement => {
               return <IncidentElement incident={item} />;
             },
@@ -281,6 +282,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
             title: "State",
             type: FieldType.Entity,
+
 
             getElement: (item: Incident): ReactElement => {
               if (item["currentIncidentState"]) {
@@ -306,6 +308,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             title: "Severity",
             type: FieldType.Entity,
+            hideOnMobile: true,
             getElement: (item: Incident): ReactElement => {
               if (item["incidentSeverity"]) {
                 return (
@@ -331,6 +334,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "Monitors Affected",
             type: FieldType.EntityArray,
 
+
             getElement: (item: Incident): ReactElement => {
               return <MonitorsElement monitors={item["monitors"] || []} />;
             },
@@ -341,6 +345,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Created",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -351,6 +356,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: Incident): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;

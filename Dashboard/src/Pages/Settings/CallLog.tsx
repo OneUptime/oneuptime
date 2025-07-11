@@ -86,6 +86,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       title: "From Number",
       type: FieldType.Phone,
+      hideOnMobile: true,
     },
     {
       field: {
@@ -132,6 +133,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "Call Cost",
       type: FieldType.USDCents,
+      hideOnMobile: true,
     } as Column<CallLog>);
   }
 

@@ -189,6 +189,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Description",
               type: FieldType.LongText,
+              hideOnMobile: true,
             },
             {
               field: {
@@ -214,6 +215,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Labels",
               type: FieldType.EntityArray,
+              hideOnMobile: true,
               getElement: (item: Workflow): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },

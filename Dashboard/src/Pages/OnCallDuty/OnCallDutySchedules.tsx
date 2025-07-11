@@ -120,6 +120,7 @@ const OnCallDutyPage: FunctionComponent<
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -130,6 +131,7 @@ const OnCallDutyPage: FunctionComponent<
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
             getElement: (item: OnCallDutySchedule): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },

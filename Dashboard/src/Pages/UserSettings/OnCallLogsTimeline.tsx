@@ -127,6 +127,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Notification Sent At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {

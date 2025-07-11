@@ -181,6 +181,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Created At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {

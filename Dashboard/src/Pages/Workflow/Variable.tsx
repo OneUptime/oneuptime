@@ -121,6 +121,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -135,6 +136,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Created At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />

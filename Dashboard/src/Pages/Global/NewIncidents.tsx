@@ -154,6 +154,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Incident Severity",
             type: FieldType.Entity,
+
             getElement: (item: Incident): ReactElement => {
               if (item["incidentSeverity"]) {
                 return (
@@ -177,6 +178,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Monitors Affected",
             type: FieldType.Text,
+
             getElement: (item: Incident): ReactElement => {
               return <MonitorsElement monitors={item["monitors"] || []} />;
             },
@@ -187,6 +189,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Created At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
       />

@@ -241,6 +241,7 @@ const Projects: FunctionComponent = (): ReactElement => {
             },
             title: "Created At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
         ]}
         userPreferencesKey="admin-projects-table"

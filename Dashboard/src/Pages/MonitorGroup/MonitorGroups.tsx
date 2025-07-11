@@ -150,6 +150,7 @@ const MonitorGroupPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            hideOnMobile: true,
 
             getElement: (item: MonitorGroup): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
