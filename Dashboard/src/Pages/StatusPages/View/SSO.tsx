@@ -47,6 +47,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           title="Need help with configuring SSO?"
           description="Watch this 10 minute video which will help you get set up"
           link={URL.fromString("https://youtu.be/F_h74p38SU0")}
+          hideOnMobile={true}
         />
 
         <ModelTable<StatusPageSSO>

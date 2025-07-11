@@ -20,6 +20,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         title="Need a demo of status pages?"
         description="Watch this video which will help you build status page for your company in under 12 minutes."
         link={URL.fromString("https://youtu.be/F6BNipy5VCk")}
+        hideOnMobile={true}
       />
       <ModelTable<StatusPage>
         modelType={StatusPage}

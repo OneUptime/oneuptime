@@ -13,6 +13,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         title="Monitoring Demo"
         description="Watch this video which will help monitor any resource you have with OneUptime"
         link={URL.fromString("https://youtu.be/_fQ_F4EisBQ")}
+        hideOnMobile={true}
       />
       <MonitorTable
         query={{

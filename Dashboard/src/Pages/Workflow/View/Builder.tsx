@@ -259,6 +259,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title="Need help with building workflows?"
           description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
           link={URL.fromString("https://youtu.be/k1-reCQTZnM")}
+          hideOnMobile={true}
         />
         <Card
           title={"Workflow Builder"}

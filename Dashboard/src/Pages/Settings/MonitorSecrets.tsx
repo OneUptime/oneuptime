@@ -37,6 +37,7 @@ const MonitorSecrets: FunctionComponent<
         title="How to use Monitor Secrets?"
         description="Learn how to use monitor secrets to store sensitive information like API keys, passwords, etc. that can be shared with monitors."
         link={URL.fromString("https://www.youtube.com/watch?v=V5eIpd_IPlU")}
+        hideOnMobile={true}
       />
       <ModelTable<MonitorSecret>
         userPreferencesKey={"monitor-secrets-table"}

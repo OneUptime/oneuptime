@@ -33,6 +33,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title="Need a demo of workflows?"
           description="Watch this 10 minute video which will help you connect Slack with OneUptime using workflows"
           link={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
+          hideOnMobile={true}
         />
 
         {plan && (plan === PlanType.Growth || plan === PlanType.Scale) && (

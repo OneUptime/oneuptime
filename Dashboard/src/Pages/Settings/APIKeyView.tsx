@@ -346,6 +346,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         title="Questions about Permissions?"
         description="Watch this 5 minute video to learn how permissions work in OneUptime."
         link={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
+        hideOnMobile={true}
       />
 
       {/* Allow Permissions */}

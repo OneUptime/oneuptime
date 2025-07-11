@@ -54,6 +54,7 @@ const Settings: FunctionComponent = (): ReactElement => {
         title="Need help with setting up Global Probes?"
         description="Here is a guide which will help you get set up"
         link={Route.fromString("/docs/probe/custom-probe")}
+        hideOnMobile={true}
       />
 
       <ModelTable<Probe>

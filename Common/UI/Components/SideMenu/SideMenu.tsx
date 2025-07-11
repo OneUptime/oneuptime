@@ -230,7 +230,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     return (
       <div className="md:hidden mb-6">
         {/* Mobile toggle button */}
-        <div className="flex items-center justify-between w-full mb-4 px-4 py-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between w-full mb-4 px-4 py-3 bg-white rounded-lg border border-gray-200">
           <div className="flex-1 mr-3">
             <h3 className="text-base font-medium text-gray-900 truncate">{displayText}</h3>
           </div>
@@ -250,7 +250,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         {isMobileMenuVisible && (
           <div
             ref={mobileMenuRef}
-            className="bg-white rounded-lg shadow-lg border border-gray-200 py-4 px-4 mb-6 transition-all duration-200 ease-in-out"
+            className="bg-white rounded-lg border border-gray-200 py-4 px-4 mb-6 transition-all duration-200 ease-in-out"
             role="navigation"
             aria-label="Main navigation"
           >

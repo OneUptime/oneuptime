@@ -19,6 +19,7 @@ const OnCallScheduleDelete: FunctionComponent<
         title="Learn how on-call policy works"
         description="Watch this video to learn how to build effective on-call policies for your team."
         link={URL.fromString("https://youtu.be/HzhKmCryYdc")}
+        hideOnMobile={true}
       />
       <Layers
         onCallDutyPolicyScheduleId={modelId}

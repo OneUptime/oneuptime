@@ -41,6 +41,7 @@ const CodeRepositoryPage: FunctionComponent<
         description="Reliability Copilot is a beta software. Please let us know your feedback and report any bugs on GitHub."
         openInNewTab={true}
         link={URL.fromString("https://github.com/OneUptime/oneuptime/issues")}
+        hideOnMobile={true}
       />
       <ModelTable<CodeRepository>
         modelType={CodeRepository}

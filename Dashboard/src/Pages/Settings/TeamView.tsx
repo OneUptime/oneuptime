@@ -405,6 +405,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         title="Questions about Team Permissions?"
         description="Watch this 5 minute video to learn how team permissions work in OneUptime."
         link={URL.fromString("https://youtu.be/TzmaTe4sbCI")}
+        hideOnMobile={true}
       />
 
       {/* Team Permisison Table */}
