@@ -33,7 +33,7 @@ const Banner: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className={`flex border-gray-200 rounded-xl border-2 py-2.5 px-6 sm:px-3.5${props.hideOnMobile ? ' hidden sm:flex' : ''}`}>
+    <div className={`flex border-gray-200 rounded-xl border-2 py-2.5 px-6 sm:px-3.5${props.hideOnMobile ? ' hidden md:flex' : ''}`}>
       <p className="text-sm text-gray-400 hover:text-gray-500">
         {props.link && (
           <Link to={props.link} openInNewTab={props.openInNewTab}>
