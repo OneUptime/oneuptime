@@ -199,6 +199,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             },
             title: "Show Announcement At",
             type: FieldType.DateTime,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -207,6 +208,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             title: "End Announcement At",
             type: FieldType.DateTime,
             noValueMessage: "-",
+            hideOnMobile: true,
           },
           {
             field: {
@@ -214,6 +216,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
                 name: true,
               },
             },
+            hideOnMobile: true,
             title: "Shown on Status Pages",
             type: FieldType.Element,
             getElement: (item: StatusPageAnnouncement) => {
