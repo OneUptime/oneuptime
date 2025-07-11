@@ -2,445 +2,457 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
-  return (
-    <SideMenu>
-      <SideMenuSection title="Basic">
-        <SideMenuItem
-          link={{
+  const sections: SideMenuSectionProps[] = [
+    {
+      title: "Basic",
+      items: [
+        {
+          link: {
             title: "Project",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS] as Route,
             ),
-          }}
-          icon={IconProp.Folder}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Folder,
+        },
+        {
+          link: {
             title: "Labels",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_LABELS] as Route,
             ),
-          }}
-          icon={IconProp.Label}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Workspace Connections">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Label,
+        },
+      ],
+    },
+    {
+      title: "Workspace Connections",
+      items: [
+        {
+          link: {
             title: "Slack",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SLACK_INTEGRATION] as Route,
             ),
-          }}
-          icon={IconProp.Slack}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Slack,
+        },
+        {
+          link: {
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION] as Route,
             ),
-          }}
-          icon={IconProp.MicrosoftTeams}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Monitors">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.MicrosoftTeams,
+        },
+      ],
+    },
+    {
+      title: "Monitors",
+      items: [
+        {
+          link: {
             title: "Monitor Status",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route,
             ),
-          }}
-          icon={IconProp.AltGlobe}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.AltGlobe,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_MONITOR_CUSTOM_FIELDS] as Route,
             ),
-          }}
-          icon={IconProp.TableCells}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.TableCells,
+        },
+        {
+          link: {
             title: "Secrets",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_MONITOR_SECRETS] as Route,
             ),
-          }}
-          icon={IconProp.Lock}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Status Pages">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Lock,
+        },
+      ],
+    },
+    {
+      title: "Status Pages",
+      items: [
+        {
+          link: {
             title: "Announcement Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SETTINGS_STATUS_PAGE_ANNOUNCEMENT_TEMPLATES
               ] as Route,
             ),
-          }}
-          icon={IconProp.Template}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Template,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_STATUS_PAGE_CUSTOM_FIELDS] as Route,
             ),
-          }}
-          icon={IconProp.TableCells}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="On-Call Policy">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    {
+      title: "On-Call Policy",
+      items: [
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SETTINGS_ON_CALL_DUTY_POLICY_CUSTOM_FIELDS
               ] as Route,
             ),
-          }}
-          icon={IconProp.TableCells}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Incidents">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    {
+      title: "Incidents",
+      items: [
+        {
+          link: {
             title: "Incident State",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route,
             ),
-          }}
-          icon={IconProp.ArrowCircleRight}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.ArrowCircleRight,
+        },
+        {
+          link: {
             title: "Incident Severity",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INCIDENTS_SEVERITY] as Route,
             ),
-          }}
-          icon={IconProp.Alert}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Alert,
+        },
+        {
+          link: {
             title: "Incident Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INCIDENT_TEMPLATES] as Route,
             ),
-          }}
-          icon={IconProp.Template}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Template,
+        },
+        {
+          link: {
             title: "Note Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INCIDENT_NOTE_TEMPLATES] as Route,
             ),
-          }}
-          icon={IconProp.Pencil}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Pencil,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_INCIDENT_CUSTOM_FIELDS] as Route,
             ),
-          }}
-          icon={IconProp.TableCells}
-        />
-        {/* <SideMenuItem
-                    link={{
-                        title: 'Incident Templates',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.TextFile}
-                /> */}
-      </SideMenuSection>
-
-      <SideMenuSection title="Alerts">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    {
+      title: "Alerts",
+      items: [
+        {
+          link: {
             title: "Alert State",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_ALERTS_STATE] as Route,
             ),
-          }}
-          icon={IconProp.ArrowCircleRight}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.ArrowCircleRight,
+        },
+        {
+          link: {
             title: "Alert Severity",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_ALERTS_SEVERITY] as Route,
             ),
-          }}
-          icon={IconProp.Alert}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Alert,
+        },
+        {
+          link: {
             title: "Note Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_ALERT_NOTE_TEMPLATES] as Route,
             ),
-          }}
-          icon={IconProp.Pencil}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Pencil,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_ALERT_CUSTOM_FIELDS] as Route,
             ),
-          }}
-          icon={IconProp.TableCells}
-        />
-        {/* <SideMenuItem
-                    link={{
-                        title: 'Alert Templates',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.TextFile}
-                /> */}
-      </SideMenuSection>
-      <SideMenuSection title="Telemetry & APM">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    {
+      title: "Telemetry & APM",
+      items: [
+        {
+          link: {
             title: "Ingestion Keys",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS] as Route,
             ),
-          }}
-          icon={IconProp.Terminal}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Scheduled Maintenance">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Terminal,
+        },
+      ],
+    },
+    {
+      title: "Scheduled Maintenance",
+      items: [
+        {
+          link: {
             title: "Event State",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE] as Route,
             ),
-          }}
-          icon={IconProp.Clock}
-        />
-
-        {/** Templates */}
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Clock,
+        },
+        {
+          link: {
             title: "Event Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SETTINGS_SCHEDULED_MAINTENANCE_TEMPLATES
               ] as Route,
             ),
-          }}
-          icon={IconProp.Template}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Template,
+        },
+        {
+          link: {
             title: "Note Templates",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES
               ] as Route,
             ),
-          }}
-          icon={IconProp.Pencil}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Pencil,
+        },
+        {
+          link: {
             title: "Custom Fields",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.SETTINGS_SCHEDULED_MAINTENANCE_CUSTOM_FIELDS
               ] as Route,
             ),
-          }}
-          icon={IconProp.TableCells}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Users and Teams">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.TableCells,
+        },
+      ],
+    },
+    {
+      title: "Users and Teams",
+      items: [
+        {
+          link: {
             title: "Users",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_USERS] as Route,
             ),
-          }}
-          icon={IconProp.User}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
             title: "Teams",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_TEAMS] as Route,
             ),
-          }}
-          icon={IconProp.Team}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Notifications">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Team,
+        },
+      ],
+    },
+    {
+      title: "Notifications",
+      items: [
+        {
+          link: {
             title: "Notification Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
             ),
-          }}
-          icon={IconProp.Settings}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Settings,
+        },
+        {
+          link: {
             title: "SMS Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route,
             ),
-          }}
-          icon={IconProp.SMS}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.SMS,
+        },
+        {
+          link: {
             title: "Call Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route,
             ),
-          }}
-          icon={IconProp.Call}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Call,
+        },
+        {
+          link: {
             title: "Email Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route,
             ),
-          }}
-          icon={IconProp.Email}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Advanced">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Email,
+        },
+      ],
+    },
+    {
+      title: "Advanced",
+      items: [
+        {
+          link: {
             title: "Probes",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_PROBES] as Route,
             ),
-          }}
-          icon={IconProp.Signal}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Signal,
+        },
+        {
+          link: {
             title: "Domains",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
             ),
-          }}
-          icon={IconProp.Globe}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Globe,
+        },
+        {
+          link: {
             title: "API Keys",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
             ),
-          }}
-          icon={IconProp.Terminal}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Terminal,
+        },
+        {
+          link: {
             title: "Feature Flags",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_FEATURE_FLAGS] as Route,
             ),
-          }}
-          icon={IconProp.Flag}
-        />
-
-        {/* <SideMenuItem
-                    link={{
-                        title: 'SMS & Call Provider',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Call}
-                /> */}
-      </SideMenuSection>
-      {BILLING_ENABLED ? (
-        <SideMenuSection title="Billing and Invoices">
-          <SideMenuItem
-            link={{
-              title: "Billing",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_BILLING] as Route,
-              ),
-            }}
-            icon={IconProp.Billing}
-          />
-          <SideMenuItem
-            link={{
-              title: "Usage History",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route,
-              ),
-            }}
-            icon={IconProp.ChartBar}
-          />
-          <SideMenuItem
-            link={{
-              title: "Invoices",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
-              ),
-            }}
-            icon={IconProp.TextFile}
-          />
-        </SideMenuSection>
-      ) : (
-        <></>
-      )}
-      <SideMenuSection title="Authentication Security">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Flag,
+        },
+      ],
+    },
+    {
+      title: "Authentication Security",
+      items: [
+        {
+          link: {
             title: "SSO",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_SSO] as Route,
             ),
-          }}
-          icon={IconProp.Lock}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Danger Zone">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Lock,
+        },
+      ],
+    },
+    {
+      title: "Danger Zone",
+      items: [
+        {
+          link: {
             title: "Danger Zone",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
             ),
-          }}
-          icon={IconProp.Error}
-          className="danger-on-hover"
-        />
-      </SideMenuSection>
-    </SideMenu>
-  );
+          },
+          icon: IconProp.Error,
+          className: "danger-on-hover",
+        },
+      ],
+    },
+  ];
+
+  // Conditionally add Billing section
+  if (BILLING_ENABLED) {
+    // Insert Billing section before Authentication Security (second to last)
+    sections.splice(-2, 0, {
+      title: "Billing and Invoices",
+      items: [
+        {
+          link: {
+            title: "Billing",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_BILLING] as Route,
+            ),
+          },
+          icon: IconProp.Billing,
+        },
+        {
+          link: {
+            title: "Usage History",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_USAGE_HISTORY] as Route,
+            ),
+          },
+          icon: IconProp.ChartBar,
+        },
+        {
+          link: {
+            title: "Invoices",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
+            ),
+          },
+          icon: IconProp.TextFile,
+        },
+      ],
+    });
+  }
+
+  return <SideMenu sections={sections} />;
 };
 
 export default DashboardSideMenu;

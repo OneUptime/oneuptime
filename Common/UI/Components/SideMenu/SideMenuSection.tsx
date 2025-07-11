@@ -5,7 +5,7 @@ export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
 }
 
-const SideMenuItem: FunctionComponent<ComponentProps> = (
+const SideMenuSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   return (
@@ -16,4 +16,4 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default SideMenuItem;
+export default SideMenuSection;

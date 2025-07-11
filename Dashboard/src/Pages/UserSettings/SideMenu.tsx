@@ -3,9 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
-import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 
@@ -23,86 +21,92 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
     };
   }
 
-  return (
-    <SideMenu>
-      <SideMenuSection title="Alerts & Notifications">
-        <SideMenuItem
-          link={{
+  const sections: SideMenuSectionProps[] = [
+    {
+      title: "Alerts & Notifications",
+      items: [
+        {
+          link: {
             title: "Notification Methods",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_METHODS] as Route,
             ),
-          }}
-          icon={IconProp.Bell}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Bell,
+        },
+        {
+          link: {
             title: "Notification Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS] as Route,
             ),
-          }}
-          icon={IconProp.Settings}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="On-Call">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Settings,
+        },
+      ],
+    },
+    {
+      title: "On-Call",
+      items: [
+        {
+          link: {
             title: "Incident On-Call Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route,
             ),
-          }}
-          icon={IconProp.Alert}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Alert,
+        },
+        {
+          link: {
             title: "Alert On-Call Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_ALERT_ON_CALL_RULES] as Route,
             ),
-          }}
-          icon={IconProp.ExclaimationCircle}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.ExclaimationCircle,
+        },
+        {
+          link: {
             title: "On-Call Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_ON_CALL_LOGS] as Route,
             ),
-          }}
-          icon={IconProp.Logs}
-          subItemIcon={IconProp.Clock}
-          subItemLink={subItemMenuLink}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Workspace Connections">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Logs,
+          subItemIcon: IconProp.Clock,
+          subItemLink: subItemMenuLink,
+        },
+      ],
+    },
+    {
+      title: "Workspace Connections",
+      items: [
+        {
+          link: {
             title: "Slack",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_SLACK_INTEGRATION] as Route,
             ),
-          }}
-          icon={IconProp.Slack}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Slack,
+        },
+        {
+          link: {
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION
               ] as Route,
             ),
-          }}
-          icon={IconProp.MicrosoftTeams}
-        />
-      </SideMenuSection>
-    </SideMenu>
-  );
+          },
+          icon: IconProp.MicrosoftTeams,
+        },
+      ],
+    },
+  ];
+
+  return <SideMenu sections={sections} />;
 };
 
 export default DashboardSideMenu;

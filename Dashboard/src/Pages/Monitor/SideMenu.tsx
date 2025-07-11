@@ -3,10 +3,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
-import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
-import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -18,129 +15,138 @@ export interface ComponentProps {
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  return (
-    <SideMenu>
-      <SideMenuSection title="Overview">
-        <SideMenuItem
-          link={{
+  const sections: SideMenuSectionProps[] = [
+    {
+      title: "Overview",
+      items: [
+        {
+          link: {
             title: "All Monitors",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS] as Route,
             ),
-          }}
-          icon={IconProp.List}
-        />
-
-        <CountModelSideMenuItem<Monitor>
-          link={{
+          },
+          icon: IconProp.List,
+        },
+        {
+          link: {
             title: "Inoperational Monitors",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route,
             ),
-          }}
-          icon={IconProp.Alert}
-          badgeType={BadgeType.DANGER}
-          modelType={Monitor}
-          countQuery={{
+          },
+          icon: IconProp.Alert,
+          badgeType: BadgeType.DANGER,
+          modelType: Monitor,
+          countQuery: {
             projectId: props.project?._id,
             currentMonitorStatus: {
               isOperationalState: false,
             },
-          }}
-        />
-      </SideMenuSection>
+          },
+        },
+      ],
+    },
+  ];
 
-      {props.project?.isFeatureFlagMonitorGroupsEnabled ? (
-        <SideMenuSection title="Monitor Groups">
-          <SideMenuItem
-            link={{
-              title: "All Groups",
-              to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_GROUPS] as Route,
-              ),
-            }}
-            icon={IconProp.Squares}
-          />
-        </SideMenuSection>
-      ) : (
-        <></>
-      )}
+  // Conditionally add Monitor Groups section
+  if (props.project?.isFeatureFlagMonitorGroupsEnabled) {
+    sections.push({
+      title: "Monitor Groups",
+      items: [
+        {
+          link: {
+            title: "All Groups",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.MONITOR_GROUPS] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
+        },
+      ],
+    });
+  }
 
-      <SideMenuSection title="Not Being Monitored">
-        <CountModelSideMenuItem<Monitor>
-          link={{
+  // Add remaining sections
+  sections.push(
+    {
+      title: "Not Being Monitored",
+      items: [
+        {
+          link: {
             title: "Disabled Monitors",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_DISABLED] as Route,
             ),
-          }}
-          icon={IconProp.Error}
-          badgeType={BadgeType.DANGER}
-          modelType={Monitor}
-          countQuery={{
+          },
+          icon: IconProp.Error,
+          badgeType: BadgeType.DANGER,
+          modelType: Monitor,
+          countQuery: {
             projectId: props.project?._id,
             disableActiveMonitoring: true,
-          }}
-        />
-
-        <CountModelSideMenuItem<Monitor>
-          link={{
+          },
+        },
+        {
+          link: {
             title: "Probe Disconnected",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_PROBE_DISCONNECTED] as Route,
             ),
-          }}
-          icon={IconProp.NoSignal}
-          badgeType={BadgeType.DANGER}
-          modelType={Monitor}
-          countQuery={{
+          },
+          icon: IconProp.NoSignal,
+          badgeType: BadgeType.DANGER,
+          modelType: Monitor,
+          countQuery: {
             projectId: props.project?._id,
             isAllProbesDisconnectedFromThisMonitor: true,
-          }}
-        />
-
-        <CountModelSideMenuItem<Monitor>
-          link={{
+          },
+        },
+        {
+          link: {
             title: "Probe Disabled",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_PROBE_DISABLED] as Route,
             ),
-          }}
-          icon={IconProp.EyeSlash}
-          badgeType={BadgeType.DANGER}
-          modelType={Monitor}
-          countQuery={{
+          },
+          icon: IconProp.EyeSlash,
+          badgeType: BadgeType.DANGER,
+          modelType: Monitor,
+          countQuery: {
             projectId: props.project?._id,
             isNoProbeEnabledOnThisMonitor: true,
-          }}
-        />
-      </SideMenuSection>
-
-      <SideMenuSection title="Workspace Connections">
-        <SideMenuItem
-          link={{
+          },
+        },
+      ],
+    },
+    {
+      title: "Workspace Connections",
+      items: [
+        {
+          link: {
             title: "Slack",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.MONITORS_WORKSPACE_CONNECTION_SLACK] as Route,
             ),
-          }}
-          icon={IconProp.Slack}
-        />
-
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Slack,
+        },
+        {
+          link: {
             title: "Microsoft Teams",
             to: RouteUtil.populateRouteParams(
               RouteMap[
                 PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
               ] as Route,
             ),
-          }}
-          icon={IconProp.MicrosoftTeams}
-        />
-      </SideMenuSection>
-    </SideMenu>
+          },
+          icon: IconProp.MicrosoftTeams,
+        },
+      ],
+    },
   );
+
+  return <SideMenu sections={sections} />;
 };
 
 export default DashboardSideMenu;

@@ -3,104 +3,110 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
-import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
-import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
+import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
-import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
-  return (
-    <SideMenu>
-      <SideMenuSection title="Basic">
-        <SideMenuItem
-          link={{
+  const sections: SideMenuSectionProps[] = [
+    {
+      title: "Basic",
+      items: [
+        {
+          link: {
             title: "Services",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_SERVICES] as Route,
             ),
-          }}
-          icon={IconProp.SquareStack}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.SquareStack,
+        },
+        {
+          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_DOCUMENTATION] as Route,
             ),
-          }}
-          icon={IconProp.Info}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Telemetry">
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Info,
+        },
+      ],
+    },
+    {
+      title: "Telemetry",
+      items: [
+        {
+          link: {
             title: "Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_LOGS] as Route,
             ),
-          }}
-          icon={IconProp.Logs}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Logs,
+        },
+        {
+          link: {
             title: "Traces",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_TRACES] as Route,
             ),
-          }}
-          icon={IconProp.RectangleStack}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.RectangleStack,
+        },
+        {
+          link: {
             title: "Metrics",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_METRICS] as Route,
             ),
-          }}
-          icon={IconProp.ChartBar}
-        />
-      </SideMenuSection>
-      <SideMenuSection title="Exceptions">
-        <CountModelSideMenuItem<TelemetryException>
-          link={{
+          },
+          icon: IconProp.ChartBar,
+        },
+      ],
+    },
+    {
+      title: "Exceptions",
+      items: [
+        {
+          link: {
             title: "Unresolved",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_EXCEPTIONS_UNRESOLVED] as Route,
             ),
-          }}
-          badgeType={BadgeType.DANGER}
-          icon={IconProp.Alert}
-          countQuery={{
+          },
+          badgeType: BadgeType.DANGER,
+          icon: IconProp.Alert,
+          modelType: TelemetryException,
+          countQuery: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             isResolved: false,
             isArchived: false,
-          }}
-          modelType={TelemetryException}
-        />
-        <SideMenuItem
-          link={{
+          } as any,
+        },
+        {
+          link: {
             title: "Resolved",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_EXCEPTIONS_RESOLVED] as Route,
             ),
-          }}
-          icon={IconProp.Check}
-        />
-        <SideMenuItem
-          link={{
+          },
+          icon: IconProp.Check,
+        },
+        {
+          link: {
             title: "Archived",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TELEMETRY_EXCEPTIONS_ARCHIVED] as Route,
             ),
-          }}
-          icon={IconProp.Archive}
-        />
-      </SideMenuSection>
-    </SideMenu>
-  );
+          },
+          icon: IconProp.Archive,
+        },
+      ],
+    },
+  ];
+
+  return <SideMenu sections={sections} />;
 };
 
 export default DashboardSideMenu;
