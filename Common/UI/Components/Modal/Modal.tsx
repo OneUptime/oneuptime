@@ -60,21 +60,21 @@ const Modal: FunctionComponent<ComponentProps> = (
       <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
       <div className="fixed inset-0 z-20 overflow-y-auto">
-        <div className="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div className="flex min-h-screen items-end justify-center p-0 text-center md:items-center md:p-4">
           <div
-            className={`relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${
+            className={`relative transform bg-white text-left shadow-xl transition-all w-full h-full md:h-auto md:w-auto md:rounded-lg md:my-8 ${
               props.modalWidth && props.modalWidth === ModalWidth.Large
-                ? "sm:max-w-7xl"
+                ? "md:max-w-7xl"
                 : ""
             } ${
               props.modalWidth && props.modalWidth === ModalWidth.Medium
-                ? "sm:max-w-3xl"
+                ? "md:max-w-3xl"
                 : ""
-            } ${!props.modalWidth ? "sm:max-w-lg" : ""} `}
+            } ${!props.modalWidth ? "md:max-w-lg" : ""} `}
             data-testid="modal"
           >
             {props.onClose && (
-              <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
+              <div className="absolute top-0 right-0 z-10 pt-4 pr-4 md:hidden lg:block">
                 <Button
                   buttonStyle={ButtonStyleType.ICON}
                   icon={IconProp.Close}
@@ -85,10 +85,10 @@ const Modal: FunctionComponent<ComponentProps> = (
                 />
               </div>
             )}
-            <div className="sm:p-6">
+            <div className="p-4 md:p-6">
               {props.icon && (
                 <div
-                  className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
+                  className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} md:mx-0 md:h-10 md:w-10`}
                   data-testid="icon"
                 >
                   <Icon
@@ -104,13 +104,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                   />
                 </div>
               )}
-              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
-                <div className="flex justify-between">
-                  <div>
+              <div className="text-left md:mt-0 md:ml-4 md:mr-4">
+                <div className="flex flex-col md:flex-row md:justify-between">
+                  <div className="flex-1">
                     <h3
                       data-testid="modal-title"
                       className={`text-lg font-medium leading-6 text-gray-900 ${
-                        props.icon ? "ml-10 -mt-8 mb-5" : ""
+                        props.icon ? "mt-4 md:ml-10 md:-mt-8 md:mb-5" : ""
                       }`}
                       id="modal-title"
                     >
@@ -119,14 +119,14 @@ const Modal: FunctionComponent<ComponentProps> = (
                     {props.description && (
                       <h3
                         data-testid="modal-description"
-                        className="text-sm leading-6 text-gray-500"
+                        className="text-sm leading-6 text-gray-500 mt-2"
                       >
                         {props.description}
                       </h3>
                     )}
                   </div>
                   {props.rightElement && (
-                    <div data-testid="right-element">{props.rightElement}</div>
+                    <div data-testid="right-element" className="mt-4 md:mt-0">{props.rightElement}</div>
                   )}
                 </div>
                 <div className="mt-2">
