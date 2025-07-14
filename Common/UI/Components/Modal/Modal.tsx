@@ -126,7 +126,9 @@ const Modal: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
                   {props.rightElement && (
-                    <div data-testid="right-element" className="mt-4 md:mt-0">{props.rightElement}</div>
+                    <div data-testid="right-element" className="mt-4 md:mt-0">
+                      {props.rightElement}
+                    </div>
                   )}
                 </div>
                 <div className="mt-2">
