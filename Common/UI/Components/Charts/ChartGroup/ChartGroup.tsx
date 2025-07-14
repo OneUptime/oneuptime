@@ -29,7 +29,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   const syncId: string = Text.generateRandomText(10);
 
   return (
-    <div className="lg:grid grid-cols-1 gap-5">
+    <div className="lg:grid grid-cols-1 gap-5 space-y-5 lg:space-y-0">
       {props.charts.map((chart: Chart, index: number) => {
         switch (chart.type) {
           case ChartType.LINE:
@@ -48,7 +48,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {chart.description && (
                   <p
                     data-testid="card-description"
-                    className="mt-1 text-sm text-gray-500 w-full"
+                    className="mt-1 text-sm text-gray-500 w-full hidden md:block"
                   >
                     {chart.description}
                   </p>
