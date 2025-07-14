@@ -157,7 +157,7 @@ export class Service extends DatabaseService<StatusPage> {
     if (!createBy.data.subscriberEmailNotificationFooterText) {
       createBy.data.subscriberEmailNotificationFooterText =
         "This is an automated email sent to you because you are subscribed to " +
-        createBy.data.name;
+        (createBy.data?.pageTitle || createBy.data?.name || "Status Page");
     }
 
     return {
