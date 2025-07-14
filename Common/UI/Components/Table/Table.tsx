@@ -88,6 +88,20 @@ const Table: TableFunction = <T extends GenericObject>(
 
   const [isAllItemsSelected, setIsAllItemsSelected] = useState<boolean>(false);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkMobile: () => void = (): void => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
   useEffect(() => {
     if (props.bulkSelectedItems) {
@@ -189,6 +203,7 @@ const Table: TableFunction = <T extends GenericObject>(
         }}
         selectedItems={bulkSelectedItems}
         matchBulkSelectedItemByField={props.matchBulkSelectedItemByField}
+        isMobile={isMobile}
       />
     );
   };
@@ -268,29 +283,37 @@ const Table: TableFunction = <T extends GenericObject>(
                   : "overflow-hidden border-t border-gray-200"
               }
             >
-              <table className="min-w-full divide-y divide-gray-200">
-                <TableHeader
-                  id={`${props.id}-header`}
-                  columns={props.columns}
-                  onSortChanged={props.onSortChanged}
-                  enableDragAndDrop={props.enableDragAndDrop}
-                  sortBy={props.sortBy}
-                  sortOrder={props.sortOrder}
-                  isBulkActionsEnabled={isBulkActionsEnabled}
-                  onAllItemsDeselected={() => {
-                    setIsAllItemsSelected(false);
-                    props.onBulkClearAllItems?.();
-                  }}
-                  onAllItemsOnThePageSelected={() => {
-                    if (props.onBulkSelectItemsOnCurrentPage) {
-                      props.onBulkSelectItemsOnCurrentPage();
-                    }
-                  }}
-                  isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
-                  hasTableItems={props.data.length > 0}
-                />
-                {getTablebody()}
-              </table>
+              {isMobile ? (
+                // Mobile view: render as list
+                <div className="min-w-full divide-y divide-gray-200">
+                  {getTablebody()}
+                </div>
+              ) : (
+                // Desktop view: render as table
+                <table className="min-w-full divide-y divide-gray-200">
+                  <TableHeader
+                    id={`${props.id}-header`}
+                    columns={props.columns}
+                    onSortChanged={props.onSortChanged}
+                    enableDragAndDrop={props.enableDragAndDrop}
+                    sortBy={props.sortBy}
+                    sortOrder={props.sortOrder}
+                    isBulkActionsEnabled={isBulkActionsEnabled}
+                    onAllItemsDeselected={() => {
+                      setIsAllItemsSelected(false);
+                      props.onBulkClearAllItems?.();
+                    }}
+                    onAllItemsOnThePageSelected={() => {
+                      if (props.onBulkSelectItemsOnCurrentPage) {
+                        props.onBulkSelectItemsOnCurrentPage();
+                      }
+                    }}
+                    isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                    hasTableItems={props.data.length > 0}
+                  />
+                  {getTablebody()}
+                </table>
+              )}
             </div>
           </div>
         </div>
