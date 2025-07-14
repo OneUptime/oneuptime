@@ -93,8 +93,8 @@ describe("MCP Server Integration", () => {
 
     it("should validate model types", () => {
       const modelTypes: ModelType[] = Object.values(ModelType);
-      expect(modelTypes).toContain("Database");
-      expect(modelTypes).toContain("Analytics");
+      expect(modelTypes).toContain("database");
+      expect(modelTypes).toContain("analytics");
     });
   });
 });
