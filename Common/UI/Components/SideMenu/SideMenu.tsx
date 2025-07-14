@@ -86,7 +86,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   };
 
   // Function to find the active menu item and section - much simpler now!
-  const findActiveMenuItem = (): {
+  const findActiveMenuItem: () => {
+    sectionTitle?: string;
+    itemTitle?: string;
+  } = (): {
     sectionTitle?: string;
     itemTitle?: string;
   } => {
@@ -118,8 +121,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     return {};
   };
 
-  const activeItem = findActiveMenuItem();
-  const displayText =
+  const activeItem: {
+    sectionTitle?: string;
+    itemTitle?: string;
+  } = findActiveMenuItem();
+  const displayText: string =
     activeItem.sectionTitle && activeItem.itemTitle
       ? `${activeItem.sectionTitle} - ${activeItem.itemTitle}`
       : activeItem.itemTitle || "Navigation";
@@ -131,59 +137,63 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }, [Navigation.getCurrentPath().toString()]);
 
   // Render function for the menu content
-  const renderMenuContent = () => {
+  const renderMenuContent: () => ReactElement[] = (): ReactElement[] => {
     const content: ReactElement[] = [];
 
     // Render sections
     if (props.sections) {
-      props.sections.forEach((section, sectionIndex) => {
-        content.push(
-          <SideMenuSection
-            key={`section-${sectionIndex}`}
-            title={section.title}
-          >
-            {section.items.map((item, itemIndex) => {
-              // If item has modelType, render CountModelSideMenuItem
-              if (item.modelType && item.countQuery) {
-                return (
-                  <CountModelSideMenuItem
-                    key={`section-${sectionIndex}-count-item-${itemIndex}`}
-                    link={item.link}
-                    badgeType={item.badgeType}
-                    modelType={item.modelType as any}
-                    countQuery={item.countQuery as any}
-                    requestOptions={item.requestOptions}
-                    icon={item.icon}
-                    className={item.className}
-                    onCountFetchInit={item.onCountFetchInit}
-                  />
-                );
-              }
+      props.sections.forEach(
+        (section: SideMenuSectionProps, sectionIndex: number) => {
+          content.push(
+            <SideMenuSection
+              key={`section-${sectionIndex}`}
+              title={section.title}
+            >
+              {section.items.map(
+                (item: SideMenuItemProps, itemIndex: number) => {
+                  // If item has modelType, render CountModelSideMenuItem
+                  if (item.modelType && item.countQuery) {
+                    return (
+                      <CountModelSideMenuItem
+                        key={`section-${sectionIndex}-count-item-${itemIndex}`}
+                        link={item.link}
+                        badgeType={item.badgeType}
+                        modelType={item.modelType as any}
+                        countQuery={item.countQuery as any}
+                        requestOptions={item.requestOptions}
+                        icon={item.icon}
+                        className={item.className}
+                        onCountFetchInit={item.onCountFetchInit}
+                      />
+                    );
+                  }
 
-              // Otherwise render regular SideMenuItem
-              return (
-                <SideMenuItem
-                  key={`section-${sectionIndex}-item-${itemIndex}`}
-                  link={item.link}
-                  showAlert={item.showAlert}
-                  showWarning={item.showWarning}
-                  badge={item.badge}
-                  badgeType={item.badgeType}
-                  icon={item.icon}
-                  className={item.className}
-                  subItemLink={item.subItemLink}
-                  subItemIcon={item.subItemIcon}
-                />
-              );
-            })}
-          </SideMenuSection>,
-        );
-      });
+                  // Otherwise render regular SideMenuItem
+                  return (
+                    <SideMenuItem
+                      key={`section-${sectionIndex}-item-${itemIndex}`}
+                      link={item.link}
+                      showAlert={item.showAlert}
+                      showWarning={item.showWarning}
+                      badge={item.badge}
+                      badgeType={item.badgeType}
+                      icon={item.icon}
+                      className={item.className}
+                      subItemLink={item.subItemLink}
+                      subItemIcon={item.subItemIcon}
+                    />
+                  );
+                },
+              )}
+            </SideMenuSection>,
+          );
+        },
+      );
     }
 
     // Render direct items
     if (props.items) {
-      props.items.forEach((item, itemIndex) => {
+      props.items.forEach((item: SideMenuItemProps, itemIndex: number) => {
         // If item has modelType, render CountModelSideMenuItem
         if (item.modelType && item.countQuery) {
           content.push(
@@ -225,7 +235,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         ? props.children
         : [props.children];
 
-      children.forEach((child, index) => {
+      children.forEach((child: ReactElement, index: number) => {
         content.push(React.cloneElement(child, { key: `child-${index}` }));
       });
     }
