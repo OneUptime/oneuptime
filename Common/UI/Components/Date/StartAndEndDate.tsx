@@ -126,8 +126,8 @@ const StartAndEndDate: DateFilterFunction = (
   ) {
     return (
       <div>
-        <div className="flex space-x-3 mt-1">
-          <div className="w-1/2">
+        <div className="flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0 mt-1">
+          <div className="w-full md:w-1/2">
             <div className="text-xs text-gray-500">From:</div>
             <div>
               <Input
@@ -161,7 +161,7 @@ const StartAndEndDate: DateFilterFunction = (
               />
             </div>
           </div>
-          <div className="w-1/2">
+          <div className="w-full md:w-1/2">
             <div className="text-xs text-gray-500">To:</div>
             <div>
               <Input

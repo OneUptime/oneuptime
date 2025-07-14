@@ -32,7 +32,7 @@ const Card: FunctionComponent<ComponentProps> = (
 
   return (
     <React.Fragment>
-      <div data-testid="card" className={props.className}>
+      <div data-testid="card" className={`mb-4 ${props.className || ""}`}>
         <div className="shadow md:rounded-md">
           <div className="bg-white py-6 px-4 md:p-6">
             <div className="flex flex-col md:flex-row md:justify-between">
@@ -49,7 +49,7 @@ const Card: FunctionComponent<ComponentProps> = (
                 {props.description && (
                   <p
                     data-testid="card-description"
-                    className="mt-1 text-sm text-gray-500 w-full"
+                    className="mt-1 text-sm text-gray-500 w-full hidden md:block"
                   >
                     {props.description}
                   </p>
