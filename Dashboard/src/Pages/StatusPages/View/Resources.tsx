@@ -399,7 +399,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Display Name",
             type: FieldType.Text,
-
           },
         ]}
       />

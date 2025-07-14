@@ -3,7 +3,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
-import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenu, {
+  SideMenuSectionProps,
+} from "Common/UI/Components/SideMenu/SideMenu";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { ReactElement } from "react";
 

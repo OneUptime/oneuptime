@@ -3,7 +3,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
-import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenu, {
+  SideMenuSectionProps,
+} from "Common/UI/Components/SideMenu/SideMenu";
 import Project from "Common/Models/DatabaseModels/Project";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import React, { FunctionComponent, ReactElement } from "react";

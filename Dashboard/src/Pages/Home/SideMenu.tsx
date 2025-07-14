@@ -6,7 +6,9 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
-import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenu, {
+  SideMenuSectionProps,
+} from "Common/UI/Components/SideMenu/SideMenu";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";

@@ -283,7 +283,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "State",
             type: FieldType.Entity,
 
-
             getElement: (item: Incident): ReactElement => {
               if (item["currentIncidentState"]) {
                 return (
@@ -333,7 +332,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Monitors Affected",
             type: FieldType.EntityArray,
-
 
             getElement: (item: Incident): ReactElement => {
               return <MonitorsElement monitors={item["monitors"] || []} />;

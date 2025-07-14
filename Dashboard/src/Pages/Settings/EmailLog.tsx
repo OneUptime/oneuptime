@@ -101,7 +101,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       title: "To Email",
       type: FieldType.Email,
-
     },
     {
       field: {
@@ -109,7 +108,6 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
       title: "Sent at",
       type: FieldType.DateTime,
-
     },
     {
       field: {

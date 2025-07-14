@@ -3,7 +3,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SideMenu, { SideMenuSectionProps } from "Common/UI/Components/SideMenu/SideMenu";
+import SideMenu, {
+  SideMenuSectionProps,
+} from "Common/UI/Components/SideMenu/SideMenu";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {

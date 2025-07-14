@@ -213,7 +213,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             title: "State",
             type: FieldType.Entity,
 
-
             getElement: (item: Alert): ReactElement => {
               if (item["currentAlertState"]) {
                 return (
@@ -263,7 +262,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Monitor Affected",
             type: FieldType.EntityArray,
-
 
             getElement: (item: Alert): ReactElement => {
               if (item["monitor"]) {

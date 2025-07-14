@@ -1,8 +1,8 @@
-import React, { 
-  FunctionComponent, 
-  ReactElement, 
-  useState, 
-  useEffect 
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useEffect,
 } from "react";
 import Button, { ButtonStyleType } from "../Button/Button";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -49,8 +49,9 @@ export interface ComponentProps {
 
 const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [isMobileMenuVisible, setIsMobileMenuVisible] = useState<boolean>(false);
-  
+  const [isMobileMenuVisible, setIsMobileMenuVisible] =
+    useState<boolean>(false);
+
   // Use the existing outside click hook for mobile menu
   const {
     ref: mobileMenuRef,
@@ -78,14 +79,17 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   }, []);
 
   // Close mobile menu when clicking on a menu item
-  const handleMenuItemClick = () => {
+  const handleMenuItemClick: () => void = (): void => {
     if (isMobile && isMobileMenuVisible) {
       setIsMobileMenuOpen(false);
     }
   };
 
   // Function to find the active menu item and section - much simpler now!
-  const findActiveMenuItem = (): { sectionTitle?: string; itemTitle?: string } => {
+  const findActiveMenuItem = (): {
+    sectionTitle?: string;
+    itemTitle?: string;
+  } => {
     // Check sections first
     if (props.sections) {
       for (const section of props.sections) {
@@ -93,7 +97,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           if (Navigation.isOnThisPage(item.link.to)) {
             return {
               sectionTitle: section.title,
-              itemTitle: item.link.title
+              itemTitle: item.link.title,
             };
           }
         }
@@ -105,7 +109,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       for (const item of props.items) {
         if (Navigation.isOnThisPage(item.link.to)) {
           return {
-            itemTitle: item.link.title
+            itemTitle: item.link.title,
           };
         }
       }
@@ -115,9 +119,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   };
 
   const activeItem = findActiveMenuItem();
-  const displayText = activeItem.sectionTitle && activeItem.itemTitle 
-    ? `${activeItem.sectionTitle} - ${activeItem.itemTitle}`
-    : activeItem.itemTitle || "Navigation";
+  const displayText =
+    activeItem.sectionTitle && activeItem.itemTitle
+      ? `${activeItem.sectionTitle} - ${activeItem.itemTitle}`
+      : activeItem.itemTitle || "Navigation";
 
   // Re-run active item detection when location changes
   useEffect(() => {
@@ -133,7 +138,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     if (props.sections) {
       props.sections.forEach((section, sectionIndex) => {
         content.push(
-          <SideMenuSection key={`section-${sectionIndex}`} title={section.title}>
+          <SideMenuSection
+            key={`section-${sectionIndex}`}
+            title={section.title}
+          >
             {section.items.map((item, itemIndex) => {
               // If item has modelType, render CountModelSideMenuItem
               if (item.modelType && item.countQuery) {
@@ -151,7 +159,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                   />
                 );
               }
-              
+
               // Otherwise render regular SideMenuItem
               return (
                 <SideMenuItem
@@ -168,7 +176,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 />
               );
             })}
-          </SideMenuSection>
+          </SideMenuSection>,
         );
       });
     }
@@ -189,7 +197,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               icon={item.icon}
               className={item.className}
               onCountFetchInit={item.onCountFetchInit}
-            />
+            />,
           );
         } else {
           // Otherwise render regular SideMenuItem
@@ -205,7 +213,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               className={item.className}
               subItemLink={item.subItemLink}
               subItemIcon={item.subItemIcon}
-            />
+            />,
           );
         }
       });
@@ -213,10 +221,10 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Support legacy children prop for backward compatibility
     if (props.children) {
-      const children: Array<ReactElement> = Array.isArray(props.children) 
-        ? props.children 
+      const children: Array<ReactElement> = Array.isArray(props.children)
+        ? props.children
         : [props.children];
-      
+
       children.forEach((child, index) => {
         content.push(React.cloneElement(child, { key: `child-${index}` }));
       });
@@ -232,7 +240,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         {/* Mobile toggle button */}
         <div className="flex items-center justify-between w-full mb-4 px-4 py-3 bg-white rounded-lg border border-gray-200">
           <div className="flex-1 mr-3">
-            <h3 className="text-base font-medium text-gray-900 truncate">{displayText}</h3>
+            <h3 className="text-base font-medium text-gray-900 truncate">
+              {displayText}
+            </h3>
           </div>
           <Button
             buttonStyle={ButtonStyleType.OUTLINE}
@@ -242,7 +252,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             className="p-2 flex-shrink-0"
             icon={isMobileMenuVisible ? IconProp.Close : IconProp.Bars3}
             dataTestId="mobile-sidemenu-toggle"
-            tooltip={isMobileMenuVisible ? "Close navigation menu" : "Open navigation menu"}
+            tooltip={
+              isMobileMenuVisible
+                ? "Close navigation menu"
+                : "Open navigation menu"
+            }
           />
         </div>
 
@@ -265,14 +279,12 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
   // Desktop view
   return (
-    <aside 
+    <aside
       className={`hidden md:block py-6 px-2 sm:px-6 lg:col-span-2 md:col-span-3 lg:py-0 lg:px-0 mb-10 ${props.className || ""}`}
       role="navigation"
       aria-label="Main navigation"
     >
-      <nav className="space-y-3">
-        {renderMenuContent()}
-      </nav>
+      <nav className="space-y-3">{renderMenuContent()}</nav>
     </aside>
   );
 };

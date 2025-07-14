@@ -109,7 +109,6 @@ const Users: FunctionComponent = (): ReactElement => {
             },
             title: "Email",
             type: FieldType.Email,
-
           },
           {
             field: {
