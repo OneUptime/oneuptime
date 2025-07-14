@@ -20,6 +20,7 @@ export interface ComponentProps {
   alertType: HeaderAlertType;
   tooltip?: string | undefined;
   colorSwatch?: ColorSwatch | undefined;
+  suffix?: string | undefined;
 }
 
 const HeaderAlert: (props: ComponentProps) => ReactElement = (
@@ -84,6 +85,10 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
           <div className="ml-1 flex-1 md:flex md:justify-between">
             <p className={`text-sm font-semibold ${textColor} hidden md:block`}>
               {props.title}
+              {props.suffix && (
+                <span>
+                  {props.suffix}
+                </span>)}
             </p>
           </div>
         </div>
