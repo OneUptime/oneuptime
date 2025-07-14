@@ -82,7 +82,8 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
 
   return (
     <HeaderAlert
-      title={`${count} ${count > 1 ? props.pluralName : props.singularName}`}
+      title={`${count}`}
+      suffix={`${count > 1 ? props.pluralName : props.singularName}`}
       icon={props.icon}
       onClick={props.onClick}
       className={props.className}

@@ -83,13 +83,14 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
             />
           </div>
           <div className="ml-1 flex-1 md:flex md:justify-between">
-            <p className={`text-sm font-semibold ${textColor} hidden md:block`}>
+            <p className={`text-sm font-semibold ${textColor}`}>
               {props.title}
-              {props.suffix && (
-                <span>
-                  {props.suffix}
-                </span>)}
             </p>
+            {props.suffix && (
+                <span className={`ml-1 ${textColor} text-sm font-semibold hidden md:block`}>
+                {props.suffix}
+                </span>
+            )}
           </div>
         </div>
       </div>

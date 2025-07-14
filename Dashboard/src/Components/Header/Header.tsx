@@ -472,7 +472,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     title={`${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                       OneUptimeDate.getCurrentDate(),
                       props.selectedProject!.trialEndsAt!,
-                    )} ${
+                    )}`}
+                    suffix={`${
                       OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                         OneUptimeDate.getCurrentDate(),
                         props.selectedProject!.trialEndsAt!,
@@ -491,7 +492,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                       setShowCurrentOnCallPolicyModal(true);
                     }}
-                    title={`${currentOnCallPolicies.length} ${
+                    title={`${currentOnCallPolicies.length}`}
+                    suffix={`${
                       currentOnCallPolicies.length > 1
                         ? "On-Call Policies"
                         : "On-Call Policy"
