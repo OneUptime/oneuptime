@@ -30,7 +30,7 @@ export interface ComponentProps<T extends GenericObject> {
   onItemSelected?: undefined | ((item: T) => void);
   onItemDeselected?: undefined | ((item: T) => void);
   isItemSelected?: boolean | undefined;
-  
+
   // responsive
   isMobile?: boolean;
 }
@@ -77,12 +77,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     if (props.isMobile) {
       return (
         <>
-          <div 
-            {...provided?.draggableProps} 
+          <div
+            {...provided?.draggableProps}
             ref={provided?.innerRef}
             className="p-4 bg-white border-b border-gray-200"
           >
-            {props.enableDragAndDrop && (
+            {props.enableDragAndDrop ? (
               <div
                 className="mb-3 flex justify-center"
                 {...provided?.dragHandleProps}
@@ -92,21 +92,25 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   className="h-4 w-4 text-gray-400"
                 />
               </div>
+            ) : (
+              <></>
             )}
 
-            {props.isBulkActionsEnabled && (
+            {props.isBulkActionsEnabled ? (
               <div className="mb-3">
                 <CheckboxElement
                   value={Boolean(props.isItemSelected)}
                   onChange={(value: boolean) => {
                     if (value) {
-                      props.onItemSelected && props.onItemSelected(props.item);
+                      props.onItemSelected?.(props.item);
                     } else {
-                      props.onItemDeselected && props.onItemDeselected(props.item);
+                      props.onItemDeselected?.(props.item);
                     }
                   }}
                 />
               </div>
+            ) : (
+              <></>
             )}
 
             <div className="space-y-3">
@@ -125,7 +129,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         />
                       )}
                       {props.actionButtons?.map(
-                        (button: ActionButtonSchema<T>, actionIndex: number) => {
+                        (
+                          button: ActionButtonSchema<T>,
+                          actionIndex: number,
+                        ) => {
                           if (
                             button.isVisible &&
                             !button.isVisible(props.item)
@@ -172,83 +179,86 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   );
                 }
 
-                const value = column.key && !column.getElement ? (
-                  column.type === FieldType.Date ? (
-                    props.item[column.key] ? (
-                      OneUptimeDate.getDateAsLocalFormattedString(
-                        props.item[column.key] as string,
-                        true,
+                const value: any =
+                  column.key && !column.getElement ? (
+                    column.type === FieldType.Date ? (
+                      props.item[column.key] ? (
+                        OneUptimeDate.getDateAsLocalFormattedString(
+                          props.item[column.key] as string,
+                          true,
+                        )
+                      ) : (
+                        column.noValueMessage || ""
+                      )
+                    ) : column.type === FieldType.DateTime ? (
+                      props.item[column.key] ? (
+                        OneUptimeDate.getDateAsLocalFormattedString(
+                          props.item[column.key] as string,
+                          false,
+                        )
+                      ) : (
+                        column.noValueMessage || ""
+                      )
+                    ) : column.type === FieldType.USDCents ? (
+                      props.item[column.key] ? (
+                        ((props.item[column.key] as number) || 0) / 100 + " USD"
+                      ) : (
+                        column.noValueMessage || "0 USD"
+                      )
+                    ) : column.type === FieldType.Percent ? (
+                      props.item[column.key] ? (
+                        props.item[column.key] + "%"
+                      ) : (
+                        column.noValueMessage || "0%"
+                      )
+                    ) : column.type === FieldType.Color ? (
+                      props.item[column.key] ? (
+                        <ColorInput value={props.item[column.key] as Color} />
+                      ) : (
+                        column.noValueMessage || "0%"
+                      )
+                    ) : column.type === FieldType.LongText ? (
+                      props.item[column.key] ? (
+                        <LongTextViewer
+                          text={props.item[column.key] as string}
+                        />
+                      ) : (
+                        column.noValueMessage || ""
+                      )
+                    ) : column.type === FieldType.Boolean ? (
+                      props.item[column.key] ? (
+                        <Icon
+                          icon={IconProp.Check}
+                          className={"h-5 w-5 text-gray-500"}
+                          thick={ThickProp.Thick}
+                        />
+                      ) : (
+                        <Icon
+                          icon={IconProp.False}
+                          className={"h-5 w-5 text-gray-500"}
+                          thick={ThickProp.Thick}
+                        />
                       )
                     ) : (
-                      column.noValueMessage || ""
+                      get(props.item, column.key, "")?.toString() ||
+                      column.noValueMessage ||
+                      ""
                     )
-                  ) : column.type === FieldType.DateTime ? (
-                    props.item[column.key] ? (
-                      OneUptimeDate.getDateAsLocalFormattedString(
-                        props.item[column.key] as string,
-                        false,
-                      )
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.USDCents ? (
-                    props.item[column.key] ? (
-                      ((props.item[column.key] as number) || 0) / 100 +
-                      " USD"
-                    ) : (
-                      column.noValueMessage || "0 USD"
-                    )
-                  ) : column.type === FieldType.Percent ? (
-                    props.item[column.key] ? (
-                      props.item[column.key] + "%"
-                    ) : (
-                      column.noValueMessage || "0%"
-                    )
-                  ) : column.type === FieldType.Color ? (
-                    props.item[column.key] ? (
-                      <ColorInput value={props.item[column.key] as Color} />
-                    ) : (
-                      column.noValueMessage || "0%"
-                    )
-                  ) : column.type === FieldType.LongText ? (
-                    props.item[column.key] ? (
-                      <LongTextViewer
-                        text={props.item[column.key] as string}
-                      />
-                    ) : (
-                      column.noValueMessage || ""
-                    )
-                  ) : column.type === FieldType.Boolean ? (
-                    props.item[column.key] ? (
-                      <Icon
-                        icon={IconProp.Check}
-                        className={"h-5 w-5 text-gray-500"}
-                        thick={ThickProp.Thick}
-                      />
-                    ) : (
-                      <Icon
-                        icon={IconProp.False}
-                        className={"h-5 w-5 text-gray-500"}
-                        thick={ThickProp.Thick}
-                      />
-                    )
-                  ) : (
-                    get(props.item, column.key, "")?.toString() ||
-                    column.noValueMessage ||
-                    ""
-                  )
-                ) : column.key && column.getElement ? (
-                  column.getElement(props.item)
-                ) : null;
+                  ) : column.key && column.getElement ? (
+                    column.getElement(props.item)
+                  ) : null;
 
                 // Skip empty values for mobile view
-                if (!value || (typeof value === 'string' && value.trim() === '')) {
+                if (
+                  !value ||
+                  (typeof value === "string" && value.trim() === "")
+                ) {
                   return null;
                 }
 
                 return (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     className="flex flex-col space-y-1"
                     onClick={() => {
                       if (column.tooltipText) {
@@ -259,9 +269,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     <div className="text-sm font-medium text-gray-500">
                       {column.title}
                     </div>
-                    <div className="text-sm text-gray-900">
-                      {value}
-                    </div>
+                    <div className="text-sm text-gray-900">{value}</div>
                   </div>
                 );
               })}

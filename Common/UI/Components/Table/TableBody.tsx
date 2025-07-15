@@ -21,7 +21,7 @@ export interface ComponentProps<T extends GenericObject> {
   onItemDeselected?: undefined | ((item: T) => void);
   selectedItems: Array<T>;
   matchBulkSelectedItemByField: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
-  
+
   // responsive
   isMobile?: boolean;
 }
