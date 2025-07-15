@@ -7,10 +7,12 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentService from "Common/Server/Services/IncidentService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
@@ -186,12 +188,22 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
             ],
           };
 
+          const pushMessage: PushNotificationMessage = PushNotificationUtil.createIncidentCreatedNotification(
+            incident.title!,
+            incident.project!.name!,
+            (await IncidentService.getIncidentLinkInDashboard(
+              incident.projectId!,
+              incident.id!,
+            )).toString(),
+          );
+
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,
             projectId: incident.projectId!,
             emailEnvelope: emailMessage,
             smsMessage: sms,
             callRequestMessage: callMessage,
+            pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
           });

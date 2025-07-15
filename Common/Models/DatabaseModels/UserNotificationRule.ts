@@ -4,6 +4,7 @@ import Project from "./Project";
 import User from "./User";
 import UserCall from "./UserCall";
 import UserEmail from "./UserEmail";
+import UserPush from "./UserPush";
 import UserSMS from "./UserSMS";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -289,6 +290,52 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userCallId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userPushId",
+    type: TableColumnType.Entity,
+    modelType: UserPush,
+    title: "User Push",
+    description: "Relation to User Push Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserPush;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userPushId" })
+  public userPush?: UserPush = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User Push ID",
+    description: "ID of User Push in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userPushId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

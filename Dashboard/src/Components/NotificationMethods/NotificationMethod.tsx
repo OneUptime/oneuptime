@@ -43,6 +43,15 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
             ]?.toString()}
           </p>
         )}
+      {item.getColumnValue("userPush") &&
+        (item.getColumnValue("userPush") as JSONObject)["deviceName"] && (
+          <p>
+            Push:{" "}
+            {(item.getColumnValue("userPush") as JSONObject)[
+              "deviceName"
+            ]?.toString()}
+          </p>
+        )}
     </div>
   );
 };

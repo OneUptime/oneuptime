@@ -14,7 +14,6 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -27,19 +26,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/user-notification-setting"))
+@CrudApiEndpoint(new Route("/user-push"))
 @Entity({
-  name: "UserNotificationSetting",
+  name: "UserPush",
 })
 @TableMetadata({
-  tableName: "UserNotificationSetting",
-  singularName: "Notification Setting",
-  pluralName: "Notification Settings",
+  tableName: "UserPush",
+  singularName: "Device for Push Notifications",
+  pluralName: "Devices for Push Notifications",
   icon: IconProp.Bell,
-  tableDescription: "Settings which will be used to send notifications.",
+  tableDescription: "Devices which will be used for push notifications.",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class UserNotificationSetting extends BaseModel {
+class UserPush extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -89,10 +88,30 @@ class UserNotificationSetting extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
-    title: "Rule Type",
+    title: "Device Token",
+    required: true,
+    unique: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    unique: false,
+    nullable: false,
+  })
+  public deviceToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Device Type",
     required: true,
     unique: false,
     type: TableColumnType.ShortText,
@@ -104,7 +123,27 @@ class UserNotificationSetting extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public eventType?: NotificationSettingEventType = undefined;
+  public deviceType?: string = undefined; // "web", "android", "ios"
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    title: "Device Name",
+    required: false,
+    unique: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public deviceName?: string = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -116,7 +155,7 @@ class UserNotificationSetting extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "User",
-    description: "Relation to User who this email belongs to",
+    description: "Relation to User who this device belongs to",
   })
   @ManyToOne(
     () => {
@@ -140,7 +179,7 @@ class UserNotificationSetting extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "User ID",
-    description: "User ID who this email belongs to",
+    description: "User ID who this device belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -242,11 +281,13 @@ class UserNotificationSetting extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
+    title: "Is Verified",
+    description: "Is this device verified?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
@@ -255,51 +296,24 @@ class UserNotificationSetting extends BaseModel {
     type: ColumnType.Boolean,
     default: false,
   })
-  public alertByEmail?: boolean = undefined;
+  public isVerified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
+    title: "Last Used At",
+    description: "When was this device last used?",
+    type: TableColumnType.Date,
+    required: false,
   })
   @Column({
-    type: ColumnType.Boolean,
-    default: false,
+    type: ColumnType.Date,
+    nullable: true,
   })
-  public alertBySMS?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByCall?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByPush?: boolean = undefined;
+  public lastUsedAt?: Date = undefined;
 }
 
-export default UserNotificationSetting;
+export default UserPush;
