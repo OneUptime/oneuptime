@@ -60,23 +60,13 @@ const Push: () => JSX.Element = (): ReactElement => {
         applicationServerKey: process.env["REACT_APP_VAPID_PUBLIC_KEY"] || "",
       });
 
-      // Detect device type
-      const userAgent = navigator.userAgent;
-      let deviceType: "web" | "android" | "ios" = "web";
-      
-      if (/android/i.test(userAgent)) {
-        deviceType = "android";
-      } else if (/iPad|iPhone|iPod/.test(userAgent)) {
-        deviceType = "ios";
-      }
-
       // Create device registration through API
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
         URL.fromString(APP_API_URL.toString()).addRoute("/user-push/register"),
         {
           projectId: ProjectUtil.getCurrentProjectId()!,
           deviceToken: JSON.stringify(subscription),
-          deviceType: deviceType,
+          deviceType: "web",
           deviceName: `${navigator.platform} - ${navigator.userAgent.split(" ")[0]}`,
         },
       );
@@ -156,7 +146,7 @@ const Push: () => JSX.Element = (): ReactElement => {
         cardProps={{
           title: "Push Notification Devices",
           description:
-            "Manage devices that will receive push notifications for this project. Push notifications work on modern browsers and mobile devices.",
+            "Manage devices that will receive push notifications for this project. Push notifications work on modern web browsers.",
         }}
         noItemsMessage={
           "No devices registered. Click 'Register Device' to enable push notifications on this device."
@@ -206,7 +196,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       {showRegisterDeviceModal ? (
         <BasicFormModal
           title="Register Device for Push Notifications"
-          description="This will register your current device to receive push notifications from OneUptime. You'll be asked for permission to show notifications."
+          description="This will register your current browser to receive push notifications from OneUptime. You'll be asked for permission to show notifications."
           isLoading={isLoading}
           submitButtonText="Register Device"
           onClose={() => {
@@ -223,7 +213,7 @@ const Push: () => JSX.Element = (): ReactElement => {
                   info: true,
                 },
                 title: "Push Notification Support",
-                description: "Push notifications will work on modern web browsers (Chrome, Firefox, Safari, Edge) and mobile devices through your browser.",
+                description: "Push notifications will work on modern web browsers (Chrome, Firefox, Safari, Edge).",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
                 placeholder: "",

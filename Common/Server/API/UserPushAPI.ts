@@ -33,11 +33,11 @@ export default class UserPushAPI extends BaseAPI<UserPush, UserPushServiceType> 
           );
         }
 
-        if (!req.body.deviceType) {
+        if (!req.body.deviceType || req.body.deviceType !== "web") {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device type is required"),
+            new BadDataException("Only web device type is supported"),
           );
         }
 
@@ -165,7 +165,7 @@ export default class UserPushAPI extends BaseAPI<UserPush, UserPushServiceType> 
           await PushNotificationService.sendPushNotification({
             deviceTokens: [device.deviceToken!],
             message: testMessage,
-            deviceType: device.deviceType! as "web" | "android" | "ios",
+            deviceType: "web",
           }, {
             isSensitive: false,
           });

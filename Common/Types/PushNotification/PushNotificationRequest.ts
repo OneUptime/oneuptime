@@ -16,7 +16,7 @@ interface PushNotificationRequest {
     clickAction?: string;
     url?: string;
   };
-  deviceType: "web" | "android" | "ios";
+  deviceType: "web";
 }
 
 export default PushNotificationRequest;
