@@ -52,7 +52,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       }
 
       // Register service worker
-      const swRegistration = await navigator.serviceWorker.register("/sw.js");
+      const swRegistration = await navigator.serviceWorker.register("/dashboard/sw.js");
       
       // Get push subscription
       const subscription = await swRegistration.pushManager.subscribe({
