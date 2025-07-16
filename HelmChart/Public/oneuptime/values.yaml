@@ -171,6 +171,13 @@ analytics:
   host:
   key:
 
+# VAPID Configuration for Web Push Notifications
+# Generate VAPID keys using: npx web-push generate-vapid-keys
+vapid:
+  publicKey:
+  privateKey:
+  subject: mailto:support@oneuptime.com
+
 internalSmtp:
   enabled: true
   incomingEmailDomain:

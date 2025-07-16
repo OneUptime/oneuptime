@@ -49,6 +49,9 @@ export const HOST: string = env("HOST") || "";
 export const BILLING_ENABLED: boolean = env("BILLING_ENABLED") === "true";
 export const BILLING_PUBLIC_KEY: string = env("BILLING_PUBLIC_KEY") || "";
 
+// VAPID Configuration for Push Notifications
+export const VAPID_PUBLIC_KEY: string = env("VAPID_PUBLIC_KEY") || "";
+
 export const VERSION: Version = new Version(env("VERSION") || "1.0.0");
 
 export const APP_HOSTNAME: Hostname = Hostname.fromString(HOST);

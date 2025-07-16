@@ -11,7 +11,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { APP_API_URL } from "Common/UI/Config";
+import { APP_API_URL, VAPID_PUBLIC_KEY } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import User from "Common/UI/Utils/User";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
@@ -54,10 +54,29 @@ const Push: () => JSX.Element = (): ReactElement => {
       // Register service worker
       const swRegistration = await navigator.serviceWorker.register("/dashboard/sw.js");
       
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+      
+      // Ensure the service worker is active
+      if (!swRegistration.active) {
+        // If service worker is installing, wait for it to become active
+        if (swRegistration.installing) {
+          await new Promise((resolve) => {
+            swRegistration.installing!.addEventListener('statechange', function() {
+              if (this.state === 'activated') {
+                resolve(undefined);
+              }
+            });
+          });
+        } else {
+          throw new Error("Service worker failed to activate");
+        }
+      }
+      
       // Get push subscription
       const subscription = await swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: process.env["REACT_APP_VAPID_PUBLIC_KEY"] || "",
+        applicationServerKey: VAPID_PUBLIC_KEY || "",
       });
 
       // Create device registration through API

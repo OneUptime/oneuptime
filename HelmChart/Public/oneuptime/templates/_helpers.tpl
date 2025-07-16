@@ -54,6 +54,12 @@ Usage:
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
   value: {{ $.Values.analytics.host }}
+- name: VAPID_PUBLIC_KEY
+  value: {{ $.Values.vapid.publicKey }}
+- name: VAPID_PRIVATE_KEY
+  value: {{ $.Values.vapid.privateKey }}
+- name: VAPID_SUBJECT
+  value: {{ $.Values.vapid.subject }}
 - name: SERVER_ACCOUNTS_HOSTNAME
   value: {{ $.Release.Name }}-accounts.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 - name: SERVER_SERVER_MONITOR_INGEST_HOSTNAME

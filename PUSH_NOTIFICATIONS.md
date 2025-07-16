@@ -56,10 +56,9 @@ VAPID_SUBJECT=mailto:support@oneuptime.com
 
 # Firebase Configuration (for mobile)
 FIREBASE_SERVICE_ACCOUNT={"type":"service_account",...}
-
-# Frontend Configuration
-REACT_APP_VAPID_PUBLIC_KEY=your_vapid_public_key
 ```
+
+**Note:** The VAPID public key is automatically exposed to the frontend through the configuration system. You no longer need to set `REACT_APP_VAPID_PUBLIC_KEY` manually.
 
 ### Database Migration
 The UserPush table will be automatically created when the service starts due to TypeORM's synchronization.
