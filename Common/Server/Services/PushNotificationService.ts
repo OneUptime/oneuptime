@@ -8,15 +8,7 @@ import {
   VapidPrivateKey,
   VapidSubject,
 } from "../EnvironmentConfig";
-
-// Optional imports - web-push package needs to be installed separately
-let webpush: any;
-
-try {
-  webpush = require("web-push");
-} catch (error) {
-  logger.warn("web-push package not installed. Web push notifications will not work.");
-}
+import webpush from "web-push";
 
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
@@ -45,13 +37,19 @@ export default class PushNotificationService {
     request: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
+    logger.info(`Sending push notification to ${request.deviceTokens?.length} devices`);
+    
     if (!request.deviceTokens || request.deviceTokens.length === 0) {
+      logger.error("No device tokens provided for push notification");
       throw new Error("No device tokens provided");
     }
 
     if (request.deviceType !== "web") {
+      logger.error(`Unsupported device type: ${request.deviceType}`);
       throw new Error("Only web push notifications are supported");
     }
+
+    logger.info(`Sending web push notifications to ${request.deviceTokens.length} devices`);
 
     const promises: Promise<void>[] = [];
 
@@ -59,7 +57,21 @@ export default class PushNotificationService {
       promises.push(this.sendWebPushNotification(deviceToken, request.message, options));
     }
 
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        successCount++;
+      } else {
+        errorCount++;
+        logger.error(`Failed to send notification to device ${index + 1}: ${result.reason}`);
+      }
+    });
+    
+    logger.info(`Push notification results: ${successCount} successful, ${errorCount} failed`);
   }
 
   private static async sendWebPushNotification(
