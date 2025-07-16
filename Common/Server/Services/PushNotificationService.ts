@@ -3,6 +3,11 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
+import {
+  VapidPublicKey,
+  VapidPrivateKey,
+  VapidSubject,
+} from "../EnvironmentConfig";
 
 // Optional imports - web-push package needs to be installed separately
 let webpush: any;
@@ -26,16 +31,12 @@ export default class PushNotificationService {
       return;
     }
 
-    const vapidPublicKey = process.env["VAPID_PUBLIC_KEY"];
-    const vapidPrivateKey = process.env["VAPID_PRIVATE_KEY"];
-    const vapidSubject = process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";
-
-    if (!vapidPublicKey || !vapidPrivateKey) {
+    if (!VapidPublicKey || !VapidPrivateKey) {
       logger.warn("VAPID keys not configured. Web push notifications will not work.");
       return;
     }
 
-    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+    webpush.setVapidDetails(VapidSubject, VapidPublicKey, VapidPrivateKey);
     this.isWebPushInitialized = true;
     logger.info("Web push notifications initialized");
   }

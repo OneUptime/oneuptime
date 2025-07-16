@@ -327,3 +327,13 @@ export const SlackAppClientSecret: string | null =
   process.env["SLACK_APP_CLIENT_SECRET"] || null;
 export const SlackAppSigningSecret: string | null =
   process.env["SLACK_APP_SIGNING_SECRET"] || null;
+
+// VAPID Configuration for Web Push Notifications
+export const VapidPublicKey: string | undefined =
+  process.env["VAPID_PUBLIC_KEY"] || undefined;
+
+export const VapidPrivateKey: string | undefined =
+  process.env["VAPID_PRIVATE_KEY"] || undefined;
+
+export const VapidSubject: string =
+  process.env["VAPID_SUBJECT"] || "mailto:support@oneuptime.com";
