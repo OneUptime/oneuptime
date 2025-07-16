@@ -95,12 +95,6 @@ const Push: () => JSX.Element = (): ReactElement => {
           userId: User.getUserId().toString(),
         }}
         refreshToggle={refreshToggle}
-        createVerb={"Register Device"}
-        onBeforeCreate={async (_model: UserPush): Promise<UserPush> => {
-          // Instead of normal create, trigger our custom registration flow
-          setShowRegisterDeviceModal(true);
-          throw new Error("Use custom registration flow");
-        }}
         actionButtons={[
           {
             title: "Test Notification",
@@ -147,6 +141,16 @@ const Push: () => JSX.Element = (): ReactElement => {
           title: "Push Notification Devices",
           description:
             "Manage devices that will receive push notifications for this project. Push notifications work on modern web browsers.",
+            buttons: [
+              {
+                title: "Register Device",
+                icon: IconProp.Add,
+                onClick: () => {
+                  setShowRegisterDeviceModal(true);
+                },
+                buttonStyle: ButtonStyleType.NORMAL,
+              },
+            ]
         }}
         noItemsMessage={
           "No devices registered. Click 'Register Device' to enable push notifications on this device."
