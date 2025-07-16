@@ -165,7 +165,7 @@ export default class UserPushAPI extends BaseAPI<UserPush, UserPushServiceType> 
           await PushNotificationService.sendPushNotification({
             deviceTokens: [device.deviceToken!],
             message: testMessage,
-            deviceType: "web",
+            deviceType: device.deviceType!
           }, {
             isSensitive: false,
           });
