@@ -18,6 +18,7 @@ import User from "../../Models/DatabaseModels/User";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import Team from "../../Models/DatabaseModels/Team";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
@@ -127,12 +128,27 @@ export class Service extends DatabaseService<Model> {
         ],
       };
 
+      const pushMessage: PushNotificationMessage = {
+        title: "Added to On-Call Policy",
+        body: `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName}.`,
+        icon: "/icon-192x192.png",
+        badge: "/badge-72x72.png",
+        tag: "on-call-policy-added",
+        requireInteraction: false,
+        data: {
+          type: "on-call-policy-added",
+          policyName: createdModel.onCallDutyPolicy?.name || "",
+          teamName: temaName,
+        },
+      };
+
       await UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
         projectId: createdModel!.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
+        pushNotificationMessage: pushMessage,
         eventType:
           NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
       });
@@ -308,12 +324,27 @@ export class Service extends DatabaseService<Model> {
           ],
         };
 
+        const pushMessage: PushNotificationMessage = {
+          title: "Removed from On-Call Policy",
+          body: `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName}.`,
+          icon: "/icon-192x192.png",
+          badge: "/badge-72x72.png",
+          tag: "on-call-policy-removed",
+          requireInteraction: false,
+          data: {
+            type: "on-call-policy-removed",
+            policyName: deletedItem.onCallDutyPolicy?.name || "",
+            teamName: teamName,
+          },
+        };
+
         UserNotificationSettingService.sendUserNotification({
           userId: sendEmailToUserId,
           projectId: deletedItem!.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
         });

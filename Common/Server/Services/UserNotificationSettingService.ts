@@ -9,7 +9,6 @@ import TeamMemberService from "./TeamMemberService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
-import UserPushService from "./UserPushService";
 import PushNotificationService from "./PushNotificationService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -24,7 +23,6 @@ import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
-import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<UserNotificationSetting> {

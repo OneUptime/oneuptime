@@ -28,6 +28,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
@@ -365,12 +366,31 @@ export class Service extends DatabaseService<Model> {
           ],
         };
 
+        const pushMessage: PushNotificationMessage = {
+          title: `Probe ${connectionStatus}: ${probe.name}`,
+          body: `Probe ${probe.name} is ${connectionStatus} in ${probe.project?.name || "Project"}. Click to view details.`,
+          icon: "/icon-192x192.png",
+          badge: "/badge-72x72.png",
+          ...(vars["viewProbesLink"] && { clickAction: vars["viewProbesLink"] }),
+          ...(vars["viewProbesLink"] && { url: vars["viewProbesLink"] }),
+          tag: "probe-status-changed",
+          requireInteraction: true,
+          data: {
+            type: "probe-status-changed",
+            probeName: probe.name,
+            projectName: probe.project?.name || "Project",
+            connectionStatus: connectionStatus,
+            ...(vars["viewProbesLink"] && { url: vars["viewProbesLink"] }),
+          },
+        };
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: probe.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
         });

@@ -34,6 +34,7 @@ import { Green500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
 export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
@@ -253,12 +254,27 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             ],
           };
 
+          const pushMessage: PushNotificationMessage = {
+            title: "On-Call Duty Ended",
+            body: `You are no longer on-call for ${onCallPolicy.name!} as your roster on schedule ${onCallSchedule.name} has ended.`,
+            icon: "/icon-192x192.png",
+            badge: "/badge-72x72.png",
+            tag: "on-call-duty-ended",
+            requireInteraction: false,
+            data: {
+              type: "on-call-duty-ended",
+              policyName: onCallPolicy.name!,
+              scheduleName: onCallSchedule.name,
+            },
+          };
+
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
             projectId: projectId,
             emailEnvelope: emailMessage,
             smsMessage: sms,
             callRequestMessage: callMessage,
+            pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
           });
@@ -360,12 +376,27 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             ],
           };
 
+          const pushMessage: PushNotificationMessage = {
+            title: "On-Call Duty Started",
+            body: `You are now on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
+            icon: "/icon-192x192.png",
+            badge: "/badge-72x72.png",
+            tag: "on-call-duty-started",
+            requireInteraction: true,
+            data: {
+              type: "on-call-duty-started",
+              policyName: onCallPolicy.name!,
+              scheduleName: onCallSchedule.name,
+            },
+          };
+
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
             projectId: projectId,
             emailEnvelope: emailMessage,
             smsMessage: sms,
             callRequestMessage: callMessage,
+            pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
           });
@@ -487,12 +518,27 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             ],
           };
 
+          const pushMessage: PushNotificationMessage = {
+            title: "Next On-Call Duty",
+            body: `You are next on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
+            icon: "/icon-192x192.png",
+            badge: "/badge-72x72.png",
+            tag: "next-on-call-duty",
+            requireInteraction: false,
+            data: {
+              type: "next-on-call-duty",
+              policyName: onCallPolicy.name!,
+              scheduleName: onCallSchedule.name,
+            },
+          };
+
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
             projectId: projectId,
             emailEnvelope: emailMessage,
             smsMessage: sms,
             callRequestMessage: callMessage,
+            pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
           });
