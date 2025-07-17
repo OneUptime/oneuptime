@@ -37,11 +37,27 @@ const Push: () => JSX.Element = (): ReactElement => {
   const [showDuplicateDeviceModal, setShowDuplicateDeviceModal] =
     useState<boolean>(false);
 
+  const getBrowserName = (): string => {
+    const userAgent = navigator.userAgent;
+    if (userAgent.includes("Chrome") && !userAgent.includes("Edge")) {
+      return "Chrome";
+    } else if (userAgent.includes("Firefox")) {
+      return "Firefox";
+    } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+      return "Safari";
+    } else if (userAgent.includes("Edge")) {
+      return "Edge";
+    } else if (userAgent.includes("Opera")) {
+      return "Opera";
+    }
+    return "Browser";
+  };
+
   useEffect(() => {
     setError("");
   }, [showRegisterDeviceModal]);
 
-  const registerDeviceForPushNotifications = async (): Promise<void> => {
+  const registerDeviceForPushNotifications = async (data: JSONObject): Promise<void> => {
     try {
       setIsLoading(true);
 
@@ -92,7 +108,7 @@ const Push: () => JSX.Element = (): ReactElement => {
           projectId: ProjectUtil.getCurrentProjectId()!,
           deviceToken: JSON.stringify(subscription),
           deviceType: "web",
-          deviceName: `${navigator.platform} - ${navigator.userAgent.split(" ")[0]}`,
+          deviceName: (data["deviceName"] as string)?.trim() || `${getBrowserName()} on ${navigator.platform}`,
         },
       );
 
@@ -244,16 +260,19 @@ const Push: () => JSX.Element = (): ReactElement => {
           formProps={{
             name: "Register Device",
             error: error || "",
+            initialValues: {
+              deviceName: `${getBrowserName()} on ${navigator.platform}`,
+            },
             fields: [
               {
                 field: {
-                  info: true,
+                  deviceName: true,
                 },
-                title: "Push Notification Support",
-                description: "Push notifications will work on modern web browsers (Chrome, Firefox, Safari, Edge).",
+                title: "Device Name",
+                description: "Give this device a name to identify it in your notification settings.",
                 fieldType: FormFieldSchemaType.Text,
-                required: false,
-                placeholder: "",
+                required: true,
+                placeholder: "Enter device name",
               },
             ],
           }}
