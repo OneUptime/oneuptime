@@ -56,8 +56,6 @@ Usage:
   value: {{ $.Values.analytics.host }}
 - name: VAPID_PUBLIC_KEY
   value: {{ $.Values.vapid.publicKey }}
-- name: VAPID_PRIVATE_KEY
-  value: {{ $.Values.vapid.privateKey }}
 - name: VAPID_SUBJECT
   value: {{ $.Values.vapid.subject }}
 - name: SERVER_ACCOUNTS_HOSTNAME
@@ -163,6 +161,9 @@ Usage:
 {{- define "oneuptime.env.commonServer" }}
 - name: IS_SERVER
   value: {{ printf "true" | squote }}
+
+- name: VAPID_PRIVATE_KEY
+  value: {{ $.Values.vapid.privateKey }}
 
 - name: SLACK_APP_CLIENT_SECRET
   value: {{ $.Values.slackApp.clientSecret }}
