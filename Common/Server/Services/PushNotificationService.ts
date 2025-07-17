@@ -9,6 +9,7 @@ import {
   VapidSubject,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
@@ -97,8 +98,8 @@ export default class PushNotificationService {
       const payload = JSON.stringify({
         title: message.title,
         body: message.body,
-        icon: message.icon || "/icon-192x192.png",
-        badge: message.badge || "/badge-72x72.png",
+        icon: message.icon || PushNotificationUtil.DEFAULT_ICON,
+        badge: message.badge || PushNotificationUtil.DEFAULT_BADGE,
         data: message.data || {},
         tag: message.tag || "oneuptime-notification",
         requireInteraction: message.requireInteraction || false,
