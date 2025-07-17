@@ -62,21 +62,6 @@ export class Service extends DatabaseService<UserPush> {
   }
 
   @CaptureSpan()
-  public async markDeviceAsUsed(deviceId: string): Promise<void> {
-    await this.updateOneBy({
-      query: {
-        _id: deviceId,
-      },
-      data: {
-        lastUsedAt: new Date(),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-  }
-
-  @CaptureSpan()
   public async verifyDevice(deviceId: string): Promise<void> {
     await this.updateOneBy({
       query: {

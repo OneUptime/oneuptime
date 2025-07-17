@@ -10,6 +10,7 @@ import {
 } from "../EnvironmentConfig";
 import webpush from "web-push";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
@@ -157,14 +158,13 @@ export default class PushNotificationService {
         userId: userId,
         projectId: projectId,
         isVerified: true,
-        deviceType: "web", // Only support web devices
       },
       select: {
         deviceToken: true,
         deviceType: true,
         _id: true,
       },
-      limit: 100, // Reasonable limit
+      limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: {
         isRoot: true,
@@ -183,9 +183,6 @@ export default class PushNotificationService {
       if (device.deviceType === "web") {
         webDevices.push(device.deviceToken!);
       }
-
-      // Mark device as used
-      await UserPushService.markDeviceAsUsed(device._id!.toString());
     }
 
     // Send notifications to web devices
