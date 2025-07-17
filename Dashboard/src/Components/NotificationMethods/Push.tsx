@@ -251,7 +251,7 @@ const Push: () => JSX.Element = (): ReactElement => {
                 description: "Give this device a name to identify it in your notification settings.",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
-                placeholder: "Enter device name",
+                placeholder: "Chrome, Safari, Firefox",
               },
             ],
           }}
