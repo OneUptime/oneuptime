@@ -9,6 +9,7 @@ import User from "Common/UI/Utils/User";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type GetModelTableFunctionProps = {
@@ -41,6 +42,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           return Promise.resolve(model);
         }}
         createVerb={"Add"}
+        showAs={ShowAs.List}
         id="notification-settings"
         name={`User Settings > Notification Rules > ${options.title}`}
         isDeleteable={true}
@@ -94,6 +96,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
+          {
+            field: {
+              alertByPush: true,
+            },
+            title: "Alert By Push Notification",
+            description: "Select if you want to be alerted by push notifications.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
         ]}
         showRefreshButton={true}
         filters={[]}
@@ -124,6 +135,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               alertByCall: true,
             },
             title: "Call Alerts",
+            type: FieldType.Boolean,
+          },
+          {
+            field: {
+              alertByPush: true,
+            },
+            title: "Push Alerts",
             type: FieldType.Boolean,
           },
         ]}
