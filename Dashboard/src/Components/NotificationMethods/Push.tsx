@@ -34,6 +34,9 @@ const Push: () => JSX.Element = (): ReactElement => {
   const [showTestNotificationSuccessModal, setShowTestNotificationSuccessModal] =
     useState<boolean>(false);
 
+  const [showDuplicateDeviceModal, setShowDuplicateDeviceModal] =
+    useState<boolean>(false);
+
   useEffect(() => {
     setError("");
   }, [showRegisterDeviceModal]);
@@ -56,16 +59,16 @@ const Push: () => JSX.Element = (): ReactElement => {
 
       // Register service worker
       const swRegistration = await navigator.serviceWorker.register("/dashboard/sw.js");
-      
+
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
-      
+
       // Ensure the service worker is active
       if (!swRegistration.active) {
         // If service worker is installing, wait for it to become active
         if (swRegistration.installing) {
           await new Promise((resolve) => {
-            swRegistration.installing!.addEventListener('statechange', function() {
+            swRegistration.installing!.addEventListener('statechange', function () {
               if (this.state === 'activated') {
                 resolve(undefined);
               }
@@ -75,7 +78,7 @@ const Push: () => JSX.Element = (): ReactElement => {
           throw new Error("Service worker failed to activate");
         }
       }
-      
+
       // Get push subscription
       const subscription = await swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -94,14 +97,20 @@ const Push: () => JSX.Element = (): ReactElement => {
       );
 
       if (response.isFailure()) {
-        setError(API.getFriendlyMessage(response));
+        const errorMessage = API.getFriendlyMessage(response);
+        setShowRegisterDeviceModal(false);
+        setError(errorMessage);
         return;
       }
 
+     
+      setShowRegisterDeviceModal(false);
       setShowRegistrationSuccessModal(true);
       setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
     } catch (err: any) {
-      setError(err.message || "Failed to register device for push notifications");
+      const errorMessage = API.getFriendlyMessage(err);
+      setShowRegisterDeviceModal(false);
+        setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -165,16 +174,16 @@ const Push: () => JSX.Element = (): ReactElement => {
           title: "Push Notification Devices",
           description:
             "Manage devices that will receive push notifications for this project. Push notifications work on modern web browsers.",
-            buttons: [
-              {
-                title: "Register Device",
-                icon: IconProp.Add,
-                onClick: () => {
-                  setShowRegisterDeviceModal(true);
-                },
-                buttonStyle: ButtonStyleType.NORMAL,
+          buttons: [
+            {
+              title: "Register Device",
+              icon: IconProp.Add,
+              onClick: () => {
+                setShowRegisterDeviceModal(true);
               },
-            ]
+              buttonStyle: ButtonStyleType.NORMAL,
+            },
+          ]
         }}
         noItemsMessage={
           "No devices registered. Click 'Register Device' to enable push notifications on this device."
@@ -275,6 +284,21 @@ const Push: () => JSX.Element = (): ReactElement => {
           submitButtonText="Close"
           onSubmit={() => {
             setShowTestNotificationSuccessModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showDuplicateDeviceModal ? (
+        <ConfirmModal
+          title="Device Already Registered"
+          description="This device is already registered for push notifications in this project. If you're not receiving notifications, try using the 'Test Notification' button on your registered device below."
+          submitButtonType={ButtonStyleType.WARNING}
+          submitButtonText="Close"
+          onSubmit={() => {
+            setShowDuplicateDeviceModal(false);
+            setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
           }}
         />
       ) : (
