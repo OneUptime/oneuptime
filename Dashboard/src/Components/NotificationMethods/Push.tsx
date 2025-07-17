@@ -34,9 +34,6 @@ const Push: () => JSX.Element = (): ReactElement => {
   const [showTestNotificationSuccessModal, setShowTestNotificationSuccessModal] =
     useState<boolean>(false);
 
-  const [showDuplicateDeviceModal, setShowDuplicateDeviceModal] =
-    useState<boolean>(false);
-
   const getBrowserName = (): string => {
     const userAgent = navigator.userAgent;
     if (userAgent.includes("Chrome") && !userAgent.includes("Edge")) {
@@ -235,7 +232,6 @@ const Push: () => JSX.Element = (): ReactElement => {
           onSubmit={registerDeviceForPushNotifications}
           formProps={{
             name: "Register Device",
-            error: error || "",
             initialValues: {
               deviceName: `${getBrowserName()} on ${navigator.platform}`,
             },
@@ -275,7 +271,7 @@ const Push: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title="Test Notification Sent Successfully"
           description="A test notification has been sent to your device. If you don't see it, please check that notifications are enabled for this browser and that your device is not in Do Not Disturb mode."
-          submitButtonType={ButtonStyleType.SUCCESS}
+          submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText="Close"
           onSubmit={() => {
             setShowTestNotificationSuccessModal(false);
@@ -285,20 +281,20 @@ const Push: () => JSX.Element = (): ReactElement => {
         <></>
       )}
 
-      {showDuplicateDeviceModal ? (
+      {error ? (
         <ConfirmModal
-          title="Device Already Registered"
-          description="This device is already registered for push notifications in this project. If you're not receiving notifications, try using the 'Test Notification' button on your registered device below."
-          submitButtonType={ButtonStyleType.WARNING}
+          title="Error"
+          description={error}
+          submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText="Close"
           onSubmit={() => {
-            setShowDuplicateDeviceModal(false);
-            setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
+            setError("");
           }}
         />
       ) : (
         <></>
       )}
+
     </>
   );
 };
