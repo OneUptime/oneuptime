@@ -2,23 +2,62 @@
 
 // Service Worker for OneUptime Push Notifications
 
-self.addEventListener('push', function(event) {
-  if (event.data) {
-    const data = event.data.json();
-    
-    const options = {
-      body: data.body,
-      icon: data.icon || '/icon-192x192.png',
-      badge: data.badge || '/badge-72x72.png',
-      tag: data.tag || 'oneuptime-notification',
-      requireInteraction: data.requireInteraction || false,
-      actions: data.actions || [],
-      data: data.data || {},
-      silent: false,
-    };
+console.log('[ServiceWorker] OneUptime Push Notifications Service Worker Loaded');
 
+self.addEventListener('push', function(event) {
+  console.log('[ServiceWorker] Push received:', event);
+  
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      console.log('[ServiceWorker] Push data:', data);
+      
+      const options = {
+        body: data.body,
+        icon: data.icon || '/icon-192x192.png',
+        badge: data.badge || '/badge-72x72.png',
+        tag: data.tag || 'oneuptime-notification',
+        requireInteraction: data.requireInteraction || false,
+        actions: data.actions || [],
+        data: data.data || {},
+        silent: false,
+        renotify: true, // Allow renotification with same tag
+      };
+
+      console.log('[ServiceWorker] Showing notification with options:', options);
+
+      event.waitUntil(
+        self.registration.showNotification(data.title, options)
+          .then(() => {
+            console.log('[ServiceWorker] Notification shown successfully');
+          })
+          .catch((error) => {
+            console.error('[ServiceWorker] Error showing notification:', error);
+          })
+      );
+    } catch (error) {
+      console.error('[ServiceWorker] Error parsing push data:', error);
+      console.log('[ServiceWorker] Raw event data:', event.data ? event.data.text() : 'No data');
+      
+      // Show a fallback notification
+      event.waitUntil(
+        self.registration.showNotification('OneUptime Notification', {
+          body: 'You have a new notification',
+          icon: '/icon-192x192.png',
+          tag: 'oneuptime-fallback'
+        })
+      );
+    }
+  } else {
+    console.log('[ServiceWorker] Push event received but no data');
+    
+    // Show a fallback notification when no data is provided
     event.waitUntil(
-      self.registration.showNotification(data.title, options)
+      self.registration.showNotification('OneUptime Notification', {
+        body: 'You have a new notification',
+        icon: '/icon-192x192.png',
+        tag: 'oneuptime-fallback'
+      })
     );
   }
 });

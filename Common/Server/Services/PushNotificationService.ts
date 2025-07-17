@@ -25,12 +25,16 @@ export default class PushNotificationService {
 
     if (!VapidPublicKey || !VapidPrivateKey) {
       logger.warn("VAPID keys not configured. Web push notifications will not work.");
+      logger.warn(`VapidPublicKey present: ${!!VapidPublicKey}`);
+      logger.warn(`VapidPrivateKey present: ${!!VapidPrivateKey}`);
+      logger.warn(`VapidSubject: ${VapidSubject}`);
       return;
     }
 
+    logger.info(`Initializing web push with VAPID subject: ${VapidSubject}`);
     webpush.setVapidDetails(VapidSubject, VapidPublicKey, VapidPrivateKey);
     this.isWebPushInitialized = true;
-    logger.info("Web push notifications initialized");
+    logger.info("Web push notifications initialized successfully");
   }
 
   public static async sendPushNotification(
@@ -100,17 +104,33 @@ export default class PushNotificationService {
         url: message.url || message.clickAction,
       });
 
-      await webpush.sendNotification(
-        JSON.parse(deviceToken), // deviceToken is the subscription object for web push
+      logger.debug(`Sending push notification with payload: ${payload}`);
+      logger.debug(`Device token: ${deviceToken}`);
+
+      let subscriptionObject;
+      try {
+        subscriptionObject = JSON.parse(deviceToken);
+        logger.debug(`Parsed subscription object: ${JSON.stringify(subscriptionObject)}`);
+      } catch (parseError) {
+        logger.error(`Failed to parse device token: ${parseError}`);
+        throw new Error(`Invalid device token format: ${parseError}`);
+      }
+
+      const result: webpush.SendResult = await webpush.sendNotification(
+        subscriptionObject,
         payload,
         {
           TTL: 24 * 60 * 60, // 24 hours
         }
       );
 
+      logger.debug(`Web push notification sent successfully:`);
+      logger.debug(result);
+
       logger.info(`Web push notification sent successfully`);
     } catch (error: any) {
       logger.error(`Failed to send web push notification: ${error.message}`);
+      logger.error(error);
       
       // If the subscription is no longer valid, remove it
       if (error.statusCode === 410 || error.statusCode === 404) {
