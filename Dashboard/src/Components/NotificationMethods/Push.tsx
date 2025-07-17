@@ -31,6 +31,9 @@ const Push: () => JSX.Element = (): ReactElement => {
   const [showRegistrationSuccessModal, setShowRegistrationSuccessModal] =
     useState<boolean>(false);
 
+  const [showTestNotificationSuccessModal, setShowTestNotificationSuccessModal] =
+    useState<boolean>(false);
+
   useEffect(() => {
     setError("");
   }, [showRegisterDeviceModal]);
@@ -143,6 +146,8 @@ const Push: () => JSX.Element = (): ReactElement => {
                   return;
                 }
 
+                // Show success modal
+                setShowTestNotificationSuccessModal(true);
                 onCompleteAction();
               } catch (err) {
                 onCompleteAction();
@@ -256,6 +261,20 @@ const Push: () => JSX.Element = (): ReactElement => {
           submitButtonText="Close"
           onSubmit={() => {
             setShowRegistrationSuccessModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showTestNotificationSuccessModal ? (
+        <ConfirmModal
+          title="Test Notification Sent Successfully"
+          description="A test notification has been sent to your device. If you don't see it, please check that notifications are enabled for this browser and that your device is not in Do Not Disturb mode."
+          submitButtonType={ButtonStyleType.SUCCESS}
+          submitButtonText="Close"
+          onSubmit={() => {
+            setShowTestNotificationSuccessModal(false);
           }}
         />
       ) : (
