@@ -19,6 +19,7 @@ import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
 import User from "../../Models/DatabaseModels/User";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import logger from "../Utils/Logger";
@@ -111,18 +112,9 @@ export class Service extends DatabaseService<Model> {
       ],
     };
 
-    const pushMessage: PushNotificationMessage = {
-      title: "Added to On-Call Policy",
-      body: `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name}.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
-      tag: "on-call-policy-added",
-      requireInteraction: false,
-      data: {
-        type: "on-call-policy-added",
-        policyName: createdModel.onCallDutyPolicy?.name || "",
-      },
-    };
+    const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyAddedNotification(
+      createdModel.onCallDutyPolicy?.name || "",
+    );
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
@@ -321,18 +313,9 @@ export class Service extends DatabaseService<Model> {
         ],
       };
 
-      const pushMessage: PushNotificationMessage = {
-        title: "Removed from On-Call Policy",
-        body: `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name}.`,
-        icon: "/icon-192x192.png",
-        badge: "/badge-72x72.png",
-        tag: "on-call-policy-removed",
-        requireInteraction: false,
-        data: {
-          type: "on-call-policy-removed",
-          policyName: deletedItem.onCallDutyPolicy?.name || "",
-        },
-      };
+      const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyRemovedNotification(
+        deletedItem.onCallDutyPolicy?.name || "",
+      );
 
       UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,

@@ -1,16 +1,26 @@
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
 export default class PushNotificationUtil {
+  private static readonly DEFAULT_ICON = "/icon-192x192.png";
+  private static readonly DEFAULT_BADGE = "/badge-72x72.png";
+
+  private static applyDefaults(
+    notification: Partial<PushNotificationMessage>,
+  ): PushNotificationMessage {
+    return {
+      icon: PushNotificationUtil.DEFAULT_ICON,
+      badge: PushNotificationUtil.DEFAULT_BADGE,
+      ...notification,
+    } as PushNotificationMessage;
+  }
   public static createIncidentCreatedNotification(
     incidentTitle: string,
     projectName: string,
     incidentViewLink: string,
   ): PushNotificationMessage {
-    return {
+    return PushNotificationUtil.applyDefaults({
       title: `New Incident: ${incidentTitle}`,
       body: `A new incident has been created in ${projectName}. Click to view details.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
       clickAction: incidentViewLink,
       url: incidentViewLink,
       tag: "incident-created",
@@ -21,7 +31,7 @@ export default class PushNotificationUtil {
         projectName: projectName,
         url: incidentViewLink,
       },
-    };
+    });
   }
 
   public static createIncidentStateChangedNotification(
@@ -30,11 +40,9 @@ export default class PushNotificationUtil {
     newState: string,
     incidentViewLink: string,
   ): PushNotificationMessage {
-    return {
+    return PushNotificationUtil.applyDefaults({
       title: `Incident Updated: ${incidentTitle}`,
       body: `Incident state changed to ${newState} in ${projectName}. Click to view details.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
       clickAction: incidentViewLink,
       url: incidentViewLink,
       tag: "incident-state-changed",
@@ -46,7 +54,7 @@ export default class PushNotificationUtil {
         newState: newState,
         url: incidentViewLink,
       },
-    };
+    });
   }
 
   public static createAlertCreatedNotification(
@@ -54,11 +62,9 @@ export default class PushNotificationUtil {
     projectName: string,
     alertViewLink: string,
   ): PushNotificationMessage {
-    return {
+    return PushNotificationUtil.applyDefaults({
       title: `New Alert: ${alertTitle}`,
       body: `A new alert has been created in ${projectName}. Click to view details.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
       clickAction: alertViewLink,
       url: alertViewLink,
       tag: "alert-created",
@@ -69,7 +75,7 @@ export default class PushNotificationUtil {
         projectName: projectName,
         url: alertViewLink,
       },
-    };
+    });
   }
 
   public static createMonitorStatusChangedNotification(
@@ -78,11 +84,9 @@ export default class PushNotificationUtil {
     newStatus: string,
     monitorViewLink: string,
   ): PushNotificationMessage {
-    return {
+    return PushNotificationUtil.applyDefaults({
       title: `Monitor ${newStatus}: ${monitorName}`,
       body: `Monitor status changed to ${newStatus} in ${projectName}. Click to view details.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
       clickAction: monitorViewLink,
       url: monitorViewLink,
       tag: "monitor-status-changed",
@@ -94,7 +98,7 @@ export default class PushNotificationUtil {
         newStatus: newStatus,
         url: monitorViewLink,
       },
-    };
+    });
   }
 
   public static createScheduledMaintenanceNotification(
@@ -103,11 +107,9 @@ export default class PushNotificationUtil {
     state: string,
     viewLink: string,
   ): PushNotificationMessage {
-    return {
+    return PushNotificationUtil.applyDefaults({
       title: `Scheduled Maintenance ${state}: ${title}`,
       body: `Scheduled maintenance ${state.toLowerCase()} in ${projectName}. Click to view details.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
       clickAction: viewLink,
       url: viewLink,
       tag: "scheduled-maintenance",
@@ -119,7 +121,7 @@ export default class PushNotificationUtil {
         state: state,
         url: viewLink,
       },
-    };
+    });
   }
 
   public static createGenericNotification(
@@ -129,12 +131,10 @@ export default class PushNotificationUtil {
     tag?: string,
     requireInteraction: boolean = false,
   ): PushNotificationMessage {
-    const notification: PushNotificationMessage = {
+    const notification: Partial<PushNotificationMessage> = {
       title: title,
       body: body,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
-      tag: tag || "oneuptime-notification",
+      tag: tag || "OneUptime",
       requireInteraction: requireInteraction,
       data: {
         type: "generic",
@@ -147,6 +147,116 @@ export default class PushNotificationUtil {
       notification.data!["url"] = clickAction;
     }
 
-    return notification;
+    return PushNotificationUtil.applyDefaults(notification);
+  }
+
+  public static createMonitorProbeStatusNotification(
+    title: string,
+    body: string,
+    tag: string,
+    monitorId: string,
+    monitorName: string,
+  ): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: title,
+      body: body,
+      tag: tag,
+      requireInteraction: false,
+      data: {
+        type: "monitor-probe-status",
+        monitorId: monitorId,
+        monitorName: monitorName,
+      },
+    });
+  }
+
+  public static createMonitorCreatedNotification(
+    monitorName: string,
+    monitorId: string,
+  ): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: "OneUptime: New Monitor Created",
+      body: `New monitor was created: ${monitorName}`,
+      tag: "monitor-created",
+      requireInteraction: false,
+      data: {
+        type: "monitor-created",
+        monitorId: monitorId,
+        monitorName: monitorName,
+      },
+    });
+  }
+
+  public static createOnCallPolicyAddedNotification(
+    policyName: string,
+  ): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: "Added to On-Call Policy",
+      body: `You have been added to the on-call duty policy ${policyName}.`,
+      tag: "on-call-policy-added",
+      requireInteraction: false,
+      data: {
+        type: "on-call-policy-added",
+        policyName: policyName,
+      },
+    });
+  }
+
+  public static createOnCallPolicyRemovedNotification(
+    policyName: string,
+  ): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: "Removed from On-Call Policy",
+      body: `You have been removed from the on-call duty policy ${policyName}.`,
+      tag: "on-call-policy-removed",
+      requireInteraction: false,
+      data: {
+        type: "on-call-policy-removed",
+        policyName: policyName,
+      },
+    });
+  }
+
+  public static createProbeDisconnectedNotification(
+    probeName: string,
+  ): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: "OneUptime: Probe Disconnected",
+      body: `Your probe ${probeName} is disconnected. It was last seen 5 minutes ago.`,
+      tag: "probe-disconnected",
+      requireInteraction: false,
+      data: {
+        type: "probe-disconnected",
+        probeName: probeName,
+      },
+    });
+  }
+
+  public static createProbeStatusChangedNotification(
+    probeName: string,
+    projectName: string,
+    connectionStatus: string,
+    clickAction?: string,
+  ): PushNotificationMessage {
+    const notification: Partial<PushNotificationMessage> = {
+      title: `Probe ${connectionStatus}: ${probeName}`,
+      body: `Probe ${probeName} is ${connectionStatus} in ${projectName}. Click to view details.`,
+      tag: "probe-status-changed",
+      requireInteraction: true,
+      data: {
+        type: "probe-status-changed",
+        probeName: probeName,
+        projectName: projectName,
+        connectionStatus: connectionStatus,
+      },
+    };
+
+    if (clickAction) {
+      notification.clickAction = clickAction;
+      notification.url = clickAction;
+      notification.data!["url"] = clickAction;
+    }
+
+    return PushNotificationUtil.applyDefaults(notification);
   }
 }

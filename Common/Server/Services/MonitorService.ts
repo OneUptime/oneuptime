@@ -66,6 +66,7 @@ import LabelService from "./LabelService";
 import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import logger from "../Utils/Logger";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1085,19 +1086,13 @@ ${createdItem.description?.trim() || "No description provided."}
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
-        pushNotificationMessage: {
-          title: "OneUptime: Monitor Probe Status",
-          body: `Probes for monitor ${monitor.name} is ${enabledStatus}`,
-          icon: "/icon-192x192.png",
-          badge: "/badge-72x72.png",
-          tag: "monitor-probe-status",
-          requireInteraction: false,
-          data: {
-            type: "monitor-probe-status",
-            monitorId: monitor.id!.toString(),
-            monitorName: monitor.name!,
-          },
-        },
+        pushNotificationMessage: PushNotificationUtil.createMonitorProbeStatusNotification(
+          "OneUptime: Monitor Probe Status",
+          `Probes for monitor ${monitor.name} is ${enabledStatus}`,
+          "monitor-probe-status",
+          monitor.id!.toString(),
+          monitor.name!,
+        ),
         eventType:
           NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
       });
@@ -1197,19 +1192,10 @@ ${createdItem.description?.trim() || "No description provided."}
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
-        pushNotificationMessage: {
-          title: "OneUptime: New Monitor Created",
-          body: `New monitor was created: ${monitor.name}`,
-          icon: "/icon-192x192.png",
-          badge: "/badge-72x72.png",
-          tag: "monitor-created",
-          requireInteraction: false,
-          data: {
-            type: "monitor-created",
-            monitorId: monitor.id!.toString(),
-            monitorName: monitor.name!,
-          },
-        },
+        pushNotificationMessage: PushNotificationUtil.createMonitorCreatedNotification(
+          monitor.name!,
+          monitor.id!.toString(),
+        ),
         eventType:
           NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       });
