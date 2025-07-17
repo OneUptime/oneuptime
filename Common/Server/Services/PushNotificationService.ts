@@ -54,6 +54,7 @@ export default class PushNotificationService {
     }
 
     logger.info(`Sending web push notifications to ${request.deviceTokens.length} devices`);
+    logger.info(`Notification message: ${JSON.stringify(request.message)}`);
 
     const promises: Promise<void>[] = [];
 
@@ -69,6 +70,7 @@ export default class PushNotificationService {
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         successCount++;
+        logger.info(`Device ${index + 1}: Notification sent successfully`);
       } else {
         errorCount++;
         logger.error(`Failed to send notification to device ${index + 1}: ${result.reason}`);

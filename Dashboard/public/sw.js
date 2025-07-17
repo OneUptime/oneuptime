@@ -4,13 +4,34 @@
 
 console.log('[ServiceWorker] OneUptime Push Notifications Service Worker Loaded');
 
+// Test the service worker is working
+self.addEventListener('install', function(event) {
+  console.log('[ServiceWorker] Installing...');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function(event) {
+  console.log('[ServiceWorker] Activating...');
+  event.waitUntil(self.clients.claim());
+});
+
+// Add error logging for push subscription
+self.addEventListener('pushsubscriptionchange', function(event) {
+  console.log('[ServiceWorker] Push subscription changed:', event);
+});
+
 self.addEventListener('push', function(event) {
   console.log('[ServiceWorker] Push received:', event);
+  console.log('[ServiceWorker] Event type:', typeof event);
+  console.log('[ServiceWorker] Event data available:', !!event.data);
   
   if (event.data) {
     try {
+      const dataText = event.data.text();
+      console.log('[ServiceWorker] Raw push data (text):', dataText);
+      
       const data = event.data.json();
-      console.log('[ServiceWorker] Push data:', data);
+      console.log('[ServiceWorker] Push data (parsed):', data);
       
       const options = {
         body: data.body,
@@ -37,12 +58,13 @@ self.addEventListener('push', function(event) {
       );
     } catch (error) {
       console.error('[ServiceWorker] Error parsing push data:', error);
-      console.log('[ServiceWorker] Raw event data:', event.data ? event.data.text() : 'No data');
+      const rawData = event.data ? event.data.text() : 'No data';
+      console.log('[ServiceWorker] Raw event data:', rawData);
       
       // Show a fallback notification
       event.waitUntil(
         self.registration.showNotification('OneUptime Notification', {
-          body: 'You have a new notification',
+          body: 'You have a new notification (fallback)',
           icon: '/icon-192x192.png',
           tag: 'oneuptime-fallback'
         })
@@ -54,7 +76,7 @@ self.addEventListener('push', function(event) {
     // Show a fallback notification when no data is provided
     event.waitUntil(
       self.registration.showNotification('OneUptime Notification', {
-        body: 'You have a new notification',
+        body: 'You have a new notification (no data)',
         icon: '/icon-192x192.png',
         tag: 'oneuptime-fallback'
       })
