@@ -21,6 +21,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserEmail from "Common/Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
+import UserPush from "Common/Models/DatabaseModels/UserPush";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import React, {
   Fragment,
@@ -39,6 +40,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [userEmails, setUserEmails] = useState<Array<UserEmail>>([]);
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
+  const [userPush, setUserPush] = useState<Array<UserPush>>([]);
   const [
     notificationMethodsDropdownOptions,
     setNotificationMethodsDropdownOptions,
@@ -116,6 +118,19 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             if (userCall) {
               model.userCallId = userCall.id!;
             }
+
+            const userPushDevice: UserPush | undefined = userPush.find(
+              (userPushDevice: UserPush) => {
+                return (
+                  userPushDevice.id!.toString() ===
+                  miscDataProps["notificationMethod"]?.toString()
+                );
+              },
+            );
+
+            if (userPushDevice) {
+              model.userPushId = userPushDevice.id!;
+            }
           }
 
           return Promise.resolve(model);
@@ -170,6 +185,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userSms: {
             phone: true,
           },
+          userPush: {
+            deviceName: true,
+            deviceType: true,
+          },
         }}
         filters={[]}
         columns={[
@@ -177,6 +196,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: {
               userCall: {
                 phone: true,
+              },
+              userEmail: {
+                email: true,
+              },
+              userSms: {
+                phone: true,
+              },
+              userPush: {
+                deviceName: true,
+                deviceType: true,
               },
             },
             title: "Notification Method",
@@ -283,29 +312,58 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setUserCalls(userCalls.data);
 
+      const userPushDevices: ListResult<UserPush> = await ModelAPI.getList({
+        modelType: UserPush,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          userId: User.getUserId(),
+          isVerified: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          deviceName: true,
+          deviceType: true,
+        },
+        sort: {},
+      });
+
+      setUserPush(userPushDevices.data);
+
       setIncidentSeverities(incidentSeverities.data);
 
       const dropdownOptions: Array<DropdownOption> = [
         ...userCalls.data,
         ...userEmails.data,
         ...userSMSes.data,
+        ...userPushDevices.data,
       ].map((model: BaseModel) => {
         const isUserCall: boolean = model instanceof UserCall;
         const isUserSms: boolean = model instanceof UserSMS;
+        const isUserPush: boolean = model instanceof UserPush;
 
-        const option: DropdownOption = {
-          label: model.getColumnValue("phone")
-            ? (model.getColumnValue("phone")?.toString() as string)
-            : (model.getColumnValue("email")?.toString() as string),
-          value: model.id!.toString(),
-        };
+        let option: DropdownOption;
 
-        if (isUserCall) {
-          option.label = "Call: " + option.label;
-        } else if (isUserSms) {
-          option.label = "SMS: " + option.label;
+        if (isUserPush) {
+          option = {
+            label: "Push: " + (model.getColumnValue("deviceName")?.toString() || "Unknown Device"),
+            value: model.id!.toString(),
+          };
         } else {
-          option.label = "Email: " + option.label;
+          option = {
+            label: model.getColumnValue("phone")
+              ? (model.getColumnValue("phone")?.toString() as string)
+              : (model.getColumnValue("email")?.toString() as string),
+            value: model.id!.toString(),
+          };
+
+          if (isUserCall) {
+            option.label = "Call: " + option.label;
+          } else if (isUserSms) {
+            option.label = "SMS: " + option.label;
+          } else {
+            option.label = "Email: " + option.label;
+          }
         }
 
         return option;
