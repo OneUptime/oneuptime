@@ -298,22 +298,6 @@ class UserPush extends BaseModel {
   })
   public isVerified?: boolean = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [Permission.CurrentUser],
-    update: [],
-  })
-  @TableColumn({
-    title: "Last Used At",
-    description: "When was this device last used?",
-    type: TableColumnType.Date,
-    required: false,
-  })
-  @Column({
-    type: ColumnType.Date,
-    nullable: true,
-  })
-  public lastUsedAt?: Date = undefined;
 }
 
 export default UserPush;

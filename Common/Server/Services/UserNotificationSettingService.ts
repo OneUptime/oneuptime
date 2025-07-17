@@ -163,6 +163,9 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       }
 
       if (notificationSettings.alertByPush) {
+        logger.debug(
+          `Sending push notification to user ${data.userId.toString()} for event ${data.eventType}`,
+        );
         PushNotificationService.sendPushNotificationToUser(
           data.userId,
           data.projectId,

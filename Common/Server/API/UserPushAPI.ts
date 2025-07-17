@@ -71,7 +71,6 @@ export default class UserPushAPI extends BaseAPI<
 
           if (existingDevice) {
             // Mark as used and return a specific response indicating device was already registered
-            await this.service.markDeviceAsUsed(existingDevice._id!.toString());
             throw new BadDataException(
               "This device is already registered for push notifications"
             );
@@ -182,8 +181,6 @@ export default class UserPushAPI extends BaseAPI<
             }
           );
 
-          // Mark device as used
-          await this.service.markDeviceAsUsed(device._id!.toString());
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
