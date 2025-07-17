@@ -147,9 +147,6 @@ const Push: () => JSX.Element = (): ReactElement => {
             title: "Test Notification",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Bell,
-            isVisible: (item: UserPush): boolean => {
-              return item.isVerified === true;
-            },
             onClick: async (
               item: UserPush,
               onCompleteAction: VoidFunction,
