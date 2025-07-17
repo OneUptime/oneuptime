@@ -1,8 +1,8 @@
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
 export default class PushNotificationUtil {
-  private static readonly DEFAULT_ICON = "/icon-192x192.png";
-  private static readonly DEFAULT_BADGE = "/badge-72x72.png";
+  private static readonly DEFAULT_ICON = "/dashboard/public/img/OneUptimePNG/1.png";
+  private static readonly DEFAULT_BADGE = "/dashboard/public/img/OneUptimePNG/6.png";
 
   private static applyDefaults(
     notification: Partial<PushNotificationMessage>,
