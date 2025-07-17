@@ -217,27 +217,6 @@ const Push: () => JSX.Element = (): ReactElement => {
           },
           {
             field: {
-              deviceType: true,
-            },
-            title: "Type",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              lastUsedAt: true,
-            },
-            title: "Last Used",
-            type: FieldType.DateTime,
-          },
-          {
-            field: {
-              isVerified: true,
-            },
-            title: "Status",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
               createdAt: true,
             },
             title: "Registered At",
