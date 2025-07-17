@@ -19,6 +19,7 @@ import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -129,19 +130,9 @@ export class Service extends DatabaseService<Model> {
       ],
     };
 
-    const pushMessage: PushNotificationMessage = {
-      title: "Added to On-Call Policy",
-      body: `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for schedule ${scheduleName}.`,
-      icon: "/icon-192x192.png",
-      badge: "/badge-72x72.png",
-      tag: "on-call-policy-added",
-      requireInteraction: false,
-      data: {
-        type: "on-call-policy-added",
-        policyName: createdModel.onCallDutyPolicy?.name || "",
-        scheduleName: scheduleName,
-      },
-    };
+    const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyAddedNotification(
+      createdModel.onCallDutyPolicy?.name || "No name provided"
+    );
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
@@ -320,19 +311,9 @@ export class Service extends DatabaseService<Model> {
         ],
       };
 
-      const pushMessage: PushNotificationMessage = {
-        title: "Removed from On-Call Policy",
-        body: `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for schedule ${scheduleName}.`,
-        icon: "/icon-192x192.png",
-        badge: "/badge-72x72.png",
-        tag: "on-call-policy-removed",
-        requireInteraction: false,
-        data: {
-          type: "on-call-policy-removed",
-          policyName: deletedItem.onCallDutyPolicy?.name || "",
-          scheduleName: scheduleName,
-        },
-      };
+      const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyRemovedNotification(
+        deletedItem.onCallDutyPolicy?.name || "No name provided"
+      );
 
       await UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
