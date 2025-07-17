@@ -9,6 +9,7 @@ import TeamMemberService from "./TeamMemberService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
+import PushNotificationService from "./PushNotificationService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
@@ -17,6 +18,7 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { SMSMessage } from "../../Types/SMS/SMS";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
@@ -36,6 +38,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     emailEnvelope: EmailEnvelope;
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
+    pushNotificationMessage: PushNotificationMessage;
   }): Promise<void> {
     if (!data.projectId) {
       throw new BadDataException(
@@ -54,6 +57,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByEmail: true,
           alertBySMS: true,
           alertByCall: true,
+          alertByPush: true,
         },
         props: {
           isRoot: true,
@@ -156,6 +160,22 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             logger.error(err);
           });
         }
+      }
+
+      if (notificationSettings.alertByPush) {
+        logger.debug(
+          `Sending push notification to user ${data.userId.toString()} for event ${data.eventType}`,
+        );
+        PushNotificationService.sendPushNotificationToUser(
+          data.userId,
+          data.projectId,
+          data.pushNotificationMessage,
+          {
+            projectId: data.projectId,
+          },
+        ).catch((err: Error) => {
+          logger.error(err);
+        });
       }
     }
   }

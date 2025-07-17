@@ -28,6 +28,8 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
@@ -365,12 +367,20 @@ export class Service extends DatabaseService<Model> {
           ],
         };
 
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createProbeStatusChangedNotification(
+          probe.name!,
+          probe.project?.name || "Project",
+          connectionStatus,
+          vars["viewProbesLink"],
+        );
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: probe.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
         });

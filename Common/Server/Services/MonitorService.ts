@@ -66,6 +66,7 @@ import LabelService from "./LabelService";
 import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import logger from "../Utils/Logger";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -1085,6 +1086,13 @@ ${createdItem.description?.trim() || "No description provided."}
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
+        pushNotificationMessage: PushNotificationUtil.createMonitorProbeStatusNotification(
+          "OneUptime: Monitor Probe Status",
+          `Probes for monitor ${monitor.name} is ${enabledStatus}`,
+          "monitor-probe-status",
+          monitor.id!.toString(),
+          monitor.name!,
+        ),
         eventType:
           NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
       });
@@ -1184,6 +1192,10 @@ ${createdItem.description?.trim() || "No description provided."}
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
+        pushNotificationMessage: PushNotificationUtil.createMonitorCreatedNotification(
+          monitor.name!,
+          monitor.id!.toString(),
+        ),
         eventType:
           NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       });

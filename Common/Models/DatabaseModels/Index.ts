@@ -126,6 +126,7 @@ import User from "./User";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
+import UserPush from "./UserPush";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -294,6 +295,7 @@ const AllModelTypes: Array<{
   UserEmail,
   UserSms,
   UserCall,
+  UserPush,
 
   UserNotificationRule,
   UserOnCallLog,

@@ -18,6 +18,8 @@ import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCal
 import { Gray500, Red500 } from "../../Types/BrandColors";
 import UserService from "./UserService";
 import User from "../../Models/DatabaseModels/User";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 import logger from "../Utils/Logger";
@@ -110,12 +112,17 @@ export class Service extends DatabaseService<Model> {
       ],
     };
 
+    const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyAddedNotification(
+      createdModel.onCallDutyPolicy?.name || "",
+    );
+
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
       projectId: createdModel!.projectId!,
       emailEnvelope: emailMessage,
       smsMessage: sms,
       callRequestMessage: callMessage,
+      pushNotificationMessage: pushMessage,
       eventType:
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
     });
@@ -306,12 +313,17 @@ export class Service extends DatabaseService<Model> {
         ],
       };
 
+      const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyRemovedNotification(
+        deletedItem.onCallDutyPolicy?.name || "",
+      );
+
       UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
         projectId: deletedItem!.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
+        pushNotificationMessage: pushMessage,
         eventType:
           NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
       });

@@ -45,8 +45,10 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertSeverityService from "./AlertSeverityService";
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import PushNotificationService from "./PushNotificationService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -133,6 +135,11 @@ export class Service extends DatabaseService<Model> {
         },
         userEmail: {
           email: true,
+          isVerified: true,
+        },
+        userPush: {
+          deviceToken: true,
+          deviceType: true,
           isVerified: true,
         },
       },
@@ -585,6 +592,118 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+
+    // send push notification.
+    if (
+      notificationRuleItem.userPush?.deviceToken &&
+      notificationRuleItem.userPush?.isVerified
+    ) {
+      // send push notification for alert
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertCreated &&
+        alert
+      ) {
+        // create a log.
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending push notification to device.`;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const pushMessage = PushNotificationUtil.createAlertCreatedNotification(
+          alert.title!,
+          alert.project?.name || "OneUptime",
+          `/dashboard/project/${options.projectId}/alerts/${alert.id}`
+        );
+
+        // send push notification.
+        PushNotificationService.sendPushNotification({
+          deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+          message: pushMessage,
+          deviceType: notificationRuleItem.userPush.deviceType!,
+        }, {
+          projectId: options.projectId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending push notification.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send push notification for incident
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
+        incident
+      ) {
+        // create a log.
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending push notification to device.`;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const pushMessage = PushNotificationUtil.createIncidentCreatedNotification(
+          incident.title!,
+          incident.project?.name || "OneUptime",
+          `/dashboard/project/${options.projectId}/incidents/${incident.id}`
+        );
+
+        // send push notification.
+        PushNotificationService.sendPushNotification({
+          deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+          message: pushMessage,
+          deviceType: notificationRuleItem.userPush.deviceType!,
+        }, {
+          projectId: options.projectId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending push notification.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+    }
+
+    if (
+      notificationRuleItem.userPush?.deviceToken &&
+      !notificationRuleItem.userPush?.isVerified
+    ) {
+      // create a log.
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `Push notification not sent because device is not verified.`;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
   }
 
   @CaptureSpan()
@@ -989,9 +1108,11 @@ export class Service extends DatabaseService<Model> {
       !createBy.data.userEmail &&
       !createBy.data.userSms &&
       !createBy.data.userSmsId &&
-      !createBy.data.userEmailId
+      !createBy.data.userEmailId &&
+      !createBy.data.userPushId &&
+      !createBy.data.userPush
     ) {
-      throw new BadDataException("Call, SMS, or Email is required");
+      throw new BadDataException("Call, SMS, Email, or Push notification is required");
     }
 
     return {
