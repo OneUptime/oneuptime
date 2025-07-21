@@ -57,6 +57,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           userSms: {
             phone: true,
           },
+          userPush: {
+            deviceName: true,
+          }
         }}
         noItemsMessage={"No notifications sent out so far."}
         showRefreshButton={true}

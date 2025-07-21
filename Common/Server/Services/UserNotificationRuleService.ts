@@ -607,6 +607,7 @@ export class Service extends DatabaseService<Model> {
         // create a log.
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
           await UserOnCallLogTimelineService.create({
