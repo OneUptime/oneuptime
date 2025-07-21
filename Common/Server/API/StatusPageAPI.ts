@@ -2344,7 +2344,7 @@ export default class StatusPageAPI extends BaseAPI<
                 ? "true"
                 : "false",
               subscriberEmailNotificationFooterText:
-                statusPage.subscriberEmailNotificationFooterText || "",
+                StatusPageServiceType.getSubscriberEmailFooterText(statusPage),
 
               manageSubscriptionUrl: manageUrlink,
             },

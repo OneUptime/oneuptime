@@ -13,6 +13,7 @@ import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TimezonesElement from "../../../Components/Timezone/TimezonesElement";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 
 const StatusPageDelete: FunctionComponent<
   PageComponentProps
@@ -168,6 +169,16 @@ const StatusPageDelete: FunctionComponent<
           },
           {
             field: {
+              enableCustomSubscriberEmailNotificationFooterText: true,
+            },
+            title: "Enable Custom Email Footer Text",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Enable custom footer text in subscriber email notifications. If disabled, default footer text will be used.",
+          },
+          {
+            field: {
               subscriberEmailNotificationFooterText: true,
             },
             title: "Subscriber Email Notification Footer Text",
@@ -177,6 +188,12 @@ const StatusPageDelete: FunctionComponent<
               "This is an automated email sent to you because you are subscribed to Status Page.",
             description:
               "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
+            showIf: (item: FormValues<StatusPage>): boolean => {
+              return (
+                item.enableCustomSubscriberEmailNotificationFooterText ===
+                true
+              );
+            }
           },
         ]}
         modelDetailProps={{
@@ -223,6 +240,15 @@ const StatusPageDelete: FunctionComponent<
                   <PlaceholderText text="No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default." />
                 );
               },
+            },
+            {
+              field: {
+                enableCustomSubscriberEmailNotificationFooterText: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable Custom Email Footer Text",
+              description:
+                "Enable custom footer text in subscriber email notifications. If disabled, default footer text will be used.",
             },
             {
               field: {

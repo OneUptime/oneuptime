@@ -19,7 +19,9 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
-import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageService, {
+  Service as StatusPageServiceType,
+} from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
@@ -316,7 +318,9 @@ RunCron(
                   eventTitle: event.title || "",
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
-                    statuspage.subscriberEmailNotificationFooterText || "",
+                    StatusPageServiceType.getSubscriberEmailFooterText(
+                      statuspage,
+                    ),
                 },
                 subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
                   scheduledEventStateTimeline.scheduledMaintenanceState?.name,

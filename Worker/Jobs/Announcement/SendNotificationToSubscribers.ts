@@ -14,7 +14,9 @@ import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSCo
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageAnnouncementService from "Common/Server/Services/StatusPageAnnouncementService";
-import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageService, {
+  Service as StatusPageServiceType,
+} from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -204,7 +206,9 @@ RunCron(
                         MarkdownContentType.Email,
                       ),
                       subscriberEmailNotificationFooterText:
-                        statuspage.subscriberEmailNotificationFooterText || "",
+                        StatusPageServiceType.getSubscriberEmailFooterText(
+                          statuspage,
+                        ),
                       unsubscribeUrl: unsubscribeUrl,
                     },
                     subject: "[Announcement] " + announcement.title,
