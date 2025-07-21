@@ -8,12 +8,14 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import IncidentInternalNoteService from "Common/Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "Common/Server/Services/IncidentPublicNoteService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
@@ -203,12 +205,23 @@ RunCron(
           ],
         };
 
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createIncidentNotePostedNotification(
+          incident.title!,
+          incident.project!.name!,
+          privateNoteIds.includes(note._id!),
+          (await IncidentService.getIncidentLinkInDashboard(
+            incident.projectId!,
+            incident.id!,
+          )).toString(),
+        );
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: incident.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
         });

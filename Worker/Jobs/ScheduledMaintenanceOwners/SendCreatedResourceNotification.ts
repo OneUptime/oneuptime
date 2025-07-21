@@ -6,10 +6,12 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import User from "Common/Models/DatabaseModels/User";
@@ -124,12 +126,21 @@ RunCron(
           ],
         };
 
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
+          "Scheduled Maintenance Created",
+          `New scheduled maintenance created: ${scheduledMaintenance.title}. Click to view details.`,
+          vars["scheduledEventViewLink"],
+          "scheduled-maintenance-created",
+          false,
+        );
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: scheduledMaintenance.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION,
         });

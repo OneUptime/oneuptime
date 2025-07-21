@@ -7,12 +7,14 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
 import AlertService from "Common/Server/Services/AlertService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
@@ -194,12 +196,21 @@ RunCron(
           ],
         };
 
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
+          "Added as Alert Owner",
+          `You have been added as the owner of the alert: ${alert.title}. Click to view details.`,
+          vars["alertViewLink"],
+          "alert-owner-added",
+          false,
+        );
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: alert.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
         });

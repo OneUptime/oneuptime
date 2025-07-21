@@ -57,6 +57,30 @@ export default class PushNotificationUtil {
     });
   }
 
+  public static createIncidentNotePostedNotification(
+    incidentTitle: string,
+    projectName: string,
+    isPrivateNote: boolean,
+    incidentViewLink: string,
+  ): PushNotificationMessage {
+    const noteType = isPrivateNote ? "Private" : "Public";
+    return PushNotificationUtil.applyDefaults({
+      title: `${noteType} Note Added: ${incidentTitle}`,
+      body: `A ${noteType.toLowerCase()} note has been posted on incident in ${projectName}. Click to view details.`,
+      clickAction: incidentViewLink,
+      url: incidentViewLink,
+      tag: "incident-note-posted",
+      requireInteraction: true,
+      data: {
+        type: "incident-note-posted",
+        incidentTitle: incidentTitle,
+        projectName: projectName,
+        isPrivateNote: isPrivateNote,
+        url: incidentViewLink,
+      },
+    });
+  }
+
   public static createAlertCreatedNotification(
     alertTitle: string,
     projectName: string,

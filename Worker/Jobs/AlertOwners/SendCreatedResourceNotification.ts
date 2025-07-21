@@ -7,10 +7,12 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AlertService from "Common/Server/Services/AlertService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Select from "Common/Server/Types/Database/Select";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
@@ -179,12 +181,19 @@ RunCron(
             ],
           };
 
+          const pushMessage: PushNotificationMessage = PushNotificationUtil.createAlertCreatedNotification(
+            alert.title!,
+            alert.project!.name!,
+            vars["alertViewLink"] || "",
+          );
+
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,
             projectId: alert.projectId!,
             emailEnvelope: emailMessage,
             smsMessage: sms,
             callRequestMessage: callMessage,
+            pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
           });

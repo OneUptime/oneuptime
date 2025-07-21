@@ -7,12 +7,14 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import MonitorOwnerTeamService from "Common/Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "Common/Server/Services/MonitorOwnerUserService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
@@ -186,12 +188,21 @@ RunCron(
           ],
         };
 
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
+          "Added as Monitor Owner",
+          `You have been added as the owner of the monitor: ${monitor.name}. Click to view details.`,
+          vars["monitorViewLink"],
+          "monitor-owner-added",
+          false,
+        );
+
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
           projectId: monitor.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
           callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
           eventType:
             NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
         });
