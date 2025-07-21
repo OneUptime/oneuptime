@@ -248,8 +248,12 @@ const Push: () => JSX.Element = (): ReactElement => {
           description="This will register your current browser to receive push notifications from OneUptime. You'll be asked for permission to show notifications."
           isLoading={isLoading}
           submitButtonText="Register Device"
-          onClose={handleCloseRegisterModal}
-          onSubmit={registerDeviceForPushNotifications}
+          onClose={() => {
+            return handleCloseRegisterModal();
+          }}
+          onSubmit={(data: JSONObject) => {
+            return registerDeviceForPushNotifications(data);
+          }}
           formProps={{
             name: "Register Device",
             initialValues: {
