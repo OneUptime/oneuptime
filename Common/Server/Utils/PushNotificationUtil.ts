@@ -13,11 +13,12 @@ export default class PushNotificationUtil {
       ...notification,
     } as PushNotificationMessage;
   }
-  public static createIncidentCreatedNotification(
-    incidentTitle: string,
-    projectName: string,
-    incidentViewLink: string,
-  ): PushNotificationMessage {
+  public static createIncidentCreatedNotification(params: {
+    incidentTitle: string;
+    projectName: string;
+    incidentViewLink: string;
+  }): PushNotificationMessage {
+    const { incidentTitle, projectName, incidentViewLink } = params;
     return PushNotificationUtil.applyDefaults({
       title: `New Incident: ${incidentTitle}`,
       body: `A new incident has been created in ${projectName}. Click to view details.`,
@@ -34,12 +35,13 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createIncidentStateChangedNotification(
-    incidentTitle: string,
-    projectName: string,
-    newState: string,
-    incidentViewLink: string,
-  ): PushNotificationMessage {
+  public static createIncidentStateChangedNotification(params: {
+    incidentTitle: string;
+    projectName: string;
+    newState: string;
+    incidentViewLink: string;
+  }): PushNotificationMessage {
+    const { incidentTitle, projectName, newState, incidentViewLink } = params;
     return PushNotificationUtil.applyDefaults({
       title: `Incident Updated: ${incidentTitle}`,
       body: `Incident state changed to ${newState} in ${projectName}. Click to view details.`,
@@ -57,12 +59,13 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createIncidentNotePostedNotification(
-    incidentTitle: string,
-    projectName: string,
-    isPrivateNote: boolean,
-    incidentViewLink: string,
-  ): PushNotificationMessage {
+  public static createIncidentNotePostedNotification(params: {
+    incidentTitle: string;
+    projectName: string;
+    isPrivateNote: boolean;
+    incidentViewLink: string;
+  }): PushNotificationMessage {
+    const { incidentTitle, projectName, isPrivateNote, incidentViewLink } = params;
     const noteType = isPrivateNote ? "Private" : "Public";
     return PushNotificationUtil.applyDefaults({
       title: `${noteType} Note Added: ${incidentTitle}`,
@@ -81,11 +84,12 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createAlertCreatedNotification(
-    alertTitle: string,
-    projectName: string,
-    alertViewLink: string,
-  ): PushNotificationMessage {
+  public static createAlertCreatedNotification(params: {
+    alertTitle: string;
+    projectName: string;
+    alertViewLink: string;
+  }): PushNotificationMessage {
+    const { alertTitle, projectName, alertViewLink } = params;
     return PushNotificationUtil.applyDefaults({
       title: `New Alert: ${alertTitle}`,
       body: `A new alert has been created in ${projectName}. Click to view details.`,
@@ -102,12 +106,13 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createMonitorStatusChangedNotification(
-    monitorName: string,
-    projectName: string,
-    newStatus: string,
-    monitorViewLink: string,
-  ): PushNotificationMessage {
+  public static createMonitorStatusChangedNotification(params: {
+    monitorName: string;
+    projectName: string;
+    newStatus: string;
+    monitorViewLink: string;
+  }): PushNotificationMessage {
+    const { monitorName, projectName, newStatus, monitorViewLink } = params;
     return PushNotificationUtil.applyDefaults({
       title: `Monitor ${newStatus}: ${monitorName}`,
       body: `Monitor status changed to ${newStatus} in ${projectName}. Click to view details.`,
@@ -125,12 +130,13 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createScheduledMaintenanceNotification(
-    title: string,
-    projectName: string,
-    state: string,
-    viewLink: string,
-  ): PushNotificationMessage {
+  public static createScheduledMaintenanceNotification(params: {
+    title: string;
+    projectName: string;
+    state: string;
+    viewLink: string;
+  }): PushNotificationMessage {
+    const { title, projectName, state, viewLink } = params;
     return PushNotificationUtil.applyDefaults({
       title: `Scheduled Maintenance ${state}: ${title}`,
       body: `Scheduled maintenance ${state.toLowerCase()} in ${projectName}. Click to view details.`,
@@ -148,13 +154,14 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createGenericNotification(
-    title: string,
-    body: string,
-    clickAction?: string,
-    tag?: string,
-    requireInteraction: boolean = false,
-  ): PushNotificationMessage {
+  public static createGenericNotification(params: {
+    title: string;
+    body: string;
+    clickAction?: string;
+    tag?: string;
+    requireInteraction?: boolean;
+  }): PushNotificationMessage {
+    const { title, body, clickAction, tag, requireInteraction = false } = params;
     const notification: Partial<PushNotificationMessage> = {
       title: title,
       body: body,
@@ -174,13 +181,14 @@ export default class PushNotificationUtil {
     return PushNotificationUtil.applyDefaults(notification);
   }
 
-  public static createMonitorProbeStatusNotification(
-    title: string,
-    body: string,
-    tag: string,
-    monitorId: string,
-    monitorName: string,
-  ): PushNotificationMessage {
+  public static createMonitorProbeStatusNotification(params: {
+    title: string;
+    body: string;
+    tag: string;
+    monitorId: string;
+    monitorName: string;
+  }): PushNotificationMessage {
+    const { title, body, tag, monitorId, monitorName } = params;
     return PushNotificationUtil.applyDefaults({
       title: title,
       body: body,
@@ -194,10 +202,11 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createMonitorCreatedNotification(
-    monitorName: string,
-    monitorId: string,
-  ): PushNotificationMessage {
+  public static createMonitorCreatedNotification(params: {
+    monitorName: string;
+    monitorId: string;
+  }): PushNotificationMessage {
+    const { monitorName, monitorId } = params;
     return PushNotificationUtil.applyDefaults({
       title: "OneUptime: New Monitor Created",
       body: `New monitor was created: ${monitorName}`,
@@ -211,9 +220,10 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createOnCallPolicyAddedNotification(
-    policyName: string,
-  ): PushNotificationMessage {
+  public static createOnCallPolicyAddedNotification(params: {
+    policyName: string;
+  }): PushNotificationMessage {
+    const { policyName } = params;
     return PushNotificationUtil.applyDefaults({
       title: "Added to On-Call Policy",
       body: `You have been added to the on-call duty policy ${policyName}.`,
@@ -226,9 +236,10 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createOnCallPolicyRemovedNotification(
-    policyName: string,
-  ): PushNotificationMessage {
+  public static createOnCallPolicyRemovedNotification(params: {
+    policyName: string;
+  }): PushNotificationMessage {
+    const { policyName } = params;
     return PushNotificationUtil.applyDefaults({
       title: "Removed from On-Call Policy",
       body: `You have been removed from the on-call duty policy ${policyName}.`,
@@ -241,9 +252,10 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createProbeDisconnectedNotification(
-    probeName: string,
-  ): PushNotificationMessage {
+  public static createProbeDisconnectedNotification(params: {
+    probeName: string;
+  }): PushNotificationMessage {
+    const { probeName } = params;
     return PushNotificationUtil.applyDefaults({
       title: "OneUptime: Probe Disconnected",
       body: `Your probe ${probeName} is disconnected. It was last seen 5 minutes ago.`,
@@ -256,12 +268,13 @@ export default class PushNotificationUtil {
     });
   }
 
-  public static createProbeStatusChangedNotification(
-    probeName: string,
-    projectName: string,
-    connectionStatus: string,
-    clickAction?: string,
-  ): PushNotificationMessage {
+  public static createProbeStatusChangedNotification(params: {
+    probeName: string;
+    projectName: string;
+    connectionStatus: string;
+    clickAction?: string;
+  }): PushNotificationMessage {
+    const { probeName, projectName, connectionStatus, clickAction } = params;
     const notification: Partial<PushNotificationMessage> = {
       title: `Probe ${connectionStatus}: ${probeName}`,
       body: `Probe ${probeName} is ${connectionStatus} in ${projectName}. Click to view details.`,
