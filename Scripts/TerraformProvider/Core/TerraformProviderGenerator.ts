@@ -38,6 +38,7 @@ build:
 release:
 	mkdir -p ./builds
 	GOOS=darwin GOARCH=amd64 go build -o ./builds/\${BINARY}_darwin_amd64
+	GOOS=darwin GOARCH=arm go build -o ./builds/\${BINARY}_darwin_arm
 	GOOS=freebsd GOARCH=386 go build -o ./builds/\${BINARY}_freebsd_386
 	GOOS=freebsd GOARCH=amd64 go build -o ./builds/\${BINARY}_freebsd_amd64
 	GOOS=freebsd GOARCH=arm go build -o ./builds/\${BINARY}_freebsd_arm
