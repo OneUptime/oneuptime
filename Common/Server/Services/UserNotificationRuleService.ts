@@ -620,7 +620,10 @@ export class Service extends DatabaseService<Model> {
         const pushMessage = PushNotificationUtil.createAlertCreatedNotification({
           alertTitle: alert.title!,
           projectName: alert.project?.name || "OneUptime",
-          alertViewLink: `/dashboard/project/${options.projectId}/alerts/${alert.id}`,
+          alertViewLink: (await AlertService.getAlertLinkInDashboard(
+            alert.projectId!,
+            alert.id!,
+          )).toString(),
         });
 
         // send push notification.
@@ -665,7 +668,10 @@ export class Service extends DatabaseService<Model> {
         const pushMessage = PushNotificationUtil.createIncidentCreatedNotification({
           incidentTitle: incident.title!,
           projectName: incident.project?.name || "OneUptime",
-          incidentViewLink: `/dashboard/project/${options.projectId}/incidents/${incident.id}`,
+          incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
+            incident.projectId!,
+            incident.id!,
+          )).toString(),
         });
 
         // send push notification.
