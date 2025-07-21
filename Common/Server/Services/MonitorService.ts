@@ -1086,13 +1086,13 @@ ${createdItem.description?.trim() || "No description provided."}
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
-        pushNotificationMessage: PushNotificationUtil.createMonitorProbeStatusNotification(
-          "OneUptime: Monitor Probe Status",
-          `Probes for monitor ${monitor.name} is ${enabledStatus}`,
-          "monitor-probe-status",
-          monitor.id!.toString(),
-          monitor.name!,
-        ),
+        pushNotificationMessage: PushNotificationUtil.createMonitorProbeStatusNotification({
+          title: "OneUptime: Monitor Probe Status",
+          body: `Probes for monitor ${monitor.name} is ${enabledStatus}`,
+          tag: "monitor-probe-status",
+          monitorId: monitor.id!.toString(),
+          monitorName: monitor.name!,
+        }),
         eventType:
           NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
       });
@@ -1192,10 +1192,10 @@ ${createdItem.description?.trim() || "No description provided."}
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
-        pushNotificationMessage: PushNotificationUtil.createMonitorCreatedNotification(
-          monitor.name!,
-          monitor.id!.toString(),
-        ),
+        pushNotificationMessage: PushNotificationUtil.createMonitorCreatedNotification({
+          monitorName: monitor.name!,
+          monitorId: monitor.id!.toString(),
+        }),
         eventType:
           NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       });

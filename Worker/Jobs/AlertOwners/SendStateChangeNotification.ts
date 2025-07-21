@@ -189,13 +189,16 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-          `Alert State Changed: ${alert.title}`,
-          `Alert state changed to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
-          vars["alertViewLink"],
-          "alert-state-changed",
-          true,
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+          title: `Alert State Changed: ${alert.title}`,
+          body: `Alert state changed to ${alertState!.name!} in ${alertStateTimeline.project!.name!}. Click to view details.`,
+          clickAction: (await AlertService.getAlertLinkInDashboard(
+            alertStateTimeline.projectId!,
+            alert.id!,
+          )).toString(),
+          tag: "alert-state-changed",
+          requireInteraction: true,
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

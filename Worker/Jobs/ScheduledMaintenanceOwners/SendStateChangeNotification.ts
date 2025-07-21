@@ -153,13 +153,16 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-          "Scheduled Maintenance State Changed",
-          `Scheduled maintenance ${scheduledMaintenance.title} state changed to ${scheduledMaintenanceState!.name!}. Click to view details.`,
-          vars["scheduledEventViewLink"],
-          "scheduled-maintenance-state-changed",
-          false,
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+          title: "Scheduled Maintenance State Changed",
+          body: `Scheduled maintenance ${scheduledMaintenance.title} state changed to ${scheduledMaintenanceState!.name!}. Click to view details.`,
+          clickAction: (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+            scheduledMaintenance.projectId!,
+            scheduledMaintenance.id!,
+          )).toString(),
+          tag: "scheduled-maintenance-state-changed",
+          requireInteraction: false,
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

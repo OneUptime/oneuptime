@@ -194,13 +194,16 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-          "Scheduled Maintenance Note Posted",
-          `New note posted on scheduled maintenance: ${scheduledMaintenance.title}. Click to view details.`,
-          vars["scheduledEventViewLink"],
-          "scheduled-maintenance-note-posted",
-          false,
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+          title: "Scheduled Maintenance Note Posted",
+          body: `New note posted on scheduled maintenance: ${scheduledMaintenance.title}. Click to view details.`,
+          clickAction: (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+            scheduledMaintenance.projectId!,
+            scheduledMaintenance.id!,
+          )).toString(),
+          tag: "scheduled-maintenance-note-posted",
+          requireInteraction: false,
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

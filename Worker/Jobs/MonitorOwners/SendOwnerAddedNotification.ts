@@ -188,13 +188,16 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-          "Added as Monitor Owner",
-          `You have been added as the owner of the monitor: ${monitor.name}. Click to view details.`,
-          vars["monitorViewLink"],
-          "monitor-owner-added",
-          false,
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+          title: "Added as Monitor Owner",
+          body: `You have been added as the owner of the monitor: ${monitor.name}. Click to view details.`,
+          clickAction: (await MonitorService.getMonitorLinkInDashboard(
+            monitor.projectId!,
+            monitor.id!,
+          )).toString(),
+          tag: "monitor-owner-added",
+          requireInteraction: false,
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

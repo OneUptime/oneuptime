@@ -177,13 +177,16 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-          "Added as Probe Owner",
-          `You have been added as the owner of the probe: ${probe.name!}. Click to view details.`,
-          vars["probeViewLink"],
-          "probe-owner-added",
-          false,
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+          title: "Added as Probe Owner",
+          body: `You have been added as the owner of the probe: ${probe.name!}. Click to view details.`,
+          clickAction: (await ProbeService.getLinkInDashboard(
+            probe.projectId!,
+            probe.id!,
+          )).toString(),
+          tag: "probe-owner-added",
+          requireInteraction: false,
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

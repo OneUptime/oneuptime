@@ -208,12 +208,12 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createIncidentStateChangedNotification(
-          incident.title!,
-          incidentStateTimeline.project!.name!,
-          incidentState!.name!,
-          vars["incidentViewLink"] || "",
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createIncidentStateChangedNotification({
+          incidentTitle: incident.title!,
+          projectName: incidentStateTimeline.project!.name!,
+          newState: incidentState!.name!,
+          incidentViewLink: vars["incidentViewLink"] || "",
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

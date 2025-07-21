@@ -367,12 +367,22 @@ export class Service extends DatabaseService<Model> {
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createProbeStatusChangedNotification(
-          probe.name!,
-          probe.project?.name || "Project",
-          connectionStatus,
-          vars["viewProbesLink"],
-        );
+        const pushMessageParams: {
+          probeName: string;
+          projectName: string;
+          connectionStatus: string;
+          clickAction?: string;
+        } = {
+          probeName: probe.name!,
+          projectName: probe.project?.name || "Project",
+          connectionStatus: connectionStatus,
+        };
+
+        if (vars["viewProbesLink"]) {
+          pushMessageParams.clickAction = vars["viewProbesLink"];
+        }
+
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createProbeStatusChangedNotification(pushMessageParams);
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -255,13 +255,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             ],
           };
 
-          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-            "On-Call Duty Ended",
-            `You are no longer on-call for ${onCallPolicy.name!} as your roster on schedule ${onCallSchedule.name} has ended.`,
-            undefined,
-            "on-call-duty-ended",
-            false
-          );
+          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+            title: "On-Call Duty Ended",
+            body: `You are no longer on-call for ${onCallPolicy.name!} as your roster on schedule ${onCallSchedule.name} has ended.`,
+            tag: "on-call-duty-ended",
+            requireInteraction: false,
+          });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
@@ -371,13 +370,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             ],
           };
 
-          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-            "On-Call Duty Started",
-            `You are now on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
-            undefined,
-            "on-call-duty-started",
-            true
-          );
+          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+            title: "On-Call Duty Started",
+            body: `You are now on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
+            tag: "on-call-duty-started",
+            requireInteraction: true,
+          });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,
@@ -507,13 +505,12 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             ],
           };
 
-          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-            "Next On-Call Duty",
-            `You are next on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
-            undefined,
-            "next-on-call-duty",
-            false
-          );
+          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+            title: "Next On-Call Duty",
+            body: `You are next on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
+            tag: "next-on-call-duty",
+            requireInteraction: false,
+          });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: sendEmailToUserId,

@@ -616,11 +616,11 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const pushMessage = PushNotificationUtil.createAlertCreatedNotification(
-          alert.title!,
-          alert.project?.name || "OneUptime",
-          `/dashboard/project/${options.projectId}/alerts/${alert.id}`
-        );
+        const pushMessage = PushNotificationUtil.createAlertCreatedNotification({
+          alertTitle: alert.title!,
+          projectName: alert.project?.name || "OneUptime",
+          alertViewLink: `/dashboard/project/${options.projectId}/alerts/${alert.id}`,
+        });
 
         // send push notification.
         PushNotificationService.sendPushNotification({
@@ -661,11 +661,11 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const pushMessage = PushNotificationUtil.createIncidentCreatedNotification(
-          incident.title!,
-          incident.project?.name || "OneUptime",
-          `/dashboard/project/${options.projectId}/incidents/${incident.id}`
-        );
+        const pushMessage = PushNotificationUtil.createIncidentCreatedNotification({
+          incidentTitle: incident.title!,
+          projectName: incident.project?.name || "OneUptime",
+          incidentViewLink: `/dashboard/project/${options.projectId}/incidents/${incident.id}`,
+        });
 
         // send push notification.
         PushNotificationService.sendPushNotification({

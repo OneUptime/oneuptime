@@ -109,13 +109,16 @@ RunCron(
             ],
           };
 
-          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification(
-            "Status Page Announcement Created",
-            `New announcement posted on status page ${statusPage.name}: ${announcement.title}. Click to view details.`,
-            vars["statusPageViewLink"],
-            "status-page-announcement-created",
-            false,
-          );
+          const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
+            title: "Status Page Announcement Created",
+            body: `New announcement posted on status page ${statusPage.name}: ${announcement.title}. Click to view details.`,
+            clickAction: (await StatusPageService.getStatusPageLinkInDashboard(
+              statusPage.projectId!,
+              statusPage.id!,
+            )).toString(),
+            tag: "status-page-announcement-created",
+            requireInteraction: false,
+          });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,

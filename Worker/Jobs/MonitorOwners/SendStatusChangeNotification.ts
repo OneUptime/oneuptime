@@ -145,12 +145,12 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createMonitorStatusChangedNotification(
-          monitor.name || "Monitor",
-          monitorStatusTimeline.project!.name!,
-          monitorStatus!.name!,
-          vars["monitorViewLink"] || "",
-        );
+        const pushMessage: PushNotificationMessage = PushNotificationUtil.createMonitorStatusChangedNotification({
+          monitorName: monitor.name || "Monitor",
+          projectName: monitorStatusTimeline.project!.name!,
+          newStatus: monitorStatus!.name!,
+          monitorViewLink: vars["monitorViewLink"] || "",
+        });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
