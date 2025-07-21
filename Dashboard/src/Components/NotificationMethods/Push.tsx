@@ -60,6 +60,14 @@ const Push: () => JSX.Element = (): ReactElement => {
     data: JSONObject,
   ): Promise<void> {
     try {
+      
+
+      // Check if VAPID keys are configured
+      if (!VAPID_PUBLIC_KEY) {
+        setError("VAPID keys are not configured. Please add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables to enable push notifications.");
+        return;
+      }
+
       setIsLoading(true);
 
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -105,7 +113,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       const subscription: PushSubscription =
         await swRegistration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: VAPID_PUBLIC_KEY || "",
+          applicationServerKey: VAPID_PUBLIC_KEY,
         });
 
       // Create device registration through API
