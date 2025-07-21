@@ -143,16 +143,23 @@ async function main(): Promise<void> {
         }> = [
           { os: "darwin", arch: "amd64" },
           { os: "darwin", arch: "arm" },
+          { os: "darwin", arch: "arm64" },
           { os: "linux", arch: "amd64" },
           { os: "linux", arch: "386" },
           { os: "linux", arch: "arm" },
+          { os: "linux", arch: "arm64" },
           { os: "windows", arch: "amd64", ext: ".exe" },
           { os: "windows", arch: "386", ext: ".exe" },
+          { os: "windows", arch: "arm", ext: ".exe" },
+          { os: "windows", arch: "arm64", ext: ".exe" },
           { os: "freebsd", arch: "amd64" },
           { os: "freebsd", arch: "386" },
           { os: "freebsd", arch: "arm" },
+          { os: "freebsd", arch: "arm64" },
           { os: "openbsd", arch: "amd64" },
           { os: "openbsd", arch: "386" },
+          { os: "openbsd", arch: "arm" },
+          { os: "openbsd", arch: "arm64" },
           { os: "solaris", arch: "amd64" },
         ];
 
