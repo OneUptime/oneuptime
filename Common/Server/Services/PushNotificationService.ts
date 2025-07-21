@@ -13,6 +13,7 @@ import {
 import webpush from "web-push";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import UserPush from "../../Models/DatabaseModels/UserPush";
 
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
@@ -75,12 +76,12 @@ export default class PushNotificationService {
       );
     }
 
-    const results = await Promise.allSettled(promises);
+    const results: Array<any> = await Promise.allSettled(promises);
 
-    let successCount = 0;
-    let errorCount = 0;
+    let successCount: number = 0;
+    let errorCount: number = 0;
 
-    results.forEach((result, index) => {
+    results.forEach((result: any, index: number) => {
       if (result.status === "fulfilled") {
         successCount++;
         logger.info(`Device ${index + 1}: Notification sent successfully`);
@@ -98,11 +99,11 @@ export default class PushNotificationService {
 
     // Update user on call log timeline status if provided
     if (options.userOnCallLogTimelineId) {
-      const status =
+      const status: UserNotificationStatus =
         successCount > 0
           ? UserNotificationStatus.Sent
           : UserNotificationStatus.Error;
-      const statusMessage =
+      const statusMessage: string =
         successCount > 0
           ? "Push notification sent successfully"
           : `Failed to send push notification: ${errorCount} errors`;
@@ -140,7 +141,7 @@ export default class PushNotificationService {
     }
 
     try {
-      const payload = JSON.stringify({
+      const payload: string = JSON.stringify({
         title: message.title,
         body: message.body,
         icon: message.icon || PushNotificationUtil.DEFAULT_ICON,
@@ -155,7 +156,7 @@ export default class PushNotificationService {
       logger.debug(`Sending push notification with payload: ${payload}`);
       logger.debug(`Device token: ${deviceToken}`);
 
-      let subscriptionObject;
+      let subscriptionObject: any;
       try {
         subscriptionObject = JSON.parse(deviceToken);
         logger.debug(
@@ -203,7 +204,7 @@ export default class PushNotificationService {
     options: PushNotificationOptions = {},
   ): Promise<void> {
     // Get all verified push devices for the user
-    const userPushDevices = await UserPushService.findBy({
+    const userPushDevices: UserPush[] = await UserPushService.findBy({
       query: {
         userId: userId,
         projectId: projectId,

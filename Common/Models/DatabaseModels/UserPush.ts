@@ -123,7 +123,7 @@ class UserPush extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public deviceType?: "web" = "web"; // Only web support for now
+  public deviceType?: "web" = "web" as const; // Only web support for now
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],

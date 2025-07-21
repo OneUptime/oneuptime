@@ -26,7 +26,7 @@ export default class LocalStorage {
         );
       }
       return value;
-    } catch (err) {
+    } catch {
       return value;
     }
   }

@@ -49,6 +49,7 @@ import PushNotificationService from "./PushNotificationService";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -617,8 +618,8 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const pushMessage = PushNotificationUtil.createAlertCreatedNotification(
-          {
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createAlertCreatedNotification({
             alertTitle: alert.title!,
             projectName: alert.project?.name || "OneUptime",
             alertViewLink: (
@@ -627,8 +628,7 @@ export class Service extends DatabaseService<Model> {
                 alert.id!,
               )
             ).toString(),
-          },
-        );
+          });
 
         // send push notification.
         PushNotificationService.sendPushNotification(
@@ -674,7 +674,7 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const pushMessage =
+        const pushMessage: PushNotificationMessage =
           PushNotificationUtil.createIncidentCreatedNotification({
             incidentTitle: incident.title!,
             projectName: incident.project?.name || "OneUptime",

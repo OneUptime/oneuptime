@@ -69,7 +69,7 @@ export default class PushNotificationUtil {
   }): PushNotificationMessage {
     const { incidentTitle, projectName, isPrivateNote, incidentViewLink } =
       params;
-    const noteType = isPrivateNote ? "Private" : "Public";
+    const noteType: string = isPrivateNote ? "Private" : "Public";
     return PushNotificationUtil.applyDefaults({
       title: `${noteType} Note Added: ${incidentTitle}`,
       body: `A ${noteType.toLowerCase()} note has been posted on incident in ${projectName}. Click to view details.`,

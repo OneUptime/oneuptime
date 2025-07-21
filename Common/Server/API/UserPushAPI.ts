@@ -15,6 +15,7 @@ import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import UserPush from "../../Models/DatabaseModels/UserPush";
+import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
 export default class UserPushAPI extends BaseAPI<
   UserPush,
@@ -162,13 +163,14 @@ export default class UserPushAPI extends BaseAPI<
 
         try {
           // Send test notification
-          const testMessage = PushNotificationUtil.createGenericNotification({
-            title: "Test Notification from OneUptime",
-            body: "This is a test notification to verify your device is working correctly.",
-            clickAction: "/dashboard",
-            tag: "test-notification",
-            requireInteraction: false,
-          });
+          const testMessage: PushNotificationMessage =
+            PushNotificationUtil.createGenericNotification({
+              title: "Test Notification from OneUptime",
+              body: "This is a test notification to verify your device is working correctly.",
+              clickAction: "/dashboard",
+              tag: "test-notification",
+              requireInteraction: false,
+            });
 
           await PushNotificationService.sendPushNotification(
             {

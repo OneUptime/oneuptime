@@ -63,7 +63,7 @@ export default class Cookie {
         );
       }
       return value;
-    } catch (err) {
+    } catch {
       return value;
     }
   }

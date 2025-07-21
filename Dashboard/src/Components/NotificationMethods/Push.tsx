@@ -36,8 +36,8 @@ const Push: () => JSX.Element = (): ReactElement => {
     setShowTestNotificationSuccessModal,
   ] = useState<boolean>(false);
 
-  const getBrowserName = (): string => {
-    const userAgent = navigator.userAgent;
+  function getBrowserName(): string {
+    const userAgent: string = navigator.userAgent;
     if (userAgent.includes("Chrome") && !userAgent.includes("Edge")) {
       return "Chrome";
     } else if (userAgent.includes("Firefox")) {
@@ -50,15 +50,15 @@ const Push: () => JSX.Element = (): ReactElement => {
       return "Opera";
     }
     return "Browser";
-  };
+  }
 
   useEffect(() => {
     setError("");
   }, [showRegisterDeviceModal]);
 
-  const registerDeviceForPushNotifications = async (
+  async function registerDeviceForPushNotifications(
     data: JSONObject,
-  ): Promise<void> => {
+  ): Promise<void> {
     try {
       setIsLoading(true);
 
@@ -68,14 +68,15 @@ const Push: () => JSX.Element = (): ReactElement => {
       }
 
       // Request notification permission
-      const permission = await Notification.requestPermission();
+      const permission: NotificationPermission =
+        await Notification.requestPermission();
       if (permission !== "granted") {
         setError("Permission to show notifications was denied.");
         return;
       }
 
       // Register service worker
-      const swRegistration =
+      const swRegistration: ServiceWorkerRegistration =
         await navigator.serviceWorker.register("/dashboard/sw.js");
 
       // Wait for service worker to be ready
@@ -85,7 +86,7 @@ const Push: () => JSX.Element = (): ReactElement => {
       if (!swRegistration.active) {
         // If service worker is installing, wait for it to become active
         if (swRegistration.installing) {
-          await new Promise((resolve) => {
+          await new Promise((resolve: (value?: unknown) => void) => {
             swRegistration.installing!.addEventListener(
               "statechange",
               function () {
@@ -101,10 +102,11 @@ const Push: () => JSX.Element = (): ReactElement => {
       }
 
       // Get push subscription
-      const subscription = await swRegistration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: VAPID_PUBLIC_KEY || "",
-      });
+      const subscription: PushSubscription =
+        await swRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: VAPID_PUBLIC_KEY || "",
+        });
 
       // Create device registration through API
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -118,12 +120,12 @@ const Push: () => JSX.Element = (): ReactElement => {
             deviceType: "web",
             deviceName:
               (data["deviceName"] as string)?.trim() ||
-              `${getBrowserName()} on ${navigator.platform}`,
+              `${browserName} on ${platformName}`,
           },
         );
 
       if (response.isFailure()) {
-        const errorMessage = API.getFriendlyMessage(response);
+        const errorMessage: string = API.getFriendlyMessage(response);
         setShowRegisterDeviceModal(false);
         setError(errorMessage);
         return;
@@ -133,13 +135,21 @@ const Push: () => JSX.Element = (): ReactElement => {
       setShowRegistrationSuccessModal(true);
       setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
     } catch (err: any) {
-      const errorMessage = API.getFriendlyMessage(err);
+      const errorMessage: string = API.getFriendlyMessage(err);
       setShowRegisterDeviceModal(false);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }
+
+  function handleCloseRegisterModal(): void {
+    setShowRegisterDeviceModal(false);
+    setError("");
+  }
+
+  const browserName: string = getBrowserName();
+  const platformName: string = navigator.platform;
 
   return (
     <>
@@ -238,15 +248,12 @@ const Push: () => JSX.Element = (): ReactElement => {
           description="This will register your current browser to receive push notifications from OneUptime. You'll be asked for permission to show notifications."
           isLoading={isLoading}
           submitButtonText="Register Device"
-          onClose={() => {
-            setShowRegisterDeviceModal(false);
-            setError("");
-          }}
+          onClose={handleCloseRegisterModal}
           onSubmit={registerDeviceForPushNotifications}
           formProps={{
             name: "Register Device",
             initialValues: {
-              deviceName: `${getBrowserName()} on ${navigator.platform}`,
+              deviceName: `${browserName} on ${platformName}`,
             },
             fields: [
               {

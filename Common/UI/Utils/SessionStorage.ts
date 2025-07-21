@@ -26,7 +26,7 @@ export default class SessionStorage {
         );
       }
       return value;
-    } catch (err) {
+    } catch {
       return value;
     }
   }

@@ -25,7 +25,7 @@ export class Service extends DatabaseService<UserPush> {
     }
 
     // Validate device type
-    const validDeviceTypes = ["web", "android", "ios"];
+    const validDeviceTypes: string[] = ["web", "android", "ios"];
     if (!validDeviceTypes.includes(createBy.data.deviceType)) {
       throw new BadDataException(
         "Device type must be one of: " + validDeviceTypes.join(", "),
