@@ -134,17 +134,16 @@ const Push: () => JSX.Element = (): ReactElement => {
 
       if (response.isFailure()) {
         const errorMessage: string = API.getFriendlyMessage(response);
-        setShowRegisterDeviceModal(false);
         setError(errorMessage);
         return;
       }
 
+      setError(""); // Clear any previous errors
       setShowRegisterDeviceModal(false);
       setShowRegistrationSuccessModal(true);
       setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
     } catch (err: any) {
       const errorMessage: string = API.getFriendlyMessage(err);
-      setShowRegisterDeviceModal(false);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -264,6 +263,7 @@ const Push: () => JSX.Element = (): ReactElement => {
           }}
           formProps={{
             name: "Register Device",
+            error: error, // Pass error to BasicForm instead of BasicFormModal
             initialValues: {
               deviceName: `${browserName} on ${platformName}`,
             },
@@ -308,20 +308,6 @@ const Push: () => JSX.Element = (): ReactElement => {
           submitButtonText="Close"
           onSubmit={() => {
             setShowTestNotificationSuccessModal(false);
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {error ? (
-        <ConfirmModal
-          title="Error"
-          description={error}
-          submitButtonType={ButtonStyleType.NORMAL}
-          submitButtonText="Close"
-          onSubmit={() => {
-            setError("");
           }}
         />
       ) : (
