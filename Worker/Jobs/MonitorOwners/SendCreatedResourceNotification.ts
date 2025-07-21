@@ -111,10 +111,11 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createMonitorCreatedNotification({
-          monitorName: monitor.name!,
-          monitorId: monitor.id!.toString(),
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createMonitorCreatedNotification({
+            monitorName: monitor.name!,
+            monitorId: monitor.id!.toString(),
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -59,7 +59,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           userPush: {
             deviceName: true,
-          }
+          },
         }}
         noItemsMessage={"No notifications sent out so far."}
         showRefreshButton={true}
@@ -157,7 +157,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill color={Yellow} text={UserNotificationStatus.Error} />
                 );
-              }else if (item["status"] === UserNotificationStatus.Sending) {
+              } else if (item["status"] === UserNotificationStatus.Sending) {
                 return (
                   <Pill color={Yellow} text={UserNotificationStatus.Sending} />
                 );

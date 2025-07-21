@@ -382,7 +382,10 @@ export class Service extends DatabaseService<Model> {
           pushMessageParams.clickAction = vars["viewProbesLink"];
         }
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createProbeStatusChangedNotification(pushMessageParams);
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createProbeStatusChangedNotification(
+            pushMessageParams,
+          );
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

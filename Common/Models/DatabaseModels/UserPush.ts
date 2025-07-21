@@ -297,7 +297,6 @@ class UserPush extends BaseModel {
     default: false,
   })
   public isVerified?: boolean = undefined;
-
 }
 
 export default UserPush;

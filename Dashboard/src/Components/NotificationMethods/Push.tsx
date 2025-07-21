@@ -31,8 +31,10 @@ const Push: () => JSX.Element = (): ReactElement => {
   const [showRegistrationSuccessModal, setShowRegistrationSuccessModal] =
     useState<boolean>(false);
 
-  const [showTestNotificationSuccessModal, setShowTestNotificationSuccessModal] =
-    useState<boolean>(false);
+  const [
+    showTestNotificationSuccessModal,
+    setShowTestNotificationSuccessModal,
+  ] = useState<boolean>(false);
 
   const getBrowserName = (): string => {
     const userAgent = navigator.userAgent;
@@ -54,7 +56,9 @@ const Push: () => JSX.Element = (): ReactElement => {
     setError("");
   }, [showRegisterDeviceModal]);
 
-  const registerDeviceForPushNotifications = async (data: JSONObject): Promise<void> => {
+  const registerDeviceForPushNotifications = async (
+    data: JSONObject,
+  ): Promise<void> => {
     try {
       setIsLoading(true);
 
@@ -71,7 +75,8 @@ const Push: () => JSX.Element = (): ReactElement => {
       }
 
       // Register service worker
-      const swRegistration = await navigator.serviceWorker.register("/dashboard/sw.js");
+      const swRegistration =
+        await navigator.serviceWorker.register("/dashboard/sw.js");
 
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
@@ -81,11 +86,14 @@ const Push: () => JSX.Element = (): ReactElement => {
         // If service worker is installing, wait for it to become active
         if (swRegistration.installing) {
           await new Promise((resolve) => {
-            swRegistration.installing!.addEventListener('statechange', function () {
-              if (this.state === 'activated') {
-                resolve(undefined);
-              }
-            });
+            swRegistration.installing!.addEventListener(
+              "statechange",
+              function () {
+                if (this.state === "activated") {
+                  resolve(undefined);
+                }
+              },
+            );
           });
         } else {
           throw new Error("Service worker failed to activate");
@@ -99,15 +107,20 @@ const Push: () => JSX.Element = (): ReactElement => {
       });
 
       // Create device registration through API
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute("/user-push/register"),
-        {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          deviceToken: JSON.stringify(subscription),
-          deviceType: "web",
-          deviceName: (data["deviceName"] as string)?.trim() || `${getBrowserName()} on ${navigator.platform}`,
-        },
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            "/user-push/register",
+          ),
+          {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            deviceToken: JSON.stringify(subscription),
+            deviceType: "web",
+            deviceName:
+              (data["deviceName"] as string)?.trim() ||
+              `${getBrowserName()} on ${navigator.platform}`,
+          },
+        );
 
       if (response.isFailure()) {
         const errorMessage = API.getFriendlyMessage(response);
@@ -116,14 +129,13 @@ const Push: () => JSX.Element = (): ReactElement => {
         return;
       }
 
-     
       setShowRegisterDeviceModal(false);
       setShowRegistrationSuccessModal(true);
       setRefreshToggle(OneUptimeDate.getCurrentDate().toString());
     } catch (err: any) {
       const errorMessage = API.getFriendlyMessage(err);
       setShowRegisterDeviceModal(false);
-        setError(errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -151,14 +163,15 @@ const Push: () => JSX.Element = (): ReactElement => {
             ) => {
               try {
                 // Send test notification
-                const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
-                  URL.fromString(APP_API_URL.toString()).addRoute(
-                    "/user-push/" + item._id + "/test-notification",
-                  ),
-                  {
-                    projectId: ProjectUtil.getCurrentProjectId()!,
-                  },
-                );
+                const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                  await API.post(
+                    URL.fromString(APP_API_URL.toString()).addRoute(
+                      "/user-push/" + item._id + "/test-notification",
+                    ),
+                    {
+                      projectId: ProjectUtil.getCurrentProjectId()!,
+                    },
+                  );
 
                 if (response.isFailure()) {
                   onError(new Error(API.getFriendlyMessage(response)));
@@ -193,7 +206,7 @@ const Push: () => JSX.Element = (): ReactElement => {
               },
               buttonStyle: ButtonStyleType.NORMAL,
             },
-          ]
+          ],
         }}
         noItemsMessage={
           "No devices registered. Click 'Register Device' to enable push notifications on this device."
@@ -241,7 +254,8 @@ const Push: () => JSX.Element = (): ReactElement => {
                   deviceName: true,
                 },
                 title: "Device Name",
-                description: "Give this device a name to identify it in your notification settings.",
+                description:
+                  "Give this device a name to identify it in your notification settings.",
                 fieldType: FormFieldSchemaType.Text,
                 required: true,
                 placeholder: "Chrome, Safari, Firefox",
@@ -294,7 +308,6 @@ const Push: () => JSX.Element = (): ReactElement => {
       ) : (
         <></>
       )}
-
     </>
   );
 };

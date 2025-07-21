@@ -29,9 +29,11 @@ export default class PushNotificationService {
     }
 
     if (!VapidPublicKey || !VapidPrivateKey) {
-      logger.warn("VAPID keys not configured. Web push notifications will not work.");
-      logger.warn(`VapidPublicKey present: ${!!VapidPublicKey}`);
-      logger.warn(`VapidPrivateKey present: ${!!VapidPrivateKey}`);
+      logger.warn(
+        "VAPID keys not configured. Web push notifications will not work.",
+      );
+      logger.warn(`VapidPublicKey present: ${Boolean(VapidPublicKey)}`);
+      logger.warn(`VapidPrivateKey present: ${Boolean(VapidPrivateKey)}`);
       logger.warn(`VapidSubject: ${VapidSubject}`);
       return;
     }
@@ -46,8 +48,10 @@ export default class PushNotificationService {
     request: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
-    logger.info(`Sending push notification to ${request.deviceTokens?.length} devices`);
-    
+    logger.info(
+      `Sending push notification to ${request.deviceTokens?.length} devices`,
+    );
+
     if (!request.deviceTokens || request.deviceTokens.length === 0) {
       logger.error("No device tokens provided for push notification");
       throw new Error("No device tokens provided");
@@ -58,38 +62,50 @@ export default class PushNotificationService {
       throw new Error("Only web push notifications are supported");
     }
 
-    logger.info(`Sending web push notifications to ${request.deviceTokens.length} devices`);
+    logger.info(
+      `Sending web push notifications to ${request.deviceTokens.length} devices`,
+    );
     logger.info(`Notification message: ${JSON.stringify(request.message)}`);
 
     const promises: Promise<void>[] = [];
 
     for (const deviceToken of request.deviceTokens) {
-      promises.push(this.sendWebPushNotification(deviceToken, request.message, options));
+      promises.push(
+        this.sendWebPushNotification(deviceToken, request.message, options),
+      );
     }
 
     const results = await Promise.allSettled(promises);
-    
+
     let successCount = 0;
     let errorCount = 0;
-    
+
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         successCount++;
         logger.info(`Device ${index + 1}: Notification sent successfully`);
       } else {
         errorCount++;
-        logger.error(`Failed to send notification to device ${index + 1}: ${result.reason}`);
+        logger.error(
+          `Failed to send notification to device ${index + 1}: ${result.reason}`,
+        );
       }
     });
-    
-    logger.info(`Push notification results: ${successCount} successful, ${errorCount} failed`);
-    
+
+    logger.info(
+      `Push notification results: ${successCount} successful, ${errorCount} failed`,
+    );
+
     // Update user on call log timeline status if provided
     if (options.userOnCallLogTimelineId) {
-      const status = successCount > 0 ? UserNotificationStatus.Sent : UserNotificationStatus.Error;
-      const statusMessage = successCount > 0 
-        ? "Push notification sent successfully"
-        : `Failed to send push notification: ${errorCount} errors`;
+      const status =
+        successCount > 0
+          ? UserNotificationStatus.Sent
+          : UserNotificationStatus.Error;
+      const statusMessage =
+        successCount > 0
+          ? "Push notification sent successfully"
+          : `Failed to send push notification: ${errorCount} errors`;
 
       await UserOnCallLogTimelineService.updateOneById({
         id: options.userOnCallLogTimelineId,
@@ -104,7 +120,9 @@ export default class PushNotificationService {
     }
 
     if (errorCount > 0 && successCount === 0) {
-      throw new Error(`Failed to send push notification to all ${errorCount} devices`);
+      throw new Error(
+        `Failed to send push notification to all ${errorCount} devices`,
+      );
     }
   }
 
@@ -140,7 +158,9 @@ export default class PushNotificationService {
       let subscriptionObject;
       try {
         subscriptionObject = JSON.parse(deviceToken);
-        logger.debug(`Parsed subscription object: ${JSON.stringify(subscriptionObject)}`);
+        logger.debug(
+          `Parsed subscription object: ${JSON.stringify(subscriptionObject)}`,
+        );
       } catch (parseError) {
         logger.error(`Failed to parse device token: ${parseError}`);
         throw new Error(`Invalid device token format: ${parseError}`);
@@ -151,25 +171,27 @@ export default class PushNotificationService {
         payload,
         {
           TTL: 24 * 60 * 60, // 24 hours
-        }
+        },
       );
 
       logger.debug(`Web push notification sent successfully:`);
       logger.debug(`Result: ${JSON.stringify(result, null, 2)}`);
       logger.debug(`Payload: ${JSON.stringify(payload, null, 2)}`);
-      logger.debug(`Subscription object: ${JSON.stringify(subscriptionObject, null, 2)}`);
+      logger.debug(
+        `Subscription object: ${JSON.stringify(subscriptionObject, null, 2)}`,
+      );
 
       logger.info(`Web push notification sent successfully`);
     } catch (error: any) {
       logger.error(`Failed to send web push notification: ${error.message}`);
       logger.error(error);
-      
+
       // If the subscription is no longer valid, remove it
       if (error.statusCode === 410 || error.statusCode === 404) {
         logger.info("Removing invalid web push subscription");
         // You would implement removal logic here
       }
-      
+
       throw error;
     }
   }
@@ -200,7 +222,9 @@ export default class PushNotificationService {
     });
 
     if (userPushDevices.length === 0) {
-      logger.info(`No verified web push devices found for user ${userId.toString()}`);
+      logger.info(
+        `No verified web push devices found for user ${userId.toString()}`,
+      );
       return;
     }
 
@@ -215,11 +239,14 @@ export default class PushNotificationService {
 
     // Send notifications to web devices
     if (webDevices.length > 0) {
-      await this.sendPushNotification({
-        deviceTokens: webDevices,
-        message: message,
-        deviceType: "web",
-      }, options);
+      await this.sendPushNotification(
+        {
+          deviceTokens: webDevices,
+          message: message,
+          deviceType: "web",
+        },
+        options,
+      );
     }
   }
 }

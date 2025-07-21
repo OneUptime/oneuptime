@@ -190,16 +190,19 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
-          title: "Added as Status Page Owner",
-          body: `You have been added as the owner of the status page: ${statusPage.name}. Click to view details.`,
-          clickAction: (await StatusPageService.getStatusPageLinkInDashboard(
-            statusPage.projectId!,
-            statusPage.id!,
-          )).toString(),
-          tag: "status-page-owner-added",
-          requireInteraction: false,
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: "Added as Status Page Owner",
+            body: `You have been added as the owner of the status page: ${statusPage.name}. Click to view details.`,
+            clickAction: (
+              await StatusPageService.getStatusPageLinkInDashboard(
+                statusPage.projectId!,
+                statusPage.id!,
+              )
+            ).toString(),
+            tag: "status-page-owner-added",
+            requireInteraction: false,
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -34,7 +34,7 @@ export default class UserPushAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Device token is required")
+              new BadDataException("Device token is required"),
             );
           }
 
@@ -42,7 +42,7 @@ export default class UserPushAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Only web device type is supported")
+              new BadDataException("Only web device type is supported"),
             );
           }
 
@@ -50,7 +50,7 @@ export default class UserPushAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Project ID is required")
+              new BadDataException("Project ID is required"),
             );
           }
 
@@ -72,7 +72,7 @@ export default class UserPushAPI extends BaseAPI<
           if (existingDevice) {
             // Mark as used and return a specific response indicating device was already registered
             throw new BadDataException(
-              "This device is already registered for push notifications"
+              "This device is already registered for push notifications",
             );
           }
 
@@ -101,7 +101,7 @@ export default class UserPushAPI extends BaseAPI<
         } catch (error: any) {
           next(error);
         }
-      }
+      },
     );
 
     this.router.post(
@@ -114,7 +114,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device ID is required")
+            new BadDataException("Device ID is required"),
           );
         }
 
@@ -136,7 +136,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device not found")
+            new BadDataException("Device not found"),
           );
         }
 
@@ -148,7 +148,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Unauthorized access to device")
+            new BadDataException("Unauthorized access to device"),
           );
         }
 
@@ -156,7 +156,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device is not verified")
+            new BadDataException("Device is not verified"),
           );
         }
 
@@ -178,9 +178,8 @@ export default class UserPushAPI extends BaseAPI<
             },
             {
               isSensitive: false,
-            }
+            },
           );
-
 
           return Response.sendJsonObjectResponse(req, res, {
             success: true,
@@ -191,11 +190,11 @@ export default class UserPushAPI extends BaseAPI<
             req,
             res,
             new BadDataException(
-              `Failed to send test notification: ${error.message}`
-            )
+              `Failed to send test notification: ${error.message}`,
+            ),
           );
         }
-      }
+      },
     );
 
     this.router.post(
@@ -208,7 +207,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device ID is required")
+            new BadDataException("Device ID is required"),
           );
         }
 
@@ -226,7 +225,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device not found")
+            new BadDataException("Device not found"),
           );
         }
 
@@ -238,14 +237,14 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Unauthorized access to device")
+            new BadDataException("Unauthorized access to device"),
           );
         }
 
         await this.service.verifyDevice(device._id!.toString());
 
         return Response.sendEmptySuccessResponse(req, res);
-      }
+      },
     );
 
     this.router.post(
@@ -258,7 +257,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device ID is required")
+            new BadDataException("Device ID is required"),
           );
         }
 
@@ -276,7 +275,7 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Device not found")
+            new BadDataException("Device not found"),
           );
         }
 
@@ -288,14 +287,14 @@ export default class UserPushAPI extends BaseAPI<
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Unauthorized access to device")
+            new BadDataException("Unauthorized access to device"),
           );
         }
 
         await this.service.unverifyDevice(device._id!.toString());
 
         return Response.sendEmptySuccessResponse(req, res);
-      }
+      },
     );
   }
 }

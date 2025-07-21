@@ -340,7 +340,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         if (isUserPush) {
           option = {
-            label: "Push: " + (model.getColumnValue("deviceName")?.toString() || "Unknown Device"),
+            label:
+              "Push: " +
+              (model.getColumnValue("deviceName")?.toString() ||
+                "Unknown Device"),
             value: model.id!.toString(),
           };
         } else {

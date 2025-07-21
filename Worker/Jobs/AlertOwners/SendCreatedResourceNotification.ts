@@ -181,11 +181,12 @@ RunCron(
             ],
           };
 
-          const pushMessage: PushNotificationMessage = PushNotificationUtil.createAlertCreatedNotification({
-            alertTitle: alert.title!,
-            projectName: alert.project!.name!,
-            alertViewLink: vars["alertViewLink"] || "",
-          });
+          const pushMessage: PushNotificationMessage =
+            PushNotificationUtil.createAlertCreatedNotification({
+              alertTitle: alert.title!,
+              projectName: alert.project!.name!,
+              alertViewLink: vars["alertViewLink"] || "",
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,

@@ -188,14 +188,17 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
             ],
           };
 
-          const pushMessage: PushNotificationMessage = PushNotificationUtil.createIncidentCreatedNotification({
-            incidentTitle: incident.title!,
-            projectName: incident.project!.name!,
-            incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
-              incident.projectId!,
-              incident.id!,
-            )).toString(),
-          });
+          const pushMessage: PushNotificationMessage =
+            PushNotificationUtil.createIncidentCreatedNotification({
+              incidentTitle: incident.title!,
+              projectName: incident.project!.name!,
+              incidentViewLink: (
+                await IncidentService.getIncidentLinkInDashboard(
+                  incident.projectId!,
+                  incident.id!,
+                )
+              ).toString(),
+            });
 
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,

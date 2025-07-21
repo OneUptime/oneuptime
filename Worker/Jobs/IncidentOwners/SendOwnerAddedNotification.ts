@@ -202,16 +202,19 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
-          title: "Added as Incident Owner",
-          body: `You have been added as the owner of the incident: ${incident.title}. Click to view details.`,
-          clickAction: (await IncidentService.getIncidentLinkInDashboard(
-            incident.projectId!,
-            incident.id!,
-          )).toString(),
-          tag: "incident-owner-added",
-          requireInteraction: false,
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: "Added as Incident Owner",
+            body: `You have been added as the owner of the incident: ${incident.title}. Click to view details.`,
+            clickAction: (
+              await IncidentService.getIncidentLinkInDashboard(
+                incident.projectId!,
+                incident.id!,
+              )
+            ).toString(),
+            tag: "incident-owner-added",
+            requireInteraction: false,
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

@@ -196,16 +196,19 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
-          title: "Added as Alert Owner",
-          body: `You have been added as the owner of the alert: ${alert.title}. Click to view details.`,
-          clickAction: (await AlertService.getAlertLinkInDashboard(
-            alert.projectId!,
-            alert.id!,
-          )).toString(),
-          tag: "alert-owner-added",
-          requireInteraction: false,
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: "Added as Alert Owner",
+            body: `You have been added as the owner of the alert: ${alert.title}. Click to view details.`,
+            clickAction: (
+              await AlertService.getAlertLinkInDashboard(
+                alert.projectId!,
+                alert.id!,
+              )
+            ).toString(),
+            tag: "alert-owner-added",
+            requireInteraction: false,
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

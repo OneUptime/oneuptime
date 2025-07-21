@@ -130,9 +130,10 @@ export class Service extends DatabaseService<Model> {
       ],
     };
 
-    const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyAddedNotification({
-      policyName: createdModel.onCallDutyPolicy?.name || "No name provided",
-    });
+    const pushMessage: PushNotificationMessage =
+      PushNotificationUtil.createOnCallPolicyAddedNotification({
+        policyName: createdModel.onCallDutyPolicy?.name || "No name provided",
+      });
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
@@ -311,9 +312,10 @@ export class Service extends DatabaseService<Model> {
         ],
       };
 
-      const pushMessage: PushNotificationMessage = PushNotificationUtil.createOnCallPolicyRemovedNotification({
-        policyName: deletedItem.onCallDutyPolicy?.name || "No name provided",
-      });
+      const pushMessage: PushNotificationMessage =
+        PushNotificationUtil.createOnCallPolicyRemovedNotification({
+          policyName: deletedItem.onCallDutyPolicy?.name || "No name provided",
+        });
 
       await UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,

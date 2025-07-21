@@ -1,8 +1,10 @@
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 
 export default class PushNotificationUtil {
-  public static readonly DEFAULT_ICON = "/dashboard/assets/img/OneUptimePNG/1.png";
-  public static readonly DEFAULT_BADGE = "/dashboard/assets/img/OneUptimePNG/6.png";
+  public static readonly DEFAULT_ICON =
+    "/dashboard/assets/img/OneUptimePNG/1.png";
+  public static readonly DEFAULT_BADGE =
+    "/dashboard/assets/img/OneUptimePNG/6.png";
 
   private static applyDefaults(
     notification: Partial<PushNotificationMessage>,
@@ -65,7 +67,8 @@ export default class PushNotificationUtil {
     isPrivateNote: boolean;
     incidentViewLink: string;
   }): PushNotificationMessage {
-    const { incidentTitle, projectName, isPrivateNote, incidentViewLink } = params;
+    const { incidentTitle, projectName, isPrivateNote, incidentViewLink } =
+      params;
     const noteType = isPrivateNote ? "Private" : "Public";
     return PushNotificationUtil.applyDefaults({
       title: `${noteType} Note Added: ${incidentTitle}`,
@@ -161,7 +164,13 @@ export default class PushNotificationUtil {
     tag?: string;
     requireInteraction?: boolean;
   }): PushNotificationMessage {
-    const { title, body, clickAction, tag, requireInteraction = false } = params;
+    const {
+      title,
+      body,
+      clickAction,
+      tag,
+      requireInteraction = false,
+    } = params;
     const notification: Partial<PushNotificationMessage> = {
       title: title,
       body: body,

@@ -126,16 +126,19 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
-          title: "Scheduled Maintenance Created",
-          body: `New scheduled maintenance created: ${scheduledMaintenance.title}. Click to view details.`,
-          clickAction: (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            scheduledMaintenance.projectId!,
-            scheduledMaintenance.id!,
-          )).toString(),
-          tag: "scheduled-maintenance-created",
-          requireInteraction: false,
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: "Scheduled Maintenance Created",
+            body: `New scheduled maintenance created: ${scheduledMaintenance.title}. Click to view details.`,
+            clickAction: (
+              await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                scheduledMaintenance.projectId!,
+                scheduledMaintenance.id!,
+              )
+            ).toString(),
+            tag: "scheduled-maintenance-created",
+            requireInteraction: false,
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

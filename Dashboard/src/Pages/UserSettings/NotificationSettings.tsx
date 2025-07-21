@@ -101,7 +101,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               alertByPush: true,
             },
             title: "Alert By Push Notification",
-            description: "Select if you want to be alerted by push notifications.",
+            description:
+              "Select if you want to be alerted by push notifications.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

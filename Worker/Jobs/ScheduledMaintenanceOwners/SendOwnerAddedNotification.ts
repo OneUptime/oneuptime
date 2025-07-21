@@ -212,16 +212,19 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createGenericNotification({
-          title: "Added as Scheduled Maintenance Owner",
-          body: `You have been added as the owner of the scheduled maintenance: ${scheduledMaintenance.title}. Click to view details.`,
-          clickAction: (await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            scheduledMaintenance.projectId!,
-            scheduledMaintenance.id!,
-          )).toString(),
-          tag: "scheduled-maintenance-owner-added",
-          requireInteraction: false,
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: "Added as Scheduled Maintenance Owner",
+            body: `You have been added as the owner of the scheduled maintenance: ${scheduledMaintenance.title}. Click to view details.`,
+            clickAction: (
+              await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+                scheduledMaintenance.projectId!,
+                scheduledMaintenance.id!,
+              )
+            ).toString(),
+            tag: "scheduled-maintenance-owner-added",
+            requireInteraction: false,
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,

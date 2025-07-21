@@ -617,24 +617,31 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const pushMessage = PushNotificationUtil.createAlertCreatedNotification({
-          alertTitle: alert.title!,
-          projectName: alert.project?.name || "OneUptime",
-          alertViewLink: (await AlertService.getAlertLinkInDashboard(
-            alert.projectId!,
-            alert.id!,
-          )).toString(),
-        });
+        const pushMessage = PushNotificationUtil.createAlertCreatedNotification(
+          {
+            alertTitle: alert.title!,
+            projectName: alert.project?.name || "OneUptime",
+            alertViewLink: (
+              await AlertService.getAlertLinkInDashboard(
+                alert.projectId!,
+                alert.id!,
+              )
+            ).toString(),
+          },
+        );
 
         // send push notification.
-        PushNotificationService.sendPushNotification({
-          deviceTokens: [notificationRuleItem.userPush.deviceToken!],
-          message: pushMessage,
-          deviceType: notificationRuleItem.userPush.deviceType!,
-        }, {
-          projectId: options.projectId,
-          userOnCallLogTimelineId: updatedLog.id!,
-        }).catch(async (err: Error) => {
+        PushNotificationService.sendPushNotification(
+          {
+            deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+            message: pushMessage,
+            deviceType: notificationRuleItem.userPush.deviceType!,
+          },
+          {
+            projectId: options.projectId,
+            userOnCallLogTimelineId: updatedLog.id!,
+          },
+        ).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
             data: {
@@ -667,24 +674,30 @@ export class Service extends DatabaseService<Model> {
             },
           });
 
-        const pushMessage = PushNotificationUtil.createIncidentCreatedNotification({
-          incidentTitle: incident.title!,
-          projectName: incident.project?.name || "OneUptime",
-          incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
-            incident.projectId!,
-            incident.id!,
-          )).toString(),
-        });
+        const pushMessage =
+          PushNotificationUtil.createIncidentCreatedNotification({
+            incidentTitle: incident.title!,
+            projectName: incident.project?.name || "OneUptime",
+            incidentViewLink: (
+              await IncidentService.getIncidentLinkInDashboard(
+                incident.projectId!,
+                incident.id!,
+              )
+            ).toString(),
+          });
 
         // send push notification.
-        PushNotificationService.sendPushNotification({
-          deviceTokens: [notificationRuleItem.userPush.deviceToken!],
-          message: pushMessage,
-          deviceType: notificationRuleItem.userPush.deviceType!,
-        }, {
-          projectId: options.projectId,
-          userOnCallLogTimelineId: updatedLog.id!,
-        }).catch(async (err: Error) => {
+        PushNotificationService.sendPushNotification(
+          {
+            deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+            message: pushMessage,
+            deviceType: notificationRuleItem.userPush.deviceType!,
+          },
+          {
+            projectId: options.projectId,
+            userOnCallLogTimelineId: updatedLog.id!,
+          },
+        ).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
             data: {
@@ -1122,7 +1135,9 @@ export class Service extends DatabaseService<Model> {
       !createBy.data.userPushId &&
       !createBy.data.userPush
     ) {
-      throw new BadDataException("Call, SMS, Email, or Push notification is required");
+      throw new BadDataException(
+        "Call, SMS, Email, or Push notification is required",
+      );
     }
 
     return {

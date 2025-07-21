@@ -205,15 +205,18 @@ RunCron(
           ],
         };
 
-        const pushMessage: PushNotificationMessage = PushNotificationUtil.createIncidentNotePostedNotification({
-          incidentTitle: incident.title!,
-          projectName: incident.project!.name!,
-          isPrivateNote: privateNoteIds.includes(note._id!),
-          incidentViewLink: (await IncidentService.getIncidentLinkInDashboard(
-            incident.projectId!,
-            incident.id!,
-          )).toString(),
-        });
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createIncidentNotePostedNotification({
+            incidentTitle: incident.title!,
+            projectName: incident.project!.name!,
+            isPrivateNote: privateNoteIds.includes(note._id!),
+            incidentViewLink: (
+              await IncidentService.getIncidentLinkInDashboard(
+                incident.projectId!,
+                incident.id!,
+              )
+            ).toString(),
+          });
 
         await UserNotificationSettingService.sendUserNotification({
           userId: user.id!,
