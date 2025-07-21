@@ -372,6 +372,11 @@ enum Permission {
   EditStatusPageSSO = "EditStatusPageSSO",
   ReadStatusPageSSO = "ReadStatusPageSSO",
 
+  CreateProjectSCIM = "CreateProjectSCIM",
+  DeleteProjectSCIM = "DeleteProjectSCIM",
+  EditProjectSCIM = "EditProjectSCIM",
+  ReadProjectSCIM = "ReadProjectSCIM",
+
   // Label Permissions (Owner + Admin Permission by default)
   CreateProjectLabel = "CreateProjectLabel",
   EditProjectLabel = "EditProjectLabel",

@@ -209,6 +209,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "SSO",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SCIM, [
+      "Project", 
+      "Settings",
+      "SCIM",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DANGERZONE, [
       "Project",
       "Settings",
