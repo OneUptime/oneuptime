@@ -129,7 +129,9 @@ export default class PushNotificationService {
       );
 
       logger.debug(`Web push notification sent successfully:`);
-      logger.debug(result);
+      logger.debug(`Result: ${JSON.stringify(result, null, 2)}`);
+      logger.debug(`Payload: ${JSON.stringify(payload, null, 2)}`);
+      logger.debug(`Subscription object: ${JSON.stringify(subscriptionObject, null, 2)}`);
 
       logger.info(`Web push notification sent successfully`);
     } catch (error: any) {
