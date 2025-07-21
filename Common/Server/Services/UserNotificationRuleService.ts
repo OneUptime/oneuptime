@@ -633,6 +633,7 @@ export class Service extends DatabaseService<Model> {
           deviceType: notificationRuleItem.userPush.deviceType!,
         }, {
           projectId: options.projectId,
+          userOnCallLogTimelineId: updatedLog.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -656,6 +657,7 @@ export class Service extends DatabaseService<Model> {
         // create a log.
         logTimelineItem.status = UserNotificationStatus.Sending;
         logTimelineItem.statusMessage = `Sending push notification to device.`;
+        logTimelineItem.userPushId = notificationRuleItem.userPush.id!;
 
         const updatedLog: UserOnCallLogTimeline =
           await UserOnCallLogTimelineService.create({
@@ -681,6 +683,7 @@ export class Service extends DatabaseService<Model> {
           deviceType: notificationRuleItem.userPush.deviceType!,
         }, {
           projectId: options.projectId,
+          userOnCallLogTimelineId: updatedLog.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,

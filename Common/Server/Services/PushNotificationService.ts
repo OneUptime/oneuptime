@@ -3,6 +3,8 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import ObjectID from "../../Types/ObjectID";
 import logger from "../Utils/Logger";
 import UserPushService from "./UserPushService";
+import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
+import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import {
   VapidPublicKey,
   VapidPrivateKey,
@@ -15,6 +17,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
   isSensitive?: boolean;
+  userOnCallLogTimelineId?: ObjectID | undefined;
 }
 
 export default class PushNotificationService {
@@ -80,6 +83,29 @@ export default class PushNotificationService {
     });
     
     logger.info(`Push notification results: ${successCount} successful, ${errorCount} failed`);
+    
+    // Update user on call log timeline status if provided
+    if (options.userOnCallLogTimelineId) {
+      const status = successCount > 0 ? UserNotificationStatus.Sent : UserNotificationStatus.Error;
+      const statusMessage = successCount > 0 
+        ? "Push notification sent successfully"
+        : `Failed to send push notification: ${errorCount} errors`;
+
+      await UserOnCallLogTimelineService.updateOneById({
+        id: options.userOnCallLogTimelineId,
+        data: {
+          status,
+          statusMessage,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (errorCount > 0 && successCount === 0) {
+      throw new Error(`Failed to send push notification to all ${errorCount} devices`);
+    }
   }
 
   private static async sendWebPushNotification(

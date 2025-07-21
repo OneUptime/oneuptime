@@ -157,6 +157,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return (
                   <Pill color={Yellow} text={UserNotificationStatus.Error} />
                 );
+              }else if (item["status"] === UserNotificationStatus.Sending) {
+                return (
+                  <Pill color={Yellow} text={UserNotificationStatus.Sending} />
+                );
               } else if (item["status"] === UserNotificationStatus.Skipped) {
                 return (
                   <Pill color={Yellow} text={UserNotificationStatus.Skipped} />
