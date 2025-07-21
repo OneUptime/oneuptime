@@ -83,9 +83,9 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
 
     incidentStateTimelines.sort(
       (a: IncidentStateTimeline, b: IncidentStateTimeline) => {
-        return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) === false
-          ? 1
-          : -1;
+        const aDate = a.startsAt || a.createdAt!;
+        const bDate = b.startsAt || b.createdAt!;
+        return OneUptimeDate.isAfter(aDate, bDate) === false ? 1 : -1;
       },
     );
   }
@@ -118,7 +118,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     ) {
       timeline.push({
         state: incidentStateTimeline.incidentState,
-        date: incidentStateTimeline?.createdAt as Date,
+        date: incidentStateTimeline?.startsAt || incidentStateTimeline?.createdAt as Date,
         type: TimelineItemType.StateChange,
         icon: incidentStateTimeline.incidentState.isCreatedState
           ? IconProp.Alert
