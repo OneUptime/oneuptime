@@ -3,7 +3,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddEnableCustomSubscriberEmailNotificationFooterText1753131488925
   implements MigrationInterface
 {
-  public name = "AddEnableCustomSubscriberEmailNotificationFooterText1753131488925";
+  public name =
+    "AddEnableCustomSubscriberEmailNotificationFooterText1753131488925";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
