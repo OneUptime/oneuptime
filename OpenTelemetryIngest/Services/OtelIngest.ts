@@ -91,6 +91,23 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
+      // Return response immediately and process asynchronously
+      Response.sendEmptySuccessResponse(req, res);
+
+      // Process logs in the background
+      this.processLogsAsync(req).catch((err: Error) => {
+        logger.error("Error processing logs asynchronously:");
+        logger.error(err);
+      });
+
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  @CaptureSpan()
+  private static async processLogsAsync(req: ExpressRequest): Promise<void> {
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
       const dbLogs: Array<Log> = [];
@@ -225,11 +242,6 @@ export default class OtelIngestService {
           productType: ProductType.Logs,
         }),
       ]);
-
-      return Response.sendEmptySuccessResponse(req, res);
-    } catch (err) {
-      return next(err);
-    }
   }
 
   private static convertSeverityNumber(severityNumber: string): number {
@@ -282,6 +294,24 @@ export default class OtelIngestService {
       }
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
+
+      // Return response immediately and process asynchronously
+      Response.sendEmptySuccessResponse(req, res);
+
+      // Process metrics in the background
+      this.processMetricsAsync(req).catch((err: Error) => {
+        logger.error("Error processing metrics asynchronously:");
+        logger.error(err);
+      });
+
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  @CaptureSpan()
+  private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
 
       const resourceMetrics: JSONArray = req.body[
         "resourceMetrics"
@@ -493,11 +523,6 @@ export default class OtelIngestService {
           productType: ProductType.Metrics,
         }),
       ]);
-
-      return Response.sendEmptySuccessResponse(req, res);
-    } catch (err) {
-      return next(err);
-    }
   }
 
   @CaptureSpan()
@@ -514,6 +539,24 @@ export default class OtelIngestService {
       }
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
+
+      // Return response immediately and process asynchronously
+      Response.sendEmptySuccessResponse(req, res);
+
+      // Process traces in the background
+      this.processTracesAsync(req).catch((err: Error) => {
+        logger.error("Error processing traces asynchronously:");
+        logger.error(err);
+      });
+
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  @CaptureSpan()
+  private static async processTracesAsync(req: ExpressRequest): Promise<void> {
 
       const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
 
@@ -686,11 +729,6 @@ export default class OtelIngestService {
           productType: ProductType.Traces,
         }),
       ]);
-
-      return Response.sendEmptySuccessResponse(req, res);
-    } catch (err) {
-      return next(err);
-    }
   }
 
   private static getSpanStatusCode(status: JSONObject): SpanStatus {
