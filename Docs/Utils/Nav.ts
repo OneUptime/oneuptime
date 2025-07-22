@@ -69,7 +69,7 @@ const DocsNav: NavGroup[] = [
       {
         title: "FAQ & Troubleshooting",
         url: "/docs/mobile-desktop-apps/faq-troubleshooting",
-      }
+      },
     ],
   },
   {

@@ -27,14 +27,12 @@ import Reviews from "./Utils/Reviews";
 import "./Jobs/UpdateBlog";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
-
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
 
     //Routes
     app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
-
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
 
       res.render(`${ViewsPath}/index`, {
