@@ -27,12 +27,39 @@ import Reviews from "./Utils/Reviews";
 import "./Jobs/UpdateBlog";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
+// Mobile detection helper function
+const isMobileUserAgent = (userAgent: string): boolean => {
+  const mobilePatterns = [
+    /Android/i,
+    /webOS/i,
+    /iPhone/i,
+    /iPad/i,
+    /iPod/i,
+    /BlackBerry/i,
+    /Windows Phone/i,
+    /Opera Mini/i,
+    /IEMobile/i,
+    /Mobile Safari/i,
+    /Mobile/i
+  ];
+  
+  return mobilePatterns.some(pattern => pattern.test(userAgent));
+};
+
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
 
     //Routes
-    app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
+    app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
+      const userAgent = req.get('User-Agent') || '';
+      const isMobile = isMobileUserAgent(userAgent);
+      
+      // Redirect mobile users directly to dashboard for better PWA experience
+      if (isMobile) {
+        return res.redirect('/dashboard');
+      }
+
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
 
       res.render(`${ViewsPath}/index`, {

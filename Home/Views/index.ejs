@@ -97,12 +97,36 @@
                   <!-- Place this tag in your head or just before your close body tag. -->
                   <script async defer src="https://buttons.github.io/buttons.js"></script>
 
-
                     <%- include('cta') -%>
                       <%- include('footer') -%>
 
                         <%- include('./Partials/video-script') -%>
 
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Service Worker Registration for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js', {
+          scope: '/'
+        }).then(function(registration) {
+          console.log('OneUptime Home PWA: Service Worker registered successfully', registration.scope);
+        }).catch(function(error) {
+          console.log('OneUptime Home PWA: Service Worker registration failed', error);
+        });
+      });
+    }
+
+    // Mobile redirect helper - if JS is available and we detect mobile, redirect to dashboard
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone|Opera Mini|IEMobile|Mobile Safari|Mobile/i.test(navigator.userAgent)) {
+      // Small delay to avoid redirect loops and let server handle first
+      setTimeout(() => {
+        if (window.location.pathname === '/' && !window.location.search.includes('no-mobile-redirect')) {
+          window.location.href = '/dashboard';
+        }
+      }, 100);
+    }
+  </script>
 
 </body>
 

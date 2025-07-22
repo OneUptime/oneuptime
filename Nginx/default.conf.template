@@ -445,6 +445,35 @@ server {
         }
     }
 
+    # PWA manifest and service worker with proper headers for home
+    location ~* ^/(manifest\.json|service-worker\.js)$ {
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Cache manifest for 1 hour, service worker for no cache
+        if ($uri ~* "service-worker\.js$") {
+            add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+            add_header Pragma "no-cache" always;
+            add_header Expires "0" always;
+        }
+        
+        if ($uri ~* "manifest\.json$") {
+            add_header Cache-Control "public, max-age=3600" always;
+        }
+        
+        # Serve from home if billing enabled, dashboard otherwise
+        if ($billing_enabled = true) {
+            proxy_pass http://home;
+        }
+
+        if ($billing_enabled != true) {
+            proxy_pass http://dashboard;
+        }
+    }
+
 
     location /status-page-api/ {
         # This is for nginx not to crash when service is not available. 
@@ -667,6 +696,39 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
+        
+        # PWA Headers for proper caching
+        add_header Cache-Control "public, max-age=31536000" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        
+        proxy_pass http://dashboard;
+    }
+
+    # PWA manifest and service worker with proper headers
+    location ~* ^/dashboard/(manifest\.json|sw\.js|browserconfig\.xml)$ {
+        resolver 127.0.0.1 valid=30s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Cache manifest for 1 hour, service worker for no cache
+        if ($uri ~* "sw\.js$") {
+            add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+            add_header Pragma "no-cache" always;
+            add_header Expires "0" always;
+        }
+        
+        if ($uri ~* "manifest\.json$") {
+            add_header Cache-Control "public, max-age=3600" always;
+        }
+        
+        if ($uri ~* "browserconfig\.xml$") {
+            add_header Cache-Control "public, max-age=86400" always;
+        }
+        
         proxy_pass http://dashboard;
     }
 
