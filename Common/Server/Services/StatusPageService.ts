@@ -88,9 +88,7 @@ export class Service extends DatabaseService<StatusPage> {
     return "This is an automated email sent to you because you are subscribed to this Status Page.";
   }
 
-  public static getSubscriberEmailFooterText(
-    statusPage: StatusPage,
-  ): string {
+  public static getSubscriberEmailFooterText(statusPage: StatusPage): string {
     if (
       statusPage.enableCustomSubscriberEmailNotificationFooterText &&
       statusPage.subscriberEmailNotificationFooterText
@@ -172,7 +170,10 @@ export class Service extends DatabaseService<StatusPage> {
 
     // For new status pages, set enableCustomSubscriberEmailNotificationFooterText to false by default
     // and provide a default custom footer text only if not provided
-    if (createBy.data.enableCustomSubscriberEmailNotificationFooterText === undefined) {
+    if (
+      createBy.data.enableCustomSubscriberEmailNotificationFooterText ===
+      undefined
+    ) {
       createBy.data.enableCustomSubscriberEmailNotificationFooterText = false;
     }
 
