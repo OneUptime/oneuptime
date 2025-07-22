@@ -27,7 +27,6 @@ import Reviews from "./Utils/Reviews";
 import "./Jobs/UpdateBlog";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
-
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
