@@ -18,7 +18,9 @@ import ProjectCallSMSConfigService from "Common/Server/Services/ProjectCallSMSCo
 import ProjectSmtpConfigService from "Common/Server/Services/ProjectSmtpConfigService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
-import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageService, {
+  Service as StatusPageServiceType,
+} from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -275,7 +277,9 @@ RunCron(
                   incidentDescription: incident.description || "",
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
-                    statuspage.subscriberEmailNotificationFooterText || "",
+                    StatusPageServiceType.getSubscriberEmailFooterText(
+                      statuspage,
+                    ),
                 },
                 subject: "[Incident Update] " + incident.title,
               },

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="theme-color" content="#000000" />
+    <title>OneUptime - Offline</title>
+    <link rel="icon" type="image/png" href="/dashboard/assets/img/favicons/favicon-32x32.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .container {
+            text-align: center;
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #000000;
+            border-radius: 12px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+        
+        p {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .offline-icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+        
+        .primary-btn {
+            background: #000000;
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background: #4338CA;
+            transform: translateY(-1px);
+        }
+        
+        .secondary-btn {
+            background: white;
+            color: #000000;
+            border: 1px solid #E5E7EB;
+        }
+        
+        .secondary-btn:hover {
+            background: #F9FAFB;
+        }
+        
+        .status {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status.online {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .status.offline {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .features h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+        
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .features li {
+            padding: 0.25rem 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .features li::before {
+            content: "✓";
+            color: #10B981;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin: 1rem;
+                padding: 2rem 1.5rem;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <span>OU</span>
+        </div>
+        
+        <div class="offline-icon">📡</div>
+        
+        <h1>You're Offline</h1>
+        <p>OneUptime is currently not available. Check your internet connection and try again.</p>
+        
+        <div class="button-group">
+            <button class="primary-btn" onclick="tryAgain()">
+                <span id="retry-text">Try Again</span>
+            </button>
+            <button class="secondary-btn" onclick="goToDashboard()">
+                Open Dashboard (Cached)
+            </button>
+        </div>
+        
+        <div id="status" class="status offline">
+            <span class="pulse">●</span> Offline
+        </div>
+        
+        <div class="features">
+            <h3>Available Offline</h3>
+            <ul>
+                <li>View cached dashboard data</li>
+                <li>Access recent notifications</li>
+                <li>Browse monitor history</li>
+                <li>Sync when back online</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let retryAttempts = 0;
+        const maxRetries = 3;
+        
+        function updateStatus(online) {
+            const statusEl = document.getElementById('status');
+            if (online) {
+                statusEl.className = 'status online';
+                statusEl.innerHTML = '<span>●</span> Back Online';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                statusEl.className = 'status offline';
+                statusEl.innerHTML = '<span class="pulse">●</span> Offline';
+            }
+        }
+        
+        function tryAgain() {
+            retryAttempts++;
+            const retryText = document.getElementById('retry-text');
+            retryText.textContent = 'Checking...';
+            
+            // Test connectivity
+            fetch('/dashboard/', { 
+                method: 'HEAD',
+                cache: 'no-cache',
+                timeout: 5000
+            })
+            .then(response => {
+                if (response.ok) {
+                    updateStatus(true);
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            })
+            .catch(() => {
+                retryText.textContent = retryAttempts >= maxRetries ? 'Still Offline' : 'Try Again';
+                setTimeout(() => {
+                    if (retryText.textContent !== 'Try Again') {
+                        retryText.textContent = 'Try Again';
+                    }
+                }, 2000);
+            });
+        }
+        
+        function goToDashboard() {
+            window.location.href = '/dashboard/';
+        }
+        
+        // Auto-check connectivity every 30 seconds
+        setInterval(() => {
+            if (navigator.onLine) {
+                tryAgain();
+            }
+        }, 30000);
+        
+        // Listen for online/offline events
+        window.addEventListener('online', () => updateStatus(true));
+        window.addEventListener('offline', () => updateStatus(false));
+        
+        // Initial connectivity check
+        if (navigator.onLine) {
+            setTimeout(tryAgain, 1000);
+        }
+    </script>
+</body>
+</html>

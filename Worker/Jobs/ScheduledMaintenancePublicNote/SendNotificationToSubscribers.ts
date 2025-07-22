@@ -18,7 +18,9 @@ import ScheduledMaintenancePublicNoteService from "Common/Server/Services/Schedu
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import SmsService from "Common/Server/Services/SmsService";
 import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
-import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageService, {
+  Service as StatusPageServiceType,
+} from "Common/Server/Services/StatusPageService";
 import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscriberService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
@@ -295,7 +297,9 @@ RunCron(
                   eventDescription: event.description || "",
                   unsubscribeUrl: unsubscribeUrl,
                   subscriberEmailNotificationFooterText:
-                    statuspage.subscriberEmailNotificationFooterText || "",
+                    StatusPageServiceType.getSubscriberEmailFooterText(
+                      statuspage,
+                    ),
                 },
                 subject: "[Scheduled Maintenance Update] " + event.title,
               },

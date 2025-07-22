@@ -3,14 +3,34 @@
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#000000" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1E293B" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta charSet='utf-8' />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="theme-color" content="#000000">
-  <meta name="slack-app-id" content="ACVBMTPJQ">
   <meta name="description" content="OneUptime — the complete open-source observability platform.">
+  <meta name="keywords" content="monitoring, observability, uptime, dashboard, PWA, progressive web app">
+  <meta name="author" content="OneUptime">
+  <meta name="slack-app-id" content="ACVBMTPJQ">
+
+  <!-- PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="OneUptime">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="OneUptime">
+  
+  <!-- iOS Splash Screens -->
+  <meta name="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" content="/dashboard/assets/img/splash/apple-splash-1290-2796.jpg">
+  <meta name="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" content="/dashboard/assets/img/splash/apple-splash-1179-2556.jpg">
+  <meta name="apple-touch-startup-image" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" content="/dashboard/assets/img/splash/apple-splash-1284-2778.jpg">
+  <meta name="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" content="/dashboard/assets/img/splash/apple-splash-1125-2436.jpg">
+  <meta name="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" content="/dashboard/assets/img/splash/apple-splash-828-1792.jpg">
+  
+  <!-- Microsoft Tiles -->
+  <meta name="msapplication-TileColor" content="#000000">
+  <meta name="msapplication-TileImage" content="/dashboard/assets/img/favicons/mstile-144x144.png">
+  <meta name="msapplication-config" content="/dashboard/browserconfig.xml">
 
   <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
   <!-- Google Tag Manager -->
@@ -26,25 +46,28 @@
   <!-- End Google Tag Manager -->
   <% } %>
 
-  <link rel="manifest" href="/dashboard/assets/img/favicons/ma">
+  <!-- Manifest and Icons -->
+  <link rel="manifest" href="/dashboard/manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="/dashboard/assets/img/favicons/apple-touch-icon.png">
   <link rel="shortcut icon" href="/dashboard/assets/img/favicons/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/dashboard/assets/img/favicons/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="194x194" href="/dashboard/assets/img/favicons/favicon-194x194.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/dashboard/assets/img/favicons/android-chrome-192x192.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/dashboard/assets/img/favicons/favicon-16x16.png">
-  <link rel="mask-icon" href="/dashboard/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
-  <meta name="msapplication-TileColor" content="#121212">
-  <script src="/dashboard/sw.js"></script>
-  <meta name="msapplication-TileImage" content="/dashboard/assets/img/favicons/mstile-144x144.png">
-  <meta name="theme-color" content="#121212">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="mask-icon" href="/dashboard/assets/img/favicons/safari-pinned-tab.svg" color="#000000">
+
+  <!-- Preload critical resources -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@100;200;300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@100;200;300;400;500;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  
+  <!-- Fallback for preloaded stylesheets -->
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  </noscript>
+
   <style>
     * {
       font-family: Inter;
@@ -136,6 +159,130 @@
           },
         },
       },
+    }
+  </script>
+
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Service Worker Registration for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/dashboard/sw.js', {
+          scope: '/'
+        }).then(function(registration) {
+          console.log('OneUptime PWA: Service Worker registered successfully', registration.scope);
+          
+          // Handle updates
+          registration.addEventListener('updatefound', function() {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', function() {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New version available
+                  if (confirm('A new version of OneUptime is available. Refresh to update?')) {
+                    newWorker.postMessage({type: 'SKIP_WAITING'});
+                    window.location.reload();
+                  }
+                }
+              });
+            }
+          });
+          
+        }).catch(function(error) {
+          console.log('OneUptime PWA: Service Worker registration failed', error);
+        });
+
+        // Handle service worker messages
+        navigator.serviceWorker.addEventListener('message', function(event) {
+          if (event.data && event.data.type === 'SW_UPDATED') {
+            window.location.reload();
+          }
+        });
+
+        // Listen for controlled change
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          window.location.reload();
+        });
+      });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installButton = document.createElement('button');
+    installButton.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #000000;
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      display: none;
+      font-family: Inter, sans-serif;
+    `;
+    installButton.textContent = '📱 Install OneUptime';
+    installButton.setAttribute('aria-label', 'Install OneUptime as PWA');
+    document.body.appendChild(installButton);
+
+    window.addEventListener('beforeinstallprompt', function(event) {
+      console.log('OneUptime PWA: Install prompt triggered');
+      event.preventDefault();
+      deferredPrompt = event;
+      
+      // Show install button after a delay to avoid being intrusive
+      setTimeout(() => {
+        installButton.style.display = 'block';
+      }, 5000);
+    });
+
+    installButton.addEventListener('click', function() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(choiceResult) {
+          console.log('OneUptime PWA: Install prompt result:', choiceResult.outcome);
+          deferredPrompt = null;
+          installButton.style.display = 'none';
+        });
+      }
+    });
+
+    window.addEventListener('appinstalled', function() {
+      console.log('OneUptime PWA: App installed successfully');
+      installButton.style.display = 'none';
+      deferredPrompt = null;
+    });
+
+    // Hide install button if already installed
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+      installButton.style.display = 'none';
+    }
+
+    // Performance monitoring
+    if ('performance' in window && 'PerformanceObserver' in window) {
+      // Monitor Largest Contentful Paint
+      const lcpObserver = new PerformanceObserver((entryList) => {
+        const entries = entryList.getEntries();
+        if (entries.length > 0) {
+          const lcp = entries[entries.length - 1];
+          console.log('OneUptime PWA: LCP', lcp.startTime);
+        }
+      });
+      lcpObserver.observe({entryTypes: ['largest-contentful-paint']});
+
+      // Monitor First Input Delay
+      const fidObserver = new PerformanceObserver((entryList) => {
+        const entries = entryList.getEntries();
+        entries.forEach((entry) => {
+          console.log('OneUptime PWA: FID', entry.processingStart - entry.startTime);
+        });
+      });
+      fidObserver.observe({entryTypes: ['first-input']});
     }
   </script>
 </body>

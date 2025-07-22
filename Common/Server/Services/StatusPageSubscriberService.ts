@@ -839,6 +839,7 @@ Stay informed about service availability! 🚀`;
         logoFileId: true,
         allowSubscribersToChooseResources: true,
         subscriberEmailNotificationFooterText: true,
+        enableCustomSubscriberEmailNotificationFooterText: true,
         allowSubscribersToChooseEventTypes: true,
         smtpConfig: {
           _id: true,

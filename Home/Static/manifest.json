@@ -1,21 +1,57 @@
 {
   "short_name": "OneUptime",
-  "name": "OneUptime",
+  "name": "OneUptime - Complete Observability Platform",
+  "description": "Monitor, observe, debug, and resolve. Everything you need to build reliable software in one open source platform.",
   "icons": [
     {
       "src": "/img/favicons/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/img/favicons/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/img/favicons/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/img/favicons/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "en",
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "dir": "ltr",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "shortcuts": [
+    {
+      "name": "OneUptime Dashboard",
+      "short_name": "OneUptime Dashboard",
+      "description": "Open OneUptime Dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

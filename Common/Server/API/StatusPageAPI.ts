@@ -1152,6 +1152,7 @@ export default class StatusPageAPI extends BaseAPI<
               select: {
                 _id: true,
                 createdAt: true,
+                startsAt: true,
                 incidentId: true,
                 incidentState: {
                   _id: true,
@@ -1164,7 +1165,7 @@ export default class StatusPageAPI extends BaseAPI<
               },
 
               sort: {
-                createdAt: SortOrder.Descending, // new note first
+                startsAt: SortOrder.Descending, // newer state changes first
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,
@@ -1340,6 +1341,7 @@ export default class StatusPageAPI extends BaseAPI<
                 select: {
                   _id: true,
                   createdAt: true,
+                  startsAt: true,
                   scheduledMaintenanceId: true,
                   scheduledMaintenanceState: {
                     _id: true,
@@ -1352,7 +1354,7 @@ export default class StatusPageAPI extends BaseAPI<
                 },
 
                 sort: {
-                  createdAt: SortOrder.Descending, // new note first
+                  startsAt: SortOrder.Descending, // newer state changes first
                 },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
@@ -1878,6 +1880,7 @@ export default class StatusPageAPI extends BaseAPI<
           select: {
             _id: true,
             createdAt: true,
+            startsAt: true,
             scheduledMaintenanceId: true,
             scheduledMaintenanceState: {
               name: true,
@@ -1889,7 +1892,7 @@ export default class StatusPageAPI extends BaseAPI<
           },
 
           sort: {
-            createdAt: SortOrder.Descending, // new note first
+            startsAt: SortOrder.Descending, // newer state changes first
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
@@ -2341,7 +2344,7 @@ export default class StatusPageAPI extends BaseAPI<
                 ? "true"
                 : "false",
               subscriberEmailNotificationFooterText:
-                statusPage.subscriberEmailNotificationFooterText || "",
+                StatusPageServiceType.getSubscriberEmailFooterText(statusPage),
 
               manageSubscriptionUrl: manageUrlink,
             },
@@ -2924,6 +2927,7 @@ export default class StatusPageAPI extends BaseAPI<
         select: {
           _id: true,
           createdAt: true,
+          startsAt: true,
           incidentId: true,
           incidentState: {
             name: true,
@@ -2931,7 +2935,7 @@ export default class StatusPageAPI extends BaseAPI<
           },
         },
         sort: {
-          createdAt: SortOrder.Descending, // new note first
+          startsAt: SortOrder.Descending, // newer state changes first
         },
 
         skip: 0,

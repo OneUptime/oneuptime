@@ -1,25 +1,71 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "OneUptime",
+  "name": "OneUptime - Complete Observability Platform",
+  "description": "Monitor, observe, debug, and resolve. Everything you need to build reliable software in one open source platform.",
   "icons": [
     {
-      "src": "./assets/img/favicons/favicon.ico",
+      "src": "/dashboard/assets/img/favicons/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any"
     },
     {
-      "src": "logo512.png",
+      "src": "/dashboard/assets/img/favicons/android-chrome-512x512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/dashboard/assets/img/favicons/android-chrome-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "en",
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "dir": "ltr",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+oneuptime",
+      "url": "/dashboard?url=%s"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "OneUptime Dashboard",
+      "short_name": "OneUptime Dashboard",
+      "description": "Open OneUptime Dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

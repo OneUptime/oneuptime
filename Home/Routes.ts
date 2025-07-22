@@ -33,6 +33,7 @@ const HomeFeatureSet: FeatureSet = {
 
     //Routes
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
+
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
 
       res.render(`${ViewsPath}/index`, {

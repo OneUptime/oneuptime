@@ -84,6 +84,20 @@ export class Service extends DatabaseService<StatusPage> {
     super(StatusPage);
   }
 
+  public static getDefaultEmailFooterText(): string {
+    return "This is an automated email sent to you because you are subscribed to this Status Page.";
+  }
+
+  public static getSubscriberEmailFooterText(statusPage: StatusPage): string {
+    if (
+      statusPage.enableCustomSubscriberEmailNotificationFooterText &&
+      statusPage.subscriberEmailNotificationFooterText
+    ) {
+      return statusPage.subscriberEmailNotificationFooterText;
+    }
+    return this.getDefaultEmailFooterText();
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPage>,
@@ -152,6 +166,15 @@ export class Service extends DatabaseService<StatusPage> {
 
     if (!createBy.data.defaultBarColor) {
       createBy.data.defaultBarColor = Green;
+    }
+
+    // For new status pages, set enableCustomSubscriberEmailNotificationFooterText to false by default
+    // and provide a default custom footer text only if not provided
+    if (
+      createBy.data.enableCustomSubscriberEmailNotificationFooterText ===
+      undefined
+    ) {
+      createBy.data.enableCustomSubscriberEmailNotificationFooterText = false;
     }
 
     if (!createBy.data.subscriberEmailNotificationFooterText) {
@@ -730,7 +753,7 @@ export class Service extends DatabaseService<StatusPage> {
           vars: {
             statusPageName: statusPageName,
             subscriberEmailNotificationFooterText:
-              statuspage.subscriberEmailNotificationFooterText || "",
+              Service.getSubscriberEmailFooterText(statuspage),
             statusPageUrl: statusPageURL,
             hasResources: report.totalResources > 0 ? "true" : "false",
             report: report as any,

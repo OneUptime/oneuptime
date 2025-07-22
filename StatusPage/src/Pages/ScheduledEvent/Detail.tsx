@@ -94,9 +94,9 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
         a: ScheduledMaintenanceStateTimeline,
         b: ScheduledMaintenanceStateTimeline,
       ) => {
-        return OneUptimeDate.isAfter(a.createdAt!, b.createdAt!) === false
-          ? 1
-          : -1;
+        const aDate: Date = a.startsAt || a.createdAt!;
+        const bDate: Date = b.startsAt || b.createdAt!;
+        return OneUptimeDate.isAfter(aDate, bDate) === false ? 1 : -1;
       },
     );
   }
@@ -132,7 +132,8 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
         date: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
           ?.isScheduledState
           ? scheduledMaintenance.startsAt!
-          : (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
+          : scheduledMaintenanceEventstateTimeline?.startsAt ||
+            (scheduledMaintenanceEventstateTimeline?.createdAt as Date),
         type: TimelineItemType.StateChange,
         icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
           .isScheduledState
