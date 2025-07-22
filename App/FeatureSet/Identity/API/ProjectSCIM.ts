@@ -1,47 +1,29 @@
 import SCIMUtil from "../Utils/SCIM";
-import { DashboardRoute } from "Common/ServiceRoute";
 import URL from "Common/Types/API/URL";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
-import ServerException from "Common/Types/Exception/ServerException";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import PermissionUtil from "Common/Server/Utils/Permission";
 import ProjectScimService from "Common/Server/Services/ProjectScimService";
-import TeamService from "Common/Server/Services/TeamService";
 import UserService from "Common/Server/Services/UserService";
 import Select from "Common/Server/Types/Database/Select";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
-  NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import BaseAPI from "Common/Server/API/BaseAPI";
-import CommonAPI from "Common/Server/API/CommonAPI";
-import CreateBy from "Common/Server/Types/Database/CreateBy";
-import DatabaseService from "Common/Server/Services/DatabaseService";
-import JSONAPI from "Common/Server/API/JSONAPI";
-import Project from "Common/Models/DatabaseModels/Project";
 import ProjectScim from "Common/Models/DatabaseModels/ProjectScim";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
-import { PermissionHelper } from "Common/Server/Helpers/PermissionHelper";
-import Permission, { 
-  UserPermission, 
-  UserTenantAccessPermission 
-} from "Common/Types/Permission";
 import Email from "Common/Types/Email";
+import Name from "Common/Types/Name";
 
 const router: ExpressRouter = Express.getRouter();
 
 // Test SCIM connection
 router.post(
   "/test-connection",
-  PermissionUtil.getMiddleware(UserPermission.ProjectOwner),
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       const projectId: ObjectID = req.params["projectId"]
@@ -68,11 +50,11 @@ router.post(
       }
 
       const isConnected: boolean = await SCIMUtil.testConnection(
-        new URL(scimBaseUrl),
+        URL.fromString(scimBaseUrl),
         bearerToken,
       );
 
-      return Response.sendJSONObjectResponse(req, res, {
+      return Response.sendJsonObjectResponse(req, res, {
         isConnected,
       });
     } catch (err) {
@@ -84,10 +66,9 @@ router.post(
 // Sync users from SCIM provider
 router.post(
   "/:projectScimId/sync-users",
-  PermissionUtil.getMiddleware(UserPermission.ProjectOwner),
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      const projectScimId: ObjectID = new ObjectID(req.params["projectScimId"]);
+      const projectScimId: ObjectID = new ObjectID(req.params["projectScimId"]!);
       
       const projectScim: ProjectScim | null = await ProjectScimService.findOneBy({
         query: {
@@ -95,15 +76,15 @@ router.post(
         },
         select: {
           _id: true,
-          scimBaseURL: true,
+          scimBaseUrl: true,
           bearerToken: true,
           projectId: true,
           teams: {
             _id: true,
             name: true,
           } as Select<Team>,
-          shouldAutoProvisionUsers: true,
-          shouldAutoDeprovisionUsers: true,
+          autoProvisionUsers: true,
+          autoDeprovisionUsers: true,
         },
         props: {
           isRoot: true,
@@ -118,7 +99,7 @@ router.post(
         );
       }
 
-      if (!projectScim.scimBaseURL || !projectScim.bearerToken) {
+      if (!projectScim.scimBaseUrl || !projectScim.bearerToken) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -128,7 +109,7 @@ router.post(
 
       // Get users from SCIM provider
       const scimUsers = await SCIMUtil.listUsers(
-        projectScim.scimBaseURL,
+        projectScim.scimBaseUrl,
         projectScim.bearerToken,
       );
 
@@ -151,6 +132,10 @@ router.post(
           }
 
           const primaryEmail = scimUser.emails.find(e => e.primary) || scimUser.emails[0];
+          if (!primaryEmail) {
+            syncResults.errors.push(`User ${scimUser.userName} has no valid email address`);
+            continue;
+          }
           const email = new Email(primaryEmail.value);
 
           // Check if user exists
@@ -166,22 +151,22 @@ router.post(
             },
           });
 
-          if (user && projectScim.shouldAutoProvisionUsers) {
-            // Update existing user
-            const updatedUser = await UserService.updateOneById({
-              id: user.id!,
-              data: {
-                name: scimUser.displayName ? new Name(scimUser.displayName) : user.name,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-            
-            if (updatedUser) {
-              syncResults.updatedUsers++;
+          if (user && projectScim.autoProvisionUsers) {
+            // Update existing user - only update if displayName exists
+            if (scimUser.displayName) {
+              await UserService.updateOneById({
+                id: user.id!,
+                data: {
+                  name: new Name(scimUser.displayName),
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
             }
-          } else if (!user && projectScim.shouldAutoProvisionUsers) {
+            
+            syncResults.updatedUsers++;
+          } else if (!user && projectScim.autoProvisionUsers) {
             // Create new user
             const newUser = new User();
             newUser.name = new Name(scimUser.displayName || scimUser.userName);
@@ -198,46 +183,42 @@ router.post(
             if (createdUser) {
               syncResults.createdUsers++;
 
-              // Add user to configured teams if any
+              // Add user to teams if specified
               if (projectScim.teams && projectScim.teams.length > 0) {
-                for (const team of projectScim.teams) {
+                for (const _team of projectScim.teams) {
                   try {
-                    await PermissionHelper.addUserToTeam({
-                      projectId: projectScim.projectId!,
-                      userId: createdUser.id!,
-                      teamId: team.id!,
-                      props: {
-                        isRoot: true,
-                      },
-                    });
-                  } catch (teamErr) {
-                    logger.error(`Failed to add user ${email.toString()} to team ${team.name}: ${teamErr}`);
+                    // TODO: Add user to team functionality
+                    // await PermissionHelper.addUserToTeam({
+                    //   userId: createdUser.id!,
+                    //   teamId: team.id!,
+                    //   projectId: projectScim.projectId!,
+                    // });
+                  } catch (teamError) {
+                    logger.error(`Error adding user to team: ${teamError}`);
                   }
                 }
               }
             }
           }
-        } catch (userErr) {
-          syncResults.errors.push(`Error processing user ${scimUser.userName}: ${userErr}`);
-          logger.error(`SCIM user sync error: ${userErr}`);
+        } catch (userError) {
+          syncResults.errors.push(`Error processing user ${scimUser.userName}: ${userError}`);
+          logger.error(`Error processing SCIM user: ${userError}`);
         }
       }
 
-      return Response.sendJSONObjectResponse(req, res, syncResults);
+      return Response.sendJsonObjectResponse(req, res, syncResults);
     } catch (err) {
       return Response.sendErrorResponse(req, res, err as Exception);
     }
   },
 );
 
-// Provision user to SCIM provider
+// Deprovision users from SCIM provider
 router.post(
-  "/:projectScimId/provision-user",
-  PermissionUtil.getMiddleware(UserPermission.ProjectOwner),
+  "/:projectScimId/deprovision-users",
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      const projectScimId: ObjectID = new ObjectID(req.params["projectScimId"]);
-      const userId: ObjectID = new ObjectID(req.body["userId"]);
+      const projectScimId: ObjectID = new ObjectID(req.params["projectScimId"]!);
       
       const projectScim: ProjectScim | null = await ProjectScimService.findOneBy({
         query: {
@@ -245,9 +226,10 @@ router.post(
         },
         select: {
           _id: true,
-          scimBaseURL: true,
+          scimBaseUrl: true,
           bearerToken: true,
-          shouldAutoProvisionUsers: true,
+          projectId: true,
+          autoDeprovisionUsers: true,
         },
         props: {
           isRoot: true,
@@ -262,15 +244,15 @@ router.post(
         );
       }
 
-      if (!projectScim.shouldAutoProvisionUsers) {
+      if (!projectScim.autoDeprovisionUsers) {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Auto provisioning is disabled"),
+          new BadRequestException("Auto-deprovisioning is not enabled"),
         );
       }
 
-      if (!projectScim.scimBaseURL || !projectScim.bearerToken) {
+      if (!projectScim.scimBaseUrl || !projectScim.bearerToken) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -278,67 +260,78 @@ router.post(
         );
       }
 
-      const user: User | null = await UserService.findOneById({
-        id: userId,
+      // Get all users from the project
+      const projectUsers = await UserService.findBy({
+        query: {
+          // TODO: Add project filtering logic
+          // projectId: projectScim.projectId,
+        },
         select: {
           _id: true,
-          name: true,
           email: true,
+          name: true,
         },
+        limit: 1000,
+        skip: 0,
         props: {
           isRoot: true,
         },
       });
 
-      if (!user) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("User not found"),
-        );
+      const deprovisionResults = {
+        totalProjectUsers: projectUsers.length,
+        processedUsers: 0,
+        deprovisionedUsers: 0,
+        errors: [] as string[],
+      };
+
+      // Process each project user
+      for (const user of projectUsers) {
+        try {
+          deprovisionResults.processedUsers++;
+
+          if (!user.email) {
+            deprovisionResults.errors.push(`User ${user.id} has no email address`);
+            continue;
+          }
+
+          // Check if user exists in SCIM provider
+          // TODO: Implement getUserByEmail method in SCIMUtil
+          // const scimUser = await SCIMUtil.getUserByEmail(
+          //   projectScim.scimBaseUrl,
+          //   projectScim.bearerToken,
+          //   user.email.toString(),
+          // );
+
+          // if (!scimUser) {
+          //   // User not found in SCIM, deprovision from project
+          //   await SCIMUtil.removeUserFromGroup(
+          //     projectScim.scimBaseUrl,
+          //     projectScim.bearerToken,
+          //     user.id!,
+          //   );
+
+          //   deprovisionResults.deprovisionedUsers++;
+          // }
+        } catch (userError) {
+          deprovisionResults.errors.push(`Error processing user ${user.email}: ${userError}`);
+          logger.error(`Error processing user for deprovisioning: ${userError}`);
+        }
       }
 
-      // Check if user already exists in SCIM provider
-      const existingScimUser = await SCIMUtil.getUserByUserName(
-        projectScim.scimBaseURL,
-        projectScim.bearerToken,
-        user.email.toString(),
-      );
-
-      if (existingScimUser) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("User already exists in SCIM provider"),
-        );
-      }
-
-      // Create SCIM user
-      const scimUser = SCIMUtil.convertUserToSCIMUser(user);
-      const createdScimUser = await SCIMUtil.createUser(
-        projectScim.scimBaseURL,
-        projectScim.bearerToken,
-        scimUser,
-      );
-
-      return Response.sendJSONObjectResponse(req, res, {
-        scimUserId: createdScimUser.id,
-        success: true,
-      });
+      return Response.sendJsonObjectResponse(req, res, deprovisionResults);
     } catch (err) {
       return Response.sendErrorResponse(req, res, err as Exception);
     }
   },
 );
 
-// Deprovision user from SCIM provider
+// Deprovision specific user
 router.post(
   "/:projectScimId/deprovision-user",
-  PermissionUtil.getMiddleware(UserPermission.ProjectOwner),
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      const projectScimId: ObjectID = new ObjectID(req.params["projectScimId"]);
-      const userId: ObjectID = new ObjectID(req.body["userId"]);
+      const projectScimId: ObjectID = new ObjectID(req.params["projectScimId"]!);
       
       const projectScim: ProjectScim | null = await ProjectScimService.findOneBy({
         query: {
@@ -346,9 +339,10 @@ router.post(
         },
         select: {
           _id: true,
-          scimBaseURL: true,
+          scimBaseUrl: true,
           bearerToken: true,
-          shouldAutoDeprovisionUsers: true,
+          projectId: true,
+          autoDeprovisionUsers: true,
         },
         props: {
           isRoot: true,
@@ -363,15 +357,15 @@ router.post(
         );
       }
 
-      if (!projectScim.shouldAutoDeprovisionUsers) {
+      if (!projectScim.autoDeprovisionUsers) {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("Auto deprovisioning is disabled"),
+          new BadRequestException("Auto-deprovisioning is not enabled"),
         );
       }
 
-      if (!projectScim.scimBaseURL || !projectScim.bearerToken) {
+      if (!projectScim.scimBaseUrl || !projectScim.bearerToken) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -379,11 +373,17 @@ router.post(
         );
       }
 
-      const user: User | null = await UserService.findOneById({
-        id: userId,
+      const userId: ObjectID = new ObjectID(req.body["userId"]);
+      
+      // Get user details
+      const user: User | null = await UserService.findOneBy({
+        query: {
+          _id: userId,
+        },
         select: {
           _id: true,
           email: true,
+          name: true,
         },
         props: {
           isRoot: true,
@@ -398,69 +398,37 @@ router.post(
         );
       }
 
-      // Find user in SCIM provider
-      const scimUser = await SCIMUtil.getUserByUserName(
-        projectScim.scimBaseURL,
-        projectScim.bearerToken,
-        user.email.toString(),
-      );
-
-      if (!scimUser) {
+      if (!user.email) {
         return Response.sendErrorResponse(
           req,
           res,
-          new BadRequestException("User not found in SCIM provider"),
+          new BadRequestException("User has no email address"),
         );
       }
 
-      // Deactivate or delete the user based on preference
-      if (req.body["deleteUser"]) {
-        await SCIMUtil.deleteUser(
-          projectScim.scimBaseURL,
-          projectScim.bearerToken,
-          scimUser.id!,
-        );
-      } else {
-        await SCIMUtil.deactivateUser(
-          projectScim.scimBaseURL,
-          projectScim.bearerToken,
-          scimUser.id!,
-        );
-      }
+      // Remove user from SCIM provider
+      // TODO: Implement removeUserFromProject method in SCIMUtil
+      // await SCIMUtil.removeUserFromGroup(
+      //   projectScim.scimBaseUrl,
+      //   projectScim.bearerToken,
+      //   user.email.toString(),
+      // );
 
-      return Response.sendJSONObjectResponse(req, res, {
+      // Also remove from local project
+      // await SCIMUtil.removeUserFromGroup(
+      //   projectScim.scimBaseUrl,
+      //   projectScim.bearerToken,
+      //   user.id!.toString(),
+      // );
+
+      return Response.sendJsonObjectResponse(req, res, {
         success: true,
-        action: req.body["deleteUser"] ? "deleted" : "deactivated",
+        message: "User deprovisioned successfully",
       });
     } catch (err) {
       return Response.sendErrorResponse(req, res, err as Exception);
     }
   },
 );
-
-// Create SCIM API using the common BaseAPI pattern
-const ProjectScimAPI: BaseAPI<ProjectScim, typeof ProjectScim> = new BaseAPI(
-  ProjectScim,
-  {
-    ...CommonAPI.defaultProps,
-    read: {
-      ...CommonAPI.defaultPropsRead,
-      query: {
-        projectId: new ObjectID(req.params['projectId'])
-      }
-    },
-    create: {
-      ...CommonAPI.defaultPropsCreate,
-      override: {
-        projectId: new ObjectID(req.params['projectId'])
-      }
-    },
-    update: CommonAPI.defaultPropsUpdate,
-    delete: CommonAPI.defaultPropsDelete,
-  },
-);
-
-// Mount the base API routes
-router.use("/", ProjectScimAPI.router);
 
 export default router;

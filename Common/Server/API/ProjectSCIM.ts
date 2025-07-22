@@ -17,6 +17,7 @@ import UserService from "../Services/UserService";
 import TeamMemberService from "../Services/TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 import Team from "../../Models/DatabaseModels/Team";
+import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Select from "../Types/Database/Select";
 import Email from "../../Types/Email";
 import Name from "../../Types/Name";
@@ -229,7 +230,8 @@ export default class ProjectScimAPI extends BaseAPI<
                     for (const team of projectScim.teams) {
                       try {
                         // Create a new TeamMember instance
-                        const newTeamMember = new (await import("../../Models/DatabaseModels/TeamMember")).default();
+                        // Note: Using regular import to avoid dynamic import issues
+                        const newTeamMember = new TeamMember();
                         newTeamMember.teamId = team.id!;
                         newTeamMember.userId = createdUser.id!;
                         newTeamMember.projectId = projectScim.projectId!;
