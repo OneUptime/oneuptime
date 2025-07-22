@@ -167,7 +167,6 @@ const StatusPageDelete: FunctionComponent<
             description:
               "Select timezones for subscribers. Subscribers will see time in these timezones when they receive notifications.",
           },
-
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -214,7 +213,6 @@ const StatusPageDelete: FunctionComponent<
                 );
               },
             },
-
           ],
           modelId: modelId,
         }}
@@ -224,7 +222,8 @@ const StatusPageDelete: FunctionComponent<
         name="Status Page > Branding > Subscriber > Email Footer"
         cardProps={{
           title: "Email Footer Settings",
-          description: "Custom footer text settings for subscriber email notifications.",
+          description:
+            "Custom footer text settings for subscriber email notifications.",
         }}
         isEditable={true}
         formFields={[
@@ -251,10 +250,9 @@ const StatusPageDelete: FunctionComponent<
               "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
             showIf: (item: FormValues<StatusPage>): boolean => {
               return (
-                item.enableCustomSubscriberEmailNotificationFooterText ===
-                true
+                item.enableCustomSubscriberEmailNotificationFooterText === true
               );
-            }
+            },
           },
         ]}
         modelDetailProps={{
