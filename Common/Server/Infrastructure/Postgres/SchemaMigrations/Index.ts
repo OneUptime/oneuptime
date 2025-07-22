@@ -287,5 +287,5 @@ export default [
   MigrationName1752659054949,
   MigrationName1752774923063,
   MigrationName1753109689244,
-  AddEnableCustomSubscriberEmailNotificationFooterText1753131488925
+  AddEnableCustomSubscriberEmailNotificationFooterText1753131488925,
 ];

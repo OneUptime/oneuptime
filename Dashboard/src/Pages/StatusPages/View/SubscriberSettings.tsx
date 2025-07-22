@@ -167,34 +167,6 @@ const StatusPageDelete: FunctionComponent<
             description:
               "Select timezones for subscribers. Subscribers will see time in these timezones when they receive notifications.",
           },
-          {
-            field: {
-              enableCustomSubscriberEmailNotificationFooterText: true,
-            },
-            title: "Enable Custom Email Footer Text",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Enable custom footer text in subscriber email notifications. If disabled, default footer text will be used.",
-          },
-          {
-            field: {
-              subscriberEmailNotificationFooterText: true,
-            },
-            title: "Subscriber Email Notification Footer Text",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "This is an automated email sent to you because you are subscribed to Status Page.",
-            description:
-              "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
-            showIf: (item: FormValues<StatusPage>): boolean => {
-              return (
-                item.enableCustomSubscriberEmailNotificationFooterText ===
-                true
-              );
-            }
-          },
         ]}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 1,
@@ -241,6 +213,53 @@ const StatusPageDelete: FunctionComponent<
                 );
               },
             },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      <CardModelDetail<StatusPage>
+        name="Status Page > Branding > Subscriber > Email Footer"
+        cardProps={{
+          title: "Email Footer Settings",
+          description:
+            "Custom footer text settings for subscriber email notifications.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              enableCustomSubscriberEmailNotificationFooterText: true,
+            },
+            title: "Enable Custom Email Footer Text",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Enable custom footer text in subscriber email notifications. If disabled, default footer text will be used.",
+          },
+          {
+            field: {
+              subscriberEmailNotificationFooterText: true,
+            },
+            title: "Subscriber Email Notification Footer Text",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder:
+              "This is an automated email sent to you because you are subscribed to Status Page.",
+            description:
+              "This text will be added at the end of the email notification sent to subscribers. You can use this to add any additional information or links.",
+            showIf: (item: FormValues<StatusPage>): boolean => {
+              return (
+                item.enableCustomSubscriberEmailNotificationFooterText === true
+              );
+            },
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: StatusPage,
+          id: "model-detail-email-footer",
+          fields: [
             {
               field: {
                 enableCustomSubscriberEmailNotificationFooterText: true,

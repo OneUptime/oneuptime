@@ -2081,7 +2081,8 @@ export default class StatusPage extends BaseModel {
     default: false,
     nullable: false,
   })
-  public enableCustomSubscriberEmailNotificationFooterText?: boolean = undefined;
+  public enableCustomSubscriberEmailNotificationFooterText?: boolean =
+    undefined;
 
   @ColumnAccessControl({
     create: [

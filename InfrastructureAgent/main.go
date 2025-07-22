@@ -85,7 +85,7 @@ func main() {
 		case "configure":
 			installFlags := flag.NewFlagSet("configure", flag.ExitOnError)
 			secretKey := installFlags.String("secret-key", "", "Secret key of this monitor, you can find this on OneUptime dashboard (required)")
-			oneuptimeURL := installFlags.String("oneuptime-url", "", "Oneuptime endpoint root URL (required)")
+			oneuptimeURL := installFlags.String("oneuptime-url", "", "OneUptime endpoint root URL (required)")
 			proxyURL := installFlags.String("proxy-url", "", "Proxy URL (optional)")
 			err := installFlags.Parse(os.Args[2:])
 			if err != nil {
