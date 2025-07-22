@@ -33,7 +33,7 @@ const HomeFeatureSet: FeatureSet = {
     const app: ExpressApplication = Express.getExpressApp();
 
     //Routes
-    app.get("/", (req: ExpressRequest, res: ExpressResponse) => {
+    app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
 
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
 
