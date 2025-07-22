@@ -40,6 +40,39 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Mobile & Desktop Apps",
+    links: [
+      {
+        title: "Overview",
+        url: "/docs/mobile-desktop-apps/index",
+      },
+      {
+        title: "Android Installation",
+        url: "/docs/mobile-desktop-apps/android-installation",
+      },
+      {
+        title: "iOS Installation",
+        url: "/docs/mobile-desktop-apps/ios-installation",
+      },
+      {
+        title: "Windows Installation",
+        url: "/docs/mobile-desktop-apps/windows-installation",
+      },
+      {
+        title: "macOS Installation",
+        url: "/docs/mobile-desktop-apps/macos-installation",
+      },
+      {
+        title: "Linux Installation",
+        url: "/docs/mobile-desktop-apps/linux-installation",
+      },
+      {
+        title: "FAQ & Troubleshooting",
+        url: "/docs/mobile-desktop-apps/faq-troubleshooting",
+      }
+    ],
+  },
+  {
     title: "Configuration",
     links: [
       {
