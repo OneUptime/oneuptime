@@ -56,8 +56,8 @@
   ],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
+      "name": "OneUptime Dashboard",
+      "short_name": "OneUptime Dashboard",
       "description": "Open OneUptime Dashboard",
       "url": "/dashboard",
       "icons": [
@@ -66,58 +66,6 @@
           "sizes": "192x192"
         }
       ]
-    },
-    {
-      "name": "Monitors",
-      "short_name": "Monitors",
-      "description": "View all monitors",
-      "url": "/dashboard/monitors",
-      "icons": [
-        {
-          "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Incidents",
-      "short_name": "Incidents",
-      "description": "View all incidents",
-      "url": "/dashboard/incidents",
-      "icons": [
-        {
-          "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Status Pages",
-      "short_name": "Status",
-      "description": "View status pages",
-      "url": "/dashboard/status-pages",
-      "icons": [
-        {
-          "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/dashboard/assets/img/screenshots/desktop-home.png",
-      "sizes": "1280x800",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "OneUptime Dashboard"
-    },
-    {
-      "src": "/dashboard/assets/img/screenshots/mobile-home.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "OneUptime Mobile Dashboard"
     }
   ]
 }

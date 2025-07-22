@@ -42,25 +42,13 @@
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard", 
+      "name": "OneUptime Dashboard",
+      "short_name": "OneUptime Dashboard",
       "description": "Open OneUptime Dashboard",
       "url": "/dashboard",
       "icons": [
         {
-          "src": "/img/favicons/android-chrome-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Sign Up",
-      "short_name": "Sign Up",
-      "description": "Create OneUptime account",
-      "url": "/accounts/register",
-      "icons": [
-        {
-          "src": "/img/favicons/android-chrome-192x192.png",
+          "src": "/dashboard/assets/img/favicons/android-chrome-192x192.png",
           "sizes": "192x192"
         }
       ]
