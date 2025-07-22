@@ -32,7 +32,7 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#4F46E5",
+  "theme_color": "#000000",
   "background_color": "#ffffff",
   "categories": ["productivity", "business", "utilities"],
   "lang": "en",
