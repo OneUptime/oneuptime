@@ -193,10 +193,17 @@ export default class OtelIngestService {
           dbLog.projectId = (req as TelemetryRequest).projectId;
           dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
-          dbLog.timeUnixNano = log["timeUnixNano"] as number;
-          dbLog.time = OneUptimeDate.fromUnixNano(
-            log["timeUnixNano"] as number,
-          );
+          // Set timeUnixNano to current time if not provided
+          if (log["timeUnixNano"]) {
+            dbLog.timeUnixNano = log["timeUnixNano"] as number;
+            dbLog.time = OneUptimeDate.fromUnixNano(
+              log["timeUnixNano"] as number,
+            );
+          } else {
+            const currentTime = OneUptimeDate.getCurrentDate();
+            dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+            dbLog.time = currentTime;
+          }
 
           let logSeverityNumber: number =
             (log["severityNumber"] as number) || 0;
