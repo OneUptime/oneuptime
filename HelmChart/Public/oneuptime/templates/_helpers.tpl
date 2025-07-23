@@ -559,7 +559,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.DisableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   template:
@@ -644,7 +644,7 @@ spec:
 
 
 {{- define "oneuptime.autoscaler" }}
-{{- if .Values.autoscaling.enabled }}
+{{- if and (.Values.autoscaling.enabled) (not .DisableAutoscaler) }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

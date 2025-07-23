@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.otelCollector.replicaCount }}
   replicas: {{ $.Values.deployment.otelCollector.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryCollector.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -121,6 +121,8 @@ spec:
 ---
 
 # OneUptime otel-collector autoscaler
+{{- if not $.Values.openTelemetryCollector.disableAutoscaler }}
 {{- $identityAutoScalerArgs := dict "ServiceName" "otel-collector" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $identityAutoScalerArgs }}
+{{- end }}
 ---

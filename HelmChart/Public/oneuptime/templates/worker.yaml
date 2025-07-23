@@ -14,7 +14,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "worker"  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.worker.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   template:
@@ -103,6 +103,8 @@ spec:
 ---
 
 # OneUptime app autoscaler
+{{- if not $.Values.worker.disableAutoscaler }}
 {{- $workerAutoScalerArgs := dict "ServiceName" "worker" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $workerAutoScalerArgs }}
+{{- end }}
 ---

@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.openTelemetryIngest.replicaCount }}
   replicas: {{ $.Values.deployment.openTelemetryIngest.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -114,6 +114,8 @@ spec:
 ---
 
 # OneUptime open-telemetry-ingest autoscaler
+{{- if not $.Values.openTelemetryIngest.disableAutoscaler }}
 {{- $openTelemetryIngestAutoScalerArgs := dict "ServiceName" "open-telemetry-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $openTelemetryIngestAutoScalerArgs }}
+{{- end }}
 ---

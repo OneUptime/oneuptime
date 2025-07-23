@@ -15,7 +15,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.nginx.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   template:
@@ -172,6 +172,8 @@ spec:
 ---
 
 # OneUptime nginx autoscaler
+{{- if not $.Values.nginx.disableAutoscaler }}
 {{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
+{{- end }}
 ---

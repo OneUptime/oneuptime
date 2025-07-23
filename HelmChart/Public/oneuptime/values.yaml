@@ -51,6 +51,7 @@ metalLb:
 
 nginx:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   listenAddress: ""
   listenOptions: ""
   service:
@@ -208,6 +209,7 @@ alerts:
 statusPage:
   cnameRecord:
   disableTelemetryCollection: false
+  disableAutoscaler: false
 
 probes:
   one:
@@ -268,6 +270,7 @@ port:
 testServer:
   enabled: false
   disableTelemetryCollection: false
+  disableAutoscaler: false
 
 
 openTelemetryExporter:
@@ -446,6 +449,7 @@ readinessProbe: # Readiness probe configuration
 # OpenTelemetry Collector Configuration
 openTelemetryCollector: 
   disableTelemetryCollection: false
+  disableAutoscaler: false
   sendingQueue: 
     enabled: true
     size: 1000
@@ -453,66 +457,82 @@ openTelemetryCollector:
 
 accounts: 
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 home: 
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 dashboard:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 adminDashboard:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 haraka:
+  disableAutoscaler: false
   resources:
 
 worker:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 workflow:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   workflowTimeoutInMs: 5000
   resources:
 
 apiReference:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 docs:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 app: 
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 probeIngest:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 openTelemetryIngest:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 fluentIngest:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 incomingRequestIngest:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 isolatedVM:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 serverMonitorIngest:
   disableTelemetryCollection: false
+  disableAutoscaler: false
   resources:
 
 

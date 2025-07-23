@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.probeIngest.replicaCount }}
   replicas: {{ $.Values.deployment.probeIngest.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.probeIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -114,6 +114,8 @@ spec:
 ---
 
 # OneUptime probe-ingest autoscaler
+{{- if not $.Values.probeIngest.disableAutoscaler }}
 {{- $probeIngestAutoScalerArgs := dict "ServiceName" "probe-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeIngestAutoScalerArgs }}
+{{- end }}
 ---

@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.serverMonitorIngest.replicaCount }}
   replicas: {{ $.Values.deployment.serverMonitorIngest.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.serverMonitorIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -114,6 +114,8 @@ spec:
 ---
 
 # OneUptime server-monitor-ingest autoscaler
+{{- if not $.Values.serverMonitorIngest.disableAutoscaler }}
 {{- $serverMonitorIngestAutoScalerArgs := dict "ServiceName" "server-monitor-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $serverMonitorIngestAutoScalerArgs }}
+{{- end }}
 ---

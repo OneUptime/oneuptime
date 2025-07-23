@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.incomingRequestIngest.replicaCount }}
   replicas: {{ $.Values.deployment.incomingRequestIngest.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.incomingRequestIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -114,6 +114,8 @@ spec:
 ---
 
 # OneUptime incoming-request-ingest autoscaler
+{{- if not $.Values.incomingRequestIngest.disableAutoscaler }}
 {{- $incomingRequestIngestAutoScalerArgs := dict "ServiceName" "incoming-request-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $incomingRequestIngestAutoScalerArgs }}
+{{- end }}
 ---

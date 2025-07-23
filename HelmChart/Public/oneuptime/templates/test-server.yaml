@@ -3,7 +3,7 @@
 # OneUptime testServer Deployment
 {{- $testServerPorts := dict "port" $.Values.port.testServer -}}
 {{- $testServerEnv := dict "PORT"  $.Values.port.testServer  "DISABLE_TELEMETRY" $.Values.testServer.disableTelemetryCollection -}}
-{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv "Resources" $.Values.testServer.resources -}}
+{{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv "Resources" $.Values.testServer.resources "DisableAutoscaler" $.Values.testServer.disableAutoscaler -}}
 {{- include "oneuptime.deployment" $testServerDeploymentArgs }}
 ---
 
@@ -14,7 +14,7 @@
 ---
 
 # OneUptime testServer autoscaler
-{{- $testServerAutoScalerArgs := dict "ServiceName" "test-server" "Release" $.Release "Values" $.Values -}}
+{{- $testServerAutoScalerArgs := dict "ServiceName" "test-server" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.testServer.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $testServerAutoScalerArgs }}
 ---
 

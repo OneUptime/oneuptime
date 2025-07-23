@@ -18,7 +18,7 @@ spec:
   {{- if $.Values.deployment.fluentIngest.replicaCount }}
   replicas: {{ $.Values.deployment.fluentIngest.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.fluentIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -114,6 +114,8 @@ spec:
 ---
 
 # OneUptime fluent-ingest autoscaler
+{{- if not $.Values.fluentIngest.disableAutoscaler }}
 {{- $fluentIngestAutoScalerArgs := dict "ServiceName" "fluent-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $fluentIngestAutoScalerArgs }}
+{{- end }}
 ---

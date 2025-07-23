@@ -15,7 +15,7 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.isolatedVM.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   template:
@@ -78,6 +78,8 @@ spec:
 
 
 # OneUptime isolatedVM autoscaler
+{{- if not $.Values.isolatedVM.disableAutoscaler }}
 {{- $isolatedVMAutoScalerArgs := dict "ServiceName" "isolated-vm" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $isolatedVMAutoScalerArgs }}
+{{- end }}
 ---
