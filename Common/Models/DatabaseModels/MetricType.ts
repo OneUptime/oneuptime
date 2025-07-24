@@ -57,10 +57,10 @@ import TelemetryService from "./TelemetryService";
   ],
 })
 @EnableWorkflow({
-  create: true,
-  delete: true,
-  update: true,
-  read: true,
+  create: false,
+  delete: false,
+  update: false,
+  read: false,
 })
 @CrudApiEndpoint(new Route("/metric-type"))
 @SlugifyColumn("name", "slug")
