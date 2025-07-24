@@ -24,6 +24,8 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
 
 @EnableDocumentation()
 @TenantColumn("projectId")
+@Index(["monitorId", "probeId"]) // Composite index for efficient monitor-probe relationship queries
+@Index(["monitorId", "projectId"]) // Alternative index for monitor queries within project
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,

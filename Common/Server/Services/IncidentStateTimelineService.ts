@@ -116,8 +116,9 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         throw new BadDataException("incidentStateId is null");
       }
 
-      const stateBeforeThis: IncidentStateTimeline | null =
-        await this.findOneBy({
+      // Execute queries for before and after states in parallel for better performance
+      const [stateBeforeThis, stateAfterThis] = await Promise.all([
+        this.findOneBy({
           query: {
             incidentId: createBy.data.incidentId,
             startsAt: QueryHelper.lessThanEqualTo(createBy.data.startsAt),
@@ -138,7 +139,25 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             startsAt: true,
             endsAt: true,
           },
-        });
+        }),
+        this.findOneBy({
+          query: {
+            incidentId: createBy.data.incidentId,
+            startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
+          },
+          sort: {
+            startsAt: SortOrder.Ascending,
+          },
+          props: {
+            isRoot: true,
+          },
+          select: {
+            incidentStateId: true,
+            startsAt: true,
+            endsAt: true,
+          },
+        })
+      ]);
 
       logger.debug("State Before this");
       logger.debug(stateBeforeThis);
@@ -196,26 +215,6 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           }
         }
       }
-
-      const stateAfterThis: IncidentStateTimeline | null = await this.findOneBy(
-        {
-          query: {
-            incidentId: createBy.data.incidentId,
-            startsAt: QueryHelper.greaterThan(createBy.data.startsAt),
-          },
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            incidentStateId: true,
-            startsAt: true,
-            endsAt: true,
-          },
-        },
-      );
 
       // compute ends at. It's the start of the next status.
       if (stateAfterThis && stateAfterThis.startsAt) {
