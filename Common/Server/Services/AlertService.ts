@@ -309,14 +309,10 @@ export class Service extends DatabaseService<Model> {
     const coreOperations: Array<Promise<any>> = [];
 
     // Create feed item asynchronously
-    coreOperations.push(
-      this.createAlertFeedAsync(alert, createdItem),
-    );
+    coreOperations.push(this.createAlertFeedAsync(alert, createdItem));
 
     // Handle state change asynchronously
-    coreOperations.push(
-      this.handleAlertStateChangeAsync(createdItem),
-    );
+    coreOperations.push(this.handleAlertStateChangeAsync(createdItem));
 
     // Handle owner assignment asynchronously
     if (
@@ -338,46 +334,49 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-
-
     // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations).then((coreResults) => {
-      // Log any errors from core operations
-      coreResults.forEach((result, index) => {
-        if (result.status === "rejected") {
-          logger.error(
-            `Core operation ${index} failed in AlertService.onCreateSuccess: ${result.reason}`,
+    Promise.allSettled(coreOperations)
+      .then((coreResults) => {
+        // Log any errors from core operations
+        coreResults.forEach((result, index) => {
+          if (result.status === "rejected") {
+            logger.error(
+              `Core operation ${index} failed in AlertService.onCreateSuccess: ${result.reason}`,
+            );
+          }
+        });
+
+        // Handle on-call duty policies asynchronously
+        if (
+          createdItem.onCallDutyPolicies?.length &&
+          createdItem.onCallDutyPolicies?.length > 0
+        ) {
+          this.executeAlertOnCallDutyPoliciesAsync(createdItem).catch(
+            (error) => {
+              logger.error(
+                `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
+              );
+            },
           );
         }
-      });
 
-
-          // Handle on-call duty policies asynchronously
-    if (
-      createdItem.onCallDutyPolicies?.length &&
-      createdItem.onCallDutyPolicies?.length > 0
-    ) {
-     this.executeAlertOnCallDutyPoliciesAsync(createdItem).catch((error) => {
+        // Handle workspace operations after core operations complete
+        if (createdItem.projectId && createdItem.id) {
+          // Run workspace operations in background without blocking response
+          this.handleAlertWorkspaceOperationsAsync(createdItem).catch(
+            (error) => {
+              logger.error(
+                `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
+              );
+            },
+          );
+        }
+      })
+      .catch((error) => {
         logger.error(
-          `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
+          `Critical error in AlertService core operations: ${error}`,
         );
       });
-    }
-
-      // Handle workspace operations after core operations complete
-      if (createdItem.projectId && createdItem.id) {
-        // Run workspace operations in background without blocking response
-        this.handleAlertWorkspaceOperationsAsync(createdItem).catch((error) => {
-          logger.error(
-            `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
-          );
-        });
-      }
-    }).catch((error) => {
-      logger.error(
-        `Critical error in AlertService core operations: ${error}`,
-      );
-    });
 
     return createdItem;
   }
@@ -538,15 +537,15 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.onCallDutyPolicies?.length > 0
       ) {
         // Execute all on-call policies in parallel
-        const policyPromises = createdItem.onCallDutyPolicies.map((policy) =>
-          OnCallDutyPolicyService.executePolicy(
+        const policyPromises = createdItem.onCallDutyPolicies.map((policy) => {
+          return OnCallDutyPolicyService.executePolicy(
             new ObjectID(policy._id as string),
             {
               triggeredByAlertId: createdItem.id!,
               userNotificationEventType: UserNotificationEventType.AlertCreated,
             },
-          ),
-        );
+          );
+        });
 
         await Promise.allSettled(policyPromises);
       }

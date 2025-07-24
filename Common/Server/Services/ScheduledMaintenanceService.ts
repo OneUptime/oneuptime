@@ -616,30 +616,34 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations).then((coreResults) => {
-      // Log any errors from core operations
-      coreResults.forEach((result, index) => {
-        if (result.status === "rejected") {
-          logger.error(
-            `Core operation ${index} failed in ScheduledMaintenanceService.onCreateSuccess: ${result.reason}`,
-          );
-        }
-      });
-
-      // Handle workspace operations after core operations complete
-      if (createdItem.projectId && createdItem.id) {
-        // Run workspace operations in background without blocking response
-        this.handleScheduledMaintenanceWorkspaceOperationsAsync(createdItem).catch((error) => {
-          logger.error(
-            `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-          );
+    Promise.allSettled(coreOperations)
+      .then((coreResults) => {
+        // Log any errors from core operations
+        coreResults.forEach((result, index) => {
+          if (result.status === "rejected") {
+            logger.error(
+              `Core operation ${index} failed in ScheduledMaintenanceService.onCreateSuccess: ${result.reason}`,
+            );
+          }
         });
-      }
-    }).catch((error) => {
-      logger.error(
-        `Critical error in ScheduledMaintenanceService core operations: ${error}`,
-      );
-    });
+
+        // Handle workspace operations after core operations complete
+        if (createdItem.projectId && createdItem.id) {
+          // Run workspace operations in background without blocking response
+          this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+            createdItem,
+          ).catch((error) => {
+            logger.error(
+              `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+            );
+          });
+        }
+      })
+      .catch((error) => {
+        logger.error(
+          `Critical error in ScheduledMaintenanceService core operations: ${error}`,
+        );
+      });
 
     return createdItem;
   }
@@ -753,9 +757,7 @@ ${createdItem.description || "No description provided."}
         },
       });
     } catch (error) {
-      logger.error(
-        `Error in createScheduledMaintenanceFeedAsync: ${error}`,
-      );
+      logger.error(`Error in createScheduledMaintenanceFeedAsync: ${error}`);
       throw error;
     }
   }
