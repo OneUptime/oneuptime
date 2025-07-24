@@ -547,36 +547,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    // create new scheduled maintenance state timeline.
-
-    const createdByUserId: ObjectID | undefined | null =
-      createdItem.createdByUserId || createdItem.createdByUser?.id;
-
-    // send message to workspaces - slack, teams,   etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
-      await ScheduledMaintenanceWorkspaceMessages.createChannelsAndInviteUsersToChannels(
-        {
-          projectId: createdItem.projectId!,
-          scheduledMaintenanceId: createdItem.id!,
-          scheduledMaintenanceNumber: createdItem.scheduledMaintenanceNumber!,
-        },
-      );
-
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update scheduledMaintenance with these channels.
-      await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
+    // Get scheduled maintenance data for feed creation
     const scheduledMaintenance: Model | null = await this.findOneById({
       id: createdItem.id!,
       select: {
@@ -606,83 +577,23 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       throw new BadDataException("Scheduled Maintenance not found");
     }
 
-    let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${createdItem.scheduledMaintenanceNumber?.toString()} Created: 
-          
-**${createdItem.title || "No title provided."}**:
-    
-${createdItem.description || "No description provided."}
-    
-`;
+    // Execute core operations in parallel first
+    const coreOperations: Array<Promise<any>> = [];
 
-    // add starts at and ends at.
-    if (scheduledMaintenance.startsAt) {
-      feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
-    }
-
-    if (scheduledMaintenance.endsAt) {
-      feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
-    }
-
-    if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
-      feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
-    }
-
-    if (
-      scheduledMaintenance.monitors &&
-      scheduledMaintenance.monitors.length > 0
-    ) {
-      feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
-
-      for (const monitor of scheduledMaintenance.monitors) {
-        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
-      }
-
-      feedInfoInMarkdown += `\n\n`;
-    }
-
-    const scheduledMaintenanceCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
-      await ScheduledMaintenanceWorkspaceMessages.getScheduledMaintenanceCreateMessageBlocks(
-        {
-          scheduledMaintenanceId: createdItem.id!,
-          projectId: createdItem.projectId!,
-        },
-      );
-
-    await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-      scheduledMaintenanceId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      scheduledMaintenanceFeedEventType:
-        ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
-      displayColor: Red500,
-      feedInfoInMarkdown: feedInfoInMarkdown,
-      userId: createdByUserId || undefined,
-      workspaceNotification: {
-        appendMessageBlocks: scheduledMaintenanceCreateMessageBlocks,
-        sendWorkspaceNotification: true,
-      },
-    });
-
-    const timeline: ScheduledMaintenanceStateTimeline =
-      new ScheduledMaintenanceStateTimeline();
-    timeline.projectId = createdItem.projectId!;
-    timeline.scheduledMaintenanceId = createdItem.id!;
-    timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, no need to notify them for timeline event.
-    timeline.shouldStatusPageSubscribersBeNotified = Boolean(
-      createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
+    // Create feed item asynchronously
+    coreOperations.push(
+      this.createScheduledMaintenanceFeedAsync(
+        scheduledMaintenance,
+        createdItem,
+      ),
     );
-    timeline.isStatusPageSubscribersNotified = Boolean(
-      createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
-    ); // ignore notifying subscribers because you already notify for Scheduled Event, no need to notify them for timeline event.
-    timeline.scheduledMaintenanceStateId =
-      createdItem.currentScheduledMaintenanceStateId!;
 
-    await ScheduledMaintenanceStateTimelineService.create({
-      data: timeline,
-      props: {
-        isRoot: true,
-      },
-    });
+    // Create state timeline asynchronously
+    coreOperations.push(
+      this.createScheduledMaintenanceStateTimelineAsync(createdItem),
+    );
 
+    // Handle owner assignment asynchronously
     if (
       createdItem.projectId &&
       createdItem.id &&
@@ -690,19 +601,196 @@ ${createdItem.description || "No description provided."}
       (onCreate.createBy.miscDataProps["ownerTeams"] ||
         onCreate.createBy.miscDataProps["ownerUsers"])
     ) {
-      await this.addOwners(
-        createdItem.projectId!,
-        createdItem.id!,
-        (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
-        (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
-        false,
-        onCreate.createBy.props,
+      coreOperations.push(
+        this.addOwners(
+          createdItem.projectId!,
+          createdItem.id!,
+          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+            [],
+          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+            [],
+          false,
+          onCreate.createBy.props,
+        ),
       );
     }
 
+    // Execute core operations in parallel with error handling
+    Promise.allSettled(coreOperations).then((coreResults) => {
+      // Log any errors from core operations
+      coreResults.forEach((result, index) => {
+        if (result.status === "rejected") {
+          logger.error(
+            `Core operation ${index} failed in ScheduledMaintenanceService.onCreateSuccess: ${result.reason}`,
+          );
+        }
+      });
+
+      // Handle workspace operations after core operations complete
+      if (createdItem.projectId && createdItem.id) {
+        // Run workspace operations in background without blocking response
+        this.handleScheduledMaintenanceWorkspaceOperationsAsync(createdItem).catch((error) => {
+          logger.error(
+            `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+        });
+      }
+    }).catch((error) => {
+      logger.error(
+        `Critical error in ScheduledMaintenanceService core operations: ${error}`,
+      );
+    });
+
     return createdItem;
+  }
+
+  @CaptureSpan()
+  private async handleScheduledMaintenanceWorkspaceOperationsAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for workspace operations",
+        );
+      }
+
+      // send message to workspaces - slack, teams, etc.
+      const workspaceResult: {
+        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+      } | null =
+        await ScheduledMaintenanceWorkspaceMessages.createChannelsAndInviteUsersToChannels(
+          {
+            projectId: createdItem.projectId,
+            scheduledMaintenanceId: createdItem.id,
+            scheduledMaintenanceNumber: createdItem.scheduledMaintenanceNumber!,
+          },
+        );
+
+      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+        // update scheduledMaintenance with these channels.
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            postUpdatesToWorkspaceChannels:
+              workspaceResult.channelsCreated || [],
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(
+        `Error in handleScheduledMaintenanceWorkspaceOperationsAsync: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async createScheduledMaintenanceFeedAsync(
+    scheduledMaintenance: Model,
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      const createdByUserId: ObjectID | undefined | null =
+        createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${createdItem.scheduledMaintenanceNumber?.toString()} Created: 
+            
+**${createdItem.title || "No title provided."}**:
+      
+${createdItem.description || "No description provided."}
+      
+`;
+
+      // add starts at and ends at.
+      if (scheduledMaintenance.startsAt) {
+        feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
+      }
+
+      if (scheduledMaintenance.endsAt) {
+        feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
+      }
+
+      if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
+        feedInfoInMarkdown += `⏳ **Scheduled Maintenance State**: ${scheduledMaintenance.currentScheduledMaintenanceState.name} \n\n`;
+      }
+
+      if (
+        scheduledMaintenance.monitors &&
+        scheduledMaintenance.monitors.length > 0
+      ) {
+        feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+        for (const monitor of scheduledMaintenance.monitors) {
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      const scheduledMaintenanceCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+        await ScheduledMaintenanceWorkspaceMessages.getScheduledMaintenanceCreateMessageBlocks(
+          {
+            scheduledMaintenanceId: createdItem.id!,
+            projectId: createdItem.projectId!,
+          },
+        );
+
+      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
+        scheduledMaintenanceId: createdItem.id!,
+        projectId: createdItem.projectId!,
+        scheduledMaintenanceFeedEventType:
+          ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
+        displayColor: Red500,
+        feedInfoInMarkdown: feedInfoInMarkdown,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          appendMessageBlocks: scheduledMaintenanceCreateMessageBlocks,
+          sendWorkspaceNotification: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error in createScheduledMaintenanceFeedAsync: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async createScheduledMaintenanceStateTimelineAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      const timeline: ScheduledMaintenanceStateTimeline =
+        new ScheduledMaintenanceStateTimeline();
+      timeline.projectId = createdItem.projectId!;
+      timeline.scheduledMaintenanceId = createdItem.id!;
+      timeline.isOwnerNotified = true; // ignore notifying owners because you already notify for Scheduled Event, no need to notify them for timeline event.
+      timeline.shouldStatusPageSubscribersBeNotified = Boolean(
+        createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
+      );
+      timeline.isStatusPageSubscribersNotified = Boolean(
+        createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
+      ); // ignore notifying subscribers because you already notify for Scheduled Event, no need to notify them for timeline event.
+      timeline.scheduledMaintenanceStateId =
+        createdItem.currentScheduledMaintenanceStateId!;
+
+      await ScheduledMaintenanceStateTimelineService.create({
+        data: timeline,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `Error in createScheduledMaintenanceStateTimelineAsync: ${error}`,
+      );
+      throw error;
+    }
   }
 
   @CaptureSpan()
