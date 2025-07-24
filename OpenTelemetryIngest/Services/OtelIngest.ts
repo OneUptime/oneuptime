@@ -107,7 +107,7 @@ export default class OtelIngestService {
   }
 
   @CaptureSpan()
-  private static async processLogsAsync(req: ExpressRequest): Promise<void> {
+  public static async processLogsAsync(req: ExpressRequest): Promise<void> {
     const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
     const dbLogs: Array<Log> = [];
@@ -313,7 +313,7 @@ export default class OtelIngestService {
   }
 
   @CaptureSpan()
-  private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
+  public static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     const resourceMetrics: JSONArray = req.body["resourceMetrics"] as JSONArray;
 
     const dbMetrics: Array<Metric> = [];
@@ -552,7 +552,7 @@ export default class OtelIngestService {
   }
 
   @CaptureSpan()
-  private static async processTracesAsync(req: ExpressRequest): Promise<void> {
+  public static async processTracesAsync(req: ExpressRequest): Promise<void> {
     const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
 
     const dbSpans: Array<Span> = [];

@@ -16,6 +16,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export enum QueueName {
   Workflow = "Workflow",
   Worker = "Worker",
+  OtelIngestTraces = "OtelIngestTraces",
+  OtelIngestMetrics = "OtelIngestMetrics",
+  OtelIngestLogs = "OtelIngestLogs",
 }
 
 export type QueueJob = Job;
