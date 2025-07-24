@@ -517,7 +517,7 @@ ${createdItem.description?.trim() || "No description provided."}
     );
 
     // 2. Start heavy operations in parallel that can run asynchronously
-    
+
     // Add default probes if needed (can be slow with many probes)
     if (
       createdItem.monitorType &&
@@ -531,10 +531,10 @@ ${createdItem.description?.trim() || "No description provided."}
           logger.error("Error in adding default probes");
           logger.error(error);
           // Don't fail monitor creation due to probe creation issues
-        })
+        }),
       );
     }
-    
+
     // Workspace operations (can be slow due to external API calls)
     parallelOperations.push(
       this.handleWorkspaceOperationsAsync({
@@ -547,7 +547,7 @@ ${createdItem.description?.trim() || "No description provided."}
         logger.error("Error in workspace operations");
         logger.error(error);
         // Don't fail monitor creation due to workspace issues
-      })
+      }),
     );
 
     // Billing operations
@@ -559,7 +559,7 @@ ${createdItem.description?.trim() || "No description provided."}
           logger.error("Error in billing operations");
           logger.error(error);
           // Don't fail monitor creation due to billing issues
-        })
+        }),
       );
     }
 
@@ -583,7 +583,7 @@ ${createdItem.description?.trim() || "No description provided."}
           logger.error("Error in adding owners");
           logger.error(error);
           // Don't fail monitor creation due to owner issues
-        })
+        }),
       );
     }
 
@@ -593,7 +593,7 @@ ${createdItem.description?.trim() || "No description provided."}
         logger.error("Error in refreshing probe status");
         logger.error(error);
         // Don't fail monitor creation due to probe status issues
-      })
+      }),
     );
 
     // Wait for all parallel operations to complete (but don't block monitor creation)
@@ -842,7 +842,7 @@ ${createdItem.description?.trim() || "No description provided."}
           props: {
             isRoot: true,
           },
-        })
+        }),
       );
     }
 

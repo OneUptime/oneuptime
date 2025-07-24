@@ -54,6 +54,10 @@ export default class OtelIngestService {
         global.gc();
       }
     } catch (error) {
+      logger.error(error);
+      logger.debug(
+        "Garbage collection not triggered. Ensure Node.js is started with --expose-gc flag.",
+      );
       // GC not available, ignore
     }
   }
@@ -224,7 +228,7 @@ export default class OtelIngestService {
               log["timeUnixNano"] as number,
             );
           } else {
-            const currentTime = OneUptimeDate.getCurrentDate();
+            const currentTime: Date = OneUptimeDate.getCurrentDate();
             dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
             dbLog.time = currentTime;
           }
@@ -273,7 +277,7 @@ export default class OtelIngestService {
     try {
       dbLogs.length = 0;
       attributeKeySet.clear();
-      
+
       // Clear request body to free memory
       if (req.body) {
         req.body = null;
@@ -545,7 +549,7 @@ export default class OtelIngestService {
     }
 
     // Index metric name service name map asynchronously but ensure proper error handling
-    const indexMetricPromise = TelemetryUtil.indexMetricNameServiceNameMap({
+    TelemetryUtil.indexMetricNameServiceNameMap({
       metricNameServiceNameMap: metricNameServiceNameMap,
       projectId: (req as TelemetryRequest).projectId,
     }).catch((err: Error) => {
@@ -570,14 +574,13 @@ export default class OtelIngestService {
         projectId: (req as TelemetryRequest).projectId,
         productType: ProductType.Metrics,
       }),
-      indexMetricPromise, // Include the indexing promise to ensure it completes
     ]);
 
     // Memory cleanup: Clear large objects to help GC
     try {
       dbMetrics.length = 0;
       attributeKeySet.clear();
-      
+
       // Clear request body to free memory
       if (req.body) {
         req.body = null;
@@ -810,7 +813,7 @@ export default class OtelIngestService {
       dbSpans.length = 0;
       dbExceptions.length = 0;
       attributeKeySet.clear();
-      
+
       // Clear request body to free memory
       if (req.body) {
         req.body = null;
@@ -902,10 +905,12 @@ export default class OtelIngestService {
 
           // save exception status
           // Fix: Await the async operation to prevent memory leaks from unhandled promises
-          ExceptionUtil.saveOrUpdateTelemetryException(exception).catch((err: Error) => {
-            logger.error("Error saving/updating telemetry exception:");
-            logger.error(err);
-          });
+          ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
+            (err: Error) => {
+              logger.error("Error saving/updating telemetry exception:");
+              logger.error(err);
+            },
+          );
         }
       }
     }
