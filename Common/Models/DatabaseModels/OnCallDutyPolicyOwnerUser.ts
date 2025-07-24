@@ -71,6 +71,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "OnCallDutyPolicyOwnerUser",
 })
+@Index(["onCallDutyPolicyId", "userId", "projectId"])
 export default class OnCallDutyPolicyOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [
