@@ -293,5 +293,5 @@ export default [
   AddEnableCustomSubscriberEmailNotificationFooterText1753131488925,
   MigrationName1753343522987,
   MigrationName1753377161288,
-  AddPerformanceIndexes1753378524062
+  AddPerformanceIndexes1753378524062,
 ];
