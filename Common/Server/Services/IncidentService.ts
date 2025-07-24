@@ -622,9 +622,9 @@ export class Service extends DatabaseService<Model> {
 
     // Execute core operations in parallel with error handling
     Promise.allSettled(coreOperations)
-      .then((coreResults) => {
+      .then((coreResults: PromiseSettledResult<void>[]) => {
         // Log any errors from core operations
-        coreResults.forEach((result, index) => {
+        coreResults.forEach((result: PromiseSettledResult<void>, index: number) => {
           if (result.status === "rejected") {
             logger.error(
               `Core operation ${index} failed in IncidentService.onCreateSuccess: ${result.reason}`,
@@ -637,7 +637,7 @@ export class Service extends DatabaseService<Model> {
           createdItem.onCallDutyPolicies?.length &&
           createdItem.onCallDutyPolicies?.length > 0
         ) {
-          this.executeOnCallDutyPoliciesAsync(createdItem).catch((error) => {
+          this.executeOnCallDutyPoliciesAsync(createdItem).catch((error: Error) => {
             logger.error(
               `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
             );

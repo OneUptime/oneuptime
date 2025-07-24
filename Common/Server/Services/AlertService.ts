@@ -54,6 +54,7 @@ import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -336,9 +337,9 @@ export class Service extends DatabaseService<Model> {
 
     // Execute core operations in parallel with error handling
     Promise.allSettled(coreOperations)
-      .then((coreResults) => {
+      .then((coreResults: PromiseSettledResult<void>[]) => {
         // Log any errors from core operations
-        coreResults.forEach((result, index) => {
+        coreResults.forEach((result: PromiseSettledResult<void>, index: number) => {
           if (result.status === "rejected") {
             logger.error(
               `Core operation ${index} failed in AlertService.onCreateSuccess: ${result.reason}`,
@@ -352,7 +353,7 @@ export class Service extends DatabaseService<Model> {
           createdItem.onCallDutyPolicies?.length > 0
         ) {
           this.executeAlertOnCallDutyPoliciesAsync(createdItem).catch(
-            (error) => {
+            (error: Error) => {
               logger.error(
                 `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
               );
@@ -364,7 +365,7 @@ export class Service extends DatabaseService<Model> {
         if (createdItem.projectId && createdItem.id) {
           // Run workspace operations in background without blocking response
           this.handleAlertWorkspaceOperationsAsync(createdItem).catch(
-            (error) => {
+            (error: Error) => {
               logger.error(
                 `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
               );
@@ -372,7 +373,7 @@ export class Service extends DatabaseService<Model> {
           );
         }
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         logger.error(
           `Critical error in AlertService core operations: ${error}`,
         );
@@ -537,9 +538,9 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.onCallDutyPolicies?.length > 0
       ) {
         // Execute all on-call policies in parallel
-        const policyPromises = createdItem.onCallDutyPolicies.map((policy) => {
+        const policyPromises: Promise<void>[] = createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
           return OnCallDutyPolicyService.executePolicy(
-            new ObjectID(policy._id as string),
+            new ObjectID(policy["_id"] as string),
             {
               triggeredByAlertId: createdItem.id!,
               userNotificationEventType: UserNotificationEventType.AlertCreated,
