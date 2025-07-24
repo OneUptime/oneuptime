@@ -144,6 +144,7 @@ import { MigrationName1753109689244 } from "./1753109689244-MigrationName";
 import { AddEnableCustomSubscriberEmailNotificationFooterText1753131488925 } from "./1753131488925-AddEnableCustomSubscriberEmailNotificationFooterText";
 import { MigrationName1753343522987 } from "./1753343522987-MigrationName";
 import { MigrationName1753377161288 } from "./1753377161288-MigrationName";
+import { AddPerformanceIndexes1753378524062 } from "./1753378524062-AddPerformanceIndexes";
 
 export default [
   InitialMigration,
@@ -291,5 +292,6 @@ export default [
   MigrationName1753109689244,
   AddEnableCustomSubscriberEmailNotificationFooterText1753131488925,
   MigrationName1753343522987,
-  MigrationName1753377161288
+  MigrationName1753377161288,
+  AddPerformanceIndexes1753378524062
 ];
