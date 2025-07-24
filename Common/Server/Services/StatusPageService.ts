@@ -194,8 +194,7 @@ export class Service extends DatabaseService<StatusPage> {
     onCreate: OnCreate<StatusPage>,
     createdItem: StatusPage,
   ): Promise<StatusPage> {
-    // add owners.
-
+    // Execute owner assignment asynchronously
     if (
       createdItem.projectId &&
       createdItem.id &&
@@ -203,16 +202,19 @@ export class Service extends DatabaseService<StatusPage> {
       (onCreate.createBy.miscDataProps["ownerTeams"] ||
         onCreate.createBy.miscDataProps["ownerUsers"])
     ) {
-      await this.addOwners(
+      // Run owner assignment in background without blocking
+      this.addOwners(
         createdItem.projectId!,
         createdItem.id!,
-        (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+        (onCreate.createBy.miscDataProps!["ownerUsers"] as Array<ObjectID>) ||
           [],
-        (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+        (onCreate.createBy.miscDataProps!["ownerTeams"] as Array<ObjectID>) ||
           [],
         false,
         onCreate.createBy.props,
-      );
+      ).catch((error) => {
+        logger.error(`Error in StatusPageService owner assignment: ${error}`);
+      });
     }
 
     return createdItem;
