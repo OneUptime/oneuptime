@@ -516,7 +516,7 @@ ${createdItem.description?.trim() || "No description provided."}
       onCreate.createBy.props,
     );
 
-    // 2. Start heavy operations in parallel that can run asynchronously
+    // 2. Start core operations in parallel that can run asynchronously (excluding workspace operations)
 
     // Add default probes if needed (can be slow with many probes)
     if (
@@ -534,21 +534,6 @@ ${createdItem.description?.trim() || "No description provided."}
         }),
       );
     }
-
-    // Workspace operations (can be slow due to external API calls)
-    parallelOperations.push(
-      this.handleWorkspaceOperationsAsync({
-        projectId: createdItem.projectId,
-        monitorId: createdItem.id!,
-        monitorName: createdItem.name!,
-        feedInfoInMarkdown,
-        createdByUserId,
-      }).catch((error: Error) => {
-        logger.error("Error in workspace operations");
-        logger.error(error);
-        // Don't fail monitor creation due to workspace issues
-      }),
-    );
 
     // Billing operations
     if (IsBillingEnabled) {
@@ -596,11 +581,27 @@ ${createdItem.description?.trim() || "No description provided."}
       }),
     );
 
-    // Wait for all parallel operations to complete (but don't block monitor creation)
-    Promise.allSettled(parallelOperations).catch((error: Error) => {
-      logger.error("Error in parallel monitor creation operations");
-      logger.error(error);
-    });
+    // Wait for core operations to complete, then handle workspace operations
+    Promise.allSettled(parallelOperations)
+      .then(() => {
+        // Handle workspace operations after core operations complete
+        // Run workspace operations in background without blocking response
+        this.handleWorkspaceOperationsAsync({
+          projectId: createdItem.projectId!,
+          monitorId: createdItem.id!,
+          monitorName: createdItem.name!,
+          feedInfoInMarkdown,
+          createdByUserId,
+        }).catch((error) => {
+          logger.error("Error in workspace operations");
+          logger.error(error);
+          // Don't fail monitor creation due to workspace issues
+        });
+      })
+      .catch((error: Error) => {
+        logger.error("Error in parallel monitor creation operations");
+        logger.error(error);
+      });
 
     return createdItem;
   }
