@@ -174,7 +174,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async resolveIncident(
     incidentId: ObjectID,
-    resolvedByUserId: ObjectID,
+    resolvedByUserId: ObjectID
   ): Promise<Model> {
     // check if the incident is already resolved.
     const isIncidentResolved: boolean = await this.isIncidentResolved({
@@ -216,7 +216,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!incidentState || !incidentState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
       );
     }
 
@@ -242,7 +242,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async acknowledgeIncident(
     incidentId: ObjectID,
-    acknowledgedByUserId: ObjectID,
+    acknowledgedByUserId: ObjectID
   ): Promise<Model> {
     // check if the incident is already acknowledged.
     const isIncidentAcknowledged: boolean = await this.isIncidentAcknowledged({
@@ -284,7 +284,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!incidentState || !incidentState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Acknowledged state not found for this project. Please add acknowledged state from settings."
       );
     }
 
@@ -337,7 +337,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
+    updateBy: UpdateBy<Model>
   ): Promise<OnUpdate<Model>> {
     // get monitors for this incident.
     // if the monitors are removed then change them to operational state.
@@ -393,7 +393,7 @@ export class Service extends DatabaseService<Model> {
 
           if (isRemoved) {
             carryForward[incident.id!.toString()]?.monitorsRemoved?.push(
-              monitor,
+              monitor
             );
           }
         }
@@ -417,7 +417,7 @@ export class Service extends DatabaseService<Model> {
             if (isAdded) {
               // this monitor is added.
               carryForward[incident.id!.toString()]?.monitorsAdded?.push(
-                monitor,
+                monitor
               );
             }
           }
@@ -433,7 +433,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
+    createBy: CreateBy<Model>
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
@@ -458,7 +458,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!incidentState || !incidentState.id) {
       throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
+        "Created incident state not found for this project. Please add created incident state from settings."
       );
     }
 
@@ -476,14 +476,14 @@ export class Service extends DatabaseService<Model> {
         "Mutex acquired - IncidentService.incident-create " +
           projectId.toString() +
           " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+          OneUptimeDate.getCurrentDateAsFormattedString()
       );
     } catch (err) {
       logger.debug(
         "Mutex acquire failed - IncidentService.incident-create " +
           projectId.toString() +
           " at " +
-          OneUptimeDate.getCurrentDateAsFormattedString(),
+          OneUptimeDate.getCurrentDateAsFormattedString()
       );
       logger.error(err);
     }
@@ -517,7 +517,7 @@ export class Service extends DatabaseService<Model> {
           {
             userId: userId!,
             projectId: projectId,
-          },
+          }
         )}`;
       }
     }
@@ -533,7 +533,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model,
+    createdItem: Model
   ): Promise<Model> {
     // these should never be null.
     if (!createdItem.projectId) {
@@ -544,6 +544,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("id is required");
     }
 
+    // Get incident data for feed creation
     const incident: Model | null = await this.findOneById({
       id: createdItem.id,
       select: {
@@ -576,204 +577,342 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Incident not found");
     }
 
-    // release the mutex.
-    if (onCreate.carryForward && onCreate.carryForward.mutex) {
-      const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
-      const projectId: ObjectID = createdItem.projectId!;
+    // Execute core operations in parallel first
+    const coreOperations: Array<Promise<any>> = [];
 
-      try {
-        await Semaphore.release(mutex);
-        logger.debug(
-          "Mutex released - IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+    // Create feed item asynchronously
+    coreOperations.push(this.createIncidentFeedAsync(incident, createdItem));
+
+    // Handle state change asynchronously
+    coreOperations.push(this.handleIncidentStateChangeAsync(createdItem));
+
+    // Handle owner assignment asynchronously
+    if (
+      onCreate.createBy.miscDataProps &&
+      (onCreate.createBy.miscDataProps["ownerTeams"] ||
+        onCreate.createBy.miscDataProps["ownerUsers"])
+    ) {
+      coreOperations.push(
+        this.addOwners(
+          createdItem.projectId,
+          createdItem.id,
+          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+            [],
+          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+            [],
+          false,
+          onCreate.createBy.props
+        )
+      );
+    }
+
+    // Handle monitor status change and active monitoring asynchronously
+    if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+      coreOperations.push(
+        this.handleMonitorStatusChangeAsync(createdItem, onCreate)
+      );
+    }
+
+    coreOperations.push(
+      this.disableActiveMonitoringIfManualIncident(createdItem.id!)
+    );
+
+    // Release mutex immediately
+    this.releaseMutexAsync(onCreate, createdItem.projectId!);
+
+    // Execute core operations in parallel with error handling
+    Promise.allSettled(coreOperations)
+      .then((coreResults) => {
+        // Log any errors from core operations
+        coreResults.forEach((result, index) => {
+          if (result.status === "rejected") {
+            logger.error(
+              `Core operation ${index} failed in IncidentService.onCreateSuccess: ${result.reason}`
+            );
+          }
+        });
+
+        // Handle on-call duty policies asynchronously
+        if (
+          createdItem.onCallDutyPolicies?.length &&
+          createdItem.onCallDutyPolicies?.length > 0
+        ) {
+          this.executeOnCallDutyPoliciesAsync(createdItem).catch((error) => {
+            logger.error(
+              `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`
+            );
+          });
+        }
+
+        // Handle workspace operations after core operations complete
+        if (createdItem.projectId && createdItem.id) {
+          // Run workspace operations in background without blocking response
+          this.handleIncidentWorkspaceOperationsAsync(createdItem).catch(
+            (error) => {
+              logger.error(
+                `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`
+              );
+            }
+          );
+        }
+      })
+      .catch((error) => {
+        logger.error(
+          `Critical error in IncidentService core operations: ${error}`
         );
-      } catch (err) {
-        logger.debug(
-          "Mutex release failed -  IncidentService.incident-create " +
-            projectId.toString() +
-            " at " +
-            OneUptimeDate.getCurrentDateAsFormattedString(),
+      });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  private async handleIncidentWorkspaceOperationsAsync(
+    createdItem: Model
+  ): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for workspace operations"
         );
-        logger.error(err);
       }
+
+      // send message to workspaces - slack, teams, etc.
+      const workspaceResult: {
+        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+      } | null =
+        await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+          projectId: createdItem.projectId,
+          incidentId: createdItem.id,
+          incidentNumber: createdItem.incidentNumber!,
+        });
+
+      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+        // update incident with these channels.
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            postUpdatesToWorkspaceChannels:
+              workspaceResult.channelsCreated || [],
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(`Error in handleIncidentWorkspaceOperationsAsync: ${error}`);
+      throw error;
     }
+  }
 
-    const createdByUserId: ObjectID | undefined | null =
-      createdItem.createdByUserId || createdItem.createdByUser?.id;
+  @CaptureSpan()
+  private async createIncidentFeedAsync(
+    incident: Model,
+    createdItem: Model
+  ): Promise<void> {
+    try {
+      const createdByUserId: ObjectID | undefined | null =
+        createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    // send message to workspaces - slack, teams,   etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
-      await IncidentWorkspaceMessages.createChannelsAndInviteUsersToChannels({
-        projectId: createdItem.projectId,
-        incidentId: createdItem.id!,
-        incidentNumber: createdItem.incidentNumber!,
-      });
-
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update incident with these channels.
-      await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    let feedInfoInMarkdown: string = `#### 🚨 Incident ${createdItem.incidentNumber?.toString()} Created: 
-      
+      let feedInfoInMarkdown: string = `#### 🚨 Incident ${createdItem.incidentNumber?.toString()} Created: 
+        
 **${createdItem.title || "No title provided."}**:
 
 ${createdItem.description || "No description provided."}
 
 `;
 
-    if (incident.currentIncidentState?.name) {
-      feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
-    }
-
-    if (incident.incidentSeverity?.name) {
-      feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
-    }
-
-    if (incident.monitors && incident.monitors.length > 0) {
-      feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
-
-      for (const monitor of incident.monitors) {
-        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+      if (incident.currentIncidentState?.name) {
+        feedInfoInMarkdown += `🔴 **Incident State**: ${incident.currentIncidentState.name} \n\n`;
       }
 
-      feedInfoInMarkdown += `\n\n`;
-    }
+      if (incident.incidentSeverity?.name) {
+        feedInfoInMarkdown += `⚠️ **Severity**: ${incident.incidentSeverity.name} \n\n`;
+      }
 
-    if (createdItem.rootCause) {
-      feedInfoInMarkdown += `\n
+      if (incident.monitors && incident.monitors.length > 0) {
+        feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+        for (const monitor of incident.monitors) {
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+        }
+
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      if (createdItem.rootCause) {
+        feedInfoInMarkdown += `\n
 📄 **Root Cause**:
 
 ${createdItem.rootCause || "No root cause provided."}
 
 `;
-    }
+      }
 
-    if (createdItem.remediationNotes) {
-      feedInfoInMarkdown += `\n 
+      if (createdItem.remediationNotes) {
+        feedInfoInMarkdown += `\n 
 🎯 **Remediation Notes**:
 
 ${createdItem.remediationNotes || "No remediation notes provided."}
 
 
 `;
-    }
+      }
 
-    const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
-      await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
+      const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+        await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
+          incidentId: createdItem.id!,
+          projectId: createdItem.projectId!,
+        });
+
+      await IncidentFeedService.createIncidentFeedItem({
         incidentId: createdItem.id!,
         projectId: createdItem.projectId!,
+        incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
+        displayColor: Red500,
+        feedInfoInMarkdown: feedInfoInMarkdown,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          appendMessageBlocks: incidentCreateMessageBlocks,
+          sendWorkspaceNotification: true,
+        },
       });
-
-    await IncidentFeedService.createIncidentFeedItem({
-      incidentId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
-      displayColor: Red500,
-      feedInfoInMarkdown: feedInfoInMarkdown,
-      userId: createdByUserId || undefined,
-      workspaceNotification: {
-        appendMessageBlocks: incidentCreateMessageBlocks,
-        sendWorkspaceNotification: true,
-      },
-    });
-
-    if (!createdItem.currentIncidentStateId) {
-      throw new BadDataException("currentIncidentStateId is required");
+    } catch (error) {
+      logger.error(`Error in createIncidentFeedAsync: ${error}`);
+      throw error;
     }
-
-    if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
-      // change status of all the monitors.
-      await MonitorService.changeMonitorStatus(
-        createdItem.projectId,
-        createdItem.monitors?.map((monitor: Monitor) => {
-          return new ObjectID(monitor._id || "");
-        }) || [],
-        createdItem.changeMonitorStatusToId,
-        true, // notifyMonitorOwners
-        createdItem.rootCause ||
-          "Status was changed because Incident #" +
-            createdItem.incidentNumber?.toString() +
-            " was created.",
-        createdItem.createdStateLog,
-        onCreate.createBy.props,
-      );
-    }
-
-    await this.changeIncidentState({
-      projectId: createdItem.projectId,
-      incidentId: createdItem.id,
-      incidentStateId: createdItem.currentIncidentStateId,
-      shouldNotifyStatusPageSubscribers: Boolean(
-        createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
-      ),
-      isSubscribersNotified: Boolean(
-        createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
-      ), // we dont want to notify subscribers when incident state changes because they are already notified when the incident is created.
-      notifyOwners: false,
-      rootCause: createdItem.rootCause,
-      stateChangeLog: createdItem.createdStateLog,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // add owners.
-
-    if (
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      await this.addOwners(
-        createdItem.projectId,
-        createdItem.id,
-        (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
-        (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
-        false,
-        onCreate.createBy.props,
-      );
-    }
-
-    if (
-      createdItem.onCallDutyPolicies?.length &&
-      createdItem.onCallDutyPolicies?.length > 0
-    ) {
-      for (const policy of createdItem.onCallDutyPolicies) {
-        await OnCallDutyPolicyService.executePolicy(
-          new ObjectID(policy._id as string),
-          {
-            triggeredByIncidentId: createdItem.id!,
-            userNotificationEventType:
-              UserNotificationEventType.IncidentCreated,
-          },
-        );
-      }
-    }
-
-    // check if the incident is created manaull by a user and if thats the case, then disable active monitoting on that monitor.
-
-    await this.disableActiveMonitoringIfManualIncident(createdItem.id!);
-
-    return createdItem;
   }
 
+  @CaptureSpan()
+  private async handleIncidentStateChangeAsync(
+    createdItem: Model
+  ): Promise<void> {
+    try {
+      if (!createdItem.currentIncidentStateId) {
+        throw new BadDataException("currentIncidentStateId is required");
+      }
+
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for state change"
+        );
+      }
+
+      await this.changeIncidentState({
+        projectId: createdItem.projectId,
+        incidentId: createdItem.id,
+        incidentStateId: createdItem.currentIncidentStateId,
+        shouldNotifyStatusPageSubscribers: Boolean(
+          createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
+        ),
+        isSubscribersNotified: Boolean(
+          createdItem.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
+        ), // we dont want to notify subscribers when incident state changes because they are already notified when the incident is created.
+        notifyOwners: false,
+        rootCause: createdItem.rootCause,
+        stateChangeLog: createdItem.createdStateLog,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in handleIncidentStateChangeAsync: ${error}`);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async executeOnCallDutyPoliciesAsync(
+    createdItem: Model
+  ): Promise<void> {
+    try {
+      if (
+        createdItem.onCallDutyPolicies?.length &&
+        createdItem.onCallDutyPolicies?.length > 0
+      ) {
+        // Execute all on-call policies in parallel
+        const policyPromises = createdItem.onCallDutyPolicies.map((policy) =>
+          OnCallDutyPolicyService.executePolicy(
+            new ObjectID(policy._id as string),
+            {
+              triggeredByIncidentId: createdItem.id!,
+              userNotificationEventType:
+                UserNotificationEventType.IncidentCreated,
+            }
+          )
+        );
+
+        await Promise.allSettled(policyPromises);
+      }
+    } catch (error) {
+      logger.error(`Error in executeOnCallDutyPoliciesAsync: ${error}`);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async handleMonitorStatusChangeAsync(
+    createdItem: Model,
+    onCreate: OnCreate<Model>
+  ): Promise<void> {
+    try {
+      if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+        // change status of all the monitors.
+        await MonitorService.changeMonitorStatus(
+          createdItem.projectId,
+          createdItem.monitors?.map((monitor: Monitor) => {
+            return new ObjectID(monitor._id || "");
+          }) || [],
+          createdItem.changeMonitorStatusToId,
+          true, // notifyMonitorOwners
+          createdItem.rootCause ||
+            "Status was changed because Incident #" +
+              createdItem.incidentNumber?.toString() +
+              " was created.",
+          createdItem.createdStateLog,
+          onCreate.createBy.props
+        );
+      }
+    } catch (error) {
+      logger.error(`Error in handleMonitorStatusChangeAsync: ${error}`);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private releaseMutexAsync(
+    onCreate: OnCreate<Model>,
+    projectId: ObjectID
+  ): void {
+    // Release mutex in background without blocking
+    if (onCreate.carryForward && onCreate.carryForward.mutex) {
+      const mutex: SemaphoreMutex = onCreate.carryForward.mutex;
+
+      setImmediate(async () => {
+        try {
+          await Semaphore.release(mutex);
+          logger.debug(
+            "Mutex released - IncidentService.incident-create " +
+              projectId.toString() +
+              " at " +
+              OneUptimeDate.getCurrentDateAsFormattedString()
+          );
+        } catch (err) {
+          logger.debug(
+            "Mutex release failed - IncidentService.incident-create " +
+              projectId.toString() +
+              " at " +
+              OneUptimeDate.getCurrentDateAsFormattedString()
+          );
+          logger.error(err);
+        }
+      });
+    }
+  }
+
+  @CaptureSpan()
   public async disableActiveMonitoringIfManualIncident(
-    incidentId: ObjectID,
+    incidentId: ObjectID
   ): Promise<void> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
@@ -896,7 +1035,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          },
+          }
         );
 
         if (!isUserAlreadyAdded) {
@@ -915,7 +1054,7 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps,
+    props: DatabaseCommonInteractionProps
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -953,19 +1092,19 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
   @CaptureSpan()
   public async getIncidentLinkInDashboard(
     projectId: ObjectID,
-    incidentId: ObjectID,
+    incidentId: ObjectID
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/incidents/${incidentId.toString()}`,
+      `/${projectId.toString()}/incidents/${incidentId.toString()}`
     );
   }
 
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[]
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentIncidentStateId &&
@@ -1106,7 +1245,7 @@ ${labels
                 _id: new ObjectID(
                   (
                     onUpdate.updateBy.data.incidentSeverity as any
-                  )?._id.toString(),
+                  )?._id.toString()
                 ),
               },
               select: {
@@ -1148,8 +1287,8 @@ ${incidentSeverity.name}
                       incidentCarryForward.monitorsRemoved.map(
                         (monitor: Monitor) => {
                           return new ObjectID(monitor._id?.toString() || "");
-                        },
-                      ),
+                        }
+                      )
                     ),
                   },
                   select: {
@@ -1166,7 +1305,7 @@ ${incidentSeverity.name}
               // change these monitors back to operational state.
               await this.markMonitorsActiveForMonitoring(
                 projectId!,
-                incidentCarryForward.monitorsRemoved,
+                incidentCarryForward.monitorsRemoved
               );
 
               feedInfoInMarkdown += `\n\n**🗑️ Monitors Removed**:\n`;
@@ -1186,8 +1325,8 @@ ${incidentSeverity.name}
                       incidentCarryForward.monitorsAdded.map(
                         (monitor: Monitor) => {
                           return new ObjectID(monitor._id?.toString() || "");
-                        },
-                      ),
+                        }
+                      )
                     ),
                   },
                   select: {
@@ -1199,7 +1338,7 @@ ${incidentSeverity.name}
                   props: {
                     isRoot: true,
                   },
-                },
+                }
               );
 
               feedInfoInMarkdown += `\n\n**🌎 Monitors Added**:\n`;
@@ -1283,7 +1422,7 @@ ${incidentSeverity.name}
                   incidentNumber?.toString() +
                   " was updated.",
                 undefined,
-                onUpdate.updateBy.props,
+                onUpdate.updateBy.props
               );
             }
           }
@@ -1311,7 +1450,7 @@ ${incidentSeverity.name}
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualIncidents(
     monitorId: ObjectID,
-    proojectId: ObjectID,
+    proojectId: ObjectID
   ): Promise<boolean> {
     const resolvedState: IncidentState | null =
       await IncidentStateService.findOneBy({
@@ -1347,7 +1486,7 @@ ${incidentSeverity.name}
   @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
-    monitors: Array<Monitor>,
+    monitors: Array<Monitor>
   ): Promise<void> {
     // resolve all the monitors.
 
@@ -1374,7 +1513,7 @@ ${incidentSeverity.name}
           const doesMonitorHasMoreActiveManualIncidents: boolean =
             await this.doesMonitorHasMoreActiveManualIncidents(
               monitor.id!,
-              projectId!,
+              projectId!
             );
 
           if (doesMonitorHasMoreActiveManualIncidents) {
@@ -1437,7 +1576,7 @@ ${incidentSeverity.name}
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>,
+    deleteBy: DeleteBy<Model>
   ): Promise<OnDelete<Model>> {
     const incidents: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -1465,14 +1604,14 @@ ${incidentSeverity.name}
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    _itemIdsBeforeDelete: ObjectID[]
   ): Promise<OnDelete<Model>> {
     if (onDelete.carryForward && onDelete.carryForward.incidents) {
       for (const incident of onDelete.carryForward.incidents) {
         if (incident.monitors && incident.monitors.length > 0) {
           await this.markMonitorsActiveForMonitoring(
             incident.projectId!,
-            incident.monitors,
+            incident.monitors
           );
         }
       }
@@ -1663,7 +1802,7 @@ ${incidentSeverity.name}
 
     incidentCountMetric.time = incidentStartsAt;
     incidentCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      incidentCountMetric.time,
+      incidentCountMetric.time
     );
     incidentCountMetric.metricPointType = MetricPointType.Sum;
 
@@ -1683,7 +1822,7 @@ ${incidentSeverity.name}
     const isIncidentAcknowledged: boolean = incidentStateTimelines.some(
       (timeline: IncidentStateTimeline) => {
         return timeline.incidentState?.isAcknowledgedState;
-      },
+      }
     );
 
     if (isIncidentAcknowledged) {
@@ -1701,7 +1840,7 @@ ${incidentSeverity.name}
         timeToAcknowledgeMetric.name = IncidentMetricType.TimeToAcknowledge;
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackIncidentStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
-          incidentStartsAt,
+          incidentStartsAt
         );
         timeToAcknowledgeMetric.attributes = {
           incidentId: data.incidentId.toString(),
@@ -1723,7 +1862,7 @@ ${incidentSeverity.name}
           incident.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToAcknowledgeMetric.time,
+          timeToAcknowledgeMetric.time
         );
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
 
@@ -1744,7 +1883,7 @@ ${incidentSeverity.name}
     const isIncidentResolved: boolean = incidentStateTimelines.some(
       (timeline: IncidentStateTimeline) => {
         return timeline.incidentState?.isResolvedState;
-      },
+      }
     );
 
     if (isIncidentResolved) {
@@ -1763,7 +1902,7 @@ ${incidentSeverity.name}
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedIncidentStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
-          incidentStartsAt,
+          incidentStartsAt
         );
         timeToResolveMetric.attributes = {
           incidentId: data.incidentId.toString(),
@@ -1785,7 +1924,7 @@ ${incidentSeverity.name}
           incident.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToResolveMetric.time,
+          timeToResolveMetric.time
         );
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
 
@@ -1820,7 +1959,7 @@ ${incidentSeverity.name}
       incidentDurationMetric.name = IncidentMetricType.IncidentDuration;
       incidentDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         incidentEndsAt,
-        incidentStartsAt,
+        incidentStartsAt
       );
       incidentDurationMetric.attributes = {
         incidentId: data.incidentId.toString(),
@@ -1842,7 +1981,7 @@ ${incidentSeverity.name}
         incident.createdAt ||
         OneUptimeDate.getCurrentDate();
       incidentDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-        incidentDurationMetric.time,
+        incidentDurationMetric.time
       );
       incidentDurationMetric.metricPointType = MetricPointType.Sum;
 
@@ -1908,7 +2047,7 @@ ${incidentSeverity.name}
         }
 
         return channel.workspaceType === data.workspaceType;
-      },
+      }
     );
   }
 
@@ -1937,7 +2076,7 @@ ${incidentSeverity.name}
    * Ensures the currentIncidentStateId of the incident matches the latest timeline entry.
    */
   public async refreshIncidentCurrentStatus(
-    incidentId: ObjectID,
+    incidentId: ObjectID
   ): Promise<void> {
     const incident: Model | null = await this.findOneById({
       id: incidentId,
@@ -1981,7 +2120,7 @@ ${incidentSeverity.name}
         props: { isRoot: true },
       });
       logger.info(
-        `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`,
+        `Updated Incident ${incident.id} current state to ${latestTimeline.incidentStateId}`
       );
     }
   }

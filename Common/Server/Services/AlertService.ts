@@ -272,6 +272,7 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentAlertStateId is required");
     }
 
+    // Get alert data for feed creation
     const alert: Model | null = await this.findOneById({
       id: createdItem.id,
       select: {
@@ -304,145 +305,255 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Alert not found");
     }
 
-    const createdByUserId: ObjectID | undefined | null =
-      createdItem.createdByUserId || createdItem.createdByUser?.id;
+    // Execute core operations in parallel first
+    const coreOperations: Array<Promise<any>> = [];
 
-    // send message to workspaces - slack, teams,   etc.
-    const workspaceResult: {
-      channelsCreated: Array<NotificationRuleWorkspaceChannel>;
-    } | null =
-      await AlertWorkspaceMessages.createChannelsAndInviteUsersToChannels({
-        projectId: createdItem.projectId,
-        alertId: createdItem.id!,
-        alertNumber: createdItem.alertNumber!,
-      });
+    // Create feed item asynchronously
+    coreOperations.push(
+      this.createAlertFeedAsync(alert, createdItem),
+    );
 
-    logger.debug("Alert created. Workspace result:");
-    logger.debug(workspaceResult);
+    // Handle state change asynchronously
+    coreOperations.push(
+      this.handleAlertStateChangeAsync(createdItem),
+    );
 
-    if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update alert with these channels.
-      await this.updateOneById({
-        id: createdItem.id!,
-        data: {
-          postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    }
-
-    let feedInfoInMarkdown: string = `#### 🚨 Alert ${createdItem.alertNumber?.toString()} Created: 
-         
-**${createdItem.title || "No title provided."}**:
-   
-${createdItem.description || "No description provided."}
-   
-   `;
-
-    if (alert.currentAlertState?.name) {
-      feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
-    }
-
-    if (alert.alertSeverity?.name) {
-      feedInfoInMarkdown += `⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
-    }
-
-    if (alert.monitor) {
-      feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
-
-      const monitor: Monitor = alert.monitor;
-      feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
-
-      feedInfoInMarkdown += `\n\n`;
-    }
-
-    if (createdItem.rootCause) {
-      feedInfoInMarkdown += `\n
-📄 **Root Cause**:
-   
-${createdItem.rootCause || "No root cause provided."}
-   
-`;
-    }
-
-    if (createdItem.remediationNotes) {
-      feedInfoInMarkdown += `\n 
-🎯 **Remediation Notes**:
-   
-${createdItem.remediationNotes || "No remediation notes provided."}
-   
-   
-   `;
-    }
-
-    const alertCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
-      await AlertWorkspaceMessages.getAlertCreateMessageBlocks({
-        alertId: createdItem.id!,
-        projectId: createdItem.projectId!,
-      });
-
-    await AlertFeedService.createAlertFeedItem({
-      alertId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      alertFeedEventType: AlertFeedEventType.AlertCreated,
-      displayColor: Red500,
-      feedInfoInMarkdown: feedInfoInMarkdown,
-      userId: createdByUserId || undefined,
-      workspaceNotification: {
-        appendMessageBlocks: alertCreateMessageBlocks,
-        sendWorkspaceNotification: true,
-      },
-    });
-
-    await this.changeAlertState({
-      projectId: createdItem.projectId,
-      alertId: createdItem.id,
-      alertStateId: createdItem.currentAlertStateId,
-      notifyOwners: false,
-      rootCause: createdItem.rootCause,
-      stateChangeLog: createdItem.createdStateLog,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    // add owners.
-
+    // Handle owner assignment asynchronously
     if (
       onCreate.createBy.miscDataProps &&
       (onCreate.createBy.miscDataProps["ownerTeams"] ||
         onCreate.createBy.miscDataProps["ownerUsers"])
     ) {
-      await this.addOwners(
-        createdItem.projectId,
-        createdItem.id,
-        (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
-        (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
-        false,
-        onCreate.createBy.props,
+      coreOperations.push(
+        this.addOwners(
+          createdItem.projectId,
+          createdItem.id,
+          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+            [],
+          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+            [],
+          false,
+          onCreate.createBy.props,
+        ),
       );
     }
 
+
+
+    // Execute core operations in parallel with error handling
+    Promise.allSettled(coreOperations).then((coreResults) => {
+      // Log any errors from core operations
+      coreResults.forEach((result, index) => {
+        if (result.status === "rejected") {
+          logger.error(
+            `Core operation ${index} failed in AlertService.onCreateSuccess: ${result.reason}`,
+          );
+        }
+      });
+
+
+          // Handle on-call duty policies asynchronously
     if (
       createdItem.onCallDutyPolicies?.length &&
       createdItem.onCallDutyPolicies?.length > 0
     ) {
-      for (const policy of createdItem.onCallDutyPolicies) {
-        await OnCallDutyPolicyService.executePolicy(
-          new ObjectID(policy._id as string),
-          {
-            triggeredByAlertId: createdItem.id!,
-            userNotificationEventType: UserNotificationEventType.AlertCreated,
-          },
+     this.executeAlertOnCallDutyPoliciesAsync(createdItem).catch((error) => {
+        logger.error(
+          `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
         );
-      }
+      });
     }
 
+      // Handle workspace operations after core operations complete
+      if (createdItem.projectId && createdItem.id) {
+        // Run workspace operations in background without blocking response
+        this.handleAlertWorkspaceOperationsAsync(createdItem).catch((error) => {
+          logger.error(
+            `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
+          );
+        });
+      }
+    }).catch((error) => {
+      logger.error(
+        `Critical error in AlertService core operations: ${error}`,
+      );
+    });
+
     return createdItem;
+  }
+
+  @CaptureSpan()
+  private async handleAlertWorkspaceOperationsAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for workspace operations",
+        );
+      }
+
+      // send message to workspaces - slack, teams, etc.
+      const workspaceResult: {
+        channelsCreated: Array<NotificationRuleWorkspaceChannel>;
+      } | null =
+        await AlertWorkspaceMessages.createChannelsAndInviteUsersToChannels({
+          projectId: createdItem.projectId,
+          alertId: createdItem.id,
+          alertNumber: createdItem.alertNumber!,
+        });
+
+      logger.debug("Alert created. Workspace result:");
+      logger.debug(workspaceResult);
+
+      if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
+        // update alert with these channels.
+        await this.updateOneById({
+          id: createdItem.id,
+          data: {
+            postUpdatesToWorkspaceChannels:
+              workspaceResult.channelsCreated || [],
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (error) {
+      logger.error(`Error in handleAlertWorkspaceOperationsAsync: ${error}`);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async createAlertFeedAsync(
+    alert: Model,
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      const createdByUserId: ObjectID | undefined | null =
+        createdItem.createdByUserId || createdItem.createdByUser?.id;
+
+      let feedInfoInMarkdown: string = `#### 🚨 Alert ${createdItem.alertNumber?.toString()} Created: 
+           
+**${createdItem.title || "No title provided."}**:
+     
+${createdItem.description || "No description provided."}
+     
+     `;
+
+      if (alert.currentAlertState?.name) {
+        feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
+      }
+
+      if (alert.alertSeverity?.name) {
+        feedInfoInMarkdown += `⚠️ **Severity**: ${alert.alertSeverity.name} \n\n`;
+      }
+
+      if (alert.monitor) {
+        feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
+
+        const monitor: Monitor = alert.monitor;
+        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+
+        feedInfoInMarkdown += `\n\n`;
+      }
+
+      if (createdItem.rootCause) {
+        feedInfoInMarkdown += `\n
+📄 **Root Cause**:
+     
+${createdItem.rootCause || "No root cause provided."}
+     
+`;
+      }
+
+      if (createdItem.remediationNotes) {
+        feedInfoInMarkdown += `\n 
+🎯 **Remediation Notes**:
+     
+${createdItem.remediationNotes || "No remediation notes provided."}
+     
+     
+     `;
+      }
+
+      const alertCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
+        await AlertWorkspaceMessages.getAlertCreateMessageBlocks({
+          alertId: createdItem.id!,
+          projectId: createdItem.projectId!,
+        });
+
+      await AlertFeedService.createAlertFeedItem({
+        alertId: createdItem.id!,
+        projectId: createdItem.projectId!,
+        alertFeedEventType: AlertFeedEventType.AlertCreated,
+        displayColor: Red500,
+        feedInfoInMarkdown: feedInfoInMarkdown,
+        userId: createdByUserId || undefined,
+        workspaceNotification: {
+          appendMessageBlocks: alertCreateMessageBlocks,
+          sendWorkspaceNotification: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in createAlertFeedAsync: ${error}`);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async handleAlertStateChangeAsync(createdItem: Model): Promise<void> {
+    try {
+      if (!createdItem.projectId || !createdItem.id) {
+        throw new BadDataException(
+          "projectId and id are required for state change",
+        );
+      }
+
+      await this.changeAlertState({
+        projectId: createdItem.projectId,
+        alertId: createdItem.id,
+        alertStateId: createdItem.currentAlertStateId!,
+        notifyOwners: false,
+        rootCause: createdItem.rootCause,
+        stateChangeLog: createdItem.createdStateLog,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      logger.error(`Error in handleAlertStateChangeAsync: ${error}`);
+      throw error;
+    }
+  }
+
+  @CaptureSpan()
+  private async executeAlertOnCallDutyPoliciesAsync(
+    createdItem: Model,
+  ): Promise<void> {
+    try {
+      if (
+        createdItem.onCallDutyPolicies?.length &&
+        createdItem.onCallDutyPolicies?.length > 0
+      ) {
+        // Execute all on-call policies in parallel
+        const policyPromises = createdItem.onCallDutyPolicies.map((policy) =>
+          OnCallDutyPolicyService.executePolicy(
+            new ObjectID(policy._id as string),
+            {
+              triggeredByAlertId: createdItem.id!,
+              userNotificationEventType: UserNotificationEventType.AlertCreated,
+            },
+          ),
+        );
+
+        await Promise.allSettled(policyPromises);
+      }
+    } catch (error) {
+      logger.error(`Error in executeAlertOnCallDutyPoliciesAsync: ${error}`);
+      throw error;
+    }
   }
 
   @CaptureSpan()
