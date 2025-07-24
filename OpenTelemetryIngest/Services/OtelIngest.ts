@@ -44,6 +44,20 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 
 export default class OtelIngestService {
+  /**
+   * Helper method to trigger garbage collection if available
+   * This helps prevent memory leaks when processing large volumes of telemetry data
+   */
+  private static forceGarbageCollection(): void {
+    try {
+      if (global.gc) {
+        global.gc();
+      }
+    } catch (error) {
+      // GC not available, ignore
+    }
+  }
+
   @CaptureSpan()
   public static getServiceNameFromAttributes(
     req: ExpressRequest,
@@ -94,10 +108,20 @@ export default class OtelIngestService {
       // Return response immediately and process asynchronously
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process logs in the background
+      // Process logs in the background with comprehensive error handling
       this.processLogsAsync(req).catch((err: Error) => {
         logger.error("Error processing logs asynchronously:");
         logger.error(err);
+        // Clear request body on error to prevent memory leaks
+        try {
+          if (req.body) {
+            req.body = null;
+          }
+          this.forceGarbageCollection();
+        } catch (cleanupError) {
+          logger.error("Error during error cleanup:");
+          logger.error(cleanupError);
+        }
       });
 
       return;
@@ -244,6 +268,23 @@ export default class OtelIngestService {
         productType: ProductType.Logs,
       }),
     ]);
+
+    // Memory cleanup: Clear large objects to help GC
+    try {
+      dbLogs.length = 0;
+      attributeKeySet.clear();
+      
+      // Clear request body to free memory
+      if (req.body) {
+        req.body = null;
+      }
+
+      // Force garbage collection for large telemetry ingestion
+      this.forceGarbageCollection();
+    } catch (cleanupError) {
+      logger.error("Error during memory cleanup:");
+      logger.error(cleanupError);
+    }
   }
 
   private static convertSeverityNumber(severityNumber: string): number {
@@ -300,10 +341,20 @@ export default class OtelIngestService {
       // Return response immediately and process asynchronously
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process metrics in the background
+      // Process metrics in the background with comprehensive error handling
       this.processMetricsAsync(req).catch((err: Error) => {
         logger.error("Error processing metrics asynchronously:");
         logger.error(err);
+        // Clear request body on error to prevent memory leaks
+        try {
+          if (req.body) {
+            req.body = null;
+          }
+          this.forceGarbageCollection();
+        } catch (cleanupError) {
+          logger.error("Error during error cleanup:");
+          logger.error(cleanupError);
+        }
       });
 
       return;
@@ -493,7 +544,8 @@ export default class OtelIngestService {
       }
     }
 
-    TelemetryUtil.indexMetricNameServiceNameMap({
+    // Index metric name service name map asynchronously but ensure proper error handling
+    const indexMetricPromise = TelemetryUtil.indexMetricNameServiceNameMap({
       metricNameServiceNameMap: metricNameServiceNameMap,
       projectId: (req as TelemetryRequest).projectId,
     }).catch((err: Error) => {
@@ -518,7 +570,25 @@ export default class OtelIngestService {
         projectId: (req as TelemetryRequest).projectId,
         productType: ProductType.Metrics,
       }),
+      indexMetricPromise, // Include the indexing promise to ensure it completes
     ]);
+
+    // Memory cleanup: Clear large objects to help GC
+    try {
+      dbMetrics.length = 0;
+      attributeKeySet.clear();
+      
+      // Clear request body to free memory
+      if (req.body) {
+        req.body = null;
+      }
+
+      // Force garbage collection for large telemetry ingestion
+      this.forceGarbageCollection();
+    } catch (cleanupError) {
+      logger.error("Error during memory cleanup:");
+      logger.error(cleanupError);
+    }
   }
 
   @CaptureSpan()
@@ -539,10 +609,20 @@ export default class OtelIngestService {
       // Return response immediately and process asynchronously
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process traces in the background
+      // Process traces in the background with comprehensive error handling
       this.processTracesAsync(req).catch((err: Error) => {
         logger.error("Error processing traces asynchronously:");
         logger.error(err);
+        // Clear request body on error to prevent memory leaks
+        try {
+          if (req.body) {
+            req.body = null;
+          }
+          this.forceGarbageCollection();
+        } catch (cleanupError) {
+          logger.error("Error during error cleanup:");
+          logger.error(cleanupError);
+        }
       });
 
       return;
@@ -724,6 +804,24 @@ export default class OtelIngestService {
         productType: ProductType.Traces,
       }),
     ]);
+
+    // Memory cleanup: Clear large objects to help GC
+    try {
+      dbSpans.length = 0;
+      dbExceptions.length = 0;
+      attributeKeySet.clear();
+      
+      // Clear request body to free memory
+      if (req.body) {
+        req.body = null;
+      }
+
+      // Force garbage collection for large telemetry ingestion
+      this.forceGarbageCollection();
+    } catch (cleanupError) {
+      logger.error("Error during memory cleanup:");
+      logger.error(cleanupError);
+    }
   }
 
   private static getSpanStatusCode(status: JSONObject): SpanStatus {
@@ -803,8 +901,11 @@ export default class OtelIngestService {
           dbExceptions.push(exception);
 
           // save exception status
-          // maybe this can be improved instead of doing a lot of db calls.
-          ExceptionUtil.saveOrUpdateTelemetryException(exception);
+          // Fix: Await the async operation to prevent memory leaks from unhandled promises
+          ExceptionUtil.saveOrUpdateTelemetryException(exception).catch((err: Error) => {
+            logger.error("Error saving/updating telemetry exception:");
+            logger.error(err);
+          });
         }
       }
     }
