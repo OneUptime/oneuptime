@@ -6,7 +6,6 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware";
-import OtelIngestService from "../Services/OtelIngest";
 import OtelQueueWorker, { OtelIngestJobData } from "../Services/OtelQueueWorker";
 import Response from "Common/Server/Utils/Response";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
@@ -38,24 +37,17 @@ router.post(
 
       const reqBody = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Check if queue processing is enabled for traces
-      if (OtelQueueWorker.isQueueEnabled('traces')) {
-        // Add job to queue
-        const jobData: OtelIngestJobData = {
-          body: reqBody,
-          projectId: (req as TelemetryRequest).projectId.toString(),
-          headers: req.headers,
-        };
+      // Add job to queue
+      const jobData: OtelIngestJobData = {
+        body: reqBody,
+        projectId: (req as TelemetryRequest).projectId.toString(),
+        headers: req.headers,
+      };
 
-        await OtelQueueWorker.addTracesJob(jobData);
+      await OtelQueueWorker.addTracesJob(jobData);
 
-        // Return response immediately
-        return Response.sendEmptySuccessResponse(req, res);
-      } else {
-        // Fall back to synchronous processing
-        req.body = reqBody;
-        return OtelIngestService.ingestTraces(req, res, next);
-      }
+      // Return response immediately
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -80,24 +72,17 @@ router.post(
 
       const reqBody = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Check if queue processing is enabled for metrics
-      if (OtelQueueWorker.isQueueEnabled('metrics')) {
-        // Add job to queue
-        const jobData: OtelIngestJobData = {
-          body: reqBody,
-          projectId: (req as TelemetryRequest).projectId.toString(),
-          headers: req.headers,
-        };
+      // Add job to queue
+      const jobData: OtelIngestJobData = {
+        body: reqBody,
+        projectId: (req as TelemetryRequest).projectId.toString(),
+        headers: req.headers,
+      };
 
-        await OtelQueueWorker.addMetricsJob(jobData);
+      await OtelQueueWorker.addMetricsJob(jobData);
 
-        // Return response immediately
-        return Response.sendEmptySuccessResponse(req, res);
-      } else {
-        // Fall back to synchronous processing
-        req.body = reqBody;
-        return OtelIngestService.ingestMetrics(req, res, next);
-      }
+      // Return response immediately
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -122,24 +107,17 @@ router.post(
 
       const reqBody = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Check if queue processing is enabled for logs
-      if (OtelQueueWorker.isQueueEnabled('logs')) {
-        // Add job to queue
-        const jobData: OtelIngestJobData = {
-          body: reqBody,
-          projectId: (req as TelemetryRequest).projectId.toString(),
-          headers: req.headers,
-        };
+      // Add job to queue
+      const jobData: OtelIngestJobData = {
+        body: reqBody,
+        projectId: (req as TelemetryRequest).projectId.toString(),
+        headers: req.headers,
+      };
 
-        await OtelQueueWorker.addLogsJob(jobData);
+      await OtelQueueWorker.addLogsJob(jobData);
 
-        // Return response immediately
-        return Response.sendEmptySuccessResponse(req, res);
-      } else {
-        // Fall back to synchronous processing
-        req.body = reqBody;
-        return OtelIngestService.ingestLogs(req, res, next);
-      }
+      // Return response immediately
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }

@@ -7,16 +7,6 @@ export interface OtelQueueConfig {
     metrics: number;
     logs: number;
   };
-  
-  /**
-   * Enable/disable queue processing for each telemetry type
-   * If disabled, falls back to synchronous processing
-   */
-  enabled: {
-    traces: boolean;
-    metrics: boolean;
-    logs: boolean;
-  };
 }
 
 export const DEFAULT_OTEL_QUEUE_CONFIG: OtelQueueConfig = {
@@ -24,10 +14,5 @@ export const DEFAULT_OTEL_QUEUE_CONFIG: OtelQueueConfig = {
     traces: 10,
     metrics: 10,
     logs: 10,
-  },
-  enabled: {
-    traces: true,
-    metrics: true,
-    logs: true,
   },
 };
