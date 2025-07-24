@@ -212,7 +212,7 @@ export class Service extends DatabaseService<StatusPage> {
           [],
         false,
         onCreate.createBy.props,
-      ).catch((error) => {
+      ).catch((error: Error) => {
         logger.error(`Error in StatusPageService owner assignment: ${error}`);
       });
     }

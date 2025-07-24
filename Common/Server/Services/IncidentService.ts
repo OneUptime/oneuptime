@@ -62,6 +62,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { Dictionary } from "lodash";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import UpdateBy from "../Types/Database/UpdateBy";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -622,9 +623,9 @@ export class Service extends DatabaseService<Model> {
 
     // Execute core operations in parallel with error handling
     Promise.allSettled(coreOperations)
-      .then((coreResults: PromiseSettledResult<void>[]) => {
+      .then((coreResults: any[]) => {
         // Log any errors from core operations
-        coreResults.forEach((result: PromiseSettledResult<void>, index: number) => {
+        coreResults.forEach((result: any, index: number) => {
           if (result.status === "rejected") {
             logger.error(
               `Core operation ${index} failed in IncidentService.onCreateSuccess: ${result.reason}`,
@@ -637,18 +638,20 @@ export class Service extends DatabaseService<Model> {
           createdItem.onCallDutyPolicies?.length &&
           createdItem.onCallDutyPolicies?.length > 0
         ) {
-          this.executeOnCallDutyPoliciesAsync(createdItem).catch((error: Error) => {
-            logger.error(
-              `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
-            );
-          });
+          this.executeOnCallDutyPoliciesAsync(createdItem).catch(
+            (error: Error) => {
+              logger.error(
+                `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+              );
+            },
+          );
         }
 
         // Handle workspace operations after core operations complete
         if (createdItem.projectId && createdItem.id) {
           // Run workspace operations in background without blocking response
           this.handleIncidentWorkspaceOperationsAsync(createdItem).catch(
-            (error) => {
+            (error: Error) => {
               logger.error(
                 `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
               );
@@ -656,7 +659,7 @@ export class Service extends DatabaseService<Model> {
           );
         }
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         logger.error(
           `Critical error in IncidentService core operations: ${error}`,
         );
@@ -831,16 +834,17 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.onCallDutyPolicies?.length > 0
       ) {
         // Execute all on-call policies in parallel
-        const policyPromises = createdItem.onCallDutyPolicies.map((policy) => {
-          return OnCallDutyPolicyService.executePolicy(
-            new ObjectID(policy._id as string),
-            {
-              triggeredByIncidentId: createdItem.id!,
-              userNotificationEventType:
-                UserNotificationEventType.IncidentCreated,
-            },
-          );
-        });
+        const policyPromises: Promise<void>[] =
+          createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
+            return OnCallDutyPolicyService.executePolicy(
+              new ObjectID(policy["_id"] as string),
+              {
+                triggeredByIncidentId: createdItem.id!,
+                userNotificationEventType:
+                  UserNotificationEventType.IncidentCreated,
+              },
+            );
+          });
 
         await Promise.allSettled(policyPromises);
       }

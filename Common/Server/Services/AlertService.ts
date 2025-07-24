@@ -337,9 +337,9 @@ export class Service extends DatabaseService<Model> {
 
     // Execute core operations in parallel with error handling
     Promise.allSettled(coreOperations)
-      .then((coreResults: PromiseSettledResult<void>[]) => {
+      .then((coreResults: any[]) => {
         // Log any errors from core operations
-        coreResults.forEach((result: PromiseSettledResult<void>, index: number) => {
+        coreResults.forEach((result: any, index: number) => {
           if (result.status === "rejected") {
             logger.error(
               `Core operation ${index} failed in AlertService.onCreateSuccess: ${result.reason}`,
@@ -538,15 +538,17 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
         createdItem.onCallDutyPolicies?.length > 0
       ) {
         // Execute all on-call policies in parallel
-        const policyPromises: Promise<void>[] = createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
-          return OnCallDutyPolicyService.executePolicy(
-            new ObjectID(policy["_id"] as string),
-            {
-              triggeredByAlertId: createdItem.id!,
-              userNotificationEventType: UserNotificationEventType.AlertCreated,
-            },
-          );
-        });
+        const policyPromises: Promise<void>[] =
+          createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
+            return OnCallDutyPolicyService.executePolicy(
+              new ObjectID(policy["_id"] as string),
+              {
+                triggeredByAlertId: createdItem.id!,
+                userNotificationEventType:
+                  UserNotificationEventType.AlertCreated,
+              },
+            );
+          });
 
         await Promise.allSettled(policyPromises);
       }

@@ -592,7 +592,7 @@ ${createdItem.description?.trim() || "No description provided."}
           monitorName: createdItem.name!,
           feedInfoInMarkdown,
           createdByUserId,
-        }).catch((error) => {
+        }).catch((error: Error) => {
           logger.error("Error in workspace operations");
           logger.error(error);
           // Don't fail monitor creation due to workspace issues

@@ -617,9 +617,9 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
     // Execute core operations in parallel with error handling
     Promise.allSettled(coreOperations)
-      .then((coreResults) => {
+      .then((coreResults: any[]) => {
         // Log any errors from core operations
-        coreResults.forEach((result, index) => {
+        coreResults.forEach((result: any, index: number) => {
           if (result.status === "rejected") {
             logger.error(
               `Core operation ${index} failed in ScheduledMaintenanceService.onCreateSuccess: ${result.reason}`,
@@ -632,14 +632,14 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
           // Run workspace operations in background without blocking response
           this.handleScheduledMaintenanceWorkspaceOperationsAsync(
             createdItem,
-          ).catch((error) => {
+          ).catch((error: Error) => {
             logger.error(
               `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
             );
           });
         }
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         logger.error(
           `Critical error in ScheduledMaintenanceService core operations: ${error}`,
         );
