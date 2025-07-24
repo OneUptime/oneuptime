@@ -156,7 +156,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             startsAt: true,
             endsAt: true,
           },
-        })
+        }),
       ]);
 
       logger.debug("State Before this");
