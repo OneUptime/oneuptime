@@ -27,7 +27,6 @@ export default class OtelQueueWorker {
     if (config) {
       this.config = {
         concurrency: { ...DEFAULT_OTEL_QUEUE_CONFIG.concurrency, ...config.concurrency },
-        enabled: { ...DEFAULT_OTEL_QUEUE_CONFIG.enabled, ...config.enabled },
       };
     }
 
@@ -35,7 +34,7 @@ export default class OtelQueueWorker {
     logger.info(`Queue config: ${JSON.stringify(this.config)}`);
 
     // Initialize Traces Queue Worker
-    if (this.config.enabled.traces) {
+    
       const tracesWorker = QueueWorker.getWorker(
         QueueName.OtelIngestTraces,
         async (job: QueueJob) => {
@@ -47,10 +46,10 @@ export default class OtelQueueWorker {
       );
       this.workers.push(tracesWorker);
       logger.info(`Traces queue worker initialized with concurrency: ${this.config.concurrency.traces}`);
-    }
+    
 
     // Initialize Metrics Queue Worker
-    if (this.config.enabled.metrics) {
+   
       const metricsWorker = QueueWorker.getWorker(
         QueueName.OtelIngestMetrics,
         async (job: QueueJob) => {
@@ -62,10 +61,8 @@ export default class OtelQueueWorker {
       );
       this.workers.push(metricsWorker);
       logger.info(`Metrics queue worker initialized with concurrency: ${this.config.concurrency.metrics}`);
-    }
-
-    // Initialize Logs Queue Worker
-    if (this.config.enabled.logs) {
+    
+    
       const logsWorker = QueueWorker.getWorker(
         QueueName.OtelIngestLogs,
         async (job: QueueJob) => {
@@ -77,7 +74,7 @@ export default class OtelQueueWorker {
       );
       this.workers.push(logsWorker);
       logger.info(`Logs queue worker initialized with concurrency: ${this.config.concurrency.logs}`);
-    }
+    
 
     // Setup graceful shutdown
     this.setupGracefulShutdown();
@@ -86,9 +83,6 @@ export default class OtelQueueWorker {
     logger.info("OpenTelemetry Queue Workers initialized successfully");
   }
 
-  public static isQueueEnabled(type: 'traces' | 'metrics' | 'logs'): boolean {
-    return this.config.enabled[type];
-  }
 
   public static async shutdown(): Promise<void> {
     logger.info("Shutting down OpenTelemetry Queue Workers...");
@@ -153,8 +147,8 @@ export default class OtelQueueWorker {
   private static async processTracesJob(data: OtelIngestJobData): Promise<void> {
     try {
       // Create a mock request object with the data
-      const mockReq = this.createMockRequest(data);
-      await OtelIngestService.processTracesAsync(mockReq);
+      const telemetryRequest = this.createTelemetryRequestParamsRequest(data);
+      await OtelIngestService.processTracesAsync(telemetryRequest);
       logger.debug("Traces job processed successfully");
     } catch (error) {
       logger.error("Error processing traces job:");
@@ -166,8 +160,8 @@ export default class OtelQueueWorker {
   private static async processMetricsJob(data: OtelIngestJobData): Promise<void> {
     try {
       // Create a mock request object with the data
-      const mockReq = this.createMockRequest(data);
-      await OtelIngestService.processMetricsAsync(mockReq);
+      const telemetryRequest = this.createTelemetryRequestParamsRequest(data);
+      await OtelIngestService.processMetricsAsync(telemetryRequest);
       logger.debug("Metrics job processed successfully");
     } catch (error) {
       logger.error("Error processing metrics job:");
@@ -179,8 +173,8 @@ export default class OtelQueueWorker {
   private static async processLogsJob(data: OtelIngestJobData): Promise<void> {
     try {
       // Create a mock request object with the data
-      const mockReq = this.createMockRequest(data);
-      await OtelIngestService.processLogsAsync(mockReq);
+      const telemetryRequest = this.createTelemetryRequestParamsRequest(data);
+      await OtelIngestService.processLogsAsync(telemetryRequest);
       logger.debug("Logs job processed successfully");
     } catch (error) {
       logger.error("Error processing logs job:");
@@ -189,7 +183,7 @@ export default class OtelQueueWorker {
     }
   }
 
-  private static createMockRequest(data: OtelIngestJobData): TelemetryRequest {
+  private static createTelemetryRequestParamsRequest(data: OtelIngestJobData): TelemetryRequest {
     return {
       body: data.body,
       projectId: new ObjectID(data.projectId),
