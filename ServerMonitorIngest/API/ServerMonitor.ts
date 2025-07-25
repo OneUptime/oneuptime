@@ -99,6 +99,9 @@ router.post(
         throw new BadDataException("Monitor not found");
       }
 
+      // return the response early. 
+      Response.sendEmptySuccessResponse(req, res);
+
       // now process this request.
 
       const serverMonitorResponse: ServerMonitorResponse =
@@ -119,12 +122,8 @@ router.post(
       serverMonitorResponse.requestReceivedAt = OneUptimeDate.getCurrentDate();
 
       // process probe response here.
-      const probeApiIngestResponse: ProbeApiIngestResponse =
-        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
-
-      return Response.sendJsonObjectResponse(req, res, {
-        probeApiIngestResponse: probeApiIngestResponse,
-      } as any);
+      await MonitorResourceUtil.monitorResource(serverMonitorResponse);
+      
     } catch (err) {
       return next(err);
     }
