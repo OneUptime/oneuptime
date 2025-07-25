@@ -1372,7 +1372,7 @@ export default class MonitorResourceUtil {
     }
 
     if (input.monitor.monitorType === MonitorType.SSLCertificate) {
-      // check server monitor
+      // check SSL monitor
       const sslMonitorResult: string | null =
         await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,
