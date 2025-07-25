@@ -11,6 +11,7 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 
 RunCron(
   "ServerMonitor:CheckOnlineStatus",
@@ -48,26 +49,27 @@ RunCron(
           continue;
         }
 
-        const monitorTask = (async () => {
+        const monitorTask: PromiseVoidFunction = (async () => {
           try {
-            const serverMonitor: Monitor | null = await MonitorService.findOneBy({
-              query: {
-                _id: monitor.id!,
-                serverMonitorRequestReceivedAt:
-                  QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
-              },
-              props: {
-                isRoot: true,
-              },
-              select: {
-                _id: true,
-                monitorSteps: true,
-                projectId: true,
-                serverMonitorRequestReceivedAt: true,
-                createdAt: true,
-                serverMonitorResponse: true,
-              },
-            });
+            const serverMonitor: Monitor | null =
+              await MonitorService.findOneBy({
+                query: {
+                  _id: monitor.id!,
+                  serverMonitorRequestReceivedAt:
+                    QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
+                },
+                props: {
+                  isRoot: true,
+                },
+                select: {
+                  _id: true,
+                  monitorSteps: true,
+                  projectId: true,
+                  serverMonitorRequestReceivedAt: true,
+                  createdAt: true,
+                  serverMonitorResponse: true,
+                },
+              });
 
             if (!serverMonitor) {
               // server monitor may have receievd a response in the last 2 minutes
