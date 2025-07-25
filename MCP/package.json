@@ -20,10 +20,10 @@
     "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
     "license": "Apache-2.0",
     "dependencies": {
-        "Common": "file:../Common",
         "@modelcontextprotocol/sdk": "^0.6.0",
-        "ts-node": "^10.9.1",
-        "dotenv": "^16.4.5"
+        "@oneuptime/common": "^7.0.4773",
+        "dotenv": "^16.4.5",
+        "ts-node": "^10.9.1"
     },
     "devDependencies": {
         "@types/jest": "^27.5.0",
