@@ -206,63 +206,6 @@
       });
     }
 
-    // PWA Install Prompt
-    let deferredPrompt;
-    const installButton = document.createElement('button');
-    installButton.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #000000;
-      color: white;
-      border: none;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      display: none;
-      font-family: Inter, sans-serif;
-    `;
-    installButton.textContent = '📱 Install OneUptime';
-    installButton.setAttribute('aria-label', 'Install OneUptime as PWA');
-    document.body.appendChild(installButton);
-
-    window.addEventListener('beforeinstallprompt', function(event) {
-      console.log('OneUptime PWA: Install prompt triggered');
-      event.preventDefault();
-      deferredPrompt = event;
-      
-      // Show install button after a delay to avoid being intrusive
-      setTimeout(() => {
-        installButton.style.display = 'block';
-      }, 5000);
-    });
-
-    installButton.addEventListener('click', function() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function(choiceResult) {
-          console.log('OneUptime PWA: Install prompt result:', choiceResult.outcome);
-          deferredPrompt = null;
-          installButton.style.display = 'none';
-        });
-      }
-    });
-
-    window.addEventListener('appinstalled', function() {
-      console.log('OneUptime PWA: App installed successfully');
-      installButton.style.display = 'none';
-      deferredPrompt = null;
-    });
-
-    // Hide install button if already installed
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
-      installButton.style.display = 'none';
-    }
-
     // Performance monitoring
     if ('performance' in window && 'PerformanceObserver' in window) {
       // Monitor Largest Contentful Paint
