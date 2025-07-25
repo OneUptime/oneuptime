@@ -119,6 +119,7 @@ router.post(
       serverMonitorResponse.monitorId = monitor.id;
 
       serverMonitorResponse.requestReceivedAt = OneUptimeDate.getCurrentDate();
+      serverMonitorResponse.timeNow = OneUptimeDate.getCurrentDate();
 
       // process probe response here.
       await MonitorResourceUtil.monitorResource(serverMonitorResponse);

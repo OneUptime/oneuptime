@@ -92,6 +92,7 @@ RunCron(
               serverMonitor.serverMonitorResponse?.requestReceivedAt ||
               serverMonitor.createdAt!,
             hostname: serverMonitor.serverMonitorResponse?.hostname || "",
+            timeNow: OneUptimeDate.getCurrentDate(),
           };
 
           await MonitorResourceUtil.monitorResource(serverMonitorResponse);
