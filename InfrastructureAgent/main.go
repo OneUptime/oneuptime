@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log/slog"
+	"oneuptime-infrastructure-agent/utils"
 	"os"
+	"time"
 
 	"github.com/gookit/config/v2"
 	"github.com/kardianos/service"
@@ -38,15 +41,10 @@ func (a *agentService) runAgent() {
 		})
 	} else {
 		slog.Info("Running under service manager.")
-		for {
-			select {
-			case _, ok := <-a.stopChan:
-				if !ok {
-					slog.Info("Service Exiting...")
-					a.agent.Close()
-					return
-				}
-			}
+		for range a.stopChan {
+			slog.Info("Service Exiting...")
+			a.agent.Close()
+			return
 		}
 	}
 }
@@ -56,7 +54,85 @@ func (a *agentService) Stop(s service.Service) error {
 	return nil
 }
 
+func showLogs(maxLines int, follow bool) {
+	logPath := utils.GetLogPath()
+
+	// Check if log file exists
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		fmt.Printf("No log file found at %s\n", logPath)
+		return
+	}
+
+	// Open the log file
+	file, err := os.Open(logPath)
+	if err != nil {
+		fmt.Printf("Error opening log file: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	// Read and display the logs
+	fmt.Printf("Showing logs from: %s\n", logPath)
+	fmt.Println("=====================================")
+
+	if follow {
+		// For follow mode, use a simple tail-like implementation
+		fmt.Println("Following logs (press Ctrl+C to exit)...")
+		fmt.Println("=====================================")
+
+		scanner := bufio.NewScanner(file)
+		// First, read existing content
+		for scanner.Scan() {
+			fmt.Println(scanner.Text())
+		}
+
+		// Then watch for new content (simplified implementation)
+		// Note: This is a basic implementation. For production, consider using fsnotify or similar
+		for {
+			scanner = bufio.NewScanner(file)
+			scanner.Split(bufio.ScanLines)
+			for scanner.Scan() {
+				fmt.Println(scanner.Text())
+			}
+			// Small delay to avoid excessive CPU usage
+			time.Sleep(1 * time.Second)
+		}
+	} else {
+		scanner := bufio.NewScanner(file)
+		lineCount := 0
+		var lines []string
+
+		// Read all lines and keep track of them
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+			lineCount++
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Printf("Error reading log file: %v\n", err)
+			return
+		}
+
+		// Show last maxLines lines or all lines if less than maxLines
+		startIndex := 0
+		if lineCount > maxLines {
+			startIndex = lineCount - maxLines
+			fmt.Printf("Showing last %d lines (%d total lines):\n", maxLines, lineCount)
+		} else {
+			fmt.Printf("Showing all %d lines:\n", lineCount)
+		}
+		fmt.Println("=====================================")
+
+		for i := startIndex; i < lineCount; i++ {
+			fmt.Println(lines[i])
+		}
+	}
+}
+
 func main() {
+	// Initialize logging
+	utils.SetDefaultLogger()
+
 	slog.Info("OneUptime Infrastructure Agent")
 
 	config.WithOptions(config.WithTagName("json"))
@@ -109,7 +185,7 @@ func main() {
 				os.Exit(2)
 			}
 			if err := s.Install(); err != nil {
-				slog.Error("Failed to configure service. Please consider uninstalling the service by running 'oneuptime-infrastructure-agent uninstall' and run configure again. \n", err)
+				slog.Error("Failed to configure service. Please consider uninstalling the service by running 'oneuptime-infrastructure-agent uninstall' and run configure again.", "error", err)
 				os.Exit(2)
 			}
 			fmt.Println("Service installed. Run the service using 'oneuptime-infrastructure-agent start'")
@@ -173,7 +249,19 @@ func main() {
 				slog.Info("Service Restarted")
 			}
 		case "help":
-			fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart")
+			fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart | status | logs")
+			fmt.Println()
+			fmt.Println("Commands:")
+			fmt.Println("  configure    Configure the agent with secret key and OneUptime URL")
+			fmt.Println("  start        Start the agent service")
+			fmt.Println("  stop         Stop the agent service")
+			fmt.Println("  restart      Restart the agent service")
+			fmt.Println("  status       Show the status of the agent service")
+			fmt.Println("  logs         Show agent logs")
+			fmt.Println("    -n <num>   Number of lines to show (default: 100)")
+			fmt.Println("    -f         Follow log output (like tail -f)")
+			fmt.Println("  uninstall    Uninstall the agent service")
+			fmt.Println("  help         Show this help message")
 		case "status":
 			sc, err := s.Status()
 			if err != nil {
@@ -187,11 +275,21 @@ func main() {
 			} else {
 				slog.Info("Service status unknown")
 			}
+		case "logs":
+			logFlags := flag.NewFlagSet("logs", flag.ExitOnError)
+			lines := logFlags.Int("n", 100, "Number of lines to show")
+			follow := logFlags.Bool("f", false, "Follow log output")
+			err := logFlags.Parse(os.Args[2:])
+			if err != nil {
+				slog.Error(err.Error())
+				os.Exit(2)
+			}
+			showLogs(*lines, *follow)
 		default:
 			slog.Error("Invalid command")
 			os.Exit(2)
 		}
 	} else {
-		fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart")
+		fmt.Println("Usage: oneuptime-infrastructure-agent configure | uninstall | start | stop | restart | status | logs")
 	}
 }
