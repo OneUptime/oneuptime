@@ -196,6 +196,10 @@ const SettingsSSO: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/SSO");
   });
+const SettingsSCIM: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/SCIM");
+  });
 const SettingsSmsLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/SmsLog");
@@ -675,6 +679,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsSSO
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SCIM)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsSCIM
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_SCIM] as Route}
               />
             </Suspense>
           }

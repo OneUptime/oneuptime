@@ -338,6 +338,9 @@ enum PageMap {
   // SSO.
   SETTINGS_SSO = "SETTINGS_SSO",
 
+  // SCIM.
+  SETTINGS_SCIM = "SETTINGS_SCIM",
+
   // Domains
 
   SETTINGS_DOMAINS = "SETTINGS_DOMAINS",
