@@ -295,5 +295,5 @@ export default [
   MigrationName1753343522987,
   MigrationName1753377161288,
   AddPerformanceIndexes1753378524062,
-  MigrationName1753383711511
+  MigrationName1753383711511,
 ];

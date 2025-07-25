@@ -98,7 +98,7 @@ router.post(
         throw new BadDataException("Monitor not found");
       }
 
-      // return the response early. 
+      // return the response early.
       Response.sendEmptySuccessResponse(req, res);
 
       // now process this request.
@@ -122,7 +122,6 @@ router.post(
 
       // process probe response here.
       await MonitorResourceUtil.monitorResource(serverMonitorResponse);
-
     } catch (err) {
       return next(err);
     }
