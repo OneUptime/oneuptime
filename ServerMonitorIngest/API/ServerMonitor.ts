@@ -4,7 +4,6 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Express, {
   ExpressRequest,
@@ -123,7 +122,7 @@ router.post(
 
       // process probe response here.
       await MonitorResourceUtil.monitorResource(serverMonitorResponse);
-      
+
     } catch (err) {
       return next(err);
     }
