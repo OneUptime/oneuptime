@@ -15,7 +15,7 @@ export default class AddDefaultGlobalConfig extends DataMigrationBase {
 
     const globalConfig: GlobalConfig = new GlobalConfig();
     globalConfig.id = ObjectID.getZeroObjectID();
-    globalConfig.emailServerType = EmailServerType.Internal;
+    globalConfig.emailServerType = EmailServerType.CustomSMTP;
     globalConfig.sendgridFromName = "OneUptime";
     globalConfig.smtpFromName = "OneUptime";
 

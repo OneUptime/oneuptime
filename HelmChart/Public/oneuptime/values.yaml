@@ -179,22 +179,6 @@ vapid:
   privateKey:
   subject: mailto:support@oneuptime.com
 
-internalSmtp:
-  enabled: true
-  incomingEmailDomain:
-  sendingDomain:
-  dkimPrivateKey:
-  dkimPublicKey:
-  email:
-  name:
-  service:
-    loadBalancerIP:
-    # Change this to LoadBalancer if you want to receive emails from the internet. This could be useful for Incoming Email monitors.
-    type: ClusterIP
-    externalIPs:
-      # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
-
-
 incidents:
   disableAutomaticCreation: false
 
@@ -257,7 +241,6 @@ port:
   nginxHttp: 80
   # If you are connecting Status Pages to custom domains, then this will be the port where the status page will be hosted on.
   statusPageHttpsPort: 443
-  haraka: 2525
   otelCollectorGrpc: 4317
   otelCollectorHttp: 4318
   isolatedVM: 4572
@@ -472,10 +455,6 @@ dashboard:
 
 adminDashboard:
   disableTelemetryCollection: false
-  disableAutoscaler: false
-  resources:
-
-haraka:
   disableAutoscaler: false
   resources:
 

@@ -17,7 +17,6 @@ import Port from "../../Types/Port";
 import { Column, Entity } from "typeorm";
 
 export enum EmailServerType {
-  Internal = "Internal",
   Sendgrid = "Sendgrid",
   CustomSMTP = "Custom SMTP",
 }

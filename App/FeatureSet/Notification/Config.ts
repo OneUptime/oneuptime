@@ -1,34 +1,14 @@
-import Hostname from "Common/Types/API/Hostname";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import Port from "Common/Types/Port";
 import { AdminDashboardClientURL } from "Common/Server/EnvironmentConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
 import Phone from "Common/Types/Phone";
-
-export const InternalSmtpPassword: string =
-  process.env["INTERNAL_SMTP_PASSWORD"] || "";
-
-export const InternalSmtpHost: Hostname = new Hostname(
-  process.env["INTERNAL_SMTP_HOST"] || "haraka",
-);
-
-export const InternalSmtpPort: Port = new Port(2525);
-
-export const InternalSmtpSecure: boolean = false;
-
-export const InternalSmtpEmail: Email = new Email(
-  process.env["INTERNAL_SMTP_EMAIL"] || "noreply@oneuptime.com",
-);
-
-export const InternalSmtpFromName: string =
-  process.env["INTERNAL_SMTP_FROM_NAME"] || "OneUptime";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
@@ -132,10 +112,10 @@ export const getEmailServerType: GetEmailServerTypeFunction =
       });
 
     if (!globalConfig) {
-      return EmailServerType.Internal;
+      return EmailServerType.CustomSMTP;
     }
 
-    return globalConfig.emailServerType || EmailServerType.Internal;
+    return globalConfig.emailServerType || EmailServerType.CustomSMTP;
   };
 
 export interface SendGridConfig {

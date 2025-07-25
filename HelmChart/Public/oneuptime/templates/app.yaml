@@ -91,14 +91,6 @@ spec:
               value: {{ $.Values.billing.smsDefaultValueInCents | quote }}
             - name: CALL_DEFAULT_COST_IN_CENTS_PER_MINUTE
               value: {{ $.Values.billing.callDefaultValueInCentsPerMinute | quote }}
-            - name: INTERNAL_SMTP_HOST
-              value: {{ printf "%s-haraka.%s.svc.%s" $.Release.Name $.Release.Namespace $.Values.global.clusterDomain | quote }}
-            - name: INTERNAL_SMTP_FROM_NAME
-              value: {{ $.Values.internalSmtp.name | quote }}
-            - name: INTERNAL_SMTP_EMAIL
-              value: {{ $.Values.internalSmtp.email | quote }}
-            - name: INTERNAL_SMTP_PASSWORD
-              value: "internal_smtp_password"  
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.app.disableTelemetryCollection | quote }}
         
