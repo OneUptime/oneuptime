@@ -11,8 +11,6 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-
 RunCron(
   "ServerMonitor:CheckOnlineStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -49,7 +47,7 @@ RunCron(
           continue;
         }
 
-        const monitorTask: PromiseVoidFunction = (async () => {
+        const monitorTask: Promise<void> = (async () => {
           try {
             const serverMonitor: Monitor | null =
               await MonitorService.findOneBy({
