@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { IsBillingEnabled, NotificationSlackWebhookOnSubscriptionUpdate } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
@@ -7,6 +7,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import URL from "../../Types/API/URL";
+import Exception from "../../Types/Exception/Exception";
 
 export class NotificationService extends BaseService {
   public constructor() {
@@ -105,6 +108,11 @@ export class NotificationService extends BaseService {
         } USD.`,
       );
 
+      // Send Slack notification for balance refill
+      this.sendBalanceRefillSlackNotification(project, amountInUSD, updatedAmount / 100).catch((error: Exception) => {
+        logger.error("Error sending slack message for balance refill: " + error);
+      });
+
       project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
 
       return updatedAmount;
@@ -193,6 +201,30 @@ export class NotificationService extends BaseService {
     }
 
     return project?.smsOrCallCurrentBalanceInUSDCents || 0;
+  }
+
+  @CaptureSpan()
+  private async sendBalanceRefillSlackNotification(
+    project: Project,
+    amountInUSD: number,
+    currentBalanceInUSD: number,
+  ): Promise<void> {
+    if (NotificationSlackWebhookOnSubscriptionUpdate) {
+      const slackMessage: string = `*SMS and Call Balance Refilled:*
+*Project Name:* ${project.name?.toString() || "N/A"}
+*Project ID:* ${project.id?.toString() || "N/A"}
+*Refill Amount:* $${amountInUSD} USD
+*Current Balance:* $${currentBalanceInUSD} USD
+
+${project.createdOwnerName && project.createdOwnerEmail ? `*Project Created By:* ${project.createdOwnerName.toString()} (${project.createdOwnerEmail.toString()})` : ""}`;
+
+      SlackUtil.sendMessageToChannelViaIncomingWebhook({
+        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
+        text: slackMessage,
+      }).catch((error: Exception) => {
+        logger.error("Error sending slack message for balance refill: " + error);
+      });
+    }
   }
 }
 
