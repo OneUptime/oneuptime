@@ -59,10 +59,10 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { MessageBlocksByWorkspaceType } from "./WorkspaceNotificationRuleService";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { Dictionary } from "lodash";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import Dictionary from "../../Types/Dictionary";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{

@@ -24,11 +24,11 @@ import API from "../../Utils/API/API";
 import { APP_API_URL } from "../../Config";
 import PageLoader from "../Loader/PageLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import { Dictionary } from "lodash";
 import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import Dictionary from "../../../Types/Dictionary";
 
 export interface ComponentProps {
   logs: Array<Log>;

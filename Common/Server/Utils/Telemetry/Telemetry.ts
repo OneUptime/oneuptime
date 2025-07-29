@@ -1,4 +1,3 @@
-import { Dictionary } from "lodash";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
@@ -9,6 +8,7 @@ import logger from "../Logger";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MetricTypeService from "../../Services/MetricTypeService";
 import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
+import Dictionary from "../../../Types/Dictionary";
 
 export type AttributeType = string | number | boolean | null;
 
