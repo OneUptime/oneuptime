@@ -64,7 +64,7 @@ const Page: FunctionComponent<ComponentProps> = (
       )}
 
       {props.sideMenu && (
-        <main className="mx-auto max-w-full pb-10 mr-5">
+        <main className="mx-auto max-w-full pb-10">
           <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
             {props.sideMenu}
 
