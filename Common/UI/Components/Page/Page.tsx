@@ -62,6 +62,7 @@ const Page: FunctionComponent<ComponentProps> = (
           )}
         </div>
       )}
+      
 
       {props.sideMenu && (
         <main className="mx-auto max-w-full pb-10">

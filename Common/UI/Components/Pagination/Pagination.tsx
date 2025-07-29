@@ -243,6 +243,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
               <span>Next</span>
             </li>
           </ul>
+          
         </nav>
       </div>
 
