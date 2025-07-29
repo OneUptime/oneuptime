@@ -62,7 +62,7 @@ const Modal: FunctionComponent<ComponentProps> = (
       <div className="fixed inset-0 z-20 overflow-y-auto">
         <div className="flex min-h-screen items-end justify-center p-0 text-center md:items-center md:p-4">
           <div
-            className={`relative transform bg-white text-left shadow-xl transition-all w-full h-full md:h-auto md:w-auto md:rounded-lg md:my-8 ${
+            className={`relative transform bg-white text-left shadow-xl transition-all w-full h-full md:rounded-lg md:my-8 ${
               props.modalWidth && props.modalWidth === ModalWidth.Large
                 ? "md:max-w-7xl"
                 : ""
