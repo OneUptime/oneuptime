@@ -112,10 +112,11 @@ export class NotificationService extends BaseService {
       );
 
       // Send Slack notification for balance refill
-      this.sendBalanceRefillSlackNotification(
-        project,
-        amountInUSD,
-        updatedAmount / 100,
+      this.sendBalanceRefillSlackNotification({
+        project: project,
+        amountInUSD: amountInUSD,
+        currentBalanceInUSD: updatedAmount / 100,
+      }
       ).catch((error: Exception) => {
         logger.error(
           "Error sending slack message for balance refill: " + error,
@@ -213,11 +214,15 @@ export class NotificationService extends BaseService {
   }
 
   @CaptureSpan()
-  private async sendBalanceRefillSlackNotification(
+  private async sendBalanceRefillSlackNotification(data: {
     project: Project,
     amountInUSD: number,
     currentBalanceInUSD: number,
+  }
   ): Promise<void> {
+    
+    const { project, amountInUSD, currentBalanceInUSD } = data;
+
     if (NotificationSlackWebhookOnSubscriptionUpdate) {
       const slackMessage: string = `*SMS and Call Balance Refilled:*
 *Project Name:* ${project.name?.toString() || "N/A"}
