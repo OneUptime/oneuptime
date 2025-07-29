@@ -5,7 +5,10 @@ import AnalyticsBaseModel from "@oneuptime/common/Models/AnalyticsModels/Analyti
 import OneUptimeOperation from "../Types/OneUptimeOperation";
 import ModelType from "../Types/ModelType";
 import { McpToolInfo, ModelToolsResult } from "../Types/McpTypes";
-import { ModelSchema, ModelSchemaType } from "@oneuptime/common/Utils/Schema/ModelSchema";
+import {
+  ModelSchema,
+  ModelSchemaType,
+} from "@oneuptime/common/Utils/Schema/ModelSchema";
 import {
   AnalyticsModelSchema,
   AnalyticsModelSchemaType,

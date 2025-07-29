@@ -1,4 +1,7 @@
-import { IsBillingEnabled, NotificationSlackWebhookOnSubscriptionUpdate } from "../EnvironmentConfig";
+import {
+  IsBillingEnabled,
+  NotificationSlackWebhookOnSubscriptionUpdate,
+} from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BillingService from "./BillingService";
@@ -109,8 +112,14 @@ export class NotificationService extends BaseService {
       );
 
       // Send Slack notification for balance refill
-      this.sendBalanceRefillSlackNotification(project, amountInUSD, updatedAmount / 100).catch((error: Exception) => {
-        logger.error("Error sending slack message for balance refill: " + error);
+      this.sendBalanceRefillSlackNotification(
+        project,
+        amountInUSD,
+        updatedAmount / 100,
+      ).catch((error: Exception) => {
+        logger.error(
+          "Error sending slack message for balance refill: " + error,
+        );
       });
 
       project.smsOrCallCurrentBalanceInUSDCents = updatedAmount;
@@ -222,7 +231,9 @@ ${project.createdOwnerName && project.createdOwnerEmail ? `*Project Created By:*
         url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
         text: slackMessage,
       }).catch((error: Exception) => {
-        logger.error("Error sending slack message for balance refill: " + error);
+        logger.error(
+          "Error sending slack message for balance refill: " + error,
+        );
       });
     }
   }
