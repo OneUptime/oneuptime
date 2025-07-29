@@ -26,7 +26,7 @@ const ProbePicker: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="flex">
-      <div className="w-fit mr-2 flex h-full align-middle items-center">
+      <div className="w-fit mr-2 flex h-full align-middle items-center mt-4">
         <FieldLabelElement title="Select Probe:" required={true} />
       </div>
       <div>
