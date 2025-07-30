@@ -18,8 +18,10 @@ spec:
   {{- if $.Values.deployment.openTelemetryIngest.replicaCount }}
   replicas: {{ $.Values.deployment.openTelemetryIngest.replicaCount }}
   {{- else }}
-  {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryIngest.disableAutoscaler) }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryIngest.disableAutoscaler) (and $.Values.keda.enabled $.Values.openTelemetryIngest.enableKedaAutoscaler) }}
+  {{- if not (and $.Values.keda.enabled $.Values.openTelemetryIngest.enableKedaAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   {{- end }}
   template:
@@ -113,7 +115,18 @@ spec:
 
 # OneUptime open-telemetry-ingest autoscaler
 {{- if not $.Values.openTelemetryIngest.disableAutoscaler }}
+{{- if and $.Values.keda.enabled $.Values.openTelemetryIngest.enableKedaAutoscaler }}
+# KEDA TriggerAuthentication for authentication
+{{- $openTelemetryIngestKedaAuthArgs := dict "ServiceName" "open-telemetry-ingest" "ServiceConfig" $.Values.openTelemetryIngest "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.kedaTriggerAuthentication" $openTelemetryIngestKedaAuthArgs }}
+---
+# KEDA ScaledObject for queue-based autoscaling
+{{- $openTelemetryIngestKedaArgs := dict "ServiceName" "open-telemetry-ingest" "ServiceConfig" $.Values.openTelemetryIngest "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.kedaScaledObject" $openTelemetryIngestKedaArgs }}
+{{- else }}
+# Traditional HPA autoscaler
 {{- $openTelemetryIngestAutoScalerArgs := dict "ServiceName" "open-telemetry-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $openTelemetryIngestAutoScalerArgs }}
+{{- end }}
 {{- end }}
 ---

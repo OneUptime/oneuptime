@@ -695,3 +695,55 @@ spec:
     requests:
       storage: {{ $.Storage }}
 {{- end }}
+
+
+{{- define "oneuptime.kedaScaledObject" }}
+{{- if and (.Values.keda.enabled) (.ServiceConfig.enableKedaAutoscaler) }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    appname: oneuptime
+    scaledobject.keda.sh/name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+spec:
+  scaleTargetRef:
+    name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
+  minReplicaCount: {{ .ServiceConfig.kedaMinReplicas | default 1 }}
+  maxReplicaCount: {{ .ServiceConfig.kedaMaxReplicas | default 10 }}
+  {{- if .ServiceConfig.kedaCooldownPeriod }}
+  cooldownPeriod: {{ .ServiceConfig.kedaCooldownPeriod }}
+  {{- end }}
+  {{- if .ServiceConfig.kedaPollingInterval }}
+  pollingInterval: {{ .ServiceConfig.kedaPollingInterval }}
+  {{- end }}
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .ServiceConfig.port }}
+        metricName: {{ .ServiceConfig.kedaMetricName | default "oneuptime_queue_size" }}
+        threshold: {{ .ServiceConfig.kedaThreshold | default "10" | quote }}
+        query: {{ .ServiceConfig.kedaQuery }}
+      authenticationRef:
+        name: {{ printf "%s-%s-keda-auth" $.Release.Name $.ServiceName }}
+{{- end }}
+{{- end }}
+
+
+{{- define "oneuptime.kedaTriggerAuthentication" }}
+{{- if and (.Values.keda.enabled) (.ServiceConfig.enableKedaAutoscaler) }}
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ printf "%s-%s-keda-auth" $.Release.Name $.ServiceName }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    appname: oneuptime
+spec:
+  secretTargetRef:
+    - parameter: clusterkey
+      name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+      key: oneuptime-secret
+{{- end }}
+{{- end }}

@@ -493,6 +493,16 @@ openTelemetryIngest:
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
+  # KEDA autoscaling configuration
+  enableKedaAutoscaler: true
+  kedaMinReplicas: 1
+  kedaMaxReplicas: 20
+  kedaThreshold: "50"
+  kedaMetricName: "oneuptime_telemetry_queue_size"
+  kedaQuery: "oneuptime_telemetry_queue_size"
+  kedaCooldownPeriod: 300
+  kedaPollingInterval: 30
+  port: 3403
 
 fluentIngest:
   disableTelemetryCollection: false

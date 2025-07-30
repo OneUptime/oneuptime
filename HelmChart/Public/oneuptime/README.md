@@ -317,6 +317,43 @@ Please do the same for Redis and Clickhouse.
 
 We release frequently, sometimes multiple times a day. It's usually safe to upgrade to the latest version. Any breaking changes will be documented in the release notes. Please make sure you read the release notes before upgrading.
 
+## KEDA Autoscaling (Optional)
+
+OneUptime supports KEDA (Kubernetes Event-Driven Autoscaling) for intelligent autoscaling based on queue metrics rather than just CPU/memory usage. This is particularly useful for services that process queued workloads like the OpenTelemetry Ingest service.
+
+### Prerequisites
+
+1. KEDA must be installed in your Kubernetes cluster
+2. Enable KEDA in your values.yaml:
+
+```yaml
+keda:
+  enabled: true
+
+openTelemetryIngest:
+  enableKedaAutoscaler: true
+  kedaMinReplicas: 1
+  kedaMaxReplicas: 20
+  kedaThreshold: "50"  # Scale when queue size exceeds 50 items
+```
+
+### Benefits
+
+- **Queue-based scaling**: Scales based on actual workload (queue size) instead of resource usage
+- **Faster response**: Detects load increases immediately when items are queued
+- **Cost-effective**: Scales down to minimum replicas when queue is empty
+- **Fallback support**: Falls back to traditional HPA if KEDA is disabled
+
+### Validation
+
+Use the included validation script to verify your KEDA configuration:
+
+```bash
+./scripts/validate-keda.sh [namespace] [release-name]
+```
+
+For detailed configuration options and troubleshooting, see [KEDA-AUTOSCALING.md](./KEDA-AUTOSCALING.md).
+
 ## Chart Dependencies
 
 We use these charts as dependencies. You dont need to install them separately. Please read the readme for these individual charts to understand the configuration options.
