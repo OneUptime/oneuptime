@@ -126,3 +126,4 @@ terraform-provider-example/**
 MCP/build/
 MCP/.env
 MCP/node_modules 
+Dashboard/public/sw.js
