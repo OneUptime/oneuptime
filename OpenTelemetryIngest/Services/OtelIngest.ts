@@ -115,10 +115,8 @@ export default class OtelIngestService {
       // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      
-        // Add to queue for asynchronous processing
-        await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
-      
+      // Add to queue for asynchronous processing
+      await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
 
       return;
     } catch (err) {
@@ -134,14 +132,18 @@ export default class OtelIngestService {
   }
 
   @CaptureSpan()
-  public static async processTracesFromQueue(req: ExpressRequest): Promise<void> {
+  public static async processTracesFromQueue(
+    req: ExpressRequest,
+  ): Promise<void> {
     // This method is specifically for queue processing
     // It bypasses the response handling since the response was already sent
     await this.processTracesAsync(req);
   }
 
   @CaptureSpan()
-  public static async processMetricsFromQueue(req: ExpressRequest): Promise<void> {
+  public static async processMetricsFromQueue(
+    req: ExpressRequest,
+  ): Promise<void> {
     // This method is specifically for queue processing
     // It bypasses the response handling since the response was already sent
     await this.processMetricsAsync(req);
@@ -358,10 +360,9 @@ export default class OtelIngestService {
       // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-     
-        // Add to queue for asynchronous processing
-        await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
-      
+      // Add to queue for asynchronous processing
+      await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+
       return;
     } catch (err) {
       return next(err);
@@ -613,10 +614,8 @@ export default class OtelIngestService {
       // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-     
-        // Add to queue for asynchronous processing
-        await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
-     
+      // Add to queue for asynchronous processing
+      await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
 
       return;
     } catch (err) {

@@ -141,7 +141,7 @@ export default class Queue {
     const waiting = await queue.getWaiting();
     const active = await queue.getActive();
     const delayed = await queue.getDelayed();
-    
+
     return waiting.length + active.length + delayed.length;
   }
 
@@ -160,14 +160,19 @@ export default class Queue {
     const completed = await queue.getCompleted();
     const failed = await queue.getFailed();
     const delayed = await queue.getDelayed();
-    
+
     return {
       waiting: waiting.length,
       active: active.length,
       completed: completed.length,
       failed: failed.length,
       delayed: delayed.length,
-      total: waiting.length + active.length + completed.length + failed.length + delayed.length,
+      total:
+        waiting.length +
+        active.length +
+        completed.length +
+        failed.length +
+        delayed.length,
     };
   }
 }

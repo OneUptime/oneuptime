@@ -26,10 +26,10 @@ router.post(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     return OtelIngestService.ingestTraces(req, res, next);
-  }
+  },
 );
 
 router.post(
@@ -39,10 +39,10 @@ router.post(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     return OtelIngestService.ingestMetrics(req, res, next);
-  }
+  },
 );
 
 router.post(
@@ -52,20 +52,20 @@ router.post(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     return OtelIngestService.ingestLogs(req, res, next);
-  }
+  },
 );
 
 // Queue stats endpoint
 router.get(
   "/otlp/queue/stats",
-    ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       const stats = await TelemetryQueueService.getQueueStats();
@@ -73,7 +73,7 @@ router.get(
     } catch (err) {
       return next(err);
     }
-  }
+  },
 );
 
 // Queue size endpoint
@@ -83,7 +83,7 @@ router.get(
   async (
     req: ExpressRequest,
     res: ExpressResponse,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       const size = await TelemetryQueueService.getQueueSize();
@@ -91,7 +91,7 @@ router.get(
     } catch (err) {
       return next(err);
     }
-  }
+  },
 );
 
 export default router;

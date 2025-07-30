@@ -1,4 +1,7 @@
-import { TelemetryIngestJobData, TelemetryType } from "../../Services/Queue/TelemetryQueueService";
+import {
+  TelemetryIngestJobData,
+  TelemetryType,
+} from "../../Services/Queue/TelemetryQueueService";
 import OtelIngestService from "../../Services/OtelIngest";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
@@ -11,10 +14,10 @@ const worker = QueueWorker.getWorker(
   QueueName.Telemetry,
   async (job: QueueJob): Promise<void> => {
     logger.debug(`Processing telemetry ingestion job: ${job.name}`);
-    
+
     try {
       const jobData = job.data as TelemetryIngestJobData;
-      
+
       // Create a mock request object with the queued data
       const mockRequest = {
         projectId: new ObjectID(jobData.projectId.toString()),
@@ -26,19 +29,25 @@ const worker = QueueWorker.getWorker(
       switch (jobData.type) {
         case TelemetryType.Logs:
           await OtelIngestService.processLogsFromQueue(mockRequest);
-          logger.debug(`Successfully processed logs for project: ${jobData.projectId}`);
+          logger.debug(
+            `Successfully processed logs for project: ${jobData.projectId}`,
+          );
           break;
-          
+
         case TelemetryType.Traces:
           await OtelIngestService.processTracesFromQueue(mockRequest);
-          logger.debug(`Successfully processed traces for project: ${jobData.projectId}`);
+          logger.debug(
+            `Successfully processed traces for project: ${jobData.projectId}`,
+          );
           break;
-          
+
         case TelemetryType.Metrics:
           await OtelIngestService.processMetricsFromQueue(mockRequest);
-          logger.debug(`Successfully processed metrics for project: ${jobData.projectId}`);
+          logger.debug(
+            `Successfully processed metrics for project: ${jobData.projectId}`,
+          );
           break;
-          
+
         default:
           throw new Error(`Unknown telemetry type: ${jobData.type}`);
       }

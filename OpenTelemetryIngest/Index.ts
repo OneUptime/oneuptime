@@ -57,8 +57,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     // Initialize telemetry processing worker
     logger.debug("Initializing telemetry processing worker...");
-    logger.debug(`Telemetry worker initialized: ${ProcessTelemetryWorker ? 'success' : 'failed'}`);
-    
+    logger.debug(
+      `Telemetry worker initialized: ${ProcessTelemetryWorker ? "success" : "failed"}`,
+    );
+
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {
