@@ -4,6 +4,7 @@ import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
+import ObjectID from "Common/Types/ObjectID";
 
 // Set up the unified worker for processing telemetry queue
 const worker = QueueWorker.getWorker(
@@ -16,7 +17,7 @@ const worker = QueueWorker.getWorker(
       
       // Create a mock request object with the queued data
       const mockRequest = {
-        projectId: jobData.projectId,
+        projectId: new ObjectID(jobData.projectId.toString()),
         body: jobData.requestBody,
         headers: jobData.requestHeaders,
       } as TelemetryRequest;

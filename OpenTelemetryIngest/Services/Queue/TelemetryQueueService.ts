@@ -1,7 +1,6 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
 
@@ -13,7 +12,7 @@ export enum TelemetryType {
 
 export interface TelemetryIngestJobData {
   type: TelemetryType;
-  projectId: ObjectID;
+  projectId: string;
   requestBody: JSONObject;
   requestHeaders: Record<string, string>;
   ingestionTimestamp: Date;
@@ -40,7 +39,7 @@ export default class TelemetryQueueService {
     try {
       const jobData: TelemetryIngestJobData = {
         type,
-        projectId: req.projectId,
+        projectId: req.projectId.toString(),
         requestBody: req.body,
         requestHeaders: req.headers as Record<string, string>,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
