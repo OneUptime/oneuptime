@@ -138,11 +138,11 @@ export default class Queue {
   @CaptureSpan()
   public static async getQueueSize(queueName: QueueName): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waiting: Job[] = await queue.getWaiting();
-    const active: Job[] = await queue.getActive();
-    const delayed: Job[] = await queue.getDelayed();
+    const waitingCount = await queue.getWaitingCount();
+    const activeCount = await queue.getActiveCount();
+    const delayedCount = await queue.getDelayedCount();
 
-    return waiting.length + active.length + delayed.length;
+    return waitingCount + activeCount + delayedCount;
   }
 
   @CaptureSpan()
@@ -155,24 +155,19 @@ export default class Queue {
     total: number;
   }> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waiting: Job[] = await queue.getWaiting();
-    const active: Job[] = await queue.getActive();
-    const completed: Job[] = await queue.getCompleted();
-    const failed: Job[] = await queue.getFailed();
-    const delayed: Job[] = await queue.getDelayed();
+    const waitingCount = await queue.getWaitingCount();
+    const activeCount = await queue.getActiveCount();
+    const completedCount = await queue.getCompletedCount();
+    const failedCount = await queue.getFailedCount();
+    const delayedCount = await queue.getDelayedCount();
 
     return {
-      waiting: waiting.length,
-      active: active.length,
-      completed: completed.length,
-      failed: failed.length,
-      delayed: delayed.length,
-      total:
-        waiting.length +
-        active.length +
-        completed.length +
-        failed.length +
-        delayed.length,
+      waiting: waitingCount,
+      active: activeCount,
+      completed: completedCount,
+      failed: failedCount,
+      delayed: delayedCount,
+      total: waitingCount + activeCount + completedCount + failedCount + delayedCount,
     };
   }
 
