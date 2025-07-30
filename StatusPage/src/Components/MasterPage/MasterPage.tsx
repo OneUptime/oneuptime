@@ -158,15 +158,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   useAsyncEffect(async () => {
     try {
-      
       setIsLoading(true);
-      
+
       const id: ObjectID = await getId();
-      
+
       setStatusPageId(id);
-      
+
       StatusPageUtil.setStatusPageId(id);
-      
+
       const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
         URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/master-page/${id.toString()}`,

@@ -255,7 +255,7 @@ router.post(
         );
       }
 
-      // this is when the resource was ingested. 
+      // this is when the resource was ingested.
       probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
       MonitorResourceUtil.monitorResource(probeResponse).catch((err: Error) => {

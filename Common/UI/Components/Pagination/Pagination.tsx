@@ -89,7 +89,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
           )}
         </p>
       </div>
-      
+
       {/* Desktop layout: All controls together on right */}
       <div className="hidden md:flex">
         <nav className="inline-flex -space-x-px rounded-md shadow-sm">
@@ -181,7 +181,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
           }}
         />
       </div>
-      
+
       <div className="md:hidden">
         <nav className="inline-flex -space-x-px rounded-md shadow-sm">
           <ul>
@@ -243,7 +243,6 @@ const Pagination: FunctionComponent<ComponentProps> = (
               <span>Next</span>
             </li>
           </ul>
-          
         </nav>
       </div>
 
