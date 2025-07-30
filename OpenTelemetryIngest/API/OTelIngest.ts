@@ -112,8 +112,8 @@ router.get(
   ): Promise<void> => {
     try {
       // Parse pagination parameters from query string
-      const start = parseInt(req.query["start"] as string) || 0;
-      const end = parseInt(req.query["end"] as string) || 100;
+      const start: number = parseInt(req.query["start"] as string) || 0;
+      const end: number = parseInt(req.query["end"] as string) || 100;
 
       const failedJobs: Array<{
         id: string;

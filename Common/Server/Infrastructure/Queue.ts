@@ -138,9 +138,9 @@ export default class Queue {
   @CaptureSpan()
   public static async getQueueSize(queueName: QueueName): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waitingCount = await queue.getWaitingCount();
-    const activeCount = await queue.getActiveCount();
-    const delayedCount = await queue.getDelayedCount();
+    const waitingCount: number = await queue.getWaitingCount();
+    const activeCount: number = await queue.getActiveCount();
+    const delayedCount: number = await queue.getDelayedCount();
 
     return waitingCount + activeCount + delayedCount;
   }
@@ -155,11 +155,11 @@ export default class Queue {
     total: number;
   }> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waitingCount = await queue.getWaitingCount();
-    const activeCount = await queue.getActiveCount();
-    const completedCount = await queue.getCompletedCount();
-    const failedCount = await queue.getFailedCount();
-    const delayedCount = await queue.getDelayedCount();
+    const waitingCount: number = await queue.getWaitingCount();
+    const activeCount: number = await queue.getActiveCount();
+    const completedCount: number = await queue.getCompletedCount();
+    const failedCount: number = await queue.getFailedCount();
+    const delayedCount: number = await queue.getDelayedCount();
 
     return {
       waiting: waitingCount,
@@ -195,8 +195,8 @@ export default class Queue {
     }>
   > {
     const queue: BullQueue = this.getQueue(queueName);
-    const start = options?.start || 0;
-    const end = options?.end || 100;
+    const start: number = options?.start || 0;
+    const end: number = options?.end || 100;
     const failed: Job[] = await queue.getFailed(start, end);
 
     return failed.map((job: Job) => {
