@@ -1,24 +1,213 @@
 /* eslint-disable no-restricted-globals */
 
 // OneUptime Progressive Web App Service Worker
-// Handles push notifications only - no caching or offline functionality
+// Handles push notifications and caching for PWA functionality
 
 console.log('[ServiceWorker] OneUptime PWA Service Worker Loaded');
 
-// Install event - just skip waiting, no caching
+// Cache configuration
+const CACHE_VERSION = 'oneuptime-v1.2.0'; // Update this when deploying new versions
+const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
+
+// Cache duration configuration (in milliseconds)
+const CACHE_DURATIONS = {
+  static: 7 * 24 * 60 * 60 * 1000, // 7 days for static assets
+  dynamic: 24 * 60 * 60 * 1000,    // 1 day for dynamic content
+};
+
+// Assets to cache immediately during install
+const STATIC_ASSETS = [
+  '/dashboard/',
+  '/dashboard/manifest.json',
+  '/dashboard/offline.html',
+  '/dashboard/assets/img/favicons/favicon.ico',
+  '/dashboard/assets/img/favicons/android-chrome-192x192.png',
+  '/dashboard/assets/img/favicons/android-chrome-512x512.png',
+  // Add other critical assets as needed
+];
+
+// Install event - cache static assets
 self.addEventListener('install', function(event) {
   console.log('[ServiceWorker] Installing...');
-  event.waitUntil(self.skipWaiting());
+  
+  event.waitUntil(
+    Promise.all([
+      // Cache static assets
+      caches.open(STATIC_CACHE).then(function(cache) {
+        console.log('[ServiceWorker] Pre-caching static assets');
+        return cache.addAll(STATIC_ASSETS.filter(url => url !== '/dashboard/'));
+      }),
+      
+      // Skip waiting to activate immediately
+      self.skipWaiting()
+    ])
+  );
 });
 
-// Activate event - claim clients, no cache cleanup needed
+// Activate event - clean up old caches
 self.addEventListener('activate', function(event) {
   console.log('[ServiceWorker] Activating...');
-  event.waitUntil(self.clients.claim());
+  
+  event.waitUntil(
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.map(function(cacheName) {
+            if (cacheName.startsWith('oneuptime-') && 
+                !cacheName.startsWith(CACHE_VERSION)) {
+              console.log('[ServiceWorker] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      
+      // Claim all clients
+      self.clients.claim()
+    ])
+  );
 });
 
-// No fetch event handling - let all requests go to network
-// PWA will work entirely online without any caching
+// Fetch event - implement caching strategies
+self.addEventListener('fetch', function(event) {
+  const request = event.request;
+  const url = new URL(request.url);
+  
+  // Skip non-GET requests
+  if (request.method !== 'GET') {
+    return;
+  }
+  
+  // Skip chrome-extension and other non-http(s) requests
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+  
+  event.respondWith(handleRequest(request));
+});
+
+// Request handling with different caching strategies
+async function handleRequest(request) {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  
+  try {
+    // Strategy 1: Network First for HTML pages (with fallback)
+    if (pathname.endsWith('/') || pathname.endsWith('.html') || 
+        pathname === '/dashboard' || pathname.startsWith('/dashboard/') && !pathname.includes('.')) {
+      return await networkFirstWithFallback(request, DYNAMIC_CACHE);
+    }
+    
+    // Strategy 2: Cache First for JavaScript, CSS, and other static assets
+    if (pathname.includes('/dist/') || pathname.match(/\.(js|css|woff|woff2|ttf|otf|eot)$/)) {
+      return await cacheFirstWithUpdate(request, STATIC_CACHE);
+    }
+    
+    // Strategy 3: Cache First for images and other media
+    if (pathname.match(/\.(png|jpe?g|gif|svg|ico|webp|avif)$/)) {
+      return await cacheFirstWithUpdate(request, STATIC_CACHE);
+    }
+  
+    
+    // Strategy 5: Network First for everything else
+    return await networkFirstWithFallback(request, DYNAMIC_CACHE);
+    
+  } catch (error) {
+    console.error('[ServiceWorker] Request handling error:', error);
+    
+    // Return offline page for navigation requests
+    if (request.mode === 'navigate') {
+      const offlineResponse = await caches.match('/dashboard/offline.html');
+      if (offlineResponse) {
+        return offlineResponse;
+      }
+    }
+    
+    // Return a basic offline response
+    return new Response('Offline - Please check your internet connection', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
+
+// Caching Strategy 1: Network First with Fallback (for HTML)
+async function networkFirstWithFallback(request, cacheName) {
+  try {
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cache successful responses
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('[ServiceWorker] Network failed, trying cache:', request.url);
+    
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    throw error;
+  }
+}
+
+// Caching Strategy 2: Cache First with Background Update (for static assets)
+async function cacheFirstWithUpdate(request, cacheName) {
+  const cachedResponse = await caches.match(request);
+  
+  if (cachedResponse) {
+    // Return cached version immediately
+    
+    // Background update if cache is old
+    const cacheDate = new Date(cachedResponse.headers.get('date') || 0);
+    const now = new Date();
+    const age = now.getTime() - cacheDate.getTime();
+    
+    if (age > CACHE_DURATIONS.static) {
+      // Background update - don't await
+      updateCacheInBackground(request, cacheName);
+    }
+    
+    return cachedResponse;
+  }
+  
+  // Not in cache, fetch from network
+  try {
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.error('[ServiceWorker] Failed to fetch asset:', request.url, error);
+    throw error;
+  }
+}
+
+// Background cache update
+async function updateCacheInBackground(request, cacheName) {
+  try {
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, networkResponse);
+      console.log('[ServiceWorker] Background cache update:', request.url);
+    }
+  } catch (error) {
+    console.log('[ServiceWorker] Background update failed:', request.url, error);
+  }
+}
 
 // Handle push subscription changes
 self.addEventListener('pushsubscriptionchange', function(event) {

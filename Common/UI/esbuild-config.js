@@ -134,11 +134,16 @@ function createConfig(options) {
     platform: 'browser',
     target: 'es2017',
     sourcemap: isDev ? 'inline' : false,
-    minify: false,
+    minify: !isDev, // Enable minification in production
     splitting: true, // Now supported with ESM format
+    chunkNames: isDev ? 'chunk-[name]' : 'chunk-[name]-[hash]', // Add hash in production
+    entryNames: isDev ? '[name]' : '[name]-[hash]', // Add hash in production
+    assetNames: isDev ? 'assets/[name]' : 'assets/[name]-[hash]', // Add hash in production
     publicPath,
     define: {
       'process.env.NODE_ENV': JSON.stringify(isDev ? 'development' : 'production'),
+      'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
+      'process.env.BUILD_VERSION': JSON.stringify(generateBuildVersion()),
       ...additionalDefines,
     },
     external: ['react-native-sqlite-storage', ...additionalExternal],
@@ -159,6 +164,20 @@ function createConfig(options) {
   };
 }
 
+// Generate a build version based on timestamp and git info (if available)
+function generateBuildVersion() {
+  const timestamp = Date.now();
+  
+  try {
+    const { execSync } = require('child_process');
+    const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    return `${timestamp}-${gitHash}`;
+  } catch (error) {
+    // Fallback if git is not available
+    return timestamp.toString();
+  }
+}
+
 /**
  * Build function that handles the build process
  * @param {Object} config - esbuild configuration
@@ -166,9 +185,15 @@ function createConfig(options) {
  */
 async function build(config, serviceName) {
   const isAnalyze = process.env.analyze === 'true';
+  const isDev = process.env.NODE_ENV !== 'production';
   
   try {
     const result = await esbuild.build(config);
+    
+    // Update service worker cache version after successful build
+    if (!isDev && serviceName.toLowerCase() === 'dashboard') {
+      updateServiceWorkerCacheVersion(config.outdir);
+    }
     
     if (isAnalyze && result.metafile) {
       const analyzeText = await esbuild.analyzeMetafile(result.metafile);
@@ -185,6 +210,35 @@ async function build(config, serviceName) {
   } catch (error) {
     console.error(`❌ ${serviceName} build failed:`, error);
     process.exit(1);
+  }
+}
+
+// Update service worker cache version
+function updateServiceWorkerCacheVersion(outdir) {
+  try {
+    const swPath = path.resolve(outdir, '../sw.js');
+    
+    if (!fs.existsSync(swPath)) {
+      console.log('⚠️  Service worker not found, skipping cache version update');
+      return;
+    }
+    
+    const buildVersion = generateBuildVersion();
+    const newCacheVersion = `oneuptime-v${buildVersion}`;
+    
+    let swContent = fs.readFileSync(swPath, 'utf8');
+    
+    // Update cache version
+    swContent = swContent.replace(
+      /const CACHE_VERSION = '[^']+';/,
+      `const CACHE_VERSION = '${newCacheVersion}';`
+    );
+    
+    fs.writeFileSync(swPath, swContent);
+    console.log(`🔄 Updated service worker cache version to: ${newCacheVersion}`);
+    
+  } catch (error) {
+    console.warn('⚠️  Failed to update service worker cache version:', error.message);
   }
 }
 
@@ -211,4 +265,5 @@ module.exports = {
   createCSSPlugin,
   createFileLoaderPlugin,
   readEnvFile,
+  generateBuildVersion,
 };
