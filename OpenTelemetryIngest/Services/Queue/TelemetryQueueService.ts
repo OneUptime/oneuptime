@@ -89,7 +89,12 @@ export default class TelemetryQueueService {
     return Queue.getQueueStats(QueueName.Telemetry);
   }
 
-  public static getFailedJobs(): Promise<Array<{
+  public static getFailedJobs(
+    options?: {
+      start?: number;
+      end?: number;
+    }
+  ): Promise<Array<{
     id: string;
     name: string;
     data: JSONObject;
@@ -98,6 +103,6 @@ export default class TelemetryQueueService {
     finishedOn: Date | null;
     attemptsMade: number;
   }>> {
-    return Queue.getFailedJobs(QueueName.Telemetry);
+    return Queue.getFailedJobs(QueueName.Telemetry, options);
   }
 }

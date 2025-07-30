@@ -172,7 +172,13 @@ export default class Queue {
   }
 
   @CaptureSpan()
-  public static async getFailedJobs(queueName: QueueName): Promise<Array<{
+  public static async getFailedJobs(
+    queueName: QueueName,
+    options?: {
+      start?: number;
+      end?: number;
+    }
+  ): Promise<Array<{
     id: string;
     name: string;
     data: JSONObject;
@@ -182,7 +188,9 @@ export default class Queue {
     attemptsMade: number;
   }>> {
     const queue: BullQueue = this.getQueue(queueName);
-    const failed: Job[] = await queue.getFailed();
+    const start = options?.start || 0;
+    const end = options?.end || 100;
+    const failed: Job[] = await queue.getFailed(start, end);
 
     return failed.map((job: Job) => ({
       id: job.id || 'unknown',

@@ -111,6 +111,10 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      // Parse pagination parameters from query string
+      const start = parseInt(req.query['start'] as string) || 0;
+      const end = parseInt(req.query['end'] as string) || 100;
+      
       const failedJobs: Array<{
         id: string;
         name: string;
@@ -119,8 +123,19 @@ router.get(
         processedOn: Date | null;
         finishedOn: Date | null;
         attemptsMade: number;
-      }> = await TelemetryQueueService.getFailedJobs();
-      return Response.sendJsonObjectResponse(req, res, { failedJobs });
+      }> = await TelemetryQueueService.getFailedJobs({
+        start,
+        end
+      });
+      
+      return Response.sendJsonObjectResponse(req, res, { 
+        failedJobs,
+        pagination: {
+          start,
+          end,
+          count: failedJobs.length
+        }
+      });
     } catch (err) {
       return next(err);
     }
