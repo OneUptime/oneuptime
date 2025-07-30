@@ -11,7 +11,6 @@ import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
-import get from "lodash/get";
 import React, { ReactElement, useState, useEffect } from "react";
 import { Draggable, DraggableProvided } from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
@@ -42,6 +41,13 @@ type TableRowFunction = <T extends GenericObject>(
 const TableRow: TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  // Helper function to get nested property values using dot notation
+  const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((current, key) => {
+      return current?.[key];
+    }, obj);
+  };
+
   const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
     props.actionButtons?.map(() => {
       return false;
@@ -240,7 +246,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         />
                       )
                     ) : (
-                      get(props.item, column.key, "")?.toString() ||
+                      getNestedValue(props.item, String(column.key))?.toString() ||
                       column.noValueMessage ||
                       ""
                     )
@@ -413,7 +419,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           />
                         )
                       ) : (
-                        get(props.item, column.key, "")?.toString() ||
+                        getNestedValue(props.item, String(column.key))?.toString() ||
                         column.noValueMessage ||
                         ""
                       )

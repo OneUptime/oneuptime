@@ -19,7 +19,6 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
-import get from "lodash/get";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -144,6 +143,13 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
   type GetFieldFunction = (field: Field<T>, index: number) => ReactElement;
 
+  // Helper function to get nested property values using dot notation
+  const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((current, key) => {
+      return current?.[key];
+    }, obj);
+  };
+
   const getField: GetFieldFunction = (
     field: Field<T>,
     index: number,
@@ -160,8 +166,11 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     let data: string | ReactElement = "";
 
-    if (get(props.item, fieldKey)) {
-      data = (get(props.item, fieldKey, "") as any) || "";
+    // Use helper function for both simple and nested property access
+    const fieldKeyStr = String(fieldKey);
+    const value = getNestedValue(props.item, fieldKeyStr);
+    if (value !== undefined && value !== null) {
+      data = value;
     }
 
     if (field.fieldType === FieldType.Date) {
