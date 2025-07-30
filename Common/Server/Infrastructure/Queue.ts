@@ -16,6 +16,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export enum QueueName {
   Workflow = "Workflow",
   Worker = "Worker",
+  Telemetry = "Telemetry",
 }
 
 export type QueueJob = Job;
@@ -132,5 +133,41 @@ export default class Queue {
     );
 
     return jobAdded;
+  }
+
+  @CaptureSpan()
+  public static async getQueueSize(queueName: QueueName): Promise<number> {
+    const queue = this.getQueue(queueName);
+    const waiting = await queue.getWaiting();
+    const active = await queue.getActive();
+    const delayed = await queue.getDelayed();
+    
+    return waiting.length + active.length + delayed.length;
+  }
+
+  @CaptureSpan()
+  public static async getQueueStats(queueName: QueueName): Promise<{
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+    total: number;
+  }> {
+    const queue = this.getQueue(queueName);
+    const waiting = await queue.getWaiting();
+    const active = await queue.getActive();
+    const completed = await queue.getCompleted();
+    const failed = await queue.getFailed();
+    const delayed = await queue.getDelayed();
+    
+    return {
+      waiting: waiting.length,
+      active: active.length,
+      completed: completed.length,
+      failed: failed.length,
+      delayed: delayed.length,
+      total: waiting.length + active.length + completed.length + failed.length + delayed.length,
+    };
   }
 }
