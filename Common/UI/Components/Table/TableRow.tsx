@@ -42,8 +42,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   // Helper function to get nested property values using dot notation
-  const getNestedValue = (obj: any, path: string): any => {
-    return path.split('.').reduce((current, key) => {
+  const getNestedValue: (obj: any, path: string) => any = (
+    obj: any,
+    path: string,
+  ): any => {
+    return path.split(".").reduce((current: any, key: string) => {
       return current?.[key];
     }, obj);
   };
@@ -246,7 +249,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         />
                       )
                     ) : (
-                      getNestedValue(props.item, String(column.key))?.toString() ||
+                      getNestedValue(
+                        props.item,
+                        String(column.key),
+                      )?.toString() ||
                       column.noValueMessage ||
                       ""
                     )
@@ -419,7 +425,10 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                           />
                         )
                       ) : (
-                        getNestedValue(props.item, String(column.key))?.toString() ||
+                        getNestedValue(
+                          props.item,
+                          String(column.key),
+                        )?.toString() ||
                         column.noValueMessage ||
                         ""
                       )

@@ -144,8 +144,11 @@ const Detail: DetailFunction = <T extends GenericObject>(
   type GetFieldFunction = (field: Field<T>, index: number) => ReactElement;
 
   // Helper function to get nested property values using dot notation
-  const getNestedValue = (obj: any, path: string): any => {
-    return path.split('.').reduce((current, key) => {
+  const getNestedValue: (obj: any, path: string) => any = (
+    obj: any,
+    path: string,
+  ): any => {
+    return path.split(".").reduce((current: any, key: string) => {
       return current?.[key];
     }, obj);
   };
@@ -167,8 +170,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
     let data: string | ReactElement = "";
 
     // Use helper function for both simple and nested property access
-    const fieldKeyStr = String(fieldKey);
-    const value = getNestedValue(props.item, fieldKeyStr);
+    const fieldKeyStr: string = String(fieldKey);
+    const value: any = getNestedValue(props.item, fieldKeyStr);
     if (value !== undefined && value !== null) {
       data = value;
     }
