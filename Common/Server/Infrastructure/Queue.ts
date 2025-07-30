@@ -137,10 +137,10 @@ export default class Queue {
 
   @CaptureSpan()
   public static async getQueueSize(queueName: QueueName): Promise<number> {
-    const queue = this.getQueue(queueName);
-    const waiting = await queue.getWaiting();
-    const active = await queue.getActive();
-    const delayed = await queue.getDelayed();
+    const queue: BullQueue = this.getQueue(queueName);
+    const waiting: Job[] = await queue.getWaiting();
+    const active: Job[] = await queue.getActive();
+    const delayed: Job[] = await queue.getDelayed();
 
     return waiting.length + active.length + delayed.length;
   }
@@ -154,12 +154,12 @@ export default class Queue {
     delayed: number;
     total: number;
   }> {
-    const queue = this.getQueue(queueName);
-    const waiting = await queue.getWaiting();
-    const active = await queue.getActive();
-    const completed = await queue.getCompleted();
-    const failed = await queue.getFailed();
-    const delayed = await queue.getDelayed();
+    const queue: BullQueue = this.getQueue(queueName);
+    const waiting: Job[] = await queue.getWaiting();
+    const active: Job[] = await queue.getActive();
+    const completed: Job[] = await queue.getCompleted();
+    const failed: Job[] = await queue.getFailed();
+    const delayed: Job[] = await queue.getDelayed();
 
     return {
       waiting: waiting.length,

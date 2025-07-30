@@ -8,18 +8,20 @@ import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import ObjectID from "Common/Types/ObjectID";
+import { Worker } from "bullmq";
 
 // Set up the unified worker for processing telemetry queue
-const worker = QueueWorker.getWorker(
+const worker: Worker = QueueWorker.getWorker(
   QueueName.Telemetry,
   async (job: QueueJob): Promise<void> => {
     logger.debug(`Processing telemetry ingestion job: ${job.name}`);
 
     try {
-      const jobData = job.data as TelemetryIngestJobData;
+      const jobData: TelemetryIngestJobData =
+        job.data as TelemetryIngestJobData;
 
       // Create a mock request object with the queued data
-      const mockRequest = {
+      const mockRequest: TelemetryRequest = {
         projectId: new ObjectID(jobData.projectId.toString()),
         body: jobData.requestBody,
         headers: jobData.requestHeaders,

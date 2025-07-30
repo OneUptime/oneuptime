@@ -45,7 +45,7 @@ export default class TelemetryQueueService {
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
-      const jobId = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+      const jobId: string = `${type}-${req.projectId?.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,

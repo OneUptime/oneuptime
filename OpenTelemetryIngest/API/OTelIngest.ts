@@ -68,7 +68,14 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const stats = await TelemetryQueueService.getQueueStats();
+      const stats: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      } = await TelemetryQueueService.getQueueStats();
       return Response.sendJsonObjectResponse(req, res, stats);
     } catch (err) {
       return next(err);
@@ -86,7 +93,7 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const size = await TelemetryQueueService.getQueueSize();
+      const size: number = await TelemetryQueueService.getQueueSize();
       return Response.sendJsonObjectResponse(req, res, { size });
     } catch (err) {
       return next(err);
