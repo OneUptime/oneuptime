@@ -42,6 +42,9 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import LogsQueueService from "./Queue/LogsQueueService";
+import TracesQueueService from "./Queue/TracesQueueService";
+import MetricsQueueService from "./Queue/MetricsQueueService";
 
 export default class OtelIngestService {
   /**
@@ -109,29 +112,39 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Return response immediately and process asynchronously
+      // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process logs in the background with comprehensive error handling
-      this.processLogsAsync(req).catch((err: Error) => {
-        logger.error("Error processing logs asynchronously:");
-        logger.error(err);
-        // Clear request body on error to prevent memory leaks
-        try {
-          if (req.body) {
-            req.body = null;
-          }
-          this.forceGarbageCollection();
-        } catch (cleanupError) {
-          logger.error("Error during error cleanup:");
-          logger.error(cleanupError);
-        }
-      });
+      
+        // Add to queue for asynchronous processing
+        await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
+      
 
       return;
     } catch (err) {
       return next(err);
     }
+  }
+
+  @CaptureSpan()
+  public static async processLogsFromQueue(req: ExpressRequest): Promise<void> {
+    // This method is specifically for queue processing
+    // It bypasses the response handling since the response was already sent
+    await this.processLogsAsync(req);
+  }
+
+  @CaptureSpan()
+  public static async processTracesFromQueue(req: ExpressRequest): Promise<void> {
+    // This method is specifically for queue processing
+    // It bypasses the response handling since the response was already sent
+    await this.processTracesAsync(req);
+  }
+
+  @CaptureSpan()
+  public static async processMetricsFromQueue(req: ExpressRequest): Promise<void> {
+    // This method is specifically for queue processing
+    // It bypasses the response handling since the response was already sent
+    await this.processMetricsAsync(req);
   }
 
   @CaptureSpan()
@@ -342,25 +355,13 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Return response immediately and process asynchronously
+      // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process metrics in the background with comprehensive error handling
-      this.processMetricsAsync(req).catch((err: Error) => {
-        logger.error("Error processing metrics asynchronously:");
-        logger.error(err);
-        // Clear request body on error to prevent memory leaks
-        try {
-          if (req.body) {
-            req.body = null;
-          }
-          this.forceGarbageCollection();
-        } catch (cleanupError) {
-          logger.error("Error during error cleanup:");
-          logger.error(cleanupError);
-        }
-      });
-
+     
+        // Add to queue for asynchronous processing
+        await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+      
       return;
     } catch (err) {
       return next(err);
@@ -609,24 +610,13 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Return response immediately and process asynchronously
+      // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process traces in the background with comprehensive error handling
-      this.processTracesAsync(req).catch((err: Error) => {
-        logger.error("Error processing traces asynchronously:");
-        logger.error(err);
-        // Clear request body on error to prevent memory leaks
-        try {
-          if (req.body) {
-            req.body = null;
-          }
-          this.forceGarbageCollection();
-        } catch (cleanupError) {
-          logger.error("Error during error cleanup:");
-          logger.error(cleanupError);
-        }
-      });
+     
+        // Add to queue for asynchronous processing
+        await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
+     
 
       return;
     } catch (err) {
