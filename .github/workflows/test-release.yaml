@@ -144,6 +144,7 @@ jobs:
       - name: Install dependencies and build
         run: |
           cd MCP
+          npm update @oneuptime/common
           npm install
           npm run build
 
