@@ -24,7 +24,6 @@ import { ImageFunctions } from "Common/UI/Components/Image/Image";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import JSONWebToken from "Common/UI/Utils/JsonWebToken";
-import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import File from "Common/Models/DatabaseModels/File";
 import React, {
@@ -159,12 +158,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   useAsyncEffect(async () => {
     try {
+      
       setIsLoading(true);
+      
       const id: ObjectID = await getId();
-
+      
       setStatusPageId(id);
-
-      LocalStorage.setItem("statusPageId", id);
+      
+      StatusPageUtil.setStatusPageId(id);
+      
       const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
         URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/master-page/${id.toString()}`,
@@ -172,6 +174,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         {},
         {},
       );
+
       setMasterPageData(response.data);
 
       // set status page.
