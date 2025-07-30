@@ -255,6 +255,9 @@ router.post(
         );
       }
 
+      // this is when the resource was ingested. 
+      probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
+
       MonitorResourceUtil.monitorResource(probeResponse).catch((err: Error) => {
         logger.error("Error in monitor resource");
         logger.error(err);
@@ -299,6 +302,8 @@ router.post(
           new BadDataException("ProbeMonitorResponse not found"),
         );
       }
+
+      probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
       // save the probe response to the monitor test.
 

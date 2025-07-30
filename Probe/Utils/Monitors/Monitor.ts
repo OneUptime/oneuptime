@@ -432,6 +432,9 @@ export default class MonitorUtil {
       result.failureCause = response.failureCause;
     }
 
+    // update the monitoredAt time to the current time.
+    result.monitoredAt = OneUptimeDate.getCurrentDate();
+
     return result;
   }
 }
