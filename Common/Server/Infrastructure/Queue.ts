@@ -175,4 +175,28 @@ export default class Queue {
         delayed.length,
     };
   }
+
+  @CaptureSpan()
+  public static async getFailedJobs(queueName: QueueName): Promise<Array<{
+    id: string;
+    name: string;
+    data: JSONObject;
+    failedReason: string;
+    processedOn: Date | null;
+    finishedOn: Date | null;
+    attemptsMade: number;
+  }>> {
+    const queue: BullQueue = this.getQueue(queueName);
+    const failed: Job[] = await queue.getFailed();
+
+    return failed.map((job: Job) => ({
+      id: job.id || 'unknown',
+      name: job.name || 'unknown',
+      data: job.data as JSONObject,
+      failedReason: job.failedReason || 'No reason provided',
+      processedOn: job.processedOn ? new Date(job.processedOn) : null,
+      finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
+      attemptsMade: job.attemptsMade || 0,
+    }));
+  }
 }

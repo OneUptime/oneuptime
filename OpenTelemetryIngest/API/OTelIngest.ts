@@ -101,4 +101,30 @@ router.get(
   },
 );
 
+// Queue failed jobs endpoint
+router.get(
+  "/otlp/queue/failed",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const failedJobs: Array<{
+        id: string;
+        name: string;
+        data: any;
+        failedReason: string;
+        processedOn: Date | null;
+        finishedOn: Date | null;
+        attemptsMade: number;
+      }> = await TelemetryQueueService.getFailedJobs();
+      return Response.sendJsonObjectResponse(req, res, { failedJobs });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
 export default router;
