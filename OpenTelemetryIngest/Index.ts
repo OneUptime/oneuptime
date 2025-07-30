@@ -9,6 +9,7 @@ import logger from "Common/Server/Utils/Logger";
 import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import ProcessTelemetryWorker from "./Jobs/TelemetryIngest/ProcessTelemetry";
 import "ejs";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -54,6 +55,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     await Realtime.init();
 
+    // Initialize telemetry processing worker
+    logger.debug("Initializing telemetry processing worker...");
+    logger.debug(`Telemetry worker initialized: ${ProcessTelemetryWorker ? 'success' : 'failed'}`);
+    
     // add default routes
     await App.addDefaultRoutes();
   } catch (err) {
