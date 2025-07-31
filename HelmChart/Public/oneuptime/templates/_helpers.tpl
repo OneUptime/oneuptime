@@ -701,3 +701,62 @@ spec:
     requests:
       storage: {{ $.Storage }}
 {{- end }}
+
+
+{{/*
+KEDA ScaledObject template for metric-based autoscaling
+Usage: include "oneuptime.kedaScaledObject" (dict "ServiceName" "service-name" "Release" .Release "Values" .Values "MetricsConfig" {...})
+*/}}
+{{- define "oneuptime.kedaScaledObject" }}
+{{- if and .Values.keda.enabled .MetricsConfig.enabled (not .DisableAutoscaler) }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ printf "%s-%s-scaledobject" .Release.Name .ServiceName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" .Release.Name .ServiceName }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  scaleTargetRef:
+    name: {{ printf "%s-%s" .Release.Name .ServiceName }}
+  minReplicaCount: {{ .MetricsConfig.minReplicas }}
+  maxReplicaCount: {{ .MetricsConfig.maxReplicas }}
+  pollingInterval: {{ .MetricsConfig.pollingInterval }}
+  cooldownPeriod: {{ .MetricsConfig.cooldownPeriod }}
+  triggers:
+    {{- range .MetricsConfig.triggers }}
+    - type: prometheus
+      metadata:
+        serverAddress: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics
+        query: {{ .query }}
+        threshold: {{ .threshold | quote }}
+      authenticationRef:
+        name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
+    {{- end }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ printf "%s-%s-trigger-auth" .Release.Name .ServiceName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" .Release.Name .ServiceName }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  secretTargetRef:
+    {{- if .Values.oneuptimeSecret }}
+    - parameter: X-Cluster-Key
+      name: {{ printf "%s-%s" .Release.Name "secrets" }}
+      key: oneuptime-secret
+    {{- else if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+    - parameter: X-Cluster-Key
+      name: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+      key: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+    {{- end }}
+{{- end }}
+{{- end }}

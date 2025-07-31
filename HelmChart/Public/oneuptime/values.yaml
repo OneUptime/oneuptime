@@ -496,6 +496,17 @@ openTelemetryIngest:
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 fluentIngest:
   replicaCount: 1
