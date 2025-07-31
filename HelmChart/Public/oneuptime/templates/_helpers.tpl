@@ -732,8 +732,8 @@ spec:
         url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics/queue-size
         valueLocation: 'queueSize'
         method: 'GET'
-      authenticationRef:
-        name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
+      # authenticationRef:
+      #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
     {{- end }}
 ---
 apiVersion: keda.sh/v1alpha1
@@ -749,11 +749,11 @@ metadata:
 spec:
   secretTargetRef:
     {{- if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
-    - parameter: X-clusterkey
+    - parameter: clusterkey
       name: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
       key: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
     {{- else }}
-    - parameter: X-clusterkey
+    - parameter: clusterkey
       name: {{ printf "%s-%s" .Release.Name "secrets" }}
       key: oneuptime-secret
     {{- end }}
