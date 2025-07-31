@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "otel-collector"  }}
-  {{- if $.Values.deployment.otelCollector.replicaCount }}
-  replicas: {{ $.Values.deployment.otelCollector.replicaCount }}
+  {{- if $.Values.openTelemetryCollector.replicaCount }}
+  replicas: {{ $.Values.openTelemetryCollector.replicaCount }}
   {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryCollector.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}

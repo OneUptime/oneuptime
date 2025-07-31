@@ -15,8 +15,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
+  {{- if $.Values.nginx.replicaCount }}
+  replicas: {{ $.Values.nginx.replicaCount }}
+  {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.nginx.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:

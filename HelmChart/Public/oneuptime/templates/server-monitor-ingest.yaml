@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "server-monitor-ingest"  }}
-  {{- if $.Values.deployment.serverMonitorIngest.replicaCount }}
-  replicas: {{ $.Values.deployment.serverMonitorIngest.replicaCount }}
+  {{- if $.Values.serverMonitorIngest.replicaCount }}
+  replicas: {{ $.Values.serverMonitorIngest.replicaCount }}
   {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.serverMonitorIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}

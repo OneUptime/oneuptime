@@ -14,8 +14,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "api-reference"  }}
+  {{- if $.Values.apiReference.replicaCount }}
+  replicas: {{ $.Values.apiReference.replicaCount }}
+  {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.apiReference.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:

@@ -14,8 +14,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "worker"  }}
+  {{- if $.Values.worker.replicaCount }}
+  replicas: {{ $.Values.worker.replicaCount }}
+  {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.worker.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:

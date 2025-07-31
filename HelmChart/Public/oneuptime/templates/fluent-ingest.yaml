@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "fluent-ingest"  }}
-  {{- if $.Values.deployment.fluentIngest.replicaCount }}
-  replicas: {{ $.Values.deployment.fluentIngest.replicaCount }}
+  {{- if $.Values.fluentIngest.replicaCount }}
+  replicas: {{ $.Values.fluentIngest.replicaCount }}
   {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.fluentIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}

@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "open-telemetry-ingest"  }}
-  {{- if $.Values.deployment.openTelemetryIngest.replicaCount }}
-  replicas: {{ $.Values.deployment.openTelemetryIngest.replicaCount }}
+  {{- if $.Values.openTelemetryIngest.replicaCount }}
+  replicas: {{ $.Values.openTelemetryIngest.replicaCount }}
   {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.openTelemetryIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}

@@ -15,8 +15,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
+  {{- if $.Values.isolatedVM.replicaCount }}
+  replicas: {{ $.Values.isolatedVM.replicaCount }}
+  {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.isolatedVM.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:

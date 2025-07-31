@@ -28,19 +28,7 @@ fluentdHost:
 
 deployment:
   # Default replica count for all deployments
-  replicaCount: 1
-  probeIngest:
-    replicaCount:
-  serverMonitorIngest:
-    replicaCount:
-  openTelemetryIngest: 
-    replicaCount:
-  fluentIngest:
-    replicaCount:
-  incomingRequestIngest:
-    replicaCount:
-  otelCollector: 
-    replicaCount: 
+  replicaCount: 1 
 
 metalLb:
   enabled: false
@@ -50,6 +38,7 @@ metalLb:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 nginx:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   listenAddress: ""
@@ -191,6 +180,7 @@ alerts:
 # 2. Set the statusPage.cnameRecord to "oneuptime.yourcompany.com"
 # 3. Create CNAME record in your DNS provider with the name "status.yourcompany.com" and value "oneuptime.yourcompany.com"
 statusPage:
+  replicaCount: 1
   cnameRecord:
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -251,6 +241,7 @@ port:
   docs: 1447
 
 testServer:
+  replicaCount: 1
   enabled: false
   disableTelemetryCollection: false
   disableAutoscaler: false
@@ -431,6 +422,7 @@ readinessProbe: # Readiness probe configuration
 
 # OpenTelemetry Collector Configuration
 openTelemetryCollector: 
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   sendingQueue: 
@@ -439,77 +431,92 @@ openTelemetryCollector:
     numConsumers: 3
 
 accounts: 
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 home: 
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 dashboard:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 adminDashboard:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 worker:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 workflow:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   workflowTimeoutInMs: 5000
   resources:
 
 apiReference:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 docs:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 app: 
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 probeIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 openTelemetryIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 fluentIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 incomingRequestIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 isolatedVM:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
 
 serverMonitorIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:

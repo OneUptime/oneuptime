@@ -15,8 +15,8 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "incoming-request-ingest"  }}
-  {{- if $.Values.deployment.incomingRequestIngest.replicaCount }}
-  replicas: {{ $.Values.deployment.incomingRequestIngest.replicaCount }}
+  {{- if $.Values.incomingRequestIngest.replicaCount }}
+  replicas: {{ $.Values.incomingRequestIngest.replicaCount }}
   {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.Values.incomingRequestIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}

@@ -559,8 +559,14 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
+  {{- $serviceName := $.ServiceName }}
+  {{- $serviceConfig := index $.Values $serviceName }}
+  {{- if and $serviceConfig $serviceConfig.replicaCount }}
+  replicas: {{ $serviceConfig.replicaCount }}
+  {{- else }}
   {{- if or (not $.Values.autoscaling.enabled) ($.DisableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:
