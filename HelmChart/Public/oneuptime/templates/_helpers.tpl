@@ -750,14 +750,14 @@ metadata:
     appname: oneuptime
 spec:
   secretTargetRef:
-    {{- if .Values.oneuptimeSecret }}
-    - parameter: clusterkey
-      name: {{ printf "%s-%s" .Release.Name "secrets" }}
-      key: oneuptime-secret
-    {{- else if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
-    - parameter: clusterkey
+    {{- if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+    - parameter: X-clusterkey
       name: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
       key: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+    {{- else }}
+    - parameter: X-clusterkey
+      name: {{ printf "%s-%s" .Release.Name "secrets" }}
+      key: oneuptime-secret
     {{- end }}
 {{- end }}
 {{- end }}

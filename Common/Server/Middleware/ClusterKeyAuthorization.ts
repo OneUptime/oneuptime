@@ -38,6 +38,9 @@ export default class ClusterKeyAuthorization {
     } else if (req.headers && req.headers["clusterkey"]) {
       // Header keys are automatically transformed to lowercase
       clusterKey = req.headers["clusterkey"] as string;
+    } else if (req.headers && req.headers["x-clusterkey"]) {
+      // KEDA TriggerAuthentication sends headers with X- prefix
+      clusterKey = req.headers["x-clusterkey"] as string;
     } else if (req.body && req.body.clusterKey) {
       clusterKey = req.body.clusterKey;
     } else {
