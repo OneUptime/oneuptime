@@ -80,11 +80,11 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const queueSize = await TelemetryQueueService.getQueueSize();
-      
+      const queueSize: number = await TelemetryQueueService.getQueueSize();
+
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({
-        queueSize: queueSize
+        queueSize: queueSize,
       });
     } catch (err) {
       return next(err);

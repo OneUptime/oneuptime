@@ -228,7 +228,8 @@ export default class MonitorResourceUtil {
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
-          incomingRequestMonitorHeartbeatCheckedAt: OneUptimeDate.getCurrentDate(),
+          incomingRequestMonitorHeartbeatCheckedAt:
+            OneUptimeDate.getCurrentDate(),
           incomingMonitorRequest: {
             ...dataToProcess,
           } as any,
