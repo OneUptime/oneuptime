@@ -1,0 +1,10 @@
+{{/*
+KEDA ScaledObjects for various services
+*/}}
+
+{{/* OpenTelemetry Ingest KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.openTelemetryIngest.keda.enabled (not .Values.openTelemetryIngest.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.openTelemetryIngest.keda.enabled "minReplicas" .Values.openTelemetryIngest.keda.minReplicas "maxReplicas" .Values.openTelemetryIngest.keda.maxReplicas "pollingInterval" .Values.openTelemetryIngest.keda.pollingInterval "cooldownPeriod" .Values.openTelemetryIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_telemetry_queue_size" "threshold" .Values.openTelemetryIngest.keda.queueSizeThreshold "port" .Values.port.openTelemetryIngest)) }}
+{{- $openTelemetryIngestKedaArgs := dict "ServiceName" "open-telemetry-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.openTelemetryIngest.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $openTelemetryIngestKedaArgs }}
+{{- end }}
