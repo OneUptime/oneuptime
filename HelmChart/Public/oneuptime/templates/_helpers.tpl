@@ -728,11 +728,12 @@ spec:
   cooldownPeriod: {{ .MetricsConfig.cooldownPeriod }}
   triggers:
     {{- range .MetricsConfig.triggers }}
-    - type: prometheus
+    - type: metrics-api
       metadata:
-        serverAddress: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics
-        query: {{ .query }}
-        threshold: {{ .threshold | quote }}
+        targetValue: {{ .threshold | quote }}
+        url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics/queue-size
+        valueLocation: 'queueSize'
+        method: 'GET'
       authenticationRef:
         name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
     {{- end }}
@@ -750,11 +751,11 @@ metadata:
 spec:
   secretTargetRef:
     {{- if .Values.oneuptimeSecret }}
-    - parameter: X-Cluster-Key
+    - parameter: clusterkey
       name: {{ printf "%s-%s" .Release.Name "secrets" }}
       key: oneuptime-secret
     {{- else if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
-    - parameter: X-Cluster-Key
+    - parameter: clusterkey
       name: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
       key: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
     {{- end }}
