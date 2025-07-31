@@ -1,7 +1,7 @@
 # OneUptime accounts Deployment
 {{- $accountsEnv := dict "PORT" $.Values.port.accounts "DISABLE_TELEMETRY" $.Values.accounts.disableTelemetryCollection -}}
 {{- $accountsPorts := dict "port" $.Values.port.accounts -}}
-{{- $accountsDeploymentArgs :=dict "IsUI" true "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values "Env" $accountsEnv "Resources" $.Values.accounts.resources "DisableAutoscaler" $.Values.accounts.disableAutoscaler -}}
+{{- $accountsDeploymentArgs :=dict "IsUI" true "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values "Env" $accountsEnv "Resources" $.Values.accounts.resources "DisableAutoscaler" $.Values.accounts.disableAutoscaler "ReplicaCount" $.Values.accounts.replicaCount -}}
 {{- include "oneuptime.deployment" $accountsDeploymentArgs }}
 ---
 

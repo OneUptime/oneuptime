@@ -1,7 +1,7 @@
 # OneUptime adminDashboard Deployment
 {{- $adminDashboardEnv := dict "PORT" $.Values.port.adminDashboard "DISABLE_TELEMETRY" $.Values.adminDashboard.disableTelemetryCollection -}}
 {{- $adminDashboardPorts := dict "port" $.Values.port.adminDashboard -}}
-{{- $adminDashboardDeploymentArgs :=dict "IsUI" true  "ServiceName" "admin-dashboard" "Ports" $adminDashboardPorts "Release" $.Release "Values" $.Values "Env" $adminDashboardEnv "Resources" $.Values.adminDashboard.resources "DisableAutoscaler" $.Values.adminDashboard.disableAutoscaler -}}
+{{- $adminDashboardDeploymentArgs :=dict "IsUI" true  "ServiceName" "admin-dashboard" "Ports" $adminDashboardPorts "Release" $.Release "Values" $.Values "Env" $adminDashboardEnv "Resources" $.Values.adminDashboard.resources "DisableAutoscaler" $.Values.adminDashboard.disableAutoscaler "ReplicaCount" $.Values.adminDashboard.replicaCount -}}
 {{- include "oneuptime.deployment" $adminDashboardDeploymentArgs }}
 ---
 
