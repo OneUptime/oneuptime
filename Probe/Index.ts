@@ -3,10 +3,12 @@ import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
+import MetricsAPI from "./API/Metrics";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
+import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
 const APP_NAME: string = "probe";
@@ -28,6 +30,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         readyCheck: async () => {},
       },
     });
+
+    // Add metrics API routes
+    const app: ExpressApplication = Express.getExpressApp();
+    app.use("/metrics", MetricsAPI);
 
     // add default routes
     await App.addDefaultRoutes();

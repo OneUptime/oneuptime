@@ -24,6 +24,11 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
 import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import OneUptimeDate from "Common/Types/Date";
+import MonitorService from "Common/Server/Services/MonitorService";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -357,6 +362,60 @@ router.get(
     try {
       const size: number = await ProbeIngestQueueService.getQueueSize();
       return Response.sendJsonObjectResponse(req, res, { size });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue size endpoint for Keda autoscaling (returns pending monitors count for specific probe)
+router.post(
+  "/metrics/queue-size",
+  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // This endpoint returns the number of monitors pending for the specific probe
+      // to be used by Keda for autoscaling probe replicas
+      
+      // Get the probe ID from the authenticated request
+      const data: JSONObject = req.body;
+      const probeId: ObjectID = new ObjectID(data["probeId"] as string);
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe ID not found"),
+        );
+      }
+
+      // Get pending monitor count for this specific probe
+      const pendingCount: PositiveNumber = await MonitorProbeService.countBy({
+        query: {
+          probeId: probeId,
+          isEnabled: true,
+          nextPingAt: QueryHelper.lessThanEqualToOrNull(
+            OneUptimeDate.getCurrentDate(),
+          ),
+          monitor: {
+            ...MonitorService.getEnabledMonitorQuery(),
+          },
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return Response.sendJsonObjectResponse(req, res, { 
+        queueSize: pendingCount.toNumber() 
+      });
     } catch (err) {
       return next(err);
     }

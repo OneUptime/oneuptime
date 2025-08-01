@@ -36,3 +36,13 @@ KEDA ScaledObjects for various services
 {{- $probeIngestKedaArgs := dict "ServiceName" "probe-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.probeIngest.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $probeIngestKedaArgs }}
 {{- end }}
+
+{{/* Probe KEDA ScaledObjects - one for each probe configuration */}}
+{{- range $key, $val := $.Values.probes }}
+{{- if and $.Values.keda.enabled $val.keda.enabled (not $val.disableAutoscaler) }}
+{{- $serviceName := printf "probe-%s" $key }}
+{{- $metricsConfig := dict "enabled" $val.keda.enabled "minReplicas" $val.keda.minReplicas "maxReplicas" $val.keda.maxReplicas "pollingInterval" $val.keda.pollingInterval "cooldownPeriod" $val.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_probe_queue_size" "threshold" $val.keda.queueSizeThreshold "port" $.Values.port.probe)) }}
+{{- $probeKedaArgs := dict "ServiceName" $serviceName "Release" $.Release "Values" $.Values "MetricsConfig" $metricsConfig "DisableAutoscaler" $val.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $probeKedaArgs }}
+{{- end }}
+{{- end }}

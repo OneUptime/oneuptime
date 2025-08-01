@@ -198,6 +198,17 @@ probes:
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
     disableAutoscaler: false
+    # KEDA autoscaling configuration based on monitor queue metrics
+    keda:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      # Scale up when queue size exceeds this threshold per probe
+      queueSizeThreshold: 10
+      # Polling interval for metrics (in seconds)
+      pollingInterval: 30
+      # Cooldown period after scaling (in seconds)
+      cooldownPeriod: 300
 #   resources:
 #   additionalContainers:
 # two:
@@ -213,10 +224,22 @@ probes:
 #   disableAutoscaler: false
 #   resources:
 #   additionalContainers:
+    # KEDA autoscaling configuration based on monitor queue metrics
+    # keda:
+    #   enabled: false
+    #   minReplicas: 1
+    #   maxReplicas: 100
+    #   # Scale up when queue size exceeds this threshold per probe
+    #   queueSizeThreshold: 10
+    #   # Polling interval for metrics (in seconds)
+    #   pollingInterval: 30
+    #   # Cooldown period after scaling (in seconds)
+    #   cooldownPeriod: 300
 
 
 port:
   app: 3002
+  probe: 3874
   probeIngest: 3400
   serverMonitorIngest: 3404
   openTelemetryIngest: 3403
