@@ -380,7 +380,7 @@ router.post(
     try {
       // This endpoint returns the number of monitors pending for the specific probe
       // to be used by Keda for autoscaling probe replicas
-      
+
       // Get the probe ID from the authenticated request
       const data: JSONObject = req.body;
       const probeId: ObjectID = new ObjectID(data["probeId"] as string);
@@ -413,8 +413,8 @@ router.post(
         },
       });
 
-      return Response.sendJsonObjectResponse(req, res, { 
-        queueSize: pendingCount.toNumber() 
+      return Response.sendJsonObjectResponse(req, res, {
+        queueSize: pendingCount.toNumber(),
       });
     } catch (err) {
       return next(err);
