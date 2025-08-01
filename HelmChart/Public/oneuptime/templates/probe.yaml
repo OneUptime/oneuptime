@@ -59,13 +59,13 @@ spec:
             - name: LOG_LEVEL
               value: {{ $.Values.logLevel }}
             - name: PORT
-              value: {{ $.Values.port.probe | squote }}
+              value: {{ $val.ports.http | squote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
               value: {{ $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
               value: {{ $.Values.openTelemetryExporter.endpoint }}
             - name: ONEUPTIME_URL
-              value: http://{{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.port.probeIngest }}
+              value: http://{{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.probeIngest.ports.http }}
             - name: PROBE_NAME
               value: {{ $val.name }}
             - name: PROBE_DESCRIPTION

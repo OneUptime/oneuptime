@@ -112,7 +112,7 @@ spec:
             - name: NGINX_LISTEN_OPTIONS
               value: {{ $.Values.nginx.listenOptions | quote }}
             - name: ONEUPTIME_HTTP_PORT
-              value: {{ $.Values.port.nginxHttp | quote }}
+              value: {{ $.Values.nginx.ports.http | quote }}
             - name: PORT
               value: "7851" # Port for the nodejs server for live and ready status
             - name: DISABLE_TELEMETRY
@@ -158,10 +158,10 @@ spec:
     {{- end }}
   {{- end }}
   ports:
-    - port: {{ $.Values.port.nginxHttp }}
+    - port: {{ $.Values.nginx.ports.http }}
       targetPort: 7849
       name: oneuptime-http
-    - port: {{ $.Values.port.statusPageHttpsPort }}
+    - port: {{ $.Values.nginx.ports.https }}
       targetPort: 7850
       name: statuspage-ssl
   selector:

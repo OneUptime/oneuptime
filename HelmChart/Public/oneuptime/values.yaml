@@ -43,6 +43,9 @@ nginx:
   disableAutoscaler: false
   listenAddress: ""
   listenOptions: ""
+  ports:
+    http: 80
+    https: 443
   service:
     loadBalancerIP:
     type: LoadBalancer
@@ -184,6 +187,8 @@ statusPage:
   cnameRecord:
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3105
 
 probes:
   one:
@@ -198,6 +203,8 @@ probes:
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
     disableAutoscaler: false
+    ports:
+      http: 3874
     # KEDA autoscaling configuration based on monitor queue metrics
     keda:
       enabled: false
@@ -237,37 +244,13 @@ probes:
     #   cooldownPeriod: 300
 
 
-port:
-  app: 3002
-  probe: 3874
-  probeIngest: 3400
-  serverMonitorIngest: 3404
-  openTelemetryIngest: 3403
-  fluentIngest: 3401
-  incomingRequestIngest: 3402
-  testServer: 3800
-  accounts: 3003
-  statusPage: 3105
-  dashboard: 3009
-  adminDashboard: 3158
-  # This is where oneuptime server is hosted on.
-  nginxHttp: 80
-  # If you are connecting Status Pages to custom domains, then this will be the port where the status page will be hosted on.
-  statusPageHttpsPort: 443
-  otelCollectorGrpc: 4317
-  otelCollectorHttp: 4318
-  isolatedVM: 4572
-  home: 1444
-  worker: 1445
-  workflow: 3099
-  apiReference: 1446
-  docs: 1447
-
 testServer:
   replicaCount: 1
   enabled: false
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3800
 
 
 openTelemetryExporter:
@@ -448,6 +431,9 @@ openTelemetryCollector:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    grpc: 4317
+    http: 4318
   sendingQueue: 
     enabled: true
     size: 1000
@@ -457,30 +443,40 @@ accounts:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3003
   resources:
 
 home: 
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 1444
   resources:
 
 dashboard:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3009
   resources:
 
 adminDashboard:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3158
   resources:
 
 worker:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 1445
   resources:
 
 workflow:
@@ -488,30 +484,40 @@ workflow:
   disableTelemetryCollection: false
   disableAutoscaler: false
   workflowTimeoutInMs: 5000
+  ports:
+    http: 3099
   resources:
 
 apiReference:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 1446
   resources:
 
 docs:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 1447
   resources:
 
 app: 
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3002
   resources:
 
 probeIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3400
   resources:
   # KEDA autoscaling configuration based on queue metrics
   keda:
@@ -529,6 +535,8 @@ openTelemetryIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3403
   resources:
   # KEDA autoscaling configuration based on queue metrics
   keda:
@@ -546,6 +554,8 @@ fluentIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3401
   resources:
   # KEDA autoscaling configuration based on queue metrics
   keda:
@@ -563,6 +573,8 @@ incomingRequestIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3402
   resources:
   # KEDA autoscaling configuration based on queue metrics
   keda:
@@ -580,12 +592,16 @@ isolatedVM:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 4572
   resources:
 
 serverMonitorIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  ports:
+    http: 3404
   resources:
   # KEDA autoscaling configuration based on queue metrics
   keda:

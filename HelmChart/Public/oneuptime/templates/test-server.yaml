@@ -1,15 +1,15 @@
 {{- if $.Values.testServer.enabled }}
 
-# OneUptime testServer Deployment
-{{- $testServerPorts := dict "port" $.Values.port.testServer -}}
-{{- $testServerEnv := dict "PORT"  $.Values.port.testServer  "DISABLE_TELEMETRY" $.Values.testServer.disableTelemetryCollection -}}
+# OneUptime test-server Deployment
+{{- $testServerPorts := $.Values.testServer.ports -}}
+{{- $testServerEnv := dict "PORT"  $.Values.testServer.ports.http  "DISABLE_TELEMETRY" $.Values.testServer.disableTelemetryCollection -}}
 {{- $testServerDeploymentArgs :=dict "IsUI" true "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values "Env" $testServerEnv "Resources" $.Values.testServer.resources "DisableAutoscaler" $.Values.testServer.disableAutoscaler "ReplicaCount" $.Values.testServer.replicaCount -}}
 {{- include "oneuptime.deployment" $testServerDeploymentArgs }}
 ---
 
-# OneUptime testServer Service
-{{- $testServerPorts := dict "port" $.Values.port.testServer -}}
-{{- $testServerServiceArgs := dict "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values  -}}
+# OneUptime test-server Service
+{{- $testServerPorts := $.Values.testServer.ports -}}
+{{- $testServerServiceArgs := dict "ServiceName" "test-server" "Ports" $testServerPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $testServerServiceArgs }}
 ---
 

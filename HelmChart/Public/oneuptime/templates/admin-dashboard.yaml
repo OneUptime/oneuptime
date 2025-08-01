@@ -1,12 +1,12 @@
-# OneUptime adminDashboard Deployment
-{{- $adminDashboardEnv := dict "PORT" $.Values.port.adminDashboard "DISABLE_TELEMETRY" $.Values.adminDashboard.disableTelemetryCollection -}}
-{{- $adminDashboardPorts := dict "port" $.Values.port.adminDashboard -}}
-{{- $adminDashboardDeploymentArgs :=dict "IsUI" true  "ServiceName" "admin-dashboard" "Ports" $adminDashboardPorts "Release" $.Release "Values" $.Values "Env" $adminDashboardEnv "Resources" $.Values.adminDashboard.resources "DisableAutoscaler" $.Values.adminDashboard.disableAutoscaler "ReplicaCount" $.Values.adminDashboard.replicaCount -}}
+# OneUptime admin-dashboard Deployment
+{{- $adminDashboardEnv := dict "PORT" $.Values.adminDashboard.ports.http "DISABLE_TELEMETRY" $.Values.adminDashboard.disableTelemetryCollection -}}
+{{- $adminDashboardPorts := $.Values.adminDashboard.ports -}}
+{{- $adminDashboardDeploymentArgs :=dict "IsUI" true "ServiceName" "admin-dashboard" "Ports" $adminDashboardPorts "Release" $.Release "Values" $.Values "Env" $adminDashboardEnv "Resources" $.Values.adminDashboard.resources "DisableAutoscaler" $.Values.adminDashboard.disableAutoscaler "ReplicaCount" $.Values.adminDashboard.replicaCount -}}
 {{- include "oneuptime.deployment" $adminDashboardDeploymentArgs }}
 ---
 
-# OneUptime adminDashboard Service
-{{- $adminDashboardPorts := dict "port" $.Values.port.adminDashboard -}}
+# OneUptime admin-dashboard Service
+{{- $adminDashboardPorts := $.Values.adminDashboard.ports -}}
 {{- $adminDashboardServiceArgs := dict "ServiceName" "admin-dashboard" "Ports" $adminDashboardPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $adminDashboardServiceArgs }}
 ---
