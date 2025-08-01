@@ -59,7 +59,11 @@ spec:
             - name: LOG_LEVEL
               value: {{ $.Values.logLevel }}
             - name: PORT
-              value: {{ ($val.ports.http | default 3874) | squote }}
+              {{- if and $val.ports $val.ports.http }}
+              value: {{ $val.ports.http | squote }}
+              {{- else }}
+              value: "3874"
+              {{- end }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
               value: {{ $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
