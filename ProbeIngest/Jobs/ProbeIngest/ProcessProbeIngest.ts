@@ -48,10 +48,7 @@ async function processProbeFromQueue(
 
   if (jobData.jobType === "probe-response") {
     // Handle regular probe response
-    MonitorResourceUtil.monitorResource(probeResponse).catch((err: Error) => {
-      logger.error("Error in monitor resource");
-      logger.error(err);
-    });
+    await MonitorResourceUtil.monitorResource(probeResponse);
   } else if (jobData.jobType === "monitor-test" && jobData.testId) {
     // Handle monitor test response
     const testId: ObjectID = new ObjectID(jobData.testId);
