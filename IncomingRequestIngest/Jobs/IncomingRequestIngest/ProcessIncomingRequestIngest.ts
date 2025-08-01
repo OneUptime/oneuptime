@@ -98,12 +98,7 @@ async function processIncomingRequestFromQueue(
   };
 
   // process probe response here.
-  MonitorResourceUtil.monitorResource(incomingRequest).catch((err: Error) => {
-    // do nothing.
-    // we don't want to throw error here.
-    // we just want to log the error.
-    logger.error(err);
-  });
+  await MonitorResourceUtil.monitorResource(incomingRequest);
 }
 
 logger.debug("Incoming request ingest worker initialized");
