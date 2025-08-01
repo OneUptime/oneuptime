@@ -717,6 +717,10 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   scaleTargetRef:
     name: {{ printf "%s-%s" .Release.Name .ServiceName }}
@@ -746,6 +750,10 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   secretTargetRef:
     {{- if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
