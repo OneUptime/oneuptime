@@ -41,24 +41,23 @@ router.get(
           HTTPMethod.POST,
           queueSizeUrl,
           requestBody,
-          {}
+          {},
         );
 
       if (result instanceof HTTPErrorResponse) {
         logger.error("Error fetching queue size from ProbeIngest API");
         logger.error(result);
-        throw result; 
+        throw result;
       }
 
       // Extract queueSize from the response
-      const queueSize = result.data["queueSize"] || 0;
+      const queueSize: number = result.data["queueSize"] || 0;
 
       logger.debug(`Queue size fetched: ${queueSize}`);
 
       return Response.sendJsonObjectResponse(req, res, {
         queueSize: queueSize,
       });
-      
     } catch (err) {
       logger.error("Error in metrics queue-size endpoint");
       logger.error(err);
