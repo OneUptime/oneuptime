@@ -50,8 +50,23 @@ router.get(
         throw result;
       }
 
+      logger.debug("Queue size fetched successfully from ProbeIngest API");
+      logger.debug(result.data);
+
       // Extract queueSize from the response
-      const queueSize: number = result.data["queueSize"] || 0;
+      let queueSize: number = result.data['queueSize'] as number || 0;
+
+      // if string then convert to number
+
+      if (typeof queueSize === 'string') {
+        const parsedQueueSize = parseInt(queueSize, 10);
+        if (!isNaN(parsedQueueSize)) {
+          queueSize = parsedQueueSize;
+        } else {
+          logger.warn("Queue size is not a valid number, defaulting to 0");
+          queueSize = 0;
+        }
+      }
 
       logger.debug(`Queue size fetched: ${queueSize}`);
 
