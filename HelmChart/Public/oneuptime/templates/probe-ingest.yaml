@@ -112,7 +112,7 @@ spec:
 ---
 
 # OneUptime probe-ingest autoscaler
-{{- if not $.Values.probeIngest.disableAutoscaler }}
+{{- if and (not $.Values.probeIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.probeIngest.keda.enabled)) }}
 {{- $probeIngestAutoScalerArgs := dict "ServiceName" "probe-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeIngestAutoScalerArgs }}
 {{- end }}

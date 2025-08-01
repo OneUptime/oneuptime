@@ -112,7 +112,7 @@ spec:
 ---
 
 # OneUptime server-monitor-ingest autoscaler
-{{- if not $.Values.serverMonitorIngest.disableAutoscaler }}
+{{- if and (not $.Values.serverMonitorIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.serverMonitorIngest.keda.enabled)) }}
 {{- $serverMonitorIngestAutoScalerArgs := dict "ServiceName" "server-monitor-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $serverMonitorIngestAutoScalerArgs }}
 {{- end }}

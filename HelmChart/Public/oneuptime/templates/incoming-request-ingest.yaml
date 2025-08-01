@@ -112,7 +112,7 @@ spec:
 ---
 
 # OneUptime incoming-request-ingest autoscaler
-{{- if not $.Values.incomingRequestIngest.disableAutoscaler }}
+{{- if and (not $.Values.incomingRequestIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.incomingRequestIngest.keda.enabled)) }}
 {{- $incomingRequestIngestAutoScalerArgs := dict "ServiceName" "incoming-request-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $incomingRequestIngestAutoScalerArgs }}
 {{- end }}

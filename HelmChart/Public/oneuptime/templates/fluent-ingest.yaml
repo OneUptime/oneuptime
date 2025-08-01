@@ -112,7 +112,7 @@ spec:
 ---
 
 # OneUptime fluent-ingest autoscaler
-{{- if not $.Values.fluentIngest.disableAutoscaler }}
+{{- if and (not $.Values.fluentIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.fluentIngest.keda.enabled)) }}
 {{- $fluentIngestAutoScalerArgs := dict "ServiceName" "fluent-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $fluentIngestAutoScalerArgs }}
 {{- end }}
