@@ -104,6 +104,10 @@ spec:
               value: {{ $val.disableTelemetryCollection | quote }}
             {{- end }}
             {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
+          ports:
+            - containerPort: {{ if and $val.ports $val.ports.http }}{{ $val.ports.http }}{{ else }}3874{{ end }}
+              protocol: TCP
+              name: http
           {{- if $val.resources }}
           resources:
             {{- toYaml $val.resources | nindent 12 }}
@@ -112,6 +116,16 @@ spec:
         {{ toYaml $val.additionalContainers | nindent 8 }}
         {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
+---
+
+# OneUptime probe Service
+{{- $probePort := 3874 }}
+{{- if and $val.ports $val.ports.http }}
+{{- $probePort = $val.ports.http }}
+{{- end }}
+{{- $probePorts := dict "port" $probePort -}}
+{{- $probeServiceArgs := dict "ServiceName" (printf "probe-%s" $key) "Ports" $probePorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $probeServiceArgs }}
 ---
 
 {{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled $val.keda.enabled)) }}
