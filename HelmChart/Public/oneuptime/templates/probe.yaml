@@ -110,12 +110,12 @@ spec:
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
-{{- if not $val.disableAutoscaler }}
+{{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled $val.keda.enabled)) }}
 # OneUptime probe autoscaler
 {{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
----
 {{- end }}
+---
 
 {{- end }}
 
