@@ -91,7 +91,7 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.otelCollectorGrpc | quote }} 
+              value: {{ $.Values.openTelemetryCollector.ports.grpc | quote }} 
             - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_ENABLED
               value: {{ $.Values.openTelemetryCollector.sendingQueue.enabled | quote }}
             - name: OPENTELEMETRY_COLLECTOR_SENDING_QUEUE_NUM_CONSUMERS
@@ -101,10 +101,10 @@ spec:
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.openTelemetryCollector.disableTelemetryCollection | quote }}
           ports:
-            - containerPort: {{ $.Values.port.otelCollectorHttp }}
+            - containerPort: {{ $.Values.openTelemetryCollector.ports.http }}
               protocol: TCP
               name: http
-            - containerPort: {{ $.Values.port.otelCollectorGrpc }}
+            - containerPort: {{ $.Values.openTelemetryCollector.ports.grpc }}
               protocol: TCP
               name: grpc
           {{- if $.Values.openTelemetryCollector.resources }}
@@ -115,7 +115,7 @@ spec:
 ---
 
 # OneUptime otel-collector Service
-{{- $otelCollectorPorts := dict "grpc" $.Values.port.otelCollectorGrpc "http" $.Values.port.otelCollectorHttp -}}
+{{- $otelCollectorPorts := dict "grpc" $.Values.openTelemetryCollector.ports.grpc "http" $.Values.openTelemetryCollector.ports.http -}}
 {{- $identityServiceArgs := dict "ServiceName" "otel-collector" "Ports" $otelCollectorPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $identityServiceArgs }}
 ---

@@ -53,7 +53,7 @@ spec:
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.app }}
+              port: {{ $.Values.app.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -62,7 +62,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.app }}
+              port: {{ $.Values.app.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -72,7 +72,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.app }}
+              port: {{ $.Values.app.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
@@ -86,7 +86,7 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.app | quote }}
+              value: {{ $.Values.app.ports.http | quote }}
             - name: SMS_HIGH_RISK_COST_IN_CENTS
               value: {{ $.Values.billing.smsHighRiskValueInCents | quote }}
             - name: CALL_HIGH_RISK_COST_IN_CENTS_PER_MINUTE
@@ -99,7 +99,7 @@ spec:
               value: {{ $.Values.app.disableTelemetryCollection | quote }}
         
           ports:
-            - containerPort: {{ $.Values.port.app }}
+            - containerPort: {{ $.Values.app.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.app.resources }}
@@ -111,7 +111,7 @@ spec:
 ---
 
 # OneUptime app Service
-{{- $appPorts := dict "port" $.Values.port.app -}}
+{{- $appPorts := dict "port" $.Values.app.ports.http -}}
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $appServiceArgs }}
 ---

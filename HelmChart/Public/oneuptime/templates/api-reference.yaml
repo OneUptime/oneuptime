@@ -52,7 +52,7 @@ spec:
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.apiReference }}
+              port: {{ $.Values.apiReference.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -61,7 +61,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.apiReference }}
+              port: {{ $.Values.apiReference.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -71,7 +71,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.apiReference }}
+              port: {{ $.Values.apiReference.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
@@ -85,11 +85,11 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.apiReference | quote }}
+              value: {{ $.Values.apiReference.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.apiReference.disableTelemetryCollection | quote }}
           ports:
-            - containerPort: {{ $.Values.port.apiReference }}
+            - containerPort: {{ $.Values.apiReference.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.apiReference.resources }}
@@ -101,7 +101,8 @@ spec:
 ---
 
 # OneUptime app Service
-{{- $apiReferencePorts := dict "port" $.Values.port.apiReference -}}
+# OneUptime apiReference Service
+{{- $apiReferencePorts := dict "port" $.Values.apiReference.ports.http -}}
 {{- $apiReferenceServiceArgs := dict "ServiceName" "api-reference" "Ports" $apiReferencePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $apiReferenceServiceArgs }}
 ---

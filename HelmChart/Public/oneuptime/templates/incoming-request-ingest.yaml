@@ -106,7 +106,7 @@ spec:
 ---
 
 # OneUptime incoming-request-ingest Service
-{{- $incomingRequestIngestPorts := dict "port" $.Values.port.incomingRequestIngest -}}
+{{- $incomingRequestIngestPorts := dict "port" $.Values.incomingRequestIngest.ports.http -}}
 {{- $incomingRequestIngestServiceArgs := dict "ServiceName" "incoming-request-ingest" "Ports" $incomingRequestIngestPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $incomingRequestIngestServiceArgs }}
 ---

@@ -57,7 +57,7 @@ spec:
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.serverMonitorIngest }}
+              port: {{ $.Values.serverMonitorIngest.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -66,7 +66,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.serverMonitorIngest }}
+              port: {{ $.Values.serverMonitorIngest.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -76,7 +76,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.serverMonitorIngest }}
+              port: {{ $.Values.serverMonitorIngest.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
@@ -90,11 +90,11 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.serverMonitorIngest | quote }} 
+              value: {{ $.Values.serverMonitorIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.serverMonitorIngest.disableTelemetryCollection | quote }}
           ports:
-            - containerPort: {{ $.Values.port.serverMonitorIngest }}
+            - containerPort: {{ $.Values.serverMonitorIngest.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.serverMonitorIngest.resources }}
@@ -106,7 +106,7 @@ spec:
 ---
 
 # OneUptime server-monitor-ingest Service
-{{- $serverMonitorIngestPorts := dict "port" $.Values.port.serverMonitorIngest -}}
+{{- $serverMonitorIngestPorts := dict "port" $.Values.serverMonitorIngest.ports.http -}}
 {{- $serverMonitorIngestServiceArgs := dict "ServiceName" "server-monitor-ingest" "Ports" $serverMonitorIngestPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $serverMonitorIngestServiceArgs }}
 ---

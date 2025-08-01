@@ -57,7 +57,7 @@ spec:
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.openTelemetryIngest }}
+              port: {{ $.Values.openTelemetryIngest.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -66,7 +66,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.openTelemetryIngest }}
+              port: {{ $.Values.openTelemetryIngest.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -76,7 +76,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.openTelemetryIngest }}
+              port: {{ $.Values.openTelemetryIngest.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
@@ -90,11 +90,11 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.openTelemetryIngest | quote }} 
+              value: {{ $.Values.openTelemetryIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.openTelemetryIngest.disableTelemetryCollection | quote }}
           ports:
-            - containerPort: {{ $.Values.port.openTelemetryIngest }}
+            - containerPort: {{ $.Values.openTelemetryIngest.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.openTelemetryIngest.resources }}
@@ -106,7 +106,7 @@ spec:
 ---
 
 # OneUptime open-telemetry-ingest Service
-{{- $openTelemetryIngestPorts := dict "port" $.Values.port.openTelemetryIngest -}}
+{{- $openTelemetryIngestPorts := dict "port" $.Values.openTelemetryIngest.ports.http -}}
 {{- $openTelemetryIngestServiceArgs := dict "ServiceName" "open-telemetry-ingest" "Ports" $openTelemetryIngestPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $openTelemetryIngestServiceArgs }}
 ---
