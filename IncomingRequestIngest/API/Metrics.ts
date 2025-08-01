@@ -22,7 +22,8 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const queueSize: number = await IncomingRequestIngestQueueService.getQueueSize();
+      const queueSize: number =
+        await IncomingRequestIngestQueueService.getQueueSize();
 
       res.setHeader("Content-Type", "application/json");
       res.status(200).json({

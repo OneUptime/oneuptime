@@ -22,9 +22,7 @@ QueueWorker.getWorker(
 
       await processProbeFromQueue(jobData);
 
-      logger.debug(
-        `Successfully processed probe ingestion job: ${job.name}`,
-      );
+      logger.debug(`Successfully processed probe ingestion job: ${job.name}`);
     } catch (error) {
       logger.error(`Error processing probe ingestion job:`);
       logger.error(error);

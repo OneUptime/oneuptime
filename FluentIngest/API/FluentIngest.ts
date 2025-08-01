@@ -52,7 +52,9 @@ router.post(
       Response.sendEmptySuccessResponse(req, res);
 
       // Add to queue for asynchronous processing
-      await FluentIngestQueueService.addFluentIngestJob(req as TelemetryRequest);
+      await FluentIngestQueueService.addFluentIngestJob(
+        req as TelemetryRequest,
+      );
 
       return;
     } catch (err) {

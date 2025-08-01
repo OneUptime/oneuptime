@@ -105,7 +105,8 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const size: number = await IncomingRequestIngestQueueService.getQueueSize();
+      const size: number =
+        await IncomingRequestIngestQueueService.getQueueSize();
       return Response.sendJsonObjectResponse(req, res, { size });
     } catch (err) {
       return next(err);

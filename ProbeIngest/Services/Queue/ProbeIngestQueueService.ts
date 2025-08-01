@@ -11,13 +11,11 @@ export interface ProbeIngestJobData {
 }
 
 export default class ProbeIngestQueueService {
-  public static async addProbeIngestJob(
-    data: {
-      probeMonitorResponse: JSONObject;
-      jobType: "probe-response" | "monitor-test";
-      testId?: string;
-    },
-  ): Promise<void> {
+  public static async addProbeIngestJob(data: {
+    probeMonitorResponse: JSONObject;
+    jobType: "probe-response" | "monitor-test";
+    testId?: string;
+  }): Promise<void> {
     try {
       const jobData: ProbeIngestJobData = {
         probeMonitorResponse: data.probeMonitorResponse,

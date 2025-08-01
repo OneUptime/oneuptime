@@ -13,14 +13,12 @@ export interface IncomingRequestIngestJobData {
 }
 
 export default class IncomingRequestIngestQueueService {
-  public static async addIncomingRequestIngestJob(
-    data: {
-      secretKey: string;
-      requestHeaders: Dictionary<string>;
-      requestBody: string | JSONObject;
-      requestMethod: string;
-    },
-  ): Promise<void> {
+  public static async addIncomingRequestIngestJob(data: {
+    secretKey: string;
+    requestHeaders: Dictionary<string>;
+    requestBody: string | JSONObject;
+    requestMethod: string;
+  }): Promise<void> {
     try {
       const jobData: IncomingRequestIngestJobData = {
         secretKey: data.secretKey,

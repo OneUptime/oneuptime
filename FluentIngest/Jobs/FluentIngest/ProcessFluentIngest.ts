@@ -34,9 +34,7 @@ QueueWorker.getWorker(
         requestHeaders: jobData.requestHeaders,
       });
 
-      logger.debug(
-        `Successfully processed fluent ingestion job: ${job.name}`,
-      );
+      logger.debug(`Successfully processed fluent ingestion job: ${job.name}`);
     } catch (error) {
       logger.error(`Error processing fluent ingestion job:`);
       logger.error(error);
@@ -55,8 +53,9 @@ async function processFluentIngestFromQueue(
     | Array<JSONObject | string>
     | JSONObject;
 
-  let oneuptimeServiceName: string | string[] | undefined =
-    data.requestHeaders["x-oneuptime-service-name"] as string | string[] | undefined;
+  let oneuptimeServiceName: string | string[] | undefined = data.requestHeaders[
+    "x-oneuptime-service-name"
+  ] as string | string[] | undefined;
 
   if (!oneuptimeServiceName) {
     oneuptimeServiceName = "Unknown Service";
@@ -124,7 +123,9 @@ async function processFluentIngestFromQueue(
   OTelIngestService.recordDataIngestedUsgaeBilling({
     services: {
       [oneuptimeServiceName as string]: {
-        dataIngestedInGB: JSONFunctions.getSizeOfJSONinGB(data.requestBody as JSONObject),
+        dataIngestedInGB: JSONFunctions.getSizeOfJSONinGB(
+          data.requestBody as JSONObject,
+        ),
         dataRententionInDays: telemetryService.dataRententionInDays,
         serviceId: telemetryService.serviceId,
         serviceName: oneuptimeServiceName as string,

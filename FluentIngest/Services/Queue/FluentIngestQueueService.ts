@@ -12,9 +12,7 @@ export interface FluentIngestJobData {
 }
 
 export default class FluentIngestQueueService {
-  public static async addFluentIngestJob(
-    req: TelemetryRequest,
-  ): Promise<void> {
+  public static async addFluentIngestJob(req: TelemetryRequest): Promise<void> {
     try {
       const jobData: FluentIngestJobData = {
         projectId: req.projectId.toString(),

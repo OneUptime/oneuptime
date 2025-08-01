@@ -10,12 +10,10 @@ export interface ServerMonitorIngestJobData {
 }
 
 export default class ServerMonitorIngestQueueService {
-  public static async addServerMonitorIngestJob(
-    data: {
-      secretKey: string;
-      serverMonitorResponse: JSONObject;
-    },
-  ): Promise<void> {
+  public static async addServerMonitorIngestJob(data: {
+    secretKey: string;
+    serverMonitorResponse: JSONObject;
+  }): Promise<void> {
     try {
       const jobData: ServerMonitorIngestJobData = {
         secretKey: data.secretKey,
