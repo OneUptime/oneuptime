@@ -18,13 +18,12 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
-import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
-import MonitorTestService from "Common/Server/Services/MonitorTestService";
-import OneUptimeDate from "Common/Types/Date";
+import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -255,17 +254,18 @@ router.post(
         );
       }
 
-      // this is when the resource was ingested.
-      probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
-
-      MonitorResourceUtil.monitorResource(probeResponse).catch((err: Error) => {
-        logger.error("Error in monitor resource");
-        logger.error(err);
-      });
-
-      return Response.sendJsonObjectResponse(req, res, {
+      // Return response immediately
+      Response.sendJsonObjectResponse(req, res, {
         result: "processing",
       });
+
+      // Add to queue for asynchronous processing
+      await ProbeIngestQueueService.addProbeIngestJob({
+        probeMonitorResponse: req.body,
+        jobType: "probe-response",
+      });
+
+      return;
     } catch (err) {
       return next(err);
     }
@@ -303,28 +303,101 @@ router.post(
         );
       }
 
-      probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
+      // Return response immediately
+      Response.sendEmptySuccessResponse(req, res);
 
-      // save the probe response to the monitor test.
-
-      await MonitorTestService.updateOneById({
-        id: testId,
-        data: {
-          monitorStepProbeResponse: {
-            [probeResponse.monitorStepId.toString()]: {
-              ...JSON.parse(JSON.stringify(probeResponse)),
-              monitoredAt: OneUptimeDate.getCurrentDate(),
-            },
-          } as any,
-        },
-        props: {
-          isRoot: true,
-        },
+      // Add to queue for asynchronous processing
+      await ProbeIngestQueueService.addProbeIngestJob({
+        probeMonitorResponse: req.body,
+        jobType: "monitor-test",
+        testId: testId.toString(),
       });
 
-      // send success response.
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
-      return Response.sendEmptySuccessResponse(req, res);
+// Queue stats endpoint
+router.get(
+  "/probe/queue/stats",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const stats: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      } = await ProbeIngestQueueService.getQueueStats();
+      return Response.sendJsonObjectResponse(req, res, stats);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue size endpoint
+router.get(
+  "/probe/queue/size",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const size: number = await ProbeIngestQueueService.getQueueSize();
+      return Response.sendJsonObjectResponse(req, res, { size });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue failed jobs endpoint
+router.get(
+  "/probe/queue/failed",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // Parse pagination parameters from query string
+      const start: number = parseInt(req.query["start"] as string) || 0;
+      const end: number = parseInt(req.query["end"] as string) || 100;
+
+      const failedJobs: Array<{
+        id: string;
+        name: string;
+        data: any;
+        failedReason: string;
+        processedOn: Date | null;
+        finishedOn: Date | null;
+        attemptsMade: number;
+      }> = await ProbeIngestQueueService.getFailedJobs({
+        start,
+        end,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        failedJobs,
+        pagination: {
+          start,
+          end,
+          count: failedJobs.length,
+        },
+      });
     } catch (err) {
       return next(err);
     }

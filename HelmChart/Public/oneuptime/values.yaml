@@ -490,6 +490,17 @@ probeIngest:
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 openTelemetryIngest:
   replicaCount: 1
@@ -513,12 +524,34 @@ fluentIngest:
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 incomingRequestIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 isolatedVM:
   replicaCount: 1
@@ -531,6 +564,17 @@ serverMonitorIngest:
   disableTelemetryCollection: false
   disableAutoscaler: false
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 
 slackApp: 

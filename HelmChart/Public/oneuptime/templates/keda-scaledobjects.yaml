@@ -8,3 +8,31 @@ KEDA ScaledObjects for various services
 {{- $openTelemetryIngestKedaArgs := dict "ServiceName" "open-telemetry-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.openTelemetryIngest.disableAutoscaler }}
 {{- include "oneuptime.kedaScaledObject" $openTelemetryIngestKedaArgs }}
 {{- end }}
+
+{{/* Fluent Ingest KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.fluentIngest.keda.enabled (not .Values.fluentIngest.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.fluentIngest.keda.enabled "minReplicas" .Values.fluentIngest.keda.minReplicas "maxReplicas" .Values.fluentIngest.keda.maxReplicas "pollingInterval" .Values.fluentIngest.keda.pollingInterval "cooldownPeriod" .Values.fluentIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_fluent_ingest_queue_size" "threshold" .Values.fluentIngest.keda.queueSizeThreshold "port" .Values.port.fluentIngest)) }}
+{{- $fluentIngestKedaArgs := dict "ServiceName" "fluent-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.fluentIngest.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $fluentIngestKedaArgs }}
+{{- end }}
+
+{{/* Incoming Request Ingest KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.incomingRequestIngest.keda.enabled (not .Values.incomingRequestIngest.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.incomingRequestIngest.keda.enabled "minReplicas" .Values.incomingRequestIngest.keda.minReplicas "maxReplicas" .Values.incomingRequestIngest.keda.maxReplicas "pollingInterval" .Values.incomingRequestIngest.keda.pollingInterval "cooldownPeriod" .Values.incomingRequestIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_incoming_request_ingest_queue_size" "threshold" .Values.incomingRequestIngest.keda.queueSizeThreshold "port" .Values.port.incomingRequestIngest)) }}
+{{- $incomingRequestIngestKedaArgs := dict "ServiceName" "incoming-request-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.incomingRequestIngest.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $incomingRequestIngestKedaArgs }}
+{{- end }}
+
+{{/* Server Monitor Ingest KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.serverMonitorIngest.keda.enabled (not .Values.serverMonitorIngest.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.serverMonitorIngest.keda.enabled "minReplicas" .Values.serverMonitorIngest.keda.minReplicas "maxReplicas" .Values.serverMonitorIngest.keda.maxReplicas "pollingInterval" .Values.serverMonitorIngest.keda.pollingInterval "cooldownPeriod" .Values.serverMonitorIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_server_monitor_ingest_queue_size" "threshold" .Values.serverMonitorIngest.keda.queueSizeThreshold "port" .Values.port.serverMonitorIngest)) }}
+{{- $serverMonitorIngestKedaArgs := dict "ServiceName" "server-monitor-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.serverMonitorIngest.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $serverMonitorIngestKedaArgs }}
+{{- end }}
+
+{{/* Probe Ingest KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.probeIngest.keda.enabled (not .Values.probeIngest.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.probeIngest.keda.enabled "minReplicas" .Values.probeIngest.keda.minReplicas "maxReplicas" .Values.probeIngest.keda.maxReplicas "pollingInterval" .Values.probeIngest.keda.pollingInterval "cooldownPeriod" .Values.probeIngest.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_probe_ingest_queue_size" "threshold" .Values.probeIngest.keda.queueSizeThreshold "port" .Values.port.probeIngest)) }}
+{{- $probeIngestKedaArgs := dict "ServiceName" "probe-ingest" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.probeIngest.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $probeIngestKedaArgs }}
+{{- end }}
