@@ -85,6 +85,9 @@ RunCron(
             statusPages: {
               _id: true,
             },
+            currentScheduledMaintenanceState: {
+              name: true,
+            },
             isVisibleOnStatusPage: true,
             scheduledMaintenanceNumber: true,
           },
@@ -301,7 +304,7 @@ RunCron(
                       statuspage,
                     ),
                 },
-                subject: "[Scheduled Maintenance Update] " + event.title,
+                subject: `[Scheduled Maintenance ${event.currentScheduledMaintenanceState?.name || "Update"}] ${event.title}`,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

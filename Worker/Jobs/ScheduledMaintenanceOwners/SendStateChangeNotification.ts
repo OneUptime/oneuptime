@@ -132,7 +132,7 @@ RunCron(
           vars: vars,
           subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
             scheduledMaintenanceState!.name!,
-          )}] - ${scheduledMaintenance.title}`,
+          )}] ${scheduledMaintenance.title}`,
         };
 
         const sms: SMSMessage = {

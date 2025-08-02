@@ -88,6 +88,9 @@ RunCron(
           incidentSeverity: {
             name: true,
           },
+          currentIncidentState: {
+            name: true,
+          },
           isVisibleOnStatusPage: true,
           incidentNumber: true,
         },
@@ -281,7 +284,7 @@ RunCron(
                       statuspage,
                     ),
                 },
-                subject: "[Incident Update] " + incident.title,
+                subject: `[Incident ${incident.currentIncidentState?.name || "Update"}] ${incident.title}`,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

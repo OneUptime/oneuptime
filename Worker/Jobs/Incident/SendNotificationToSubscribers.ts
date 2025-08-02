@@ -63,6 +63,9 @@ RunCron(
         incidentSeverity: {
           name: true,
         },
+        currentIncidentState: {
+          name: true,
+        },
         incidentNumber: true,
       },
     });
@@ -240,7 +243,7 @@ RunCron(
                           statuspage,
                         ),
                     },
-                    subject: "[Incident] " + incident.title || "",
+                    subject: `[Incident ${incident.currentIncidentState?.name || "Created"}] ${incident.title || ""}`,
                   },
                   {
                     mailServer: ProjectSMTPConfigService.toEmailServer(

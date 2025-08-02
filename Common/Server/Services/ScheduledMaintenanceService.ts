@@ -310,8 +310,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   ),
                   unsubscribeUrl: unsubscribeUrl,
                 },
-                subject:
-                  "[Scheduled Maintenance] " + (event.title || statusPageName),
+                subject: `[Scheduled Maintenance ${event.currentScheduledMaintenanceState?.name || "Scheduled"}] ${event.title || statusPageName}`,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

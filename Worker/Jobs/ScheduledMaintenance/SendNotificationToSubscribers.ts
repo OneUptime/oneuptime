@@ -38,6 +38,9 @@ RunCron(
           statusPages: {
             _id: true,
           },
+          currentScheduledMaintenanceState: {
+            name: true,
+          },
           isVisibleOnStatusPage: true,
           scheduledMaintenanceNumber: true,
         },

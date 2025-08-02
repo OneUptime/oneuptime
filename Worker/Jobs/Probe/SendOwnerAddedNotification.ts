@@ -142,6 +142,7 @@ RunCron(
           project: {
             name: true,
           },
+          connectionStatus: true,
         },
       });
 
@@ -159,10 +160,13 @@ RunCron(
       };
 
       for (const user of users) {
+        const connectionStatus: string =
+          probe.connectionStatus === "connected" ? "Connected" : "Disconnected";
+
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ProbeOwnerAdded,
           vars: vars,
-          subject: "[Probe] Owner of " + probe.name,
+          subject: `[Probe ${connectionStatus}] You have been added as the owner`,
         };
 
         const sms: SMSMessage = {
