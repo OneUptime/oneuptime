@@ -399,7 +399,7 @@ router.post(
           probeId: probeId,
           isEnabled: true,
           nextPingAt: QueryHelper.lessThanEqualToOrNull(
-            OneUptimeDate.getCurrentDate(),
+            OneUptimeDate.getSomeMinutesAgo(2)
           ),
           monitor: {
             ...MonitorService.getEnabledMonitorQuery(),
