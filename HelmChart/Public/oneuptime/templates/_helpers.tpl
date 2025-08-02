@@ -724,6 +724,29 @@ spec:
   maxReplicaCount: {{ .MetricsConfig.maxReplicas }}
   pollingInterval: {{ .MetricsConfig.pollingInterval }}
   cooldownPeriod: {{ .MetricsConfig.cooldownPeriod }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 120
+          - type: Pods
+            value: 2
+            periodSeconds: 120
+          selectPolicy: Min
+        scaleDown:
+          stabilizationWindowSeconds: 600
+          policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 180
+          - type: Pods
+            value: 1
+            periodSeconds: 180
+          selectPolicy: Min
   triggers:
     {{- range .MetricsConfig.triggers }}
     - type: metrics-api
