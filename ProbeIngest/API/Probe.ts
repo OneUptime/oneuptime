@@ -29,6 +29,7 @@ import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
 import MonitorService from "Common/Server/Services/MonitorService";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -204,28 +205,33 @@ router.post(
         }
 
         // now send an email to all the emailsToNotify
-        for (const email of emailsToNotify) {
-          MailService.sendMail(
-            {
-              toEmail: email,
-              templateType: EmailTemplateType.ProbeOffline,
-              subject: "ACTION REQUIRED: Probe Offline Notification",
-              vars: {
-                probeName: probe.name || "",
-                probeDescription: probe.description || "",
-                projectId: probe.projectId?.toString() || "",
-                probeId: probe.id?.toString() || "",
-                hostname: statusReport["hostname"]?.toString() || "",
-                emailReason: emailReason,
-                issue: issue,
+        // Skip sending email if billing is enabled
+        if (!IsBillingEnabled) {
+          for (const email of emailsToNotify) {
+            MailService.sendMail(
+              {
+                toEmail: email,
+                templateType: EmailTemplateType.ProbeOffline,
+                subject: "ACTION REQUIRED: Probe Offline Notification",
+                vars: {
+                  probeName: probe.name || "",
+                  probeDescription: probe.description || "",
+                  projectId: probe.projectId?.toString() || "",
+                  probeId: probe.id?.toString() || "",
+                  hostname: statusReport["hostname"]?.toString() || "",
+                  emailReason: emailReason,
+                  issue: issue,
+                },
               },
-            },
-            {
-              projectId: probe.projectId,
-            },
-          ).catch((err: Error) => {
-            logger.error(err);
-          });
+              {
+                projectId: probe.projectId,
+              },
+            ).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+        } else {
+          logger.debug("Billing is enabled, skipping probe offline email notification");
         }
       }
 
