@@ -4,7 +4,11 @@ import ServerException from "Common/Types/Exception/ServerException";
 import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import logger from "Common/Server/Utils/Logger";
-import axios, { AxiosResponse } from "axios";
+import API from "Common/Utils/API";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import Headers from "Common/Types/API/Headers";
+import Route from "Common/Types/API/Route";
 
 export interface SCIMUser {
   id?: string;
@@ -75,14 +79,11 @@ export default class SCIMUtil {
     PATCH_OP: "urn:ietf:params:scim:api:messages:2.0:PatchOp",
   };
 
-  public static createAxiosConfig(bearerToken: string): JSONObject {
+  public static createHeaders(bearerToken: string): Headers {
     return {
-      headers: {
-        "Content-Type": "application/scim+json",
-        Authorization: `Bearer ${bearerToken}`,
-        Accept: "application/scim+json",
-      },
-      timeout: 30000,
+      "Content-Type": "application/scim+json",
+      Authorization: `Bearer ${bearerToken}`,
+      Accept: "application/scim+json",
     };
   }
 
@@ -92,20 +93,24 @@ export default class SCIMUtil {
     user: Omit<SCIMUser, "id" | "meta">,
   ): Promise<SCIMUser> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users`;
       const userData = {
         schemas: [SCIMUtil.SCIM_SCHEMAS.CORE_USER],
         ...user,
       };
 
-      const response: AxiosResponse<SCIMUser> = await axios.post(
-        url,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post<JSONObject>(
+        scimBaseUrl.addRoute(new Route("/Users")),
         userData,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to create SCIM user");
+      }
+
       logger.info(`SCIM user created: ${user.userName}`);
-      return response.data;
+      return response.data as unknown as SCIMUser;
     } catch (error: any) {
       logger.error(`Failed to create SCIM user: ${user.userName} - ${error.message}`);
       throw new ServerException(`Failed to create SCIM user: ${error.message}`);
@@ -119,20 +124,24 @@ export default class SCIMUtil {
     user: Partial<SCIMUser>,
   ): Promise<SCIMUser> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users/${userId}`;
       const userData = {
         schemas: [SCIMUtil.SCIM_SCHEMAS.CORE_USER],
         ...user,
       };
 
-      const response: AxiosResponse<SCIMUser> = await axios.put(
-        url,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.put<JSONObject>(
+        scimBaseUrl.addRoute(new Route(`/Users/${userId}`)),
         userData,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to update SCIM user");
+      }
+
       logger.info(`SCIM user updated: ${userId}`);
-      return response.data;
+      return response.data as unknown as SCIMUser;
     } catch (error: any) {
       logger.error(`Failed to update SCIM user: ${userId} - ${error.message}`);
       throw new ServerException(`Failed to update SCIM user: ${error.message}`);
@@ -145,9 +154,16 @@ export default class SCIMUtil {
     userId: string,
   ): Promise<void> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users/${userId}`;
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.delete<JSONObject>(
+        scimBaseUrl.addRoute(new Route(`/Users/${userId}`)),
+        undefined,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
+      );
 
-      await axios.delete(url, SCIMUtil.createAxiosConfig(bearerToken) as any);
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to delete SCIM user");
+      }
 
       logger.info(`SCIM user deleted: ${userId}`);
     } catch (error: any) {
@@ -162,7 +178,6 @@ export default class SCIMUtil {
     userId: string,
   ): Promise<SCIMUser> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users/${userId}`;
       const patchData = {
         schemas: [SCIMUtil.SCIM_SCHEMAS.PATCH_OP],
         Operations: [
@@ -174,14 +189,19 @@ export default class SCIMUtil {
         ],
       };
 
-      const response: AxiosResponse<SCIMUser> = await axios.patch(
-        url,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.patch<JSONObject>(
+        scimBaseUrl.addRoute(new Route(`/Users/${userId}`)),
         patchData,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to deactivate SCIM user");
+      }
+
       logger.info(`SCIM user deactivated: ${userId}`);
-      return response.data;
+      return response.data as unknown as SCIMUser;
     } catch (error: any) {
       logger.error(`Failed to deactivate SCIM user: ${userId} - ${error.message}`);
       throw new ServerException(`Failed to deactivate SCIM user: ${error.message}`);
@@ -194,14 +214,18 @@ export default class SCIMUtil {
     userId: string,
   ): Promise<SCIMUser> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users/${userId}`;
-
-      const response: AxiosResponse<SCIMUser> = await axios.get(
-        url,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.get<JSONObject>(
+        scimBaseUrl.addRoute(new Route(`/Users/${userId}`)),
+        undefined,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
-      return response.data;
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to get SCIM user");
+      }
+
+      return response.data as unknown as SCIMUser;
     } catch (error: any) {
       logger.error(`Failed to get SCIM user: ${userId} - ${error.message}`);
       throw new ServerException(`Failed to get SCIM user: ${error.message}`);
@@ -214,22 +238,24 @@ export default class SCIMUtil {
     userName: string,
   ): Promise<SCIMUser | null> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users`;
-      const params = {
-        filter: `userName eq "${userName}"`,
-        count: 1,
-      };
+      const usersUrl = scimBaseUrl.addRoute(new Route("/Users"));
+      usersUrl.addQueryParam("filter", `userName eq "${userName}"`);
+      usersUrl.addQueryParam("count", "1");
 
-      const response: AxiosResponse<SCIMListResponse<SCIMUser>> = await axios.get(
-        url,
-        {
-          ...SCIMUtil.createAxiosConfig(bearerToken),
-          params,
-        } as any,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.get<JSONObject>(
+        usersUrl,
+        undefined,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
-      if (response.data.totalResults > 0) {
-        return response.data.Resources[0] || null;
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to get SCIM user by username");
+      }
+
+      const listResponse = response.data as unknown as SCIMListResponse<SCIMUser>;
+      if (listResponse.totalResults > 0) {
+        return listResponse.Resources[0] || null;
       }
 
       return null;
@@ -249,22 +275,26 @@ export default class SCIMUtil {
     },
   ): Promise<SCIMListResponse<SCIMUser>> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users`;
-      const params = {
-        startIndex: options?.startIndex || 1,
-        count: options?.count || 100,
-        ...(options?.filter && { filter: options.filter }),
-      };
+      const usersUrl = scimBaseUrl.addRoute(new Route("/Users"));
+      usersUrl.addQueryParam("startIndex", (options?.startIndex || 1).toString());
+      usersUrl.addQueryParam("count", (options?.count || 100).toString());
+      
+      if (options?.filter) {
+        usersUrl.addQueryParam("filter", options.filter);
+      }
 
-      const response: AxiosResponse<SCIMListResponse<SCIMUser>> = await axios.get(
-        url,
-        {
-          ...SCIMUtil.createAxiosConfig(bearerToken),
-          params,
-        } as any,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.get<JSONObject>(
+        usersUrl,
+        undefined,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
-      return response.data;
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to list SCIM users");
+      }
+
+      return response.data as unknown as SCIMListResponse<SCIMUser>;
     } catch (error: any) {
       logger.error(`Failed to list SCIM users - ${error.message}`);
       throw new ServerException(`Failed to list SCIM users: ${error.message}`);
@@ -276,15 +306,20 @@ export default class SCIMUtil {
     bearerToken: string,
   ): Promise<boolean> {
     try {
-      const url = `${scimBaseUrl.toString()}/Users`;
-      const params = {
-        count: 1,
-      };
+      const usersUrl = scimBaseUrl.addRoute(new Route("/Users"));
+      usersUrl.addQueryParam("count", "1");
 
-      await axios.get(url, {
-        ...SCIMUtil.createAxiosConfig(bearerToken),
-        params,
-      } as any);
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.get<JSONObject>(
+        usersUrl,
+        undefined,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
+      );
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error(`SCIM connection test failed: ${scimBaseUrl.toString()} - ${response.message}`);
+        return false;
+      }
 
       logger.info(`SCIM connection test successful: ${scimBaseUrl.toString()}`);
       return true;
@@ -366,20 +401,24 @@ export default class SCIMUtil {
     group: Omit<SCIMGroup, "id" | "meta">,
   ): Promise<SCIMGroup> {
     try {
-      const url = `${scimBaseUrl.toString()}/Groups`;
       const groupData = {
         schemas: [SCIMUtil.SCIM_SCHEMAS.CORE_GROUP],
         ...group,
       };
 
-      const response: AxiosResponse<SCIMGroup> = await axios.post(
-        url,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post<JSONObject>(
+        scimBaseUrl.addRoute(new Route("/Groups")),
         groupData,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
 
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to create SCIM group");
+      }
+
       logger.info(`SCIM group created: ${group.displayName}`);
-      return response.data;
+      return response.data as unknown as SCIMGroup;
     } catch (error: any) {
       logger.error(`Failed to create SCIM group: ${group.displayName} - ${error.message}`);
       throw new ServerException(`Failed to create SCIM group: ${error.message}`);
@@ -394,7 +433,6 @@ export default class SCIMUtil {
     userDisplayName?: string,
   ): Promise<void> {
     try {
-      const url = `${scimBaseUrl.toString()}/Groups/${groupId}`;
       const patchData = {
         schemas: [SCIMUtil.SCIM_SCHEMAS.PATCH_OP],
         Operations: [
@@ -412,11 +450,16 @@ export default class SCIMUtil {
         ],
       };
 
-      await axios.patch(
-        url,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.patch<JSONObject>(
+        scimBaseUrl.addRoute(new Route(`/Groups/${groupId}`)),
         patchData,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
+
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to add user to group");
+      }
 
       logger.info(`SCIM user ${userId} added to group ${groupId}`);
     } catch (error: any) {
@@ -432,7 +475,6 @@ export default class SCIMUtil {
     userId: string,
   ): Promise<void> {
     try {
-      const url = `${scimBaseUrl.toString()}/Groups/${groupId}`;
       const patchData = {
         schemas: [SCIMUtil.SCIM_SCHEMAS.PATCH_OP],
         Operations: [
@@ -443,11 +485,16 @@ export default class SCIMUtil {
         ],
       };
 
-      await axios.patch(
-        url,
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.patch<JSONObject>(
+        scimBaseUrl.addRoute(new Route(`/Groups/${groupId}`)),
         patchData,
-        SCIMUtil.createAxiosConfig(bearerToken) as any,
+        SCIMUtil.createHeaders(bearerToken),
+        { timeout: 30000 },
       );
+
+      if (response instanceof HTTPErrorResponse) {
+        throw new ServerException(response.message || "Failed to remove user from group");
+      }
 
       logger.info(`SCIM user ${userId} removed from group ${groupId}`);
     } catch (error: any) {

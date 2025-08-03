@@ -5,6 +5,7 @@ import Exception from "Common/Types/Exception/Exception";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectScimService from "Common/Server/Services/ProjectScimService";
 import UserService from "Common/Server/Services/UserService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import Select from "Common/Server/Types/Database/Select";
 import Express, {
   ExpressRequest,
@@ -15,6 +16,7 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import ProjectScim from "Common/Models/DatabaseModels/ProjectScim";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -185,14 +187,21 @@ router.post(
 
               // Add user to teams if specified
               if (projectScim.teams && projectScim.teams.length > 0) {
-                for (const _team of projectScim.teams) {
+                for (const team of projectScim.teams) {
                   try {
-                    // TODO: Add user to team functionality
-                    // await PermissionHelper.addUserToTeam({
-                    //   userId: createdUser.id!,
-                    //   teamId: team.id!,
-                    //   projectId: projectScim.projectId!,
-                    // });
+                    // Create a new TeamMember instance
+                    const newTeamMember = new TeamMember();
+                    newTeamMember.teamId = team.id!;
+                    newTeamMember.userId = createdUser.id!;
+                    newTeamMember.projectId = projectScim.projectId!;
+                    newTeamMember.hasAcceptedInvitation = true;
+                    
+                    await TeamMemberService.create({
+                      data: newTeamMember,
+                      props: {
+                        isRoot: true,
+                      },
+                    });
                   } catch (teamError) {
                     logger.error(`Error adding user to team: ${teamError}`);
                   }
@@ -260,16 +269,18 @@ router.post(
         );
       }
 
-      // Get all users from the project
-      const projectUsers = await UserService.findBy({
+      // Get all users from the project by finding team members
+      const teamMembers = await TeamMemberService.findBy({
         query: {
-          // TODO: Add project filtering logic
-          // projectId: projectScim.projectId,
+          projectId: projectScim.projectId!,
         },
         select: {
           _id: true,
-          email: true,
-          name: true,
+          user: {
+            _id: true,
+            email: true,
+            name: true,
+          } as Select<User>,
         },
         limit: 1000,
         skip: 0,
@@ -277,6 +288,18 @@ router.post(
           isRoot: true,
         },
       });
+
+      // Extract unique users from team members
+      const uniqueUserIds = new Set<string>();
+      const projectUsers: User[] = teamMembers
+        .map(tm => tm.user!)
+        .filter(user => {
+          if (user && user.id && !uniqueUserIds.has(user.id.toString())) {
+            uniqueUserIds.add(user.id.toString());
+            return true;
+          }
+          return false;
+        });
 
       const deprovisionResults = {
         totalProjectUsers: projectUsers.length,
@@ -296,23 +319,47 @@ router.post(
           }
 
           // Check if user exists in SCIM provider
-          // TODO: Implement getUserByEmail method in SCIMUtil
-          // const scimUser = await SCIMUtil.getUserByEmail(
-          //   projectScim.scimBaseUrl,
-          //   projectScim.bearerToken,
-          //   user.email.toString(),
-          // );
+          const scimUser = await SCIMUtil.getUserByUserName(
+            projectScim.scimBaseUrl,
+            projectScim.bearerToken,
+            user.email.toString(),
+          );
 
-          // if (!scimUser) {
-          //   // User not found in SCIM, deprovision from project
-          //   await SCIMUtil.removeUserFromGroup(
-          //     projectScim.scimBaseUrl,
-          //     projectScim.bearerToken,
-          //     user.id!,
-          //   );
+          if (!scimUser) {
+            // User not found in SCIM provider, deprovision from project
+            try {
+              // Remove user from all teams in this project
+              const teamMembers = await TeamMemberService.findBy({
+                query: {
+                  userId: user.id!,
+                  projectId: projectScim.projectId!,
+                },
+                select: {
+                  _id: true,
+                },
+                limit: 1000,
+                skip: 0,
+                props: {
+                  isRoot: true,
+                },
+              });
 
-          //   deprovisionResults.deprovisionedUsers++;
-          // }
+              for (const teamMember of teamMembers) {
+                await TeamMemberService.deleteOneById({
+                  id: teamMember.id!,
+                  props: {
+                    isRoot: true,
+                  },
+                });
+              }
+
+              deprovisionResults.deprovisionedUsers++;
+              logger.info(`Deprovisioned user ${user.email} from project due to SCIM removal`);
+            } catch (deprovisionError) {
+              deprovisionResults.errors.push(`Error deprovisioning user ${user.email}: ${deprovisionError}`);
+              logger.error(`Error deprovisioning user: ${deprovisionError}`);
+            }
+          }
         } catch (userError) {
           deprovisionResults.errors.push(`Error processing user ${user.email}: ${userError}`);
           logger.error(`Error processing user for deprovisioning: ${userError}`);
@@ -406,20 +453,51 @@ router.post(
         );
       }
 
-      // Remove user from SCIM provider
-      // TODO: Implement removeUserFromProject method in SCIMUtil
-      // await SCIMUtil.removeUserFromGroup(
-      //   projectScim.scimBaseUrl,
-      //   projectScim.bearerToken,
-      //   user.email.toString(),
-      // );
+      // Find user in SCIM provider first
+      const scimUser = await SCIMUtil.getUserByUserName(
+        projectScim.scimBaseUrl,
+        projectScim.bearerToken,
+        user.email.toString(),
+      );
 
-      // Also remove from local project
-      // await SCIMUtil.removeUserFromGroup(
-      //   projectScim.scimBaseUrl,
-      //   projectScim.bearerToken,
-      //   user.id!.toString(),
-      // );
+      if (scimUser) {
+        // Remove user from SCIM provider (deactivate instead of delete to preserve audit trail)
+        await SCIMUtil.deactivateUser(
+          projectScim.scimBaseUrl,
+          projectScim.bearerToken,
+          scimUser.id!,
+        );
+        logger.info(`Deactivated user ${user.email} in SCIM provider`);
+      } else {
+        logger.warn(`User ${user.email} not found in SCIM provider, proceeding with local removal only`);
+      }
+
+      // Remove user from all teams in this project
+      const teamMembers = await TeamMemberService.findBy({
+        query: {
+          userId: user.id!,
+          projectId: projectScim.projectId!,
+        },
+        select: {
+          _id: true,
+        },
+        limit: 1000,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const teamMember of teamMembers) {
+        await TeamMemberService.deleteOneById({
+          id: teamMember.id!,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      logger.info(`Removed user ${user.email} from ${teamMembers.length} teams in project`);
 
       return Response.sendJsonObjectResponse(req, res, {
         success: true,
