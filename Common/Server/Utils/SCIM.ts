@@ -1,14 +1,14 @@
-import URL from "Common/Types/API/URL";
-import Email from "Common/Types/Email";
-import ServerException from "Common/Types/Exception/ServerException";
-import { JSONObject } from "Common/Types/JSON";
-import Name from "Common/Types/Name";
-import logger from "Common/Server/Utils/Logger";
-import API from "Common/Utils/API";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import Headers from "Common/Types/API/Headers";
-import Route from "Common/Types/API/Route";
+import URL from "../../Types/API/URL";
+import Email from "../..//Types/Email";
+import ServerException from "../..//Types/Exception/ServerException";
+import { JSONObject } from "../..//Types/JSON";
+import Name from "../..//Types/Name";
+import logger from "../../Server/Utils/Logger";
+import API from "../..//Utils/API";
+import HTTPResponse from "../..//Types/API/HTTPResponse";
+import HTTPErrorResponse from "../..//Types/API/HTTPErrorResponse";
+import Headers from "../..//Types/API/Headers";
+import Route from "../..//Types/API/Route";
 
 export interface SCIMUser {
   id?: string;

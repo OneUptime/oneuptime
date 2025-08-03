@@ -9,7 +9,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import ProjectSCIM from "../../Models/DatabaseModels/ProjectScim";
-import SCIMUtil from "../../../App/FeatureSet/Identity/Utils/SCIM";
 import URL from "../../Types/API/URL";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import Exception from "../../Types/Exception/Exception";
@@ -22,6 +21,7 @@ import Select from "../Types/Database/Select";
 import Email from "../../Types/Email";
 import Name from "../../Types/Name";
 import logger from "../Utils/Logger";
+import SCIMUtil from "../Utils/SCIM";
 
 export default class ProjectScimAPI extends BaseAPI<
   ProjectSCIM,
