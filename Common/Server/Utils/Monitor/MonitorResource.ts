@@ -228,6 +228,8 @@ export default class MonitorResourceUtil {
       await MonitorService.updateOneById({
         id: monitor.id!,
         data: {
+          incomingRequestMonitorHeartbeatCheckedAt:
+            OneUptimeDate.getCurrentDate(),
           incomingMonitorRequest: {
             ...dataToProcess,
           } as any,
@@ -1372,7 +1374,7 @@ export default class MonitorResourceUtil {
     }
 
     if (input.monitor.monitorType === MonitorType.SSLCertificate) {
-      // check server monitor
+      // check SSL monitor
       const sslMonitorResult: string | null =
         await SSLMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,

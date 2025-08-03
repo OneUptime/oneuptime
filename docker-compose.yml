@@ -3,11 +3,6 @@
 
 services:
 
-    haraka:
-        extends:
-            file: ./docker-compose.base.yml
-            service: haraka
-    
     redis:
         extends:
             file: ./docker-compose.base.yml

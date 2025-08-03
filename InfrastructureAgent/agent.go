@@ -129,7 +129,7 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 	}
 	reqBody, err := json.Marshal(reqData)
 	if err != nil {
-		slog.Error("Failed to marshal request data: ", err)
+		slog.Error("Failed to marshal request data", "error", err)
 		return
 	}
 
@@ -144,19 +144,23 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 
 	resp, err := client.Post(oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey, "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
-		slog.Error("Failed to create request: ", err)
+		slog.Error("Failed to send request to server", "error", err)
 		return
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		slog.Error("Failed to ingest metrics with status code ", resp.StatusCode)
-		respBody, _ := io.ReadAll(resp.Body)
-		slog.Error("Response: ", string(respBody))
+	if resp.StatusCode == http.StatusOK {
+		slog.Info("Metrics successfully pushed to OneUptime server", "status", resp.StatusCode, "endpoint", oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey)
+	} else {
+		slog.Error("Failed to ingest metrics", "status_code", resp.StatusCode)
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			slog.Error("Failed to read error response body", "error", err)
+		} else {
+			slog.Error("Server response", "body", string(respBody))
+		}
 	}
-
-	slog.Info("1 minute metrics have been sent to OneUptime.")
 }
 
 func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl string) bool {

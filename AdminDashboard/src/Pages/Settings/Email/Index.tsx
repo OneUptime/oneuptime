@@ -21,7 +21,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const [emailServerType, setemailServerType] = React.useState<EmailServerType>(
-    EmailServerType.Internal,
+    EmailServerType.CustomSMTP,
   );
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
@@ -43,7 +43,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
     if (globalConfig) {
       setemailServerType(
-        globalConfig.emailServerType || EmailServerType.Internal,
+        globalConfig.emailServerType || EmailServerType.CustomSMTP,
       );
     }
 
@@ -127,7 +127,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       />
 
       <CardModelDetail
-        name="Internal SMTP Settings"
+        name="Email Server Settings"
         cardProps={{
           title: "Email Server Settings",
           description:
@@ -172,7 +172,7 @@ const Settings: FunctionComponent = (): ReactElement => {
           cardProps={{
             title: "Custom Email and SMTP Settings",
             description:
-              "If you have not enabled Internal SMTP server to send emails. Please configure your SMTP server here.",
+              "Please configure your SMTP server here to send emails.",
           }}
           isEditable={true}
           editButtonText="Edit SMTP Config"

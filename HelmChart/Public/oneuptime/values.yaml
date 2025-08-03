@@ -28,19 +28,7 @@ fluentdHost:
 
 deployment:
   # Default replica count for all deployments
-  replicaCount: 1
-  probeIngest:
-    replicaCount:
-  serverMonitorIngest:
-    replicaCount:
-  openTelemetryIngest: 
-    replicaCount:
-  fluentIngest:
-    replicaCount:
-  incomingRequestIngest:
-    replicaCount:
-  otelCollector: 
-    replicaCount: 
+  replicaCount: 1 
 
 metalLb:
   enabled: false
@@ -50,9 +38,14 @@ metalLb:
       # - 51.158.55.153/32 # List of IP addresses of all the servers in the cluster.
 
 nginx:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
   listenAddress: ""
   listenOptions: ""
+  ports:
+    http: 80
+    https: 443
   service:
     loadBalancerIP:
     type: LoadBalancer
@@ -178,22 +171,6 @@ vapid:
   privateKey:
   subject: mailto:support@oneuptime.com
 
-internalSmtp:
-  enabled: true
-  incomingEmailDomain:
-  sendingDomain:
-  dkimPrivateKey:
-  dkimPublicKey:
-  email:
-  name:
-  service:
-    loadBalancerIP:
-    # Change this to LoadBalancer if you want to receive emails from the internet. This could be useful for Incoming Email monitors.
-    type: ClusterIP
-    externalIPs:
-      # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
-
-
 incidents:
   disableAutomaticCreation: false
 
@@ -206,8 +183,12 @@ alerts:
 # 2. Set the statusPage.cnameRecord to "oneuptime.yourcompany.com"
 # 3. Create CNAME record in your DNS provider with the name "status.yourcompany.com" and value "oneuptime.yourcompany.com"
 statusPage:
+  replicaCount: 1
   cnameRecord:
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3105
 
 probes:
   one:
@@ -222,6 +203,19 @@ probes:
     customCodeMonitorScriptTimeoutInMs: 60000
     disableTelemetryCollection: false
     disableAutoscaler: false
+    ports:
+      http: 3874
+    # KEDA autoscaling configuration based on monitor queue metrics
+    keda:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      # Scale up when queue size exceeds this threshold per probe
+      queueSizeThreshold: 10
+      # Polling interval for metrics (in seconds)
+      pollingInterval: 30
+      # Cooldown period after scaling (in seconds)
+      cooldownPeriod: 300
 #   resources:
 #   additionalContainers:
 # two:
@@ -231,43 +225,34 @@ probes:
 #   monitorFetchLimit: 10
 #   key:
 #   replicaCount: 1
+#   ports:
+#     http: 3874
 #   syntheticMonitorScriptTimeoutInMs: 60000
 #   customCodeMonitorScriptTimeoutInMs: 60000
 #   disableTelemetryCollection: false
 #   disableAutoscaler: false
 #   resources:
 #   additionalContainers:
+    # KEDA autoscaling configuration based on monitor queue metrics
+    # keda:
+    #   enabled: false
+    #   minReplicas: 1
+    #   maxReplicas: 100
+    #   # Scale up when queue size exceeds this threshold per probe
+    #   queueSizeThreshold: 10
+    #   # Polling interval for metrics (in seconds)
+    #   pollingInterval: 30
+    #   # Cooldown period after scaling (in seconds)
+    #   cooldownPeriod: 300
 
-
-port:
-  app: 3002
-  probeIngest: 3400
-  serverMonitorIngest: 3404
-  openTelemetryIngest: 3403
-  fluentIngest: 3401
-  incomingRequestIngest: 3402
-  testServer: 3800
-  accounts: 3003
-  statusPage: 3105
-  dashboard: 3009
-  adminDashboard: 3158
-  # This is where oneuptime server is hosted on.
-  nginxHttp: 80
-  # If you are connecting Status Pages to custom domains, then this will be the port where the status page will be hosted on.
-  statusPageHttpsPort: 443
-  haraka: 2525
-  otelCollectorGrpc: 4317
-  otelCollectorHttp: 4318
-  isolatedVM: 4572
-  home: 1444
-  worker: 1445
-  workflow: 3099
-  apiReference: 1446
-  docs: 1447
 
 testServer:
+  replicaCount: 1
   enabled: false
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3800
 
 
 openTelemetryExporter:
@@ -445,78 +430,199 @@ readinessProbe: # Readiness probe configuration
 
 # OpenTelemetry Collector Configuration
 openTelemetryCollector: 
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    grpc: 4317
+    http: 4318
   sendingQueue: 
     enabled: true
     size: 1000
     numConsumers: 3
 
 accounts: 
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3003
   resources:
 
 home: 
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 1444
   resources:
 
 dashboard:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3009
   resources:
 
 adminDashboard:
+  replicaCount: 1
   disableTelemetryCollection: false
-  resources:
-
-haraka:
+  disableAutoscaler: false
+  ports:
+    http: 3158
   resources:
 
 worker:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 1445
   resources:
 
 workflow:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
   workflowTimeoutInMs: 5000
+  ports:
+    http: 3099
   resources:
 
 apiReference:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 1446
   resources:
 
 docs:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 1447
   resources:
 
 app: 
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3002
   resources:
 
 probeIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3400
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 openTelemetryIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3403
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 fluentIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3401
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 incomingRequestIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3402
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 isolatedVM:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 4572
   resources:
 
 serverMonitorIngest:
+  replicaCount: 1
   disableTelemetryCollection: false
+  disableAutoscaler: false
+  ports:
+    http: 3404
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 
 slackApp: 
   clientId:
   clientSecret:
   signingSecret:
+
+
+keda:
+  enabled: true

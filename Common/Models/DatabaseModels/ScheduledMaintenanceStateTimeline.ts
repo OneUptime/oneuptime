@@ -59,6 +59,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "ScheduledMaintenanceStateTimeline",
 })
+@Index(["scheduledMaintenanceId", "startsAt"])
 @TableMetadata({
   tableName: "ScheduledMaintenanceStateTimeline",
   icon: IconProp.List,

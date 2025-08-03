@@ -98,39 +98,39 @@ Usage:
   value: {{ $.Release.Name }}-docs.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
 
 - name: APP_PORT
-  value: {{ $.Values.port.app | squote }}
+  value: {{ $.Values.app.ports.http | squote }}
 - name: PROBE_INGEST_PORT
-  value: {{ $.Values.port.probeIngest | squote }}
+  value: {{ $.Values.probeIngest.ports.http | squote }}
 - name: SERVER_MONITOR_INGEST_PORT
-  value: {{ $.Values.port.serverMonitorIngest | squote }}
+  value: {{ $.Values.serverMonitorIngest.ports.http | squote }}
 - name: OPEN_TELEMETRY_INGEST_PORT
-  value: {{ $.Values.port.openTelemetryIngest | squote }}
+  value: {{ $.Values.openTelemetryIngest.ports.http | squote }}
 - name: INCOMING_REQUEST_INGEST_PORT
-  value: {{ $.Values.port.incomingRequestIngest | squote }}
+  value: {{ $.Values.incomingRequestIngest.ports.http | squote }}
 - name: FLUENT_INGEST_PORT
-  value: {{ $.Values.port.fluentIngest | squote }}
+  value: {{ $.Values.fluentIngest.ports.http | squote }}
 - name: TEST_SERVER_PORT
-  value: {{ $.Values.port.testServer | squote }}
+  value: {{ $.Values.testServer.ports.http | squote }}
 - name: ACCOUNTS_PORT
-  value: {{ $.Values.port.accounts | squote }}
+  value: {{ $.Values.accounts.ports.http | squote }}
 - name: ISOLATED_VM_PORT
-  value: {{ $.Values.port.isolatedVM | squote }}
+  value: {{ $.Values.isolatedVM.ports.http | squote }}
 - name: HOME_PORT
-  value: {{ $.Values.port.home | squote }}
+  value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_PORT
-  value: {{ $.Values.port.worker | squote }}
+  value: {{ $.Values.worker.ports.http | squote }}
 - name: WORKFLOW_PORT
-  value: {{ $.Values.port.workflow | squote }}
+  value: {{ $.Values.workflow.ports.http | squote }}
 - name: STATUS_PAGE_PORT
-  value: {{ $.Values.port.statusPage | squote }}
+  value: {{ $.Values.statusPage.ports.http | squote }}
 - name: DASHBOARD_PORT
-  value: {{ $.Values.port.dashboard | squote }}
+  value: {{ $.Values.dashboard.ports.http | squote }}
 - name: ADMIN_DASHBOARD_PORT
-  value: {{ $.Values.port.adminDashboard | squote }}
+  value: {{ $.Values.adminDashboard.ports.http | squote }}
 - name: API_REFERENCE_PORT
-  value: {{ $.Values.port.apiReference | squote }}
+  value: {{ $.Values.apiReference.ports.http | squote }}
 - name: DOCS_PORT
-  value: {{ $.Values.port.docs | squote }}
+  value: {{ $.Values.docs.ports.http | squote }}
 {{- end }}
 
 
@@ -559,8 +559,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name $.ServiceName  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if $.ReplicaCount }}
+  replicas: {{ $.ReplicaCount }}
+  {{- else }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.DisableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:
@@ -644,7 +648,7 @@ spec:
 
 
 {{- define "oneuptime.autoscaler" }}
-{{- if .Values.autoscaling.enabled }}
+{{- if and (.Values.autoscaling.enabled) (not .DisableAutoscaler) }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -694,4 +698,87 @@ spec:
   resources:
     requests:
       storage: {{ $.Storage }}
+{{- end }}
+
+
+{{/*
+KEDA ScaledObject template for metric-based autoscaling
+Usage: include "oneuptime.kedaScaledObject" (dict "ServiceName" "service-name" "Release" .Release "Values" .Values "MetricsConfig" {...})
+*/}}
+{{- define "oneuptime.kedaScaledObject" }}
+{{- if and .Values.keda.enabled .MetricsConfig.enabled (not .DisableAutoscaler) }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ printf "%s-%s-scaledobject" .Release.Name .ServiceName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" .Release.Name .ServiceName }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  scaleTargetRef:
+    name: {{ printf "%s-%s" .Release.Name .ServiceName }}
+  minReplicaCount: {{ .MetricsConfig.minReplicas }}
+  maxReplicaCount: {{ .MetricsConfig.maxReplicas }}
+  pollingInterval: {{ .MetricsConfig.pollingInterval }}
+  cooldownPeriod: {{ .MetricsConfig.cooldownPeriod }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 120
+          - type: Pods
+            value: 2
+            periodSeconds: 120
+          selectPolicy: Min
+        scaleDown:
+          stabilizationWindowSeconds: 600
+          policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 180
+          - type: Pods
+            value: 1
+            periodSeconds: 180
+          selectPolicy: Min
+  triggers:
+    {{- range .MetricsConfig.triggers }}
+    - type: metrics-api
+      metadata:
+        targetValue: {{ .threshold | quote }}
+        url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}/metrics/queue-size
+        valueLocation: 'queueSize'
+        method: 'GET'
+      # authenticationRef:
+      #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
+    {{- end }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: {{ printf "%s-%s-trigger-auth" .Release.Name .ServiceName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" .Release.Name .ServiceName }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  secretTargetRef:
+    {{- if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+    - parameter: clusterkey
+      name: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+      key: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+    {{- else }}
+    - parameter: clusterkey
+      name: {{ printf "%s-%s" .Release.Name "secrets" }}
+      key: oneuptime-secret
+    {{- end }}
+{{- end }}
 {{- end }}

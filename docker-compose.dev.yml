@@ -3,15 +3,6 @@
 services:
     
 
-    haraka:
-        extends:
-            file: ./docker-compose.base.yml
-            service: haraka
-        build:
-            network: host
-            context: .
-            dockerfile: ./Haraka/Dockerfile
-
     redis:
         ports: 
             - '6310:6379'

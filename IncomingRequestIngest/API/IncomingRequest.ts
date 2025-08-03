@@ -1,12 +1,6 @@
-import HTTPMethod from "Common/Types/API/HTTPMethod";
-import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import MonitorType from "Common/Types/Monitor/MonitorType";
-import ObjectID from "Common/Types/ObjectID";
-import MonitorService from "Common/Server/Services/MonitorService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -14,10 +8,9 @@ import Express, {
   NextFunction,
   RequestHandler,
 } from "Common/Server/Utils/Express";
-import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import logger from "Common/Server/Utils/Logger";
+import IncomingRequestIngestQueueService from "../Services/Queue/IncomingRequestIngestQueueService";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -38,63 +31,18 @@ const processIncomingRequest: RequestHandler = async (
       throw new BadDataException("Invalid Secret Key");
     }
 
-    const isGetRequest: boolean = req.method === "GET";
-    const isPostRequest: boolean = req.method === "POST";
+    // Return response immediately
+    Response.sendEmptySuccessResponse(req, res);
 
-    let httpMethod: HTTPMethod = HTTPMethod.GET;
-
-    if (isGetRequest) {
-      httpMethod = HTTPMethod.GET;
-    }
-
-    if (isPostRequest) {
-      httpMethod = HTTPMethod.POST;
-    }
-
-    const monitor: Monitor | null = await MonitorService.findOneBy({
-      query: {
-        incomingRequestSecretKey: new ObjectID(monitorSecretKeyAsString),
-        monitorType: MonitorType.IncomingRequest,
-      },
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!monitor || !monitor._id) {
-      throw new BadDataException("Monitor not found");
-    }
-
-    if (!monitor.projectId) {
-      throw new BadDataException("Project not found");
-    }
-
-    const now: Date = OneUptimeDate.getCurrentDate();
-
-    const incomingRequest: IncomingMonitorRequest = {
-      projectId: monitor.projectId,
-      monitorId: new ObjectID(monitor._id.toString()),
+    // Add to queue for asynchronous processing
+    await IncomingRequestIngestQueueService.addIncomingRequestIngestJob({
+      secretKey: monitorSecretKeyAsString,
       requestHeaders: requestHeaders,
       requestBody: requestBody,
-      incomingRequestReceivedAt: now,
-      onlyCheckForIncomingRequestReceivedAt: false,
-      requestMethod: httpMethod,
-      checkedAt: now,
-    };
-
-    // process probe response here.
-    MonitorResourceUtil.monitorResource(incomingRequest).catch((err: Error) => {
-      // do nothing.
-      // we don't want to throw error here.
-      // we just want to log the error.
-      logger.error(err);
+      requestMethod: req.method,
     });
 
-    return Response.sendEmptySuccessResponse(req, res);
+    return;
   } catch (err) {
     return next(err);
   }
@@ -119,6 +67,92 @@ router.get(
     next: NextFunction,
   ): Promise<void> => {
     processIncomingRequest(req, res, next);
+  },
+);
+
+// Queue stats endpoint
+router.get(
+  "/incoming-request/queue/stats",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const stats: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      } = await IncomingRequestIngestQueueService.getQueueStats();
+      return Response.sendJsonObjectResponse(req, res, stats);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue size endpoint
+router.get(
+  "/incoming-request/queue/size",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const size: number =
+        await IncomingRequestIngestQueueService.getQueueSize();
+      return Response.sendJsonObjectResponse(req, res, { size });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue failed jobs endpoint
+router.get(
+  "/incoming-request/queue/failed",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // Parse pagination parameters from query string
+      const start: number = parseInt(req.query["start"] as string) || 0;
+      const end: number = parseInt(req.query["end"] as string) || 100;
+
+      const failedJobs: Array<{
+        id: string;
+        name: string;
+        data: any;
+        failedReason: string;
+        stackTrace?: string;
+        processedOn: Date | null;
+        finishedOn: Date | null;
+        attemptsMade: number;
+      }> = await IncomingRequestIngestQueueService.getFailedJobs({
+        start,
+        end,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        failedJobs,
+        pagination: {
+          start,
+          end,
+          count: failedJobs.length,
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
   },
 );
 

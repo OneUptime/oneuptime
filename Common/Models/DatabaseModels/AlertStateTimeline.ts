@@ -60,6 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "AlertStateTimeline",
 })
+@Index(["alertId", "startsAt"])
 @TableMetadata({
   tableName: "AlertStateTimeline",
   singularName: "Alert State Timeline",

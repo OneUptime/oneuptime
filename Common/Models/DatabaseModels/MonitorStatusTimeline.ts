@@ -25,6 +25,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @CanAccessIfCanReadOn("monitor")
 @TenantColumn("projectId")
+@Index(["monitorId", "projectId", "startsAt"]) // Composite index for efficient timeline queries
+@Index(["monitorId", "startsAt"]) // Alternative index for monitor-specific timeline queries
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -62,6 +64,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "MonitorStatusTimeline",
 })
+@Index(["monitorId", "startsAt"])
 @TableMetadata({
   tableName: "MonitorStatusTimeline",
   singularName: "Monitor Status Event",

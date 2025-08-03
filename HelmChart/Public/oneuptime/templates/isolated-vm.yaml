@@ -15,8 +15,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "isolated-vm"  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if $.Values.isolatedVM.replicaCount }}
+  replicas: {{ $.Values.isolatedVM.replicaCount }}
+  {{- else }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.isolatedVM.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:
@@ -51,15 +55,13 @@ spec:
           env:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
-            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers }}
             - name: PORT
-              value: {{ $.Values.port.isolatedVM | quote }} 
+              value: {{ $.Values.isolatedVM.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.isolatedVM.disableTelemetryCollection | quote }}
         
           ports:
-            - containerPort: {{ $.Values.port.isolatedVM }}
+            - containerPort: {{ $.Values.isolatedVM.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.isolatedVM.resources }}
@@ -71,13 +73,15 @@ spec:
 ---
 
 # OneUptime isolatedVM Service
-{{- $isolatedVMPorts := dict "port" $.Values.port.isolatedVM -}}
+{{- $isolatedVMPorts := $.Values.isolatedVM.ports -}}
 {{- $isolatedVMServiceArgs := dict "ServiceName" "isolated-vm" "Ports" $isolatedVMPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $isolatedVMServiceArgs }}
 ---
 
 
 # OneUptime isolatedVM autoscaler
+{{- if not $.Values.isolatedVM.disableAutoscaler }}
 {{- $isolatedVMAutoScalerArgs := dict "ServiceName" "isolated-vm" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $isolatedVMAutoScalerArgs }}
+{{- end }}
 ---

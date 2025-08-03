@@ -502,20 +502,132 @@ ${createdItem.description?.trim() || "No description provided."}
       feedInfoInMarkdown += `\n\n`;
     }
 
-    // send message to workspaces - slack, teams,   etc.
+    // Parallelize operations that don't depend on each other
+    const parallelOperations: Array<Promise<any>> = [];
+
+    // 1. Essential monitor status operation (must complete first)
+    await this.changeMonitorStatus(
+      createdItem.projectId,
+      [createdItem.id],
+      createdItem.currentMonitorStatusId,
+      false, // notifyOwners = false
+      "This status was created when the monitor was created.",
+      undefined,
+      onCreate.createBy.props,
+    );
+
+    // 2. Start core operations in parallel that can run asynchronously (excluding workspace operations)
+
+    // Add default probes if needed (can be slow with many probes)
+    if (
+      createdItem.monitorType &&
+      MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
+    ) {
+      parallelOperations.push(
+        this.addDefaultProbesToMonitor(
+          createdItem.projectId,
+          createdItem.id,
+        ).catch((error: Error) => {
+          logger.error("Error in adding default probes");
+          logger.error(error);
+          // Don't fail monitor creation due to probe creation issues
+        }),
+      );
+    }
+
+    // Billing operations
+    if (IsBillingEnabled) {
+      parallelOperations.push(
+        ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+          createdItem.projectId,
+        ).catch((error: Error) => {
+          logger.error("Error in billing operations");
+          logger.error(error);
+          // Don't fail monitor creation due to billing issues
+        }),
+      );
+    }
+
+    // Owner operations
+    if (
+      onCreate.createBy.miscDataProps &&
+      (onCreate.createBy.miscDataProps["ownerTeams"] ||
+        onCreate.createBy.miscDataProps["ownerUsers"])
+    ) {
+      parallelOperations.push(
+        this.addOwners(
+          createdItem.projectId,
+          createdItem.id,
+          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+            [],
+          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+            [],
+          false,
+          onCreate.createBy.props,
+        ).catch((error: Error) => {
+          logger.error("Error in adding owners");
+          logger.error(error);
+          // Don't fail monitor creation due to owner issues
+        }),
+      );
+    }
+
+    // Probe status refresh (can be expensive with many probes)
+    parallelOperations.push(
+      this.refreshMonitorProbeStatus(createdItem.id).catch((error: Error) => {
+        logger.error("Error in refreshing probe status");
+        logger.error(error);
+        // Don't fail monitor creation due to probe status issues
+      }),
+    );
+
+    // Wait for core operations to complete, then handle workspace operations
+    Promise.allSettled(parallelOperations)
+      .then(() => {
+        // Handle workspace operations after core operations complete
+        // Run workspace operations in background without blocking response
+        this.handleWorkspaceOperationsAsync({
+          projectId: createdItem.projectId!,
+          monitorId: createdItem.id!,
+          monitorName: createdItem.name!,
+          feedInfoInMarkdown,
+          createdByUserId,
+        }).catch((error: Error) => {
+          logger.error("Error in workspace operations");
+          logger.error(error);
+          // Don't fail monitor creation due to workspace issues
+        });
+      })
+      .catch((error: Error) => {
+        logger.error("Error in parallel monitor creation operations");
+        logger.error(error);
+      });
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  private async handleWorkspaceOperationsAsync(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    monitorName: string;
+    feedInfoInMarkdown: string;
+    createdByUserId: ObjectID | undefined | null;
+  }): Promise<void> {
+    // send message to workspaces - slack, teams, etc.
     const workspaceResult: {
       channelsCreated: Array<NotificationRuleWorkspaceChannel>;
     } | null =
       await MonitorWorkspaceMessages.createChannelsAndInviteUsersToChannels({
-        projectId: createdItem.projectId,
-        monitorId: createdItem.id!,
-        monitorName: createdItem.name!,
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
       });
 
     if (workspaceResult && workspaceResult.channelsCreated?.length > 0) {
-      // update incident with these channels.
+      // update monitor with these channels.
       await this.updateOneById({
-        id: createdItem.id!,
+        id: data.monitorId,
         data: {
           postUpdatesToWorkspaceChannels: workspaceResult.channelsCreated || [],
         },
@@ -527,72 +639,22 @@ ${createdItem.description?.trim() || "No description provided."}
 
     const monitorCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
       await MonitorWorkspaceMessages.getMonitorCreateMessageBlocks({
-        monitorId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        monitorId: data.monitorId,
+        projectId: data.projectId,
       });
 
     await MonitorFeedService.createMonitorFeedItem({
-      monitorId: createdItem.id!,
-      projectId: createdItem.projectId!,
+      monitorId: data.monitorId,
+      projectId: data.projectId,
       monitorFeedEventType: MonitorFeedEventType.MonitorCreated,
       displayColor: Green500,
-      feedInfoInMarkdown: feedInfoInMarkdown,
-      userId: createdByUserId || undefined,
+      feedInfoInMarkdown: data.feedInfoInMarkdown,
+      userId: data.createdByUserId || undefined,
       workspaceNotification: {
         appendMessageBlocks: monitorCreateMessageBlocks,
         sendWorkspaceNotification: true,
       },
     });
-
-    await this.changeMonitorStatus(
-      createdItem.projectId,
-      [createdItem.id],
-      createdItem.currentMonitorStatusId,
-      false, // notifyOwners = false
-      "This status was created when the monitor was created.",
-      undefined,
-      onCreate.createBy.props,
-    );
-
-    if (
-      createdItem.monitorType &&
-      MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
-    ) {
-      await this.addDefaultProbesToMonitor(
-        createdItem.projectId,
-        createdItem.id,
-      );
-    }
-
-    if (IsBillingEnabled) {
-      await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-        createdItem.projectId,
-      );
-    }
-
-    // add owners.
-
-    if (
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      await this.addOwners(
-        createdItem.projectId,
-        createdItem.id,
-        (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-          [],
-        (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-          [],
-        false,
-        onCreate.createBy.props,
-      );
-    }
-
-    // refresh probe status.
-    await this.refreshMonitorProbeStatus(createdItem.id);
-
-    return createdItem;
   }
 
   @CaptureSpan()
@@ -761,21 +823,32 @@ ${createdItem.description?.trim() || "No description provided."}
 
     const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
 
+    if (totalProbes.length === 0) {
+      return;
+    }
+
+    // Create all monitor probes in parallel for better performance
+    const createPromises: Array<Promise<MonitorProbe>> = [];
+
     for (const probe of totalProbes) {
       const monitorProbe: MonitorProbe = new MonitorProbe();
-
       monitorProbe.monitorId = monitorId;
       monitorProbe.probeId = probe.id!;
       monitorProbe.projectId = projectId;
       monitorProbe.isEnabled = true;
 
-      await MonitorProbeService.create({
-        data: monitorProbe,
-        props: {
-          isRoot: true,
-        },
-      });
+      createPromises.push(
+        MonitorProbeService.create({
+          data: monitorProbe,
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
     }
+
+    // Execute all creates in parallel
+    await Promise.all(createPromises);
   }
 
   @CaptureSpan()

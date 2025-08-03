@@ -1,17 +1,17 @@
 # OneUptime accounts Deployment
-{{- $accountsEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers "PORT" $.Values.port.accounts "DISABLE_TELEMETRY" $.Values.accounts.disableTelemetryCollection -}}
-{{- $accountsPorts := dict "port" $.Values.port.accounts -}}
-{{- $accountsDeploymentArgs :=dict "IsUI" true "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values "Env" $accountsEnv "Resources" $.Values.accounts.resources -}}
+{{- $accountsEnv := dict "PORT" $.Values.accounts.ports.http "DISABLE_TELEMETRY" $.Values.accounts.disableTelemetryCollection -}}
+{{- $accountsPorts := $.Values.accounts.ports -}}
+{{- $accountsDeploymentArgs :=dict "IsUI" true "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values "Env" $accountsEnv "Resources" $.Values.accounts.resources "DisableAutoscaler" $.Values.accounts.disableAutoscaler "ReplicaCount" $.Values.accounts.replicaCount -}}
 {{- include "oneuptime.deployment" $accountsDeploymentArgs }}
 ---
 
 # OneUptime accounts Service
-{{- $accountsPorts := dict "port" $.Values.port.accounts -}}
+{{- $accountsPorts := $.Values.accounts.ports -}}
 {{- $accountsServiceArgs := dict "ServiceName" "accounts" "Ports" $accountsPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $accountsServiceArgs }}
 ---
 
 # OneUptime accounts autoscaler
-{{- $accountsAutoScalerArgs := dict "ServiceName" "accounts" "Release" $.Release "Values" $.Values -}}
+{{- $accountsAutoScalerArgs := dict "ServiceName" "accounts" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.accounts.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $accountsAutoScalerArgs }}
 ---

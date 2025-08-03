@@ -1,17 +1,17 @@
 # OneUptime statusPage Deployment
-{{- $statusPagePorts := dict "port" $.Values.port.statusPage -}}
-{{- $statusPageEnv := dict "OPENTELEMETRY_EXPORTER_OTLP_HEADERS" $.Values.openTelemetryExporter.headers "PORT"  $.Values.port.statusPage "DISABLE_TELEMETRY" $.Values.statusPage.disableTelemetryCollection -}}
-{{- $statusPageDeploymentArgs :=dict "IsUI" true "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values "Env" $statusPageEnv "Resources" $.Values.statusPage.resources -}}
+{{- $statusPagePorts := dict "port" $.Values.statusPage.ports.http -}}
+{{- $statusPageEnv := dict "PORT"  $.Values.statusPage.ports.http "DISABLE_TELEMETRY" $.Values.statusPage.disableTelemetryCollection -}}
+{{- $statusPageDeploymentArgs :=dict "IsUI" true "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values "Env" $statusPageEnv "Resources" $.Values.statusPage.resources "DisableAutoscaler" $.Values.statusPage.disableAutoscaler "ReplicaCount" $.Values.statusPage.replicaCount -}}
 {{- include "oneuptime.deployment" $statusPageDeploymentArgs }}
 ---
 
 # OneUptime statusPage Service
-{{- $statusPagePorts := dict "port" $.Values.port.statusPage -}}
+{{- $statusPagePorts := dict "port" $.Values.statusPage.ports.http -}}
 {{- $statusPageServiceArgs := dict "ServiceName" "status-page" "Ports" $statusPagePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $statusPageServiceArgs }}
 ---
 
 # OneUptime statusPage autoscaler
-{{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values -}}
+{{- $statusPageAutoScalerArgs := dict "ServiceName" "status-page" "Release" $.Release "Values" $.Values "DisableAutoscaler" $.Values.statusPage.disableAutoscaler -}}
 {{- include "oneuptime.autoscaler" $statusPageAutoScalerArgs }}
 ---

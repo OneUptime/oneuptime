@@ -51,6 +51,9 @@ import Alert from "./Alert";
 @Entity({
   name: "OnCallDutyPolicyExecutionLogTimeline",
 })
+@Index(["onCallDutyPolicyExecutionLogId", "createdAt"])
+@Index(["projectId", "createdAt"])
+@Index(["alertSentToUserId", "projectId"])
 @TableMetadata({
   tableName: "OnCallDutyPolicyExecutionLogTimeline",
   singularName: "On-Call Duty Execution Log Timeline",

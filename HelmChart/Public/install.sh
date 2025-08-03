@@ -215,17 +215,9 @@ then
         # install services.
         if [[ "$2" == "enterprise" ]]
         then
-            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./HelmChart/public/oneuptime \
-            --set haraka.domain=$DOMAIN \
-            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
-            --set haraka.tlsCert=$TLS_CERT \
-            --set haraka.tlsKey=$TLS_KEY
+            sudo helm install -f ./kubernetes/values-enterprise-ci.yaml fi ./HelmChart/public/oneuptime
         else
-            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./HelmChart/public/oneuptime \
-            --set haraka.domain=$DOMAIN \
-            --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
-            --set haraka.tlsCert=$TLS_CERT \
-            --set haraka.tlsKey=$TLS_KEY
+            sudo helm install -f ./kubernetes/values-saas-ci.yaml fi ./HelmChart/public/oneuptime
         fi
     else
         sudo k delete job oneuptime-InitScript || echo "InitScript already deleted"
@@ -238,11 +230,7 @@ else
         sudo helm install fi oneuptime/OneUptime \
         --set nginx-ingress-controller.service.type=NodePort \
         --set nginx-ingress-controller.hostNetwork=true \
-        --set image.tag=$AVAILABLE_VERSION \
-        --set haraka.domain=$DOMAIN \
-        --set haraka.dkimPrivateKey=$DKIM_PRIVATE_KEY \
-        --set haraka.tlsCert=$TLS_CERT \
-        --set haraka.tlsKey=$TLS_KEY
+        --set image.tag=$AVAILABLE_VERSION
     else
         updateinstallation
     fi

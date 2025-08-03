@@ -71,6 +71,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
       className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
       data-testid={props.dataTestId}
     >
+      {/* Desktop layout: Description on left, all controls on right */}
       <div className="hidden md:block">
         <p className="text-sm text-gray-500">
           {!props.isLoading && (
@@ -88,7 +89,9 @@ const Pagination: FunctionComponent<ComponentProps> = (
           )}
         </p>
       </div>
-      <div>
+
+      {/* Desktop layout: All controls together on right */}
+      <div className="hidden md:flex">
         <nav className="inline-flex -space-x-px rounded-md shadow-sm">
           <div className="my-2">
             <Button
@@ -129,6 +132,84 @@ const Pagination: FunctionComponent<ComponentProps> = (
             </li>
             <li
               data-testid="current-page-link"
+              className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
+                isCurrentPageButtonDisabled ? "bg-gray-100" : ""
+              }`}
+              onClick={() => {
+                setShowPaginationModel(true);
+              }}
+            >
+              <span>{props.currentPageNumber}</span>
+            </li>
+            <li
+              onClick={() => {
+                let currentPageNumber: number = props.currentPageNumber;
+
+                if (typeof currentPageNumber === "string") {
+                  currentPageNumber = parseInt(currentPageNumber);
+                }
+
+                if (props.onNavigateToPage && !isNextDisabled) {
+                  props.onNavigateToPage(
+                    currentPageNumber + 1,
+                    props.itemsOnPage,
+                  );
+                }
+              }}
+              className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  ${
+                isNextDisabled
+                  ? "bg-gray-100"
+                  : " hover:bg-gray-50 cursor-pointer"
+              }`}
+            >
+              <span>Next</span>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      {/* Mobile layout: Navigate button on left, pagination controls on right */}
+      <div className="md:hidden my-2">
+        <Button
+          dataTestId="show-pagination-modal-button-mobile"
+          className="my-2"
+          buttonSize={ButtonSize.ExtraSmall}
+          icon={IconProp.AdjustmentHorizontal}
+          buttonStyle={ButtonStyleType.ICON_LIGHT}
+          onClick={() => {
+            setShowPaginationModel(true);
+          }}
+        />
+      </div>
+
+      <div className="md:hidden">
+        <nav className="inline-flex -space-x-px rounded-md shadow-sm">
+          <ul>
+            <li
+              onClick={() => {
+                let currentPageNumber: number = props.currentPageNumber;
+
+                if (typeof currentPageNumber === "string") {
+                  currentPageNumber = parseInt(currentPageNumber);
+                }
+
+                if (props.onNavigateToPage && !isPreviousDisabled) {
+                  props.onNavigateToPage(
+                    currentPageNumber - 1,
+                    props.itemsOnPage,
+                  );
+                }
+              }}
+              className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500   ${
+                isPreviousDisabled
+                  ? "bg-gray-100"
+                  : "hover:bg-gray-50 cursor-pointer"
+              }`}
+            >
+              <span className="page-link">Previous</span>
+            </li>
+            <li
+              data-testid="current-page-link-mobile"
               className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600  cursor-pointer ${
                 isCurrentPageButtonDisabled ? "bg-gray-100" : ""
               }`}

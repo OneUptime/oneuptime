@@ -11,13 +11,12 @@ import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectService from "Common/Server/Services/ProjectService";
-
 RunCron(
   "ServerMonitor:CheckOnlineStatus",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
     try {
-      const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(2);
+      const threeMinsAgo: Date = OneUptimeDate.getSomeMinutesAgo(3);
 
       const serverMonitors: Array<Monitor> = await MonitorService.findBy({
         query: {
@@ -40,68 +39,80 @@ RunCron(
         skip: 0,
       });
 
+      // Prepare all monitor resource tasks for parallel processing
+      const monitorResourceTasks: Array<Promise<void>> = [];
+
       for (const monitor of serverMonitors) {
-        try {
-          if (!monitor.monitorSteps) {
-            continue;
-          }
-
-          const serverMonitor: Monitor | null = await MonitorService.findOneBy({
-            query: {
-              _id: monitor.id!,
-              serverMonitorRequestReceivedAt:
-                QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              _id: true,
-              monitorSteps: true,
-              projectId: true,
-              serverMonitorRequestReceivedAt: true,
-              createdAt: true,
-              serverMonitorResponse: true,
-            },
-          });
-
-          if (!serverMonitor) {
-            // server monitor may have receievd a response in the last 2 minutes
-            continue;
-          }
-
-          const processRequest: boolean = shouldProcessRequest(serverMonitor);
-
-          if (!processRequest) {
-            continue;
-          }
-
-          if (!serverMonitor.projectId) {
-            logger.error(
-              `Server monitor ${serverMonitor.id} does not have a projectId. Skipping.`,
-            );
-            continue;
-          }
-
-          const serverMonitorResponse: ServerMonitorResponse = {
-            monitorId: serverMonitor.id!,
-            onlyCheckRequestReceivedAt: true,
-            projectId: serverMonitor.projectId,
-            requestReceivedAt:
-              serverMonitor.serverMonitorRequestReceivedAt ||
-              serverMonitor.serverMonitorResponse?.requestReceivedAt ||
-              serverMonitor.createdAt!,
-            hostname: serverMonitor.serverMonitorResponse?.hostname || "",
-          };
-
-          await MonitorResourceUtil.monitorResource(serverMonitorResponse);
-        } catch (error) {
-          logger.error(
-            `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
-          );
-          logger.error(error);
+        if (!monitor.monitorSteps) {
+          continue;
         }
+
+        const monitorTask: Promise<void> = (async () => {
+          try {
+            const serverMonitor: Monitor | null =
+              await MonitorService.findOneBy({
+                query: {
+                  _id: monitor.id!,
+                  serverMonitorRequestReceivedAt:
+                    QueryHelper.lessThanEqualToOrNull(threeMinsAgo),
+                },
+                props: {
+                  isRoot: true,
+                },
+                select: {
+                  _id: true,
+                  monitorSteps: true,
+                  projectId: true,
+                  serverMonitorRequestReceivedAt: true,
+                  createdAt: true,
+                  serverMonitorResponse: true,
+                },
+              });
+
+            if (!serverMonitor) {
+              // server monitor may have receievd a response in the last 2 minutes
+              return;
+            }
+
+            const processRequest: boolean = shouldProcessRequest(serverMonitor);
+
+            if (!processRequest) {
+              return;
+            }
+
+            if (!serverMonitor.projectId) {
+              logger.error(
+                `Server monitor ${serverMonitor.id} does not have a projectId. Skipping.`,
+              );
+              return;
+            }
+
+            const serverMonitorResponse: ServerMonitorResponse = {
+              monitorId: serverMonitor.id!,
+              onlyCheckRequestReceivedAt: true,
+              projectId: serverMonitor.projectId,
+              requestReceivedAt:
+                serverMonitor.serverMonitorRequestReceivedAt ||
+                serverMonitor.serverMonitorResponse?.requestReceivedAt ||
+                serverMonitor.createdAt!,
+              hostname: serverMonitor.serverMonitorResponse?.hostname || "",
+              timeNow: OneUptimeDate.getCurrentDate(),
+            };
+
+            await MonitorResourceUtil.monitorResource(serverMonitorResponse);
+          } catch (error) {
+            logger.error(
+              `Error in ServerMonitor:CheckOnlineStatus for monitorId: ${monitor.id}`,
+            );
+            logger.error(error);
+          }
+        })();
+
+        monitorResourceTasks.push(monitorTask);
       }
+
+      // Process all monitor resource tasks in parallel
+      await Promise.allSettled(monitorResourceTasks);
     } catch (error) {
       logger.error("Error in ServerMonitor:CheckOnlineStatus");
       logger.error(error);

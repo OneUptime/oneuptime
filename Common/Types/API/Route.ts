@@ -1,5 +1,5 @@
-import { Dictionary } from "lodash";
 import DatabaseProperty from "../Database/DatabaseProperty";
+import Dictionary from "../Dictionary";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import { FindOperator } from "typeorm";

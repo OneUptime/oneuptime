@@ -42,6 +42,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./MCP/package*.json /usr/src/app/
+RUN npm update @oneuptime/common
 RUN npm install
 COPY ./MCP /usr/src/app
 

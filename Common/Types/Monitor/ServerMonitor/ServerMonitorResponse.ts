@@ -16,4 +16,5 @@ export default interface ServerMonitorResponse {
   onlyCheckRequestReceivedAt: boolean;
   processes?: ServerProcess[] | undefined;
   failureCause?: string | undefined;
+  timeNow?: Date | undefined; // Time when the response was generated
 }

@@ -15,10 +15,10 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "incoming-request-ingest"  }}
-  {{- if $.Values.deployment.incomingRequestIngest.replicaCount }}
-  replicas: {{ $.Values.deployment.incomingRequestIngest.replicaCount }}
+  {{- if $.Values.incomingRequestIngest.replicaCount }}
+  replicas: {{ $.Values.incomingRequestIngest.replicaCount }}
   {{- else }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.incomingRequestIngest.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
@@ -57,7 +57,7 @@ spec:
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.incomingRequestIngest }}
+              port: {{ $.Values.incomingRequestIngest.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -66,7 +66,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.incomingRequestIngest }}
+              port: {{ $.Values.incomingRequestIngest.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -76,7 +76,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.incomingRequestIngest }}
+              port: {{ $.Values.incomingRequestIngest.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
@@ -89,14 +89,12 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
-            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers }}
             - name: PORT
-              value: {{ $.Values.port.incomingRequestIngest | quote }} 
+              value: {{ $.Values.incomingRequestIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.incomingRequestIngest.disableTelemetryCollection | quote }}
           ports:
-            - containerPort: {{ $.Values.port.incomingRequestIngest }}
+            - containerPort: {{ $.Values.incomingRequestIngest.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.incomingRequestIngest.resources }}
@@ -108,12 +106,14 @@ spec:
 ---
 
 # OneUptime incoming-request-ingest Service
-{{- $incomingRequestIngestPorts := dict "port" $.Values.port.incomingRequestIngest -}}
+{{- $incomingRequestIngestPorts := dict "port" $.Values.incomingRequestIngest.ports.http -}}
 {{- $incomingRequestIngestServiceArgs := dict "ServiceName" "incoming-request-ingest" "Ports" $incomingRequestIngestPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $incomingRequestIngestServiceArgs }}
 ---
 
 # OneUptime incoming-request-ingest autoscaler
+{{- if and (not $.Values.incomingRequestIngest.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.incomingRequestIngest.keda.enabled)) }}
 {{- $incomingRequestIngestAutoScalerArgs := dict "ServiceName" "incoming-request-ingest" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $incomingRequestIngestAutoScalerArgs }}
+{{- end }}
 ---

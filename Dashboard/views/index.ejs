@@ -164,7 +164,7 @@
 
   <!-- PWA Service Worker Registration -->
   <script>
-    // Service Worker Registration for PWA
+    // Service Worker Registration for PWA with proper update handling
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
         navigator.serviceWorker.register('/dashboard/sw.js', {
@@ -179,14 +179,19 @@
               newWorker.addEventListener('statechange', function() {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // New version available
-                  if (confirm('A new version of OneUptime is available. Refresh to update?')) {
-                    newWorker.postMessage({type: 'SKIP_WAITING'});
-                    window.location.reload();
-                  }
+                  console.log('OneUptime PWA: New version available');
+                  
+                  // Show a non-intrusive update notification
+                  showUpdateNotification(newWorker);
                 }
               });
             }
           });
+          
+          // Check for updates periodically
+          setInterval(function() {
+            registration.update();
+          }, 60000); // Check every minute
           
         }).catch(function(error) {
           console.log('OneUptime PWA: Service Worker registration failed', error);
@@ -199,68 +204,105 @@
           }
         });
 
-        // Listen for controlled change
+        // Listen for controlled change (when SW takes control)
         navigator.serviceWorker.addEventListener('controllerchange', function() {
+          console.log('OneUptime PWA: New service worker took control');
           window.location.reload();
         });
       });
     }
 
-    // PWA Install Prompt
-    let deferredPrompt;
-    const installButton = document.createElement('button');
-    installButton.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #000000;
-      color: white;
-      border: none;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      display: none;
-      font-family: Inter, sans-serif;
-    `;
-    installButton.textContent = '📱 Install OneUptime';
-    installButton.setAttribute('aria-label', 'Install OneUptime as PWA');
-    document.body.appendChild(installButton);
-
-    window.addEventListener('beforeinstallprompt', function(event) {
-      console.log('OneUptime PWA: Install prompt triggered');
-      event.preventDefault();
-      deferredPrompt = event;
+    // Show update notification
+    function showUpdateNotification(newWorker) {
+      // Create a simple notification banner
+      const banner = document.createElement('div');
+      banner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #007bff;
+        color: white;
+        padding: 12px 16px;
+        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        z-index: 10000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        transform: translateY(-100%);
+        transition: transform 0.3s ease;
+      `;
       
-      // Show install button after a delay to avoid being intrusive
+      banner.innerHTML = `
+        <div style="max-width: 800px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <span>🚀 A new version of OneUptime is available!</span>
+          <div style="display: flex; gap: 12px;">
+            <button onclick="updateApp()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 13px;">Update Now</button>
+            <button onclick="dismissUpdate()" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 16px; border-radius: 4px; cursor: pointer; font-size: 13px;">Later</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(banner);
+      
+      // Animate in
       setTimeout(() => {
-        installButton.style.display = 'block';
-      }, 5000);
-    });
+        banner.style.transform = 'translateY(0)';
+      }, 100);
+      
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => {
+        dismissUpdate();
+      }, 10000);
+      
+      // Store reference for global functions
+      window.updateBanner = banner;
+      window.newServiceWorker = newWorker;
+    }
 
-    installButton.addEventListener('click', function() {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function(choiceResult) {
-          console.log('OneUptime PWA: Install prompt result:', choiceResult.outcome);
-          deferredPrompt = null;
-          installButton.style.display = 'none';
-        });
+    // Update app function
+    function updateApp() {
+      if (window.newServiceWorker) {
+        window.newServiceWorker.postMessage({type: 'SKIP_WAITING'});
+        dismissUpdate();
+        
+        // Show loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.8);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-size: 16px;
+          z-index: 10001;
+        `;
+        loadingDiv.innerHTML = `
+          <div style="text-align: center;">
+            <div style="margin-bottom: 16px;">🔄</div>
+            <div>Updating OneUptime...</div>
+          </div>
+        `;
+        document.body.appendChild(loadingDiv);
       }
-    });
+    }
 
-    window.addEventListener('appinstalled', function() {
-      console.log('OneUptime PWA: App installed successfully');
-      installButton.style.display = 'none';
-      deferredPrompt = null;
-    });
-
-    // Hide install button if already installed
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
-      installButton.style.display = 'none';
+    // Dismiss update notification
+    function dismissUpdate() {
+      if (window.updateBanner) {
+        window.updateBanner.style.transform = 'translateY(-100%)';
+        setTimeout(() => {
+          if (window.updateBanner && window.updateBanner.parentNode) {
+            window.updateBanner.parentNode.removeChild(window.updateBanner);
+          }
+        }, 300);
+      }
     }
 
     // Performance monitoring

@@ -12,6 +12,12 @@
   "testTimeout": 30000,
   "modulePathIgnorePatterns": ["<rootDir>/build/"],
   "testPathIgnorePatterns": ["OneUptimeApiService.test.ts"],
+  "moduleNameMapper": {
+    "^Common/(.*)$": "<rootDir>/../Common/$1"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@oneuptime)/)"
+  ],
   "transform": {
     "^.+\\.ts$": ["ts-jest", {
       "tsconfig": {
@@ -19,7 +25,8 @@
           "noUnusedLocals": false,
           "noUnusedParameters": false,
           "strict": false,
-          "noPropertyAccessFromIndexSignature": false
+          "noPropertyAccessFromIndexSignature": false,
+          "module": "commonjs"
         }
       }
     }]

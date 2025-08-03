@@ -137,7 +137,7 @@ export default class IncomingRequestCriteria {
               input.dataToProcess.monitorId.toString() +
               " is true",
           );
-          return `Incoming request / heartbeat received in ${value} minutes.`;
+          return `Incoming request / heartbeat received in ${value} minutes. It was received ${differenceInMinutes} minutes ago.`;
         }
         return null;
       }
@@ -153,7 +153,7 @@ export default class IncomingRequestCriteria {
               input.dataToProcess.monitorId.toString() +
               " is true",
           );
-          return `Incoming request / heartbeat not received in ${value} minutes.`;
+          return `Incoming request / heartbeat not received in ${value} minutes. It was received ${differenceInMinutes} minutes ago.`;
         }
         return null;
       }

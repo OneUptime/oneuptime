@@ -76,6 +76,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "AlertSeverity",
 })
+@Index(["projectId", "order"])
 export default class AlertSeverity extends BaseModel {
   @ColumnAccessControl({
     create: [

@@ -94,12 +94,11 @@ class UserPush extends BaseModel {
     title: "Device Token",
     required: true,
     unique: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
   })
   @Column({
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
     unique: false,
     nullable: false,
   })

@@ -44,6 +44,16 @@ oneuptime-infrastructure-agent restart
 oneuptime-infrastructure-agent uninstall && rm -rf /usr/bin/oneuptime-infrastructure-agent
 ```
 
+### Viewing agent logs
+
+```
+oneuptime-infrastructure-agent logs
+```
+
+You can also use the following options:
+- Show specific number of lines: `oneuptime-infrastructure-agent logs -n 50`
+- Follow logs in real-time: `oneuptime-infrastructure-agent logs -f`
+
 ### Supported Platforms
 
 - Linux
@@ -78,4 +88,10 @@ sudo ./oneuptime-infrastructure-agent start
 
 ```bash
 sudo ./oneuptime-infrastructure-agent stop
+```
+
+### Viewing logs
+
+```bash
+sudo ./oneuptime-infrastructure-agent logs
 ```

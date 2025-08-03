@@ -8,5 +8,8 @@ dependencies:
 - name: clickhouse
   repository: https://charts.bitnami.com/bitnami
   version: 9.0.0
-digest: sha256:fd5e473f86dd79be752e0eff131b1a90cd9a8cd2c6032c0d3d95ea43db833629
-generated: "2025-04-24T22:34:15.181176+01:00"
+- name: keda
+  repository: https://kedacore.github.io/charts
+  version: 2.17.2
+digest: sha256:6e4d02525abd4434e8481eedb6244d88ab9d8b800a6f1c543cba96cf5b1d2922
+generated: "2025-07-30T19:45:21.077234+01:00"

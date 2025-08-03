@@ -27,4 +27,5 @@ export default interface ProbeMonitorResponse {
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
+  ingestedAt?: Date | undefined;
 }

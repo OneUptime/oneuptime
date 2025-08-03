@@ -18,13 +18,18 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
-import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import User from "Common/Models/DatabaseModels/User";
-import MonitorTestService from "Common/Server/Services/MonitorTestService";
+import ProbeIngestQueueService from "../Services/Queue/ProbeIngestQueueService";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import PositiveNumber from "Common/Types/PositiveNumber";
+import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
+import MonitorService from "Common/Server/Services/MonitorService";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -200,28 +205,33 @@ router.post(
         }
 
         // now send an email to all the emailsToNotify
-        for (const email of emailsToNotify) {
-          MailService.sendMail(
-            {
-              toEmail: email,
-              templateType: EmailTemplateType.ProbeOffline,
-              subject: "ACTION REQUIRED: Probe Offline Notification",
-              vars: {
-                probeName: probe.name || "",
-                probeDescription: probe.description || "",
-                projectId: probe.projectId?.toString() || "",
-                probeId: probe.id?.toString() || "",
-                hostname: statusReport["hostname"]?.toString() || "",
-                emailReason: emailReason,
-                issue: issue,
+        // Skip sending email if billing is enabled
+        if (!IsBillingEnabled) {
+          for (const email of emailsToNotify) {
+            MailService.sendMail(
+              {
+                toEmail: email,
+                templateType: EmailTemplateType.ProbeOffline,
+                subject: "ACTION REQUIRED: Probe Offline Notification",
+                vars: {
+                  probeName: probe.name || "",
+                  probeDescription: probe.description || "",
+                  projectId: probe.projectId?.toString() || "",
+                  probeId: probe.id?.toString() || "",
+                  hostname: statusReport["hostname"]?.toString() || "",
+                  emailReason: emailReason,
+                  issue: issue,
+                },
               },
-            },
-            {
-              projectId: probe.projectId,
-            },
-          ).catch((err: Error) => {
-            logger.error(err);
-          });
+              {
+                projectId: probe.projectId,
+              },
+            ).catch((err: Error) => {
+              logger.error(err);
+            });
+          }
+        } else {
+          logger.debug("Billing is enabled, skipping probe offline email notification");
         }
       }
 
@@ -255,14 +265,18 @@ router.post(
         );
       }
 
-      MonitorResourceUtil.monitorResource(probeResponse).catch((err: Error) => {
-        logger.error("Error in monitor resource");
-        logger.error(err);
-      });
-
-      return Response.sendJsonObjectResponse(req, res, {
+      // Return response immediately
+      Response.sendJsonObjectResponse(req, res, {
         result: "processing",
       });
+
+      // Add to queue for asynchronous processing
+      await ProbeIngestQueueService.addProbeIngestJob({
+        probeMonitorResponse: req.body,
+        jobType: "probe-response",
+      });
+
+      return;
     } catch (err) {
       return next(err);
     }
@@ -300,26 +314,156 @@ router.post(
         );
       }
 
-      // save the probe response to the monitor test.
+      // Return response immediately
+      Response.sendEmptySuccessResponse(req, res);
 
-      await MonitorTestService.updateOneById({
-        id: testId,
-        data: {
-          monitorStepProbeResponse: {
-            [probeResponse.monitorStepId.toString()]: {
-              ...JSON.parse(JSON.stringify(probeResponse)),
-              monitoredAt: OneUptimeDate.getCurrentDate(),
-            },
-          } as any,
+      // Add to queue for asynchronous processing
+      await ProbeIngestQueueService.addProbeIngestJob({
+        probeMonitorResponse: req.body,
+        jobType: "monitor-test",
+        testId: testId.toString(),
+      });
+
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue stats endpoint
+router.get(
+  "/probe/queue/stats",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const stats: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      } = await ProbeIngestQueueService.getQueueStats();
+      return Response.sendJsonObjectResponse(req, res, stats);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue size endpoint
+router.get(
+  "/probe/queue/size",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const size: number = await ProbeIngestQueueService.getQueueSize();
+      return Response.sendJsonObjectResponse(req, res, { size });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// Queue size endpoint for Keda autoscaling (returns pending monitors count for specific probe)
+router.post(
+  "/metrics/queue-size",
+  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // This endpoint returns the number of monitors pending for the specific probe
+      // to be used by Keda for autoscaling probe replicas
+
+      // Get the probe ID from the authenticated request
+      const data: JSONObject = req.body;
+      const probeId: ObjectID = new ObjectID(data["probeId"] as string);
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe ID not found"),
+        );
+      }
+
+      // Get pending monitor count for this specific probe
+      const pendingCount: PositiveNumber = await MonitorProbeService.countBy({
+        query: {
+          probeId: probeId,
+          isEnabled: true,
+          nextPingAt: QueryHelper.lessThanEqualToOrNull(
+            OneUptimeDate.getSomeMinutesAgo(2)
+          ),
+          monitor: {
+            ...MonitorService.getEnabledMonitorQuery(),
+          },
+          project: {
+            ...ProjectService.getActiveProjectStatusQuery(),
+          },
         },
         props: {
           isRoot: true,
         },
       });
 
-      // send success response.
+      return Response.sendJsonObjectResponse(req, res, {
+        queueSize: pendingCount.toNumber(),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
-      return Response.sendEmptySuccessResponse(req, res);
+// Queue failed jobs endpoint
+router.get(
+  "/probe/queue/failed",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // Parse pagination parameters from query string
+      const start: number = parseInt(req.query["start"] as string) || 0;
+      const end: number = parseInt(req.query["end"] as string) || 100;
+
+      const failedJobs: Array<{
+        id: string;
+        name: string;
+        data: any;
+        failedReason: string;
+        stackTrace?: string;
+        processedOn: Date | null;
+        finishedOn: Date | null;
+        attemptsMade: number;
+      }> = await ProbeIngestQueueService.getFailedJobs({
+        start,
+        end,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        failedJobs,
+        pagination: {
+          start,
+          end,
+          count: failedJobs.length,
+        },
+      });
     } catch (err) {
       return next(err);
     }

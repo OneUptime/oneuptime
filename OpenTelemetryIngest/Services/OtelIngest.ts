@@ -42,8 +42,29 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
+import LogsQueueService from "./Queue/LogsQueueService";
+import TracesQueueService from "./Queue/TracesQueueService";
+import MetricsQueueService from "./Queue/MetricsQueueService";
 
 export default class OtelIngestService {
+  /**
+   * Helper method to trigger garbage collection if available
+   * This helps prevent memory leaks when processing large volumes of telemetry data
+   */
+  private static forceGarbageCollection(): void {
+    try {
+      if (global.gc) {
+        global.gc();
+      }
+    } catch (error) {
+      logger.error(error);
+      logger.debug(
+        "Garbage collection not triggered. Ensure Node.js is started with --expose-gc flag.",
+      );
+      // GC not available, ignore
+    }
+  }
+
   @CaptureSpan()
   public static getServiceNameFromAttributes(
     req: ExpressRequest,
@@ -91,19 +112,41 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Return response immediately and process asynchronously
+      // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process logs in the background
-      this.processLogsAsync(req).catch((err: Error) => {
-        logger.error("Error processing logs asynchronously:");
-        logger.error(err);
-      });
+      // Add to queue for asynchronous processing
+      await LogsQueueService.addLogIngestJob(req as TelemetryRequest);
 
       return;
     } catch (err) {
       return next(err);
     }
+  }
+
+  @CaptureSpan()
+  public static async processLogsFromQueue(req: ExpressRequest): Promise<void> {
+    // This method is specifically for queue processing
+    // It bypasses the response handling since the response was already sent
+    await this.processLogsAsync(req);
+  }
+
+  @CaptureSpan()
+  public static async processTracesFromQueue(
+    req: ExpressRequest,
+  ): Promise<void> {
+    // This method is specifically for queue processing
+    // It bypasses the response handling since the response was already sent
+    await this.processTracesAsync(req);
+  }
+
+  @CaptureSpan()
+  public static async processMetricsFromQueue(
+    req: ExpressRequest,
+  ): Promise<void> {
+    // This method is specifically for queue processing
+    // It bypasses the response handling since the response was already sent
+    await this.processMetricsAsync(req);
   }
 
   @CaptureSpan()
@@ -193,10 +236,17 @@ export default class OtelIngestService {
           dbLog.projectId = (req as TelemetryRequest).projectId;
           dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
-          dbLog.timeUnixNano = log["timeUnixNano"] as number;
-          dbLog.time = OneUptimeDate.fromUnixNano(
-            log["timeUnixNano"] as number,
-          );
+          // Set timeUnixNano to current time if not provided
+          if (log["timeUnixNano"]) {
+            dbLog.timeUnixNano = log["timeUnixNano"] as number;
+            dbLog.time = OneUptimeDate.fromUnixNano(
+              log["timeUnixNano"] as number,
+            );
+          } else {
+            const currentTime: Date = OneUptimeDate.getCurrentDate();
+            dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+            dbLog.time = currentTime;
+          }
 
           let logSeverityNumber: number =
             (log["severityNumber"] as number) || 0;
@@ -237,6 +287,23 @@ export default class OtelIngestService {
         productType: ProductType.Logs,
       }),
     ]);
+
+    // Memory cleanup: Clear large objects to help GC
+    try {
+      dbLogs.length = 0;
+      attributeKeySet.clear();
+
+      // Clear request body to free memory
+      if (req.body) {
+        req.body = null;
+      }
+
+      // Force garbage collection for large telemetry ingestion
+      this.forceGarbageCollection();
+    } catch (cleanupError) {
+      logger.error("Error during memory cleanup:");
+      logger.error(cleanupError);
+    }
   }
 
   private static convertSeverityNumber(severityNumber: string): number {
@@ -290,14 +357,11 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Return response immediately and process asynchronously
+      // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process metrics in the background
-      this.processMetricsAsync(req).catch((err: Error) => {
-        logger.error("Error processing metrics asynchronously:");
-        logger.error(err);
-      });
+      // Add to queue for asynchronous processing
+      await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
 
       return;
     } catch (err) {
@@ -486,6 +550,7 @@ export default class OtelIngestService {
       }
     }
 
+    // Index metric name service name map asynchronously but ensure proper error handling
     TelemetryUtil.indexMetricNameServiceNameMap({
       metricNameServiceNameMap: metricNameServiceNameMap,
       projectId: (req as TelemetryRequest).projectId,
@@ -512,6 +577,23 @@ export default class OtelIngestService {
         productType: ProductType.Metrics,
       }),
     ]);
+
+    // Memory cleanup: Clear large objects to help GC
+    try {
+      dbMetrics.length = 0;
+      attributeKeySet.clear();
+
+      // Clear request body to free memory
+      if (req.body) {
+        req.body = null;
+      }
+
+      // Force garbage collection for large telemetry ingestion
+      this.forceGarbageCollection();
+    } catch (cleanupError) {
+      logger.error("Error during memory cleanup:");
+      logger.error(cleanupError);
+    }
   }
 
   @CaptureSpan()
@@ -529,14 +611,11 @@ export default class OtelIngestService {
 
       req.body = req.body.toJSON ? req.body.toJSON() : req.body;
 
-      // Return response immediately and process asynchronously
+      // Return response immediately
       Response.sendEmptySuccessResponse(req, res);
 
-      // Process traces in the background
-      this.processTracesAsync(req).catch((err: Error) => {
-        logger.error("Error processing traces asynchronously:");
-        logger.error(err);
-      });
+      // Add to queue for asynchronous processing
+      await TracesQueueService.addTraceIngestJob(req as TelemetryRequest);
 
       return;
     } catch (err) {
@@ -717,6 +796,24 @@ export default class OtelIngestService {
         productType: ProductType.Traces,
       }),
     ]);
+
+    // Memory cleanup: Clear large objects to help GC
+    try {
+      dbSpans.length = 0;
+      dbExceptions.length = 0;
+      attributeKeySet.clear();
+
+      // Clear request body to free memory
+      if (req.body) {
+        req.body = null;
+      }
+
+      // Force garbage collection for large telemetry ingestion
+      this.forceGarbageCollection();
+    } catch (cleanupError) {
+      logger.error("Error during memory cleanup:");
+      logger.error(cleanupError);
+    }
   }
 
   private static getSpanStatusCode(status: JSONObject): SpanStatus {
@@ -796,8 +893,13 @@ export default class OtelIngestService {
           dbExceptions.push(exception);
 
           // save exception status
-          // maybe this can be improved instead of doing a lot of db calls.
-          ExceptionUtil.saveOrUpdateTelemetryException(exception);
+          // Fix: Await the async operation to prevent memory leaks from unhandled promises
+          ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
+            (err: Error) => {
+              logger.error("Error saving/updating telemetry exception:");
+              logger.error(err);
+            },
+          );
         }
       }
     }

@@ -56,9 +56,13 @@ export default class ServerMonitorCriteria {
     const lastCheckTime: Date = (input.dataToProcess as ServerMonitorResponse)
       .requestReceivedAt;
 
+    const timeNow: Date =
+      (input.dataToProcess as ServerMonitorResponse).timeNow ||
+      OneUptimeDate.getCurrentDate();
+
     const differenceInMinutes: number = OneUptimeDate.getDifferenceInMinutes(
       lastCheckTime,
-      OneUptimeDate.getCurrentDate(),
+      timeNow,
     );
 
     let offlineIfNotCheckedInMinutes: number = 3;

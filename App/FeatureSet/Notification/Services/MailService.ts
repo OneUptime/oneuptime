@@ -1,10 +1,4 @@
 import {
-  InternalSmtpEmail,
-  InternalSmtpFromName,
-  InternalSmtpHost,
-  InternalSmtpPassword,
-  InternalSmtpPort,
-  InternalSmtpSecure,
   SendGridConfig,
   getEmailServerType,
   getGlobalSMTPConfig,
@@ -199,19 +193,6 @@ export default class MailService {
       fromName: obj["SMTP_FROM_NAME"]?.toString() as string,
       secure:
         obj["SMTP_IS_SECURE"] === "true" || obj["SMTP_IS_SECURE"] === true,
-    };
-  }
-
-  public static getInternalEmailServer(): EmailServer {
-    return {
-      id: undefined,
-      username: InternalSmtpEmail.toString(),
-      password: InternalSmtpPassword,
-      host: InternalSmtpHost,
-      port: InternalSmtpPort,
-      fromEmail: InternalSmtpEmail,
-      fromName: InternalSmtpFromName,
-      secure: InternalSmtpSecure,
     };
   }
 
@@ -538,17 +519,6 @@ export default class MailService {
         }
 
         options.emailServer = globalEmailServer;
-      }
-
-      if (
-        emailServerType === EmailServerType.Internal &&
-        (!options || !options.emailServer)
-      ) {
-        if (!options) {
-          options = {};
-        }
-
-        options.emailServer = this.getInternalEmailServer();
       }
 
       if (options && options.emailServer && emailLog) {

@@ -15,8 +15,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "nginx"  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if $.Values.nginx.replicaCount }}
+  replicas: {{ $.Values.nginx.replicaCount }}
+  {{- else }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.nginx.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:
@@ -108,9 +112,7 @@ spec:
             - name: NGINX_LISTEN_OPTIONS
               value: {{ $.Values.nginx.listenOptions | quote }}
             - name: ONEUPTIME_HTTP_PORT
-              value: {{ $.Values.port.nginxHttp | quote }}
-            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers }}
+              value: {{ $.Values.nginx.ports.http | quote }}
             - name: PORT
               value: "7851" # Port for the nodejs server for live and ready status
             - name: DISABLE_TELEMETRY
@@ -156,10 +158,10 @@ spec:
     {{- end }}
   {{- end }}
   ports:
-    - port: {{ $.Values.port.nginxHttp }}
+    - port: {{ $.Values.nginx.ports.http }}
       targetPort: 7849
       name: oneuptime-http
-    - port: {{ $.Values.port.statusPageHttpsPort }}
+    - port: {{ $.Values.nginx.ports.https }}
       targetPort: 7850
       name: statuspage-ssl
   selector:
@@ -172,6 +174,8 @@ spec:
 ---
 
 # OneUptime nginx autoscaler
+{{- if not $.Values.nginx.disableAutoscaler }}
 {{- $nginxAutoScalerArgs := dict "ServiceName" "nginx" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $nginxAutoScalerArgs }}
+{{- end }}
 ---

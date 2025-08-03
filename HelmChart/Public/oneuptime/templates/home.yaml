@@ -14,8 +14,12 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "home"  }}
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- if $.Values.home.replicaCount }}
+  replicas: {{ $.Values.home.replicaCount }}
+  {{- else }}
+  {{- if or (not $.Values.autoscaling.enabled) ($.Values.home.disableAutoscaler) }}
   replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
   {{- end }}
   template:
     metadata:
@@ -48,7 +52,7 @@ spec:
           startupProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.home }}
+              port: {{ $.Values.home.ports.http }}
             periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
             failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
           {{- end }}
@@ -57,7 +61,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /status/live
-              port: {{ $.Values.port.home }}
+              port: {{ $.Values.home.ports.http }}
             periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
             initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
@@ -67,7 +71,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /status/ready
-              port: {{ $.Values.port.home }}
+              port: {{ $.Values.home.ports.http }}
             periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
             initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
             timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
@@ -81,11 +85,11 @@ spec:
             {{- include "oneuptime.env.commonServer" . | nindent 12 }}
             {{- include "oneuptime.env.oneuptimeSecret" . | nindent 12 }}
             - name: PORT
-              value: {{ $.Values.port.home | quote }}
+              value: {{ $.Values.home.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.home.disableTelemetryCollection | quote }}
           ports:
-            - containerPort: {{ $.Values.port.home }}
+            - containerPort: {{ $.Values.home.ports.http }}
               protocol: TCP
               name: http
           {{- if $.Values.home.resources }}
@@ -97,12 +101,14 @@ spec:
 ---
 
 # OneUptime app Service
-{{- $homePorts := dict "port" $.Values.port.home -}}
+{{- $homePorts := $.Values.home.ports -}}
 {{- $homeServiceArgs := dict "ServiceName" "home" "Ports" $homePorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $homeServiceArgs }}
 ---
 
 # OneUptime app autoscaler
+{{- if not $.Values.home.disableAutoscaler }}
 {{- $homeAutoScalerArgs := dict "ServiceName" "home" "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $homeAutoScalerArgs }}
+{{- end }}
 ---

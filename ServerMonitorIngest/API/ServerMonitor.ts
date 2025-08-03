@@ -1,10 +1,7 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeApiIngestResponse from "Common/Types/Probe/ProbeApiIngestResponse";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Express, {
   ExpressRequest,
@@ -12,11 +9,11 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Response from "Common/Server/Utils/Response";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
+import ServerMonitorIngestQueueService from "../Services/Queue/ServerMonitorIngestQueueService";
+import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -78,53 +75,101 @@ router.post(
         throw new BadDataException("Invalid Secret Key");
       }
 
-      const monitor: Monitor | null = await MonitorService.findOneBy({
-        query: {
-          serverMonitorSecretKey: new ObjectID(monitorSecretKeyAsString),
-          monitorType: MonitorType.Server,
-          ...MonitorService.getEnabledMonitorQuery(),
-          project: {
-            ...ProjectService.getActiveProjectStatusQuery(),
-          },
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      // return the response early.
+      Response.sendEmptySuccessResponse(req, res);
+
+      // Add to queue for asynchronous processing
+      await ServerMonitorIngestQueueService.addServerMonitorIngestJob({
+        secretKey: monitorSecretKeyAsString,
+        serverMonitorResponse: req.body as JSONObject,
       });
 
-      if (!monitor) {
-        throw new BadDataException("Monitor not found");
-      }
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
-      // now process this request.
+// Queue stats endpoint
+router.get(
+  "/server-monitor/queue/stats",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const stats: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+        delayed: number;
+        total: number;
+      } = await ServerMonitorIngestQueueService.getQueueStats();
+      return Response.sendJsonObjectResponse(req, res, stats);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
-      const serverMonitorResponse: ServerMonitorResponse =
-        JSONFunctions.deserialize(
-          req.body["serverMonitorResponse"] as JSONObject,
-        ) as any;
+// Queue size endpoint
+router.get(
+  "/server-monitor/queue/size",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const size: number = await ServerMonitorIngestQueueService.getQueueSize();
+      return Response.sendJsonObjectResponse(req, res, { size });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
 
-      if (!serverMonitorResponse) {
-        throw new BadDataException("Invalid Server Monitor Response");
-      }
+// Queue failed jobs endpoint
+router.get(
+  "/server-monitor/queue/failed",
+  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // Parse pagination parameters from query string
+      const start: number = parseInt(req.query["start"] as string) || 0;
+      const end: number = parseInt(req.query["end"] as string) || 100;
 
-      if (!monitor.id) {
-        throw new BadDataException("Monitor id not found");
-      }
-
-      serverMonitorResponse.monitorId = monitor.id;
-
-      serverMonitorResponse.requestReceivedAt = OneUptimeDate.getCurrentDate();
-
-      // process probe response here.
-      const probeApiIngestResponse: ProbeApiIngestResponse =
-        await MonitorResourceUtil.monitorResource(serverMonitorResponse);
+      const failedJobs: Array<{
+        id: string;
+        name: string;
+        data: any;
+        failedReason: string;
+        stackTrace?: string;
+        processedOn: Date | null;
+        finishedOn: Date | null;
+        attemptsMade: number;
+      }> = await ServerMonitorIngestQueueService.getFailedJobs({
+        start,
+        end,
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
-        probeApiIngestResponse: probeApiIngestResponse,
-      } as any);
+        failedJobs,
+        pagination: {
+          start,
+          end,
+          count: failedJobs.length,
+        },
+      });
     } catch (err) {
       return next(err);
     }

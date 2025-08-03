@@ -59,13 +59,17 @@ spec:
             - name: LOG_LEVEL
               value: {{ $.Values.logLevel }}
             - name: PORT
-              value: {{ $.Values.port.probe | squote }}
+              {{- if and $val.ports $val.ports.http }}
+              value: {{ $val.ports.http | squote }}
+              {{- else }}
+              value: "3874"
+              {{- end }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
               value: {{ $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
               value: {{ $.Values.openTelemetryExporter.endpoint }}
             - name: ONEUPTIME_URL
-              value: http://{{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.port.probeIngest }}
+              value: http://{{ $.Release.Name }}-probe-ingest.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.probeIngest.ports.http }}
             - name: PROBE_NAME
               value: {{ $val.name }}
             - name: PROBE_DESCRIPTION
@@ -100,6 +104,10 @@ spec:
               value: {{ $val.disableTelemetryCollection | quote }}
             {{- end }}
             {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
+          ports:
+            - containerPort: {{ if and $val.ports $val.ports.http }}{{ $val.ports.http }}{{ else }}3874{{ end }}
+              protocol: TCP
+              name: http
           {{- if $val.resources }}
           resources:
             {{- toYaml $val.resources | nindent 12 }}
@@ -110,12 +118,22 @@ spec:
       restartPolicy: {{ $.Values.image.restartPolicy }}
 ---
 
-{{- if not $val.disableAutoscaler }}
+# OneUptime probe Service
+{{- $probePort := 3874 }}
+{{- if and $val.ports $val.ports.http }}
+{{- $probePort = $val.ports.http }}
+{{- end }}
+{{- $probePorts := dict "port" $probePort -}}
+{{- $probeServiceArgs := dict "ServiceName" (printf "probe-%s" $key) "Ports" $probePorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $probeServiceArgs }}
+---
+
+{{- if and (not $val.disableAutoscaler) (not (and $.Values.keda.enabled $val.keda.enabled)) }}
 # OneUptime probe autoscaler
 {{- $probeAutoScalerArgs := dict "ServiceName" (printf "probe-%s" $key) "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.autoscaler" $probeAutoScalerArgs }}
----
 {{- end }}
+---
 
 {{- end }}
 
