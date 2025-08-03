@@ -65,6 +65,7 @@ export default class ProbeIngestQueueService {
       name: string;
       data: JSONObject;
       failedReason: string;
+      stackTrace?: string;
       processedOn: Date | null;
       finishedOn: Date | null;
       attemptsMade: number;

@@ -193,6 +193,7 @@ export default class Queue {
       name: string;
       data: JSONObject;
       failedReason: string;
+      stackTrace?: string;
       processedOn: Date | null;
       finishedOn: Date | null;
       attemptsMade: number;
@@ -204,7 +205,16 @@ export default class Queue {
     const failed: Job[] = await queue.getFailed(start, end);
 
     return failed.map((job: Job) => {
-      return {
+      const result: {
+        id: string;
+        name: string;
+        data: JSONObject;
+        failedReason: string;
+        stackTrace?: string;
+        processedOn: Date | null;
+        finishedOn: Date | null;
+        attemptsMade: number;
+      } = {
         id: job.id || "unknown",
         name: job.name || "unknown",
         data: job.data as JSONObject,
@@ -213,6 +223,12 @@ export default class Queue {
         finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
         attemptsMade: job.attemptsMade || 0,
       };
+
+      if (job.stacktrace && job.stacktrace.length > 0) {
+        result.stackTrace = job.stacktrace.join('\n');
+      }
+
+      return result;
     });
   }
 }

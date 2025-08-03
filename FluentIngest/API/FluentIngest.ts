@@ -125,6 +125,7 @@ router.get(
         name: string;
         data: any;
         failedReason: string;
+        stackTrace?: string;
         processedOn: Date | null;
         finishedOn: Date | null;
         attemptsMade: number;
