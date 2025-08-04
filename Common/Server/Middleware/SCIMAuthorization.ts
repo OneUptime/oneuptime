@@ -1,4 +1,4 @@
-import ProjectSCIMService from "../Services/ProjectScimService";
+import ProjectSCIMService from "../Services/ProjectSCIMServicea";
 import {
   ExpressRequest,
   ExpressResponse,
