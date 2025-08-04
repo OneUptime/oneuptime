@@ -398,6 +398,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Lock,
         },
+        {
+          link: {
+            title: "SCIM",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SCIM] as Route,
+            ),
+          },
+          icon: IconProp.Refresh,
+        },
       ],
     },
     {

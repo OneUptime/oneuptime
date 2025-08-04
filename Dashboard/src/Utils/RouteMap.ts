@@ -244,6 +244,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
+  [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_TEAMS]: "teams",
   [PageMap.SETTINGS_USERS]: "users",
   [PageMap.SETTINGS_USER_VIEW]: `users/${RouteParams.ModelID}`,
@@ -1699,6 +1700,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_SSO]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SSO]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SCIM]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SCIM]
     }`,
   ),
 
