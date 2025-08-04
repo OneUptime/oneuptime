@@ -202,7 +202,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     <p className="font-medium text-gray-700 mb-1">SCIM Base URL:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       
-                      {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}
+                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
                     </code>
                     <p className="text-xs text-gray-500 mt-1">
                       Use this as the SCIM endpoint URL in your identity provider
@@ -213,7 +213,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     <p className="font-medium text-gray-700 mb-1">Service Provider Config URL:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       
-                      {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}/ServiceProviderConfig
+                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/ServiceProviderConfig
                     </code>
                   </div>
 
@@ -221,7 +221,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     <p className="font-medium text-gray-700 mb-1">Users Endpoint:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       
-                      {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}/Users
+                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
                     </code>
                   </div>
 
@@ -229,7 +229,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     <p className="font-medium text-gray-700 mb-1">Groups Endpoint:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       
-                      {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}/Groups
+                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Groups
                     </code>
                   </div>
 
