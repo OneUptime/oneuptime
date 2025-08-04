@@ -40,7 +40,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
     useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
 
-  const resetBearerToken = async (): Promise<void> => {
+  const resetBearerToken: () => Promise<void> = async (): Promise<void> => {
     setIsResetLoading(true);
     try {
       const newToken: ObjectID = ObjectID.generate();

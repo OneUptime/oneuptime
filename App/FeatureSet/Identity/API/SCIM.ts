@@ -71,7 +71,10 @@ const parseNameToSCIMFormat: (fullName: string) => {
   };
 };
 
-const formatUserForSCIM = (user: User, req: ExpressRequest): JSONObject => {
+const formatUserForSCIM: (user: User, req: ExpressRequest) => JSONObject = (
+  user: User,
+  req: ExpressRequest,
+): JSONObject => {
   const baseUrl: string = `${req.protocol}://${req.get("host")}`;
   const nameData: { givenName: string; familyName: string; formatted: string } =
     parseNameToSCIMFormat(user.name?.toString() || "");
@@ -102,7 +105,12 @@ const formatUserForSCIM = (user: User, req: ExpressRequest): JSONObject => {
   };
 };
 
-const handleUserTeamOperations = async (
+const handleUserTeamOperations: (
+  operation: "add" | "remove",
+  projectId: ObjectID,
+  userId: ObjectID,
+  scimConfig: ProjectSCIM,
+) => Promise<void> = async (
   operation: "add" | "remove",
   projectId: ObjectID,
   userId: ObjectID,
@@ -387,7 +395,7 @@ router.get(
       }
 
       // Check if user exists and is part of the project
-      const projectUser = await TeamMemberService.findOneBy({
+      const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
         query: {
           projectId: projectId,
           userId: new ObjectID(userId),
@@ -455,7 +463,7 @@ router.put(
       }
 
       // Check if user exists and is part of the project
-      const projectUser = await TeamMemberService.findOneBy({
+      const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
         query: {
           projectId: projectId,
           userId: new ObjectID(userId),
