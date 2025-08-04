@@ -13,7 +13,7 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import { JSONObject } from "Common/Types/JSON";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import ProjectSCIM from "Common/Models/DatabaseModels/ProjectScim";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import OneUptimeDate from "Common/Types/Date";

@@ -179,7 +179,7 @@ import ProjectUser from "./ProjectUser";
 import OnCallDutyPolicyUserOverride from "./OnCallDutyPolicyUserOverride";
 import MonitorFeed from "./MonitorFeed";
 import MetricType from "./MetricType";
-import ProjectSCIM from "./ProjectScim";
+import ProjectSCIM from "./ProjectSCIM";
 
 const AllModelTypes: Array<{
   new (): BaseModel;

@@ -6,13 +6,13 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import ObjectID from "../../Types/ObjectID";
-import ProjectSCIM from "../../Models/DatabaseModels/ProjectScim";
+import ProjectSCIM from "../../Models/DatabaseModels/ProjectSCIM";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export default class SCIMMiddleware {
-    
+
   @CaptureSpan()
   public static async isAuthorizedSCIMRequest(
     req: ExpressRequest,

@@ -12,7 +12,7 @@ import {
   IDENTITY_URL,
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectSCIM from "Common/Models/DatabaseModels/ProjectScim";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
 import React, {
   Fragment,
