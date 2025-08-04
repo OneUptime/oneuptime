@@ -404,6 +404,52 @@ router.put(
         }
       }
 
+      // Handle user activation by adding to teams
+      if (active === true) {
+        logger.debug(`SCIM Update user - user marked as active, adding to teams`);
+        
+        const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+        
+        // Add user to default teams if configured
+        if (scimConfig.teams && scimConfig.teams.length > 0) {
+          logger.debug(`SCIM Update user - adding user to ${scimConfig.teams.length} configured teams`);
+          
+          for (const team of scimConfig.teams) {
+            const existingMember = await TeamMemberService.findOneBy({
+              query: {
+                projectId: projectId,
+                userId: new ObjectID(userId),
+                teamId: team.id!,
+              },
+              select: { _id: true },
+              props: { isRoot: true },
+            });
+
+            if (!existingMember) {
+              logger.debug(`SCIM Update user - adding user to team: ${team.id}`);
+              let teamMember: TeamMember = new TeamMember();
+              teamMember.projectId = projectId;
+              teamMember.userId = new ObjectID(userId);
+              teamMember.teamId = team.id!;
+              teamMember.hasAcceptedInvitation = true;
+              teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+              await TeamMemberService.create({
+                data: teamMember,
+                props: {
+                  isRoot: true,
+                  ignoreHooks: true,
+                },
+              });
+            } else {
+              logger.debug(`SCIM Update user - user already member of team: ${team.id}`);
+            }
+          }
+        } else {
+          logger.debug(`SCIM Update user - no teams configured for SCIM activation`);
+        }
+      }
+
       if (email || name) {
         const updateData: any = {};
         if (email) updateData.email = new Email(email);
