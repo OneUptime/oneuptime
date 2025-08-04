@@ -14,6 +14,7 @@ import {
   IDENTITY_URL,
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
@@ -22,7 +23,6 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -30,7 +30,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const [showSCIMUrlId, setShowSCIMUrlId] = useState<string>("");
   const [currentSCIMConfig, setCurrentSCIMConfig] = useState<ProjectSCIM | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
-  const [showResetModal, setShowResetModal] = useState<boolean>(false);
+  const [resetSCIMId, setResetSCIMId] = useState<string>("");
 
   return (
     <Fragment>
@@ -253,7 +253,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       title="Reset Bearer Token"
                       buttonStyle={ButtonStyleType.DANGER_OUTLINE}
                       onClick={() => {
-                        setShowResetModal(true);
+                        // Store the ID for reset
+                        setResetSCIMId(showSCIMUrlId);
                       }}
                     />
                   </div>
@@ -269,20 +270,17 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           />
         )}
 
-        {/* Reset Bearer Token Component */}
-        {showResetModal && showSCIMUrlId && currentSCIMConfig && (
+        {/* Reset Bearer Token Component - Only render when we have an ID */}
+        {resetSCIMId && (
           <ResetObjectID<ProjectSCIM>
             modelType={ProjectSCIM}
             fieldName={"bearerToken"}
             title={"Reset Bearer Token"}
             description={"Reset the Bearer Token to a new value. You will need to update your identity provider with the new token."}
-            modelId={new ObjectID(showSCIMUrlId)}
+            modelId={new ObjectID(resetSCIMId)}
             onUpdateComplete={() => {
               setRefresher(!refresher);
-              setShowResetModal(false);
-              // Close the modal to let the user refresh and see the new token
-              setShowSCIMUrlId("");
-              setCurrentSCIMConfig(null);
+              setResetSCIMId("");
             }}
           />
         )}

@@ -10,6 +10,7 @@ import ProjectSCIM from "../../Models/DatabaseModels/ProjectSCIM";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 
 export default class SCIMMiddleware {
 
@@ -36,6 +37,11 @@ export default class SCIMMiddleware {
           bearerToken = authHeader.substring(7);
         }
       }
+
+      logger.debug(
+        `SCIM Authorization: projectScimId=${projectScimId}, bearerToken=${
+            bearerToken
+        }`);
 
       if (!bearerToken) {
         throw new NotAuthorizedException(
