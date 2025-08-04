@@ -20,6 +20,7 @@ import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 
 const router = Express.getRouter();
 
@@ -325,6 +326,11 @@ router.put(
 
       logger.debug(
         `SCIM Update user - projectId: ${projectId}, userId: ${userId}`
+      );
+
+
+      logger.debug(
+        `Request body for SCIM Update user: ${JSON.stringify(scimUser, null, 2)}`
       );
 
       if (!userId) {
@@ -684,16 +690,30 @@ router.delete(
         `SCIM Delete user - removing user from all teams in project: ${projectId}`
       );
 
-      // Remove user from all teams in this project
+     // remove user from teams the SCIM configured
+
+     const teamsIds: Array<ObjectID> = scimConfig.teams?.map(
+        (team: any) => team.id
+      ) || [];
+
+      if (teamsIds.length === 0) {
+        logger.debug("SCIM Delete user - no teams configured for SCIM");
+        throw new BadRequestException("No teams configured for SCIM");
+      }
+
+      // Remove user from teamsIds teams in the project
+
       await TeamMemberService.deleteBy({
         query: {
           projectId: projectId,
           userId: new ObjectID(userId),
+          teamId: QueryHelper.any(teamsIds),
         },
-        limit: LIMIT_PER_PROJECT,
         skip: 0,
+        limit: LIMIT_PER_PROJECT,
         props: { isRoot: true },
       });
+
 
       logger.debug(
         `SCIM Delete user - user successfully deprovisioned from project`
