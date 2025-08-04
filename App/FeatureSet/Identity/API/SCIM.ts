@@ -17,8 +17,7 @@ import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import OneUptimeDate from "Common/Types/Date";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ProjectUserService from "Common/Server/Services/ProjectUserService";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 
@@ -147,8 +146,11 @@ router.get(
       logger.debug(`SCIM Users query built for projectId: ${projectId}`);
 
       // Get team members
-      const projectUsers = await ProjectUserService.findBy({
+      const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
         query: query,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
         select: {
           userId: true,
           user: {
@@ -159,38 +161,22 @@ router.get(
             updatedAt: true,
           },
         },
-        skip: startIndex - 1,
-        limit: count,
-        props: { isRoot: true },
       });
 
-
-      logger.debug(
-        `SCIM Users - found ${projectUsers.length} team members`
-      );
-
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const uniqueUserIds = new Set<string>();
-      const users = projectUsers
-        .filter((tm: any) => {
-          if (!tm.user || !tm.user.id) return false;
-          const userId = tm.user.id.toString();
-          if (uniqueUserIds.has(userId)) return false;
-          uniqueUserIds.add(userId);
-          return true;
-        })
-        .map((tm: any) => ({
-          schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-          id: tm.user.id?.toString(),
-          userName: tm.user.email?.toString(),
+      // now get unique users. 
+      const usersInProjects: Array<JSONObject> = teamMembers
+        .filter((tm: TeamMember) => tm.user && tm.user.id)
+        .map((tm: TeamMember) => ({
+          id: tm.user!.id?.toString(),
+          userName: tm.user!.email?.toString(),
           name: {
-            formatted: tm.user.name?.toString() || "",
+            formatted: tm.user!.name?.toString() || "",
             familyName: "",
-            givenName: tm.user.name?.toString() || "",
+            givenName: tm.user!.name?.toString() || "",
           },
           emails: [
             {
-              value: tm.user.email?.toString(),
+              value: tm.user!.email?.toString(),
               type: "work",
               primary: true,
             },
@@ -198,20 +184,37 @@ router.get(
           active: true,
           meta: {
             resourceType: "User",
-            created: tm.user.createdAt?.toISOString(),
-            lastModified: tm.user.updatedAt?.toISOString(),
-            location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${tm.user.id?.toString()}`,
+            created: tm.user!.createdAt?.toISOString(),
+            lastModified: tm.user!.updatedAt?.toISOString(),
+            location: `${req.protocol}://${req.get("host")}/scim/v2/${req.params["projectScimId"]}/Users/${tm.user!.id!.toString()}`,
           },
         }));
 
+        // remove duplicates
+      const uniqueUserIds = new Set<string>();
+      const users: Array<JSONObject> = usersInProjects.filter((user: JSONObject) => {
+        if (uniqueUserIds.has(user['id']?.toString() || "")) {
+          return false;
+        }
+        uniqueUserIds.add(user['id']?.toString() || "");
+        return true;
+      }); 
+
+
+      // now paginate the results
+      const paginatedUsers = users.slice(
+        (startIndex - 1) * count,
+        startIndex * count
+      );
+        
       logger.debug(`SCIM Users response prepared with ${users.length} users`);
 
       return Response.sendJsonObjectResponse(req, res, {
         schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         totalResults: users.length,
         startIndex: startIndex,
-        itemsPerPage: users.length,
-        Resources: users,
+        itemsPerPage: paginatedUsers.length,
+        Resources: paginatedUsers,
       });
     } catch (err) {
       logger.error(err);
@@ -234,12 +237,15 @@ router.get(
       const projectId = bearerData["projectId"] as ObjectID;
       const userId = req.params["userId"];
 
+
+      logger.debug(`SCIM Get user - projectId: ${projectId}, userId: ${userId}`);
+
       if (!userId) {
         throw new BadRequestException("User ID is required");
       }
 
       // Check if user exists and is part of the project
-      const projectUser = await ProjectUserService.findOneBy({
+      const projectUser = await TeamMemberService.findOneBy({
         query: {
           projectId: projectId,
           userId: new ObjectID(userId),
@@ -317,12 +323,16 @@ router.put(
       const userId = req.params["userId"];
       const scimUser = req.body;
 
+      logger.debug(
+        `SCIM Update user - projectId: ${projectId}, userId: ${userId}`
+      );
+
       if (!userId) {
         throw new BadRequestException("User ID is required");
       }
 
       // Check if user exists and is part of the project
-      const projectUser = await ProjectUserService.findOneBy({
+      const projectUser = await TeamMemberService.findOneBy({
         query: {
           projectId: projectId,
           userId: new ObjectID(userId),
