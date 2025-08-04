@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
-import Model from "../../Models/DatabaseModels/ProjectSCIM";
+import Model from "../../Models/DatabaseModels/ProjectScima";
 import Text from "../../Types/Text";
 
 export class Service extends DatabaseService<Model> {

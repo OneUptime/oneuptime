@@ -6,7 +6,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import ObjectID from "../../Types/ObjectID";
-import ProjectSCIM from "../../Models/DatabaseModels/ProjectSCIM";
+import ProjectSCIM from "../../Models/DatabaseModels/ProjectScima";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";

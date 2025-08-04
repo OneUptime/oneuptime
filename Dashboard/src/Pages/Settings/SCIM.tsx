@@ -3,28 +3,34 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
+import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import {
-  HTTP_PROTOCOL,
   IDENTITY_URL,
 } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
-import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
+import ObjectID from "Common/Types/ObjectID";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useState,
 } from "react";
+import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [showSCIMUrlId, setShowSCIMUrlId] = useState<string>("");
+  const [currentSCIMConfig, setCurrentSCIMConfig] = useState<ProjectSCIM | null>(null);
+  const [refresher, setRefresher] = useState<boolean>(false);
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
 
   return (
     <Fragment>
@@ -38,6 +44,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         />
 
         <ModelTable<ProjectSCIM>
+          key={refresher.toString()}
           modelType={ProjectSCIM}
           userPreferencesKey={"project-scim-table"}
           query={{
@@ -182,13 +189,14 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 _onError: Function,
               ) => {
                 onCompleteAction();
+                setCurrentSCIMConfig(item);
                 setShowSCIMUrlId(item.id?.toString() || "");
               },
             },
           ]}
         />
 
-        {showSCIMUrlId && (
+        {showSCIMUrlId && currentSCIMConfig && (
           <ConfirmModal
             title={`SCIM Configuration URLs`}
             description={
@@ -201,7 +209,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">SCIM Base URL:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
                     </code>
                     <p className="text-xs text-gray-500 mt-1">
@@ -212,7 +219,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">Service Provider Config URL:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/ServiceProviderConfig
                     </code>
                   </div>
@@ -220,7 +226,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">Users Endpoint:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
                     </code>
                   </div>
@@ -228,16 +233,29 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">Groups Endpoint:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Groups
                     </code>
                   </div>
 
                   <div className="border-t pt-4">
-                    <p className="font-medium text-gray-700 mb-1">Authentication:</p>
-                    <p className="text-sm text-gray-600">
-                      Use "Bearer Token" authentication in your identity provider with the bearer token from the SCIM configuration details.
+                    <p className="font-medium text-gray-700 mb-1">Bearer Token:</p>
+                    <div className="mb-2">
+                      <HiddenText
+                        text={currentSCIMConfig.bearerToken || ""}
+                        isCopyable={true}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Use this bearer token for authentication in your identity provider SCIM configuration.
                     </p>
+                    
+                    <Button
+                      title="Reset Bearer Token"
+                      buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                      onClick={() => {
+                        setShowResetModal(true);
+                      }}
+                    />
                   </div>
                 </div>
               </div>
@@ -245,8 +263,27 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             submitButtonText={"Close"}
             onSubmit={() => {
               setShowSCIMUrlId("");
+              setCurrentSCIMConfig(null);
             }}
             submitButtonType={ButtonStyleType.NORMAL}
+          />
+        )}
+
+        {/* Reset Bearer Token Component */}
+        {showResetModal && showSCIMUrlId && currentSCIMConfig && (
+          <ResetObjectID<ProjectSCIM>
+            modelType={ProjectSCIM}
+            fieldName={"bearerToken"}
+            title={"Reset Bearer Token"}
+            description={"Reset the Bearer Token to a new value. You will need to update your identity provider with the new token."}
+            modelId={new ObjectID(showSCIMUrlId)}
+            onUpdateComplete={() => {
+              setRefresher(!refresher);
+              setShowResetModal(false);
+              // Close the modal to let the user refresh and see the new token
+              setShowSCIMUrlId("");
+              setCurrentSCIMConfig(null);
+            }}
           />
         )}
       </>
