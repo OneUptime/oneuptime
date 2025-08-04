@@ -1,6 +1,7 @@
 import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
 import SsoAPI from "./API/SSO";
+import SCIMAPI from "./API/SCIM";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import StatusPageSsoAPI from "./API/StatusPageSSO";
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -18,6 +19,8 @@ const IdentityFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}`, "/"], ResellerAPI);
 
     app.use([`/${APP_NAME}`, "/"], SsoAPI);
+
+    app.use([`/${APP_NAME}`, "/"], SCIMAPI);
 
     app.use([`/${APP_NAME}`, "/"], StatusPageSsoAPI);
 
