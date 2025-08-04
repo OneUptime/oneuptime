@@ -201,7 +201,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">SCIM Base URL:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {HTTP_PROTOCOL}
+                      
                       {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}
                     </code>
                     <p className="text-xs text-gray-500 mt-1">
@@ -212,7 +212,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">Service Provider Config URL:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {HTTP_PROTOCOL}
+                      
                       {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}/ServiceProviderConfig
                     </code>
                   </div>
@@ -220,7 +220,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">Users Endpoint:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {HTTP_PROTOCOL}
+                      
                       {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}/Users
                     </code>
                   </div>
@@ -228,7 +228,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <div>
                     <p className="font-medium text-gray-700 mb-1">Groups Endpoint:</p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {HTTP_PROTOCOL}
+                      
                       {IDENTITY_URL.toString()}/scim/{showSCIMUrlId}/Groups
                     </code>
                   </div>
