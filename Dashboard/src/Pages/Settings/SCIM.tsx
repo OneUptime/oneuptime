@@ -3,13 +3,13 @@ import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
-import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import {
   IDENTITY_URL,
 } from "Common/UI/Config";
@@ -23,6 +23,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import IconProp from "Common/Types/Icon/IconProp";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -31,6 +32,35 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   const [currentSCIMConfig, setCurrentSCIMConfig] = useState<ProjectSCIM | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
   const [resetSCIMId, setResetSCIMId] = useState<string>("");
+  const [showResetModal, setShowResetModal] = useState<boolean>(false);
+  const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
+  const [resetError, setResetError] = useState<string>("");
+  const [showResetErrorModal, setShowResetErrorModal] = useState<boolean>(false);
+  const [showResetSuccessModal, setShowResetSuccessModal] = useState<boolean>(false);
+  const [newBearerToken, setNewBearerToken] = useState<string>("");
+
+  const resetBearerToken = async (): Promise<void> => {
+    setIsResetLoading(true);
+    try {
+      const newToken: ObjectID = ObjectID.generate();
+      await ModelAPI.updateById<ProjectSCIM>({
+        modelType: ProjectSCIM,
+        id: new ObjectID(resetSCIMId),
+        data: {
+          bearerToken: newToken.toString(),
+        },
+      });
+      setNewBearerToken(newToken.toString());
+      setShowResetModal(false);
+      setShowResetSuccessModal(true);
+      setRefresher(!refresher);
+    } catch (err) {
+      setResetError(API.getFriendlyMessage(err));
+      setShowResetErrorModal(true);
+      setShowResetModal(false);
+    }
+    setIsResetLoading(false);
+  };
 
   return (
     <Fragment>
@@ -193,6 +223,20 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 setShowSCIMUrlId(item.id?.toString() || "");
               },
             },
+            {
+              title: "Reset Bearer Token",
+              buttonStyleType: ButtonStyleType.LINK,
+              icon: IconProp.Refresh,
+              onClick: async (
+                item: ProjectSCIM,
+                onCompleteAction: Function,
+                _onError: Function,
+              ) => {
+                onCompleteAction();
+                setResetSCIMId(item.id?.toString() || "");
+                setShowResetModal(true);
+              },
+            },
           ]}
         />
 
@@ -237,6 +281,16 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     </code>
                   </div>
 
+                  <div>
+                    <p className="font-medium text-gray-700 mb-1">Unique identifier field for users:</p>
+                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                      userName
+                    </code>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Use this field as the unique identifier for users in your identity provider SCIM configuration
+                    </p>
+                  </div>
+
                   <div className="border-t pt-4">
                     <p className="font-medium text-gray-700 mb-1">Bearer Token:</p>
                     <div className="mb-2">
@@ -245,18 +299,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                         isCopyable={true}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">
+                    <p className="text-xs text-gray-500">
                       Use this bearer token for authentication in your identity provider SCIM configuration.
                     </p>
-                    
-                    <Button
-                      title="Reset Bearer Token"
-                      buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                      onClick={() => {
-                        // Store the ID for reset
-                        setResetSCIMId(showSCIMUrlId);
-                      }}
-                    />
                   </div>
                 </div>
               </div>
@@ -270,18 +315,62 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           />
         )}
 
-        {/* Reset Bearer Token Component - Only render when we have an ID */}
-        {resetSCIMId && (
-          <ResetObjectID<ProjectSCIM>
-            modelType={ProjectSCIM}
-            fieldName={"bearerToken"}
-            title={"Reset Bearer Token"}
-            description={"Reset the Bearer Token to a new value. You will need to update your identity provider with the new token."}
-            modelId={new ObjectID(resetSCIMId)}
-            onUpdateComplete={() => {
-              setRefresher(!refresher);
+        {/* Reset Bearer Token Modals */}
+        {showResetModal && (
+          <ConfirmModal
+            title="Reset Bearer Token"
+            description="Are you sure you want to reset the Bearer Token? You will need to update your identity provider with the new token."
+            onSubmit={async () => {
+              await resetBearerToken();
+            }}
+            isLoading={isResetLoading}
+            onClose={() => {
+              setShowResetModal(false);
               setResetSCIMId("");
             }}
+            submitButtonText="Reset"
+            submitButtonType={ButtonStyleType.DANGER}
+          />
+        )}
+
+        {showResetErrorModal && (
+          <ConfirmModal
+            title="Reset Error"
+            description={resetError}
+            onSubmit={() => {
+              setShowResetErrorModal(false);
+              setResetError("");
+              setResetSCIMId("");
+            }}
+            submitButtonText="Close"
+            submitButtonType={ButtonStyleType.NORMAL}
+          />
+        )}
+
+        {showResetSuccessModal && (
+          <ConfirmModal
+            title="New Bearer Token"
+            description={
+              <div>
+                <p className="mb-3">Your new Bearer Token has been generated:</p>
+                <div className="mb-2">
+                  <HiddenText
+                    text={newBearerToken}
+                    isCopyable={true}
+                  />
+                </div>
+                <p className="text-sm text-gray-500">
+                  Please update your identity provider with this new token.
+                </p>
+              </div>
+            }
+            onSubmit={() => {
+              setShowResetSuccessModal(false);
+              setNewBearerToken("");
+              setResetSCIMId("");
+            }}
+            submitButtonText="Close"
+            submitButtonType={ButtonStyleType.NORMAL}
           />
         )}
       </>
