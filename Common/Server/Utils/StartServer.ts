@@ -42,6 +42,8 @@ app.set("port", process.env["PORT"]);
 app.set("view engine", "ejs");
 app.use(CookieParser());
 
+
+
 const jsonBodyParserMiddleware: RequestHandler = ExpressJson({
   limit: "50mb",
   extended: true,
@@ -88,6 +90,16 @@ app.set("view engine", "ejs");
  * Add limit of 10 MB to avoid "Request Entity too large error"
  * https://stackoverflow.com/questions/19917401/error-request-entity-too-large
  */
+
+// Handle SCIM content type before JSON middleware
+app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+  const contentType = req.headers['content-type'];
+  if (contentType && contentType.includes('application/scim+json')) {
+    // Set content type to application/json so express.json() can parse it
+    req.headers['content-type'] = 'application/json';
+  }
+  next();
+});
 
 app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
   if (req.headers["content-encoding"] === "gzip") {
