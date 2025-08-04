@@ -225,7 +225,7 @@ export default class Queue {
       };
 
       if (job.stacktrace && job.stacktrace.length > 0) {
-        result.stackTrace = job.stacktrace.join('\n');
+        result.stackTrace = job.stacktrace.join("\n");
       }
 
       return result;

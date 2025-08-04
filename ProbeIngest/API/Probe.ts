@@ -231,7 +231,9 @@ router.post(
             });
           }
         } else {
-          logger.debug("Billing is enabled, skipping probe offline email notification");
+          logger.debug(
+            "Billing is enabled, skipping probe offline email notification",
+          );
         }
       }
 
@@ -405,7 +407,7 @@ router.post(
           probeId: probeId,
           isEnabled: true,
           nextPingAt: QueryHelper.lessThanEqualToOrNull(
-            OneUptimeDate.getSomeMinutesAgo(2)
+            OneUptimeDate.getSomeMinutesAgo(2),
           ),
           monitor: {
             ...MonitorService.getEnabledMonitorQuery(),

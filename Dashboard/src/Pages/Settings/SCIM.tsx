@@ -10,9 +10,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
-import {
-  IDENTITY_URL,
-} from "Common/UI/Config";
+import { IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -29,14 +27,17 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [showSCIMUrlId, setShowSCIMUrlId] = useState<string>("");
-  const [currentSCIMConfig, setCurrentSCIMConfig] = useState<ProjectSCIM | null>(null);
+  const [currentSCIMConfig, setCurrentSCIMConfig] =
+    useState<ProjectSCIM | null>(null);
   const [refresher, setRefresher] = useState<boolean>(false);
   const [resetSCIMId, setResetSCIMId] = useState<string>("");
   const [showResetModal, setShowResetModal] = useState<boolean>(false);
   const [isResetLoading, setIsResetLoading] = useState<boolean>(false);
   const [resetError, setResetError] = useState<string>("");
-  const [showResetErrorModal, setShowResetErrorModal] = useState<boolean>(false);
-  const [showResetSuccessModal, setShowResetSuccessModal] = useState<boolean>(false);
+  const [showResetErrorModal, setShowResetErrorModal] =
+    useState<boolean>(false);
+  const [showResetSuccessModal, setShowResetSuccessModal] =
+    useState<boolean>(false);
   const [newBearerToken, setNewBearerToken] = useState<string>("");
 
   const resetBearerToken = async (): Promise<void> => {
@@ -114,7 +115,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               title: "Name",
               fieldType: FormFieldSchemaType.Text,
               required: true,
-              description: "Friendly name to help you remember this SCIM configuration.",
+              description:
+                "Friendly name to help you remember this SCIM configuration.",
               placeholder: "Okta SCIM",
               validation: {
                 minLength: 2,
@@ -129,7 +131,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               fieldType: FormFieldSchemaType.LongText,
               required: false,
               description: "Optional description for this SCIM configuration.",
-              placeholder: "SCIM configuration for automatic user provisioning from Okta",
+              placeholder:
+                "SCIM configuration for automatic user provisioning from Okta",
               stepId: "basic",
             },
             {
@@ -139,7 +142,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               title: "Auto Provision Users",
               fieldType: FormFieldSchemaType.Checkbox,
               required: false,
-              description: "Automatically create users when they are added in your identity provider.",
+              description:
+                "Automatically create users when they are added in your identity provider.",
               stepId: "configuration",
             },
             {
@@ -149,7 +153,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               title: "Auto Deprovision Users",
               fieldType: FormFieldSchemaType.Checkbox,
               required: false,
-              description: "Automatically remove users from teams when they are removed from your identity provider.",
+              description:
+                "Automatically remove users from teams when they are removed from your identity provider.",
               stepId: "configuration",
             },
             {
@@ -164,7 +169,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 valueField: "_id",
               },
               required: false,
-              description: "New users will be automatically added to these teams.",
+              description:
+                "New users will be automatically added to these teams.",
               stepId: "teams",
             },
           ]}
@@ -248,51 +254,66 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <p className="text-gray-500 mb-4">
                   Use these URLs to configure SCIM in your identity provider:
                 </p>
-                
+
                 <div className="space-y-4">
                   <div>
-                    <p className="font-medium text-gray-700 mb-1">SCIM Base URL:</p>
+                    <p className="font-medium text-gray-700 mb-1">
+                      SCIM Base URL:
+                    </p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
                     </code>
                     <p className="text-xs text-gray-500 mt-1">
-                      Use this as the SCIM endpoint URL in your identity provider
+                      Use this as the SCIM endpoint URL in your identity
+                      provider
                     </p>
                   </div>
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-1">Service Provider Config URL:</p>
+                    <p className="font-medium text-gray-700 mb-1">
+                      Service Provider Config URL:
+                    </p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/ServiceProviderConfig
+                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
+                      /ServiceProviderConfig
                     </code>
                   </div>
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-1">Users Endpoint:</p>
+                    <p className="font-medium text-gray-700 mb-1">
+                      Users Endpoint:
+                    </p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
                     </code>
                   </div>
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-1">Groups Endpoint:</p>
+                    <p className="font-medium text-gray-700 mb-1">
+                      Groups Endpoint:
+                    </p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Groups
                     </code>
                   </div>
 
                   <div>
-                    <p className="font-medium text-gray-700 mb-1">Unique identifier field for users:</p>
+                    <p className="font-medium text-gray-700 mb-1">
+                      Unique identifier field for users:
+                    </p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                       userName
                     </code>
                     <p className="text-xs text-gray-500 mt-1">
-                      Use this field as the unique identifier for users in your identity provider SCIM configuration
+                      Use this field as the unique identifier for users in your
+                      identity provider SCIM configuration
                     </p>
                   </div>
 
                   <div className="border-t pt-4">
-                    <p className="font-medium text-gray-700 mb-1">Bearer Token:</p>
+                    <p className="font-medium text-gray-700 mb-1">
+                      Bearer Token:
+                    </p>
                     <div className="mb-2">
                       <HiddenText
                         text={currentSCIMConfig.bearerToken || ""}
@@ -300,7 +321,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       />
                     </div>
                     <p className="text-xs text-gray-500">
-                      Use this bearer token for authentication in your identity provider SCIM configuration.
+                      Use this bearer token for authentication in your identity
+                      provider SCIM configuration.
                     </p>
                   </div>
                 </div>
@@ -352,12 +374,11 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             title="New Bearer Token"
             description={
               <div>
-                <p className="mb-3">Your new Bearer Token has been generated:</p>
+                <p className="mb-3">
+                  Your new Bearer Token has been generated:
+                </p>
                 <div className="mb-2">
-                  <HiddenText
-                    text={newBearerToken}
-                    isCopyable={true}
-                  />
+                  <HiddenText text={newBearerToken} isCopyable={true} />
                 </div>
                 <p className="text-sm text-gray-500">
                   Please update your identity provider with this new token.

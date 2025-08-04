@@ -13,7 +13,6 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 
 export default class SCIMMiddleware {
-
   @CaptureSpan()
   public static async isAuthorizedSCIMRequest(
     req: ExpressRequest,
@@ -40,39 +39,42 @@ export default class SCIMMiddleware {
 
       logger.debug(
         `SCIM Authorization: projectScimId=${projectScimId}, bearerToken=${
-            bearerToken
-        }`);
+          bearerToken
+        }`,
+      );
 
       if (!bearerToken) {
         throw new NotAuthorizedException(
-          "Bearer token is required for SCIM authentication"
+          "Bearer token is required for SCIM authentication",
         );
       }
 
       // Find SCIM configuration by SCIM ID and bearer token
-      const scimConfig: ProjectSCIM | null = await ProjectSCIMService.findOneBy({
-        query: {
-          _id: new ObjectID(projectScimId),
-          bearerToken: bearerToken,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          autoProvisionUsers: true,
-          autoDeprovisionUsers: true,
-          teams: {
+      const scimConfig: ProjectSCIM | null = await ProjectSCIMService.findOneBy(
+        {
+          query: {
+            _id: new ObjectID(projectScimId),
+            bearerToken: bearerToken,
+          },
+          select: {
             _id: true,
-            name: true,
+            projectId: true,
+            autoProvisionUsers: true,
+            autoDeprovisionUsers: true,
+            teams: {
+              _id: true,
+              name: true,
+            },
+          },
+          props: {
+            isRoot: true,
           },
         },
-        props: {
-          isRoot: true,
-        },
-      });
+      );
 
       if (!scimConfig) {
         throw new NotAuthorizedException(
-          "Invalid bearer token or SCIM configuration not found"
+          "Invalid bearer token or SCIM configuration not found",
         );
       }
 

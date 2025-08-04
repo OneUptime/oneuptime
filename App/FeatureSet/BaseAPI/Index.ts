@@ -583,13 +583,11 @@ import StatusPageAnnouncementTemplateService, {
   Service as StatusPageAnnouncementTemplateServiceType,
 } from "Common/Server/Services/StatusPageAnnouncementTemplateService";
 
-
 // ProjectSCIM
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ProjectSCIMService, {
   Service as ProjectSCIMServiceType,
 } from "Common/Server/Services/ProjectSCIMService";
-
 
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";

@@ -54,11 +54,11 @@ router.get(
       logger.debug(result.data);
 
       // Extract queueSize from the response
-      let queueSize: number = result.data['queueSize'] as number || 0;
+      let queueSize: number = (result.data["queueSize"] as number) || 0;
 
       // if string then convert to number
 
-      if (typeof queueSize === 'string') {
+      if (typeof queueSize === "string") {
         const parsedQueueSize = parseInt(queueSize, 10);
         if (!isNaN(parsedQueueSize)) {
           queueSize = parsedQueueSize;
