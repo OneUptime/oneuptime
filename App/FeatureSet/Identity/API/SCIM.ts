@@ -21,9 +21,9 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 const router = Express.getRouter();
 
-// SCIM Service Provider Configuration - GET /scim/ServiceProviderConfig
+// SCIM Service Provider Configuration - GET /scim/v2/ServiceProviderConfig
 router.get(
-  "/scim/:projectScimId/ServiceProviderConfig",
+  "/scim/v2/:projectScimId/ServiceProviderConfig",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
@@ -60,7 +60,7 @@ router.get(
           },
         ],
         meta: {
-          location: `${req.protocol}://${req.get("host")}/scim/${req.params["projectScimId"]}/ServiceProviderConfig`,
+          location: `${req.protocol}://${req.get("host")}/scim/v2/${req.params["projectScimId"]}/ServiceProviderConfig`,
           resourceType: "ServiceProviderConfig",
           created: "2023-01-01T00:00:00Z",
           lastModified: "2023-01-01T00:00:00Z",
@@ -75,9 +75,9 @@ router.get(
   },
 );
 
-// Basic Users endpoint - GET /scim/Users
+// Basic Users endpoint - GET /scim/v2/Users
 router.get(
-  "/scim/:projectScimId/Users",
+  "/scim/v2/:projectScimId/Users",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
@@ -169,7 +169,7 @@ router.get(
             resourceType: "User",
             created: tm.user.createdAt?.toISOString(),
             lastModified: tm.user.updatedAt?.toISOString(),
-            location: `${baseUrl}/scim/${req.params["projectScimId"]}/Users/${tm.user.id?.toString()}`,
+            location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${tm.user.id?.toString()}`,
           },
         }));
 
@@ -187,9 +187,9 @@ router.get(
   },
 );
 
-// Get Individual User - GET /scim/Users/{id}
+// Get Individual User - GET /scim/v2/Users/{id}
 router.get(
-  "/scim/:projectScimId/Users/:userId",
+  "/scim/v2/:projectScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
@@ -248,7 +248,7 @@ router.get(
           resourceType: "User",
           created: teamMember.user.createdAt?.toISOString(),
           lastModified: teamMember.user.updatedAt?.toISOString(),
-          location: `${baseUrl}/scim/${req.params["projectScimId"]}/Users/${teamMember.user.id?.toString()}`,
+          location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${teamMember.user.id?.toString()}`,
         },
       };
 
@@ -260,9 +260,9 @@ router.get(
   },
 );
 
-// Update User - PUT /scim/Users/{id}
+// Update User - PUT /scim/v2/Users/{id}
 router.put(
-  "/scim/:projectScimId/Users/:userId",
+  "/scim/v2/:projectScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
@@ -351,7 +351,7 @@ router.put(
               resourceType: "User",
               created: updatedUser.createdAt?.toISOString(),
               lastModified: updatedUser.updatedAt?.toISOString(),
-              location: `${baseUrl}/scim/${req.params["projectScimId"]}/Users/${updatedUser.id?.toString()}`,
+              location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${updatedUser.id?.toString()}`,
             },
           };
 
@@ -382,7 +382,7 @@ router.put(
           resourceType: "User",
           created: teamMember.user.createdAt?.toISOString(),
           lastModified: teamMember.user.updatedAt?.toISOString(),
-          location: `${baseUrl}/scim/${req.params["projectScimId"]}/Users/${teamMember.user.id?.toString()}`,
+          location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${teamMember.user.id?.toString()}`,
         },
       };
 
@@ -394,9 +394,9 @@ router.put(
   },
 );
 
-// Groups endpoint - GET /scim/Groups
+// Groups endpoint - GET /scim/v2/Groups
 router.get(
-  "/scim/:projectScimId/Groups",
+  "/scim/v2/:projectScimId/Groups",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
@@ -412,7 +412,7 @@ router.get(
         members: [],
         meta: {
           resourceType: "Group",
-          location: `${req.protocol}://${req.get("host")}/scim/${req.params["projectScimId"]}/Groups/${team.id?.toString()}`,
+          location: `${req.protocol}://${req.get("host")}/scim/v2/${req.params["projectScimId"]}/Groups/${team.id?.toString()}`,
         },
       }));
 
@@ -430,9 +430,9 @@ router.get(
   },
 );
 
-// Create User - POST /scim/Users
+// Create User - POST /scim/v2/Users
 router.post(
-  "/scim/:projectScimId/Users",
+  "/scim/v2/:projectScimId/Users",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
@@ -525,7 +525,7 @@ router.post(
           resourceType: "User",
           created: user.createdAt?.toISOString(),
           lastModified: user.updatedAt?.toISOString(),
-          location: `${baseUrl}/scim/${req.params["projectScimId"]}/Users/${user.id?.toString()}`,
+          location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${user.id?.toString()}`,
         },
       };
 
@@ -538,9 +538,9 @@ router.post(
   },
 );
 
-// Delete User - DELETE /scim/Users/{id}
+// Delete User - DELETE /scim/v2/Users/{id}
 router.delete(
-  "/scim/:projectScimId/Users/:userId",
+  "/scim/v2/:projectScimId/Users/:userId",
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
