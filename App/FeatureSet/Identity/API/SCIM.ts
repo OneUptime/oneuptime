@@ -371,8 +371,38 @@ router.put(
         scimUser.name?.formatted ||
         scimUser.name?.givenName ||
         scimUser.displayName;
+      const active = scimUser.active;
 
-      logger.debug(`SCIM Update user - email: ${email}, name: ${name}`);
+      logger.debug(`SCIM Update user - email: ${email}, name: ${name}, active: ${active}`);
+
+      // Handle user deactivation by removing from teams
+      if (active === false) {
+        logger.debug(`SCIM Update user - user marked as inactive, removing from teams`);
+        
+        const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+        const teamsIds: Array<ObjectID> = scimConfig.teams?.map(
+          (team: any) => team.id
+        ) || [];
+
+        if (teamsIds.length > 0) {
+          logger.debug(`SCIM Update user - removing user from ${teamsIds.length} configured teams`);
+          
+          await TeamMemberService.deleteBy({
+            query: {
+              projectId: projectId,
+              userId: new ObjectID(userId),
+              teamId: QueryHelper.any(teamsIds),
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+
+          logger.debug(`SCIM Update user - user successfully removed from teams due to deactivation`);
+        } else {
+          logger.debug(`SCIM Update user - no teams configured for SCIM`);
+        }
+      }
 
       if (email || name) {
         const updateData: any = {};
