@@ -27,6 +27,7 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM ServiceProviderConfig request for projectScimId: ${req.params["projectScimId"]}`);
       const serviceProviderConfig = {
         schemas: ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"],
         documentationUri: "https://oneuptime.com/docs/scim",
@@ -67,6 +68,7 @@ router.get(
         },
       };
 
+      logger.debug("SCIM ServiceProviderConfig response prepared successfully");
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
     } catch (err) {
       logger.error(err);
@@ -81,6 +83,7 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM Users list request for projectScimId: ${req.params["projectScimId"]}`);
       const oneuptimeRequest = req as OneUptimeRequest;
       const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
       const projectId = bearerData["projectId"] as ObjectID;
@@ -89,6 +92,8 @@ router.get(
       const startIndex = parseInt((req.query["startIndex"] as string) || "1");
       const count = parseInt((req.query["count"] as string) || "20");
       const filter = req.query["filter"] as string;
+
+      logger.debug(`SCIM Users query params - startIndex: ${startIndex}, count: ${count}, filter: ${filter || 'none'}`);
 
       // Build query for team members in this project
       let query: any = {
@@ -101,6 +106,7 @@ router.get(
         const emailMatch = filter.match(/userName eq "([^"]+)"/i);
         if (emailMatch) {
           const email = emailMatch[1];
+          logger.debug(`SCIM Users filter by email: ${email}`);
           if (email) {
             const user = await UserService.findOneBy({
               query: { email: new Email(email) },
@@ -109,7 +115,9 @@ router.get(
             });
             if (user) {
               query.userId = user.id;
+              logger.debug(`SCIM Users filter - found user with id: ${user.id}`);
             } else {
+              logger.debug(`SCIM Users filter - user not found for email: ${email}`);
               return Response.sendJsonObjectResponse(req, res, {
                 schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
                 totalResults: 0,
@@ -121,6 +129,8 @@ router.get(
           }
         }
       }
+
+      logger.debug(`SCIM Users query built for projectId: ${projectId}`);
 
       // Get team members
       const teamMembers = await TeamMemberService.findBy({
@@ -144,6 +154,8 @@ router.get(
         query: query,
         props: { isRoot: true },
       });
+
+      logger.debug(`SCIM Users - found ${teamMembers.length} team members, total count: ${totalCount.toNumber()}`);
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const users = teamMembers
@@ -173,6 +185,8 @@ router.get(
           },
         }));
 
+      logger.debug(`SCIM Users response prepared with ${users.length} users`);
+
       return Response.sendJsonObjectResponse(req, res, {
         schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
         totalResults: totalCount.toNumber(),
@@ -193,6 +207,7 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM Get individual user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`);
       const oneuptimeRequest = req as OneUptimeRequest;
       const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
       const projectId = bearerData["projectId"] as ObjectID;
@@ -223,8 +238,11 @@ router.get(
       });
 
       if (!teamMember || !teamMember.user) {
+        logger.debug(`SCIM Get user - user not found or not part of project for userId: ${userId}`);
         throw new NotFoundException("User not found or not part of this project");
       }
+
+      logger.debug(`SCIM Get user - found user: ${teamMember.user.id}`);
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const user = {
@@ -266,6 +284,7 @@ router.put(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`);
       const oneuptimeRequest = req as OneUptimeRequest;
       const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
       const projectId = bearerData["projectId"] as ObjectID;
@@ -297,6 +316,7 @@ router.put(
       });
 
       if (!teamMember || !teamMember.user) {
+        logger.debug(`SCIM Update user - user not found or not part of project for userId: ${userId}`);
         throw new NotFoundException("User not found or not part of this project");
       }
 
@@ -304,16 +324,22 @@ router.put(
       const email = scimUser.userName || scimUser.emails?.[0]?.value;
       const name = scimUser.name?.formatted || scimUser.name?.givenName || scimUser.displayName;
 
+      logger.debug(`SCIM Update user - email: ${email}, name: ${name}`);
+
       if (email || name) {
         const updateData: any = {};
         if (email) updateData.email = new Email(email);
         if (name) updateData.name = new Name(name);
+
+        logger.debug(`SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`);
 
         await UserService.updateOneById({
           id: new ObjectID(userId),
           data: updateData,
           props: { isRoot: true },
         });
+
+        logger.debug(`SCIM Update user - user updated successfully`);
 
         // Fetch updated user
         const updatedUser = await UserService.findOneById({
@@ -359,6 +385,8 @@ router.put(
         }
       }
 
+      logger.debug(`SCIM Update user - no updates made, returning existing user`);
+
       // If no updates were made, return the existing user
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const user = {
@@ -400,9 +428,12 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM Groups list request for projectScimId: ${req.params["projectScimId"]}`);
       const oneuptimeRequest = req as OneUptimeRequest;
       const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
       const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+
+      logger.debug(`SCIM Groups - found ${scimConfig.teams?.length || 0} configured teams`);
 
       // Return configured teams as groups
       const groups = (scimConfig.teams || []).map((team: any) => ({
@@ -436,6 +467,7 @@ router.post(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM Create user request for projectScimId: ${req.params["projectScimId"]}`);
       const oneuptimeRequest = req as OneUptimeRequest;
       const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
       const projectId = bearerData["projectId"] as ObjectID;
@@ -448,6 +480,8 @@ router.post(
       const scimUser = req.body;
       const email = scimUser.userName || scimUser.emails?.[0]?.value;
       const name = scimUser.name?.formatted || scimUser.name?.givenName || scimUser.displayName;
+
+      logger.debug(`SCIM Create user - email: ${email}, name: ${name}`);
 
       if (!email) {
         throw new BadRequestException("userName or email is required");
@@ -462,6 +496,7 @@ router.post(
 
       // Create user if doesn't exist
       if (!user) {
+        logger.debug(`SCIM Create user - creating new user for email: ${email}`);
         user = await UserService.createByEmail({
           email: new Email(email),
           name: name ? new Name(name) : new Name("Unknown"),
@@ -469,10 +504,13 @@ router.post(
           generateRandomPassword: true,
           props: { isRoot: true },
         });
+      } else {
+        logger.debug(`SCIM Create user - user already exists with id: ${user.id}`);
       }
 
       // Add user to default teams if configured
       if (scimConfig.teams && scimConfig.teams.length > 0) {
+        logger.debug(`SCIM Create user - adding user to ${scimConfig.teams.length} configured teams`);
         for (const team of scimConfig.teams) {
           const existingMember = await TeamMemberService.findOneBy({
             query: {
@@ -485,6 +523,7 @@ router.post(
           });
 
           if (!existingMember) {
+            logger.debug(`SCIM Create user - adding user to team: ${team.id}`);
             let teamMember: TeamMember = new TeamMember();
             teamMember.projectId = projectId;
             teamMember.userId = user.id!;
@@ -499,6 +538,8 @@ router.post(
                 ignoreHooks: true,
               },
             });
+          } else {
+            logger.debug(`SCIM Create user - user already member of team: ${team.id}`);
           }
         }
       }
@@ -529,6 +570,8 @@ router.post(
         },
       };
 
+      logger.debug(`SCIM Create user - returning created user with id: ${user.id}`);
+
       res.status(201);
       return Response.sendJsonObjectResponse(req, res, createdUser);
     } catch (err) {
@@ -544,6 +587,7 @@ router.delete(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(`SCIM Delete user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`);
       const oneuptimeRequest = req as OneUptimeRequest;
       const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
       const projectId = bearerData["projectId"] as ObjectID;
@@ -551,12 +595,15 @@ router.delete(
       const userId = req.params["userId"];
 
       if (!scimConfig.autoDeprovisionUsers) {
+        logger.debug("SCIM Delete user - auto-deprovisioning is disabled");
         throw new BadRequestException("Auto-deprovisioning is disabled for this project");
       }
 
       if (!userId) {
         throw new BadRequestException("User ID is required");
       }
+
+      logger.debug(`SCIM Delete user - removing user from all teams in project: ${projectId}`);
 
       // Remove user from all teams in this project
       await TeamMemberService.deleteBy({
@@ -568,6 +615,8 @@ router.delete(
         skip: 0,
         props: { isRoot: true },
       });
+
+      logger.debug(`SCIM Delete user - user successfully deprovisioned from project`);
 
       res.status(204);
       return Response.sendJsonObjectResponse(req, res, { message: "User deprovisioned" });
