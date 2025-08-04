@@ -21,8 +21,131 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import User from "Common/Models/DatabaseModels/User";
 
 const router = Express.getRouter();
+
+// Utility functions
+const parseNameFromSCIM = (scimUser: JSONObject): string => {
+  const givenName = (scimUser["name"] as JSONObject)?.["givenName"] as string || "";
+  const familyName = (scimUser["name"] as JSONObject)?.["familyName"] as string || "";
+  const formattedName = (scimUser["name"] as JSONObject)?.["formatted"] as string;
+  
+  // Construct full name: prefer formatted, then combine given+family, then fallback to displayName
+  if (formattedName) {
+    return formattedName;
+  } else if (givenName || familyName) {
+    return `${givenName} ${familyName}`.trim();
+  } else if (scimUser["displayName"]) {
+    return scimUser["displayName"] as string;
+  }
+  return "";
+};
+
+const parseNameToSCIMFormat = (fullName: string): { givenName: string; familyName: string; formatted: string } => {
+  const nameParts = fullName.trim().split(/\s+/);
+  const givenName = nameParts[0] || "";
+  const familyName = nameParts.slice(1).join(" ") || "";
+  
+  return {
+    givenName,
+    familyName,
+    formatted: fullName
+  };
+};
+
+const formatUserForSCIM = (user: User, req: ExpressRequest): JSONObject => {
+  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const nameData = parseNameToSCIMFormat(user.name?.toString() || "");
+  
+  return {
+    schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
+    id: user.id?.toString(),
+    userName: user.email?.toString(),
+    name: {
+      formatted: nameData.formatted,
+      familyName: nameData.familyName,
+      givenName: nameData.givenName,
+    },
+    emails: [
+      {
+        value: user.email?.toString(),
+        type: "work",
+        primary: true,
+      },
+    ],
+    active: true,
+    meta: {
+      resourceType: "User",
+      created: user.createdAt?.toISOString(),
+      lastModified: user.updatedAt?.toISOString(),
+      location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${user.id?.toString()}`,
+    },
+  };
+};
+
+const handleUserTeamOperations = async (
+  operation: 'add' | 'remove',
+  projectId: ObjectID,
+  userId: ObjectID,
+  scimConfig: ProjectSCIM
+): Promise<void> => {
+  const teamsIds: Array<ObjectID> = scimConfig.teams?.map((team: any) => team.id) || [];
+  
+  if (teamsIds.length === 0) {
+    logger.debug(`SCIM Team operations - no teams configured for SCIM`);
+    return;
+  }
+
+  if (operation === 'add') {
+    logger.debug(`SCIM Team operations - adding user to ${teamsIds.length} configured teams`);
+    
+    for (const team of scimConfig.teams || []) {
+      const existingMember = await TeamMemberService.findOneBy({
+        query: {
+          projectId: projectId,
+          userId: userId,
+          teamId: team.id!,
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (!existingMember) {
+        logger.debug(`SCIM Team operations - adding user to team: ${team.id}`);
+        let teamMember: TeamMember = new TeamMember();
+        teamMember.projectId = projectId;
+        teamMember.userId = userId;
+        teamMember.teamId = team.id!;
+        teamMember.hasAcceptedInvitation = true;
+        teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+
+        await TeamMemberService.create({
+          data: teamMember,
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      } else {
+        logger.debug(`SCIM Team operations - user already member of team: ${team.id}`);
+      }
+    }
+  } else if (operation === 'remove') {
+    logger.debug(`SCIM Team operations - removing user from ${teamsIds.length} configured teams`);
+    
+    await TeamMemberService.deleteBy({
+      query: {
+        projectId: projectId,
+        userId: userId,
+        teamId: QueryHelper.any(teamsIds),
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: { isRoot: true },
+    });
+  }
+};
 
 // SCIM Service Provider Configuration - GET /scim/v2/ServiceProviderConfig
 router.get(
@@ -167,37 +290,7 @@ router.get(
       // now get unique users. 
       const usersInProjects: Array<JSONObject> = teamMembers
         .filter((tm: TeamMember) => tm.user && tm.user.id)
-        .map((tm: TeamMember) => {
-          // Parse the stored name back into given and family name
-          const fullName = tm.user!.name?.toString() || "";
-          const nameParts = fullName.trim().split(/\s+/);
-          const responseGivenName = nameParts[0] || "";
-          const responseFamilyName = nameParts.slice(1).join(" ") || "";
-          
-          return {
-            id: tm.user!.id?.toString(),
-            userName: tm.user!.email?.toString(),
-            name: {
-              formatted: fullName,
-              familyName: responseFamilyName,
-              givenName: responseGivenName,
-            },
-            emails: [
-              {
-                value: tm.user!.email?.toString(),
-                type: "work",
-                primary: true,
-              },
-            ],
-            active: true,
-            meta: {
-              resourceType: "User",
-              created: tm.user!.createdAt?.toISOString(),
-              lastModified: tm.user!.updatedAt?.toISOString(),
-              location: `${req.protocol}://${req.get("host")}/scim/v2/${req.params["projectScimId"]}/Users/${tm.user!.id!.toString()}`,
-            },
-          };
-        });
+        .map((tm: TeamMember) => formatUserForSCIM(tm.user!, req));
 
         // remove duplicates
       const uniqueUserIds = new Set<string>();
@@ -283,38 +376,7 @@ router.get(
 
       logger.debug(`SCIM Get user - found user: ${projectUser.user.id}`);
 
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      
-      // Parse the stored name back into given and family name
-      const fullName = projectUser.user.name?.toString() || "";
-      const nameParts = fullName.trim().split(/\s+/);
-      const responseGivenName = nameParts[0] || "";
-      const responseFamilyName = nameParts.slice(1).join(" ") || "";
-      
-      const user = {
-        schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-        id: projectUser.user.id?.toString(),
-        userName: projectUser.user.email?.toString(),
-        name: {
-          formatted: fullName,
-          familyName: responseFamilyName,
-          givenName: responseGivenName,
-        },
-        emails: [
-          {
-            value: projectUser.user.email?.toString(),
-            type: "work",
-            primary: true,
-          },
-        ],
-        active: true,
-        meta: {
-          resourceType: "User",
-          created: projectUser.user.createdAt?.toISOString(),
-          lastModified: projectUser.user.updatedAt?.toISOString(),
-          location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${projectUser.user.id?.toString()}`,
-        },
-      };
+      const user = formatUserForSCIM(projectUser.user, req);
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
@@ -381,98 +443,26 @@ router.put(
       }
 
       // Update user information
-      const email = scimUser.userName || scimUser.emails?.[0]?.value;
-      const givenName = scimUser.name?.givenName || "";
-      const familyName = scimUser.name?.familyName || "";
-      const formattedName = scimUser.name?.formatted;
-      
-      // Construct full name: prefer formatted, then combine given+family, then fallback to displayName
-      let name = "";
-      if (formattedName) {
-        name = formattedName;
-      } else if (givenName || familyName) {
-        name = `${givenName} ${familyName}`.trim();
-      } else if (scimUser.displayName) {
-        name = scimUser.displayName;
-      }
-      
-      const active = scimUser.active;
+      const email = scimUser["userName"] as string || (scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string;
+      const name = parseNameFromSCIM(scimUser);
+      const active = scimUser["active"] as boolean;
 
-      logger.debug(`SCIM Update user - email: ${email}, givenName: ${givenName}, familyName: ${familyName}, name: ${name}, active: ${active}`);
+      logger.debug(`SCIM Update user - email: ${email}, name: ${name}, active: ${active}`);
 
       // Handle user deactivation by removing from teams
       if (active === false) {
         logger.debug(`SCIM Update user - user marked as inactive, removing from teams`);
-        
         const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
-        const teamsIds: Array<ObjectID> = scimConfig.teams?.map(
-          (team: any) => team.id
-        ) || [];
-
-        if (teamsIds.length > 0) {
-          logger.debug(`SCIM Update user - removing user from ${teamsIds.length} configured teams`);
-          
-          await TeamMemberService.deleteBy({
-            query: {
-              projectId: projectId,
-              userId: new ObjectID(userId),
-              teamId: QueryHelper.any(teamsIds),
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            props: { isRoot: true },
-          });
-
-          logger.debug(`SCIM Update user - user successfully removed from teams due to deactivation`);
-        } else {
-          logger.debug(`SCIM Update user - no teams configured for SCIM`);
-        }
+        await handleUserTeamOperations('remove', projectId, new ObjectID(userId), scimConfig);
+        logger.debug(`SCIM Update user - user successfully removed from teams due to deactivation`);
       }
 
       // Handle user activation by adding to teams
       if (active === true) {
         logger.debug(`SCIM Update user - user marked as active, adding to teams`);
-        
         const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
-        
-        // Add user to default teams if configured
-        if (scimConfig.teams && scimConfig.teams.length > 0) {
-          logger.debug(`SCIM Update user - adding user to ${scimConfig.teams.length} configured teams`);
-          
-          for (const team of scimConfig.teams) {
-            const existingMember = await TeamMemberService.findOneBy({
-              query: {
-                projectId: projectId,
-                userId: new ObjectID(userId),
-                teamId: team.id!,
-              },
-              select: { _id: true },
-              props: { isRoot: true },
-            });
-
-            if (!existingMember) {
-              logger.debug(`SCIM Update user - adding user to team: ${team.id}`);
-              let teamMember: TeamMember = new TeamMember();
-              teamMember.projectId = projectId;
-              teamMember.userId = new ObjectID(userId);
-              teamMember.teamId = team.id!;
-              teamMember.hasAcceptedInvitation = true;
-              teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-
-              await TeamMemberService.create({
-                data: teamMember,
-                props: {
-                  isRoot: true,
-                  ignoreHooks: true,
-                },
-              });
-            } else {
-              logger.debug(`SCIM Update user - user already member of team: ${team.id}`);
-            }
-          }
-        } else {
-          logger.debug(`SCIM Update user - no teams configured for SCIM activation`);
-        }
+        await handleUserTeamOperations('add', projectId, new ObjectID(userId), scimConfig);
+        logger.debug(`SCIM Update user - user successfully added to teams due to activation`);
       }
 
       if (email || name) {
@@ -506,39 +496,7 @@ router.put(
         });
 
         if (updatedUser) {
-          const baseUrl = `${req.protocol}://${req.get("host")}`;
-          
-          // Parse the stored name back into given and family name
-          const fullName = updatedUser.name?.toString() || "";
-          const nameParts = fullName.trim().split(/\s+/);
-          const responseGivenName = nameParts[0] || "";
-          const responseFamilyName = nameParts.slice(1).join(" ") || "";
-          
-          const user = {
-            schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-            id: updatedUser.id?.toString(),
-            userName: updatedUser.email?.toString(),
-            name: {
-              formatted: fullName,
-              familyName: responseFamilyName,
-              givenName: responseGivenName,
-            },
-            emails: [
-              {
-                value: updatedUser.email?.toString(),
-                type: "work",
-                primary: true,
-              },
-            ],
-            active: true,
-            meta: {
-              resourceType: "User",
-              created: updatedUser.createdAt?.toISOString(),
-              lastModified: updatedUser.updatedAt?.toISOString(),
-              location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${updatedUser.id?.toString()}`,
-            },
-          };
-
+          const user = formatUserForSCIM(updatedUser, req);
           return Response.sendJsonObjectResponse(req, res, user);
         }
       }
@@ -548,38 +506,7 @@ router.put(
       );
 
       // If no updates were made, return the existing user
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      
-      // Parse the stored name back into given and family name
-      const fullName = projectUser.user.name?.toString() || "";
-      const nameParts = fullName.trim().split(/\s+/);
-      const responseGivenName = nameParts[0] || "";
-      const responseFamilyName = nameParts.slice(1).join(" ") || "";
-      
-      const user = {
-        schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-        id: projectUser.user.id?.toString(),
-        userName: projectUser.user.email?.toString(),
-        name: {
-          formatted: fullName,
-          familyName: responseFamilyName,
-          givenName: responseGivenName,
-        },
-        emails: [
-          {
-            value: projectUser.user.email?.toString(),
-            type: "work",
-            primary: true,
-          },
-        ],
-        active: true,
-        meta: {
-          resourceType: "User",
-          created: projectUser.user.createdAt?.toISOString(),
-          lastModified: projectUser.user.updatedAt?.toISOString(),
-          location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${projectUser.user.id?.toString()}`,
-        },
-      };
+      const user = formatUserForSCIM(projectUser.user, req);
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
@@ -653,22 +580,10 @@ router.post(
       }
 
       const scimUser = req.body;
-      const email = scimUser.userName || scimUser.emails?.[0]?.value;
-      const givenName = scimUser.name?.givenName || "";
-      const familyName = scimUser.name?.familyName || "";
-      const formattedName = scimUser.name?.formatted;
-      
-      // Construct full name: prefer formatted, then combine given+family, then fallback to displayName
-      let name = "";
-      if (formattedName) {
-        name = formattedName;
-      } else if (givenName || familyName) {
-        name = `${givenName} ${familyName}`.trim();
-      } else if (scimUser.displayName) {
-        name = scimUser.displayName;
-      }
+      const email = scimUser["userName"] as string || (scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string;
+      const name = parseNameFromSCIM(scimUser);
 
-      logger.debug(`SCIM Create user - email: ${email}, givenName: ${givenName}, familyName: ${familyName}, name: ${name}`);
+      logger.debug(`SCIM Create user - email: ${email}, name: ${name}`);
 
       if (!email) {
         throw new BadRequestException("userName or email is required");
@@ -710,73 +625,10 @@ router.post(
         logger.debug(
           `SCIM Create user - adding user to ${scimConfig.teams.length} configured teams`
         );
-        for (const team of scimConfig.teams) {
-          const existingMember = await TeamMemberService.findOneBy({
-            query: {
-              projectId: projectId,
-              userId: user.id!,
-              teamId: team.id!,
-            },
-            select: { _id: true },
-            props: { isRoot: true },
-          });
-
-          if (!existingMember) {
-            logger.debug(`SCIM Create user - adding user to team: ${team.id}`);
-            let teamMember: TeamMember = new TeamMember();
-            teamMember.projectId = projectId;
-            teamMember.userId = user.id!;
-            teamMember.teamId = team.id!;
-            teamMember.hasAcceptedInvitation = true;
-            teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-
-            await TeamMemberService.create({
-              data: teamMember,
-              props: {
-                isRoot: true,
-                ignoreHooks: true,
-              },
-            });
-          } else {
-            logger.debug(
-              `SCIM Create user - user already member of team: ${team.id}`
-            );
-          }
-        }
+        await handleUserTeamOperations('add', projectId, user.id!, scimConfig);
       }
 
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      
-      // Parse the stored name back into given and family name
-      const fullName = user.name?.toString() || "";
-      const nameParts = fullName.trim().split(/\s+/);
-      const responseGivenName = nameParts[0] || "";
-      const responseFamilyName = nameParts.slice(1).join(" ") || "";
-      
-      const createdUser = {
-        schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-        id: user.id?.toString(),
-        userName: user.email?.toString(),
-        name: {
-          formatted: fullName,
-          familyName: responseFamilyName,
-          givenName: responseGivenName,
-        },
-        emails: [
-          {
-            value: user.email?.toString(),
-            type: "work",
-            primary: true,
-          },
-        ],
-        active: true,
-        meta: {
-          resourceType: "User",
-          created: user.createdAt?.toISOString(),
-          lastModified: user.updatedAt?.toISOString(),
-          location: `${baseUrl}/scim/v2/${req.params["projectScimId"]}/Users/${user.id?.toString()}`,
-        },
-      };
+      const createdUser = formatUserForSCIM(user, req);
 
       logger.debug(
         `SCIM Create user - returning created user with id: ${user.id}`
@@ -821,30 +673,13 @@ router.delete(
         `SCIM Delete user - removing user from all teams in project: ${projectId}`
       );
 
-     // remove user from teams the SCIM configured
-
-     const teamsIds: Array<ObjectID> = scimConfig.teams?.map(
-        (team: any) => team.id
-      ) || [];
-
-      if (teamsIds.length === 0) {
+      // Remove user from teams the SCIM configured
+      if (!scimConfig.teams || scimConfig.teams.length === 0) {
         logger.debug("SCIM Delete user - no teams configured for SCIM");
         throw new BadRequestException("No teams configured for SCIM");
       }
 
-      // Remove user from teamsIds teams in the project
-
-      await TeamMemberService.deleteBy({
-        query: {
-          projectId: projectId,
-          userId: new ObjectID(userId),
-          teamId: QueryHelper.any(teamsIds),
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: { isRoot: true },
-      });
-
+      await handleUserTeamOperations('remove', projectId, new ObjectID(userId), scimConfig);
 
       logger.debug(
         `SCIM Delete user - user successfully deprovisioned from project`
