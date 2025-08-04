@@ -335,37 +335,6 @@ export default class ProjectSCIM extends BaseModel {
   public autoDeprovisionUsers?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.ReadProjectSSO,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Enabled",
-    description: "Is this SCIM configuration enabled?",
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public isEnabled?: boolean = undefined;
-
-  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

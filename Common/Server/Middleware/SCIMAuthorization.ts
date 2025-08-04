@@ -54,7 +54,6 @@ export default class SCIMMiddleware {
         query: {
           _id: new ObjectID(projectScimId),
           bearerToken: bearerToken,
-          isEnabled: true,
         },
         select: {
           _id: true,

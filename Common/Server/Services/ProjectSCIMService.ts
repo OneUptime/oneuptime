@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/ProjectSCIM";
-import Text from "../../Types/Text";
+import ObjectID from "../../Types/ObjectID";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -14,7 +14,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.bearerToken) {
       // Generate a secure bearer token if not provided
-      createBy.data.bearerToken = "scim_" + Text.generateRandomText(32);
+      createBy.data.bearerToken = ObjectID.generate().toString();
     }
 
     return {
