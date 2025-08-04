@@ -231,7 +231,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             },
             {
               title: "Reset Bearer Token",
-              buttonStyleType: ButtonStyleType.LINK,
+              buttonStyleType: ButtonStyleType.OUTLINE,
               icon: IconProp.Refresh,
               onClick: async (
                 item: ProjectSCIM,
