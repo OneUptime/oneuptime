@@ -146,6 +146,7 @@ import { MigrationName1753343522987 } from "./1753343522987-MigrationName";
 import { MigrationName1753377161288 } from "./1753377161288-MigrationName";
 import { AddPerformanceIndexes1753378524062 } from "./1753378524062-AddPerformanceIndexes";
 import { MigrationName1753383711511 } from "./1753383711511-MigrationName";
+import { MigrationName1754304193228 } from "./1754304193228-MigrationName";
 
 export default [
   InitialMigration,
@@ -296,4 +297,5 @@ export default [
   MigrationName1753377161288,
   AddPerformanceIndexes1753378524062,
   MigrationName1753383711511,
+  MigrationName1754304193228
 ];
