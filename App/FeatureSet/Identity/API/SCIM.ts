@@ -27,6 +27,9 @@ const router = Express.getRouter();
 
 // Utility functions
 const parseNameFromSCIM = (scimUser: JSONObject): string => {
+
+  logger.debug(`Parsing name from SCIM user: ${JSON.stringify(scimUser, null, 2)}`);
+
   const givenName = (scimUser["name"] as JSONObject)?.["givenName"] as string || "";
   const familyName = (scimUser["name"] as JSONObject)?.["familyName"] as string || "";
   const formattedName = (scimUser["name"] as JSONObject)?.["formatted"] as string;
