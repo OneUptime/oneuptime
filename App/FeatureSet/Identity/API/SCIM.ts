@@ -167,29 +167,37 @@ router.get(
       // now get unique users. 
       const usersInProjects: Array<JSONObject> = teamMembers
         .filter((tm: TeamMember) => tm.user && tm.user.id)
-        .map((tm: TeamMember) => ({
-          id: tm.user!.id?.toString(),
-          userName: tm.user!.email?.toString(),
-          name: {
-            formatted: tm.user!.name?.toString() || "",
-            familyName: "",
-            givenName: tm.user!.name?.toString() || "",
-          },
-          emails: [
-            {
-              value: tm.user!.email?.toString(),
-              type: "work",
-              primary: true,
+        .map((tm: TeamMember) => {
+          // Parse the stored name back into given and family name
+          const fullName = tm.user!.name?.toString() || "";
+          const nameParts = fullName.trim().split(/\s+/);
+          const responseGivenName = nameParts[0] || "";
+          const responseFamilyName = nameParts.slice(1).join(" ") || "";
+          
+          return {
+            id: tm.user!.id?.toString(),
+            userName: tm.user!.email?.toString(),
+            name: {
+              formatted: fullName,
+              familyName: responseFamilyName,
+              givenName: responseGivenName,
             },
-          ],
-          active: true,
-          meta: {
-            resourceType: "User",
-            created: tm.user!.createdAt?.toISOString(),
-            lastModified: tm.user!.updatedAt?.toISOString(),
-            location: `${req.protocol}://${req.get("host")}/scim/v2/${req.params["projectScimId"]}/Users/${tm.user!.id!.toString()}`,
-          },
-        }));
+            emails: [
+              {
+                value: tm.user!.email?.toString(),
+                type: "work",
+                primary: true,
+              },
+            ],
+            active: true,
+            meta: {
+              resourceType: "User",
+              created: tm.user!.createdAt?.toISOString(),
+              lastModified: tm.user!.updatedAt?.toISOString(),
+              location: `${req.protocol}://${req.get("host")}/scim/v2/${req.params["projectScimId"]}/Users/${tm.user!.id!.toString()}`,
+            },
+          };
+        });
 
         // remove duplicates
       const uniqueUserIds = new Set<string>();
@@ -276,14 +284,21 @@ router.get(
       logger.debug(`SCIM Get user - found user: ${projectUser.user.id}`);
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
+      
+      // Parse the stored name back into given and family name
+      const fullName = projectUser.user.name?.toString() || "";
+      const nameParts = fullName.trim().split(/\s+/);
+      const responseGivenName = nameParts[0] || "";
+      const responseFamilyName = nameParts.slice(1).join(" ") || "";
+      
       const user = {
         schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
         id: projectUser.user.id?.toString(),
         userName: projectUser.user.email?.toString(),
         name: {
-          formatted: projectUser.user.name?.toString() || "",
-          familyName: "",
-          givenName: projectUser.user.name?.toString() || "",
+          formatted: fullName,
+          familyName: responseFamilyName,
+          givenName: responseGivenName,
         },
         emails: [
           {
@@ -367,13 +382,23 @@ router.put(
 
       // Update user information
       const email = scimUser.userName || scimUser.emails?.[0]?.value;
-      const name =
-        scimUser.name?.formatted ||
-        scimUser.name?.givenName ||
-        scimUser.displayName;
+      const givenName = scimUser.name?.givenName || "";
+      const familyName = scimUser.name?.familyName || "";
+      const formattedName = scimUser.name?.formatted;
+      
+      // Construct full name: prefer formatted, then combine given+family, then fallback to displayName
+      let name = "";
+      if (formattedName) {
+        name = formattedName;
+      } else if (givenName || familyName) {
+        name = `${givenName} ${familyName}`.trim();
+      } else if (scimUser.displayName) {
+        name = scimUser.displayName;
+      }
+      
       const active = scimUser.active;
 
-      logger.debug(`SCIM Update user - email: ${email}, name: ${name}, active: ${active}`);
+      logger.debug(`SCIM Update user - email: ${email}, givenName: ${givenName}, familyName: ${familyName}, name: ${name}, active: ${active}`);
 
       // Handle user deactivation by removing from teams
       if (active === false) {
@@ -482,14 +507,21 @@ router.put(
 
         if (updatedUser) {
           const baseUrl = `${req.protocol}://${req.get("host")}`;
+          
+          // Parse the stored name back into given and family name
+          const fullName = updatedUser.name?.toString() || "";
+          const nameParts = fullName.trim().split(/\s+/);
+          const responseGivenName = nameParts[0] || "";
+          const responseFamilyName = nameParts.slice(1).join(" ") || "";
+          
           const user = {
             schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
             id: updatedUser.id?.toString(),
             userName: updatedUser.email?.toString(),
             name: {
-              formatted: updatedUser.name?.toString() || "",
-              familyName: "",
-              givenName: updatedUser.name?.toString() || "",
+              formatted: fullName,
+              familyName: responseFamilyName,
+              givenName: responseGivenName,
             },
             emails: [
               {
@@ -517,14 +549,21 @@ router.put(
 
       // If no updates were made, return the existing user
       const baseUrl = `${req.protocol}://${req.get("host")}`;
+      
+      // Parse the stored name back into given and family name
+      const fullName = projectUser.user.name?.toString() || "";
+      const nameParts = fullName.trim().split(/\s+/);
+      const responseGivenName = nameParts[0] || "";
+      const responseFamilyName = nameParts.slice(1).join(" ") || "";
+      
       const user = {
         schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
         id: projectUser.user.id?.toString(),
         userName: projectUser.user.email?.toString(),
         name: {
-          formatted: projectUser.user.name?.toString() || "",
-          familyName: "",
-          givenName: projectUser.user.name?.toString() || "",
+          formatted: fullName,
+          familyName: responseFamilyName,
+          givenName: responseGivenName,
         },
         emails: [
           {
@@ -615,12 +654,21 @@ router.post(
 
       const scimUser = req.body;
       const email = scimUser.userName || scimUser.emails?.[0]?.value;
-      const name =
-        scimUser.name?.formatted ||
-        scimUser.name?.givenName ||
-        scimUser.displayName;
+      const givenName = scimUser.name?.givenName || "";
+      const familyName = scimUser.name?.familyName || "";
+      const formattedName = scimUser.name?.formatted;
+      
+      // Construct full name: prefer formatted, then combine given+family, then fallback to displayName
+      let name = "";
+      if (formattedName) {
+        name = formattedName;
+      } else if (givenName || familyName) {
+        name = `${givenName} ${familyName}`.trim();
+      } else if (scimUser.displayName) {
+        name = scimUser.displayName;
+      }
 
-      logger.debug(`SCIM Create user - email: ${email}, name: ${name}`);
+      logger.debug(`SCIM Create user - email: ${email}, givenName: ${givenName}, familyName: ${familyName}, name: ${name}`);
 
       if (!email) {
         throw new BadRequestException("userName or email is required");
@@ -698,14 +746,21 @@ router.post(
       }
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
+      
+      // Parse the stored name back into given and family name
+      const fullName = user.name?.toString() || "";
+      const nameParts = fullName.trim().split(/\s+/);
+      const responseGivenName = nameParts[0] || "";
+      const responseFamilyName = nameParts.slice(1).join(" ") || "";
+      
       const createdUser = {
         schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
         id: user.id?.toString(),
         userName: user.email?.toString(),
         name: {
-          formatted: user.name?.toString() || "",
-          familyName: "",
-          givenName: user.name?.toString() || "",
+          formatted: fullName,
+          familyName: responseFamilyName,
+          givenName: responseGivenName,
         },
         emails: [
           {
