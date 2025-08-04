@@ -91,7 +91,7 @@ app.set("view engine", "ejs");
 
 // Handle SCIM content type before JSON middleware
 app.use((req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
-  const contentType = req.headers["content-type"];
+  const contentType: string | undefined = req.headers["content-type"];
   if (contentType && contentType.includes("application/scim+json")) {
     // Set content type to application/json so express.json() can parse it
     req.headers["content-type"] = "application/json";

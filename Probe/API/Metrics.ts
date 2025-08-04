@@ -59,7 +59,7 @@ router.get(
       // if string then convert to number
 
       if (typeof queueSize === "string") {
-        const parsedQueueSize = parseInt(queueSize, 10);
+        const parsedQueueSize: number = parseInt(queueSize, 10);
         if (!isNaN(parsedQueueSize)) {
           queueSize = parsedQueueSize;
         } else {

@@ -221,8 +221,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               buttonStyleType: ButtonStyleType.NORMAL,
               onClick: async (
                 item: ProjectSCIM,
-                onCompleteAction: Function,
-                _onError: Function,
+                onCompleteAction: () => void,
+                _onError: (error: Error) => void,
               ) => {
                 onCompleteAction();
                 setCurrentSCIMConfig(item);
@@ -235,8 +235,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               icon: IconProp.Refresh,
               onClick: async (
                 item: ProjectSCIM,
-                onCompleteAction: Function,
-                _onError: Function,
+                onCompleteAction: () => void,
+                _onError: (error: Error) => void,
               ) => {
                 onCompleteAction();
                 setResetSCIMId(item.id?.toString() || "");

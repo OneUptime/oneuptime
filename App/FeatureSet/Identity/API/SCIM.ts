@@ -4,6 +4,7 @@ import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
@@ -23,19 +24,21 @@ import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import User from "Common/Models/DatabaseModels/User";
 
-const router = Express.getRouter();
+const router: ExpressRouter = Express.getRouter();
 
 // Utility functions
-const parseNameFromSCIM = (scimUser: JSONObject): string => {
+const parseNameFromSCIM: (scimUser: JSONObject) => string = (
+  scimUser: JSONObject,
+): string => {
   logger.debug(
     `Parsing name from SCIM user: ${JSON.stringify(scimUser, null, 2)}`,
   );
 
-  const givenName =
+  const givenName: string =
     ((scimUser["name"] as JSONObject)?.["givenName"] as string) || "";
-  const familyName =
+  const familyName: string =
     ((scimUser["name"] as JSONObject)?.["familyName"] as string) || "";
-  const formattedName = (scimUser["name"] as JSONObject)?.[
+  const formattedName: string = (scimUser["name"] as JSONObject)?.[
     "formatted"
   ] as string;
 
@@ -50,12 +53,16 @@ const parseNameFromSCIM = (scimUser: JSONObject): string => {
   return "";
 };
 
-const parseNameToSCIMFormat = (
+const parseNameToSCIMFormat: (fullName: string) => {
+  givenName: string;
+  familyName: string;
+  formatted: string;
+} = (
   fullName: string,
 ): { givenName: string; familyName: string; formatted: string } => {
-  const nameParts = fullName.trim().split(/\s+/);
-  const givenName = nameParts[0] || "";
-  const familyName = nameParts.slice(1).join(" ") || "";
+  const nameParts: string[] = fullName.trim().split(/\s+/);
+  const givenName: string = nameParts[0] || "";
+  const familyName: string = nameParts.slice(1).join(" ") || "";
 
   return {
     givenName,
@@ -65,8 +72,9 @@ const parseNameToSCIMFormat = (
 };
 
 const formatUserForSCIM = (user: User, req: ExpressRequest): JSONObject => {
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const nameData = parseNameToSCIMFormat(user.name?.toString() || "");
+  const baseUrl: string = `${req.protocol}://${req.get("host")}`;
+  const nameData: { givenName: string; familyName: string; formatted: string } =
+    parseNameToSCIMFormat(user.name?.toString() || "");
 
   return {
     schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -116,15 +124,16 @@ const handleUserTeamOperations = async (
     );
 
     for (const team of scimConfig.teams || []) {
-      const existingMember = await TeamMemberService.findOneBy({
-        query: {
-          projectId: projectId,
-          userId: userId,
-          teamId: team.id!,
-        },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
+      const existingMember: TeamMember | null =
+        await TeamMemberService.findOneBy({
+          query: {
+            projectId: projectId,
+            userId: userId,
+            teamId: team.id!,
+          },
+          select: { _id: true },
+          props: { isRoot: true },
+        });
 
       if (!existingMember) {
         logger.debug(`SCIM Team operations - adding user to team: ${team.id}`);
@@ -175,7 +184,7 @@ router.get(
       logger.debug(
         `SCIM ServiceProviderConfig request for projectScimId: ${req.params["projectScimId"]}`,
       );
-      const serviceProviderConfig = {
+      const serviceProviderConfig: JSONObject = {
         schemas: [
           "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig",
         ],
@@ -235,14 +244,17 @@ router.get(
       logger.debug(
         `SCIM Users list request for projectScimId: ${req.params["projectScimId"]}`,
       );
-      const oneuptimeRequest = req as OneUptimeRequest;
-      const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
-      const projectId = bearerData["projectId"] as ObjectID;
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
 
       // Parse query parameters
-      const startIndex = parseInt((req.query["startIndex"] as string) || "1");
-      const count = parseInt((req.query["count"] as string) || "20");
-      const filter = req.query["filter"] as string;
+      const startIndex: number = parseInt(
+        (req.query["startIndex"] as string) || "1",
+      );
+      const count: number = parseInt((req.query["count"] as string) || "20");
+      const filter: string = req.query["filter"] as string;
 
       logger.debug(
         `SCIM Users query params - startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
@@ -255,12 +267,14 @@ router.get(
 
       // Handle SCIM filter for userName
       if (filter) {
-        const emailMatch = filter.match(/userName eq "([^"]+)"/i);
+        const emailMatch: RegExpMatchArray | null = filter.match(
+          /userName eq "([^"]+)"/i,
+        );
         if (emailMatch) {
-          const email = emailMatch[1];
+          const email: string = emailMatch[1]!;
           logger.debug(`SCIM Users filter by email: ${email}`);
           if (email) {
-            const user = await UserService.findOneBy({
+            const user: User | null = await UserService.findOneBy({
               query: { email: new Email(email) },
               select: { _id: true },
               props: { isRoot: true },
@@ -316,7 +330,7 @@ router.get(
         });
 
       // remove duplicates
-      const uniqueUserIds = new Set<string>();
+      const uniqueUserIds: Set<string> = new Set<string>();
       const users: Array<JSONObject> = usersInProjects.filter(
         (user: JSONObject) => {
           if (uniqueUserIds.has(user["id"]?.toString() || "")) {
@@ -328,7 +342,7 @@ router.get(
       );
 
       // now paginate the results
-      const paginatedUsers = users.slice(
+      const paginatedUsers: Array<JSONObject> = users.slice(
         (startIndex - 1) * count,
         startIndex * count,
       );
@@ -358,10 +372,11 @@ router.get(
       logger.debug(
         `SCIM Get individual user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );
-      const oneuptimeRequest = req as OneUptimeRequest;
-      const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
-      const projectId = bearerData["projectId"] as ObjectID;
-      const userId = req.params["userId"];
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const userId: string = req.params["userId"]!;
 
       logger.debug(
         `SCIM Get user - projectId: ${projectId}, userId: ${userId}`,
@@ -401,7 +416,7 @@ router.get(
 
       logger.debug(`SCIM Get user - found user: ${projectUser.user.id}`);
 
-      const user = formatUserForSCIM(projectUser.user, req);
+      const user: JSONObject = formatUserForSCIM(projectUser.user, req);
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
@@ -420,11 +435,12 @@ router.put(
       logger.debug(
         `SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );
-      const oneuptimeRequest = req as OneUptimeRequest;
-      const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
-      const projectId = bearerData["projectId"] as ObjectID;
-      const userId = req.params["userId"];
-      const scimUser = req.body;
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const userId: string = req.params["userId"]!;
+      const scimUser: JSONObject = req.body;
 
       logger.debug(
         `SCIM Update user - projectId: ${projectId}, userId: ${userId}`,
@@ -467,11 +483,11 @@ router.put(
       }
 
       // Update user information
-      const email =
+      const email: string =
         (scimUser["userName"] as string) ||
         ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-      const name = parseNameFromSCIM(scimUser);
-      const active = scimUser["active"] as boolean;
+      const name: string = parseNameFromSCIM(scimUser);
+      const active: boolean = scimUser["active"] as boolean;
 
       logger.debug(
         `SCIM Update user - email: ${email}, name: ${name}, active: ${active}`,
@@ -482,7 +498,7 @@ router.put(
         logger.debug(
           `SCIM Update user - user marked as inactive, removing from teams`,
         );
-        const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+        const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
         await handleUserTeamOperations(
           "remove",
           projectId,
@@ -499,7 +515,7 @@ router.put(
         logger.debug(
           `SCIM Update user - user marked as active, adding to teams`,
         );
-        const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+        const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
         await handleUserTeamOperations(
           "add",
           projectId,
@@ -533,7 +549,7 @@ router.put(
         logger.debug(`SCIM Update user - user updated successfully`);
 
         // Fetch updated user
-        const updatedUser = await UserService.findOneById({
+        const updatedUser: User | null = await UserService.findOneById({
           id: new ObjectID(userId),
           select: {
             _id: true,
@@ -546,7 +562,7 @@ router.put(
         });
 
         if (updatedUser) {
-          const user = formatUserForSCIM(updatedUser, req);
+          const user: JSONObject = formatUserForSCIM(updatedUser, req);
           return Response.sendJsonObjectResponse(req, res, user);
         }
       }
@@ -556,7 +572,7 @@ router.put(
       );
 
       // If no updates were made, return the existing user
-      const user = formatUserForSCIM(projectUser.user, req);
+      const user: JSONObject = formatUserForSCIM(projectUser.user, req);
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
@@ -575,16 +591,17 @@ router.get(
       logger.debug(
         `SCIM Groups list request for projectScimId: ${req.params["projectScimId"]}`,
       );
-      const oneuptimeRequest = req as OneUptimeRequest;
-      const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
-      const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
 
       logger.debug(
         `SCIM Groups - found ${scimConfig.teams?.length || 0} configured teams`,
       );
 
       // Return configured teams as groups
-      const groups = (scimConfig.teams || []).map((team: any) => {
+      const groups: JSONObject[] = (scimConfig.teams || []).map((team: any) => {
         return {
           schemas: ["urn:ietf:params:scim:schemas:core:2.0:Group"],
           id: team.id?.toString(),
@@ -620,10 +637,11 @@ router.post(
       logger.debug(
         `SCIM Create user request for projectScimId: ${req.params["projectScimId"]}`,
       );
-      const oneuptimeRequest = req as OneUptimeRequest;
-      const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
-      const projectId = bearerData["projectId"] as ObjectID;
-      const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
 
       if (!scimConfig.autoProvisionUsers) {
         throw new BadRequestException(
@@ -631,11 +649,11 @@ router.post(
         );
       }
 
-      const scimUser = req.body;
-      const email =
+      const scimUser: JSONObject = req.body;
+      const email: string =
         (scimUser["userName"] as string) ||
         ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string);
-      const name = parseNameFromSCIM(scimUser);
+      const name: string = parseNameFromSCIM(scimUser);
 
       logger.debug(`SCIM Create user - email: ${email}, name: ${name}`);
 
@@ -644,7 +662,7 @@ router.post(
       }
 
       // Check if user already exists
-      let user = await UserService.findOneBy({
+      let user: User | null = await UserService.findOneBy({
         query: { email: new Email(email) },
         select: {
           _id: true,
@@ -682,7 +700,7 @@ router.post(
         await handleUserTeamOperations("add", projectId, user.id!, scimConfig);
       }
 
-      const createdUser = formatUserForSCIM(user, req);
+      const createdUser: JSONObject = formatUserForSCIM(user, req);
 
       logger.debug(
         `SCIM Create user - returning created user with id: ${user.id}`,
@@ -706,11 +724,12 @@ router.delete(
       logger.debug(
         `SCIM Delete user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );
-      const oneuptimeRequest = req as OneUptimeRequest;
-      const bearerData = oneuptimeRequest.bearerTokenData as JSONObject;
-      const projectId = bearerData["projectId"] as ObjectID;
-      const scimConfig = bearerData["scimConfig"] as ProjectSCIM;
-      const userId = req.params["userId"];
+      const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+      const bearerData: JSONObject =
+        oneuptimeRequest.bearerTokenData as JSONObject;
+      const projectId: ObjectID = bearerData["projectId"] as ObjectID;
+      const scimConfig: ProjectSCIM = bearerData["scimConfig"] as ProjectSCIM;
+      const userId: string = req.params["userId"]!;
 
       if (!scimConfig.autoDeprovisionUsers) {
         logger.debug("SCIM Delete user - auto-deprovisioning is disabled");

@@ -31,7 +31,7 @@ export default class SCIMMiddleware {
       // Extract bearer token from Authorization header
       let bearerToken: string | undefined;
       if (req.headers?.["authorization"]) {
-        const authHeader = req.headers["authorization"] as string;
+        const authHeader: string = req.headers["authorization"] as string;
         if (authHeader.startsWith("Bearer ")) {
           bearerToken = authHeader.substring(7);
         }
