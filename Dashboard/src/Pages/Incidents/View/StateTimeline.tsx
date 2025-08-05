@@ -17,7 +17,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";

@@ -29,7 +29,6 @@ import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTempl
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import User from "Common/Models/DatabaseModels/User";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
@@ -342,9 +341,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800`}>
                     {status || "Unknown"}
                   </span>
-                  {item.notificationFailureReasonOnNoteCreated && (
+                  {item.subscriberNotificationFailedReason && (
                     <div className="text-xs text-red-600 mt-1">
-                      {item.notificationFailureReasonOnNoteCreated}
+                      {item.subscriberNotificationFailedReason}
                     </div>
                   )}
                 </div>

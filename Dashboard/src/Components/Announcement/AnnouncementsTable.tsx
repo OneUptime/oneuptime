@@ -15,7 +15,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
