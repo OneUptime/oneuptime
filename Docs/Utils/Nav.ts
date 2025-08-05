@@ -78,9 +78,18 @@ const DocsNav: NavGroup[] = [
       {
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",
-      },
+      }
     ],
   },
+  {
+    title: "Identity",
+    links: [
+      {
+        title: "SCIM API",
+        url: "/docs/identity/scim",
+      },
+    ]
+  }
   {
     title: "Terraform Provider",
     links: [
