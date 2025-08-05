@@ -385,8 +385,6 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyTimeLog,
 
   ProjectSCIM,
-
-  StatusPageSCIM,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
