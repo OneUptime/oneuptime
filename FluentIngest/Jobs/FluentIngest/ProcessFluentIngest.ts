@@ -41,7 +41,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 20 }, // Process up to 20 fluent ingest jobs concurrently
+  { concurrency: 50 }, // Process up to 50 fluent ingest jobs concurrently
 );
 
 async function processFluentIngestFromQueue(

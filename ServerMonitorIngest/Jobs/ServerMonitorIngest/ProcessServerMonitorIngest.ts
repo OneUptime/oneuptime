@@ -35,7 +35,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 20 }, // Process up to 20 server monitor ingest jobs concurrently
+  { concurrency: 50 }, // Process up to 50 server monitor ingest jobs concurrently
 );
 
 async function processServerMonitorFromQueue(

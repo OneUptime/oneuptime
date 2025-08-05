@@ -29,7 +29,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 20 }, // Process up to 20 probe ingest jobs concurrently
+  { concurrency: 50 }, // Process up to 50 probe ingest jobs concurrently
 );
 
 async function processProbeFromQueue(
