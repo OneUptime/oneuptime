@@ -155,7 +155,7 @@ export const generateServiceProviderConfig: (
   req: ExpressRequest,
   scimId: string,
   scimType: "project" | "status-page",
-  documentationUrl: string = "https://oneuptime.com/docs/scim",
+  documentationUrl: string = "https://oneuptime.com/docs/identity/scim",
 ): JSONObject => {
   const baseUrl: string = `${req.protocol}://${req.get("host")}`;
   const endpointPath: string = scimType === "project" 

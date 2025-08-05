@@ -31,6 +31,7 @@ import {
   parseSCIMQueryParams,
   logSCIMOperation,
 } from "../Utils/SCIMUtils";
+import { DocsClientUrl } from "Common/Server/EnvironmentConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -124,7 +125,7 @@ router.get(
         req,
         req.params["projectScimId"]!,
         "project",
-        "https://oneuptime.com/docs/scim"
+        DocsClientUrl.toString()+"/identity/scim"
       );
 
       logger.debug("Project SCIM ServiceProviderConfig response prepared successfully");

@@ -4,6 +4,7 @@ import {
   DashboardRoute,
   AppApiRoute,
   StatusPageApiRoute,
+  DocsRoute,
 } from "../ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Protocol from "../Types/API/Protocol";
@@ -147,6 +148,13 @@ export const DashboardHostname: Hostname = Hostname.fromString(
 export const AdminDashboardHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_ADMIN_DASHBOARD_HOSTNAME"] || "localhost"}:${
     process.env["ADMIN_DASHBOARD_PORT"] || 80
+  }`,
+);
+
+
+export const DocsHostname: Hostname = Hostname.fromString(
+  `${process.env["SERVER_DOCS_HOSTNAME"] || "localhost"}:${
+    process.env["DOCS_PORT"] || 80
   }`,
 );
 
@@ -316,6 +324,13 @@ export const AccountsClientUrl: URL = new URL(
   HttpProtocol,
   Host,
   AccountsRoute,
+);
+
+
+export const DocsClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  DocsRoute
 );
 
 export const DisableTelemetry: boolean =

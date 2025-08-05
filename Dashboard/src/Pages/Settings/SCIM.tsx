@@ -1,6 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import URL from "Common/Types/API/URL";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -22,6 +21,7 @@ import React, {
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -70,7 +70,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           openInNewTab={true}
           title="Need help with configuring SCIM?"
           description="Learn more about SCIM (System for Cross-domain Identity Management) setup and configuration"
-          link={URL.fromString("https://oneuptime.com/docs/scim")}
+          link={Route.fromString("/docs/identity/scim")}
           hideOnMobile={true}
         />
 
