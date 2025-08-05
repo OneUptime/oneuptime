@@ -85,7 +85,7 @@ const DocsNav: NavGroup[] = [
     title: "Identity",
     links: [
       {
-        title: "SCIM API",
+        title: "SCIM",
         url: "/docs/identity/scim",
       },
     ],
