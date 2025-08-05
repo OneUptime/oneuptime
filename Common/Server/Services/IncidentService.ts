@@ -24,6 +24,7 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Model from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
@@ -1685,7 +1686,10 @@ ${incidentSeverity.name}
     statusTimeline.shouldStatusPageSubscribersBeNotified =
       shouldNotifyStatusPageSubscribers;
 
-    statusTimeline.isStatusPageSubscribersNotified = isSubscribersNotified;
+    // Map boolean to enum value
+    statusTimeline.subscriberNotificationStatus = isSubscribersNotified
+      ? StatusPageSubscriberNotificationStatus.Success
+      : StatusPageSubscriberNotificationStatus.Pending;
 
     if (stateChangeLog) {
       statusTimeline.stateChangeLog = stateChangeLog;

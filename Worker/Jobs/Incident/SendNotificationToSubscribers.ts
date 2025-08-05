@@ -30,6 +30,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -39,10 +40,40 @@ RunCron(
   "Incident:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    // First, mark incidents as Skipped if they should not be notified
+    const incidentsToSkip: Array<Incident> = await IncidentService.findBy({
+      query: {
+        subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Pending,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
+        createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      select: {
+        _id: true,
+      },
+    });
+
+    for (const incident of incidentsToSkip) {
+      await IncidentService.updateOneById({
+        id: incident.id!,
+        data: {
+          subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Skipped,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
     // get all scheduled events of all the projects.
     const incidents: Array<Incident> = await IncidentService.findBy({
       query: {
-        isStatusPageSubscribersNotifiedOnIncidentCreated: false,
+        subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Pending,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
         createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
       },
@@ -85,13 +116,15 @@ RunCron(
       await IncidentService.updateOneById({
         id: incident.id!,
         data: {
-          isStatusPageSubscribersNotifiedOnIncidentCreated: true,
+          subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.InProgress,
         },
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
+
+      try {
 
       if (!incident.isVisibleOnStatusPage) {
         continue; // Do not send notification to subscribers if incident is not visible on status page.
@@ -314,22 +347,50 @@ RunCron(
         } catch (err) {
           logger.error(err);
         }
+        }
+
+        logger.debug("Creating incident feed for subscriber notification");
+
+        await IncidentFeedService.createIncidentFeedItem({
+          incidentId: incident.id!,
+          projectId: incident.projectId!,
+          incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
+          displayColor: Blue500,
+          feedInfoInMarkdown: incidentFeedText,
+          workspaceNotification: {
+            sendWorkspaceNotification: false,
+          },
+        });
+
+        logger.debug("Incident Feed created");
+
+        // If we get here, the notification was successful
+        await IncidentService.updateOneById({
+          id: incident.id!,
+          data: {
+            subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Success,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+
+      } catch (err) {
+        // If there was an error, mark as failed
+        logger.error(err);
+        await IncidentService.updateOneById({
+          id: incident.id!,
+          data: {
+            subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Failed,
+            notificationFailureReasonOnIncidentCreated: err instanceof Error ? err.message : String(err),
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
       }
-
-      logger.debug("Creating incident feed for subscriber notification");
-
-      await IncidentFeedService.createIncidentFeedItem({
-        incidentId: incident.id!,
-        projectId: incident.projectId!,
-        incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: incidentFeedText,
-        workspaceNotification: {
-          sendWorkspaceNotification: false,
-        },
-      });
-
-      logger.debug("Incident Feed created");
     }
   },
 );

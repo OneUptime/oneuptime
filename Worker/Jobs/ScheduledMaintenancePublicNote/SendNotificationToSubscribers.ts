@@ -32,6 +32,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -49,7 +50,7 @@ RunCron(
     const publicNotes: Array<ScheduledMaintenancePublicNote> =
       await ScheduledMaintenancePublicNoteService.findBy({
         query: {
-          isStatusPageSubscribersNotifiedOnNoteCreated: false,
+          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -66,17 +67,18 @@ RunCron(
       });
 
     for (const publicNote of publicNotes) {
-      // get all scheduled events of all the projects.
-      const event: ScheduledMaintenance | null =
-        await ScheduledMaintenanceService.findOneById({
-          id: publicNote.scheduledMaintenanceId!,
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
+      try {
+        // get all scheduled events of all the projects.
+        const event: ScheduledMaintenance | null =
+          await ScheduledMaintenanceService.findOneById({
+            id: publicNote.scheduledMaintenanceId!,
+            props: {
+              isRoot: true,
+            },
+            select: {
+              _id: true,
+              title: true,
+              description: true,
             projectId: true,
             startsAt: true,
             monitors: {
@@ -94,22 +96,32 @@ RunCron(
         continue;
       }
 
-      await ScheduledMaintenancePublicNoteService.updateOneById({
-        id: publicNote.id!,
-        data: {
-          isStatusPageSubscribersNotifiedOnNoteCreated: true,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+        // Set status to InProgress
+        await ScheduledMaintenancePublicNoteService.updateOneById({
+          id: publicNote.id!,
+          data: {
+            subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.InProgress,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
 
-      if (!event.isVisibleOnStatusPage) {
-        continue; // skip if not visible on status page.
-      }
-
-      // get status page resources from monitors.
+        if (!event.isVisibleOnStatusPage) {
+          // Set status to Skipped for non-visible events
+          await ScheduledMaintenancePublicNoteService.updateOneById({
+            id: publicNote.id!,
+            data: {
+              subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Skipped,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue; // skip if not visible on status page.
+        }      // get status page resources from monitors.
 
       let statusPageResources: Array<StatusPageResource> = [];
 
@@ -330,6 +342,37 @@ ${publicNote.note}`,
           sendWorkspaceNotification: true,
         },
       });
+
+      // Set status to Success after successful notification
+      await ScheduledMaintenancePublicNoteService.updateOneById({
+        id: publicNote.id!,
+        data: {
+          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Success,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      } catch (err) {
+        logger.error(
+          `Error sending notification for scheduled maintenance public note ${publicNote.id}: ${err}`
+        );
+        
+        // Set status to Failed with error reason
+        await ScheduledMaintenancePublicNoteService.updateOneById({
+          id: publicNote.id!,
+          data: {
+            subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Failed,
+            notificationFailureReasonOnNoteCreated: (err as Error).message,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
     }
   },
 );

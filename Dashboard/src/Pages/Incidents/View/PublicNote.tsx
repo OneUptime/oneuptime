@@ -28,6 +28,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import User from "Common/Models/DatabaseModels/User";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
   FunctionComponent,
@@ -285,7 +288,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             },
             title: "",
             type: FieldType.Boolean,
-            colSpan: 2,
+            colSpan: 1,
             getElement: (item: IncidentPublicNote): ReactElement => {
               return (
                 <div className="-mt-5">
@@ -297,12 +300,84 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     }
                     text={
                       item["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"]
-                        ? "Status Page Subscribers Notified"
-                        : "Status Page Subscribers Not Notified"
+                        ? "Notification Enabled"
+                        : "Notification Disabled"
                     }
                   />{" "}
                 </div>
               );
+            },
+          },
+          {
+            field: {
+              subscriberNotificationStatusOnNoteCreated: true,
+            },
+            title: "",
+            type: FieldType.Text,
+            colSpan: 1,
+            getElement: (item: IncidentPublicNote): ReactElement => {
+              const status = item.subscriberNotificationStatusOnNoteCreated;
+              let statusColor = "gray";
+              
+              switch(status) {
+                case StatusPageSubscriberNotificationStatus.Success:
+                  statusColor = "green";
+                  break;
+                case StatusPageSubscriberNotificationStatus.Failed:
+                  statusColor = "red";
+                  break;
+                case StatusPageSubscriberNotificationStatus.InProgress:
+                  statusColor = "blue";
+                  break;
+                case StatusPageSubscriberNotificationStatus.Pending:
+                  statusColor = "yellow";
+                  break;
+                case StatusPageSubscriberNotificationStatus.Skipped:
+                  statusColor = "gray";
+                  break;
+              }
+              
+              return (
+                <div className="-mt-5">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800`}>
+                    {status || "Unknown"}
+                  </span>
+                  {item.notificationFailureReasonOnNoteCreated && (
+                    <div className="text-xs text-red-600 mt-1">
+                      {item.notificationFailureReasonOnNoteCreated}
+                    </div>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]}
+        actionButtons={[
+          {
+            title: "Retry Notification",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Refresh,
+            isVisible: (item: IncidentPublicNote) => {
+              return item.subscriberNotificationStatusOnNoteCreated === StatusPageSubscriberNotificationStatus.Failed;
+            },
+            onClick: async (
+              item: IncidentPublicNote,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                await ModelAPI.updateById({
+                  modelType: IncidentPublicNote,
+                  id: item.id!,
+                  data: {
+                    subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
+                    notificationFailureReasonOnNoteCreated: null,
+                  },
+                });
+                onCompleteAction();
+              } catch (err) {
+                onError(err as Error);
+              }
             },
           },
         ]}

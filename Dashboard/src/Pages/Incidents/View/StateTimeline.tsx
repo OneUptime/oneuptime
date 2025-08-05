@@ -16,6 +16,11 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import React, {
   Fragment,
   FunctionComponent,
@@ -92,6 +97,33 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               setShowViewLogsModal(true);
 
               onCompleteAction();
+            },
+          },
+          {
+            title: "Retry Notification",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Refresh,
+            isVisible: (item: IncidentStateTimeline) => {
+              return item.subscriberNotificationStatus === StatusPageSubscriberNotificationStatus.Failed;
+            },
+            onClick: async (
+              item: IncidentStateTimeline,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                await ModelAPI.updateById({
+                  modelType: IncidentStateTimeline,
+                  id: item.id!,
+                  data: {
+                    subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+                    notificationFailureReason: null,
+                  },
+                });
+                onCompleteAction();
+              } catch (err) {
+                onError(err as Error);
+              }
             },
           },
         ]}
@@ -244,8 +276,58 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
             field: {
               shouldStatusPageSubscribersBeNotified: true,
             },
-            title: "Subscribers Notified",
+            title: "Notification Enabled",
             type: FieldType.Boolean,
+            getElement: (item: IncidentStateTimeline): ReactElement => {
+              return (
+                <CheckboxViewer
+                  isChecked={item.shouldStatusPageSubscribersBeNotified as boolean}
+                  text={item.shouldStatusPageSubscribersBeNotified ? "Yes" : "No"}
+                />
+              );
+            },
+          },
+          {
+            field: {
+              subscriberNotificationStatus: true,
+            },
+            title: "Notification Status",
+            type: FieldType.Text,
+            getElement: (item: IncidentStateTimeline): ReactElement => {
+              const status = item.subscriberNotificationStatus;
+              let statusColor = "gray";
+              
+              switch(status) {
+                case StatusPageSubscriberNotificationStatus.Success:
+                  statusColor = "green";
+                  break;
+                case StatusPageSubscriberNotificationStatus.Failed:
+                  statusColor = "red";
+                  break;
+                case StatusPageSubscriberNotificationStatus.InProgress:
+                  statusColor = "blue";
+                  break;
+                case StatusPageSubscriberNotificationStatus.Pending:
+                  statusColor = "yellow";
+                  break;
+                case StatusPageSubscriberNotificationStatus.Skipped:
+                  statusColor = "gray";
+                  break;
+              }
+              
+              return (
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800`}>
+                    {status || "Unknown"}
+                  </span>
+                  {item.notificationFailureReason && (
+                    <div className="text-xs text-red-600 mt-1">
+                      {item.notificationFailureReason}
+                    </div>
+                  )}
+                </div>
+              );
+            },
           },
         ]}
       />

@@ -3,7 +3,7 @@ import LabelsElement from "../Label/Labels";
 import MonitorsElement from "../Monitor/Monitors";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import Route from "Common/Types/API/Route";
-import { Black } from "Common/Types/BrandColors";
+import { Black, Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -14,6 +14,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
@@ -366,6 +367,39 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              subscriberNotificationStatusOnEventScheduled: true,
+            },
+            title: "Notification Status",
+            type: FieldType.Text,
+            hideOnMobile: true,
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              const status = item.subscriberNotificationStatusOnEventScheduled;
+              
+              if (!status || status === StatusPageSubscriberNotificationStatus.Skipped) {
+                return <Pill color={Gray500} text="Skipped" isMinimal={true} />;
+              }
+              
+              if (status === StatusPageSubscriberNotificationStatus.Pending) {
+                return <Pill color={Blue} text="Pending" isMinimal={true} />;
+              }
+              
+              if (status === StatusPageSubscriberNotificationStatus.InProgress) {
+                return <Pill color={Yellow} text="In Progress" isMinimal={true} />;
+              }
+              
+              if (status === StatusPageSubscriberNotificationStatus.Success) {
+                return <Pill color={Green} text="Sent" isMinimal={true} />;
+              }
+              
+              if (status === StatusPageSubscriberNotificationStatus.Failed) {
+                return <Pill color={Red} text="Failed" isMinimal={true} />;
+              }
+              
+              return <Pill color={Gray500} text="Unknown" isMinimal={true} />;
             },
           },
         ]}

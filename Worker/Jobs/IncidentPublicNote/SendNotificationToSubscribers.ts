@@ -32,6 +32,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -49,7 +50,7 @@ RunCron(
     const incidentPublicNoteNotes: Array<IncidentPublicNote> =
       await IncidentPublicNoteService.findBy({
         query: {
-          isStatusPageSubscribersNotifiedOnNoteCreated: false,
+          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -67,9 +68,10 @@ RunCron(
       });
 
     for (const incidentPublicNote of incidentPublicNoteNotes) {
-      if (!incidentPublicNote.incidentId) {
-        continue; // skip if incidentId is not set
-      }
+      try {
+        if (!incidentPublicNote.incidentId) {
+          continue; // skip if incidentId is not set
+        }
 
       // get all scheduled events of all the projects.
       const incident: Incident | null = await IncidentService.findOneById({
@@ -101,10 +103,11 @@ RunCron(
         continue;
       }
 
+      // Set status to InProgress
       await IncidentPublicNoteService.updateOneById({
         id: incidentPublicNote.id!,
         data: {
-          isStatusPageSubscribersNotifiedOnNoteCreated: true,
+          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.InProgress,
         },
         props: {
           isRoot: true,
@@ -113,6 +116,17 @@ RunCron(
       });
 
       if (!incident.isVisibleOnStatusPage) {
+        // Set status to Skipped for non-visible incidents
+        await IncidentPublicNoteService.updateOneById({
+          id: incidentPublicNote.id!,
+          data: {
+            subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Skipped,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
         continue;
       }
 
@@ -345,6 +359,37 @@ ${incidentPublicNote.note}`,
       });
 
       logger.debug("Incident Feed created");
+      
+      // Set status to Success after successful notification
+      await IncidentPublicNoteService.updateOneById({
+        id: incidentPublicNote.id!,
+        data: {
+          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Success,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+      
+      } catch (err) {
+        logger.error(
+          `Error sending notification for incident public note ${incidentPublicNote.id}: ${err}`
+        );
+        
+        // Set status to Failed with error reason
+        await IncidentPublicNoteService.updateOneById({
+          id: incidentPublicNote.id!,
+          data: {
+            subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Failed,
+            notificationFailureReasonOnNoteCreated: (err as Error).message,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
     }
   },
 );

@@ -32,6 +32,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -44,7 +45,7 @@ RunCron(
     const incidentStateTimelines: Array<IncidentStateTimeline> =
       await IncidentStateTimelineService.findBy({
         query: {
-          isStatusPageSubscribersNotified: false,
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -71,7 +72,7 @@ RunCron(
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
         data: {
-          isStatusPageSubscribersNotified: true,
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
         },
         props: {
           isRoot: true,

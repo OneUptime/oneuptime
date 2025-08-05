@@ -17,6 +17,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
@@ -354,16 +355,43 @@ export default class IncidentPublicNote extends BaseModel {
     isDefaultValueColumn: true,
     computed: true,
     hideColumnInDocumentation: true,
-    type: TableColumnType.Boolean,
-    title: "Are subscribers notified?",
-    description: "Are subscribers notified about this note?",
-    defaultValue: false,
+    type: TableColumnType.ShortText,
+    title: "Subscriber Notification Status",
+    description: "Status of notification sent to subscribers about this note",
+    defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
-    type: ColumnType.Boolean,
-    default: false,
+    type: ColumnType.ShortText,
+    default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public isStatusPageSubscribersNotifiedOnNoteCreated?: boolean = undefined;
+  public subscriberNotificationStatusOnNoteCreated?: StatusPageSubscriberNotificationStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentPublicNote,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentPublicNote,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Notification Failure Reason",
+    description: "Reason for notification failure if status is Failed",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public notificationFailureReasonOnNoteCreated?: string = undefined;
 
   @ColumnAccessControl({
     create: [

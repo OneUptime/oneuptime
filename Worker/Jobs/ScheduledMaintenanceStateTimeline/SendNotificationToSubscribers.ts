@@ -32,6 +32,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
@@ -47,7 +48,7 @@ RunCron(
     const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
       await ScheduledMaintenanceStateTimelineService.findBy({
         query: {
-          isStatusPageSubscribersNotified: false,
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -67,26 +68,28 @@ RunCron(
       });
 
     for (const scheduledEventStateTimeline of scheduledEventStateTimelines) {
-      await ScheduledMaintenanceStateTimelineService.updateOneById({
-        id: scheduledEventStateTimeline.id!,
-        data: {
-          isStatusPageSubscribersNotified: true,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      try {
+        // Set status to InProgress
+        await ScheduledMaintenanceStateTimelineService.updateOneById({
+          id: scheduledEventStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.InProgress,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
 
-      if (
-        !scheduledEventStateTimeline.scheduledMaintenanceId ||
-        !scheduledEventStateTimeline.scheduledMaintenanceStateId
-      ) {
-        continue;
-      }
+        if (
+          !scheduledEventStateTimeline.scheduledMaintenanceId ||
+          !scheduledEventStateTimeline.scheduledMaintenanceStateId
+        ) {
+          continue;
+        }
 
-      if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
-        continue;
+        if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
+          continue;
       }
 
       // get all scheduled events of all the projects.
@@ -355,6 +358,37 @@ RunCron(
           sendWorkspaceNotification: true,
         },
       });
+
+      // Set status to Success after successful notification
+      await ScheduledMaintenanceStateTimelineService.updateOneById({
+        id: scheduledEventStateTimeline.id!,
+        data: {
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      } catch (err) {
+        logger.error(
+          `Error sending notification for scheduled maintenance state timeline ${scheduledEventStateTimeline.id}: ${err}`
+        );
+        
+        // Set status to Failed with error reason
+        await ScheduledMaintenanceStateTimelineService.updateOneById({
+          id: scheduledEventStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
+            notificationFailureReason: (err as Error).message,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
     }
   },
 );

@@ -25,17 +25,51 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 
 RunCron(
   "Announcement:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    // First, mark announcements as Skipped if they should not be notified
+    const announcementsToSkip: Array<StatusPageAnnouncement> =
+      await StatusPageAnnouncementService.findBy({
+        query: {
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          shouldStatusPageSubscribersBeNotified: false,
+          showAnnouncementAt: QueryHelper.lessThan(
+            OneUptimeDate.getCurrentDate(),
+          ),
+        },
+        props: {
+          isRoot: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        select: {
+          _id: true,
+        },
+      });
+
+    for (const announcement of announcementsToSkip) {
+      await StatusPageAnnouncementService.updateOneById({
+        id: announcement.id!,
+        data: {
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Skipped,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
     // get all scheduled events of all the projects.
     const announcements: Array<StatusPageAnnouncement> =
       await StatusPageAnnouncementService.findBy({
         query: {
-          isStatusPageSubscribersNotified: false,
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
           showAnnouncementAt: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
@@ -77,7 +111,7 @@ RunCron(
       await StatusPageAnnouncementService.updateOneById({
         id: announcement.id!,
         data: {
-          isStatusPageSubscribersNotified: true,
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.InProgress,
         },
         props: {
           isRoot: true,
@@ -85,151 +119,180 @@ RunCron(
         },
       });
 
-      for (const statuspage of statusPages) {
-        try {
-          if (!statuspage.id) {
-            continue;
-          }
+      try {
+        for (const statuspage of statusPages) {
+          try {
+            if (!statuspage.id) {
+              continue;
+            }
 
-          if (!statuspage.showAnnouncementsOnStatusPage) {
-            continue; // Do not send notification to subscribers if incidents are not visible on status page.
-          }
+            if (!statuspage.showAnnouncementsOnStatusPage) {
+              continue; // Do not send notification to subscribers if incidents are not visible on status page.
+            }
 
-          const subscribers: Array<StatusPageSubscriber> =
-            await StatusPageSubscriberService.getSubscribersByStatusPage(
-              statuspage.id!,
-              {
-                isRoot: true,
-                ignoreHooks: true,
-              },
-            );
+            const subscribers: Array<StatusPageSubscriber> =
+              await StatusPageSubscriberService.getSubscribersByStatusPage(
+                statuspage.id!,
+                {
+                  isRoot: true,
+                  ignoreHooks: true,
+                },
+              );
 
-          const statusPageURL: string =
-            await StatusPageService.getStatusPageURL(statuspage.id);
-          const statusPageName: string =
-            statuspage.pageTitle || statuspage.name || "Status Page";
+            const statusPageURL: string =
+              await StatusPageService.getStatusPageURL(statuspage.id);
+            const statusPageName: string =
+              statuspage.pageTitle || statuspage.name || "Status Page";
 
-          // Send email to Email subscribers.
+            // Send email to Email subscribers.
 
-          for (const subscriber of subscribers) {
-            try {
-              if (!subscriber._id) {
-                continue;
-              }
+            for (const subscriber of subscribers) {
+              try {
+                if (!subscriber._id) {
+                  continue;
+                }
 
-              const shouldNotifySubscriber: boolean =
-                StatusPageSubscriberService.shouldSendNotification({
-                  subscriber: subscriber,
-                  statusPageResources: [], // this is an announcement so we don't care about resources
-                  statusPage: statuspage,
-                  eventType: StatusPageEventType.Announcement,
-                });
+                const shouldNotifySubscriber: boolean =
+                  StatusPageSubscriberService.shouldSendNotification({
+                    subscriber: subscriber,
+                    statusPageResources: [], // this is an announcement so we don't care about resources
+                    statusPage: statuspage,
+                    eventType: StatusPageEventType.Announcement,
+                  });
 
-              if (!shouldNotifySubscriber) {
-                continue;
-              }
+                if (!shouldNotifySubscriber) {
+                  continue;
+                }
 
-              const unsubscribeUrl: string =
-                StatusPageSubscriberService.getUnsubscribeLink(
-                  URL.fromString(statusPageURL),
-                  subscriber.id!,
-                ).toString();
+                const unsubscribeUrl: string =
+                  StatusPageSubscriberService.getUnsubscribeLink(
+                    URL.fromString(statusPageURL),
+                    subscriber.id!,
+                  ).toString();
 
-              if (subscriber.subscriberPhone) {
-                const sms: SMS = {
-                  message: `
-                            Announcement - ${statusPageName}
+                if (subscriber.subscriberPhone) {
+                  const sms: SMS = {
+                    message: `
+                              Announcement - ${statusPageName}
 
-                            ${announcement.title || ""}
+                              ${announcement.title || ""}
 
-                            To view this announcement, visit ${statusPageURL}
+                              To view this announcement, visit ${statusPageURL}
 
-                            To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
-                            `,
-                  to: subscriber.subscriberPhone,
-                };
+                              To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
+                              `,
+                    to: subscriber.subscriberPhone,
+                  };
 
-                // send sms here.
-                SmsService.sendSms(sms, {
-                  projectId: statuspage.projectId,
-                  customTwilioConfig:
-                    ProjectCallSMSConfigService.toTwilioConfig(
-                      statuspage.callSmsConfig,
-                    ),
-                }).catch((err: Error) => {
-                  logger.error(err);
-                });
-              }
+                  // send sms here.
+                  SmsService.sendSms(sms, {
+                    projectId: statuspage.projectId,
+                    customTwilioConfig:
+                      ProjectCallSMSConfigService.toTwilioConfig(
+                        statuspage.callSmsConfig,
+                      ),
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
 
-              if (subscriber.slackIncomingWebhookUrl) {
-                // Convert markdown to Slack format and send notification
-                const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
+                if (subscriber.slackIncomingWebhookUrl) {
+                  // Convert markdown to Slack format and send notification
+                  const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
 
 **Description:** ${announcement.description || ""}
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-                // send Slack notification here.
-                SlackUtil.sendMessageToChannelViaIncomingWebhook({
-                  url: subscriber.slackIncomingWebhookUrl,
-                  text: SlackUtil.convertMarkdownToSlackRichText(
-                    markdownMessage,
-                  ),
-                }).catch((err: Error) => {
-                  logger.error(err);
-                });
-              }
-
-              if (subscriber.subscriberEmail) {
-                // send email here.
-
-                MailService.sendMail(
-                  {
-                    toEmail: subscriber.subscriberEmail,
-                    templateType:
-                      EmailTemplateType.SubscriberAnnouncementCreated,
-                    vars: {
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      logoUrl: statuspage.logoFileId
-                        ? new URL(httpProtocol, host)
-                            .addRoute(FileRoute)
-                            .addRoute("/image/" + statuspage.logoFileId)
-                            .toString()
-                        : "",
-                      isPublicStatusPage: statuspage.isPublicStatusPage
-                        ? "true"
-                        : "false",
-                      announcementTitle: announcement.title || "",
-                      announcementDescription: await Markdown.convertToHTML(
-                        announcement.description || "",
-                        MarkdownContentType.Email,
-                      ),
-                      subscriberEmailNotificationFooterText:
-                        StatusPageServiceType.getSubscriberEmailFooterText(
-                          statuspage,
-                        ),
-                      unsubscribeUrl: unsubscribeUrl,
-                    },
-                    subject: "[Announcement] " + announcement.title,
-                  },
-                  {
-                    mailServer: ProjectSMTPConfigService.toEmailServer(
-                      statuspage.smtpConfig,
+                  // send Slack notification here.
+                  SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                    url: subscriber.slackIncomingWebhookUrl,
+                    text: SlackUtil.convertMarkdownToSlackRichText(
+                      markdownMessage,
                     ),
-                    projectId: statuspage.projectId,
-                  },
-                ).catch((err: Error) => {
-                  logger.error(err);
-                });
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+
+                if (subscriber.subscriberEmail) {
+                  // send email here.
+
+                  MailService.sendMail(
+                    {
+                      toEmail: subscriber.subscriberEmail,
+                      templateType:
+                        EmailTemplateType.SubscriberAnnouncementCreated,
+                      vars: {
+                        statusPageName: statusPageName,
+                        statusPageUrl: statusPageURL,
+                        logoUrl: statuspage.logoFileId
+                          ? new URL(httpProtocol, host)
+                              .addRoute(FileRoute)
+                              .addRoute("/image/" + statuspage.logoFileId)
+                              .toString()
+                          : "",
+                        isPublicStatusPage: statuspage.isPublicStatusPage
+                          ? "true"
+                          : "false",
+                        announcementTitle: announcement.title || "",
+                        announcementDescription: await Markdown.convertToHTML(
+                          announcement.description || "",
+                          MarkdownContentType.Email,
+                        ),
+                        subscriberEmailNotificationFooterText:
+                          StatusPageServiceType.getSubscriberEmailFooterText(
+                            statuspage,
+                          ),
+                        unsubscribeUrl: unsubscribeUrl,
+                      },
+                      subject: "[Announcement] " + announcement.title,
+                    },
+                    {
+                      mailServer: ProjectSMTPConfigService.toEmailServer(
+                        statuspage.smtpConfig,
+                      ),
+                      projectId: statuspage.projectId,
+                    },
+                  ).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+              } catch (err) {
+                logger.error(err);
               }
-            } catch (err) {
-              logger.error(err);
             }
+          } catch (err) {
+            logger.error(err);
           }
-        } catch (err) {
-          logger.error(err);
         }
+        
+        // If we get here, the notification was successful
+        await StatusPageAnnouncementService.updateOneById({
+          id: announcement.id!,
+          data: {
+            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+        
+      } catch (err) {
+        // If there was an error, mark as failed
+        logger.error(err);
+        await StatusPageAnnouncementService.updateOneById({
+          id: announcement.id!,
+          data: {
+            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
+            notificationFailureReason: err instanceof Error ? err.message : String(err),
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
       }
     }
   },

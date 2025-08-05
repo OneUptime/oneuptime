@@ -14,6 +14,9 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
   FunctionComponent,
@@ -159,10 +162,17 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              shouldStatusPageSubscribersBeNotified: true,
+              subscriberNotificationStatus: true,
             },
-            title: "Subscribers Notified",
-            type: FieldType.Boolean,
+            title: "Notification Status", 
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              notificationFailureReason: true,
+            },
+            title: "Failure Reason",
+            type: FieldType.Text,
           },
           {
             field: {
@@ -228,6 +238,52 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
                   <StatusPagesElement statusPages={item.statusPages} />
                 </div>
               );
+            },
+          },
+          {
+            field: {
+              subscriberNotificationStatus: true,
+            },
+            title: "Notification Status",
+            type: FieldType.Text,
+            hideOnMobile: true,
+          },
+          {
+            field: {
+              notificationFailureReason: true,
+            },
+            title: "Failure Reason",
+            type: FieldType.Text,
+            hideOnMobile: true,
+            noValueMessage: "-",
+          },
+        ]}
+        actionButtons={[
+          {
+            title: "Retry Notification",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Refresh,
+            isVisible: (item: StatusPageAnnouncement) => {
+              return item.subscriberNotificationStatus === StatusPageSubscriberNotificationStatus.Failed;
+            },
+            onClick: async (
+              item: StatusPageAnnouncement,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ) => {
+              try {
+                await ModelAPI.updateById({
+                  modelType: StatusPageAnnouncement,
+                  id: item.id!,
+                  data: {
+                    subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+                    notificationFailureReason: null,
+                  },
+                });
+                onCompleteAction();
+              } catch (err) {
+                onError(err as Error);
+              }
             },
           },
         ]}

@@ -13,6 +13,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -245,7 +246,7 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       if (publicNote) {
         // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
         if (createBy.data.shouldStatusPageSubscribersBeNotified) {
-          createBy.data.isStatusPageSubscribersNotified = true;
+          createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Success;
         }
       }
 

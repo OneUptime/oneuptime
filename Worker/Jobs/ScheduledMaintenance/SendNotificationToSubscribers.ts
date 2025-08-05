@@ -9,6 +9,8 @@ import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMai
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import logger from "Common/Server/Utils/Logger";
 RunCron(
   "ScheduledMaintenance:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
@@ -17,7 +19,7 @@ RunCron(
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findBy({
         query: {
-          isStatusPageSubscribersNotifiedOnEventScheduled: false,
+          subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -44,25 +46,38 @@ RunCron(
       });
 
     for (const event of scheduledEvents) {
-      const scheduledMaintenanceId: ObjectID = event.id!;
-      const projectId: ObjectID = event.projectId!;
-      const scheduledMaintenanceNumber: string =
-        event.scheduledMaintenanceNumber?.toString() || " - ";
-      const scheduledMaintenanceFeedText: string = `📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
-            Notification sent to status page subscribers because this scheduled maintenance was created.`;
+      try {
+        const scheduledMaintenanceId: ObjectID = event.id!;
+        const projectId: ObjectID = event.projectId!;
+        const scheduledMaintenanceNumber: string =
+          event.scheduledMaintenanceNumber?.toString() || " - ";
+        const scheduledMaintenanceFeedText: string = `📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
+              Notification sent to status page subscribers because this scheduled maintenance was created.`;
 
-      await ScheduledMaintenanceService.updateOneById({
-        id: event.id!,
-        data: {
-          isStatusPageSubscribersNotifiedOnEventScheduled: true,
-        },
-        props: {
-          isRoot: true,
+        // Set status to InProgress
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.InProgress,
+          },
+          props: {
+            isRoot: true,
           ignoreHooks: true,
         },
       });
 
       if (!event.isVisibleOnStatusPage) {
+        // Set status to Skipped for non-visible events
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Skipped,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
         continue; // skip if not visible on status page.
       }
 
@@ -77,10 +92,48 @@ RunCron(
           sendWorkspaceNotification: false,
         },
       });
+
+      // Set status to Success after successful processing
+      await ScheduledMaintenanceService.updateOneById({
+        id: event.id!,
+        data: {
+          subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Success,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      } catch (err) {
+        logger.error(
+          `Error processing scheduled maintenance notification ${event.id}: ${err}`
+        );
+        
+        // Set status to Failed with error reason
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Failed,
+            notificationFailureReasonOnEventScheduled: (err as Error).message,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      }
     }
 
-    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
-      scheduledEvents,
+    // Only call notification service for successfully processed events
+    const successfulEvents = scheduledEvents.filter(event => 
+      event.isVisibleOnStatusPage
     );
+    
+    if (successfulEvents.length > 0) {
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
+        successfulEvents,
+      );
+    }
   },
 );

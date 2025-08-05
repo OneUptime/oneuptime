@@ -21,6 +21,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import {
   Column,
   Entity,
@@ -456,14 +457,41 @@ export default class StatusPageAnnouncement extends BaseModel {
     isDefaultValueColumn: true,
     computed: true,
     hideColumnInDocumentation: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
+    type: TableColumnType.ShortText,
+    defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
-    type: ColumnType.Boolean,
-    default: false,
+    type: ColumnType.ShortText,
+    default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public isStatusPageSubscribersNotified?: boolean = undefined;
+  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageAnnouncement,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageAnnouncement,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Notification Failure Reason",
+    description: "Reason for notification failure if status is Failed",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public notificationFailureReason?: string = undefined;
 
   @ColumnAccessControl({
     create: [

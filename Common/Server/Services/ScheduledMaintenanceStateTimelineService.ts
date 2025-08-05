@@ -15,6 +15,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -255,7 +256,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         if (
           scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
         ) {
-          createBy.data.isStatusPageSubscribersNotified = true;
+          createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Success;
         }
 
         await ScheduledMaintenancePublicNoteService.create({

@@ -16,6 +16,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Typeof from "../../Types/Typeof";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
@@ -775,9 +776,10 @@ ${createdItem.description || "No description provided."}
       timeline.shouldStatusPageSubscribersBeNotified = Boolean(
         createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
       );
-      timeline.isStatusPageSubscribersNotified = Boolean(
+      // Map boolean to enum value - ignore notifying subscribers because you already notify for Scheduled Event, no need to notify them for timeline event.
+      timeline.subscriberNotificationStatus = Boolean(
         createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
-      ); // ignore notifying subscribers because you already notify for Scheduled Event, no need to notify them for timeline event.
+      ) ? StatusPageSubscriberNotificationStatus.Success : StatusPageSubscriberNotificationStatus.Pending;
       timeline.scheduledMaintenanceStateId =
         createdItem.currentScheduledMaintenanceStateId!;
 
@@ -1275,7 +1277,10 @@ ${labels
     statusTimeline.scheduledMaintenanceStateId = scheduledMaintenanceStateId;
     statusTimeline.projectId = projectId;
     statusTimeline.isOwnerNotified = !notifyOwners;
-    statusTimeline.isStatusPageSubscribersNotified = isSubscribersNotified;
+    // Map boolean to enum value
+    statusTimeline.subscriberNotificationStatus = isSubscribersNotified
+      ? StatusPageSubscriberNotificationStatus.Success
+      : StatusPageSubscriberNotificationStatus.Pending;
     statusTimeline.shouldStatusPageSubscribersBeNotified =
       shouldNotifyStatusPageSubscribers;
 

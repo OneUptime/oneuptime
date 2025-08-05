@@ -25,6 +25,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import {
   Column,
   Entity,
@@ -728,16 +729,43 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: true,
     computed: true,
     hideColumnInDocumentation: true,
-    type: TableColumnType.Boolean,
-    title: "Status Page Subscribers Notified On Event Scheduled",
-    description: "Status Page Subscribers Notified On Event Scheduled",
-    defaultValue: false,
+    type: TableColumnType.ShortText,
+    title: "Subscriber Notification Status On Event Scheduled",
+    description: "Status of notification sent to subscribers when event was scheduled",
+    defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
-    type: ColumnType.Boolean,
-    default: false,
+    type: ColumnType.ShortText,
+    default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public isStatusPageSubscribersNotifiedOnEventScheduled?: boolean = undefined;
+  public subscriberNotificationStatusOnEventScheduled?: StatusPageSubscriberNotificationStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Notification Failure Reason On Event Scheduled",
+    description: "Reason for notification failure if status is Failed",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+  })
+  public notificationFailureReasonOnEventScheduled?: string = undefined;
 
   @ColumnAccessControl({
     create: [
