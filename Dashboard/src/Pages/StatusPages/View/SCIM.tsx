@@ -70,7 +70,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           openInNewTab={true}
           title="Need help with configuring SCIM?"
           description="Learn more about SCIM (System for Cross-domain Identity Management) setup and configuration for Status Pages"
-          link={URL.fromString("https://oneuptime.com/docs/status-page-scim")}
+          link={URL.fromString("https://oneuptime.com/docs/identity/scim")}
           hideOnMobile={true}
         />
 
@@ -271,7 +271,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <div>
                   <strong>Bearer Token:</strong>
                   <br />
-                  <HiddenText text={currentSCIMConfig.bearerToken as string} />
+                  <HiddenText text={currentSCIMConfig.bearerToken as string} isCopyable={true} />
                 </div>
                 <br />
                 <p>
@@ -333,7 +333,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <div>
                   <strong>New Bearer Token:</strong>
                   <br />
-                  <HiddenText text={newBearerToken} />
+                  <HiddenText text={newBearerToken} isCopyable={true} />
                 </div>
                 <br />
                 <p>

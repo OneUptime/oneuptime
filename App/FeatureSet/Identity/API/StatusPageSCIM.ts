@@ -265,12 +265,14 @@ router.post(
           `Status Page SCIM Create user - creating new user with email: ${email}`,
         );
 
+        const privateUser: StatusPagePrivateUser  = new StatusPagePrivateUser(); 
+        privateUser.statusPageId = statusPageId;
+        privateUser.email = new Email(email);
+        privateUser.projectId = bearerData["projectId"] as ObjectID;
+
         // Create new status page private user
         user = await StatusPagePrivateUserService.create({
-          data: {
-            statusPageId: statusPageId,
-            email: new Email(email),
-          } as any,
+          data: privateUser as any,
           props: { isRoot: true },
         });
       } else {
