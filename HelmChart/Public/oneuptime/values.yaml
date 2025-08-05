@@ -43,6 +43,9 @@ nginx:
   disableAutoscaler: false
   listenAddress: ""
   listenOptions: ""
+  # server_names_hash_bucket_size directive for nginx. Increase this value if you get 
+  # "could not build server_names_hash, you should increase server_names_hash_bucket_size" error
+  serverNamesHashBucketSize: 
   ports:
     http: 80
     https: 443

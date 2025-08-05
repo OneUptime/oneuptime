@@ -111,6 +111,10 @@ spec:
               value: {{ $.Values.nginx.listenAddress | quote }}
             - name: NGINX_LISTEN_OPTIONS
               value: {{ $.Values.nginx.listenOptions | quote }}
+            {{- if $.Values.nginx.serverNamesHashBucketSize }}
+            - name: SERVER_NAMES_HASH_BUCKET_SIZE
+              value: {{ $.Values.nginx.serverNamesHashBucketSize | quote }}
+            {{- end }}
             - name: ONEUPTIME_HTTP_PORT
               value: {{ $.Values.nginx.ports.http | quote }}
             - name: PORT
