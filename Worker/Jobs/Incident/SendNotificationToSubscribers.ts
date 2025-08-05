@@ -383,7 +383,7 @@ RunCron(
           id: incident.id!,
           data: {
             subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Failed,
-            notificationFailureReasonOnIncidentCreated: err instanceof Error ? err.message : String(err),
+            subscriberNotificationFailedReason: err instanceof Error ? err.message : String(err),
           },
           props: {
             isRoot: true,

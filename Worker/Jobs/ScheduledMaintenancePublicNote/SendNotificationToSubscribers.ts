@@ -365,7 +365,7 @@ ${publicNote.note}`,
           id: publicNote.id!,
           data: {
             subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Failed,
-            notificationFailureReasonOnNoteCreated: (err as Error).message,
+            subscriberNotificationFailedReason: (err as Error).message,
           },
           props: {
             isRoot: true,
