@@ -589,12 +589,11 @@ import ProjectSCIMService, {
   Service as ProjectSCIMServiceType,
 } from "Common/Server/Services/ProjectSCIMService";
 
-
 // StatusPageSCIM
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSCIMService, {
   Service as StatusPageSCIMServiceType,
-} from "Common/Server/Services/StatusPageSCIMService"; 
+} from "Common/Server/Services/StatusPageSCIMService";
 
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";

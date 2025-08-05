@@ -267,11 +267,10 @@ router.post(
           `Status Page SCIM Create user - creating new user with email: ${email}`,
         );
 
-        const privateUser: StatusPagePrivateUser  = new StatusPagePrivateUser(); 
+        const privateUser: StatusPagePrivateUser = new StatusPagePrivateUser();
         privateUser.statusPageId = statusPageId;
         privateUser.email = new Email(email);
         privateUser.password = new HashedString(Text.generateRandomText(32));
-        privateUser
         privateUser.projectId = bearerData["projectId"] as ObjectID;
 
         // Create new status page private user

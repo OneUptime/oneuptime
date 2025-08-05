@@ -101,7 +101,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               id: "configuration",
             },
           ]}
-          onBeforeCreate={(scim: StatusPageSCIM)=>{
+          onBeforeCreate={(scim: StatusPageSCIM) => {
             scim.statusPageId = modelId;
             return Promise.resolve(scim);
           }}
@@ -184,7 +184,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               },
               title: "Auto Deprovision Users",
               type: FieldType.Boolean,
-            }
+            },
           ]}
           actionButtons={[
             {
@@ -239,33 +239,29 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <div>
                   <strong>SCIM Base URL:</strong>
                   <br />
-                  <code
-                    className="block p-2 bg-gray-100 rounded text-sm break-all"
-                  >
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                     {IDENTITY_URL.toString()}/status-page-scim/v2/
                     {showSCIMUrlId}
                   </code>
                 </div>
                 <br />
-                                  <div>
-                    <p className="font-medium text-gray-700 mb-1">
-                      Unique identifier field for users:
-                    </p>
-                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      userName
-                    </code>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Use this field as the unique identifier for users in your
-                      identity provider SCIM configuration
-                    </p>
-                  </div>
+                <div>
+                  <p className="font-medium text-gray-700 mb-1">
+                    Unique identifier field for users:
+                  </p>
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                    userName
+                  </code>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use this field as the unique identifier for users in your
+                    identity provider SCIM configuration
+                  </p>
+                </div>
                 <br />
                 <div>
                   <strong>Users Endpoint:</strong>
                   <br />
-                  <code
-                    className="block p-2 bg-gray-100 rounded text-sm break-all"
-                  >
+                  <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                     {IDENTITY_URL.toString()}/status-page-scim/v2/
                     {showSCIMUrlId}/Users
                   </code>
@@ -274,7 +270,10 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <div>
                   <strong>Bearer Token:</strong>
                   <br />
-                  <HiddenText text={currentSCIMConfig.bearerToken as string} isCopyable={true} />
+                  <HiddenText
+                    text={currentSCIMConfig.bearerToken as string}
+                    isCopyable={true}
+                  />
                 </div>
                 <br />
                 <p>
