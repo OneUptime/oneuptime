@@ -21,6 +21,8 @@ import {
   generateServiceProviderConfig,
   logSCIMOperation,
 } from "../Utils/SCIMUtils";
+import Text from "Common/Types/Text";
+import HashedString from "Common/Types/HashedString";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -268,6 +270,8 @@ router.post(
         const privateUser: StatusPagePrivateUser  = new StatusPagePrivateUser(); 
         privateUser.statusPageId = statusPageId;
         privateUser.email = new Email(email);
+        privateUser.password = new HashedString(Text.generateRandomText(32));
+        privateUser
         privateUser.projectId = bearerData["projectId"] as ObjectID;
 
         // Create new status page private user
