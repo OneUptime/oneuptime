@@ -16,43 +16,13 @@ import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import {
+  formatUserForSCIM,
+  generateServiceProviderConfig,
+  logSCIMOperation,
+} from "../Utils/SCIMUtils";
 
 const router: ExpressRouter = Express.getRouter();
-
-const formatUserForSCIM: (user: StatusPagePrivateUser, req: ExpressRequest) => JSONObject = (
-  user: StatusPagePrivateUser,
-  req: ExpressRequest,
-): JSONObject => {
-  const baseUrl: string = `${req.protocol}://${req.get("host")}`;
-  const email: string = user.email?.toString() || "";
-  const displayName: string = email || "Unknown User";
-
-  return {
-    schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
-    id: user.id?.toString(),
-    userName: email,
-    displayName: displayName,
-    name: {
-      formatted: displayName,
-      familyName: "",
-      givenName: displayName,
-    },
-    emails: [
-      {
-        value: email,
-        type: "work",
-        primary: true,
-      },
-    ],
-    active: true,
-    meta: {
-      resourceType: "User",
-      created: user.createdAt?.toISOString(),
-      lastModified: user.updatedAt?.toISOString(),
-      location: `${baseUrl}/status-page-scim/v2/${req.params["statusPageScimId"]}/Users/${user.id?.toString()}`,
-    },
-  };
-};
 
 // SCIM Service Provider Configuration - GET /status-page-scim/v2/ServiceProviderConfig
 router.get(
@@ -60,52 +30,14 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      logger.debug(
-        `Status Page SCIM ServiceProviderConfig request for statusPageScimId: ${req.params["statusPageScimId"]}`,
+      logSCIMOperation("ServiceProviderConfig", "status-page", req.params["statusPageScimId"]!);
+      
+      const serviceProviderConfig: JSONObject = generateServiceProviderConfig(
+        req,
+        req.params["statusPageScimId"]!,
+        "status-page"
       );
-      const serviceProviderConfig: JSONObject = {
-        schemas: [
-          "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig",
-        ],
-        documentationUri: "https://oneuptime.com/docs/status-page-scim",
-        patch: {
-          supported: true,
-        },
-        bulk: {
-          supported: true,
-          maxOperations: 1000,
-          maxPayloadSize: 1048576,
-        },
-        filter: {
-          supported: true,
-          maxResults: 200,
-        },
-        changePassword: {
-          supported: false,
-        },
-        sort: {
-          supported: true,
-        },
-        etag: {
-          supported: false,
-        },
-        authenticationSchemes: [
-          {
-            type: "httpbearer",
-            name: "HTTP Bearer",
-            description: "Authentication scheme using HTTP Bearer Token",
-            primary: true,
-          },
-        ],
-        meta: {
-          location: `${req.protocol}://${req.get("host")}/status-page-scim/v2/${req.params["statusPageScimId"]}/ServiceProviderConfig`,
-          resourceType: "ServiceProviderConfig",
-          created: "2023-01-01T00:00:00Z",
-          lastModified: "2023-01-01T00:00:00Z",
-        },
-      };
 
-      logger.debug("Status Page SCIM ServiceProviderConfig response prepared successfully");
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
     } catch (err) {
       logger.error(err);
@@ -163,7 +95,7 @@ router.get(
       // Format users for SCIM
       const users: Array<JSONObject> = statusPageUsers.map(
         (user: StatusPagePrivateUser) => {
-          return formatUserForSCIM(user, req);
+          return formatUserForSCIM(user, req, req.params["statusPageScimId"]!, "status-page");
         },
       );
 
@@ -236,7 +168,7 @@ router.get(
         );
       }
 
-      const user: JSONObject = formatUserForSCIM(statusPageUser, req);
+      const user: JSONObject = formatUserForSCIM(statusPageUser, req, req.params["statusPageScimId"]!, "status-page");
 
       logger.debug(
         `Status Page SCIM Get user - returning user with id: ${statusPageUser.id}`,
@@ -328,7 +260,7 @@ router.post(
         );
       }
 
-      const createdUser: JSONObject = formatUserForSCIM(user, req);
+      const createdUser: JSONObject = formatUserForSCIM(user, req, req.params["statusPageScimId"]!, "status-page");
 
       logger.debug(
         `Status Page SCIM Create user - returning created user with id: ${user.id}`,
@@ -463,7 +395,7 @@ router.put(
         });
 
         if (updatedUser) {
-          const user: JSONObject = formatUserForSCIM(updatedUser, req);
+          const user: JSONObject = formatUserForSCIM(updatedUser, req, req.params["statusPageScimId"]!, "status-page");
           return Response.sendJsonObjectResponse(req, res, user);
         }
       }
@@ -473,7 +405,7 @@ router.put(
       );
 
       // If no updates were made, return the existing user
-      const user: JSONObject = formatUserForSCIM(statusPageUser, req);
+      const user: JSONObject = formatUserForSCIM(statusPageUser, req, req.params["statusPageScimId"]!, "status-page");
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
