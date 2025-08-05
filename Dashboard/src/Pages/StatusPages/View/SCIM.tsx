@@ -101,6 +101,10 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               id: "configuration",
             },
           ]}
+          onBeforeCreate={(scim: StatusPageSCIM)=>{
+            scim.statusPageId = modelId;
+            return Promise.resolve(scim);
+          }}
           noItemsMessage={"No SCIM configuration found."}
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={[
@@ -155,6 +159,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             },
           ]}
           showRefreshButton={true}
+          selectMoreFields={{
+            bearerToken: true,
+          }}
           filters={[]}
           columns={[
             {
@@ -162,13 +169,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 name: true,
               },
               title: "Name",
-              type: FieldType.Text,
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
               type: FieldType.Text,
             },
             {
@@ -184,24 +184,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               },
               title: "Auto Deprovision Users",
               type: FieldType.Boolean,
-            },
-            {
-              field: {
-                bearerToken: true,
-              },
-              title: "Bearer Token",
-              type: FieldType.HiddenText,
-              getElement: (item: StatusPageSCIM): ReactElement => {
-                return <HiddenText text={item["bearerToken"] as string} />;
-              },
-            },
-            {
-              field: {
-                createdAt: true,
-              },
-              title: "Created",
-              type: FieldType.DateTime,
-            },
+            }
           ]}
           actionButtons={[
             {
@@ -224,7 +207,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             },
             {
               title: "Reset Bearer Token",
-              buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+              buttonStyleType: ButtonStyleType.OUTLINE,
               icon: IconProp.Refresh,
               onClick: async (
                 item: StatusPageSCIM,
