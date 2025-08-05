@@ -25,7 +25,8 @@ export default class SCIMMiddleware {
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
       // Extract SCIM ID from URL path (could be project or status page)
-      const scimId: string | undefined = req.params["projectScimId"] || req.params["statusPageScimId"];
+      const scimId: string | undefined =
+        req.params["projectScimId"] || req.params["statusPageScimId"];
       if (!scimId) {
         throw new BadRequestException("SCIM ID is required");
       }
@@ -52,8 +53,8 @@ export default class SCIMMiddleware {
       }
 
       // Try to find Project SCIM configuration first
-      const projectScimConfig: ProjectSCIM | null = await ProjectSCIMService.findOneBy(
-        {
+      const projectScimConfig: ProjectSCIM | null =
+        await ProjectSCIMService.findOneBy({
           query: {
             _id: new ObjectID(scimId),
             bearerToken: bearerToken,
@@ -71,8 +72,7 @@ export default class SCIMMiddleware {
           props: {
             isRoot: true,
           },
-        },
-      );
+        });
 
       if (projectScimConfig) {
         // Store Project SCIM configuration
@@ -86,8 +86,8 @@ export default class SCIMMiddleware {
       }
 
       // If not found, try Status Page SCIM configuration
-      const statusPageScimConfig: StatusPageSCIM | null = await StatusPageSCIMService.findOneBy(
-        {
+      const statusPageScimConfig: StatusPageSCIM | null =
+        await StatusPageSCIMService.findOneBy({
           query: {
             _id: new ObjectID(scimId),
             bearerToken: bearerToken,
@@ -102,8 +102,7 @@ export default class SCIMMiddleware {
           props: {
             isRoot: true,
           },
-        },
-      );
+        });
 
       if (statusPageScimConfig) {
         // Store Status Page SCIM configuration
@@ -121,7 +120,6 @@ export default class SCIMMiddleware {
       throw new NotAuthorizedException(
         "Invalid bearer token or SCIM configuration not found",
       );
-
     } catch (err) {
       return next(err);
     }

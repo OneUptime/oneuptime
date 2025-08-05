@@ -151,7 +151,6 @@ export const AdminDashboardHostname: Hostname = Hostname.fromString(
   }`,
 );
 
-
 export const DocsHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_DOCS_HOSTNAME"] || "localhost"}:${
     process.env["DOCS_PORT"] || 80
@@ -326,12 +325,7 @@ export const AccountsClientUrl: URL = new URL(
   AccountsRoute,
 );
 
-
-export const DocsClientUrl: URL = new URL(
-  HttpProtocol,
-  Host,
-  DocsRoute
-);
+export const DocsClientUrl: URL = new URL(HttpProtocol, Host, DocsRoute);
 
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";

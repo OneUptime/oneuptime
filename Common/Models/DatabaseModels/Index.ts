@@ -386,7 +386,7 @@ const AllModelTypes: Array<{
 
   ProjectSCIM,
 
-  StatusPageSCIM
+  StatusPageSCIM,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

@@ -84,15 +84,17 @@ export const formatUserForSCIM: (
 ): JSONObject => {
   const baseUrl: string = `${req.protocol}://${req.get("host")}`;
   const userName: string = user.email?.toString() || "";
-  const fullName: string = user.name?.toString() || userName.split("@")[0] || "Unknown User";
-  
+  const fullName: string =
+    user.name?.toString() || userName.split("@")[0] || "Unknown User";
+
   const nameData: { givenName: string; familyName: string; formatted: string } =
     parseNameToSCIMFormat(fullName);
 
   // Determine the correct endpoint path based on SCIM type
-  const endpointPath: string = scimType === "project" 
-    ? `/scim/v2/${scimId}/Users/${user.id?.toString()}`
-    : `/status-page-scim/v2/${scimId}/Users/${user.id?.toString()}`;
+  const endpointPath: string =
+    scimType === "project"
+      ? `/scim/v2/${scimId}/Users/${user.id?.toString()}`
+      : `/status-page-scim/v2/${scimId}/Users/${user.id?.toString()}`;
 
   return {
     schemas: ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -158,14 +160,13 @@ export const generateServiceProviderConfig: (
   documentationUrl: string = "https://oneuptime.com/docs/identity/scim",
 ): JSONObject => {
   const baseUrl: string = `${req.protocol}://${req.get("host")}`;
-  const endpointPath: string = scimType === "project" 
-    ? `/scim/v2/${scimId}`
-    : `/status-page-scim/v2/${scimId}`;
+  const endpointPath: string =
+    scimType === "project"
+      ? `/scim/v2/${scimId}`
+      : `/status-page-scim/v2/${scimId}`;
 
   return {
-    schemas: [
-      "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig",
-    ],
+    schemas: ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"],
     documentationUri: documentationUrl,
     patch: {
       supported: true,
@@ -238,7 +239,7 @@ export const parseSCIMQueryParams: (req: ExpressRequest) => {
     parseInt(req.query["count"] as string) || 100,
     200, // SCIM recommended max
   );
-  
+
   return { startIndex, count };
 };
 
@@ -256,7 +257,8 @@ export const logSCIMOperation: (
   scimId: string,
   details?: string,
 ): void => {
-  const logPrefix: string = scimType === "project" ? "Project SCIM" : "Status Page SCIM";
+  const logPrefix: string =
+    scimType === "project" ? "Project SCIM" : "Status Page SCIM";
   const message: string = `${logPrefix} ${operation} - scimId: ${scimId}${details ? `, ${details}` : ""}`;
   logger.debug(message);
 };

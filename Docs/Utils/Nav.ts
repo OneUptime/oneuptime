@@ -89,7 +89,7 @@ const DocsNav: NavGroup[] = [
         url: "/docs/identity/scim",
       },
     ]
-  }
+  },
   {
     title: "Terraform Provider",
     links: [

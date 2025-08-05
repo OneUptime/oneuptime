@@ -20,13 +20,7 @@ import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-} from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -316,7 +310,8 @@ export default class StatusPageSCIM extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Auto Provision Users",
-    description: "Automatically create status page users when they are added via SCIM",
+    description:
+      "Automatically create status page users when they are added via SCIM",
     defaultValue: true,
   })
   @Column({
@@ -347,7 +342,8 @@ export default class StatusPageSCIM extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Auto Deprovision Users",
-    description: "Automatically remove status page users when they are removed via SCIM",
+    description:
+      "Automatically remove status page users when they are removed via SCIM",
     defaultValue: true,
   })
   @Column({

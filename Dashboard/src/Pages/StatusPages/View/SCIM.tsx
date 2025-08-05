@@ -192,11 +192,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
               title: "Bearer Token",
               type: FieldType.HiddenText,
               getElement: (item: StatusPageSCIM): ReactElement => {
-                return (
-                  <HiddenText
-                    text={item["bearerToken"] as string}
-                  />
-                );
+                return <HiddenText text={item["bearerToken"] as string} />;
               },
             },
             {
@@ -268,7 +264,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       fontSize: "12px",
                     }}
                   >
-                    {IDENTITY_URL.toString()}/status-page-scim/v2/{showSCIMUrlId}
+                    {IDENTITY_URL.toString()}/status-page-scim/v2/
+                    {showSCIMUrlId}
                   </code>
                 </div>
                 <br />
@@ -283,16 +280,15 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       fontSize: "12px",
                     }}
                   >
-                    {IDENTITY_URL.toString()}/status-page-scim/v2/{showSCIMUrlId}/Users
+                    {IDENTITY_URL.toString()}/status-page-scim/v2/
+                    {showSCIMUrlId}/Users
                   </code>
                 </div>
                 <br />
                 <div>
                   <strong>Bearer Token:</strong>
                   <br />
-                  <HiddenText
-                    text={currentSCIMConfig.bearerToken as string}
-                  />
+                  <HiddenText text={currentSCIMConfig.bearerToken as string} />
                 </div>
                 <br />
                 <p>

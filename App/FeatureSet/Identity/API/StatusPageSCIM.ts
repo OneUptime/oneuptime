@@ -30,12 +30,16 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      logSCIMOperation("ServiceProviderConfig", "status-page", req.params["statusPageScimId"]!);
-      
+      logSCIMOperation(
+        "ServiceProviderConfig",
+        "status-page",
+        req.params["statusPageScimId"]!,
+      );
+
       const serviceProviderConfig: JSONObject = generateServiceProviderConfig(
         req,
         req.params["statusPageScimId"]!,
-        "status-page"
+        "status-page",
       );
 
       return Response.sendJsonObjectResponse(req, res, serviceProviderConfig);
@@ -61,7 +65,8 @@ router.get(
       const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
 
       // Parse query parameters
-      const startIndex: number = parseInt(req.query["startIndex"] as string) || 1;
+      const startIndex: number =
+        parseInt(req.query["startIndex"] as string) || 1;
       const count: number = Math.min(
         parseInt(req.query["count"] as string) || 100,
         LIMIT_PER_PROJECT,
@@ -95,7 +100,12 @@ router.get(
       // Format users for SCIM
       const users: Array<JSONObject> = statusPageUsers.map(
         (user: StatusPagePrivateUser) => {
-          return formatUserForSCIM(user, req, req.params["statusPageScimId"]!, "status-page");
+          return formatUserForSCIM(
+            user,
+            req,
+            req.params["statusPageScimId"]!,
+            "status-page",
+          );
         },
       );
 
@@ -105,7 +115,9 @@ router.get(
         startIndex * count,
       );
 
-      logger.debug(`Status Page SCIM Users response prepared with ${users.length} users`);
+      logger.debug(
+        `Status Page SCIM Users response prepared with ${users.length} users`,
+      );
 
       return Response.sendJsonObjectResponse(req, res, {
         schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
@@ -145,19 +157,20 @@ router.get(
       }
 
       // Check if user exists and belongs to this status page
-      const statusPageUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-        query: {
-          statusPageId: statusPageId,
-          _id: new ObjectID(userId),
-        },
-        select: {
-          _id: true,
-          email: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        props: { isRoot: true },
-      });
+      const statusPageUser: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneBy({
+          query: {
+            statusPageId: statusPageId,
+            _id: new ObjectID(userId),
+          },
+          select: {
+            _id: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          props: { isRoot: true },
+        });
 
       if (!statusPageUser) {
         logger.debug(
@@ -168,7 +181,12 @@ router.get(
         );
       }
 
-      const user: JSONObject = formatUserForSCIM(statusPageUser, req, req.params["statusPageScimId"]!, "status-page");
+      const user: JSONObject = formatUserForSCIM(
+        statusPageUser,
+        req,
+        req.params["statusPageScimId"]!,
+        "status-page",
+      );
 
       logger.debug(
         `Status Page SCIM Get user - returning user with id: ${statusPageUser.id}`,
@@ -195,7 +213,9 @@ router.post(
       const bearerData: JSONObject =
         oneuptimeRequest.bearerTokenData as JSONObject;
       const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
-      const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+      const scimConfig: StatusPageSCIM = bearerData[
+        "scimConfig"
+      ] as StatusPageSCIM;
 
       if (!scimConfig.autoProvisionUsers) {
         throw new BadRequestException(
@@ -222,24 +242,23 @@ router.post(
         throw new BadRequestException("Email is required for user creation");
       }
 
-      logger.debug(
-        `Status Page SCIM Create user - email: ${email}`,
-      );
+      logger.debug(`Status Page SCIM Create user - email: ${email}`);
 
       // Check if user already exists for this status page
-      let user: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-        query: {
-          statusPageId: statusPageId,
-          email: new Email(email),
-        },
-        select: {
-          _id: true,
-          email: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        props: { isRoot: true },
-      });
+      let user: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneBy({
+          query: {
+            statusPageId: statusPageId,
+            email: new Email(email),
+          },
+          select: {
+            _id: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          props: { isRoot: true },
+        });
 
       if (!user) {
         logger.debug(
@@ -260,7 +279,12 @@ router.post(
         );
       }
 
-      const createdUser: JSONObject = formatUserForSCIM(user, req, req.params["statusPageScimId"]!, "status-page");
+      const createdUser: JSONObject = formatUserForSCIM(
+        user,
+        req,
+        req.params["statusPageScimId"]!,
+        "status-page",
+      );
 
       logger.debug(
         `Status Page SCIM Create user - returning created user with id: ${user.id}`,
@@ -304,19 +328,20 @@ router.put(
       }
 
       // Check if user exists and belongs to this status page
-      const statusPageUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-        query: {
-          statusPageId: statusPageId,
-          _id: new ObjectID(userId),
-        },
-        select: {
-          _id: true,
-          email: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        props: { isRoot: true },
-      });
+      const statusPageUser: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneBy({
+          query: {
+            statusPageId: statusPageId,
+            _id: new ObjectID(userId),
+          },
+          select: {
+            _id: true,
+            email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          props: { isRoot: true },
+        });
 
       if (!statusPageUser) {
         logger.debug(
@@ -342,8 +367,10 @@ router.put(
         logger.debug(
           `Status Page SCIM Update user - user marked as inactive, removing from status page`,
         );
-        
-        const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+
+        const scimConfig: StatusPageSCIM = bearerData[
+          "scimConfig"
+        ] as StatusPageSCIM;
         if (scimConfig.autoDeprovisionUsers) {
           await StatusPagePrivateUserService.deleteOneById({
             id: new ObjectID(userId),
@@ -380,22 +407,30 @@ router.put(
           props: { isRoot: true },
         });
 
-        logger.debug(`Status Page SCIM Update user - user updated successfully`);
+        logger.debug(
+          `Status Page SCIM Update user - user updated successfully`,
+        );
 
         // Fetch updated user
-        const updatedUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneById({
-          id: new ObjectID(userId),
-          select: {
-            _id: true,
-            email: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-          props: { isRoot: true },
-        });
+        const updatedUser: StatusPagePrivateUser | null =
+          await StatusPagePrivateUserService.findOneById({
+            id: new ObjectID(userId),
+            select: {
+              _id: true,
+              email: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            props: { isRoot: true },
+          });
 
         if (updatedUser) {
-          const user: JSONObject = formatUserForSCIM(updatedUser, req, req.params["statusPageScimId"]!, "status-page");
+          const user: JSONObject = formatUserForSCIM(
+            updatedUser,
+            req,
+            req.params["statusPageScimId"]!,
+            "status-page",
+          );
           return Response.sendJsonObjectResponse(req, res, user);
         }
       }
@@ -405,7 +440,12 @@ router.put(
       );
 
       // If no updates were made, return the existing user
-      const user: JSONObject = formatUserForSCIM(statusPageUser, req, req.params["statusPageScimId"]!, "status-page");
+      const user: JSONObject = formatUserForSCIM(
+        statusPageUser,
+        req,
+        req.params["statusPageScimId"]!,
+        "status-page",
+      );
 
       return Response.sendJsonObjectResponse(req, res, user);
     } catch (err) {
@@ -428,7 +468,9 @@ router.delete(
       const bearerData: JSONObject =
         oneuptimeRequest.bearerTokenData as JSONObject;
       const statusPageId: ObjectID = bearerData["statusPageId"] as ObjectID;
-      const scimConfig: StatusPageSCIM = bearerData["scimConfig"] as StatusPageSCIM;
+      const scimConfig: StatusPageSCIM = bearerData[
+        "scimConfig"
+      ] as StatusPageSCIM;
       const userId: string = req.params["userId"]!;
 
       if (!scimConfig.autoDeprovisionUsers) {
@@ -446,16 +488,17 @@ router.delete(
       }
 
       // Check if user exists and belongs to this status page
-      const statusPageUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-        query: {
-          statusPageId: statusPageId,
-          _id: new ObjectID(userId),
-        },
-        select: {
-          _id: true,
-        },
-        props: { isRoot: true },
-      });
+      const statusPageUser: StatusPagePrivateUser | null =
+        await StatusPagePrivateUserService.findOneBy({
+          query: {
+            statusPageId: statusPageId,
+            _id: new ObjectID(userId),
+          },
+          select: {
+            _id: true,
+          },
+          props: { isRoot: true },
+        });
 
       if (!statusPageUser) {
         logger.debug(
