@@ -589,6 +589,13 @@ import ProjectSCIMService, {
   Service as ProjectSCIMServiceType,
 } from "Common/Server/Services/ProjectSCIMService";
 
+
+// StatusPageSCIM
+import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
+import StatusPageSCIMService, {
+  Service as StatusPageSCIMServiceType,
+} from "Common/Server/Services/StatusPageSCIMService"; 
+
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
 
@@ -630,6 +637,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProjectSCIM, ProjectSCIMServiceType>(
         ProjectSCIM,
         ProjectSCIMService,
+      ).getRouter(),
+    );
+
+    // Status Page SCIM
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageSCIM, StatusPageSCIMServiceType>(
+        StatusPageSCIM,
+        StatusPageSCIMService,
       ).getRouter(),
     );
 
