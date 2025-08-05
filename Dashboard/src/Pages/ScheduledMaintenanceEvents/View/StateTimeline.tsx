@@ -16,6 +16,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
+import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -217,38 +218,13 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             title: "Notification Status",
             type: FieldType.Text,
             getElement: (item: ScheduledMaintenanceStateTimeline): ReactElement => {
-              const status = item.subscriberNotificationStatus;
-              let statusColor = "gray";
-              
-              switch(status) {
-                case StatusPageSubscriberNotificationStatus.Success:
-                  statusColor = "green";
-                  break;
-                case StatusPageSubscriberNotificationStatus.Failed:
-                  statusColor = "red";
-                  break;
-                case StatusPageSubscriberNotificationStatus.InProgress:
-                  statusColor = "blue";
-                  break;
-                case StatusPageSubscriberNotificationStatus.Pending:
-                  statusColor = "yellow";
-                  break;
-                case StatusPageSubscriberNotificationStatus.Skipped:
-                  statusColor = "gray";
-                  break;
-              }
-              
               return (
-                <div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800`}>
-                    {status || "Unknown"}
-                  </span>
-                  {item.subscriberNotificationFailedReason && (
-                    <div className="text-xs text-red-600 mt-1">
-                      {item.subscriberNotificationFailedReason}
-                    </div>
-                  )}
-                </div>
+                <NotificationStatusPill
+                  status={item.subscriberNotificationStatus}
+                  style="badge"
+                  showFailureReason={true}
+                  failureReason={item.subscriberNotificationFailedReason}
+                />
               );
             },
           },

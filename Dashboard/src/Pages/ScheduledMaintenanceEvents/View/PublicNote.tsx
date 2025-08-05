@@ -28,6 +28,7 @@ import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/Schedul
 import User from "Common/Models/DatabaseModels/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
@@ -329,38 +330,14 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             type: FieldType.Text,
             colSpan: 1,
             getElement: (item: ScheduledMaintenancePublicNote): ReactElement => {
-              const status = item.subscriberNotificationStatusOnNoteCreated;
-              let statusColor = "gray";
-              
-              switch(status) {
-                case StatusPageSubscriberNotificationStatus.Success:
-                  statusColor = "green";
-                  break;
-                case StatusPageSubscriberNotificationStatus.Failed:
-                  statusColor = "red";
-                  break;
-                case StatusPageSubscriberNotificationStatus.InProgress:
-                  statusColor = "blue";
-                  break;
-                case StatusPageSubscriberNotificationStatus.Pending:
-                  statusColor = "yellow";
-                  break;
-                case StatusPageSubscriberNotificationStatus.Skipped:
-                  statusColor = "gray";
-                  break;
-              }
-              
               return (
-                <div className="-mt-5">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800`}>
-                    {status || "Unknown"}
-                  </span>
-                  {item.subscriberNotificationFailedReason && (
-                    <div className="text-xs text-red-600 mt-1">
-                      {item.subscriberNotificationFailedReason}
-                    </div>
-                  )}
-                </div>
+                <NotificationStatusPill
+                  status={item.subscriberNotificationStatusOnNoteCreated}
+                  style="badge"
+                  showFailureReason={true}
+                  failureReason={item.subscriberNotificationFailedReason}
+                  className="-mt-5"
+                />
               );
             },
           },

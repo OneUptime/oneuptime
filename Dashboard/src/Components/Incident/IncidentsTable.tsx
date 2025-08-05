@@ -2,7 +2,7 @@ import LabelsElement from "../../Components/Label/Labels";
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
-import { Black, Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -28,7 +28,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import NotificationStatusPill from "../StatusPage/NotificationStatusPill";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -369,29 +369,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             hideOnMobile: true,
             getElement: (item: Incident): ReactElement => {
-              const status = item.subscriberNotificationStatusOnIncidentCreated;
-              
-              if (!status || status === StatusPageSubscriberNotificationStatus.Skipped) {
-                return <Pill color={Gray500} text="Skipped" isMinimal={true} />;
-              }
-              
-              if (status === StatusPageSubscriberNotificationStatus.Pending) {
-                return <Pill color={Blue} text="Pending" isMinimal={true} />;
-              }
-              
-              if (status === StatusPageSubscriberNotificationStatus.InProgress) {
-                return <Pill color={Yellow} text="In Progress" isMinimal={true} />;
-              }
-              
-              if (status === StatusPageSubscriberNotificationStatus.Success) {
-                return <Pill color={Green} text="Sent" isMinimal={true} />;
-              }
-              
-              if (status === StatusPageSubscriberNotificationStatus.Failed) {
-                return <Pill color={Red} text="Failed" isMinimal={true} />;
-              }
-              
-              return <Pill color={Gray500} text="Unknown" isMinimal={true} />;
+              return (
+                <NotificationStatusPill
+                  status={item.subscriberNotificationStatusOnIncidentCreated}
+                />
+              );
             },
           },
         ]}

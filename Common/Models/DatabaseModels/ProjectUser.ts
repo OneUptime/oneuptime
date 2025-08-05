@@ -49,8 +49,8 @@ import {
 })
 @TableMetadata({
   tableName: "ProjectUser",
-  singularName: "User",
-  pluralName: "Users",
+  singularName: "Project User",
+  pluralName: "Project Users",
   icon: IconProp.User,
   tableDescription:
     "This model connects users and teams. This is an internal table. Its a view on TeamMembers table.",
