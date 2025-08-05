@@ -243,9 +243,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800`}>
                     {status || "Unknown"}
                   </span>
-                  {item.notificationFailureReason && (
+                  {item.subscriberNotificationFailedReason && (
                     <div className="text-xs text-red-600 mt-1">
-                      {item.notificationFailureReason}
+                      {item.subscriberNotificationFailedReason}
                     </div>
                   )}
                 </div>
@@ -272,7 +272,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                   id: item.id!,
                   data: {
                     subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-                    notificationFailureReason: null,
+                    subscriberNotificationFailedReason: null,
                   },
                 });
                 onCompleteAction();

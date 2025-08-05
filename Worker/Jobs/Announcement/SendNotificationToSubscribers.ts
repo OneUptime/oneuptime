@@ -286,7 +286,7 @@ RunCron(
           id: announcement.id!,
           data: {
             subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
-            notificationFailureReason: err instanceof Error ? err.message : String(err),
+            subscriberNotificationFailedReason: err instanceof Error ? err.message : String(err),
           },
           props: {
             isRoot: true,

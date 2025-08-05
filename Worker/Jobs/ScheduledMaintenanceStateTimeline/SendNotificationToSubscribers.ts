@@ -381,7 +381,7 @@ RunCron(
           id: scheduledEventStateTimeline.id!,
           data: {
             subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
-            notificationFailureReason: (err as Error).message,
+            subscriberNotificationFailedReason: (err as Error).message,
           },
           props: {
             isRoot: true,

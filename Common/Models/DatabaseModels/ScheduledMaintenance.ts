@@ -756,16 +756,16 @@ export default class ScheduledMaintenance extends BaseModel {
     ],
   })
   @TableColumn({
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     title: "Notification Failure Reason On Event Scheduled",
     description: "Reason for notification failure if status is Failed",
     required: false,
   })
   @Column({
-    type: ColumnType.LongText,
+    type: ColumnType.VeryLongText,
     nullable: true,
   })
-  public notificationFailureReasonOnEventScheduled?: string = undefined;
+  public subscriberNotificationFailedReason?: string = undefined;
 
   @ColumnAccessControl({
     create: [

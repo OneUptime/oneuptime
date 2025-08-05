@@ -169,7 +169,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              notificationFailureReason: true,
+              subscriberNotificationFailedReason: true,
             },
             title: "Failure Reason",
             type: FieldType.Text,
@@ -250,7 +250,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              notificationFailureReason: true,
+              subscriberNotificationFailedReason: true,
             },
             title: "Failure Reason",
             type: FieldType.Text,
@@ -277,7 +277,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
                   id: item.id!,
                   data: {
                     subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-                    notificationFailureReason: null,
+                    subscriberNotificationFailedReason: null,
                   },
                 });
                 onCompleteAction();
