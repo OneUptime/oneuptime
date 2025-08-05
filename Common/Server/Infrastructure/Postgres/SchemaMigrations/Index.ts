@@ -148,6 +148,7 @@ import { AddPerformanceIndexes1753378524062 } from "./1753378524062-AddPerforman
 import { MigrationName1753383711511 } from "./1753383711511-MigrationName";
 import { MigrationName1754304193228 } from "./1754304193228-MigrationName";
 import { MigrationName1754315774827 } from "./1754315774827-MigrationName";
+import { MigrationName1754384418632 } from "./1754384418632-MigrationName";
 
 export default [
   InitialMigration,
@@ -300,4 +301,5 @@ export default [
   MigrationName1753383711511,
   MigrationName1754304193228,
   MigrationName1754315774827,
+  MigrationName1754384418632
 ];

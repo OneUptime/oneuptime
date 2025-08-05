@@ -232,6 +232,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
         <SideMenuItem
           link={{
+            title: "SCIM",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_SCIM] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Team}
+        />
+
+        <SideMenuItem
+          link={{
             title: "Authentication Settings",
             to: RouteUtil.populateRouteParams(
               RouteMap[

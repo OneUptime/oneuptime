@@ -1,4 +1,5 @@
 import ProjectSCIMService from "../Services/ProjectSCIMService";
+import StatusPageSCIMService from "../Services/StatusPageSCIMService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -7,6 +8,7 @@ import {
 } from "../Utils/Express";
 import ObjectID from "../../Types/ObjectID";
 import ProjectSCIM from "../../Models/DatabaseModels/ProjectSCIM";
+import StatusPageSCIM from "../../Models/DatabaseModels/StatusPageSCIM";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -22,10 +24,10 @@ export default class SCIMMiddleware {
     try {
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-      // Extract project SCIM ID from URL path
-      const projectScimId: string | undefined = req.params["projectScimId"];
-      if (!projectScimId) {
-        throw new BadRequestException("Project SCIM ID is required");
+      // Extract SCIM ID from URL path (could be project or status page)
+      const scimId: string | undefined = req.params["projectScimId"] || req.params["statusPageScimId"];
+      if (!scimId) {
+        throw new BadRequestException("SCIM ID is required");
       }
 
       // Extract bearer token from Authorization header
@@ -38,8 +40,8 @@ export default class SCIMMiddleware {
       }
 
       logger.debug(
-        `SCIM Authorization: projectScimId=${projectScimId}, bearerToken=${
-          bearerToken
+        `SCIM Authorization: scimId=${scimId}, bearerToken=${
+          bearerToken ? "***" : "missing"
         }`,
       );
 
@@ -49,11 +51,11 @@ export default class SCIMMiddleware {
         );
       }
 
-      // Find SCIM configuration by SCIM ID and bearer token
-      const scimConfig: ProjectSCIM | null = await ProjectSCIMService.findOneBy(
+      // Try to find Project SCIM configuration first
+      const projectScimConfig: ProjectSCIM | null = await ProjectSCIMService.findOneBy(
         {
           query: {
-            _id: new ObjectID(projectScimId),
+            _id: new ObjectID(scimId),
             bearerToken: bearerToken,
           },
           select: {
@@ -72,21 +74,54 @@ export default class SCIMMiddleware {
         },
       );
 
-      if (!scimConfig) {
-        throw new NotAuthorizedException(
-          "Invalid bearer token or SCIM configuration not found",
-        );
+      if (projectScimConfig) {
+        // Store Project SCIM configuration
+        oneuptimeRequest.bearerTokenData = {
+          scimConfig: projectScimConfig,
+          projectId: projectScimConfig.projectId,
+          projectScimId: new ObjectID(scimId),
+          type: "project-scim",
+        };
+        return next();
       }
 
-      // Store SCIM configuration and project ID in bearerTokenData for use in handlers
-      oneuptimeRequest.bearerTokenData = {
-        scimConfig: scimConfig,
-        projectId: scimConfig.projectId,
-        projectScimId: new ObjectID(projectScimId),
-        type: "scim",
-      };
+      // If not found, try Status Page SCIM configuration
+      const statusPageScimConfig: StatusPageSCIM | null = await StatusPageSCIMService.findOneBy(
+        {
+          query: {
+            _id: new ObjectID(scimId),
+            bearerToken: bearerToken,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            statusPageId: true,
+            autoProvisionUsers: true,
+            autoDeprovisionUsers: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        },
+      );
 
-      return next();
+      if (statusPageScimConfig) {
+        // Store Status Page SCIM configuration
+        oneuptimeRequest.bearerTokenData = {
+          scimConfig: statusPageScimConfig,
+          projectId: statusPageScimConfig.projectId,
+          statusPageId: statusPageScimConfig.statusPageId,
+          statusPageScimId: new ObjectID(scimId),
+          type: "status-page-scim",
+        };
+        return next();
+      }
+
+      // If neither found, throw error
+      throw new NotAuthorizedException(
+        "Invalid bearer token or SCIM configuration not found",
+      );
+
     } catch (err) {
       return next(err);
     }

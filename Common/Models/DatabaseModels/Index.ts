@@ -114,6 +114,7 @@ import StatusPageOwnerTeam from "./StatusPageOwnerTeam";
 import StatusPageOwnerUser from "./StatusPageOwnerUser";
 import StatusPagePrivateUser from "./StatusPagePrivateUser";
 import StatusPageResource from "./StatusPageResource";
+import StatusPageSCIM from "./StatusPageSCIM";
 import StatusPageSSO from "./StatusPageSso";
 import StatusPageSubscriber from "./StatusPageSubscriber";
 // Team
@@ -277,6 +278,7 @@ const AllModelTypes: Array<{
 
   ProjectSSO,
   StatusPageSSO,
+  StatusPageSCIM,
 
   MonitorProbe,
 
@@ -383,6 +385,8 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyTimeLog,
 
   ProjectSCIM,
+
+  StatusPageSCIM
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

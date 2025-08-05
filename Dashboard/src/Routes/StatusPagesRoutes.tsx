@@ -119,6 +119,11 @@ const StatusPageViewSSO: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/StatusPages/View/SSO");
 });
+const StatusPageViewSCIM: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/View/SCIM");
+});
 const StatusPageViewPrivateUser: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -355,6 +360,18 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPageViewSSO
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SSO] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.STATUS_PAGE_VIEW_SCIM)}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPageViewSCIM
+                {...props}
+                pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_SCIM] as Route}
               />
             </Suspense>
           }
