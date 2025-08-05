@@ -290,15 +290,6 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
                   <div>
                     <p className="font-medium text-gray-700 mb-1">
-                      Groups Endpoint:
-                    </p>
-                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
-                      {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Groups
-                    </code>
-                  </div>
-
-                  <div>
-                    <p className="font-medium text-gray-700 mb-1">
                       Unique identifier field for users:
                     </p>
                     <code className="block p-2 bg-gray-100 rounded text-sm break-all">

@@ -240,28 +240,31 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   <strong>SCIM Base URL:</strong>
                   <br />
                   <code
-                    style={{
-                      backgroundColor: "#f4f4f4",
-                      padding: "5px",
-                      borderRadius: "3px",
-                      fontSize: "12px",
-                    }}
+                    className="block p-2 bg-gray-100 rounded text-sm break-all"
                   >
                     {IDENTITY_URL.toString()}/status-page-scim/v2/
                     {showSCIMUrlId}
                   </code>
                 </div>
                 <br />
+                                  <div>
+                    <p className="font-medium text-gray-700 mb-1">
+                      Unique identifier field for users:
+                    </p>
+                    <code className="block p-2 bg-gray-100 rounded text-sm break-all">
+                      userName
+                    </code>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Use this field as the unique identifier for users in your
+                      identity provider SCIM configuration
+                    </p>
+                  </div>
+                <br />
                 <div>
                   <strong>Users Endpoint:</strong>
                   <br />
                   <code
-                    style={{
-                      backgroundColor: "#f4f4f4",
-                      padding: "5px",
-                      borderRadius: "3px",
-                      fontSize: "12px",
-                    }}
+                    className="block p-2 bg-gray-100 rounded text-sm break-all"
                   >
                     {IDENTITY_URL.toString()}/status-page-scim/v2/
                     {showSCIMUrlId}/Users
