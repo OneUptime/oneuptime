@@ -150,6 +150,7 @@ import { MigrationName1754304193228 } from "./1754304193228-MigrationName";
 import { MigrationName1754315774827 } from "./1754315774827-MigrationName";
 import { MigrationName1754384418632 } from "./1754384418632-MigrationName";
 import { MigrationName1754412708044 } from "./1754412708044-MigrationName";
+import { MigrationName1754415281937 } from "./1754415281937-MigrationName";
 import { UpdateSubscriberNotificationStatusToEnum1754500000000 } from "./1754500000000-UpdateSubscriberNotificationStatusToEnum";
 
 export default [
@@ -305,5 +306,6 @@ export default [
   MigrationName1754315774827,
   MigrationName1754384418632,
   UpdateSubscriberNotificationStatusToEnum1754500000000,
-  MigrationName1754412708044
+  MigrationName1754412708044,
+  MigrationName1754415281937
 ];
