@@ -58,7 +58,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 20 }, // Process up to 20 telemetry jobs concurrently
+  { concurrency: 50 }, // Process up to 50 telemetry jobs concurrently
 );
 
 logger.debug("Unified telemetry worker initialized");
