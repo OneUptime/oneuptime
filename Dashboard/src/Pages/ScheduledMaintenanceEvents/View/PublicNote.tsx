@@ -28,7 +28,7 @@ import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/Schedul
 import User from "Common/Models/DatabaseModels/User";
 import ProjectUtil from "Common/UI/Utils/Project";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -348,7 +348,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             colSpan: 1,
             getElement: (item: ScheduledMaintenancePublicNote): ReactElement => {
               return (
-                <NotificationStatusPill
+                <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatusOnNoteCreated}
                   style="badge"
                   showFailureReason={true}

@@ -51,7 +51,7 @@ export const getNotificationStatusInfo = (
 };
 
 /**
- * NotificationStatusPill Component
+ * SubscriberNotificationStatus Component
  * 
  * A reusable component for displaying notification status with consistent styling.
  * Supports two display styles: "pill" (using Pill component) and "badge" (using Tailwind CSS).
@@ -67,10 +67,10 @@ export const getNotificationStatusInfo = (
  * Usage Examples:
  * 
  * // Basic pill style
- * <NotificationStatusPill status={item.subscriberNotificationStatus} />
+ * <SubscriberNotificationStatus status={item.subscriberNotificationStatus} />
  * 
  * // Badge style with failure reason and resend callback
- * <NotificationStatusPill
+ * <SubscriberNotificationStatus
  *   status={item.subscriberNotificationStatus}
  *   style="badge"
  *   showFailureReason={true}
@@ -78,7 +78,7 @@ export const getNotificationStatusInfo = (
  *   onResendNotification={() => handleResend(item)}
  * />
  */
-const NotificationStatusPill: FunctionComponent<ComponentProps> = (
+const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { 
@@ -156,4 +156,4 @@ const NotificationStatusPill: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default NotificationStatusPill;
+export default SubscriberNotificationStatus;

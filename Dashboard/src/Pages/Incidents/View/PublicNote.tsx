@@ -29,7 +29,7 @@ import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTempl
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import User from "Common/Models/DatabaseModels/User";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -334,7 +334,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             colSpan: 1,
             getElement: (item: IncidentPublicNote): ReactElement => {
               return (
-                <NotificationStatusPill
+                <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatusOnNoteCreated}
                   style="badge"
                   showFailureReason={true}

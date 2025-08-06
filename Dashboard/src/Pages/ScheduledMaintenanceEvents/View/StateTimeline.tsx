@@ -13,7 +13,7 @@ import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/Sche
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
-import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -234,7 +234,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Text,
             getElement: (item: ScheduledMaintenanceStateTimeline): ReactElement => {
               return (
-                <NotificationStatusPill
+                <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatus}
                   style="badge"
                   showFailureReason={true}

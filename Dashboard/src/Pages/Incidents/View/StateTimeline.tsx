@@ -19,7 +19,7 @@ import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTim
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
-import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -284,7 +284,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
             type: FieldType.Text,
             getElement: (item: IncidentStateTimeline): ReactElement => {
               return (
-                <NotificationStatusPill
+                <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatus}
                   style="badge"
                   showFailureReason={true}
