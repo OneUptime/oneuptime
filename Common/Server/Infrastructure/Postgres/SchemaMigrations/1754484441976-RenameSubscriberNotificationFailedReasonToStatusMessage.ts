@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976 implements MigrationInterface {
-    name = 'RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976'
+    public name = 'RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "Incident" RENAME COLUMN "subscriberNotificationFailedReason" TO "subscriberNotificationStatusMessage"`);
