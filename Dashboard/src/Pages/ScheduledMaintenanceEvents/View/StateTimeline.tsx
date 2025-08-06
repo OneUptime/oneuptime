@@ -236,7 +236,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
               return (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatus}
-                  style="badge"
+                  
                   showFailureReason={true}
                   failureReason={item.subscriberNotificationFailedReason}
                   onResendNotification={() => handleResendNotification(item)}

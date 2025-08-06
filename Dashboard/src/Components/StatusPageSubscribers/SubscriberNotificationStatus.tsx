@@ -10,7 +10,6 @@ export interface ComponentProps {
   isMinimal?: boolean;
   showFailureReason?: boolean;
   failureReason?: string | undefined | null;
-  style?: "pill" | "badge";
   className?: string;
   onResendNotification?: (() => void) | undefined;
 }
@@ -72,7 +71,7 @@ export const getNotificationStatusInfo = (
  * // Badge style with failure reason and resend callback
  * <SubscriberNotificationStatus
  *   status={item.subscriberNotificationStatus}
- *   style="badge"
+ *   
  *   showFailureReason={true}
  *   failureReason={item.subscriberNotificationFailedReason}
  *   onResendNotification={() => handleResend(item)}
@@ -86,41 +85,12 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     isMinimal = true, 
     showFailureReason = false, 
     failureReason,
-    style = "pill",
     className = "",
     onResendNotification
   } = props;
 
   const statusInfo = getNotificationStatusInfo(status);
   const showResendButton = status === StatusPageSubscriberNotificationStatus.Failed && onResendNotification;
-
-  if (style === "badge") {
-    return (
-      <div className={className}>
-        <div className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusInfo.tailwindColor}-100 text-${statusInfo.tailwindColor}-800`}
-          >
-            {statusInfo.text}
-          </span>
-          {showResendButton && (
-            <Button
-              title="Resend Notification to Subscribers"
-              icon={IconProp.Refresh}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              buttonSize={ButtonSize.Small}
-              onClick={onResendNotification}
-            />
-          )}
-        </div>
-        {showFailureReason && failureReason && (
-          <div className="text-xs text-red-600 mt-1">
-            {failureReason}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Default pill style
   const colorMap = {

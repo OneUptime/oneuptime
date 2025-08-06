@@ -350,7 +350,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
               return (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatusOnNoteCreated}
-                  style="badge"
+                  
                   showFailureReason={true}
                   failureReason={item.subscriberNotificationFailedReason}
                   className="-mt-5"
