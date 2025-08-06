@@ -219,6 +219,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         showAs={ShowAs.List}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
+        selectMoreFields={{
+          subscriberNotificationStatusMessage: true,
+        }}
         filters={[
           {
             field: {

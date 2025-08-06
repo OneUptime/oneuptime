@@ -142,10 +142,14 @@ const AnnouncementView: FunctionComponent<
               required: false,
             },
           ]}
+        
           modelDetailProps={{
             showDetailsInNumberOfColumns: 2,
             modelType: StatusPageAnnouncement,
             id: "model-detail-status-page-announcement",
+            selectMoreFields: {
+              subscriberNotificationStatusMessage: true,
+            },
             fields: [
               {
                 field: {

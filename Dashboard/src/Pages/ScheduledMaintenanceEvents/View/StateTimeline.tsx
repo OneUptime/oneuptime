@@ -149,6 +149,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             type: FieldType.Boolean,
           },
         ]}
+        selectMoreFields={{
+          subscriberNotificationStatusMessage: true,
+        }}
         columns={[
           {
             field: {

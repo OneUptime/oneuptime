@@ -75,6 +75,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         selectMoreFields={{
           stateChangeLog: true,
           rootCause: true,
+          subscriberNotificationStatusMessage: true,
         }}
         sortBy="startsAt"
         sortOrder={SortOrder.Descending}
@@ -258,21 +259,6 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                     (item["endsAt"] as Date) || OneUptimeDate.getCurrentDate(),
                   )}
                 </p>
-              );
-            },
-          },
-          {
-            field: {
-              shouldStatusPageSubscribersBeNotified: true,
-            },
-            title: "Notification Enabled",
-            type: FieldType.Boolean,
-            getElement: (item: IncidentStateTimeline): ReactElement => {
-              return (
-                <CheckboxViewer
-                  isChecked={item.shouldStatusPageSubscribersBeNotified as boolean}
-                  text={item.shouldStatusPageSubscribersBeNotified ? "Yes" : "No"}
-                />
               );
             },
           },
