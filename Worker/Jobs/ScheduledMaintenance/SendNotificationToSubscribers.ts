@@ -72,6 +72,7 @@ RunCron(
           id: event.id!,
           data: {
             subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage: "Notifications skipped as scheduled maintenance is not visible on status page.",
           },
           props: {
             isRoot: true,
@@ -98,6 +99,7 @@ RunCron(
         id: event.id!,
         data: {
           subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Success,
+          subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
         },
         props: {
           isRoot: true,
@@ -115,7 +117,7 @@ RunCron(
           id: event.id!,
           data: {
             subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Failed,
-            subscriberNotificationFailedReason: (err as Error).message,
+            subscriberNotificationStatusMessage: (err as Error).message,
           },
           props: {
             isRoot: true,

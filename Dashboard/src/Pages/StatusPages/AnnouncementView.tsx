@@ -207,8 +207,8 @@ const AnnouncementView: FunctionComponent<
                   return (
                     <SubscriberNotificationStatus
                       status={item.subscriberNotificationStatus}
-                      showFailureReason={true}
-                      failureReason={item.subscriberNotificationFailedReason}
+                      
+                      subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
                     />
                   );
                 },

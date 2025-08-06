@@ -7,9 +7,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   status?: StatusPageSubscriberNotificationStatus | undefined | null;
-  isMinimal?: boolean;
-  showFailureReason?: boolean;
-  failureReason?: string | undefined | null;
+  subscriberNotificationStatusMessage?: string | undefined | null;
   className?: string;
   onResendNotification?: (() => void) | undefined;
 }
@@ -58,7 +56,7 @@ export const getNotificationStatusInfo = (
  * @param status - The notification status to display
  * @param isMinimal - Whether to use minimal styling (default: true)
  * @param showFailureReason - Whether to show failure reason below the status (default: false)
- * @param failureReason - The failure reason text to display
+ * @param subscriberNotificationStatusMessage - The failure reason text to display
  * @param style - Display style: "pill" or "badge" (default: "pill")
  * @param className - Additional CSS classes to apply
  * @param onResendNotification - Callback function to handle resend notification action
@@ -72,8 +70,8 @@ export const getNotificationStatusInfo = (
  * <SubscriberNotificationStatus
  *   status={item.subscriberNotificationStatus}
  *   
- *   showFailureReason={true}
- *   failureReason={item.subscriberNotificationFailedReason}
+ *   
+ *   subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
  *   onResendNotification={() => handleResend(item)}
  * />
  */
@@ -82,9 +80,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { 
     status, 
-    isMinimal = true, 
-    showFailureReason = false, 
-    failureReason,
+    subscriberNotificationStatusMessage,
     className = "",
     onResendNotification
   } = props;
@@ -106,7 +102,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   return (
     <div className={className}>
       <div className="flex items-center gap-2">
-        <Pill color={pillColor} text={statusInfo.text} isMinimal={isMinimal} />
+        <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
         {showResendButton && (
           <Button
             title="Resend Notification to Subscribers"
@@ -117,9 +113,9 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
           />
         )}
       </div>
-      {showFailureReason && failureReason && (
+      {subscriberNotificationStatusMessage && (
         <div className="text-xs text-red-600 mt-1">
-          {failureReason}
+          {subscriberNotificationStatusMessage}
         </div>
       )}
     </div>

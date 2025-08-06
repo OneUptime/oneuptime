@@ -121,6 +121,7 @@ RunCron(
           id: incidentPublicNote.id!,
           data: {
             subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage: "Notifications skipped as incident is not visible on status page.",
           },
           props: {
             isRoot: true,
@@ -365,6 +366,7 @@ ${incidentPublicNote.note}`,
         id: incidentPublicNote.id!,
         data: {
           subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Success,
+          subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
         },
         props: {
           isRoot: true,
@@ -382,7 +384,7 @@ ${incidentPublicNote.note}`,
           id: incidentPublicNote.id!,
           data: {
             subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Failed,
-            subscriberNotificationFailedReason: (err as Error).message,
+            subscriberNotificationStatusMessage: (err as Error).message,
           },
           props: {
             isRoot: true,

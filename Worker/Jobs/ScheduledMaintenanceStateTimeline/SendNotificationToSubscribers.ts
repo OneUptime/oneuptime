@@ -364,6 +364,7 @@ RunCron(
         id: scheduledEventStateTimeline.id!,
         data: {
           subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
+          subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
         },
         props: {
           isRoot: true,
@@ -381,7 +382,7 @@ RunCron(
           id: scheduledEventStateTimeline.id!,
           data: {
             subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
-            subscriberNotificationFailedReason: (err as Error).message,
+            subscriberNotificationStatusMessage: (err as Error).message,
           },
           props: {
             isRoot: true,

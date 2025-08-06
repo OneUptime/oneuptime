@@ -260,7 +260,7 @@ const ScheduledMaintenanceView: FunctionComponent<
               true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
             nextSubscriberNotificationBeforeTheEventAt: true,
-            subscriberNotificationFailedReason: true,
+            subscriberNotificationStatusMessage: true,
           },
           fields: [
             {
@@ -405,8 +405,8 @@ const ScheduledMaintenanceView: FunctionComponent<
                 return (
                   <SubscriberNotificationStatus
                     status={item.subscriberNotificationStatusOnEventScheduled}
-                    failureReason={item.subscriberNotificationFailedReason}
-                    showFailureReason={true}
+                    subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
+                    
                   />
                 );
               },

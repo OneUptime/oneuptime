@@ -57,6 +57,7 @@ RunCron(
         id: announcement.id!,
         data: {
           subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage: "Notifications skipped as subscribers are not to be notified for this announcement.",
         },
         props: {
           isRoot: true,
@@ -272,6 +273,7 @@ RunCron(
           id: announcement.id!,
           data: {
             subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
           },
           props: {
             isRoot: true,
@@ -286,7 +288,7 @@ RunCron(
           id: announcement.id!,
           data: {
             subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
-            subscriberNotificationFailedReason: err instanceof Error ? err.message : String(err),
+            subscriberNotificationStatusMessage: err instanceof Error ? err.message : String(err),
           },
           props: {
             isRoot: true,

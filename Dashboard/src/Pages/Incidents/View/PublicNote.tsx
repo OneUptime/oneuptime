@@ -59,7 +59,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         id: item.id!,
         data: {
           subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationFailedReason: null,
+          subscriberNotificationStatusMessage: null,
         },
       });
       setRefreshToggle(!refreshToggle);
@@ -310,8 +310,8 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatusOnNoteCreated}
                   
-                  showFailureReason={true}
-                  failureReason={item.subscriberNotificationFailedReason}
+                  
+                  subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
                   className="-mt-5"
                   onResendNotification={() => handleResendNotification(item)}
                 />

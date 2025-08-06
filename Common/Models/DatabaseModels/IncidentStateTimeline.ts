@@ -443,15 +443,15 @@ Permission.ProjectOwner,
   })
   @TableColumn({
     type: TableColumnType.VeryLongText,
-    title: "Notification Failure Reason",
-    description: "Reason for notification failure if status is Failed",
+    title: "Notification Status Message",
+    description: "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
   })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: true,
   })
-  public subscriberNotificationFailedReason?: string = undefined;
+  public subscriberNotificationStatusMessage?: string = undefined;
 
   @ColumnAccessControl({
     create: [

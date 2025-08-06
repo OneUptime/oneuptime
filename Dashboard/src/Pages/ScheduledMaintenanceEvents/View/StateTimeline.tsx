@@ -31,7 +31,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         id: item.id!,
         data: {
           subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationFailedReason: null,
+          subscriberNotificationStatusMessage: null,
         },
       });
       setRefreshToggle(!refreshToggle);
@@ -237,8 +237,8 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatus}
                   
-                  showFailureReason={true}
-                  failureReason={item.subscriberNotificationFailedReason}
+                  
+                  subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
                   onResendNotification={() => handleResendNotification(item)}
                 />
               );

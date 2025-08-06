@@ -360,7 +360,7 @@ const IncidentView: FunctionComponent<
               email: true,
               profilePictureId: true,
             },
-            subscriberNotificationFailedReason: true,
+            subscriberNotificationStatusMessage: true,
           },
           onBeforeFetch: async (): Promise<JSONObject> => {
             // get ack incident.
@@ -539,8 +539,8 @@ const IncidentView: FunctionComponent<
                 return (
                   <SubscriberNotificationStatus
                     status={item.subscriberNotificationStatusOnIncidentCreated}
-                    failureReason={item.subscriberNotificationFailedReason}
-                    showFailureReason={true}
+                    subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
+                    
                   />
                 );
               },
