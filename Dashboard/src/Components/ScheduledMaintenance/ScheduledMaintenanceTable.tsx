@@ -14,7 +14,6 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import NotificationStatusPill from "../StatusPage/NotificationStatusPill";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import { JSONObject } from "Common/Types/JSON";
@@ -367,21 +366,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: ScheduledMaintenance): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
-            },
-          },
-          {
-            field: {
-              subscriberNotificationStatusOnEventScheduled: true,
-            },
-            title: "Notification Status",
-            type: FieldType.Text,
-            hideOnMobile: true,
-            getElement: (item: ScheduledMaintenance): ReactElement => {
-              return (
-                <NotificationStatusPill
-                  status={item.subscriberNotificationStatusOnEventScheduled}
-                />
-              );
             },
           },
         ]}

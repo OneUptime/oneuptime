@@ -28,7 +28,6 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import NotificationStatusPill from "../StatusPage/NotificationStatusPill";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -359,21 +358,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
             getElement: (item: Incident): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
-            },
-          },
-          {
-            field: {
-              subscriberNotificationStatusOnIncidentCreated: true,
-            },
-            title: "Notification Status",
-            type: FieldType.Text,
-            hideOnMobile: true,
-            getElement: (item: Incident): ReactElement => {
-              return (
-                <NotificationStatusPill
-                  status={item.subscriberNotificationStatusOnIncidentCreated}
-                />
-              );
             },
           },
         ]}
