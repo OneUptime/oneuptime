@@ -29,7 +29,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (
+  const handleResendNotification: (
+    item: ScheduledMaintenanceStateTimeline,
+  ) => Promise<void> = async (
     item: ScheduledMaintenanceStateTimeline,
   ): Promise<void> => {
     try {
@@ -43,8 +45,8 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         },
       });
       setRefreshToggle(!refreshToggle);
-    } catch (err) {
-      console.error("Error resending notification:", err);
+    } catch {
+      // Error resending notification: handle appropriately
     }
   };
 

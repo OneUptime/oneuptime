@@ -56,7 +56,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
   ] = useState<JSONObject>({});
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (
+  const handleResendNotification: (
+    item: ScheduledMaintenancePublicNote,
+  ) => Promise<void> = async (
     item: ScheduledMaintenancePublicNote,
   ): Promise<void> => {
     try {

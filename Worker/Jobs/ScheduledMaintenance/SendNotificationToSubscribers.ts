@@ -136,7 +136,7 @@ RunCron(
     }
 
     // Only call notification service for successfully processed events
-    const successfulEvents = scheduledEvents.filter((event) => {
+    const successfulEvents: Array<ScheduledMaintenance> = scheduledEvents.filter((event: ScheduledMaintenance) => {
       return event.isVisibleOnStatusPage;
     });
 

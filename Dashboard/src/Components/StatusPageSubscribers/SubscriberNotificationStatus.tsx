@@ -21,7 +21,13 @@ export interface ComponentProps {
  * @param status - The notification status
  * @returns Object with color, tailwindColor, and text for the status
  */
-export const getNotificationStatusInfo = (
+export const getNotificationStatusInfo: (
+  status?: StatusPageSubscriberNotificationStatus | undefined | null,
+) => {
+  color: string;
+  tailwindColor: string;
+  text: string;
+} = (
   status?: StatusPageSubscriberNotificationStatus | undefined | null,
 ): {
   color: string;
@@ -89,13 +95,17 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     onResendNotification,
   } = props;
 
-  const statusInfo = getNotificationStatusInfo(status);
-  const showResendButton =
+  const statusInfo: {
+    color: string;
+    tailwindColor: string;
+    text: string;
+  } = getNotificationStatusInfo(status);
+  const showResendButton: boolean =
     status === StatusPageSubscriberNotificationStatus.Failed &&
-    onResendNotification;
+    Boolean(onResendNotification);
 
   // Default pill style
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     gray: Gray500,
     yellow: Yellow,
     blue: Blue,
@@ -103,10 +113,10 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     red: Red,
   };
 
-  const pillColor =
+  const pillColor: string =
     colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
-  const getPill = () => {
+  const getPill: () => ReactElement = (): ReactElement => {
     if (subscriberNotificationStatusMessage) {
       return (
         <Tooltip text={subscriberNotificationStatusMessage}>

@@ -38,7 +38,9 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
   const [rootCause, setRootCause] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (
+  const handleResendNotification: (
+    item: IncidentStateTimeline,
+  ) => Promise<void> = async (
     item: IncidentStateTimeline,
   ): Promise<void> => {
     try {
@@ -52,8 +54,8 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         },
       });
       setRefreshToggle(!refreshToggle);
-    } catch (err) {
-      console.error("Error resending notification:", err);
+    } catch {
+      // Error resending notification: handle appropriately
     }
   };
 
