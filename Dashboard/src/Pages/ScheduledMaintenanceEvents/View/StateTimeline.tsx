@@ -11,13 +11,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import IconProp from "Common/Types/Icon/IconProp";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -25,6 +22,23 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const handleResendNotification = async (item: ScheduledMaintenanceStateTimeline): Promise<void> => {
+    try {
+      await ModelAPI.updateById({
+        modelType: ScheduledMaintenanceStateTimeline,
+        id: item.id!,
+        data: {
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationFailedReason: null,
+        },
+      });
+      setRefreshToggle(!refreshToggle);
+    } catch (err) {
+      console.error('Error resending notification:', err);
+    }
+  };
 
   return (
     <Fragment>
@@ -37,6 +51,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
         isCreateable={true}
         showViewIdButton={true}
         isViewable={false}
+        refreshToggle={refreshToggle.toString()}
         query={{
           scheduledMaintenanceId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -224,37 +239,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                   style="badge"
                   showFailureReason={true}
                   failureReason={item.subscriberNotificationFailedReason}
+                  onResendNotification={() => handleResendNotification(item)}
                 />
               );
-            },
-          },
-        ]}
-        actionButtons={[
-          {
-            title: "Retry Notification",
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.Refresh,
-            isVisible: (item: ScheduledMaintenanceStateTimeline) => {
-              return item.subscriberNotificationStatus === StatusPageSubscriberNotificationStatus.Failed;
-            },
-            onClick: async (
-              item: ScheduledMaintenanceStateTimeline,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ) => {
-              try {
-                await ModelAPI.updateById({
-                  modelType: ScheduledMaintenanceStateTimeline,
-                  id: item.id!,
-                  data: {
-                    subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-                    subscriberNotificationFailedReason: null,
-                  },
-                });
-                onCompleteAction();
-              } catch (err) {
-                onError(err as Error);
-              }
             },
           },
         ]}

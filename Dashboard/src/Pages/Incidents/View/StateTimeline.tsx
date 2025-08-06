@@ -17,7 +17,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
@@ -36,9 +35,25 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
   const [logs, setLogs] = useState<string>("");
-
   const [showRootCause, setShowRootCause] = useState<boolean>(false);
   const [rootCause, setRootCause] = useState<string>("");
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const handleResendNotification = async (item: IncidentStateTimeline): Promise<void> => {
+    try {
+      await ModelAPI.updateById({
+        modelType: IncidentStateTimeline,
+        id: item.id!,
+        data: {
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationFailedReason: null,
+        },
+      });
+      setRefreshToggle(!refreshToggle);
+    } catch (err) {
+      console.error('Error resending notification:', err);
+    }
+  };
 
   return (
     <Fragment>
@@ -52,6 +67,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
         isCreateable={true}
         isViewable={false}
         showViewIdButton={true}
+        refreshToggle={refreshToggle.toString()}
         query={{
           incidentId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -97,33 +113,6 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               setShowViewLogsModal(true);
 
               onCompleteAction();
-            },
-          },
-          {
-            title: "Retry Notification",
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.Refresh,
-            isVisible: (item: IncidentStateTimeline) => {
-              return item.subscriberNotificationStatus === StatusPageSubscriberNotificationStatus.Failed;
-            },
-            onClick: async (
-              item: IncidentStateTimeline,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ) => {
-              try {
-                await ModelAPI.updateById({
-                  modelType: IncidentStateTimeline,
-                  id: item.id!,
-                  data: {
-                    subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-                    subscriberNotificationFailedReason: null,
-                  },
-                });
-                onCompleteAction();
-              } catch (err) {
-                onError(err as Error);
-              }
             },
           },
         ]}
@@ -300,6 +289,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                   style="badge"
                   showFailureReason={true}
                   failureReason={item.subscriberNotificationFailedReason}
+                  onResendNotification={() => handleResendNotification(item)}
                 />
               );
             },

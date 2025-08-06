@@ -30,7 +30,6 @@ import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote"
 import User from "Common/Models/DatabaseModels/User";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import NotificationStatusPill from "../../../Components/StatusPage/NotificationStatusPill";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import React, {
   Fragment,
   FunctionComponent,
@@ -52,6 +51,23 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
     useState<boolean>(false);
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const handleResendNotification = async (item: IncidentPublicNote): Promise<void> => {
+    try {
+      await ModelAPI.updateById({
+        modelType: IncidentPublicNote,
+        id: item.id!,
+        data: {
+          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationFailedReason: null,
+        },
+      });
+      setRefreshToggle(!refreshToggle);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+  };
 
   const fetchIncidentNoteTemplate: (id: ObjectID) => Promise<void> = async (
     id: ObjectID,
@@ -129,6 +145,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         isEditable={true}
         createEditModalWidth={ModalWidth.Large}
         isViewable={false}
+        refreshToggle={refreshToggle.toString()}
         query={{
           incidentId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -323,37 +340,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                   showFailureReason={true}
                   failureReason={item.subscriberNotificationFailedReason}
                   className="-mt-5"
+                  onResendNotification={() => handleResendNotification(item)}
                 />
               );
-            },
-          },
-        ]}
-        actionButtons={[
-          {
-            title: "Retry Notification",
-            buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.Refresh,
-            isVisible: (item: IncidentPublicNote) => {
-              return item.subscriberNotificationStatusOnNoteCreated === StatusPageSubscriberNotificationStatus.Failed;
-            },
-            onClick: async (
-              item: IncidentPublicNote,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ) => {
-              try {
-                await ModelAPI.updateById({
-                  modelType: IncidentPublicNote,
-                  id: item.id!,
-                  data: {
-                    subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
-                    notificationFailureReasonOnNoteCreated: null,
-                  },
-                });
-                onCompleteAction();
-              } catch (err) {
-                onError(err as Error);
-              }
             },
           },
         ]}
