@@ -414,14 +414,16 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
     title: "Subscriber Notification Status",
-    description: "Status of notification sent to subscribers about this scheduled maintenance state change",
+    description:
+      "Status of notification sent to subscribers about this scheduled maintenance state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus = undefined;
+  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -441,7 +443,8 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
   @TableColumn({
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message",
-    description: "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
+    description:
+      "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
   })
   @Column({

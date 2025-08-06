@@ -777,9 +777,10 @@ ${createdItem.description || "No description provided."}
         createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
       );
       // Map boolean to enum value - ignore notifying subscribers because you already notify for Scheduled Event, no need to notify them for timeline event.
-      timeline.subscriberNotificationStatus = Boolean(
-        createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated,
-      ) ? StatusPageSubscriberNotificationStatus.Success : StatusPageSubscriberNotificationStatus.Pending;
+      timeline.subscriberNotificationStatus =
+        createdItem.shouldStatusPageSubscribersBeNotifiedOnEventCreated
+          ? StatusPageSubscriberNotificationStatus.Success
+          : StatusPageSubscriberNotificationStatus.Pending;
       timeline.scheduledMaintenanceStateId =
         createdItem.currentScheduledMaintenanceStateId!;
 

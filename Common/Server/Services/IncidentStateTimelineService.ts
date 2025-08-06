@@ -246,7 +246,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
       if (publicNote) {
         // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
         if (createBy.data.shouldStatusPageSubscribersBeNotified) {
-          createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Success;
+          createBy.data.subscriberNotificationStatus =
+            StatusPageSubscriberNotificationStatus.Success;
         }
       }
 

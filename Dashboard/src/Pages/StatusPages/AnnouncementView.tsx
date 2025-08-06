@@ -142,7 +142,6 @@ const AnnouncementView: FunctionComponent<
               required: false,
             },
           ]}
-        
           modelDetailProps={{
             showDetailsInNumberOfColumns: 2,
             modelType: StatusPageAnnouncement,
@@ -211,8 +210,9 @@ const AnnouncementView: FunctionComponent<
                   return (
                     <SubscriberNotificationStatus
                       status={item.subscriberNotificationStatus}
-                      
-                      subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
+                      subscriberNotificationStatusMessage={
+                        item.subscriberNotificationStatusMessage
+                      }
                     />
                   );
                 },

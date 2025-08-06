@@ -256,7 +256,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         if (
           scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
         ) {
-          createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Success;
+          createBy.data.subscriberNotificationStatus =
+            StatusPageSubscriberNotificationStatus.Success;
         }
 
         await ScheduledMaintenancePublicNoteService.create({

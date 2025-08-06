@@ -45,7 +45,8 @@ RunCron(
     const incidentStateTimelines: Array<IncidentStateTimeline> =
       await IncidentStateTimelineService.findBy({
         query: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -72,7 +73,8 @@ RunCron(
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
         data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Success,
         },
         props: {
           isRoot: true,

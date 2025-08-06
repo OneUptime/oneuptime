@@ -52,13 +52,16 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
     useState<JSONObject>({});
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (item: IncidentPublicNote): Promise<void> => {
+  const handleResendNotification = async (
+    item: IncidentPublicNote,
+  ): Promise<void> => {
     try {
       await ModelAPI.updateById({
         modelType: IncidentPublicNote,
         id: item.id!,
         data: {
-          subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusOnNoteCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
           subscriberNotificationStatusMessage: null,
         },
       });
@@ -312,11 +315,12 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
               return (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatusOnNoteCreated}
-                  
-                  
-                  subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
-    
-                  onResendNotification={() => handleResendNotification(item)}
+                  subscriberNotificationStatusMessage={
+                    item.subscriberNotificationStatusMessage
+                  }
+                  onResendNotification={() => {
+                    return handleResendNotification(item);
+                  }}
                 />
               );
             },

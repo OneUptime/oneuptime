@@ -18,7 +18,6 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
   Fragment,
@@ -39,19 +38,22 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
   const [rootCause, setRootCause] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (item: IncidentStateTimeline): Promise<void> => {
+  const handleResendNotification = async (
+    item: IncidentStateTimeline,
+  ): Promise<void> => {
     try {
       await ModelAPI.updateById({
         modelType: IncidentStateTimeline,
         id: item.id!,
         data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
           subscriberNotificationStatusMessage: null,
         },
       });
       setRefreshToggle(!refreshToggle);
     } catch (err) {
-      console.error('Error resending notification:', err);
+      console.error("Error resending notification:", err);
     }
   };
 
@@ -272,10 +274,12 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
               return (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatus}
-                  
-                  
-                  subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
-                  onResendNotification={() => handleResendNotification(item)}
+                  subscriberNotificationStatusMessage={
+                    item.subscriberNotificationStatusMessage
+                  }
+                  onResendNotification={() => {
+                    return handleResendNotification(item);
+                  }}
                 />
               );
             },

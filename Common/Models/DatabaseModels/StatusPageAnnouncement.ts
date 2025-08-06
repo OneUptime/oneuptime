@@ -474,7 +474,8 @@ export default class StatusPageAnnouncement extends BaseModel {
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus = undefined;
+  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -494,7 +495,8 @@ export default class StatusPageAnnouncement extends BaseModel {
   @TableColumn({
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message",
-    description: "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
+    description:
+      "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
   })
   @Column({

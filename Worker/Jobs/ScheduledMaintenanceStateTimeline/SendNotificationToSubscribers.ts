@@ -48,7 +48,8 @@ RunCron(
     const scheduledEventStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
       await ScheduledMaintenanceStateTimelineService.findBy({
         query: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -73,7 +74,8 @@ RunCron(
         await ScheduledMaintenanceStateTimelineService.updateOneById({
           id: scheduledEventStateTimeline.id!,
           data: {
-            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.InProgress,
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.InProgress,
           },
           props: {
             isRoot: true,
@@ -90,148 +92,148 @@ RunCron(
 
         if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
           continue;
-      }
+        }
 
-      // get all scheduled events of all the projects.
-      const event: ScheduledMaintenance | null =
-        await ScheduledMaintenanceService.findOneById({
-          id: scheduledEventStateTimeline.scheduledMaintenanceId!,
-          props: {
-            isRoot: true,
-          },
-
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            startsAt: true,
-            projectId: true,
-            monitors: {
-              _id: true,
+        // get all scheduled events of all the projects.
+        const event: ScheduledMaintenance | null =
+          await ScheduledMaintenanceService.findOneById({
+            id: scheduledEventStateTimeline.scheduledMaintenanceId!,
+            props: {
+              isRoot: true,
             },
-            statusPages: {
+
+            select: {
               _id: true,
+              title: true,
+              description: true,
+              startsAt: true,
+              projectId: true,
+              monitors: {
+                _id: true,
+              },
+              statusPages: {
+                _id: true,
+              },
+              isVisibleOnStatusPage: true,
+              scheduledMaintenanceNumber: true,
             },
-            isVisibleOnStatusPage: true,
-            scheduledMaintenanceNumber: true,
-          },
-        });
+          });
 
-      if (!event) {
-        continue;
-      }
-
-      if (!event.isVisibleOnStatusPage) {
-        continue; // skip if not visible on status page.
-      }
-
-      // get status page resources from monitors.
-
-      let statusPageResources: Array<StatusPageResource> = [];
-
-      if (event.monitors && event.monitors.length > 0) {
-        statusPageResources = await StatusPageResourceService.findBy({
-          query: {
-            monitorId: QueryHelper.any(
-              event.monitors
-                .filter((m: Monitor) => {
-                  return m._id;
-                })
-                .map((m: Monitor) => {
-                  return new ObjectID(m._id!);
-                }),
-            ),
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          select: {
-            _id: true,
-            displayName: true,
-            statusPageId: true,
-          },
-        });
-      }
-
-      const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
-
-      for (const resource of statusPageResources) {
-        if (!resource.statusPageId) {
+        if (!event) {
           continue;
         }
 
-        if (!statusPageToResources[resource.statusPageId?.toString()]) {
-          statusPageToResources[resource.statusPageId?.toString()] = [];
+        if (!event.isVisibleOnStatusPage) {
+          continue; // skip if not visible on status page.
         }
 
-        statusPageToResources[resource.statusPageId?.toString()]?.push(
-          resource,
-        );
-      }
+        // get status page resources from monitors.
 
-      const statusPages: Array<StatusPage> =
-        await StatusPageSubscriberService.getStatusPagesToSendNotification(
-          event.statusPages?.map((i: StatusPage) => {
-            return i.id!;
-          }) || [],
-        );
+        let statusPageResources: Array<StatusPageResource> = [];
 
-      for (const statuspage of statusPages) {
-        if (!statuspage.id) {
-          continue;
-        }
-
-        if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
-          continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
-        }
-
-        const subscribers: Array<StatusPageSubscriber> =
-          await StatusPageSubscriberService.getSubscribersByStatusPage(
-            statuspage.id!,
-            {
+        if (event.monitors && event.monitors.length > 0) {
+          statusPageResources = await StatusPageResourceService.findBy({
+            query: {
+              monitorId: QueryHelper.any(
+                event.monitors
+                  .filter((m: Monitor) => {
+                    return m._id;
+                  })
+                  .map((m: Monitor) => {
+                    return new ObjectID(m._id!);
+                  }),
+              ),
+            },
+            props: {
               isRoot: true,
               ignoreHooks: true,
             },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            select: {
+              _id: true,
+              displayName: true,
+              statusPageId: true,
+            },
+          });
+        }
+
+        const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
+
+        for (const resource of statusPageResources) {
+          if (!resource.statusPageId) {
+            continue;
+          }
+
+          if (!statusPageToResources[resource.statusPageId?.toString()]) {
+            statusPageToResources[resource.statusPageId?.toString()] = [];
+          }
+
+          statusPageToResources[resource.statusPageId?.toString()]?.push(
+            resource,
+          );
+        }
+
+        const statusPages: Array<StatusPage> =
+          await StatusPageSubscriberService.getStatusPagesToSendNotification(
+            event.statusPages?.map((i: StatusPage) => {
+              return i.id!;
+            }) || [],
           );
 
-        const statusPageURL: string = await StatusPageService.getStatusPageURL(
-          statuspage.id,
-        );
-
-        const statusPageName: string =
-          statuspage.pageTitle || statuspage.name || "Status Page";
-
-        // Send email to Email subscribers.
-
-        for (const subscriber of subscribers) {
-          if (!subscriber._id) {
+        for (const statuspage of statusPages) {
+          if (!statuspage.id) {
             continue;
           }
 
-          const shouldNotifySubscriber: boolean =
-            StatusPageSubscriberService.shouldSendNotification({
-              subscriber: subscriber,
-              statusPageResources: statusPageToResources[statuspage._id!] || [],
-              statusPage: statuspage,
-              eventType: StatusPageEventType.ScheduledEvent,
-            });
-
-          if (!shouldNotifySubscriber) {
-            continue;
+          if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
+            continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
           }
 
-          const unsubscribeUrl: string =
-            StatusPageSubscriberService.getUnsubscribeLink(
-              URL.fromString(statusPageURL),
-              subscriber.id!,
-            ).toString();
+          const subscribers: Array<StatusPageSubscriber> =
+            await StatusPageSubscriberService.getSubscribersByStatusPage(
+              statuspage.id!,
+              {
+                isRoot: true,
+                ignoreHooks: true,
+              },
+            );
 
-          if (subscriber.subscriberPhone) {
-            const sms: SMS = {
-              message: `
+          const statusPageURL: string =
+            await StatusPageService.getStatusPageURL(statuspage.id);
+
+          const statusPageName: string =
+            statuspage.pageTitle || statuspage.name || "Status Page";
+
+          // Send email to Email subscribers.
+
+          for (const subscriber of subscribers) {
+            if (!subscriber._id) {
+              continue;
+            }
+
+            const shouldNotifySubscriber: boolean =
+              StatusPageSubscriberService.shouldSendNotification({
+                subscriber: subscriber,
+                statusPageResources:
+                  statusPageToResources[statuspage._id!] || [],
+                statusPage: statuspage,
+                eventType: StatusPageEventType.ScheduledEvent,
+              });
+
+            if (!shouldNotifySubscriber) {
+              continue;
+            }
+
+            const unsubscribeUrl: string =
+              StatusPageSubscriberService.getUnsubscribeLink(
+                URL.fromString(statusPageURL),
+                subscriber.id!,
+              ).toString();
+
+            if (subscriber.subscriberPhone) {
+              const sms: SMS = {
+                message: `
                                     ${statusPageName} - Scheduled maintenance event - ${
                                       event.title || ""
                                     } - state changed to ${
@@ -243,145 +245,149 @@ RunCron(
         
                                     To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
                                     `,
-              to: subscriber.subscriberPhone,
-            };
+                to: subscriber.subscriberPhone,
+              };
 
-            // send sms here.
-            SmsService.sendSms(sms, {
-              projectId: statuspage.projectId,
-              customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-                statuspage.callSmsConfig,
-              ),
-            }).catch((err: Error) => {
-              logger.error(err);
-            });
-          }
+              // send sms here.
+              SmsService.sendSms(sms, {
+                projectId: statuspage.projectId,
+                customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+                  statuspage.callSmsConfig,
+                ),
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
 
-          if (subscriber.slackIncomingWebhookUrl) {
-            // Create markdown message for Slack
-            const markdownMessage: string = `## Scheduled Maintenance State Update - ${statusPageName}
+            if (subscriber.slackIncomingWebhookUrl) {
+              // Create markdown message for Slack
+              const markdownMessage: string = `## Scheduled Maintenance State Update - ${statusPageName}
 
 **Event:** ${event.title || ""}
 
 **State Changed To:** ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}
 
 **Resources Affected:** ${
-              statusPageToResources[statuspage._id!]
-                ?.map((r: StatusPageResource) => {
-                  return r.displayName;
-                })
-                .join(", ") || ""
-            }
+                statusPageToResources[statuspage._id!]
+                  ?.map((r: StatusPageResource) => {
+                    return r.displayName;
+                  })
+                  .join(", ") || ""
+              }
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-            // send Slack notification with markdown conversion
-            SlackUtil.sendMessageToChannelViaIncomingWebhook({
-              url: subscriber.slackIncomingWebhookUrl,
-              text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
-            }).catch((err: Error) => {
-              logger.error(err);
-            });
-          }
+              // send Slack notification with markdown conversion
+              SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                url: subscriber.slackIncomingWebhookUrl,
+                text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
 
-          if (subscriber.subscriberEmail) {
-            // send email here.
+            if (subscriber.subscriberEmail) {
+              // send email here.
 
-            MailService.sendMail(
-              {
-                toEmail: subscriber.subscriberEmail,
-                templateType:
-                  EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
-                vars: {
-                  statusPageName: statusPageName,
-                  statusPageUrl: statusPageURL,
-                  logoUrl: statuspage.logoFileId
-                    ? new URL(httpProtocol, host)
-                        .addRoute(FileRoute)
-                        .addRoute("/image/" + statuspage.logoFileId)
-                        .toString()
-                    : "",
-                  isPublicStatusPage: statuspage.isPublicStatusPage
-                    ? "true"
-                    : "false",
-                  resourcesAffected:
-                    statusPageToResources[statuspage._id!]
-                      ?.map((r: StatusPageResource) => {
-                        return r.displayName;
-                      })
-                      .join(", ") || "",
+              MailService.sendMail(
+                {
+                  toEmail: subscriber.subscriberEmail,
+                  templateType:
+                    EmailTemplateType.SubscriberScheduledMaintenanceEventStateChanged,
+                  vars: {
+                    statusPageName: statusPageName,
+                    statusPageUrl: statusPageURL,
+                    logoUrl: statuspage.logoFileId
+                      ? new URL(httpProtocol, host)
+                          .addRoute(FileRoute)
+                          .addRoute("/image/" + statuspage.logoFileId)
+                          .toString()
+                      : "",
+                    isPublicStatusPage: statuspage.isPublicStatusPage
+                      ? "true"
+                      : "false",
+                    resourcesAffected:
+                      statusPageToResources[statuspage._id!]
+                        ?.map((r: StatusPageResource) => {
+                          return r.displayName;
+                        })
+                        .join(", ") || "",
 
-                  eventState:
-                    scheduledEventStateTimeline.scheduledMaintenanceState
-                      ?.name || "",
+                    eventState:
+                      scheduledEventStateTimeline.scheduledMaintenanceState
+                        ?.name || "",
 
-                  scheduledAt: OneUptimeDate.getDateAsFormattedString(
-                    event.startsAt!,
-                  ),
-                  eventTitle: event.title || "",
-                  unsubscribeUrl: unsubscribeUrl,
-                  subscriberEmailNotificationFooterText:
-                    StatusPageServiceType.getSubscriberEmailFooterText(
-                      statuspage,
+                    scheduledAt: OneUptimeDate.getDateAsFormattedString(
+                      event.startsAt!,
                     ),
+                    eventTitle: event.title || "",
+                    unsubscribeUrl: unsubscribeUrl,
+                    subscriberEmailNotificationFooterText:
+                      StatusPageServiceType.getSubscriberEmailFooterText(
+                        statuspage,
+                      ),
+                  },
+                  subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
+                    scheduledEventStateTimeline.scheduledMaintenanceState?.name,
+                  )}] ${event.title || ""}`,
                 },
-                subject: `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-                  scheduledEventStateTimeline.scheduledMaintenanceState?.name,
-                )}] ${event.title || ""}`,
-              },
-              {
-                mailServer: ProjectSmtpConfigService.toEmailServer(
-                  statuspage.smtpConfig,
-                ),
-                projectId: statuspage.projectId,
-              },
-            ).catch((err: Error) => {
-              logger.error(err);
-            });
+                {
+                  mailServer: ProjectSmtpConfigService.toEmailServer(
+                    statuspage.smtpConfig,
+                  ),
+                  projectId: statuspage.projectId,
+                },
+              ).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
           }
         }
-      }
 
-      const scheduledMaintenanceNumber: string =
-        event.scheduledMaintenanceNumber?.toString() || " - ";
-      const projectId: ObjectID = event.projectId!;
-      const scheduledMaintenanceId: ObjectID = event.id!;
+        const scheduledMaintenanceNumber: string =
+          event.scheduledMaintenanceNumber?.toString() || " - ";
+        const projectId: ObjectID = event.projectId!;
+        const scheduledMaintenanceId: ObjectID = event.id!;
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-        scheduledMaintenanceId: event.id!,
-        projectId: event.projectId!,
-        scheduledMaintenanceFeedEventType:
-          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
-        workspaceNotification: {
-          sendWorkspaceNotification: true,
-        },
-      });
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: event.id!,
+            projectId: event.projectId!,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+            displayColor: Blue500,
+            feedInfoInMarkdown: `📧 **Status Page Subscribers have been notified** about the state change of the [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()}) to **${scheduledEventStateTimeline.scheduledMaintenanceState.name}**`,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+            },
+          },
+        );
 
-      // Set status to Success after successful notification
-      await ScheduledMaintenanceStateTimelineService.updateOneById({
-        id: scheduledEventStateTimeline.id!,
-        data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
-          subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
+        // Set status to Success after successful notification
+        await ScheduledMaintenanceStateTimelineService.updateOneById({
+          id: scheduledEventStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage:
+              "Notifications sent successfully to all subscribers",
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
       } catch (err) {
         logger.error(
-          `Error sending notification for scheduled maintenance state timeline ${scheduledEventStateTimeline.id}: ${err}`
+          `Error sending notification for scheduled maintenance state timeline ${scheduledEventStateTimeline.id}: ${err}`,
         );
-        
+
         // Set status to Failed with error reason
         await ScheduledMaintenanceStateTimelineService.updateOneById({
           id: scheduledEventStateTimeline.id!,
           data: {
-            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Failed,
             subscriberNotificationStatusMessage: (err as Error).message,
           },
           props: {

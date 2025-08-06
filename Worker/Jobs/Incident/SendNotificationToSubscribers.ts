@@ -43,7 +43,8 @@ RunCron(
     // First, mark incidents as Skipped if they should not be notified
     const incidentsToSkip: Array<Incident> = await IncidentService.findBy({
       query: {
-        subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
         createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
       },
@@ -61,8 +62,10 @@ RunCron(
       await IncidentService.updateOneById({
         id: incident.id!,
         data: {
-          subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessage: "Notifications skipped as subscribers are not to be notified for this incident.",
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            "Notifications skipped as subscribers are not to be notified for this incident.",
         },
         props: {
           isRoot: true,
@@ -74,7 +77,8 @@ RunCron(
     // get all scheduled events of all the projects.
     const incidents: Array<Incident> = await IncidentService.findBy({
       query: {
-        subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusOnIncidentCreated:
+          StatusPageSubscriberNotificationStatus.Pending,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
         createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
       },
@@ -117,7 +121,8 @@ RunCron(
       await IncidentService.updateOneById({
         id: incident.id!,
         data: {
-          subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.InProgress,
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.InProgress,
         },
         props: {
           isRoot: true,
@@ -126,170 +131,169 @@ RunCron(
       });
 
       try {
-
-      if (!incident.isVisibleOnStatusPage) {
-        continue; // Do not send notification to subscribers if incident is not visible on status page.
-      }
-
-      // get status page resources from monitors.
-
-      const statusPageResources: Array<StatusPageResource> =
-        await StatusPageResourceService.findBy({
-          query: {
-            monitorId: QueryHelper.any(
-              incident.monitors
-                .filter((m: Monitor) => {
-                  return m._id;
-                })
-                .map((m: Monitor) => {
-                  return new ObjectID(m._id!);
-                }),
-            ),
-          },
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          select: {
-            _id: true,
-            displayName: true,
-            statusPageId: true,
-          },
-        });
-
-      const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
-
-      for (const resource of statusPageResources) {
-        if (!resource.statusPageId) {
-          continue;
+        if (!incident.isVisibleOnStatusPage) {
+          continue; // Do not send notification to subscribers if incident is not visible on status page.
         }
 
-        if (!statusPageToResources[resource.statusPageId?.toString()]) {
-          statusPageToResources[resource.statusPageId?.toString()] = [];
-        }
+        // get status page resources from monitors.
 
-        statusPageToResources[resource.statusPageId?.toString()]?.push(
-          resource,
-        );
-      }
+        const statusPageResources: Array<StatusPageResource> =
+          await StatusPageResourceService.findBy({
+            query: {
+              monitorId: QueryHelper.any(
+                incident.monitors
+                  .filter((m: Monitor) => {
+                    return m._id;
+                  })
+                  .map((m: Monitor) => {
+                    return new ObjectID(m._id!);
+                  }),
+              ),
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            select: {
+              _id: true,
+              displayName: true,
+              statusPageId: true,
+            },
+          });
 
-      const statusPages: Array<StatusPage> =
-        await StatusPageSubscriberService.getStatusPagesToSendNotification(
-          Object.keys(statusPageToResources).map((i: string) => {
-            return new ObjectID(i);
-          }),
-        );
+        const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
-      for (const statuspage of statusPages) {
-        try {
-          if (!statuspage.id) {
+        for (const resource of statusPageResources) {
+          if (!resource.statusPageId) {
             continue;
           }
 
-          if (!statuspage.showIncidentsOnStatusPage) {
-            continue; // Do not send notification to subscribers if incidents are not visible on status page.
+          if (!statusPageToResources[resource.statusPageId?.toString()]) {
+            statusPageToResources[resource.statusPageId?.toString()] = [];
           }
 
-          const subscribers: Array<StatusPageSubscriber> =
-            await StatusPageSubscriberService.getSubscribersByStatusPage(
-              statuspage.id!,
-              {
-                isRoot: true,
-                ignoreHooks: true,
-              },
-            );
+          statusPageToResources[resource.statusPageId?.toString()]?.push(
+            resource,
+          );
+        }
 
-          const statusPageURL: string =
-            await StatusPageService.getStatusPageURL(statuspage.id);
-          const statusPageName: string =
-            statuspage.pageTitle || statuspage.name || "Status Page";
+        const statusPages: Array<StatusPage> =
+          await StatusPageSubscriberService.getStatusPagesToSendNotification(
+            Object.keys(statusPageToResources).map((i: string) => {
+              return new ObjectID(i);
+            }),
+          );
 
-          // Send email to Email subscribers.
+        for (const statuspage of statusPages) {
+          try {
+            if (!statuspage.id) {
+              continue;
+            }
 
-          const resourcesAffectedString: string =
-            statusPageToResources[statuspage._id!]
-              ?.map((r: StatusPageResource) => {
-                return r.displayName;
-              })
-              .join(", ") || "None";
+            if (!statuspage.showIncidentsOnStatusPage) {
+              continue; // Do not send notification to subscribers if incidents are not visible on status page.
+            }
 
-          for (const subscriber of subscribers) {
-            try {
-              if (!subscriber._id) {
-                continue;
-              }
+            const subscribers: Array<StatusPageSubscriber> =
+              await StatusPageSubscriberService.getSubscribersByStatusPage(
+                statuspage.id!,
+                {
+                  isRoot: true,
+                  ignoreHooks: true,
+                },
+              );
 
-              const shouldNotifySubscriber: boolean =
-                StatusPageSubscriberService.shouldSendNotification({
-                  subscriber: subscriber,
-                  statusPageResources:
-                    statusPageToResources[statuspage._id!] || [],
-                  statusPage: statuspage,
-                  eventType: StatusPageEventType.Incident,
-                });
+            const statusPageURL: string =
+              await StatusPageService.getStatusPageURL(statuspage.id);
+            const statusPageName: string =
+              statuspage.pageTitle || statuspage.name || "Status Page";
 
-              if (!shouldNotifySubscriber) {
-                continue;
-              }
+            // Send email to Email subscribers.
 
-              const unsubscribeUrl: string =
-                StatusPageSubscriberService.getUnsubscribeLink(
-                  URL.fromString(statusPageURL),
-                  subscriber.id!,
-                ).toString();
+            const resourcesAffectedString: string =
+              statusPageToResources[statuspage._id!]
+                ?.map((r: StatusPageResource) => {
+                  return r.displayName;
+                })
+                .join(", ") || "None";
 
-              if (subscriber.subscriberEmail) {
-                // send email here.
+            for (const subscriber of subscribers) {
+              try {
+                if (!subscriber._id) {
+                  continue;
+                }
 
-                MailService.sendMail(
-                  {
-                    toEmail: subscriber.subscriberEmail,
-                    templateType: EmailTemplateType.SubscriberIncidentCreated,
-                    vars: {
-                      statusPageName: statusPageName,
-                      statusPageUrl: statusPageURL,
-                      logoUrl: statuspage.logoFileId
-                        ? new URL(httpProtocol, host)
-                            .addRoute(FileRoute)
-                            .addRoute("/image/" + statuspage.logoFileId)
-                            .toString()
-                        : "",
-                      isPublicStatusPage: statuspage.isPublicStatusPage
-                        ? "true"
-                        : "false",
-                      resourcesAffected: resourcesAffectedString,
-                      incidentSeverity:
-                        incident.incidentSeverity?.name || " - ",
-                      incidentTitle: incident.title || "",
-                      incidentDescription: await Markdown.convertToHTML(
-                        incident.description || "",
-                        MarkdownContentType.Email,
-                      ),
-                      unsubscribeUrl: unsubscribeUrl,
+                const shouldNotifySubscriber: boolean =
+                  StatusPageSubscriberService.shouldSendNotification({
+                    subscriber: subscriber,
+                    statusPageResources:
+                      statusPageToResources[statuspage._id!] || [],
+                    statusPage: statuspage,
+                    eventType: StatusPageEventType.Incident,
+                  });
 
-                      subscriberEmailNotificationFooterText:
-                        StatusPageServiceType.getSubscriberEmailFooterText(
-                          statuspage,
+                if (!shouldNotifySubscriber) {
+                  continue;
+                }
+
+                const unsubscribeUrl: string =
+                  StatusPageSubscriberService.getUnsubscribeLink(
+                    URL.fromString(statusPageURL),
+                    subscriber.id!,
+                  ).toString();
+
+                if (subscriber.subscriberEmail) {
+                  // send email here.
+
+                  MailService.sendMail(
+                    {
+                      toEmail: subscriber.subscriberEmail,
+                      templateType: EmailTemplateType.SubscriberIncidentCreated,
+                      vars: {
+                        statusPageName: statusPageName,
+                        statusPageUrl: statusPageURL,
+                        logoUrl: statuspage.logoFileId
+                          ? new URL(httpProtocol, host)
+                              .addRoute(FileRoute)
+                              .addRoute("/image/" + statuspage.logoFileId)
+                              .toString()
+                          : "",
+                        isPublicStatusPage: statuspage.isPublicStatusPage
+                          ? "true"
+                          : "false",
+                        resourcesAffected: resourcesAffectedString,
+                        incidentSeverity:
+                          incident.incidentSeverity?.name || " - ",
+                        incidentTitle: incident.title || "",
+                        incidentDescription: await Markdown.convertToHTML(
+                          incident.description || "",
+                          MarkdownContentType.Email,
                         ),
-                    },
-                    subject: "[Incident] " + incident.title || "",
-                  },
-                  {
-                    mailServer: ProjectSMTPConfigService.toEmailServer(
-                      statuspage.smtpConfig,
-                    ),
-                    projectId: statuspage.projectId,
-                  },
-                ).catch((err: Error) => {
-                  logger.error(err);
-                });
-              }
+                        unsubscribeUrl: unsubscribeUrl,
 
-              if (subscriber.subscriberPhone) {
-                const sms: SMS = {
-                  message: `
+                        subscriberEmailNotificationFooterText:
+                          StatusPageServiceType.getSubscriberEmailFooterText(
+                            statuspage,
+                          ),
+                      },
+                      subject: "[Incident] " + incident.title || "",
+                    },
+                    {
+                      mailServer: ProjectSMTPConfigService.toEmailServer(
+                        statuspage.smtpConfig,
+                      ),
+                      projectId: statuspage.projectId,
+                    },
+                  ).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+
+                if (subscriber.subscriberPhone) {
+                  const sms: SMS = {
+                    message: `
                             Incident - ${statusPageName}
 
                             Title: ${incident.title || ""}
@@ -304,24 +308,24 @@ RunCron(
 
                             To update notification preferences or unsubscribe, visit ${unsubscribeUrl}
                             `,
-                  to: subscriber.subscriberPhone,
-                };
+                    to: subscriber.subscriberPhone,
+                  };
 
-                // send sms here.
-                SmsService.sendSms(sms, {
-                  projectId: statuspage.projectId,
-                  customTwilioConfig:
-                    ProjectCallSMSConfigService.toTwilioConfig(
-                      statuspage.callSmsConfig,
-                    ),
-                }).catch((err: Error) => {
-                  logger.error(err);
-                });
-              }
+                  // send sms here.
+                  SmsService.sendSms(sms, {
+                    projectId: statuspage.projectId,
+                    customTwilioConfig:
+                      ProjectCallSMSConfigService.toTwilioConfig(
+                        statuspage.callSmsConfig,
+                      ),
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
 
-              if (subscriber.slackIncomingWebhookUrl) {
-                // Create markdown message for Slack
-                const markdownMessage: string = `## 🚨 Incident - ${incident.title || ""}
+                if (subscriber.slackIncomingWebhookUrl) {
+                  // Create markdown message for Slack
+                  const markdownMessage: string = `## 🚨 Incident - ${incident.title || ""}
 
 **Severity:** ${incident.incidentSeverity?.name || " - "}
 
@@ -331,23 +335,23 @@ RunCron(
 
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
-                // send Slack notification with markdown conversion
-                SlackUtil.sendMessageToChannelViaIncomingWebhook({
-                  url: subscriber.slackIncomingWebhookUrl,
-                  text: SlackUtil.convertMarkdownToSlackRichText(
-                    markdownMessage,
-                  ),
-                }).catch((err: Error) => {
-                  logger.error(err);
-                });
+                  // send Slack notification with markdown conversion
+                  SlackUtil.sendMessageToChannelViaIncomingWebhook({
+                    url: subscriber.slackIncomingWebhookUrl,
+                    text: SlackUtil.convertMarkdownToSlackRichText(
+                      markdownMessage,
+                    ),
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+              } catch (err) {
+                logger.error(err);
               }
-            } catch (err) {
-              logger.error(err);
             }
+          } catch (err) {
+            logger.error(err);
           }
-        } catch (err) {
-          logger.error(err);
-        }
         }
 
         logger.debug("Creating incident feed for subscriber notification");
@@ -355,7 +359,8 @@ RunCron(
         await IncidentFeedService.createIncidentFeedItem({
           incidentId: incident.id!,
           projectId: incident.projectId!,
-          incidentFeedEventType: IncidentFeedEventType.SubscriberNotificationSent,
+          incidentFeedEventType:
+            IncidentFeedEventType.SubscriberNotificationSent,
           displayColor: Blue500,
           feedInfoInMarkdown: incidentFeedText,
           workspaceNotification: {
@@ -369,23 +374,26 @@ RunCron(
         await IncidentService.updateOneById({
           id: incident.id!,
           data: {
-            subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Success,
-            subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
+            subscriberNotificationStatusOnIncidentCreated:
+              StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage:
+              "Notifications sent successfully to all subscribers",
           },
           props: {
             isRoot: true,
             ignoreHooks: true,
           },
         });
-
       } catch (err) {
         // If there was an error, mark as failed
         logger.error(err);
         await IncidentService.updateOneById({
           id: incident.id!,
           data: {
-            subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Failed,
-            subscriberNotificationStatusMessage: err instanceof Error ? err.message : String(err),
+            subscriberNotificationStatusOnIncidentCreated:
+              StatusPageSubscriberNotificationStatus.Failed,
+            subscriberNotificationStatusMessage:
+              err instanceof Error ? err.message : String(err),
           },
           props: {
             isRoot: true,

@@ -36,7 +36,8 @@ RunCron(
     const announcementsToSkip: Array<StatusPageAnnouncement> =
       await StatusPageAnnouncementService.findBy({
         query: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: false,
           showAnnouncementAt: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
@@ -56,8 +57,10 @@ RunCron(
       await StatusPageAnnouncementService.updateOneById({
         id: announcement.id!,
         data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Skipped,
-          subscriberNotificationStatusMessage: "Notifications skipped as subscribers are not to be notified for this announcement.",
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            "Notifications skipped as subscribers are not to be notified for this announcement.",
         },
         props: {
           isRoot: true,
@@ -70,7 +73,8 @@ RunCron(
     const announcements: Array<StatusPageAnnouncement> =
       await StatusPageAnnouncementService.findBy({
         query: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
           showAnnouncementAt: QueryHelper.lessThan(
             OneUptimeDate.getCurrentDate(),
@@ -112,7 +116,8 @@ RunCron(
       await StatusPageAnnouncementService.updateOneById({
         id: announcement.id!,
         data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.InProgress,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.InProgress,
         },
         props: {
           isRoot: true,
@@ -267,28 +272,31 @@ RunCron(
             logger.error(err);
           }
         }
-        
+
         // If we get here, the notification was successful
         await StatusPageAnnouncementService.updateOneById({
           id: announcement.id!,
           data: {
-            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Success,
-            subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage:
+              "Notifications sent successfully to all subscribers",
           },
           props: {
             isRoot: true,
             ignoreHooks: true,
           },
         });
-        
       } catch (err) {
         // If there was an error, mark as failed
         logger.error(err);
         await StatusPageAnnouncementService.updateOneById({
           id: announcement.id!,
           data: {
-            subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Failed,
-            subscriberNotificationStatusMessage: err instanceof Error ? err.message : String(err),
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Failed,
+            subscriberNotificationStatusMessage:
+              err instanceof Error ? err.message : String(err),
           },
           props: {
             isRoot: true,

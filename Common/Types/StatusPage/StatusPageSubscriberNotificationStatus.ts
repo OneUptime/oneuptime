@@ -1,7 +1,7 @@
 enum StatusPageSubscriberNotificationStatus {
   Skipped = "Skipped",
   Pending = "Pending",
-  InProgress = "InProgress", 
+  InProgress = "InProgress",
   Success = "Success",
   Failed = "Failed",
 }

@@ -1,7 +1,10 @@
 import { Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import Pill from "Common/UI/Components/Pill/Pill";
-import Button, { ButtonStyleType, ButtonSize } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonStyleType,
+  ButtonSize,
+} from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
@@ -50,10 +53,10 @@ export const getNotificationStatusInfo = (
 
 /**
  * SubscriberNotificationStatus Component
- * 
+ *
  * A reusable component for displaying notification status with consistent styling.
  * Supports two display styles: "pill" (using Pill component) and "badge" (using Tailwind CSS).
- * 
+ *
  * @param status - The notification status to display
  * @param isMinimal - Whether to use minimal styling (default: true)
  * @param showFailureReason - Whether to show failure reason below the status (default: false)
@@ -61,17 +64,17 @@ export const getNotificationStatusInfo = (
  * @param style - Display style: "pill" or "badge" (default: "pill")
  * @param className - Additional CSS classes to apply
  * @param onResendNotification - Callback function to handle resend notification action
- * 
+ *
  * Usage Examples:
- * 
+ *
  * // Basic pill style
  * <SubscriberNotificationStatus status={item.subscriberNotificationStatus} />
- * 
+ *
  * // Badge style with failure reason and resend callback
  * <SubscriberNotificationStatus
  *   status={item.subscriberNotificationStatus}
- *   
- *   
+ *
+ *
  *   subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
  *   onResendNotification={() => handleResend(item)}
  * />
@@ -83,11 +86,13 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     status,
     subscriberNotificationStatusMessage,
     className = "",
-    onResendNotification
+    onResendNotification,
   } = props;
 
   const statusInfo = getNotificationStatusInfo(status);
-  const showResendButton = status === StatusPageSubscriberNotificationStatus.Failed && onResendNotification;
+  const showResendButton =
+    status === StatusPageSubscriberNotificationStatus.Failed &&
+    onResendNotification;
 
   // Default pill style
   const colorMap = {
@@ -98,26 +103,24 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     red: Red,
   };
 
-  const pillColor = colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
-
+  const pillColor =
+    colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
   const getPill = () => {
-
-    if(subscriberNotificationStatusMessage){
+    if (subscriberNotificationStatusMessage) {
       return (
-        <Tooltip
-          text={subscriberNotificationStatusMessage}
-        >
+        <Tooltip text={subscriberNotificationStatusMessage}>
           <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
         </Tooltip>
       );
     }
 
-    return <div className="flex items-center gap-2">
-      <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
-    </div>
-  }
-
+    return (
+      <div className="flex items-center gap-2">
+        <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
+      </div>
+    );
+  };
 
   return (
     <div className={className}>

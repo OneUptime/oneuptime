@@ -741,14 +741,16 @@ export default class ScheduledMaintenance extends BaseModel {
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
     title: "Subscriber Notification Status On Event Scheduled",
-    description: "Status of notification sent to subscribers when event was scheduled",
+    description:
+      "Status of notification sent to subscribers when event was scheduled",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public subscriberNotificationStatusOnEventScheduled?: StatusPageSubscriberNotificationStatus = undefined;
+  public subscriberNotificationStatusOnEventScheduled?: StatusPageSubscriberNotificationStatus =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -768,7 +770,8 @@ export default class ScheduledMaintenance extends BaseModel {
   @TableColumn({
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message On Event Scheduled",
-    description: "Status message for subscriber notifications when event is scheduled - includes success messages, failure reasons, or skip reasons",
+    description:
+      "Status message for subscriber notifications when event is scheduled - includes success messages, failure reasons, or skip reasons",
     required: false,
   })
   @Column({

@@ -393,7 +393,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-Permission.ProjectOwner,
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.CreateIncidentStateTimeline,
@@ -417,14 +417,16 @@ Permission.ProjectOwner,
     hideColumnInDocumentation: true,
     type: TableColumnType.ShortText,
     title: "Subscriber Notification Status",
-    description: "Status of notification sent to subscribers about this incident state change",
+    description:
+      "Status of notification sent to subscribers about this incident state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,
   })
-  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus = undefined;
+  public subscriberNotificationStatus?: StatusPageSubscriberNotificationStatus =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -444,7 +446,8 @@ Permission.ProjectOwner,
   @TableColumn({
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message",
-    description: "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
+    description:
+      "Status message for subscriber notifications - includes success messages, failure reasons, or skip reasons",
     required: false,
   })
   @Column({

@@ -539,8 +539,9 @@ const IncidentView: FunctionComponent<
                 return (
                   <SubscriberNotificationStatus
                     status={item.subscriberNotificationStatusOnIncidentCreated}
-                    subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
-                    
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessage
+                    }
                   />
                 );
               },

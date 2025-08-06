@@ -405,8 +405,9 @@ const ScheduledMaintenanceView: FunctionComponent<
                 return (
                   <SubscriberNotificationStatus
                     status={item.subscriberNotificationStatusOnEventScheduled}
-                    subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
-                    
+                    subscriberNotificationStatusMessage={
+                      item.subscriberNotificationStatusMessage
+                    }
                   />
                 );
               },

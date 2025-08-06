@@ -14,7 +14,12 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -24,19 +29,22 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (item: ScheduledMaintenanceStateTimeline): Promise<void> => {
+  const handleResendNotification = async (
+    item: ScheduledMaintenanceStateTimeline,
+  ): Promise<void> => {
     try {
       await ModelAPI.updateById({
         modelType: ScheduledMaintenanceStateTimeline,
         id: item.id!,
         data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
           subscriberNotificationStatusMessage: null,
         },
       });
       setRefreshToggle(!refreshToggle);
     } catch (err) {
-      console.error('Error resending notification:', err);
+      console.error("Error resending notification:", err);
     }
   };
 
@@ -220,11 +228,17 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Notification Enabled",
             type: FieldType.Boolean,
-            getElement: (item: ScheduledMaintenanceStateTimeline): ReactElement => {
+            getElement: (
+              item: ScheduledMaintenanceStateTimeline,
+            ): ReactElement => {
               return (
                 <CheckboxViewer
-                  isChecked={item.shouldStatusPageSubscribersBeNotified as boolean}
-                  text={item.shouldStatusPageSubscribersBeNotified ? "Yes" : "No"}
+                  isChecked={
+                    item.shouldStatusPageSubscribersBeNotified as boolean
+                  }
+                  text={
+                    item.shouldStatusPageSubscribersBeNotified ? "Yes" : "No"
+                  }
                 />
               );
             },
@@ -235,14 +249,18 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Notification Status",
             type: FieldType.Text,
-            getElement: (item: ScheduledMaintenanceStateTimeline): ReactElement => {
+            getElement: (
+              item: ScheduledMaintenanceStateTimeline,
+            ): ReactElement => {
               return (
                 <SubscriberNotificationStatus
                   status={item.subscriberNotificationStatus}
-                  
-                  
-                  subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
-                  onResendNotification={() => handleResendNotification(item)}
+                  subscriberNotificationStatusMessage={
+                    item.subscriberNotificationStatusMessage
+                  }
+                  onResendNotification={() => {
+                    return handleResendNotification(item);
+                  }}
                 />
               );
             },

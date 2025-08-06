@@ -19,7 +19,8 @@ RunCron(
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findBy({
         query: {
-          subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusOnEventScheduled:
+            StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
           createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
@@ -58,65 +59,72 @@ RunCron(
         await ScheduledMaintenanceService.updateOneById({
           id: event.id!,
           data: {
-            subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.InProgress,
-          },
-          props: {
-            isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
-      if (!event.isVisibleOnStatusPage) {
-        // Set status to Skipped for non-visible events
-        await ScheduledMaintenanceService.updateOneById({
-          id: event.id!,
-          data: {
-            subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Skipped,
-            subscriberNotificationStatusMessage: "Notifications skipped as scheduled maintenance is not visible on status page.",
+            subscriberNotificationStatusOnEventScheduled:
+              StatusPageSubscriberNotificationStatus.InProgress,
           },
           props: {
             isRoot: true,
             ignoreHooks: true,
           },
         });
-        continue; // skip if not visible on status page.
-      }
 
-      await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-        scheduledMaintenanceId: event.id!,
-        projectId: event.projectId!,
-        scheduledMaintenanceFeedEventType:
-          ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
-        displayColor: Blue500,
-        feedInfoInMarkdown: scheduledMaintenanceFeedText,
-        workspaceNotification: {
-          sendWorkspaceNotification: false,
-        },
-      });
+        if (!event.isVisibleOnStatusPage) {
+          // Set status to Skipped for non-visible events
+          await ScheduledMaintenanceService.updateOneById({
+            id: event.id!,
+            data: {
+              subscriberNotificationStatusOnEventScheduled:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Notifications skipped as scheduled maintenance is not visible on status page.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue; // skip if not visible on status page.
+        }
 
-      // Set status to Success after successful processing
-      await ScheduledMaintenanceService.updateOneById({
-        id: event.id!,
-        data: {
-          subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Success,
-          subscriberNotificationStatusMessage: "Notifications sent successfully to all subscribers",
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: event.id!,
+            projectId: event.projectId!,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.SubscriberNotificationSent,
+            displayColor: Blue500,
+            feedInfoInMarkdown: scheduledMaintenanceFeedText,
+            workspaceNotification: {
+              sendWorkspaceNotification: false,
+            },
+          },
+        );
 
+        // Set status to Success after successful processing
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            subscriberNotificationStatusOnEventScheduled:
+              StatusPageSubscriberNotificationStatus.Success,
+            subscriberNotificationStatusMessage:
+              "Notifications sent successfully to all subscribers",
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
       } catch (err) {
         logger.error(
-          `Error processing scheduled maintenance notification ${event.id}: ${err}`
+          `Error processing scheduled maintenance notification ${event.id}: ${err}`,
         );
-        
+
         // Set status to Failed with error reason
         await ScheduledMaintenanceService.updateOneById({
           id: event.id!,
           data: {
-            subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Failed,
+            subscriberNotificationStatusOnEventScheduled:
+              StatusPageSubscriberNotificationStatus.Failed,
             subscriberNotificationStatusMessage: (err as Error).message,
           },
           props: {
@@ -128,10 +136,10 @@ RunCron(
     }
 
     // Only call notification service for successfully processed events
-    const successfulEvents = scheduledEvents.filter(event => 
-      event.isVisibleOnStatusPage
-    );
-    
+    const successfulEvents = scheduledEvents.filter((event) => {
+      return event.isVisibleOnStatusPage;
+    });
+
     if (successfulEvents.length > 0) {
       await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
         successfulEvents,

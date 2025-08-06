@@ -309,5 +309,5 @@ export default [
   UpdateSubscriberNotificationStatusToEnum1754500000000,
   MigrationName1754412708044,
   MigrationName1754415281937,
-  RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976
+  RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976,
 ];
