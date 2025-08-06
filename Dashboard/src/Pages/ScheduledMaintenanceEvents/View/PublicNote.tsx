@@ -324,7 +324,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                   
                   
                   subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
-                  className="-mt-5"
+    
                   onResendNotification={() => handleResendNotification(item)}
                 />
               );
