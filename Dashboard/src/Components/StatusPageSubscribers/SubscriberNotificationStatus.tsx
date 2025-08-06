@@ -4,6 +4,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import Button, { ButtonStyleType, ButtonSize } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 
 export interface ComponentProps {
   status?: StatusPageSubscriberNotificationStatus | undefined | null;
@@ -78,8 +79,8 @@ export const getNotificationStatusInfo = (
 const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { 
-    status, 
+  const {
+    status,
     subscriberNotificationStatusMessage,
     className = "",
     onResendNotification
@@ -99,24 +100,36 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
 
   const pillColor = colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
+
+  const getPill = () => {
+
+    if(subscriberNotificationStatusMessage){
+      return (
+        <Tooltip
+          text={subscriberNotificationStatusMessage}
+        >
+          <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
+        </Tooltip>
+      );
+    }
+
+    return <div className="flex items-center gap-2">
+      <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
+    </div>
+  }
+
+
   return (
     <div className={className}>
-      <div className="flex items-center gap-2">
-        <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
-        {showResendButton && (
-          <Button
-            title="Resend Notification to Subscribers"
-            icon={IconProp.Refresh}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={onResendNotification}
-          />
-        )}
-      </div>
-      {subscriberNotificationStatusMessage && (
-        <div className="text-xs text-red-600 mt-1">
-          {subscriberNotificationStatusMessage}
-        </div>
+      {getPill()}
+      {showResendButton && (
+        <Button
+          title="Resend Notification to Subscribers"
+          icon={IconProp.Refresh}
+          buttonStyle={ButtonStyleType.OUTLINE}
+          buttonSize={ButtonSize.Small}
+          onClick={onResendNotification}
+        />
       )}
     </div>
   );
