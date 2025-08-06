@@ -716,14 +716,24 @@ export default class ScheduledMaintenance extends BaseModel {
   public endsAt?: Date = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.ReadProjectScheduledMaintenance,
     ],
-    update: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
