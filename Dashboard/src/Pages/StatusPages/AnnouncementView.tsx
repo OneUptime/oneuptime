@@ -1,8 +1,8 @@
 import StatusPagesElement from "../../Components/StatusPage/StatusPagesElement";
 import PageComponentProps from "../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import SubscriberNotificationStatus from "../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -199,21 +199,16 @@ const AnnouncementView: FunctionComponent<
               },
               {
                 field: {
-                  shouldStatusPageSubscribersBeNotified: true,
+                  subscriberNotificationStatus: true,
                 },
-                title: "Notify Status Page Subscribers",
-                fieldType: FieldType.Boolean,
+                title: "Subscriber Notification Status",
+                fieldType: FieldType.Element,
                 getElement: (item: StatusPageAnnouncement): ReactElement => {
                   return (
-                    <CheckboxViewer
-                      isChecked={
-                        item.shouldStatusPageSubscribersBeNotified as boolean
-                      }
-                      text={
-                        item.shouldStatusPageSubscribersBeNotified
-                          ? "Notify Subscribers"
-                          : "Do Not Notify Subscribers"
-                      }
+                    <SubscriberNotificationStatus
+                      status={item.subscriberNotificationStatus}
+                      showFailureReason={true}
+                      failureReason={item.subscriberNotificationFailedReason}
                     />
                   );
                 },

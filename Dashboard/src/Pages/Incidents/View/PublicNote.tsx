@@ -12,7 +12,6 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -301,36 +300,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-            },
-            title: "",
-            type: FieldType.Boolean,
-            colSpan: 1,
-            getElement: (item: IncidentPublicNote): ReactElement => {
-              return (
-                <div className="-mt-5">
-                  <CheckboxViewer
-                    isChecked={
-                      item[
-                        "shouldStatusPageSubscribersBeNotifiedOnNoteCreated"
-                      ] as boolean
-                    }
-                    text={
-                      item["shouldStatusPageSubscribersBeNotifiedOnNoteCreated"]
-                        ? "Notification Enabled"
-                        : "Notification Disabled"
-                    }
-                  />{" "}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
               subscriberNotificationStatusOnNoteCreated: true,
             },
-            title: "",
-            type: FieldType.Text,
+            title: "Subscriber Notification Status",
+            type: FieldType.Element,
             colSpan: 1,
             getElement: (item: IncidentPublicNote): ReactElement => {
               return (

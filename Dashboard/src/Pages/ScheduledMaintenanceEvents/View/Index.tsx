@@ -2,13 +2,13 @@ import LabelsElement from "../../../Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import ChangeScheduledMaintenanceState from "../../../Components/ScheduledMaintenance/ChangeState";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import { Black } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -260,6 +260,7 @@ const ScheduledMaintenanceView: FunctionComponent<
               true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
             nextSubscriberNotificationBeforeTheEventAt: true,
+            subscriberNotificationFailedReason: true,
           },
           fields: [
             {
@@ -396,62 +397,17 @@ const ScheduledMaintenanceView: FunctionComponent<
             },
             {
               field: {
-                shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+                subscriberNotificationStatusOnEventScheduled: true,
               },
-              title: "Notify Status Page Subscribers",
-              fieldType: FieldType.Boolean,
+              title: "Subscriber Notification Status",
+              fieldType: FieldType.Element,
               getElement: (item: ScheduledMaintenance): ReactElement => {
                 return (
-                  <div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
-                          ]
-                            ? "Event Created: Notify Subscribers"
-                            : "Event Created: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing"
-                          ]
-                            ? "Event Ongoing: Notify Subscribers"
-                            : "Event Ongoing: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                    <div className="">
-                      <CheckboxViewer
-                        isChecked={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
-                          ] as boolean
-                        }
-                        text={
-                          item[
-                            "shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded"
-                          ]
-                            ? "Event Ended: Notify Subscribers"
-                            : "Event Ended: Do Not Notify Subscribers"
-                        }
-                      />{" "}
-                    </div>
-                  </div>
+                  <SubscriberNotificationStatus
+                    status={item.subscriberNotificationStatusOnEventScheduled}
+                    failureReason={item.subscriberNotificationFailedReason}
+                    showFailureReason={true}
+                  />
                 );
               },
             },

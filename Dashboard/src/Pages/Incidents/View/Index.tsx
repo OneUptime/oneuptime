@@ -2,6 +2,7 @@ import ChangeIncidentState from "../../../Components/Incident/ChangeState";
 import LabelsElement from "../../../Components/Label/Labels";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
@@ -11,7 +12,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
@@ -360,6 +360,7 @@ const IncidentView: FunctionComponent<
               email: true,
               profilePictureId: true,
             },
+            subscriberNotificationFailedReason: true,
           },
           onBeforeFetch: async (): Promise<JSONObject> => {
             // get ack incident.
@@ -530,28 +531,17 @@ const IncidentView: FunctionComponent<
             },
             {
               field: {
-                shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+                subscriberNotificationStatusOnIncidentCreated: true,
               },
-              title: "Notify Status Page Subscribers",
-              fieldType: FieldType.Boolean,
+              title: "Subscriber Notification Status",
+              fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
                 return (
-                  <div className="">
-                    <CheckboxViewer
-                      isChecked={
-                        item[
-                          "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
-                        ] as boolean
-                      }
-                      text={
-                        item[
-                          "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
-                        ]
-                          ? "Subscribers Notified"
-                          : "Subscribers Not Notified"
-                      }
-                    />{" "}
-                  </div>
+                  <SubscriberNotificationStatus
+                    status={item.subscriberNotificationStatusOnIncidentCreated}
+                    failureReason={item.subscriberNotificationFailedReason}
+                    showFailureReason={true}
+                  />
                 );
               },
             },
