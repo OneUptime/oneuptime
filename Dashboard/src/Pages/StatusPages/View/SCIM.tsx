@@ -1,5 +1,4 @@
 import PageComponentProps from "../../PageComponentProps";
-import URL from "Common/Types/API/URL";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Banner from "Common/UI/Components/Banner/Banner";
@@ -21,6 +20,7 @@ import React, {
   useState,
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -70,7 +70,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           openInNewTab={true}
           title="Need help with configuring SCIM?"
           description="Learn more about SCIM (System for Cross-domain Identity Management) setup and configuration for Status Pages"
-          link={URL.fromString("https://oneuptime.com/docs/identity/scim")}
+          link={Route.fromString("/docs/identity/scim")}
           hideOnMobile={true}
         />
 
