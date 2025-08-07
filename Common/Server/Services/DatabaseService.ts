@@ -228,6 +228,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
 
         throw new BadDataException(`${requiredField} is required`);
+      }else if (
+        (data as any)[requiredField] === null &&
+        data.isDefaultValueColumn(requiredField)
+      ) {
+        delete (data as any)[requiredField];
       }
     }
 
