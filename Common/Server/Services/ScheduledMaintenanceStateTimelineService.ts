@@ -268,10 +268,13 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
 
       // Set notification status based on shouldStatusPageSubscribersBeNotified
       if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.";
+        createBy.data.subscriberNotificationStatus =
+          StatusPageSubscriberNotificationStatus.Skipped;
+        createBy.data.subscriberNotificationStatusMessage =
+          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.";
       } else if (createBy.data.shouldStatusPageSubscribersBeNotified === true) {
-        createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Pending;
+        createBy.data.subscriberNotificationStatus =
+          StatusPageSubscriberNotificationStatus.Pending;
       }
 
       return {

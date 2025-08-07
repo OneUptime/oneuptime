@@ -54,9 +54,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
   const handleResendNotification: (
     item: IncidentPublicNote,
-  ) => Promise<void> = async (
-    item: IncidentPublicNote,
-  ): Promise<void> => {
+  ) => Promise<void> = async (item: IncidentPublicNote): Promise<void> => {
     try {
       await ModelAPI.updateById({
         modelType: IncidentPublicNote,

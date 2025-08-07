@@ -754,7 +754,7 @@ export default class ScheduledMaintenance extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-       Permission.ProjectOwner,
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.CreateIncidentPublicNote,

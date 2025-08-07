@@ -79,7 +79,10 @@ const IconText: FunctionComponent<ComponentProps> = ({
           size={iconSize}
         />
       </div>
-      <div className={`flex ${getAlignmentClass()} ${textClassName}`} style={{ color: textColor?.toString() || "inherit" }}>
+      <div
+        className={`flex ${getAlignmentClass()} ${textClassName}`}
+        style={{ color: textColor?.toString() || "inherit" }}
+      >
         {text}
       </div>
     </div>

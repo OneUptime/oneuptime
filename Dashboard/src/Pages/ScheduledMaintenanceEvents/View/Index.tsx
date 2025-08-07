@@ -21,7 +21,12 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
@@ -43,11 +48,13 @@ const ScheduledMaintenanceView: FunctionComponent<
         id: modelId,
         modelType: ScheduledMaintenance,
         data: {
-          subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationStatusMessage: "Notification queued for resending",
+          subscriberNotificationStatusOnEventScheduled:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage:
+            "Notification queued for resending",
         },
       });
-      
+
       // Trigger a refresh by toggling the refresh state
       setRefreshToggle(!refreshToggle);
     } catch {

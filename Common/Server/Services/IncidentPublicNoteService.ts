@@ -49,11 +49,18 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
-    if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === false) {
-      createBy.data.subscriberNotificationStatusOnNoteCreated = StatusPageSubscriberNotificationStatus.Skipped;
-      createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this incident note.";
-    } else if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === true) {
-      createBy.data.subscriberNotificationStatusOnNoteCreated = StatusPageSubscriberNotificationStatus.Pending;
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === false
+    ) {
+      createBy.data.subscriberNotificationStatusOnNoteCreated =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage =
+        "Notifications skipped as subscribers are not to be notified for this incident note.";
+    } else if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === true
+    ) {
+      createBy.data.subscriberNotificationStatusOnNoteCreated =
+        StatusPageSubscriberNotificationStatus.Pending;
     }
 
     return {

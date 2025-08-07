@@ -212,28 +212,30 @@ const SparkLineChart = React.forwardRef<HTMLDivElement, SparkLineChartProps>(
           >
             <XAxis hide dataKey={index} />
             <YAxis hide={true} domain={yAxisDomain as AxisDomain} />
-            {categories.map((category) => (
-              <Line
-                className={cx(
-                  getColorClassName(
-                    categoryColors.get(category) as AvailableChartColorsKeys,
-                    "stroke",
-                  ),
-                )}
-                dot={false}
-                strokeOpacity={1}
-                key={category}
-                name={category}
-                type="linear"
-                dataKey={category}
-                stroke=""
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                isAnimationActive={false}
-                connectNulls={connectNulls}
-              />
-            ))}
+            {categories.map((category) => {
+              return (
+                <Line
+                  className={cx(
+                    getColorClassName(
+                      categoryColors.get(category) as AvailableChartColorsKeys,
+                      "stroke",
+                    ),
+                  )}
+                  dot={false}
+                  strokeOpacity={1}
+                  key={category}
+                  name={category}
+                  type="linear"
+                  dataKey={category}
+                  stroke=""
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  isAnimationActive={false}
+                  connectNulls={connectNulls}
+                />
+              );
+            })}
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>
@@ -300,23 +302,25 @@ const SparkBarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
             <XAxis hide dataKey={index} />
             <YAxis hide={true} domain={yAxisDomain as AxisDomain} />
 
-            {categories.map((category) => (
-              <Bar
-                className={cx(
-                  getColorClassName(
-                    categoryColors.get(category) as AvailableChartColorsKeys,
-                    "fill",
-                  ),
-                )}
-                key={category}
-                name={category}
-                type="linear"
-                dataKey={category}
-                {...(stacked && { stackId: "stack" })}
-                isAnimationActive={false}
-                fill=""
-              />
-            ))}
+            {categories.map((category) => {
+              return (
+                <Bar
+                  className={cx(
+                    getColorClassName(
+                      categoryColors.get(category) as AvailableChartColorsKeys,
+                      "fill",
+                    ),
+                  )}
+                  key={category}
+                  name={category}
+                  type="linear"
+                  dataKey={category}
+                  {...(stacked && { stackId: "stack" })}
+                  isAnimationActive={false}
+                  fill=""
+                />
+              );
+            })}
           </RechartsBarChart>
         </ResponsiveContainer>
       </div>

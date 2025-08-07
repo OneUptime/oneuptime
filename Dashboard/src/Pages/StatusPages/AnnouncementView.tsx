@@ -10,7 +10,12 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -31,11 +36,13 @@ const AnnouncementView: FunctionComponent<
         id: modelId,
         modelType: StatusPageAnnouncement,
         data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationStatusMessage: "Notification queued for resending",
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage:
+            "Notification queued for resending",
         },
       });
-      
+
       // Trigger a refresh by toggling the refresh state
       setRefreshToggle(!refreshToggle);
     } catch {

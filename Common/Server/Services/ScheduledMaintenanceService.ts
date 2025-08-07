@@ -371,12 +371,24 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated if it's being updated
-    if (updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated !== undefined) {
-      if (updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated === false) {
-        updateBy.data.subscriberNotificationStatusOnEventScheduled = StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
-      } else if (updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated === true) {
-        updateBy.data.subscriberNotificationStatusOnEventScheduled = StatusPageSubscriberNotificationStatus.Pending;
+    if (
+      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated !==
+      undefined
+    ) {
+      if (
+        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
+        false
+      ) {
+        updateBy.data.subscriberNotificationStatusOnEventScheduled =
+          StatusPageSubscriberNotificationStatus.Skipped;
+        updateBy.data.subscriberNotificationStatusMessage =
+          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
+      } else if (
+        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
+        true
+      ) {
+        updateBy.data.subscriberNotificationStatusOnEventScheduled =
+          StatusPageSubscriberNotificationStatus.Pending;
       }
     }
 
@@ -551,11 +563,19 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated
-    if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated === false) {
-      createBy.data.subscriberNotificationStatusOnEventScheduled = StatusPageSubscriberNotificationStatus.Skipped;
-      createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
-    } else if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated === true) {
-      createBy.data.subscriberNotificationStatusOnEventScheduled = StatusPageSubscriberNotificationStatus.Pending;
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
+      false
+    ) {
+      createBy.data.subscriberNotificationStatusOnEventScheduled =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage =
+        "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
+    } else if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated === true
+    ) {
+      createBy.data.subscriberNotificationStatusOnEventScheduled =
+        StatusPageSubscriberNotificationStatus.Pending;
     }
 
     return { createBy, carryForward: null };

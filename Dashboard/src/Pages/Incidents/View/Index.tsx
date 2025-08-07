@@ -150,8 +150,10 @@ const IncidentView: FunctionComponent<
         id: modelId,
         modelType: Incident,
         data: {
-          subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationStatusMessage: "Notification queued for resending",
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage:
+            "Notification queued for resending",
         },
       });
 

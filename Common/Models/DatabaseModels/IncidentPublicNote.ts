@@ -379,7 +379,7 @@ export default class IncidentPublicNote extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-       Permission.ProjectOwner,
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.CreateIncidentPublicNote,

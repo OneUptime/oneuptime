@@ -40,9 +40,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
 
   const handleResendNotification: (
     item: IncidentStateTimeline,
-  ) => Promise<void> = async (
-    item: IncidentStateTimeline,
-  ): Promise<void> => {
+  ) => Promise<void> = async (item: IncidentStateTimeline): Promise<void> => {
     try {
       await ModelAPI.updateById({
         modelType: IncidentStateTimeline,
