@@ -478,7 +478,12 @@ export default class StatusPageAnnouncement extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageAnnouncement,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

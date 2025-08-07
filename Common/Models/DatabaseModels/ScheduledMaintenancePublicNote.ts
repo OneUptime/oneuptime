@@ -379,7 +379,12 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateScheduledMaintenancePublicNote,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
