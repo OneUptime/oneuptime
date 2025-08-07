@@ -466,7 +466,7 @@ const ChartLegend: (
           return entry.value;
         })}
         colors={filteredPayload.map((entry: any) => {
-          return categoryColors.get(entry.value);
+          return categoryColors.get(entry.value) as AvailableChartColorsKeys;
         })}
         {...(onClick ? { onClickLegendItem: onClick } : {})}
         {...(activeLegend ? { activeLegend: activeLegend } : {})}
