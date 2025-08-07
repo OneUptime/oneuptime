@@ -482,12 +482,13 @@ const ChartLegend: (
 
 type TooltipProps = Pick<ChartTooltipProps, "active" | "payload" | "label">;
 
+// eslint-disable-next-line react/no-unused-prop-types
 type PayloadItem = {
-  category: string;
-  value: number;
-  index: string;
-  color: AvailableChartColorsKeys;
-  type?: string;
+  category: string; // eslint-disable-line react/no-unused-prop-types
+  value: number; // eslint-disable-line react/no-unused-prop-types
+  index: string; // eslint-disable-line react/no-unused-prop-types
+  color: AvailableChartColorsKeys; // eslint-disable-line react/no-unused-prop-types
+  type?: string; // eslint-disable-line react/no-unused-prop-types
   payload: any;
 };
 
@@ -687,28 +688,32 @@ const BarChart: React.ForwardRefExoticComponent<
       return `${(value * 100).toFixed(0)}%`;
     }
 
-    function onBarClick(data: any, _: any, event: React.MouseEvent): void {
-      event.stopPropagation();
-      if (!onValueChange) {
-        return;
-      }
-      if (deepEqual(activeBar, { ...data.payload, value: data.value })) {
-        setActiveLegend(undefined);
-        setActiveBar(undefined);
-        onValueChange?.(null);
-      } else {
-        setActiveLegend(data.tooltipPayload?.[0]?.dataKey);
-        setActiveBar({
-          ...data.payload,
-          value: data.value,
-        });
-        onValueChange?.({
-          eventType: "bar",
-          categoryClicked: data.tooltipPayload?.[0]?.dataKey,
-          ...data.payload,
-        });
-      }
-    }
+    const onBarClick: (data: any, _: any, event: React.MouseEvent) => void =
+      React.useCallback(
+        (data: any, _: any, event: React.MouseEvent): void => {
+          event.stopPropagation();
+          if (!onValueChange) {
+            return;
+          }
+          if (deepEqual(activeBar, { ...data.payload, value: data.value })) {
+            setActiveLegend(undefined);
+            setActiveBar(undefined);
+            onValueChange?.(null);
+          } else {
+            setActiveLegend(data.tooltipPayload?.[0]?.dataKey);
+            setActiveBar({
+              ...data.payload,
+              value: data.value,
+            });
+            onValueChange?.({
+              eventType: "bar",
+              categoryClicked: data.tooltipPayload?.[0]?.dataKey,
+              ...data.payload,
+            });
+          }
+        },
+        [activeBar, onValueChange, setActiveLegend, setActiveBar],
+      );
 
     function onCategoryClick(dataKey: string): void {
       if (!hasOnValueChange) {
@@ -727,6 +732,18 @@ const BarChart: React.ForwardRefExoticComponent<
       setActiveBar(undefined);
     }
 
+    const shapeRenderer: (props: any) => React.ReactElement = (
+      props: any,
+    ): React.ReactElement => {
+      return renderShape(props, activeBar, activeLegend, layout);
+    };
+
+    const handleChartClick: () => void = (): void => {
+      setActiveBar(undefined);
+      setActiveLegend(undefined);
+      onValueChange?.(null);
+    };
+
     return (
       <div
         ref={forwardedRef}
@@ -739,11 +756,7 @@ const BarChart: React.ForwardRefExoticComponent<
             data={data}
             {...(hasOnValueChange && (activeLegend || activeBar)
               ? {
-                  onClick: () => {
-                    setActiveBar(undefined);
-                    setActiveLegend(undefined);
-                    onValueChange?.(null);
-                  },
+                  onClick: handleChartClick,
                 }
               : {})}
             margin={{
@@ -961,9 +974,7 @@ const BarChart: React.ForwardRefExoticComponent<
                   {...(stacked ? { stackId: "stack" } : {})}
                   isAnimationActive={false}
                   fill=""
-                  shape={(props: any): React.ReactElement => {
-                    return renderShape(props, activeBar, activeLegend, layout);
-                  }}
+                  shape={shapeRenderer}
                   onClick={onBarClick}
                 />
               );
