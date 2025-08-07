@@ -24,6 +24,7 @@ import Permission, {
 } from "../../../../Types/Permission";
 
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import logger from "../../../Utils/Logger";
 
 export default class ColumnPermissions {
   @CaptureSpan()
@@ -220,6 +221,11 @@ export default class ColumnPermissions {
               getAllEnvVars(),
             )
           ) {
+
+            logger.debug(
+              `User does not have access to update ${key} column of ${model.singularName}`,
+            );
+
             throw new PaymentRequiredException(
               "Please upgrade your plan to " +
                 billingAccessControl.update +
