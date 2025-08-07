@@ -1003,12 +1003,12 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       const apiFieldName: string = terraformAttr.apiFieldName || name;
 
       // Generate code to only include field if it has changed between state and plan
-      const changeCheckCondition = this.generateChangeCheckCondition(
+      const changeCheckCondition: string = this.generateChangeCheckCondition(
         fieldName,
         terraformAttr.type,
       );
-      
-      const valueAssignment = this.generateValueAssignment(
+
+      const valueAssignment: string = this.generateValueAssignment(
         fieldName,
         apiFieldName,
         terraformAttr,
@@ -1026,10 +1026,10 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     fieldName: string,
     fieldType: string,
   ): string {
-    // For unknown values (computed fields that are "known after apply"), 
+    // For unknown values (computed fields that are "known after apply"),
     // we should not include them in update requests
     const baseCondition: string = `!data.${fieldName}.IsUnknown() && !state.${fieldName}.IsUnknown() && !data.${fieldName}.Equal(state.${fieldName})`;
-    
+
     switch (fieldType) {
       case "string":
         return `if ${baseCondition}`;
@@ -1060,14 +1060,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})`;
     } else if (terraformAttr.type === "list") {
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})`;
-    } else if (terraformAttr.type === "string" && terraformAttr.isComplexObject) {
+    } else if (
+      terraformAttr.type === "string" &&
+      terraformAttr.isComplexObject
+    ) {
       return `var ${fieldName.toLowerCase()}Data interface{}
         if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {
             requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data
         }`;
-    } else {
-      return `requestDataMap["${apiFieldName}"] = ${value}`;
     }
+    return `requestDataMap["${apiFieldName}"] = ${value}`;
   }
 
   private generateRequestBodyInternal(

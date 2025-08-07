@@ -221,7 +221,6 @@ export default class ColumnPermissions {
               getAllEnvVars(),
             )
           ) {
-
             logger.debug(
               `User does not have access to update ${key} column of ${model.singularName}`,
             );
