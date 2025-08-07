@@ -13,6 +13,7 @@ import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/Sche
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
+import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -243,7 +244,29 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 />
               );
             },
-          }
+          },
+          {
+            field: {
+              subscriberNotificationStatus: true,
+            },
+            title: "Subscriber Notification Status",
+            type: FieldType.Text,
+            getElement: (
+              item: ScheduledMaintenanceStateTimeline,
+            ): ReactElement => {
+              return (
+                <SubscriberNotificationStatus
+                  status={item.subscriberNotificationStatus}
+                  subscriberNotificationStatusMessage={
+                    item.subscriberNotificationStatusMessage
+                  }
+                  onResendNotification={() => {
+                    return handleResendNotification(item);
+                  }}
+                />
+              );
+            },
+          },
         ]}
       />
     </Fragment>
