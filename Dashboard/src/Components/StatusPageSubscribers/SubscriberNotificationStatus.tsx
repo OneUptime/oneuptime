@@ -179,7 +179,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
         <div className="-ml-2 text-gray-500">
         <Button
           title="more details"
-          buttonStyle={ButtonStyleType.OUTLINE}
+          buttonStyle={ButtonStyleType.SECONDARY_LINK}
           buttonSize={ButtonSize.Small}
           onClick={() => setShowModal(true)}
         />
