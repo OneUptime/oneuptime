@@ -1490,6 +1490,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Number,
     required: true,
     isDefaultValueColumn: true,
+    defaultValue: 14,
     title: "Show incident history in days",
     description:
       "How many days of incident history should be shown on the status page (in days)?",
@@ -1526,6 +1527,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Number,
     required: true,
     isDefaultValueColumn: true,
+    defaultValue: 14,
     title: "Show announcement history in days",
     description:
       "How many days of announcement history should be shown on the status page (in days)?",
@@ -1562,6 +1564,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Number,
     required: true,
     isDefaultValueColumn: true,
+    defaultValue: 14,
     title: "Show scheduled event history in days",
     description:
       "How many days of scheduled event history should be shown on the status page (in days)?",
@@ -1633,6 +1636,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Hide Powered By OneUptime Branding",
     description: "Hide Powered By OneUptime Branding?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1788,6 +1792,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Report Enabled",
     description: "Is Report Enabled for this Status Page?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -1971,6 +1976,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Overall Uptime Percent on Status Page",
     description: "Show Overall Uptime Percent on Status Page?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -2109,6 +2115,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Incidents on Status Page",
     description: "Show Incidents on Status Page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -2147,6 +2154,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Announcements on Status Page",
     description: "Show Announcements on Status Page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -2185,6 +2193,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Scheduled Maintenance Events on Status Page",
     description: "Show Scheduled Maintenance Events on Status Page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -2223,6 +2232,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Show Subscriber Page on Status Page",
     description: "Show Subscriber Page on Status Page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
