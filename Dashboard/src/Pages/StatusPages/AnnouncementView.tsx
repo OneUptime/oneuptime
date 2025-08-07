@@ -8,7 +8,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -20,6 +22,26 @@ const AnnouncementView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const handleResendNotification = async (): Promise<void> => {
+    try {
+      // Reset the notification status to Pending so the worker can pick it up again
+      await ModelAPI.updateById({
+        id: modelId,
+        modelType: StatusPageAnnouncement,
+        data: {
+          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage: "Notification queued for resending",
+        },
+      });
+      
+      // Trigger a refresh by toggling the refresh state
+      setRefreshToggle(!refreshToggle);
+    } catch {
+      // Error resending notification: handle appropriately
+    }
+  };
 
   return (
     <Page
@@ -213,6 +235,7 @@ const AnnouncementView: FunctionComponent<
                       subscriberNotificationStatusMessage={
                         item.subscriberNotificationStatusMessage
                       }
+                      onResendNotification={handleResendNotification}
                     />
                   );
                 },

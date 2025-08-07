@@ -41,7 +41,7 @@ export const getNotificationStatusInfo: (
     return { 
       color: "gray", 
       tailwindColor: "gray", 
-      text: "Skipped", 
+      text: "Notifications skipped.", 
       icon: IconProp.CircleClose 
     };
   }
@@ -50,7 +50,7 @@ export const getNotificationStatusInfo: (
     return { 
       color: "yellow", 
       tailwindColor: "yellow", 
-      text: "Pending", 
+      text: "Sending Soon", 
       icon: IconProp.Clock 
     };
   }
@@ -59,7 +59,7 @@ export const getNotificationStatusInfo: (
     return { 
       color: "blue", 
       tailwindColor: "blue", 
-      text: "In Progress", 
+      text: "Notifications Being Sent", 
       icon: IconProp.Info 
     };
   }
@@ -68,7 +68,7 @@ export const getNotificationStatusInfo: (
     return { 
       color: "green", 
       tailwindColor: "green", 
-      text: "Sent", 
+      text: "Notificaitons Sent", 
       icon: IconProp.CheckCircle 
     };
   }
@@ -137,7 +137,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     status === StatusPageSubscriberNotificationStatus.Failed &&
     Boolean(onResendNotification);
 
-  const showMoreButton: boolean = Boolean(subscriberNotificationStatusMessage);
+  const showMoreButton: boolean = Boolean(subscriberNotificationStatusMessage && (status === StatusPageSubscriberNotificationStatus.Failed || status === StatusPageSubscriberNotificationStatus.Skipped));
 
   // Color mapping for IconText
   const colorMap: Record<string, Color> = {

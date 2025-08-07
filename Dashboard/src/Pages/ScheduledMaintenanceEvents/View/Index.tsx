@@ -20,7 +20,8 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
@@ -33,6 +34,26 @@ const ScheduledMaintenanceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+
+  const handleResendNotification = async (): Promise<void> => {
+    try {
+      // Reset the notification status to Pending so the worker can pick it up again
+      await ModelAPI.updateById({
+        id: modelId,
+        modelType: ScheduledMaintenance,
+        data: {
+          subscriberNotificationStatusOnEventScheduled: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage: "Notification queued for resending",
+        },
+      });
+      
+      // Trigger a refresh by toggling the refresh state
+      setRefreshToggle(!refreshToggle);
+    } catch {
+      // Error resending notification: handle appropriately
+    }
+  };
 
   return (
     <Fragment>
@@ -408,6 +429,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                     subscriberNotificationStatusMessage={
                       item.subscriberNotificationStatusMessage
                     }
+                    onResendNotification={handleResendNotification}
                   />
                 );
               },

@@ -52,6 +52,7 @@ import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -138,6 +139,29 @@ const IncidentView: FunctionComponent<
     }
 
     setIsLoading(false);
+  };
+
+  const handleResendNotification = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+
+      // Reset the notification status to Pending so the worker can pick it up again
+      await ModelAPI.updateById({
+        id: modelId,
+        modelType: Incident,
+        data: {
+          subscriberNotificationStatusOnIncidentCreated: StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessage: "Notification queued for resending",
+        },
+      });
+
+      // Refresh the data to show updated status
+      await fetchData();
+    } catch (err) {
+      setError(BaseAPI.getFriendlyMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -542,6 +566,7 @@ const IncidentView: FunctionComponent<
                     subscriberNotificationStatusMessage={
                       item.subscriberNotificationStatusMessage
                     }
+                    onResendNotification={handleResendNotification}
                   />
                 );
               },
