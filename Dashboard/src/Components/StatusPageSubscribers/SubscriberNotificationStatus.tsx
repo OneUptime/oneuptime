@@ -190,10 +190,10 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title="Notification Status Details"
           description={subscriberNotificationStatusMessage || "No additional information available."}
-          onClose={handleModalClose}
+          onClose={showResendButton ? handleModalClose : undefined}
           onSubmit={handleModalConfirm}
-          submitButtonText={showResendButton ? "Retry" : "OK"}
-          closeButtonText="Close"
+          submitButtonText={showResendButton ? "Retry" : "Close"}
+          closeButtonText={showResendButton ? "Close" : undefined}
           submitButtonType={showResendButton ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL}
         />
       )}
