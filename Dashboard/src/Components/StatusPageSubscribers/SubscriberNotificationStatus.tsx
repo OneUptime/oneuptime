@@ -1,4 +1,4 @@
-import { Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import {  Blue500, Gray500,  Green500,  Red500, Yellow500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IconText from "Common/UI/Components/IconText/IconText";
@@ -142,10 +142,10 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   // Color mapping for IconText
   const colorMap: Record<string, Color> = {
     gray: Gray500,
-    yellow: Yellow,
-    blue: Blue,
-    green: Green,
-    red: Red,
+    yellow: Yellow500,
+    blue: Blue500,
+    green: Green500,
+    red: Red500,
   };
 
   const iconColor: Color =
