@@ -8,6 +8,7 @@ export interface ComponentProps {
   text: string;
   icon: IconProp;
   iconColor?: Color | null;
+  textColor?: Color | null;
   iconSize?: SizeProp;
   iconClassName?: string;
   textClassName?: string;
@@ -22,6 +23,7 @@ const IconText: FunctionComponent<ComponentProps> = ({
   text,
   icon,
   iconColor = null,
+  textColor = null,
   iconSize = SizeProp.Regular,
   iconClassName = "h-5 w-5",
   textClassName = "text-sm text-gray-900",
@@ -77,7 +79,7 @@ const IconText: FunctionComponent<ComponentProps> = ({
           size={iconSize}
         />
       </div>
-      <div className={`flex ${getAlignmentClass()} ${textClassName}`}>
+      <div className={`flex ${getAlignmentClass()} ${textClassName}`} style={{ color: textColor?.toString() || "inherit" }}>
         {text}
       </div>
     </div>

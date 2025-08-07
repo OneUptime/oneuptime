@@ -18,7 +18,6 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -265,27 +264,7 @@ const IncidentViewStateTimeline: FunctionComponent<PageComponentProps> = (
                 </p>
               );
             },
-          },
-          {
-            field: {
-              subscriberNotificationStatus: true,
-            },
-            title: "Notification Status",
-            type: FieldType.Text,
-            getElement: (item: IncidentStateTimeline): ReactElement => {
-              return (
-                <SubscriberNotificationStatus
-                  status={item.subscriberNotificationStatus}
-                  subscriberNotificationStatusMessage={
-                    item.subscriberNotificationStatusMessage
-                  }
-                  onResendNotification={() => {
-                    return handleResendNotification(item);
-                  }}
-                />
-              );
-            },
-          },
+          }
         ]}
       />
       {showViewLogsModal ? (

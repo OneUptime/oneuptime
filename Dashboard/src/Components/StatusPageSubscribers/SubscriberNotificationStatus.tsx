@@ -168,6 +168,7 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
         text={statusInfo.text}
         icon={statusInfo.icon}
         iconColor={iconColor}
+        textColor={iconColor}
         iconClassName="h-4 w-4"
         textClassName="text-sm font-medium"
         spacing="sm"
@@ -175,13 +176,14 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
       />
       
       {showMoreButton && (
+        <div className="-ml-2 text-gray-500">
         <Button
-          title="More details"
-          icon={IconProp.More}
+          title="more details"
           buttonStyle={ButtonStyleType.OUTLINE}
           buttonSize={ButtonSize.Small}
           onClick={() => setShowModal(true)}
         />
+        </div>
       )}
 
       {showModal && (
