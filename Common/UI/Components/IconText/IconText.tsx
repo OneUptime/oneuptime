@@ -1,7 +1,6 @@
-import Icon from "../Icon/Icon";
+import Icon, { SizeProp } from "../Icon/Icon";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
-import { SizeProp } from "../Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -33,7 +32,7 @@ const IconText: FunctionComponent<ComponentProps> = ({
   onClick,
   "data-testid": dataTestId,
 }: ComponentProps): ReactElement => {
-  const getSpacingClass = (): string => {
+  const getSpacingClass: () => string = (): string => {
     switch (spacing) {
       case "sm":
         return "gap-1";
@@ -46,7 +45,7 @@ const IconText: FunctionComponent<ComponentProps> = ({
     }
   };
 
-  const getAlignmentClass = (): string => {
+  const getAlignmentClass: () => string = (): string => {
     switch (alignment) {
       case "center":
         return "justify-center";
@@ -58,7 +57,7 @@ const IconText: FunctionComponent<ComponentProps> = ({
     }
   };
 
-  const handleClick = (): void => {
+  const handleClick: () => void = (): void => {
     if (onClick) {
       onClick();
     }
@@ -79,7 +78,10 @@ const IconText: FunctionComponent<ComponentProps> = ({
           size={iconSize}
         />
       </div>
-      <div className={`flex ${getAlignmentClass()} ${textClassName}`} style={{ color: textColor?.toString() || "inherit" }}>
+      <div
+        className={`flex ${getAlignmentClass()} ${textClassName}`}
+        style={{ color: textColor?.toString() || "inherit" }}
+      >
         {text}
       </div>
     </div>

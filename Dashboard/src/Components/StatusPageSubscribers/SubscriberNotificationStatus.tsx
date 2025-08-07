@@ -1,4 +1,10 @@
-import {  Blue500, Gray500,  Green500,  Red500, Yellow500 } from "Common/Types/BrandColors";
+import {
+  Blue500,
+  Gray500,
+  Green500,
+  Red500,
+  Yellow500,
+} from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IconText from "Common/UI/Components/IconText/IconText";
@@ -38,55 +44,55 @@ export const getNotificationStatusInfo: (
   icon: IconProp;
 } => {
   if (!status || status === StatusPageSubscriberNotificationStatus.Skipped) {
-    return { 
-      color: "gray", 
-      tailwindColor: "gray", 
-      text: "Notifications skipped.", 
-      icon: IconProp.CircleClose 
+    return {
+      color: "gray",
+      tailwindColor: "gray",
+      text: "Notifications skipped.",
+      icon: IconProp.CircleClose,
     };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.Pending) {
-    return { 
-      color: "yellow", 
-      tailwindColor: "yellow", 
-      text: "Sending Soon", 
-      icon: IconProp.Clock 
+    return {
+      color: "yellow",
+      tailwindColor: "yellow",
+      text: "Sending Soon",
+      icon: IconProp.Clock,
     };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.InProgress) {
-    return { 
-      color: "blue", 
-      tailwindColor: "blue", 
-      text: "Notifications Being Sent", 
-      icon: IconProp.Info 
+    return {
+      color: "blue",
+      tailwindColor: "blue",
+      text: "Notifications Being Sent",
+      icon: IconProp.Info,
     };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.Success) {
-    return { 
-      color: "green", 
-      tailwindColor: "green", 
-      text: "Notificaitons Sent", 
-      icon: IconProp.CheckCircle 
+    return {
+      color: "green",
+      tailwindColor: "green",
+      text: "Notificaitons Sent",
+      icon: IconProp.CheckCircle,
     };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.Failed) {
-    return { 
-      color: "red", 
-      tailwindColor: "red", 
-      text: "Failed", 
-      icon: IconProp.Error 
+    return {
+      color: "red",
+      tailwindColor: "red",
+      text: "Failed",
+      icon: IconProp.Error,
     };
   }
 
-  return { 
-    color: "gray", 
-    tailwindColor: "gray", 
-    text: "Unknown", 
-    icon: IconProp.Info 
+  return {
+    color: "gray",
+    tailwindColor: "gray",
+    text: "Unknown",
+    icon: IconProp.Info,
   };
 };
 
@@ -137,7 +143,11 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     status === StatusPageSubscriberNotificationStatus.Failed &&
     Boolean(onResendNotification);
 
-  const showMoreButton: boolean = Boolean(subscriberNotificationStatusMessage && (status === StatusPageSubscriberNotificationStatus.Failed || status === StatusPageSubscriberNotificationStatus.Skipped));
+  const showMoreButton: boolean = Boolean(
+    subscriberNotificationStatusMessage &&
+      (status === StatusPageSubscriberNotificationStatus.Failed ||
+        status === StatusPageSubscriberNotificationStatus.Skipped),
+  );
 
   // Color mapping for IconText
   const colorMap: Record<string, Color> = {
@@ -151,14 +161,14 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   const iconColor: Color =
     colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
-  const handleModalConfirm = (): void => {
+  const handleModalConfirm: () => void = (): void => {
     if (showResendButton && onResendNotification) {
       onResendNotification();
     }
     setShowModal(false);
   };
 
-  const handleModalClose = (): void => {
+  const handleModalClose: () => void = (): void => {
     setShowModal(false);
   };
 
@@ -174,27 +184,34 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
         spacing="sm"
         alignment="left"
       />
-      
+
       {showMoreButton && (
         <div className="-ml-2 text-gray-500">
-        <Button
-          title="more details"
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          buttonSize={ButtonSize.Small}
-          onClick={() => setShowModal(true)}
-        />
+          <Button
+            title="more details"
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.Small}
+            onClick={() => {
+              return setShowModal(true);
+            }}
+          />
         </div>
       )}
 
       {showModal && (
         <ConfirmModal
           title="Notification Status Details"
-          description={subscriberNotificationStatusMessage || "No additional information available."}
+          description={
+            subscriberNotificationStatusMessage ||
+            "No additional information available."
+          }
           onClose={showResendButton ? handleModalClose : undefined}
           onSubmit={handleModalConfirm}
           submitButtonText={showResendButton ? "Retry" : "Close"}
           closeButtonText={showResendButton ? "Close" : undefined}
-          submitButtonType={showResendButton ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL}
+          submitButtonType={
+            showResendButton ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL
+          }
         />
       )}
     </div>

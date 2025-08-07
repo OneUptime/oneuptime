@@ -15,10 +15,13 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     // Set notification status based on shouldStatusPageSubscribersBeNotified
     if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-      createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Skipped;
-      createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this announcement.";
+      createBy.data.subscriberNotificationStatus =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage =
+        "Notifications skipped as subscribers are not to be notified for this announcement.";
     } else if (createBy.data.shouldStatusPageSubscribersBeNotified === true) {
-      createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Pending;
+      createBy.data.subscriberNotificationStatus =
+        StatusPageSubscriberNotificationStatus.Pending;
     }
 
     return {
@@ -33,10 +36,13 @@ export class Service extends DatabaseService<Model> {
     // Set notification status based on shouldStatusPageSubscribersBeNotified if it's being updated
     if (updateBy.data.shouldStatusPageSubscribersBeNotified !== undefined) {
       if (updateBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        updateBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this announcement.";
+        updateBy.data.subscriberNotificationStatus =
+          StatusPageSubscriberNotificationStatus.Skipped;
+        updateBy.data.subscriberNotificationStatusMessage =
+          "Notifications skipped as subscribers are not to be notified for this announcement.";
       } else if (updateBy.data.shouldStatusPageSubscribersBeNotified === true) {
-        updateBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Pending;
+        updateBy.data.subscriberNotificationStatus =
+          StatusPageSubscriberNotificationStatus.Pending;
       }
     }
 

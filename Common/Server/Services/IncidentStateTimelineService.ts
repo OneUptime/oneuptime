@@ -253,11 +253,17 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
 
       // Set notification status based on shouldStatusPageSubscribersBeNotified
       if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this incident state change.";
-      } else if (createBy.data.shouldStatusPageSubscribersBeNotified === true && !publicNote) {
+        createBy.data.subscriberNotificationStatus =
+          StatusPageSubscriberNotificationStatus.Skipped;
+        createBy.data.subscriberNotificationStatusMessage =
+          "Notifications skipped as subscribers are not to be notified for this incident state change.";
+      } else if (
+        createBy.data.shouldStatusPageSubscribersBeNotified === true &&
+        !publicNote
+      ) {
         // Only set to Pending if there's no public note (public note handling sets it to Success)
-        createBy.data.subscriberNotificationStatus = StatusPageSubscriberNotificationStatus.Pending;
+        createBy.data.subscriberNotificationStatus =
+          StatusPageSubscriberNotificationStatus.Pending;
       }
 
       return {

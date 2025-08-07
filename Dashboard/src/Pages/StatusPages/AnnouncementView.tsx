@@ -10,7 +10,12 @@ import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnou
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -24,24 +29,27 @@ const AnnouncementView: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (): Promise<void> => {
-    try {
-      // Reset the notification status to Pending so the worker can pick it up again
-      await ModelAPI.updateById({
-        id: modelId,
-        modelType: StatusPageAnnouncement,
-        data: {
-          subscriberNotificationStatus: StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationStatusMessage: "Notification queued for resending",
-        },
-      });
-      
-      // Trigger a refresh by toggling the refresh state
-      setRefreshToggle(!refreshToggle);
-    } catch {
-      // Error resending notification: handle appropriately
-    }
-  };
+  const handleResendNotification: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        // Reset the notification status to Pending so the worker can pick it up again
+        await ModelAPI.updateById({
+          id: modelId,
+          modelType: StatusPageAnnouncement,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessage:
+              "Notification queued for resending",
+          },
+        });
+
+        // Trigger a refresh by toggling the refresh state
+        setRefreshToggle(!refreshToggle);
+      } catch {
+        // Error resending notification: handle appropriately
+      }
+    };
 
   return (
     <Page

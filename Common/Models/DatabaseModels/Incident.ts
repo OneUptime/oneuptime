@@ -772,7 +772,7 @@ export default class Incident extends BaseModel {
 
   @ColumnAccessControl({
     create: [
-       Permission.ProjectOwner,
+      Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.CreateProjectIncident,
