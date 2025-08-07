@@ -427,6 +427,16 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated if it's being updated
+    if (updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !== undefined) {
+      if (updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated === false) {
+        updateBy.data.subscriberNotificationStatusOnIncidentCreated = StatusPageSubscriberNotificationStatus.Skipped;
+        updateBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this incident.";
+      } else if (updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated === true) {
+        updateBy.data.subscriberNotificationStatusOnIncidentCreated = StatusPageSubscriberNotificationStatus.Pending;
+      }
+    }
+
     return {
       updateBy: updateBy,
       carryForward: carryForward,
@@ -522,6 +532,14 @@ export class Service extends DatabaseService<Model> {
           },
         )}`;
       }
+    }
+
+    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated
+    if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated === false) {
+      createBy.data.subscriberNotificationStatusOnIncidentCreated = StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this incident.";
+    } else if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated === true) {
+      createBy.data.subscriberNotificationStatusOnIncidentCreated = StatusPageSubscriberNotificationStatus.Pending;
     }
 
     return {

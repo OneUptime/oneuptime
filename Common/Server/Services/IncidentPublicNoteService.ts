@@ -11,6 +11,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import IncidentService from "./IncidentService";
 import Incident from "../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -45,6 +46,14 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+    if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === false) {
+      createBy.data.subscriberNotificationStatusOnNoteCreated = StatusPageSubscriberNotificationStatus.Skipped;
+      createBy.data.subscriberNotificationStatusMessage = "Notifications skipped as subscribers are not to be notified for this incident note.";
+    } else if (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === true) {
+      createBy.data.subscriberNotificationStatusOnNoteCreated = StatusPageSubscriberNotificationStatus.Pending;
     }
 
     return {
