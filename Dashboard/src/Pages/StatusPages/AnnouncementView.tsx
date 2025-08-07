@@ -29,26 +29,27 @@ const AnnouncementView: FunctionComponent<
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
-  const handleResendNotification = async (): Promise<void> => {
-    try {
-      // Reset the notification status to Pending so the worker can pick it up again
-      await ModelAPI.updateById({
-        id: modelId,
-        modelType: StatusPageAnnouncement,
-        data: {
-          subscriberNotificationStatus:
-            StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationStatusMessage:
-            "Notification queued for resending",
-        },
-      });
+  const handleResendNotification: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        // Reset the notification status to Pending so the worker can pick it up again
+        await ModelAPI.updateById({
+          id: modelId,
+          modelType: StatusPageAnnouncement,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessage:
+              "Notification queued for resending",
+          },
+        });
 
-      // Trigger a refresh by toggling the refresh state
-      setRefreshToggle(!refreshToggle);
-    } catch {
-      // Error resending notification: handle appropriately
-    }
-  };
+        // Trigger a refresh by toggling the refresh state
+        setRefreshToggle(!refreshToggle);
+      } catch {
+        // Error resending notification: handle appropriately
+      }
+    };
 
   return (
     <Page

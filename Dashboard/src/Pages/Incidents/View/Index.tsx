@@ -141,30 +141,31 @@ const IncidentView: FunctionComponent<
     setIsLoading(false);
   };
 
-  const handleResendNotification = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
+  const handleResendNotification: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setIsLoading(true);
 
-      // Reset the notification status to Pending so the worker can pick it up again
-      await ModelAPI.updateById({
-        id: modelId,
-        modelType: Incident,
-        data: {
-          subscriberNotificationStatusOnIncidentCreated:
-            StatusPageSubscriberNotificationStatus.Pending,
-          subscriberNotificationStatusMessage:
-            "Notification queued for resending",
-        },
-      });
+        // Reset the notification status to Pending so the worker can pick it up again
+        await ModelAPI.updateById({
+          id: modelId,
+          modelType: Incident,
+          data: {
+            subscriberNotificationStatusOnIncidentCreated:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessage:
+              "Notification queued for resending",
+          },
+        });
 
-      // Refresh the data to show updated status
-      await fetchData();
-    } catch (err) {
-      setError(BaseAPI.getFriendlyMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        // Refresh the data to show updated status
+        await fetchData();
+      } catch (err) {
+        setError(BaseAPI.getFriendlyMessage(err));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   useEffect(() => {
     fetchData().catch((err: Error) => {

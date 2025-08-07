@@ -161,14 +161,14 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
   const iconColor: Color =
     colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
-  const handleModalConfirm = (): void => {
+  const handleModalConfirm: () => void = (): void => {
     if (showResendButton && onResendNotification) {
       onResendNotification();
     }
     setShowModal(false);
   };
 
-  const handleModalClose = (): void => {
+  const handleModalClose: () => void = (): void => {
     setShowModal(false);
   };
 

@@ -44,8 +44,8 @@ function deepEqual<T>(obj1: T, obj2: T): boolean {
     return false;
   }
 
-  const keys1 = Object.keys(obj1) as Array<keyof T>;
-  const keys2 = Object.keys(obj2) as Array<keyof T>;
+  const keys1: Array<keyof T> = Object.keys(obj1) as Array<keyof T>;
+  const keys2: Array<keyof T> = Object.keys(obj2) as Array<keyof T>;
 
   if (keys1.length !== keys2.length) {
     return false;
@@ -60,12 +60,17 @@ function deepEqual<T>(obj1: T, obj2: T): boolean {
   return true;
 }
 
-const renderShape = (
+const renderShape: (
   props: any,
   activeBar: any | undefined,
   activeLegend: string | undefined,
   layout: string,
-) => {
+) => React.ReactElement = (
+  props: any,
+  activeBar: any | undefined,
+  activeLegend: string | undefined,
+  layout: string,
+): React.ReactElement => {
   const { fillOpacity, name, payload, value } = props;
   let { x, width, y, height } = props;
 
@@ -103,13 +108,13 @@ interface LegendItemProps {
   activeLegend?: string;
 }
 
-const LegendItem = ({
+const LegendItem: React.FunctionComponent<LegendItemProps> = ({
   name,
   color,
   onClick,
   activeLegend,
-}: LegendItemProps) => {
-  const hasOnValueChange = Boolean(onClick);
+}: LegendItemProps): React.ReactElement => {
+  const hasOnValueChange: boolean = Boolean(onClick);
   return (
     <li
       className={cx(
@@ -119,7 +124,7 @@ const LegendItem = ({
           ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           : "cursor-default",
       )}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         onClick?.(name, color as string);
       }}
@@ -155,10 +160,15 @@ interface ScrollButtonProps {
   disabled?: boolean;
 }
 
-const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
-  const Icon = icon;
+const ScrollButton: React.FunctionComponent<ScrollButtonProps> = ({
+  icon,
+  onClick,
+  disabled,
+}: ScrollButtonProps): React.ReactElement => {
+  const Icon: React.ElementType = icon;
   const [isPressed, setIsPressed] = React.useState(false);
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+    React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
     if (isPressed) {
@@ -191,15 +201,15 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
           : "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50",
       )}
       disabled={disabled}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         onClick?.();
       }}
-      onMouseDown={(e) => {
+      onMouseDown={(e: React.MouseEvent) => {
         e.stopPropagation();
         setIsPressed(true);
       }}
-      onMouseUp={(e) => {
+      onMouseUp={(e: React.MouseEvent) => {
         e.stopPropagation();
         setIsPressed(false);
       }}
@@ -222,171 +232,194 @@ type HasScrollProps = {
   right: boolean;
 };
 
-const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
-  const {
-    categories,
-    colors = AvailableChartColors,
-    className,
-    onClickLegendItem,
-    activeLegend,
-    enableLegendSlider = false,
-    ...other
-  } = props;
-  const scrollableRef = React.useRef<HTMLInputElement>(null);
-  const scrollButtonsRef = React.useRef<HTMLDivElement>(null);
-  const [hasScroll, setHasScroll] = React.useState<HasScrollProps | null>(null);
-  const [isKeyDowned, setIsKeyDowned] = React.useState<string | null>(null);
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
+const Legend: React.ForwardRefExoticComponent<
+  LegendProps & React.RefAttributes<HTMLOListElement>
+> = React.forwardRef<HTMLOListElement, LegendProps>(
+  (
+    props: LegendProps,
+    ref: React.Ref<HTMLOListElement>,
+  ): React.ReactElement => {
+    const {
+      categories,
+      colors = AvailableChartColors,
+      className,
+      onClickLegendItem,
+      activeLegend,
+      enableLegendSlider = false,
+      ...other
+    } = props;
+    const scrollableRef: React.RefObject<HTMLInputElement> =
+      React.useRef<HTMLInputElement>(null);
+    const scrollButtonsRef: React.RefObject<HTMLDivElement> =
+      React.useRef<HTMLDivElement>(null);
+    const [hasScroll, setHasScroll] = React.useState<HasScrollProps | null>(
+      null,
+    );
+    const [isKeyDowned, setIsKeyDowned] = React.useState<string | null>(null);
+    const intervalRef: React.MutableRefObject<NodeJS.Timeout | null> =
+      React.useRef<NodeJS.Timeout | null>(null);
 
-  const checkScroll = React.useCallback(() => {
-    const scrollable = scrollableRef?.current;
-    if (!scrollable) {
-      return;
-    }
-
-    const hasLeftScroll = scrollable.scrollLeft > 0;
-    const hasRightScroll =
-      scrollable.scrollWidth - scrollable.clientWidth > scrollable.scrollLeft;
-
-    setHasScroll({ left: hasLeftScroll, right: hasRightScroll });
-  }, [setHasScroll]);
-
-  const scrollToTest = React.useCallback(
-    (direction: "left" | "right") => {
-      const element = scrollableRef?.current;
-      const scrollButtons = scrollButtonsRef?.current;
-      const scrollButtonsWith = scrollButtons?.clientWidth ?? 0;
-      const width = element?.clientWidth ?? 0;
-
-      if (element && enableLegendSlider) {
-        element.scrollTo({
-          left:
-            direction === "left"
-              ? element.scrollLeft - width + scrollButtonsWith
-              : element.scrollLeft + width - scrollButtonsWith,
-          behavior: "smooth",
-        });
-        setTimeout(() => {
-          checkScroll();
-        }, 400);
+    const checkScroll: () => void = React.useCallback(() => {
+      const scrollable: HTMLInputElement | null = scrollableRef?.current;
+      if (!scrollable) {
+        return;
       }
-    },
-    [enableLegendSlider, checkScroll],
-  );
 
-  React.useEffect(() => {
-    const keyDownHandler = (key: string) => {
-      if (key === "ArrowLeft") {
-        scrollToTest("left");
-      } else if (key === "ArrowRight") {
-        scrollToTest("right");
-      }
-    };
-    if (isKeyDowned) {
-      keyDownHandler(isKeyDowned);
-      intervalRef.current = setInterval(() => {
+      const hasLeftScroll: boolean = scrollable.scrollLeft > 0;
+      const hasRightScroll: boolean =
+        scrollable.scrollWidth - scrollable.clientWidth > scrollable.scrollLeft;
+
+      setHasScroll({ left: hasLeftScroll, right: hasRightScroll });
+    }, [setHasScroll]);
+
+    const scrollToTest: (direction: "left" | "right") => void =
+      React.useCallback(
+        (direction: "left" | "right") => {
+          const element: HTMLInputElement | null = scrollableRef?.current;
+          const scrollButtons: HTMLDivElement | null =
+            scrollButtonsRef?.current;
+          const scrollButtonsWith: number = scrollButtons?.clientWidth ?? 0;
+          const width: number = element?.clientWidth ?? 0;
+
+          if (element && enableLegendSlider) {
+            element.scrollTo({
+              left:
+                direction === "left"
+                  ? element.scrollLeft - width + scrollButtonsWith
+                  : element.scrollLeft + width - scrollButtonsWith,
+              behavior: "smooth",
+            });
+            setTimeout(() => {
+              checkScroll();
+            }, 400);
+          }
+        },
+        [enableLegendSlider, checkScroll],
+      );
+
+    React.useEffect(() => {
+      const keyDownHandler: (key: string) => void = (key: string): void => {
+        if (key === "ArrowLeft") {
+          scrollToTest("left");
+        } else if (key === "ArrowRight") {
+          scrollToTest("right");
+        }
+      };
+      if (isKeyDowned) {
         keyDownHandler(isKeyDowned);
-      }, 300);
-    } else {
-      clearInterval(intervalRef.current as NodeJS.Timeout);
-    }
-    return () => {
-      return clearInterval(intervalRef.current as NodeJS.Timeout);
+        intervalRef.current = setInterval(() => {
+          keyDownHandler(isKeyDowned);
+        }, 300);
+      } else {
+        clearInterval(intervalRef.current as NodeJS.Timeout);
+      }
+      return () => {
+        return clearInterval(intervalRef.current as NodeJS.Timeout);
+      };
+    }, [isKeyDowned, scrollToTest]);
+
+    const keyDown: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
+      e.stopPropagation();
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setIsKeyDowned(e.key);
+      }
     };
-  }, [isKeyDowned, scrollToTest]);
-
-  const keyDown = (e: KeyboardEvent) => {
-    e.stopPropagation();
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-      e.preventDefault();
-      setIsKeyDowned(e.key);
-    }
-  };
-  const keyUp = (e: KeyboardEvent) => {
-    e.stopPropagation();
-    setIsKeyDowned(null);
-  };
-
-  React.useEffect(() => {
-    const scrollable = scrollableRef?.current;
-    if (enableLegendSlider) {
-      checkScroll();
-      scrollable?.addEventListener("keydown", keyDown);
-      scrollable?.addEventListener("keyup", keyUp);
-    }
-
-    return () => {
-      scrollable?.removeEventListener("keydown", keyDown);
-      scrollable?.removeEventListener("keyup", keyUp);
+    const keyUp: (e: KeyboardEvent) => void = (e: KeyboardEvent): void => {
+      e.stopPropagation();
+      setIsKeyDowned(null);
     };
-  }, [checkScroll, enableLegendSlider]);
 
-  return (
-    <ol
-      ref={ref}
-      className={cx("relative overflow-hidden", className)}
-      {...other}
-    >
-      <div
-        ref={scrollableRef}
-        tabIndex={0}
-        className={cx(
-          "flex h-full",
-          enableLegendSlider
-            ? hasScroll?.right || hasScroll?.left
-              ? "snap-mandatory items-center overflow-auto pr-12 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              : ""
-            : "flex-wrap",
-        )}
+    React.useEffect(() => {
+      const scrollable: HTMLInputElement | null = scrollableRef?.current;
+      if (enableLegendSlider) {
+        checkScroll();
+        scrollable?.addEventListener("keydown", keyDown);
+        scrollable?.addEventListener("keyup", keyUp);
+      }
+
+      return () => {
+        scrollable?.removeEventListener("keydown", keyDown);
+        scrollable?.removeEventListener("keyup", keyUp);
+      };
+    }, [checkScroll, enableLegendSlider]);
+
+    return (
+      <ol
+        ref={ref}
+        className={cx("relative overflow-hidden", className)}
+        {...other}
       >
-        {categories.map((category, index) => {
-          return (
-            <LegendItem
-              key={`item-${index}`}
-              name={category}
-              color={colors[index] as AvailableChartColorsKeys}
-              {...(onClickLegendItem ? { onClick: onClickLegendItem } : {})}
-              {...(activeLegend ? { activeLegend: activeLegend } : {})}
-            />
-          );
-        })}
-      </div>
-      {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
-        <>
-          <div
-            className={cx(
-              // base
-              "absolute top-0 right-0 bottom-0 flex h-full items-center justify-center pr-1",
-              // background color
-              "bg-white dark:bg-gray-950",
-            )}
-          >
-            <ScrollButton
-              icon={RiArrowLeftSLine}
-              onClick={() => {
-                setIsKeyDowned(null);
-                scrollToTest("left");
-              }}
-              disabled={!hasScroll?.left}
-            />
-            <ScrollButton
-              icon={RiArrowRightSLine}
-              onClick={() => {
-                setIsKeyDowned(null);
-                scrollToTest("right");
-              }}
-              disabled={!hasScroll?.right}
-            />
-          </div>
-        </>
-      ) : null}
-    </ol>
-  );
-});
+        <div
+          ref={scrollableRef}
+          tabIndex={0}
+          className={cx(
+            "flex h-full",
+            enableLegendSlider
+              ? hasScroll?.right || hasScroll?.left
+                ? "snap-mandatory items-center overflow-auto pr-12 pl-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : ""
+              : "flex-wrap",
+          )}
+        >
+          {categories.map((category: string, index: number) => {
+            return (
+              <LegendItem
+                key={`item-${index}`}
+                name={category}
+                color={colors[index] as AvailableChartColorsKeys}
+                {...(onClickLegendItem ? { onClick: onClickLegendItem } : {})}
+                {...(activeLegend ? { activeLegend: activeLegend } : {})}
+              />
+            );
+          })}
+        </div>
+        {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
+          <>
+            <div
+              className={cx(
+                // base
+                "absolute top-0 right-0 bottom-0 flex h-full items-center justify-center pr-1",
+                // background color
+                "bg-white dark:bg-gray-950",
+              )}
+            >
+              <ScrollButton
+                icon={RiArrowLeftSLine}
+                onClick={() => {
+                  setIsKeyDowned(null);
+                  scrollToTest("left");
+                }}
+                disabled={!hasScroll?.left}
+              />
+              <ScrollButton
+                icon={RiArrowRightSLine}
+                onClick={() => {
+                  setIsKeyDowned(null);
+                  scrollToTest("right");
+                }}
+                disabled={!hasScroll?.right}
+              />
+            </div>
+          </>
+        ) : null}
+      </ol>
+    );
+  },
+);
 
 Legend.displayName = "Legend";
 
-const ChartLegend = (
+const ChartLegend: (
+  payload: any,
+  categoryColors: Map<string, AvailableChartColorsKeys>,
+  setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
+  activeLegend: string | undefined,
+  onClick?: (category: string, color: string) => void,
+  enableLegendSlider?: boolean,
+  legendPosition?: "left" | "center" | "right",
+  yAxisWidth?: number,
+) => React.ReactElement = (
   { payload }: any,
   categoryColors: Map<string, AvailableChartColorsKeys>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
@@ -396,20 +429,23 @@ const ChartLegend = (
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
 ) => {
-  const legendRef = React.useRef<HTMLDivElement>(null);
+  const legendRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
 
   useOnWindowResize(() => {
-    const calculateHeight = (height: number | undefined) => {
+    const calculateHeight: (height: number | undefined) => number = (
+      height: number | undefined,
+    ): number => {
       return height ? Number(height) + 15 : 60;
     };
     setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
   });
 
-  const filteredPayload = payload.filter((item: any) => {
+  const filteredPayload: any[] = payload.filter((item: any) => {
     return item.type !== "none";
   });
 
-  const paddingLeft =
+  const paddingLeft: number =
     legendPosition === "left" && yAxisWidth ? yAxisWidth - 8 : 0;
 
   return (
@@ -462,12 +498,12 @@ interface ChartTooltipProps {
   valueFormatter: (value: number) => string;
 }
 
-const ChartTooltip = ({
+const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
   active,
   payload,
   label,
   valueFormatter,
-}: ChartTooltipProps) => {
+}: ChartTooltipProps): React.ReactElement | null => {
   if (active && payload && payload.length) {
     return (
       <div
@@ -493,44 +529,46 @@ const ChartTooltip = ({
           </p>
         </div>
         <div className={cx("space-y-1 px-4 py-2")}>
-          {payload.map(({ value, category, color }, index) => {
-            return (
-              <div
-                key={`id-${index}`}
-                className="flex items-center justify-between space-x-8"
-              >
-                <div className="flex items-center space-x-2">
-                  <span
-                    aria-hidden="true"
-                    className={cx(
-                      "size-2 shrink-0 rounded-xs",
-                      getColorClassName(color, "bg"),
-                    )}
-                  />
+          {payload.map(
+            ({ value, category, color }: PayloadItem, index: number) => {
+              return (
+                <div
+                  key={`id-${index}`}
+                  className="flex items-center justify-between space-x-8"
+                >
+                  <div className="flex items-center space-x-2">
+                    <span
+                      aria-hidden="true"
+                      className={cx(
+                        "size-2 shrink-0 rounded-xs",
+                        getColorClassName(color, "bg"),
+                      )}
+                    />
+                    <p
+                      className={cx(
+                        // base
+                        "text-right whitespace-nowrap",
+                        // text color
+                        "text-gray-700 dark:text-gray-300",
+                      )}
+                    >
+                      {category}
+                    </p>
+                  </div>
                   <p
                     className={cx(
                       // base
-                      "text-right whitespace-nowrap",
+                      "text-right font-medium whitespace-nowrap tabular-nums",
                       // text color
-                      "text-gray-700 dark:text-gray-300",
+                      "text-gray-900 dark:text-gray-50",
                     )}
                   >
-                    {category}
+                    {valueFormatter(value)}
                   </p>
                 </div>
-                <p
-                  className={cx(
-                    // base
-                    "text-right font-medium whitespace-nowrap tabular-nums",
-                    // text color
-                    "text-gray-900 dark:text-gray-50",
-                  )}
-                >
-                  {valueFormatter(value)}
-                </p>
-              </div>
-            );
-          })}
+              );
+            },
+          )}
         </div>
       </div>
     );
@@ -579,8 +617,13 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   customTooltip?: React.ComponentType<TooltipProps>;
 }
 
-const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
-  (props, forwardedRef) => {
+const BarChart: React.ForwardRefExoticComponent<
+  BarChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, BarChartProps>(
+  (
+    props: BarChartProps,
+    forwardedRef: React.Ref<HTMLDivElement>,
+  ): React.ReactElement => {
     const {
       data = [],
       categories = [],
@@ -615,29 +658,36 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
       customTooltip,
       ...other
     } = props;
-    const CustomTooltip = customTooltip;
-    const paddingValue =
+    const CustomTooltip: React.ComponentType<any> | undefined = customTooltip;
+    const paddingValue: number =
       (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
     const [legendHeight, setLegendHeight] = React.useState(60);
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    const categoryColors = constructCategoryColors(categories, colors);
+    const categoryColors: Map<string, AvailableChartColorsKeys> =
+      constructCategoryColors(categories, colors);
     const [activeBar, setActiveBar] = React.useState<any | undefined>(
       undefined,
     );
-    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue);
-    const hasOnValueChange = Boolean(onValueChange);
-    const stacked = type === "stacked" || type === "percent";
+    const yAxisDomain: AxisDomain = getYAxisDomain(
+      autoMinValue,
+      minValue,
+      maxValue,
+    );
+    const hasOnValueChange: boolean = Boolean(onValueChange);
+    const stacked: boolean = type === "stacked" || type === "percent";
 
-    const prevActiveRef = React.useRef<boolean | undefined>(undefined);
-    const prevLabelRef = React.useRef<string | undefined>(undefined);
+    const prevActiveRef: React.MutableRefObject<boolean | undefined> =
+      React.useRef<boolean | undefined>(undefined);
+    const prevLabelRef: React.MutableRefObject<string | undefined> =
+      React.useRef<string | undefined>(undefined);
 
-    function valueToPercent(value: number) {
+    function valueToPercent(value: number): string {
       return `${(value * 100).toFixed(0)}%`;
     }
 
-    function onBarClick(data: any, _: any, event: React.MouseEvent) {
+    function onBarClick(data: any, _: any, event: React.MouseEvent): void {
       event.stopPropagation();
       if (!onValueChange) {
         return;
@@ -660,7 +710,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
       }
     }
 
-    function onCategoryClick(dataKey: string) {
+    function onCategoryClick(dataKey: string): void {
       if (!hasOnValueChange) {
         return;
       }
@@ -681,7 +731,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
       <div
         ref={forwardedRef}
         className={cx("h-80 w-full", className)}
-        tremor-id="tremor-raw"
+        data-tremor-id="tremor-raw"
         {...other}
       >
         <ResponsiveContainer>
@@ -828,7 +878,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
               {...(layout === "horizontal"
                 ? { position: { y: 0 } }
                 : { position: { x: yAxisWidth + 20 } })}
-              content={({ active, payload, label }) => {
+              content={({ active, payload, label }: any) => {
                 const cleanPayload: TooltipProps["payload"] = payload
                   ? payload.map((item: any) => {
                       return {
@@ -876,14 +926,14 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
               <RechartsLegend
                 verticalAlign="top"
                 height={legendHeight}
-                content={({ payload }) => {
+                content={({ payload }: any) => {
                   return ChartLegend(
                     { payload },
                     categoryColors,
                     setLegendHeight,
                     activeLegend,
                     hasOnValueChange
-                      ? (clickedLegendItem: string) => {
+                      ? (clickedLegendItem: string): void => {
                           return onCategoryClick(clickedLegendItem);
                         }
                       : undefined,
@@ -894,7 +944,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
                 }}
               />
             ) : null}
-            {categories.map((category) => {
+            {categories.map((category: string) => {
               return (
                 <Bar
                   className={cx(
@@ -911,7 +961,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
                   {...(stacked ? { stackId: "stack" } : {})}
                   isAnimationActive={false}
                   fill=""
-                  shape={(props: any) => {
+                  shape={(props: any): React.ReactElement => {
                     return renderShape(props, activeBar, activeLegend, layout);
                   }}
                   onClick={onBarClick}

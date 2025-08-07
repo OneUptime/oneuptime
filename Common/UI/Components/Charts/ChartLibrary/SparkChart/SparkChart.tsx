@@ -42,8 +42,13 @@ interface SparkAreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   fill?: "gradient" | "solid" | "none";
 }
 
-const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
-  (props, forwardedRef) => {
+const SparkAreaChart: React.ForwardRefExoticComponent<
+  SparkAreaChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
+  (
+    props: SparkAreaChartProps,
+    forwardedRef: React.Ref<HTMLDivElement>,
+  ): React.ReactElement => {
     const {
       data = [],
       categories = [],
@@ -59,12 +64,21 @@ const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
       ...other
     } = props;
 
-    const categoryColors = constructCategoryColors(categories, colors);
-    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue);
-    const stacked = type === "stacked" || type === "percent";
-    const areaId = React.useId();
+    const categoryColors: Map<string, AvailableChartColorsKeys> =
+      constructCategoryColors(categories, colors);
+    const yAxisDomain: AxisDomain = getYAxisDomain(
+      autoMinValue,
+      minValue,
+      maxValue,
+    );
+    const stacked: boolean = type === "stacked" || type === "percent";
+    const areaId: string = React.useId();
 
-    const getFillContent = (fillType: SparkAreaChartProps["fill"]) => {
+    const getFillContent: (
+      fillType: SparkAreaChartProps["fill"],
+    ) => React.ReactElement = (
+      fillType: SparkAreaChartProps["fill"],
+    ): React.ReactElement => {
       switch (fillType) {
         case "none":
           return <stop stopColor="currentColor" stopOpacity={0} />;
@@ -86,7 +100,7 @@ const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
       <div
         ref={forwardedRef}
         className={cx("h-12 w-28", className)}
-        tremor-id="tremor-raw"
+        data-tremor-id="tremor-raw"
         {...other}
       >
         <ResponsiveContainer>
@@ -103,8 +117,8 @@ const SparkAreaChart = React.forwardRef<HTMLDivElement, SparkAreaChartProps>(
             <XAxis hide dataKey={index} />
             <YAxis hide={true} domain={yAxisDomain as AxisDomain} />
 
-            {categories.map((category) => {
-              const categoryId = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, "")}`;
+            {categories.map((category: string) => {
+              const categoryId: string = `${areaId}-${category.replace(/[^a-zA-Z0-9]/g, "")}`;
               return (
                 <React.Fragment key={category}>
                   <defs>
@@ -175,8 +189,13 @@ interface SparkLineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   connectNulls?: boolean;
 }
 
-const SparkLineChart = React.forwardRef<HTMLDivElement, SparkLineChartProps>(
-  (props, forwardedRef) => {
+const SparkLineChart: React.ForwardRefExoticComponent<
+  SparkLineChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, SparkLineChartProps>(
+  (
+    props: SparkLineChartProps,
+    forwardedRef: React.Ref<HTMLDivElement>,
+  ): React.ReactElement => {
     const {
       data = [],
       categories = [],
@@ -190,14 +209,19 @@ const SparkLineChart = React.forwardRef<HTMLDivElement, SparkLineChartProps>(
       ...other
     } = props;
 
-    const categoryColors = constructCategoryColors(categories, colors);
-    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue);
+    const categoryColors: Map<string, AvailableChartColorsKeys> =
+      constructCategoryColors(categories, colors);
+    const yAxisDomain: AxisDomain = getYAxisDomain(
+      autoMinValue,
+      minValue,
+      maxValue,
+    );
 
     return (
       <div
         ref={forwardedRef}
         className={cx("h-12 w-28", className)}
-        tremor-id="tremor-raw"
+        data-tremor-id="tremor-raw"
         {...other}
       >
         <ResponsiveContainer>
@@ -212,7 +236,7 @@ const SparkLineChart = React.forwardRef<HTMLDivElement, SparkLineChartProps>(
           >
             <XAxis hide dataKey={index} />
             <YAxis hide={true} domain={yAxisDomain as AxisDomain} />
-            {categories.map((category) => {
+            {categories.map((category: string) => {
               return (
                 <Line
                   className={cx(
@@ -259,8 +283,13 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: "default" | "stacked" | "percent";
 }
 
-const SparkBarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
-  (props, forwardedRef) => {
+const SparkBarChart: React.ForwardRefExoticComponent<
+  BarChartProps & React.RefAttributes<HTMLDivElement>
+> = React.forwardRef<HTMLDivElement, BarChartProps>(
+  (
+    props: BarChartProps,
+    forwardedRef: React.Ref<HTMLDivElement>,
+  ): React.ReactElement => {
     const {
       data = [],
       categories = [],
@@ -275,16 +304,21 @@ const SparkBarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
       ...other
     } = props;
 
-    const categoryColors = constructCategoryColors(categories, colors);
+    const categoryColors: Map<string, AvailableChartColorsKeys> =
+      constructCategoryColors(categories, colors);
 
-    const yAxisDomain = getYAxisDomain(autoMinValue, minValue, maxValue);
-    const stacked = type === "stacked" || type === "percent";
+    const yAxisDomain: AxisDomain = getYAxisDomain(
+      autoMinValue,
+      minValue,
+      maxValue,
+    );
+    const stacked: boolean = type === "stacked" || type === "percent";
 
     return (
       <div
         ref={forwardedRef}
         className={cx("h-12 w-28", className)}
-        tremor-id="tremor-raw"
+        data-tremor-id="tremor-raw"
         {...other}
       >
         <ResponsiveContainer>
@@ -302,7 +336,7 @@ const SparkBarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
             <XAxis hide dataKey={index} />
             <YAxis hide={true} domain={yAxisDomain as AxisDomain} />
 
-            {categories.map((category) => {
+            {categories.map((category: string) => {
               return (
                 <Bar
                   className={cx(
