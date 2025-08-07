@@ -578,8 +578,8 @@ export default class ProjectSSO extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({ 
-    isDefaultValueColumn: true, 
+  @TableColumn({
+    isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
   })
