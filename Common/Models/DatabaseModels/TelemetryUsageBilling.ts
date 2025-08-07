@@ -146,7 +146,11 @@ export default class TelemetryUsageBilling extends BaseModel {
   public productType?: ProductType = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ManageProjectBilling,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -158,6 +162,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     type: TableColumnType.Number,
     title: "Retain Telemetry Data For Days",
     description: "Number of days to retain telemetry data for this service.",
+    defaultValue: DEFAULT_RETENTION_IN_DAYS,
   })
   @Column({
     type: ColumnType.Number,

@@ -269,6 +269,7 @@ export default class Reseller extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Enable Telemetry Features",
     description: "Should we enable telemetry features for this reseller?",
+    defaultValue: false,
   })
   @Column({
     nullable: true,

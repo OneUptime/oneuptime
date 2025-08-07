@@ -481,6 +481,7 @@ export default class IncidentStateTimeline extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this state change?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -507,6 +508,7 @@ export default class IncidentStateTimeline extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of state change?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

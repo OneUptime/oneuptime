@@ -423,6 +423,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Scheduled State",
     description: "Is this state a scheduled state?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -456,6 +457,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Ongoing State",
     description: "Is this state a ongoing state?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -489,6 +491,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Ended State",
     description: "Is this state a ended state?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -522,6 +525,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Resolved State",
     description: "Is this state a resolved state?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

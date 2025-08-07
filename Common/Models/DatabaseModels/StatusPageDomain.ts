@@ -474,7 +474,12 @@ export default class StatusPageDomain extends BaseModel {
   public isCnameVerified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageDomain,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -489,6 +494,7 @@ export default class StatusPageDomain extends BaseModel {
     type: TableColumnType.Boolean,
     title: "SSL Ordered",
     description: "Is SSL ordered?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -499,7 +505,12 @@ export default class StatusPageDomain extends BaseModel {
   public isSslOrdered?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageDomain,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -514,6 +525,7 @@ export default class StatusPageDomain extends BaseModel {
     type: TableColumnType.Boolean,
     title: "SSL Provisioned",
     description: "Is SSL provisioned?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

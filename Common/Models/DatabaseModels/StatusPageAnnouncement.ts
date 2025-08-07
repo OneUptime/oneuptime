@@ -530,6 +530,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
     description: "Should subscribers be notified about this announcement?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -538,7 +539,12 @@ export default class StatusPageAnnouncement extends BaseModel {
   public shouldStatusPageSubscribersBeNotified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageAnnouncement,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -556,6 +562,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     isDefaultValueColumn: true,
     title: "Are Owners Notified",
     description: "Are owners notified of this announcement?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

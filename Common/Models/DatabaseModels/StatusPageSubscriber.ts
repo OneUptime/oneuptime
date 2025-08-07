@@ -608,6 +608,7 @@ export default class StatusPageSubscriber extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Send You Have Subscribed Message",
     description: "Send You Have Subscribed Message when subscriber is created?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -642,6 +643,7 @@ export default class StatusPageSubscriber extends BaseModel {
     title: "Is Subscribed to All Resources",
     description:
       "Is Subscriber Subscribed to All Resources on this status page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -676,6 +678,7 @@ export default class StatusPageSubscriber extends BaseModel {
     title: "Is Subscribed to All Event Types",
     description:
       "Is Subscriber Subscribed to All Event Types (like Incidents, Scheduled Events, Announcements) on this status page?",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,

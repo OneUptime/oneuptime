@@ -456,6 +456,7 @@ export default class MonitorStatus extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Is Offline State",
     description: "Is this monitor in offline state?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

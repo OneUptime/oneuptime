@@ -442,6 +442,7 @@ export default class TableView extends BaseModel {
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     description: "Items on page",
+    defaultValue: 10,
   })
   @Column({
     type: ColumnType.Number,

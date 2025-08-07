@@ -1438,7 +1438,12 @@ export default class StatusPage extends BaseModel {
   public callSmsConfigId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectStatusPage,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1936,6 +1941,7 @@ export default class StatusPage extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.Number,
+    defaultValue: 30,
     title: "Report data for the last N days",
     description: "How many days of data should be included in the report?",
   })
@@ -2013,6 +2019,7 @@ export default class StatusPage extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Overall Uptime Percent Precision",
     required: false,
+    defaultValue: UptimePrecision.TWO_DECIMAL,
     description: "Overall Precision of uptime percent for this status page.",
   })
   @Column({

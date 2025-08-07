@@ -48,6 +48,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Boolean,
     title: "Disable Signup",
     description: "Should we disable new user sign up to this server?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -338,6 +339,7 @@ export default class GlobalConfig extends GlobalConfigModel {
     type: TableColumnType.Boolean,
     title: "Is Master API Key Enabled",
     description: "Is Master API Key Enabled?",
+    defaultValue: false,
   })
   @Column({
     type: ColumnType.Boolean,

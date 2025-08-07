@@ -729,6 +729,7 @@ export default class CopilotAction extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Is Priority",
     description: "Is Priority",
+    defaultValue: false,
   })
   @Column({
     nullable: false,
