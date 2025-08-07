@@ -1,13 +1,14 @@
 import { Blue, Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import Pill from "Common/UI/Components/Pill/Pill";
+import IconText from "Common/UI/Components/IconText/IconText";
 import Button, {
   ButtonStyleType,
   ButtonSize,
 } from "Common/UI/Components/Button/Button";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement } from "react";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
   status?: StatusPageSubscriberNotificationStatus | undefined | null;
@@ -19,7 +20,7 @@ export interface ComponentProps {
 /**
  * Utility function to get status info for notification status
  * @param status - The notification status
- * @returns Object with color, tailwindColor, and text for the status
+ * @returns Object with color, tailwindColor, text, and icon for the status
  */
 export const getNotificationStatusInfo: (
   status?: StatusPageSubscriberNotificationStatus | undefined | null,
@@ -27,60 +28,88 @@ export const getNotificationStatusInfo: (
   color: string;
   tailwindColor: string;
   text: string;
+  icon: IconProp;
 } = (
   status?: StatusPageSubscriberNotificationStatus | undefined | null,
 ): {
   color: string;
   tailwindColor: string;
   text: string;
+  icon: IconProp;
 } => {
   if (!status || status === StatusPageSubscriberNotificationStatus.Skipped) {
-    return { color: "gray", tailwindColor: "gray", text: "Skipped" };
+    return { 
+      color: "gray", 
+      tailwindColor: "gray", 
+      text: "Skipped", 
+      icon: IconProp.CircleClose 
+    };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.Pending) {
-    return { color: "yellow", tailwindColor: "yellow", text: "Pending" };
+    return { 
+      color: "yellow", 
+      tailwindColor: "yellow", 
+      text: "Pending", 
+      icon: IconProp.Clock 
+    };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.InProgress) {
-    return { color: "blue", tailwindColor: "blue", text: "In Progress" };
+    return { 
+      color: "blue", 
+      tailwindColor: "blue", 
+      text: "In Progress", 
+      icon: IconProp.Info 
+    };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.Success) {
-    return { color: "green", tailwindColor: "green", text: "Sent" };
+    return { 
+      color: "green", 
+      tailwindColor: "green", 
+      text: "Sent", 
+      icon: IconProp.CheckCircle 
+    };
   }
 
   if (status === StatusPageSubscriberNotificationStatus.Failed) {
-    return { color: "red", tailwindColor: "red", text: "Failed" };
+    return { 
+      color: "red", 
+      tailwindColor: "red", 
+      text: "Failed", 
+      icon: IconProp.Error 
+    };
   }
 
-  return { color: "gray", tailwindColor: "gray", text: "Unknown" };
+  return { 
+    color: "gray", 
+    tailwindColor: "gray", 
+    text: "Unknown", 
+    icon: IconProp.Info 
+  };
 };
 
 /**
  * SubscriberNotificationStatus Component
  *
  * A reusable component for displaying notification status with consistent styling.
- * Supports two display styles: "pill" (using Pill component) and "badge" (using Tailwind CSS).
+ * Uses IconText component for status display and provides a "more" button for detailed messages.
+ * Shows ConfirmModal with message details and retry button for failed notifications.
  *
  * @param status - The notification status to display
- * @param isMinimal - Whether to use minimal styling (default: true)
- * @param showFailureReason - Whether to show failure reason below the status (default: false)
- * @param subscriberNotificationStatusMessage - The failure reason text to display
- * @param style - Display style: "pill" or "badge" (default: "pill")
+ * @param subscriberNotificationStatusMessage - The detailed status message
  * @param className - Additional CSS classes to apply
  * @param onResendNotification - Callback function to handle resend notification action
  *
  * Usage Examples:
  *
- * // Basic pill style
+ * // Basic usage
  * <SubscriberNotificationStatus status={item.subscriberNotificationStatus} />
  *
- * // Badge style with failure reason and resend callback
+ * // With message and resend callback
  * <SubscriberNotificationStatus
  *   status={item.subscriberNotificationStatus}
- *
- *
  *   subscriberNotificationStatusMessage={item.subscriberNotificationStatusMessage}
  *   onResendNotification={() => handleResend(item)}
  * />
@@ -95,17 +124,23 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     onResendNotification,
   } = props;
 
+  const [showModal, setShowModal] = useState<boolean>(false);
+
   const statusInfo: {
     color: string;
     tailwindColor: string;
     text: string;
+    icon: IconProp;
   } = getNotificationStatusInfo(status);
+
   const showResendButton: boolean =
     status === StatusPageSubscriberNotificationStatus.Failed &&
     Boolean(onResendNotification);
 
-  // Default pill style
-  const colorMap: Record<string, string> = {
+  const showMoreButton: boolean = Boolean(subscriberNotificationStatusMessage);
+
+  // Color mapping for IconText
+  const colorMap: Record<string, Color> = {
     gray: Gray500,
     yellow: Yellow,
     blue: Blue,
@@ -113,35 +148,51 @@ const SubscriberNotificationStatus: FunctionComponent<ComponentProps> = (
     red: Red,
   };
 
-  const pillColor: string =
+  const iconColor: Color =
     colorMap[statusInfo.color as keyof typeof colorMap] || Gray500;
 
-  const getPill: () => ReactElement = (): ReactElement => {
-    if (subscriberNotificationStatusMessage) {
-      return (
-        <Tooltip text={subscriberNotificationStatusMessage}>
-          <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
-        </Tooltip>
-      );
+  const handleModalConfirm = (): void => {
+    if (showResendButton && onResendNotification) {
+      onResendNotification();
     }
+    setShowModal(false);
+  };
 
-    return (
-      <div className="flex items-center gap-2">
-        <Pill color={pillColor} text={statusInfo.text} isMinimal={true} />
-      </div>
-    );
+  const handleModalClose = (): void => {
+    setShowModal(false);
   };
 
   return (
-    <div className={className}>
-      {getPill()}
-      {showResendButton && (
+    <div className={`flex items-center gap-2 ${className}`}>
+      <IconText
+        text={statusInfo.text}
+        icon={statusInfo.icon}
+        iconColor={iconColor}
+        iconClassName="h-4 w-4"
+        textClassName="text-sm font-medium"
+        spacing="sm"
+        alignment="left"
+      />
+      
+      {showMoreButton && (
         <Button
-          title="Resend Notification to Subscribers"
-          icon={IconProp.Refresh}
+          title="More details"
+          icon={IconProp.More}
           buttonStyle={ButtonStyleType.OUTLINE}
           buttonSize={ButtonSize.Small}
-          onClick={onResendNotification}
+          onClick={() => setShowModal(true)}
+        />
+      )}
+
+      {showModal && (
+        <ConfirmModal
+          title="Notification Status Details"
+          description={subscriberNotificationStatusMessage || "No additional information available."}
+          onClose={handleModalClose}
+          onSubmit={handleModalConfirm}
+          submitButtonText={showResendButton ? "Retry" : "OK"}
+          closeButtonText="Close"
+          submitButtonType={showResendButton ? ButtonStyleType.PRIMARY : ButtonStyleType.NORMAL}
         />
       )}
     </div>
