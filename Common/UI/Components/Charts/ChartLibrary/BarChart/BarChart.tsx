@@ -25,6 +25,7 @@ import {
   getColorClassName,
 } from "../Utils/ChartColors"
 import { cx } from "../Utils/Cx"
+import { getYAxisDomain } from "../Utils/GetYAxisDomain"
 import { useOnWindowResize } from "../Utils/UseWindowOnResize"
 
 //#region Shape
@@ -92,7 +93,7 @@ const renderShape = (
 interface LegendItemProps {
   name: string
   color: AvailableChartColorsKeys
-  onClick?: (name: string, color: AvailableChartColorsKeys) => void
+  onClick?: (name: string, color: string) => void
   activeLegend?: string
 }
 
@@ -114,7 +115,7 @@ const LegendItem = ({
       )}
       onClick={(e) => {
         e.stopPropagation()
-        onClick?.(name, color)
+        onClick?.(name, color as string)
       }}
     >
       <span
@@ -331,8 +332,8 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
             key={`item-${index}`}
             name={category}
             color={colors[index] as AvailableChartColorsKeys}
-            onClick={onClickLegendItem}
-            activeLegend={activeLegend}
+            {...(onClickLegendItem ? { onClick: onClickLegendItem } : {})}
+            {...(activeLegend ? { activeLegend: activeLegend } : {})}
           />
         ))}
       </div>
@@ -412,9 +413,9 @@ const ChartLegend = (
         colors={filteredPayload.map((entry: any) =>
           categoryColors.get(entry.value),
         )}
-        onClickLegendItem={onClick}
-        activeLegend={activeLegend}
-        enableLegendSlider={enableLegendSlider}
+        {...(onClick ? { onClickLegendItem: onClick } : {})}
+        {...(activeLegend ? { activeLegend: activeLegend } : {})}
+        {...(enableLegendSlider ? { enableLegendSlider: enableLegendSlider } : {})}
       />
     </div>
   )
@@ -655,24 +656,24 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
         <ResponsiveContainer>
           <RechartsBarChart
             data={data}
-            onClick={
-              hasOnValueChange && (activeLegend || activeBar)
-                ? () => {
+            {...(hasOnValueChange && (activeLegend || activeBar)
+              ? {
+                  onClick: () => {
                     setActiveBar(undefined)
                     setActiveLegend(undefined)
                     onValueChange?.(null)
                   }
-                : undefined
-            }
+                }
+              : {})}
             margin={{
-              bottom: xAxisLabel ? 30 : undefined,
-              left: yAxisLabel ? 20 : undefined,
-              right: yAxisLabel ? 5 : undefined,
+              bottom: xAxisLabel ? 30 : 0,
+              left: yAxisLabel ? 20 : 0,
+              right: yAxisLabel ? 5 : 0,
               top: 5,
             }}
-            stackOffset={type === "percent" ? "expand" : undefined}
+            stackOffset={type === "percent" ? "expand" : "none"}
             layout={layout}
-            barCategoryGap={barCategoryGap}
+            barCategoryGap={barCategoryGap ?? "10%"}
           >
             {showGridLines ? (
               <CartesianGrid
@@ -707,12 +708,14 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
                     },
                     dataKey: index,
                     interval: startEndOnly ? "preserveStartEnd" : intervalType,
-                    ticks: startEndOnly
-                      ? [data[0][index], data[data.length - 1][index]]
-                      : undefined,
+                    ...(startEndOnly && data.length > 0
+                      ? {
+                          ticks: [data[0]?.[index], data[data.length - 1]?.[index]].filter(Boolean)
+                        }
+                      : {}),
                   }
                 : {
-                    type: "number",
+                    type: "number" as const,
                     domain: yAxisDomain as AxisDomain,
                     tickFormatter:
                       type === "percent" ? valueToPercent : valueFormatter,
@@ -750,7 +753,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
               }}
               {...(layout !== "vertical"
                 ? {
-                    type: "number",
+                    type: "number" as const,
                     domain: yAxisDomain as AxisDomain,
                     tickFormatter:
                       type === "percent" ? valueToPercent : valueFormatter,
@@ -758,11 +761,13 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
                   }
                 : {
                     dataKey: index,
-                    ticks: startEndOnly
-                      ? [data[0][index], data[data.length - 1][index]]
-                      : undefined,
-                    type: "category",
-                    interval: "equidistantPreserveStart",
+                    ...(startEndOnly && data.length > 0
+                      ? {
+                          ticks: [data[0]?.[index], data[data.length - 1]?.[index]].filter(Boolean)
+                        }
+                      : {}),
+                    type: "category" as const,
+                    interval: "equidistantPreserveStart" as const,
                   })}
             >
               {yAxisLabel && (
@@ -783,10 +788,10 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
               animationDuration={100}
               cursor={{ fill: "#d1d5db", opacity: "0.15" }}
               offset={20}
-              position={{
-                y: layout === "horizontal" ? 0 : undefined,
-                x: layout === "horizontal" ? undefined : yAxisWidth + 20,
-              }}
+              {...(layout === "horizontal" 
+                ? { position: { y: 0 } }
+                : { position: { x: yAxisWidth + 20 } }
+              )}
               content={({ active, payload, label }) => {
                 const cleanPayload: TooltipProps["payload"] = payload
                   ? payload.map((item: any) => ({
@@ -863,7 +868,7 @@ const BarChart = React.forwardRef<HTMLDivElement, BarChartProps>(
                 name={category}
                 type="linear"
                 dataKey={category}
-                stackId={stacked ? "stack" : undefined}
+                {...(stacked ? { stackId: "stack" } : {})}
                 isAnimationActive={false}
                 fill=""
                 shape={(props: any) =>
