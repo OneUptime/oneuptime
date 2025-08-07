@@ -962,7 +962,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const updateSchema: any = resource.operationSchemas?.update || {};
     const conditionalAssignments: string[] = [];
 
-    // Fields that should not be included in update requests
+    // Fields that should never be included in update requests (truly immutable)
     const immutableFields: Array<string> = ["projectId", "project_id"];
 
     // Check if there are any fields to process
@@ -993,57 +993,81 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         continue;
       }
 
-      // Skip immutable fields in update requests
+      // Skip truly immutable fields
       if (immutableFields.includes(name)) {
         continue;
       }
 
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-      const apiFieldName: string = terraformAttr.apiFieldName || name; // Use original OpenAPI field name
+      const apiFieldName: string = terraformAttr.apiFieldName || name;
 
-      // Handle different field types with conditional assignment
-      if (terraformAttr.type === "map") {
-        conditionalAssignments.push(
-          `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})\n    }`,
-        );
-      } else if (terraformAttr.type === "list") {
-        conditionalAssignments.push(
-          `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})\n    }`,
-        );
-      } else {
-        const value: string = this.getGoValueForTerraformType(
-          terraformAttr.type,
-          `data.${fieldName}`,
-        );
+      // Generate code to only include field if it has changed between state and plan
+      const changeCheckCondition = this.generateChangeCheckCondition(
+        fieldName,
+        terraformAttr.type,
+      );
+      
+      const valueAssignment = this.generateValueAssignment(
+        fieldName,
+        apiFieldName,
+        terraformAttr,
+      );
 
-        if (terraformAttr.type === "string") {
-          if (terraformAttr.isComplexObject) {
-            // For complex object strings, parse JSON and convert to interface{}
-            conditionalAssignments.push(
-              `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        var ${fieldName.toLowerCase()}Data interface{}\n        if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {\n            requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data\n        }\n    }`,
-            );
-          } else {
-            // For regular strings, only include if not null and not empty
-            conditionalAssignments.push(
-              `    if !data.${fieldName}.IsNull() && data.${fieldName}.ValueString() != "" {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
-            );
-          }
-        } else if (terraformAttr.type === "bool") {
-          // For booleans, always include since they have meaningful defaults
-          conditionalAssignments.push(
-            `    requestDataMap["${apiFieldName}"] = ${value}`,
-          );
-        } else {
-          // For other types (numbers, etc.), only include if not null
-          conditionalAssignments.push(
-            `    if !data.${fieldName}.IsNull() {\n        requestDataMap["${apiFieldName}"] = ${value}\n    }`,
-          );
-        }
-      }
+      conditionalAssignments.push(
+        `    ${changeCheckCondition} {\n        ${valueAssignment}\n    }`,
+      );
     }
 
     return conditionalAssignments.join("\n");
+  }
+
+  private generateChangeCheckCondition(
+    fieldName: string,
+    fieldType: string,
+  ): string {
+    // For unknown values (computed fields that are "known after apply"), 
+    // we should not include them in update requests
+    const baseCondition: string = `!data.${fieldName}.IsUnknown() && !state.${fieldName}.IsUnknown() && !data.${fieldName}.Equal(state.${fieldName})`;
+    
+    switch (fieldType) {
+      case "string":
+        return `if ${baseCondition}`;
+      case "bool":
+        return `if ${baseCondition}`;
+      case "number":
+        return `if ${baseCondition}`;
+      case "list":
+        return `if ${baseCondition}`;
+      case "map":
+        return `if ${baseCondition}`;
+      default:
+        return `if ${baseCondition}`;
+    }
+  }
+
+  private generateValueAssignment(
+    fieldName: string,
+    apiFieldName: string,
+    terraformAttr: TerraformAttribute,
+  ): string {
+    const value: string = this.getGoValueForTerraformType(
+      terraformAttr.type,
+      `data.${fieldName}`,
+    );
+
+    if (terraformAttr.type === "map") {
+      return `requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})`;
+    } else if (terraformAttr.type === "list") {
+      return `requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})`;
+    } else if (terraformAttr.type === "string" && terraformAttr.isComplexObject) {
+      return `var ${fieldName.toLowerCase()}Data interface{}
+        if err := json.Unmarshal([]byte(data.${fieldName}.ValueString()), &${fieldName.toLowerCase()}Data); err == nil {
+            requestDataMap["${apiFieldName}"] = ${fieldName.toLowerCase()}Data
+        }`;
+    } else {
+      return `requestDataMap["${apiFieldName}"] = ${value}`;
+    }
   }
 
   private generateRequestBodyInternal(
