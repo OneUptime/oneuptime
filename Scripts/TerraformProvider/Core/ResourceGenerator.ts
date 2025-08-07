@@ -195,11 +195,14 @@ export class ResourceGenerator {
       },
     );
 
-    // Check for list types that need default empty lists
+    // Check for list types that need default empty lists (excluding computed fields)
     const hasListDefaults: boolean = Object.values(resource.schema).some(
       (attr: any) => {
         return (
-          attr.type === "list" && !attr.required && attr.default === undefined
+          attr.type === "list" &&
+          !attr.required &&
+          attr.default === undefined &&
+          !attr.computed
         );
       },
     );
@@ -497,7 +500,13 @@ func (r *${resourceTypeName}Resource) parseJSONField(terraformString types.Strin
     }
 
     // Add default empty list for all list types to avoid null vs empty list inconsistencies
-    if (attr.type === "list" && !attr.required && attr.default === undefined) {
+    // Exception: Don't add defaults for computed fields as they should be server-managed
+    if (
+      attr.type === "list" &&
+      !attr.required &&
+      attr.default === undefined &&
+      !attr.computed
+    ) {
       options.push(
         "Default: listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{}))",
       );
