@@ -134,8 +134,23 @@ RunCron(
 
         if (!incident.monitors || incident.monitors.length === 0) {
           logger.debug(
-            `Incident ${incident.id} has no monitors attached; skipping subscriber notifications.`,
+            `Incident ${incident.id} has no monitors attached; marking subscriber notifications as Skipped.`,
           );
+
+          await IncidentService.updateOneById({
+            id: incident.id!,
+            data: {
+              subscriberNotificationStatusOnIncidentCreated:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "No monitors are attached to this incident. Skipping notifications to subscribers.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+
           continue;
         }
 
