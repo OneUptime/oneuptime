@@ -93,6 +93,8 @@ spec:
               value: {{ $.Values.probeIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.probeIngest.disableTelemetryCollection | quote }}
+            - name: PROBE_INGEST_CONCURRENCY
+              value: {{ $.Values.probeIngest.concurrency | squote }}
           ports:
             - containerPort: {{ $.Values.probeIngest.ports.http }}
               protocol: TCP

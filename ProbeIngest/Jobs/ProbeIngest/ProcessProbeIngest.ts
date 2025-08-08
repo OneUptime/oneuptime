@@ -10,6 +10,7 @@ import OneUptimeDate from "Common/Types/Date";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import { PROBE_INGEST_CONCURRENCY } from "../../Config";
 
 // Set up the worker for processing probe ingest queue
 QueueWorker.getWorker(
@@ -29,7 +30,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 50 }, // Process up to 50 probe ingest jobs concurrently
+  { concurrency: PROBE_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
 );
 
 async function processProbeFromQueue(

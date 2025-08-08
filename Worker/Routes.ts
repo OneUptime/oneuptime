@@ -112,6 +112,7 @@ import Queue, { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
+import { WORKER_CONCURRENCY } from "./Config";
 
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 
@@ -133,7 +134,7 @@ const WorkersFeatureSet: FeatureSet = {
       await AnalyticsTableManagement.createTables();
 
       // Job process.
-      QueueWorker.getWorker(
+  QueueWorker.getWorker(
         QueueName.Worker,
         async (job: QueueJob) => {
           const name: string = job.name;
@@ -148,8 +149,8 @@ const WorkersFeatureSet: FeatureSet = {
           if (funcToRun) {
             await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
           }
-        },
-        { concurrency: 100 },
+  },
+  { concurrency: WORKER_CONCURRENCY },
       );
     } catch (err) {
       logger.error("App Init Failed:");

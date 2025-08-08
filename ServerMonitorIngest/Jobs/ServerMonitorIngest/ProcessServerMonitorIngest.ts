@@ -13,6 +13,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectService from "Common/Server/Services/ProjectService";
+import { SERVER_MONITOR_INGEST_CONCURRENCY } from "../../Config";
 
 // Set up the worker for processing server monitor ingest queue
 QueueWorker.getWorker(
@@ -35,7 +36,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 50 }, // Process up to 50 server monitor ingest jobs concurrently
+  { concurrency: SERVER_MONITOR_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
 );
 
 async function processServerMonitorFromQueue(

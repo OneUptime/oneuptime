@@ -11,6 +11,7 @@ import LogSeverity from "Common/Types/Log/LogSeverity";
 import OTelIngestService from "Common/Server/Services/OpenTelemetryIngestService";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Log from "Common/Models/AnalyticsModels/Log";
+import { FLUENT_INGEST_CONCURRENCY } from "../../Config";
 
 interface FluentIngestProcessData {
   projectId: ObjectID;
@@ -41,7 +42,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 50 }, // Process up to 50 fluent ingest jobs concurrently
+  { concurrency: FLUENT_INGEST_CONCURRENCY },
 );
 
 async function processFluentIngestFromQueue(

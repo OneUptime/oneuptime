@@ -88,6 +88,8 @@ spec:
               value: {{ $.Values.worker.ports.http | quote }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.worker.disableTelemetryCollection | quote }}
+            - name: WORKER_CONCURRENCY
+              value: {{ $.Values.worker.concurrency | squote }}
           ports:
             - containerPort: {{ $.Values.worker.ports.http }}
               protocol: TCP

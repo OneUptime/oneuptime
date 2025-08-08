@@ -93,6 +93,8 @@ spec:
               value: {{ $.Values.serverMonitorIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.serverMonitorIngest.disableTelemetryCollection | quote }}
+            - name: SERVER_MONITOR_INGEST_CONCURRENCY
+              value: {{ $.Values.serverMonitorIngest.concurrency | squote }}
           ports:
             - containerPort: {{ $.Values.serverMonitorIngest.ports.http }}
               protocol: TCP

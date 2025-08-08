@@ -93,6 +93,8 @@ spec:
               value: {{ $.Values.fluentIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.fluentIngest.disableTelemetryCollection | quote }}
+            - name: FLUENT_INGEST_CONCURRENCY
+              value: {{ $.Values.fluentIngest.concurrency | squote }}
           ports:
             - containerPort: {{ $.Values.fluentIngest.ports.http }}
               protocol: TCP

@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import { INCOMING_REQUEST_INGEST_CONCURRENCY } from "../../Config";
 
 // Set up the worker for processing incoming request ingest queue
 QueueWorker.getWorker(
@@ -35,7 +36,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 50 }, // Process up to 50 incoming request ingest jobs concurrently
+  { concurrency: INCOMING_REQUEST_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
 );
 
 async function processIncomingRequestFromQueue(

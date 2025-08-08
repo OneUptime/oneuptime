@@ -305,6 +305,7 @@ services:
             <<: *common-server-variables
             PORT: ${WORKER_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_WORKER}
+            WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
         logging:
             driver: "local"
             options:
@@ -443,6 +444,7 @@ services:
             <<: *common-server-variables
             PORT: ${FLUENT_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_FLUENT_INGEST}
+            FLUENT_INGEST_CONCURRENCY: ${FLUENT_INGEST_CONCURRENCY}
         logging:
             driver: "local"
             options:
@@ -456,6 +458,7 @@ services:
             <<: *common-server-variables
             PORT: ${PROBE_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_PROBE_INGEST}
+            PROBE_INGEST_CONCURRENCY: ${PROBE_INGEST_CONCURRENCY}
         logging:
             driver: "local"
             options:
@@ -469,6 +472,7 @@ services:
             <<: *common-server-variables
             PORT: ${SERVER_MONITOR_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_SERVER_MONITOR_INGEST}
+            SERVER_MONITOR_INGEST_CONCURRENCY: ${SERVER_MONITOR_INGEST_CONCURRENCY}
         logging:
             driver: "local"
             options:
@@ -497,6 +501,7 @@ services:
             <<: *common-server-variables
             PORT: ${INCOMING_REQUEST_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_INCOMING_REQUEST_INGEST}
+            INCOMING_REQUEST_INGEST_CONCURRENCY: ${INCOMING_REQUEST_INGEST_CONCURRENCY}
         logging:
             driver: "local"
             options:

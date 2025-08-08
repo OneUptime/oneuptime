@@ -477,6 +477,7 @@ worker:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  concurrency: 100
   ports:
     http: 1445
   resources:
@@ -518,6 +519,7 @@ probeIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  concurrency: 100
   ports:
     http: 3400
   resources:
@@ -558,6 +560,7 @@ fluentIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  concurrency: 100
   ports:
     http: 3401
   resources:
@@ -577,6 +580,7 @@ incomingRequestIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  concurrency: 100
   ports:
     http: 3402
   resources:
@@ -604,6 +608,7 @@ serverMonitorIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  concurrency: 100
   ports:
     http: 3404
   resources:
