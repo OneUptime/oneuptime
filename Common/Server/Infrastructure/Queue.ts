@@ -27,6 +27,8 @@ export type QueueJob = Job;
 
 export default class Queue {
   private static queueDict: Dictionary<BullQueue> = {};
+  // track queues we have already run initial cleanup on
+  private static cleanedQueueNames: Set<string> = new Set<string>();
 
   @CaptureSpan()
   public static getQueue(queueName: QueueName): BullQueue {
@@ -41,10 +43,38 @@ export default class Queue {
         port: RedisPort.toNumber(),
         password: RedisPassword,
       },
+      // Keep BullMQ data under control to avoid Redis bloat
+      defaultJobOptions: {
+        // keep only recent completed/failed jobs
+        removeOnComplete: { count: 1000 }, // keep last 1000 completed jobs
+        removeOnFail: { count: 500 }, // keep last 500 failed jobs
+      },
+      // Optionally cap the event stream length (supported in BullMQ >= v5)
+      // This helps prevent the :events stream from growing indefinitely
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      streams: {
+        events: { maxLen: 1000 },
+      },
     });
 
     // save it to the dictionary
     this.queueDict[queueName] = queue;
+
+    // Fire-and-forget initial cleanup for legacy/old data if not done before
+    if (!this.cleanedQueueNames.has(queueName)) {
+      this.cleanedQueueNames.add(queueName);
+      // Clean jobs older than 1 days to reclaim memory from historic runs
+      const oneDaysMs: number = 1 * 24 * 60 * 60 * 1000;
+      void (async () => {
+        try {
+          await queue.clean(oneDaysMs, 1000, "completed");
+          await queue.clean(oneDaysMs, 1000, "failed");
+        } catch {
+          // ignore cleanup errors to not impact normal flow
+        }
+      })();
+    }
 
     return queue;
   }
