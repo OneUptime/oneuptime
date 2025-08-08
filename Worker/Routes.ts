@@ -134,7 +134,7 @@ const WorkersFeatureSet: FeatureSet = {
       await AnalyticsTableManagement.createTables();
 
       // Job process.
-  QueueWorker.getWorker(
+      QueueWorker.getWorker(
         QueueName.Worker,
         async (job: QueueJob) => {
           const name: string = job.name;
@@ -149,8 +149,8 @@ const WorkersFeatureSet: FeatureSet = {
           if (funcToRun) {
             await QueueWorker.runJobWithTimeout(timeoutInMs, funcToRun);
           }
-  },
-  { concurrency: WORKER_CONCURRENCY },
+        },
+        { concurrency: WORKER_CONCURRENCY },
       );
     } catch (err) {
       logger.error("App Init Failed:");
