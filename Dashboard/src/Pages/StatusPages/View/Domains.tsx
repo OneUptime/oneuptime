@@ -352,7 +352,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 <div>
                   <span>
                     Custom Domains not enabled for this OneUptime installation.
-                    Please contact your server admin to enable this feature.
+                    Please contact your server admin to enable this feature. To enable this feature, the
+                    <b>STATUS_PAGE_CNAME_RECORD</b> environment variable must be set when starting the OneUptime cluster. 
                   </span>
                 </div>
               )
