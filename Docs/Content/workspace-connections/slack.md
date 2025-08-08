@@ -1,5 +1,7 @@
 # Connecting OneUptime to Slack
 
+Looking for Microsoft Teams? See the companion guide in this folder: "Connecting OneUptime to Microsoft Teams".
+
 ### Steps to Connect OneUptime to Slack
 
 1. **Create an Account on OneUptime**
