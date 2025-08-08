@@ -6,4 +6,5 @@ if (typeof concurrency === "string") {
   concurrency = !isNaN(parsed) && parsed > 0 ? parsed : 100;
 }
 
-export const INCOMING_REQUEST_INGEST_CONCURRENCY: number = concurrency as number;
+export const INCOMING_REQUEST_INGEST_CONCURRENCY: number =
+  concurrency as number;
