@@ -4,9 +4,7 @@ export class MigrationName1754412708044 implements MigrationInterface {
   public name = "MigrationName1754412708044";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "Incident" ALTER COLUMN "subscriberNotificationStatusOnIncidentCreated" SET NOT NULL`,
-    );
+
     await queryRunner.query(
       `ALTER TABLE "Incident" DROP COLUMN "notificationFailureReasonOnIncidentCreated"`,
     );
@@ -142,8 +140,6 @@ export class MigrationName1754412708044 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "Incident" ADD "notificationFailureReasonOnIncidentCreated" text`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "Incident" ALTER COLUMN "subscriberNotificationStatusOnIncidentCreated" DROP NOT NULL`,
-    );
+
   }
 }
