@@ -149,10 +149,6 @@ import { MigrationName1753383711511 } from "./1753383711511-MigrationName";
 import { MigrationName1754304193228 } from "./1754304193228-MigrationName";
 import { MigrationName1754315774827 } from "./1754315774827-MigrationName";
 import { MigrationName1754384418632 } from "./1754384418632-MigrationName";
-import { MigrationName1754412708044 } from "./1754412708044-MigrationName";
-import { MigrationName1754415281937 } from "./1754415281937-MigrationName";
-import { RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976 } from "./1754484441976-RenameSubscriberNotificationFailedReasonToStatusMessage";
-import { UpdateSubscriberNotificationStatusToEnum1754500000000 } from "./1754412708043-UpdateSubscriberNotificationStatusToEnum";
 
 export default [
   InitialMigration,
@@ -305,9 +301,5 @@ export default [
   MigrationName1753383711511,
   MigrationName1754304193228,
   MigrationName1754315774827,
-  MigrationName1754384418632,
-  UpdateSubscriberNotificationStatusToEnum1754500000000,
-  MigrationName1754412708044,
-  MigrationName1754415281937,
-  RenameSubscriberNotificationFailedReasonToStatusMessage1754484441976,
+  MigrationName1754384418632
 ];
