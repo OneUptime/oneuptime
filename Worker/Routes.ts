@@ -114,7 +114,6 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
 
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -124,7 +123,6 @@ const WorkersFeatureSet: FeatureSet = {
       // attach bull board to the app
       app.use(
         Queue.getInspectorRoute(),
-        ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
         Queue.getQueueInspectorRouter(),
       );
 
