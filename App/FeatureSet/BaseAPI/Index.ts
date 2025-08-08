@@ -1607,6 +1607,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
     );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new (await import("../../../Common/Server/API/MicrosoftTeamsAPI")).default().getRouter(),
+    );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

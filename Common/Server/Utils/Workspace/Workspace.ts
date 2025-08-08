@@ -174,7 +174,8 @@ export default class WorkspaceUtil {
         botUserId = (projectAuthToken.miscData as SlackMiscData).botUserId;
       }
 
-      if (!botUserId) {
+      // For Microsoft Teams initial integration, we don't require a bot user id
+      if (!botUserId && workspaceType !== WorkspaceType.MicrosoftTeams) {
         responses.push({
           workspaceType: workspaceType,
           threads: [],
@@ -192,7 +193,7 @@ export default class WorkspaceUtil {
 
       const result: WorkspaceSendMessageResponse =
         await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
-          userId: botUserId,
+          userId: botUserId || "",
           authToken: projectAuthToken.authToken,
           workspaceMessagePayload: messagePayloadByWorkspace,
         });
