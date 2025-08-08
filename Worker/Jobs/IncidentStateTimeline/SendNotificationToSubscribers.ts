@@ -4,7 +4,6 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -48,7 +47,7 @@ RunCron(
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
-          createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
+          
         },
         props: {
           isRoot: true,
@@ -66,10 +65,13 @@ RunCron(
         },
       });
 
+  logger.debug(`Found ${incidentStateTimelines.length} incident state timeline(s) to notify subscribers for.`);
+
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incidentStateTimeline of incidentStateTimelines) {
+  logger.debug(`Processing incident state timeline ${incidentStateTimeline.id}.`);
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
         data: {
@@ -81,6 +83,7 @@ RunCron(
           ignoreHooks: true,
         },
       });
+  logger.debug(`Incident state timeline ${incidentStateTimeline.id} pre-marked as Success (legacy behavior).`);
 
       if (
         !incidentStateTimeline.incidentId ||
@@ -116,14 +119,17 @@ RunCron(
       });
 
       if (!incident) {
+  logger.debug(`Incident ${incidentStateTimeline.incidentId} not found; skipping.`);
         continue;
       }
 
       if (!incident.monitors || incident.monitors.length === 0) {
+  logger.debug(`Incident ${incident.id} has no monitors; skipping.`);
         continue;
       }
 
       if (!incident.isVisibleOnStatusPage) {
+  logger.debug(`Incident ${incident.id} not visible on status page; skipping.`);
         continue; // skip if not visible on status page.
       }
 
@@ -155,6 +161,8 @@ RunCron(
           },
         });
 
+  logger.debug(`Found ${statusPageResources.length} status page resource(s) for incident ${incident.id}.`);
+
       const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
       for (const resource of statusPageResources) {
@@ -171,6 +179,8 @@ RunCron(
         );
       }
 
+  logger.debug(`Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for state timeline notification.`);
+
       const statusPages: Array<StatusPage> =
         await StatusPageSubscriberService.getStatusPagesToSendNotification(
           Object.keys(statusPageToResources).map((i: string) => {
@@ -180,10 +190,12 @@ RunCron(
 
       for (const statuspage of statusPages) {
         if (!statuspage.id) {
+          logger.debug("Encountered a status page without an id; skipping.");
           continue;
         }
 
         if (!statuspage.showIncidentsOnStatusPage) {
+          logger.debug(`Status page ${statuspage.id} hides incidents; skipping.`);
           continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 
@@ -202,10 +214,13 @@ RunCron(
         const statusPageName: string =
           statuspage.pageTitle || statuspage.name || "Status Page";
 
+  logger.debug(`Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for incident state timeline ${incidentStateTimeline.id}.`);
+
         // Send email to Email subscribers.
 
         for (const subscriber of subscribers) {
           if (!subscriber._id) {
+            logger.debug("Encountered a subscriber without an _id; skipping.");
             continue;
           }
 
@@ -218,6 +233,7 @@ RunCron(
             });
 
           if (!shouldNotifySubscriber) {
+            logger.debug(`Skipping subscriber ${subscriber._id} based on preferences for state timeline ${incidentStateTimeline.id}.`);
             continue;
           }
 
@@ -228,6 +244,9 @@ RunCron(
             ).toString();
 
           if (subscriber.subscriberPhone) {
+            const phoneStr: string = subscriber.subscriberPhone.toString();
+            const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
+            logger.debug(`Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for incident state timeline ${incidentStateTimeline.id}.`);
             const sms: SMS = {
               message: `
                             Incident ${Text.uppercaseFirstLetter(
@@ -269,6 +288,7 @@ RunCron(
 
           if (subscriber.subscriberEmail) {
             // send email here.
+            logger.debug(`Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for incident state timeline ${incidentStateTimeline.id}.`);
 
             MailService.sendMail(
               {
@@ -336,6 +356,7 @@ RunCron(
             }).catch((err: Error) => {
               logger.error(err);
             });
+            logger.debug(`Slack notification queued for subscriber ${subscriber._id} for incident state timeline ${incidentStateTimeline.id}.`);
           }
         }
       }

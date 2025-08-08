@@ -51,7 +51,7 @@ RunCron(
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
-          createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
+          
         },
         props: {
           isRoot: true,

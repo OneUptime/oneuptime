@@ -53,7 +53,10 @@ RunCron(
         },
       });
 
+    logger.debug(`Found ${announcementsToSkip.length} announcements to mark as Skipped (subscribers should not be notified).`);
+
     for (const announcement of announcementsToSkip) {
+      logger.debug(`Marking announcement ${announcement.id} as Skipped for subscriber notifications.`);
       await StatusPageAnnouncementService.updateOneById({
         id: announcement.id!,
         data: {
@@ -67,6 +70,7 @@ RunCron(
           ignoreHooks: true,
         },
       });
+      logger.debug(`Announcement ${announcement.id} marked as Skipped.`);
     }
 
     // get all scheduled events of all the projects.
@@ -96,13 +100,18 @@ RunCron(
         },
       });
 
+    logger.debug(`Found ${announcements.length} announcements to notify subscribers for.`);
+
     // change their state to Ongoing.
 
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+    logger.debug(`Database host resolved as ${host.toString()} with protocol ${httpProtocol.toString()}.`);
 
     for (const announcement of announcements) {
+      logger.debug(`Processing announcement ${announcement.id} with ${announcement.statusPages?.length || 0} status page(s).`);
       if (!announcement.statusPages) {
+        logger.debug(`Announcement ${announcement.id} has no status pages; skipping notifications.`);
         continue;
       }
 
@@ -124,15 +133,18 @@ RunCron(
           ignoreHooks: true,
         },
       });
+  logger.debug(`Announcement ${announcement.id} status set to InProgress for subscriber notifications.`);
 
       try {
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
+      logger.debug("Encountered a status page without an id; skipping.");
               continue;
             }
 
             if (!statuspage.showAnnouncementsOnStatusPage) {
+      logger.debug(`Status page ${statuspage.id} is configured to hide announcements; skipping notifications.`);
               continue; // Do not send notification to subscribers if incidents are not visible on status page.
             }
 
@@ -150,11 +162,14 @@ RunCron(
             const statusPageName: string =
               statuspage.pageTitle || statuspage.name || "Status Page";
 
+    logger.debug(`Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`);
+
             // Send email to Email subscribers.
 
             for (const subscriber of subscribers) {
               try {
                 if (!subscriber._id) {
+      logger.debug("Encountered a subscriber without an _id; skipping.");
                   continue;
                 }
 
@@ -167,6 +182,7 @@ RunCron(
                   });
 
                 if (!shouldNotifySubscriber) {
+                  logger.debug(`Skipping subscriber ${subscriber._id} for announcement ${announcement.id} based on preferences or filters.`);
                   continue;
                 }
 
@@ -176,7 +192,12 @@ RunCron(
                     subscriber.id!,
                   ).toString();
 
+                logger.debug(`Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`);
+
                 if (subscriber.subscriberPhone) {
+                  const phoneStr: string = subscriber.subscriberPhone.toString();
+                  const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
+                  logger.debug(`Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for announcement ${announcement.id}.`);
                   const sms: SMS = {
                     message: `
                               Announcement - ${statusPageName}
@@ -203,6 +224,7 @@ RunCron(
                 }
 
                 if (subscriber.slackIncomingWebhookUrl) {
+                  logger.debug(`Queueing Slack notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`);
                   // Convert markdown to Slack format and send notification
                   const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
 
@@ -223,6 +245,7 @@ RunCron(
 
                 if (subscriber.subscriberEmail) {
                   // send email here.
+                  logger.debug(`Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for announcement ${announcement.id}.`);
 
                   MailService.sendMail(
                     {
@@ -263,6 +286,7 @@ RunCron(
                   ).catch((err: Error) => {
                     logger.error(err);
                   });
+                  logger.debug(`Email notification queued for subscriber ${subscriber._id} for announcement ${announcement.id}.`);
                 }
               } catch (err) {
                 logger.error(err);
@@ -287,6 +311,7 @@ RunCron(
             ignoreHooks: true,
           },
         });
+        logger.debug(`Announcement ${announcement.id} marked as Success for subscriber notifications.`);
       } catch (err) {
         // If there was an error, mark as failed
         logger.error(err);

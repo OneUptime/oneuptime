@@ -53,7 +53,7 @@ RunCron(
           subscriberNotificationStatusOnNoteCreated:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-          createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
+          
         },
         props: {
           isRoot: true,
@@ -67,8 +67,11 @@ RunCron(
         },
       });
 
+  logger.debug(`Found ${publicNotes.length} scheduled maintenance public note(s) to notify subscribers for.`);
+
     for (const publicNote of publicNotes) {
       try {
+  logger.debug(`Processing scheduled maintenance public note ${publicNote.id}.`);
         // get all scheduled events of all the projects.
         const event: ScheduledMaintenance | null =
           await ScheduledMaintenanceService.findOneById({
@@ -94,6 +97,7 @@ RunCron(
           });
 
         if (!event) {
+          logger.debug(`Scheduled maintenance ${publicNote.scheduledMaintenanceId} not found; skipping public note ${publicNote.id}.`);
           continue;
         }
 
@@ -109,9 +113,11 @@ RunCron(
             ignoreHooks: true,
           },
         });
+        logger.debug(`Public note ${publicNote.id} status set to InProgress for subscriber notifications.`);
 
         if (!event.isVisibleOnStatusPage) {
           // Set status to Skipped for non-visible events
+          logger.debug(`Scheduled maintenance ${event.id} is not visible on status page; marking public note ${publicNote.id} as Skipped.`);
           await ScheduledMaintenancePublicNoteService.updateOneById({
             id: publicNote.id!,
             data: {
@@ -157,6 +163,8 @@ RunCron(
           });
         }
 
+  logger.debug(`Found ${statusPageResources.length} status page resource(s) for scheduled maintenance ${event.id}.`);
+
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
         for (const resource of statusPageResources) {
@@ -173,6 +181,8 @@ RunCron(
           );
         }
 
+  logger.debug(`Scheduled maintenance ${event.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`);
+
         const statusPages: Array<StatusPage> =
           await StatusPageSubscriberService.getStatusPagesToSendNotification(
             event.statusPages?.map((i: StatusPage) => {
@@ -182,10 +192,12 @@ RunCron(
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {
+            logger.debug("Encountered a status page without an id; skipping.");
             continue;
           }
 
           if (!statuspage.showScheduledMaintenanceEventsOnStatusPage) {
+            logger.debug(`Status page ${statuspage.id} hides scheduled maintenance events; skipping.`);
             continue; // Do not send notification to subscribers if scheduledMaintenances are not visible on status page.
           }
 
@@ -204,10 +216,13 @@ RunCron(
           const statusPageName: string =
             statuspage.pageTitle || statuspage.name || "Status Page";
 
+          logger.debug(`Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${publicNote.id}.`);
+
           // Send email to Email subscribers.
 
           for (const subscriber of subscribers) {
             if (!subscriber._id) {
+              logger.debug("Encountered a subscriber without an _id; skipping.");
               continue;
             }
 
@@ -221,6 +236,7 @@ RunCron(
               });
 
             if (!shouldNotifySubscriber) {
+              logger.debug(`Skipping subscriber ${subscriber._id} based on preferences for public note ${publicNote.id}.`);
               continue;
             }
 
@@ -230,7 +246,12 @@ RunCron(
                 subscriber.id!,
               ).toString();
 
+            logger.debug(`Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${publicNote.id}.`);
+
             if (subscriber.subscriberPhone) {
+              const phoneStr: string = subscriber.subscriberPhone.toString();
+              const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
+              logger.debug(`Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${publicNote.id}.`);
               const sms: SMS = {
                 message: `
                                     ${statusPageName} - New note has been posted to maintenance event.
@@ -256,6 +277,7 @@ RunCron(
             }
 
             if (subscriber.slackIncomingWebhookUrl) {
+              logger.debug(`Queueing Slack notification to subscriber ${subscriber._id} for public note ${publicNote.id}.`);
               // Create markdown message for Slack
               const markdownMessage: string = `## Scheduled Maintenance Update - ${statusPageName}
 
@@ -278,6 +300,7 @@ RunCron(
 
             if (subscriber.subscriberEmail) {
               // send email here.
+              logger.debug(`Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${publicNote.id}.`);
 
               MailService.sendMail(
                 {
@@ -329,6 +352,7 @@ RunCron(
               ).catch((err: Error) => {
                 logger.error(err);
               });
+              logger.debug(`Email notification queued for subscriber ${subscriber._id} for public note ${publicNote.id}.`);
             }
           }
         }
@@ -364,6 +388,7 @@ ${publicNote.note}`,
             ignoreHooks: true,
           },
         });
+  logger.debug(`Scheduled maintenance public note ${publicNote.id} marked as Success for subscriber notifications.`);
       } catch (err) {
         logger.error(
           `Error sending notification for scheduled maintenance public note ${publicNote.id}: ${err}`,

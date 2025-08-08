@@ -4,7 +4,6 @@ import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
@@ -46,7 +45,6 @@ RunCron(
         subscriberNotificationStatusOnIncidentCreated:
           StatusPageSubscriberNotificationStatus.Pending,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
-        createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
       },
       props: {
         isRoot: true,
@@ -58,7 +56,10 @@ RunCron(
       },
     });
 
+    logger.debug(`Found ${incidentsToSkip.length} incidents to mark as Skipped (subscribers should not be notified).`);
+
     for (const incident of incidentsToSkip) {
+      logger.debug(`Marking incident ${incident.id} as Skipped for subscriber notifications.`);
       await IncidentService.updateOneById({
         id: incident.id!,
         data: {
@@ -72,6 +73,7 @@ RunCron(
           ignoreHooks: true,
         },
       });
+      logger.debug(`Incident ${incident.id} marked as Skipped for subscriber notifications.`);
     }
 
     // get all scheduled events of all the projects.
@@ -80,7 +82,6 @@ RunCron(
         subscriberNotificationStatusOnIncidentCreated:
           StatusPageSubscriberNotificationStatus.Pending,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-        createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
       },
       props: {
         isRoot: true,
@@ -103,35 +104,42 @@ RunCron(
       },
     });
 
+    logger.debug(`Found ${incidents.length} incidents to notify subscribers for.`);
+
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+    logger.debug(`Database host resolved as ${host.toString()} with protocol ${httpProtocol.toString()}.`);
 
     for (const incident of incidents) {
-      const incidentId: ObjectID = incident.id!;
-      const projectId: ObjectID = incident.projectId!;
-      const incidentNumber: string =
-        incident.incidentNumber?.toString() || " - ";
-      const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
+      try {
+        logger.debug(`Processing incident ${incident.id} (project: ${incident.projectId}) for subscriber notifications.`);
+        const incidentId: ObjectID = incident.id!;
+        const projectId: ObjectID = incident.projectId!;
+        const incidentNumber: string =
+          incident.incidentNumber?.toString() || " - ";
+        const incidentFeedText: string = `📧 **Subscriber Incident Created Notification Sent for [Incident ${incidentNumber}](${(await IncidentService.getIncidentLinkInDashboard(projectId, incidentId)).toString()})**:
       Notification sent to status page subscribers because this incident was created.`;
 
-      if (!incident.monitors || incident.monitors.length === 0) {
-        continue;
-      }
+        if (!incident.monitors || incident.monitors.length === 0) {
+          logger.debug(`Incident ${incident.id} has no monitors attached; skipping subscriber notifications.`);
+          continue;
+        }
 
-      await IncidentService.updateOneById({
-        id: incident.id!,
-        data: {
-          subscriberNotificationStatusOnIncidentCreated:
-            StatusPageSubscriberNotificationStatus.InProgress,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+        await IncidentService.updateOneById({
+          id: incident.id!,
+          data: {
+            subscriberNotificationStatusOnIncidentCreated:
+              StatusPageSubscriberNotificationStatus.InProgress,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+        logger.debug(`Incident ${incident.id} status set to InProgress for subscriber notifications.`);
 
-      try {
         if (!incident.isVisibleOnStatusPage) {
+          logger.debug(`Incident ${incident.id} is not visible on status page; skipping subscriber notifications.`);
           continue; // Do not send notification to subscribers if incident is not visible on status page.
         }
 
@@ -147,7 +155,7 @@ RunCron(
                   })
                   .map((m: Monitor) => {
                     return new ObjectID(m._id!);
-                  }),
+                  })
               ),
             },
             props: {
@@ -163,6 +171,8 @@ RunCron(
             },
           });
 
+        logger.debug(`Found ${statusPageResources.length} status page resources linked to incident ${incident.id}.`);
+
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
         for (const resource of statusPageResources) {
@@ -175,24 +185,30 @@ RunCron(
           }
 
           statusPageToResources[resource.statusPageId?.toString()]?.push(
-            resource,
+            resource
           );
         }
+
+        logger.debug(`Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for notifications.`);
 
         const statusPages: Array<StatusPage> =
           await StatusPageSubscriberService.getStatusPagesToSendNotification(
             Object.keys(statusPageToResources).map((i: string) => {
               return new ObjectID(i);
-            }),
+            })
           );
+
+        logger.debug(`Loaded ${statusPages.length} status page(s) for incident ${incident.id}.`);
 
         for (const statuspage of statusPages) {
           try {
             if (!statuspage.id) {
+              logger.debug("Encountered a status page without an id; skipping.");
               continue;
             }
 
             if (!statuspage.showIncidentsOnStatusPage) {
+              logger.debug(`Status page ${statuspage.id} is configured to hide incidents; skipping notifications.`);
               continue; // Do not send notification to subscribers if incidents are not visible on status page.
             }
 
@@ -202,13 +218,15 @@ RunCron(
                 {
                   isRoot: true,
                   ignoreHooks: true,
-                },
+                }
               );
 
             const statusPageURL: string =
               await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
               statuspage.pageTitle || statuspage.name || "Status Page";
+
+            logger.debug(`Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s).`);
 
             // Send email to Email subscribers.
 
@@ -219,9 +237,12 @@ RunCron(
                 })
                 .join(", ") || "None";
 
+            logger.debug(`Resources affected for incident ${incident.id} on status page ${statuspage.id}: ${resourcesAffectedString}`);
+
             for (const subscriber of subscribers) {
               try {
                 if (!subscriber._id) {
+                  logger.debug("Encountered a subscriber without an _id; skipping.");
                   continue;
                 }
 
@@ -235,17 +256,21 @@ RunCron(
                   });
 
                 if (!shouldNotifySubscriber) {
+                  logger.debug(`Skipping subscriber ${subscriber._id} based on preferences or filters.`);
                   continue;
                 }
 
                 const unsubscribeUrl: string =
                   StatusPageSubscriberService.getUnsubscribeLink(
                     URL.fromString(statusPageURL),
-                    subscriber.id!,
+                    subscriber.id!
                   ).toString();
+
+                logger.debug(`Prepared unsubscribe link for subscriber ${subscriber._id}.`);
 
                 if (subscriber.subscriberEmail) {
                   // send email here.
+                  logger.debug(`Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail}.`);
 
                   MailService.sendMail(
                     {
@@ -269,29 +294,33 @@ RunCron(
                         incidentTitle: incident.title || "",
                         incidentDescription: await Markdown.convertToHTML(
                           incident.description || "",
-                          MarkdownContentType.Email,
+                          MarkdownContentType.Email
                         ),
                         unsubscribeUrl: unsubscribeUrl,
 
                         subscriberEmailNotificationFooterText:
                           StatusPageServiceType.getSubscriberEmailFooterText(
-                            statuspage,
+                            statuspage
                           ),
                       },
                       subject: "[Incident] " + incident.title || "",
                     },
                     {
                       mailServer: ProjectSMTPConfigService.toEmailServer(
-                        statuspage.smtpConfig,
+                        statuspage.smtpConfig
                       ),
                       projectId: statuspage.projectId,
-                    },
+                    }
                   ).catch((err: Error) => {
                     logger.error(err);
                   });
+                  logger.debug(`Email notification queued for subscriber ${subscriber._id}.`);
                 }
 
                 if (subscriber.subscriberPhone) {
+                  const phoneStr: string = subscriber.subscriberPhone.toString();
+                  const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
+                  logger.debug(`Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked}.`);
                   const sms: SMS = {
                     message: `
                             Incident - ${statusPageName}
@@ -316,14 +345,16 @@ RunCron(
                     projectId: statuspage.projectId,
                     customTwilioConfig:
                       ProjectCallSMSConfigService.toTwilioConfig(
-                        statuspage.callSmsConfig,
+                        statuspage.callSmsConfig
                       ),
                   }).catch((err: Error) => {
                     logger.error(err);
                   });
+                  logger.debug(`SMS notification queued for subscriber ${subscriber._id}.`);
                 }
 
                 if (subscriber.slackIncomingWebhookUrl) {
+                  logger.debug(`Queueing Slack notification to subscriber ${subscriber._id} via incoming webhook.`);
                   // Create markdown message for Slack
                   const markdownMessage: string = `## 🚨 Incident - ${incident.title || ""}
 
@@ -339,11 +370,12 @@ RunCron(
                   SlackUtil.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.slackIncomingWebhookUrl,
                     text: SlackUtil.convertMarkdownToSlackRichText(
-                      markdownMessage,
+                      markdownMessage
                     ),
                   }).catch((err: Error) => {
                     logger.error(err);
                   });
+                  logger.debug(`Slack notification queued for subscriber ${subscriber._id}.`);
                 }
               } catch (err) {
                 logger.error(err);
@@ -384,10 +416,11 @@ RunCron(
             ignoreHooks: true,
           },
         });
+  logger.debug(`Incident ${incident.id} marked as Success for subscriber notifications.`);
       } catch (err) {
         // If there was an error, mark as failed
         logger.error(err);
-        await IncidentService.updateOneById({
+        IncidentService.updateOneById({
           id: incident.id!,
           data: {
             subscriberNotificationStatusOnIncidentCreated:
@@ -399,8 +432,12 @@ RunCron(
             isRoot: true,
             ignoreHooks: true,
           },
+        }).catch((error: Error) => {
+          logger.error(
+            `Failed to update incident ${incident.id} status after error: ${error.message}`
+          );
         });
       }
     }
-  },
+  }
 );
