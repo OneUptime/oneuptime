@@ -74,7 +74,7 @@ export const getNotificationStatusInfo: (
     return {
       color: "green",
       tailwindColor: "green",
-      text: "Notificaitons Sent",
+      text: "Notifications Sent",
       icon: IconProp.CheckCircle,
     };
   }
