@@ -47,7 +47,6 @@ RunCron(
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
-          
         },
         props: {
           isRoot: true,
@@ -65,13 +64,17 @@ RunCron(
         },
       });
 
-  logger.debug(`Found ${incidentStateTimelines.length} incident state timeline(s) to notify subscribers for.`);
+    logger.debug(
+      `Found ${incidentStateTimelines.length} incident state timeline(s) to notify subscribers for.`,
+    );
 
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
     for (const incidentStateTimeline of incidentStateTimelines) {
-  logger.debug(`Processing incident state timeline ${incidentStateTimeline.id}.`);
+      logger.debug(
+        `Processing incident state timeline ${incidentStateTimeline.id}.`,
+      );
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
         data: {
@@ -83,7 +86,9 @@ RunCron(
           ignoreHooks: true,
         },
       });
-  logger.debug(`Incident state timeline ${incidentStateTimeline.id} pre-marked as Success (legacy behavior).`);
+      logger.debug(
+        `Incident state timeline ${incidentStateTimeline.id} pre-marked as Success (legacy behavior).`,
+      );
 
       if (
         !incidentStateTimeline.incidentId ||
@@ -119,17 +124,21 @@ RunCron(
       });
 
       if (!incident) {
-  logger.debug(`Incident ${incidentStateTimeline.incidentId} not found; skipping.`);
+        logger.debug(
+          `Incident ${incidentStateTimeline.incidentId} not found; skipping.`,
+        );
         continue;
       }
 
       if (!incident.monitors || incident.monitors.length === 0) {
-  logger.debug(`Incident ${incident.id} has no monitors; skipping.`);
+        logger.debug(`Incident ${incident.id} has no monitors; skipping.`);
         continue;
       }
 
       if (!incident.isVisibleOnStatusPage) {
-  logger.debug(`Incident ${incident.id} not visible on status page; skipping.`);
+        logger.debug(
+          `Incident ${incident.id} not visible on status page; skipping.`,
+        );
         continue; // skip if not visible on status page.
       }
 
@@ -161,7 +170,9 @@ RunCron(
           },
         });
 
-  logger.debug(`Found ${statusPageResources.length} status page resource(s) for incident ${incident.id}.`);
+      logger.debug(
+        `Found ${statusPageResources.length} status page resource(s) for incident ${incident.id}.`,
+      );
 
       const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
@@ -179,7 +190,9 @@ RunCron(
         );
       }
 
-  logger.debug(`Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for state timeline notification.`);
+      logger.debug(
+        `Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for state timeline notification.`,
+      );
 
       const statusPages: Array<StatusPage> =
         await StatusPageSubscriberService.getStatusPagesToSendNotification(
@@ -195,7 +208,9 @@ RunCron(
         }
 
         if (!statuspage.showIncidentsOnStatusPage) {
-          logger.debug(`Status page ${statuspage.id} hides incidents; skipping.`);
+          logger.debug(
+            `Status page ${statuspage.id} hides incidents; skipping.`,
+          );
           continue; // Do not send notification to subscribers if incidents are not visible on status page.
         }
 
@@ -214,7 +229,9 @@ RunCron(
         const statusPageName: string =
           statuspage.pageTitle || statuspage.name || "Status Page";
 
-  logger.debug(`Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for incident state timeline ${incidentStateTimeline.id}.`);
+        logger.debug(
+          `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for incident state timeline ${incidentStateTimeline.id}.`,
+        );
 
         // Send email to Email subscribers.
 
@@ -233,7 +250,9 @@ RunCron(
             });
 
           if (!shouldNotifySubscriber) {
-            logger.debug(`Skipping subscriber ${subscriber._id} based on preferences for state timeline ${incidentStateTimeline.id}.`);
+            logger.debug(
+              `Skipping subscriber ${subscriber._id} based on preferences for state timeline ${incidentStateTimeline.id}.`,
+            );
             continue;
           }
 
@@ -246,7 +265,9 @@ RunCron(
           if (subscriber.subscriberPhone) {
             const phoneStr: string = subscriber.subscriberPhone.toString();
             const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
-            logger.debug(`Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for incident state timeline ${incidentStateTimeline.id}.`);
+            logger.debug(
+              `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for incident state timeline ${incidentStateTimeline.id}.`,
+            );
             const sms: SMS = {
               message: `
                             Incident ${Text.uppercaseFirstLetter(
@@ -288,7 +309,9 @@ RunCron(
 
           if (subscriber.subscriberEmail) {
             // send email here.
-            logger.debug(`Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for incident state timeline ${incidentStateTimeline.id}.`);
+            logger.debug(
+              `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for incident state timeline ${incidentStateTimeline.id}.`,
+            );
 
             MailService.sendMail(
               {
@@ -356,7 +379,9 @@ RunCron(
             }).catch((err: Error) => {
               logger.error(err);
             });
-            logger.debug(`Slack notification queued for subscriber ${subscriber._id} for incident state timeline ${incidentStateTimeline.id}.`);
+            logger.debug(
+              `Slack notification queued for subscriber ${subscriber._id} for incident state timeline ${incidentStateTimeline.id}.`,
+            );
           }
         }
       }

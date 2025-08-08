@@ -51,7 +51,6 @@ RunCron(
           subscriberNotificationStatus:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotified: true,
-          
         },
         props: {
           isRoot: true,

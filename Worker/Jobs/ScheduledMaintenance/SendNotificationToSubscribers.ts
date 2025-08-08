@@ -20,7 +20,6 @@ RunCron(
           subscriberNotificationStatusOnEventScheduled:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
-          
         },
         props: {
           isRoot: true,
@@ -44,11 +43,15 @@ RunCron(
         },
       });
 
-  logger.debug(`Found ${scheduledEvents.length} scheduled maintenance event(s) to notify subscribers for.`);
+    logger.debug(
+      `Found ${scheduledEvents.length} scheduled maintenance event(s) to notify subscribers for.`,
+    );
 
     for (const event of scheduledEvents) {
       try {
-    logger.debug(`Processing scheduled maintenance ${event.id} (project: ${event.projectId}).`);
+        logger.debug(
+          `Processing scheduled maintenance ${event.id} (project: ${event.projectId}).`,
+        );
         const scheduledMaintenanceId: ObjectID = event.id!;
         const projectId: ObjectID = event.projectId!;
         const scheduledMaintenanceNumber: string =
@@ -68,11 +71,15 @@ RunCron(
             ignoreHooks: true,
           },
         });
-        logger.debug(`Scheduled maintenance ${event.id} status set to InProgress for subscriber notifications.`);
+        logger.debug(
+          `Scheduled maintenance ${event.id} status set to InProgress for subscriber notifications.`,
+        );
 
         if (!event.isVisibleOnStatusPage) {
           // Set status to Skipped for non-visible events
-          logger.debug(`Scheduled maintenance ${event.id} is not visible on status page; marking as Skipped.`);
+          logger.debug(
+            `Scheduled maintenance ${event.id} is not visible on status page; marking as Skipped.`,
+          );
           await ScheduledMaintenanceService.updateOneById({
             id: event.id!,
             data: {
@@ -103,7 +110,7 @@ RunCron(
           },
         );
 
-  logger.debug(`Scheduled maintenance feed created for ${event.id}.`);
+        logger.debug(`Scheduled maintenance feed created for ${event.id}.`);
 
         // Set status to Success after successful processing
         await ScheduledMaintenanceService.updateOneById({
@@ -119,7 +126,9 @@ RunCron(
             ignoreHooks: true,
           },
         });
-  logger.debug(`Scheduled maintenance ${event.id} marked as Success for subscriber notifications.`);
+        logger.debug(
+          `Scheduled maintenance ${event.id} marked as Success for subscriber notifications.`,
+        );
       } catch (err) {
         logger.error(
           `Error processing scheduled maintenance notification ${event.id}: ${err}`,
@@ -148,11 +157,15 @@ RunCron(
       });
 
     if (successfulEvents.length > 0) {
-  logger.debug(`Notifying subscribers for ${successfulEvents.length} scheduled maintenance event(s) via service call.`);
+      logger.debug(
+        `Notifying subscribers for ${successfulEvents.length} scheduled maintenance event(s) via service call.`,
+      );
       await ScheduledMaintenanceService.notififySubscribersOnEventScheduled(
         successfulEvents,
       );
-  logger.debug("Service call to notify subscribers for scheduled maintenance events completed.");
+      logger.debug(
+        "Service call to notify subscribers for scheduled maintenance events completed.",
+      );
     }
   },
 );

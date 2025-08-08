@@ -66,15 +66,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     logger.debug("Realtime initialized");
 
-  // Register worker routes (must be before default 404 catch-alls)
-  await WorkerRoutes.init();
+    // Register worker routes (must be before default 404 catch-alls)
+    await WorkerRoutes.init();
 
-  logger.debug("Routes initialized");
+    logger.debug("Routes initialized");
 
-  // Add default routes to the app (catch-alls should be last)
-  await App.addDefaultRoutes();
+    // Add default routes to the app (catch-alls should be last)
+    await App.addDefaultRoutes();
 
-  logger.debug("Default routes added");
+    logger.debug("Default routes added");
 
     logger.info("Worker Initialized Successfully");
   } catch (err) {

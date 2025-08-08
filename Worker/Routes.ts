@@ -121,10 +121,7 @@ const WorkersFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {
       // attach bull board to the app
-      app.use(
-        Queue.getInspectorRoute(),
-        Queue.getQueueInspectorRouter(),
-      );
+      app.use(Queue.getInspectorRoute(), Queue.getQueueInspectorRouter());
 
       // run async database migrations
       RunDatabaseMigrations().catch((err: Error) => {

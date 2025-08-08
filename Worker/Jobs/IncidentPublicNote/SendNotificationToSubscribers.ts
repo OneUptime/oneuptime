@@ -52,7 +52,6 @@ RunCron(
           subscriberNotificationStatusOnNoteCreated:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
-          
         },
         props: {
           isRoot: true,
@@ -67,13 +66,19 @@ RunCron(
         },
       });
 
-  logger.debug(`Found ${incidentPublicNoteNotes.length} incident public note(s) to notify subscribers for.`);
+    logger.debug(
+      `Found ${incidentPublicNoteNotes.length} incident public note(s) to notify subscribers for.`,
+    );
 
     for (const incidentPublicNote of incidentPublicNoteNotes) {
       try {
-        logger.debug(`Processing incident public note ${incidentPublicNote.id}.`);
+        logger.debug(
+          `Processing incident public note ${incidentPublicNote.id}.`,
+        );
         if (!incidentPublicNote.incidentId) {
-          logger.debug(`Incident public note ${incidentPublicNote.id} has no incidentId; skipping.`);
+          logger.debug(
+            `Incident public note ${incidentPublicNote.id} has no incidentId; skipping.`,
+          );
           continue; // skip if incidentId is not set
         }
 
@@ -100,12 +105,16 @@ RunCron(
         });
 
         if (!incident) {
-          logger.debug(`Incident ${incidentPublicNote.incidentId} not found; skipping public note ${incidentPublicNote.id}.`);
+          logger.debug(
+            `Incident ${incidentPublicNote.incidentId} not found; skipping public note ${incidentPublicNote.id}.`,
+          );
           continue;
         }
 
         if (!incident.monitors || incident.monitors.length === 0) {
-          logger.debug(`Incident ${incident.id} has no monitors; skipping notifications for public note ${incidentPublicNote.id}.`);
+          logger.debug(
+            `Incident ${incident.id} has no monitors; skipping notifications for public note ${incidentPublicNote.id}.`,
+          );
           continue;
         }
 
@@ -121,11 +130,15 @@ RunCron(
             ignoreHooks: true,
           },
         });
-        logger.debug(`Incident public note ${incidentPublicNote.id} status set to InProgress for subscriber notifications.`);
+        logger.debug(
+          `Incident public note ${incidentPublicNote.id} status set to InProgress for subscriber notifications.`,
+        );
 
         if (!incident.isVisibleOnStatusPage) {
           // Set status to Skipped for non-visible incidents
-          logger.debug(`Incident ${incident.id} is not visible on status page; marking public note ${incidentPublicNote.id} as Skipped.`);
+          logger.debug(
+            `Incident ${incident.id} is not visible on status page; marking public note ${incidentPublicNote.id} as Skipped.`,
+          );
           await IncidentPublicNoteService.updateOneById({
             id: incidentPublicNote.id!,
             data: {
@@ -170,7 +183,9 @@ RunCron(
             },
           });
 
-  logger.debug(`Found ${statusPageResources.length} status page resource(s) for incident ${incident.id}.`);
+        logger.debug(
+          `Found ${statusPageResources.length} status page resource(s) for incident ${incident.id}.`,
+        );
 
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
@@ -188,7 +203,9 @@ RunCron(
           );
         }
 
-  logger.debug(`Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`);
+        logger.debug(
+          `Incident ${incident.id} maps to ${Object.keys(statusPageToResources).length} status page(s) for public note notifications.`,
+        );
 
         const statusPages: Array<StatusPage> =
           await StatusPageSubscriberService.getStatusPagesToSendNotification(
@@ -198,12 +215,14 @@ RunCron(
           );
 
         for (const statuspage of statusPages) {
-              logger.debug("Encountered a status page without an id; skipping.");
+          logger.debug("Encountered a status page without an id; skipping.");
           if (!statuspage.id) {
             continue;
           }
 
-              logger.debug(`Status page ${statuspage.id} hides incidents; skipping.`);
+          logger.debug(
+            `Status page ${statuspage.id} hides incidents; skipping.`,
+          );
           if (!statuspage.showIncidentsOnStatusPage) {
             continue; // Do not send notification to subscribers if incidents are not visible on status page.
           }
@@ -222,13 +241,17 @@ RunCron(
           const statusPageName: string =
             statuspage.pageTitle || statuspage.name || "Status Page";
 
-          logger.debug(`Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${incidentPublicNote.id}.`);
+          logger.debug(
+            `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for public note ${incidentPublicNote.id}.`,
+          );
 
           // Send email to Email subscribers.
 
           for (const subscriber of subscribers) {
             if (!subscriber._id) {
-              logger.debug("Encountered a subscriber without an _id; skipping.");
+              logger.debug(
+                "Encountered a subscriber without an _id; skipping.",
+              );
               continue;
             }
 
@@ -242,7 +265,9 @@ RunCron(
               });
 
             if (!shouldNotifySubscriber) {
-              logger.debug(`Skipping subscriber ${subscriber._id} based on preferences for public note ${incidentPublicNote.id}.`);
+              logger.debug(
+                `Skipping subscriber ${subscriber._id} based on preferences for public note ${incidentPublicNote.id}.`,
+              );
               continue;
             }
 
@@ -252,12 +277,16 @@ RunCron(
                 subscriber.id!,
               ).toString();
 
-            logger.debug(`Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`);
+            logger.debug(
+              `Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
+            );
 
             if (subscriber.subscriberPhone) {
               const phoneStr: string = subscriber.subscriberPhone.toString();
               const phoneMasked: string = `${phoneStr.slice(0, 2)}******${phoneStr.slice(-2)}`;
-              logger.debug(`Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${incidentPublicNote.id}.`);
+              logger.debug(
+                `Queueing SMS notification to subscriber ${subscriber._id} at ${phoneMasked} for public note ${incidentPublicNote.id}.`,
+              );
               const sms: SMS = {
                 message: `
                             Incident Update - ${statusPageName} 
@@ -286,7 +315,9 @@ RunCron(
 
             if (subscriber.subscriberEmail) {
               // send email here.
-              logger.debug(`Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${incidentPublicNote.id}.`);
+              logger.debug(
+                `Queueing email notification to subscriber ${subscriber._id} at ${subscriber.subscriberEmail} for public note ${incidentPublicNote.id}.`,
+              );
 
               MailService.sendMail(
                 {
@@ -334,7 +365,9 @@ RunCron(
               ).catch((err: Error) => {
                 logger.error(err);
               });
-              logger.debug(`Email notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`);
+              logger.debug(
+                `Email notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
+              );
             }
 
             if (subscriber.slackIncomingWebhookUrl) {
@@ -365,7 +398,9 @@ ${incidentPublicNote.note || ""}
               }).catch((err: Error) => {
                 logger.error(err);
               });
-              logger.debug(`Slack notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`);
+              logger.debug(
+                `Slack notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
+              );
             }
           }
         }
@@ -405,7 +440,9 @@ ${incidentPublicNote.note}`,
             ignoreHooks: true,
           },
         });
-  logger.debug(`Incident public note ${incidentPublicNote.id} marked as Success for subscriber notifications.`);
+        logger.debug(
+          `Incident public note ${incidentPublicNote.id} marked as Success for subscriber notifications.`,
+        );
       } catch (err) {
         logger.error(
           `Error sending notification for incident public note ${incidentPublicNote.id}: ${err}`,
