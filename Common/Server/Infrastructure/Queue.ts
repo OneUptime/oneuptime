@@ -46,13 +46,11 @@ export default class Queue {
       // Keep BullMQ data under control to avoid Redis bloat
       defaultJobOptions: {
         // keep only recent completed/failed jobs
-        removeOnComplete: { count: 1000 }, // keep last 1000 completed jobs
-        removeOnFail: { count: 500 }, // keep last 500 failed jobs
+        removeOnComplete: { count: 500 }, // keep last 1000 completed jobs
+        removeOnFail: { count: 100 }, // keep last 500 failed jobs
       },
       // Optionally cap the event stream length (supported in BullMQ >= v5)
       // This helps prevent the :events stream from growing indefinitely
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
       streams: {
         events: { maxLen: 1000 },
       },
