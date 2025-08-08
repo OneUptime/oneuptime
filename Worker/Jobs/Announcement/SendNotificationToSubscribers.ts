@@ -122,8 +122,21 @@ RunCron(
       );
       if (!announcement.statusPages) {
         logger.debug(
-          `Announcement ${announcement.id} has no status pages; skipping notifications.`,
+          `Announcement ${announcement.id} has no status pages; marking as Skipped.`,
         );
+        await StatusPageAnnouncementService.updateOneById({
+          id: announcement.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "No status pages attached to this announcement. Skipping notifications.",
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
         continue;
       }
 

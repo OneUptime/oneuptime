@@ -101,8 +101,21 @@ RunCron(
 
         if (!event) {
           logger.debug(
-            `Scheduled maintenance ${publicNote.scheduledMaintenanceId} not found; skipping public note ${publicNote.id}.`,
+            `Scheduled maintenance ${publicNote.scheduledMaintenanceId} not found; marking public note ${publicNote.id} as Skipped.`,
           );
+          await ScheduledMaintenancePublicNoteService.updateOneById({
+            id: publicNote.id!,
+            data: {
+              subscriberNotificationStatusOnNoteCreated:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Related scheduled maintenance not found. Skipping notifications to subscribers.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
           continue;
         }
 
@@ -202,6 +215,26 @@ RunCron(
               return i.id!;
             }) || [],
           );
+
+        if (!statusPages || statusPages.length === 0) {
+          logger.debug(
+            `No status pages found to notify for public note ${publicNote.id}; marking as Skipped.`,
+          );
+          await ScheduledMaintenancePublicNoteService.updateOneById({
+            id: publicNote.id!,
+            data: {
+              subscriberNotificationStatusOnNoteCreated:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "No status pages are configured for this scheduled maintenance. Skipping notifications.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+          continue;
+        }
 
         for (const statuspage of statusPages) {
           if (!statuspage.id) {

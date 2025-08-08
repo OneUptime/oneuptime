@@ -75,29 +75,47 @@ RunCron(
       logger.debug(
         `Processing incident state timeline ${incidentStateTimeline.id}.`,
       );
+      // Set to InProgress at the start of processing
       await IncidentStateTimelineService.updateOneById({
         id: incidentStateTimeline.id!,
         data: {
           subscriberNotificationStatus:
-            StatusPageSubscriberNotificationStatus.Success,
+            StatusPageSubscriberNotificationStatus.InProgress,
         },
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
-      logger.debug(
-        `Incident state timeline ${incidentStateTimeline.id} pre-marked as Success (legacy behavior).`,
-      );
 
       if (
         !incidentStateTimeline.incidentId ||
         !incidentStateTimeline.incidentStateId
       ) {
+        await IncidentStateTimelineService.updateOneById({
+          id: incidentStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "Missing incident or incident state reference. Skipping notifications.",
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
         continue;
       }
 
       if (!incidentStateTimeline.incidentState?.name) {
+        await IncidentStateTimelineService.updateOneById({
+          id: incidentStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "Incident state has no name. Skipping notifications.",
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
         continue;
       }
 
@@ -125,20 +143,52 @@ RunCron(
 
       if (!incident) {
         logger.debug(
-          `Incident ${incidentStateTimeline.incidentId} not found; skipping.`,
+          `Incident ${incidentStateTimeline.incidentId} not found; marking as Skipped.`,
         );
+        await IncidentStateTimelineService.updateOneById({
+          id: incidentStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "Related incident not found. Skipping notifications.",
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
         continue;
       }
 
       if (!incident.monitors || incident.monitors.length === 0) {
-        logger.debug(`Incident ${incident.id} has no monitors; skipping.`);
+        logger.debug(
+          `Incident ${incident.id} has no monitors; marking timeline ${incidentStateTimeline.id} as Skipped.`,
+        );
+        await IncidentStateTimelineService.updateOneById({
+          id: incidentStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "No monitors are attached to the related incident. Skipping notifications.",
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
         continue;
       }
 
       if (!incident.isVisibleOnStatusPage) {
         logger.debug(
-          `Incident ${incident.id} not visible on status page; skipping.`,
+          `Incident ${incident.id} not visible on status page; marking as Skipped.`,
         );
+        await IncidentStateTimelineService.updateOneById({
+          id: incidentStateTimeline.id!,
+          data: {
+            subscriberNotificationStatus:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              "Incident is not visible on status page. Skipping notifications.",
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
         continue; // skip if not visible on status page.
       }
 
@@ -407,6 +457,18 @@ RunCron(
       });
 
       logger.debug("Incident Feed created");
+
+      // Mark Success at the end
+      await IncidentStateTimelineService.updateOneById({
+        id: incidentStateTimeline.id!,
+        data: {
+          subscriberNotificationStatus:
+            StatusPageSubscriberNotificationStatus.Success,
+          subscriberNotificationStatusMessage:
+            "Notifications sent successfully to all subscribers",
+        },
+        props: { isRoot: true, ignoreHooks: true },
+      });
     }
   },
 );

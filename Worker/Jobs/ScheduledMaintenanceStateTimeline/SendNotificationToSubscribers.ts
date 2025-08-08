@@ -86,10 +86,30 @@ RunCron(
           !scheduledEventStateTimeline.scheduledMaintenanceId ||
           !scheduledEventStateTimeline.scheduledMaintenanceStateId
         ) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Missing scheduled maintenance or state reference. Skipping notifications.",
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
           continue;
         }
 
         if (!scheduledEventStateTimeline.scheduledMaintenanceState?.name) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Scheduled maintenance state has no name. Skipping notifications.",
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
           continue;
         }
 
@@ -119,10 +139,30 @@ RunCron(
           });
 
         if (!event) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Related scheduled maintenance not found. Skipping notifications.",
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
           continue;
         }
 
         if (!event.isVisibleOnStatusPage) {
+          await ScheduledMaintenanceStateTimelineService.updateOneById({
+            id: scheduledEventStateTimeline.id!,
+            data: {
+              subscriberNotificationStatus:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Scheduled maintenance is not visible on status page. Skipping notifications.",
+            },
+            props: { isRoot: true, ignoreHooks: true },
+          });
           continue; // skip if not visible on status page.
         }
 

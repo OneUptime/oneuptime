@@ -106,15 +106,41 @@ RunCron(
 
         if (!incident) {
           logger.debug(
-            `Incident ${incidentPublicNote.incidentId} not found; skipping public note ${incidentPublicNote.id}.`,
+            `Incident ${incidentPublicNote.incidentId} not found; marking public note ${incidentPublicNote.id} as Skipped.`,
           );
+          await IncidentPublicNoteService.updateOneById({
+            id: incidentPublicNote.id!,
+            data: {
+              subscriberNotificationStatusOnNoteCreated:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "Related incident not found. Skipping notifications to subscribers.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
           continue;
         }
 
         if (!incident.monitors || incident.monitors.length === 0) {
           logger.debug(
-            `Incident ${incident.id} has no monitors; skipping notifications for public note ${incidentPublicNote.id}.`,
+            `Incident ${incident.id} has no monitors; marking public note ${incidentPublicNote.id} as Skipped.`,
           );
+          await IncidentPublicNoteService.updateOneById({
+            id: incidentPublicNote.id!,
+            data: {
+              subscriberNotificationStatusOnNoteCreated:
+                StatusPageSubscriberNotificationStatus.Skipped,
+              subscriberNotificationStatusMessage:
+                "No monitors are attached to the related incident. Skipping notifications.",
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
           continue;
         }
 
