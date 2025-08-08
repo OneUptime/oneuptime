@@ -93,6 +93,8 @@ spec:
               value: {{ $.Values.openTelemetryIngest.ports.http | quote }} 
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.openTelemetryIngest.disableTelemetryCollection | quote }}
+            - name: OPEN_TELEMETRY_INGEST_CONCURRENCY
+              value: {{ $.Values.openTelemetryIngest.concurrency | squote }}
           ports:
             - containerPort: {{ $.Values.openTelemetryIngest.ports.http }}
               protocol: TCP

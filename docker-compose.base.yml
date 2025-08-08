@@ -482,6 +482,8 @@ services:
             <<: *common-server-variables
             PORT: ${OPEN_TELEMETRY_INGEST_PORT}
             DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_OPEN_TELEMETRY_INGEST}
+            # Max concurrent telemetry jobs the worker will process
+            OPEN_TELEMETRY_INGEST_CONCURRENCY: ${OPEN_TELEMETRY_INGEST_CONCURRENCY}
         logging:
             driver: "local"
             options:

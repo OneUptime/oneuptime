@@ -8,6 +8,7 @@ import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import ObjectID from "Common/Types/ObjectID";
+import { OPEN_TELEMETRY_INGEST_CONCURRENCY } from "../../Config";
 
 // Set up the unified worker for processing telemetry queue
 QueueWorker.getWorker(
@@ -58,7 +59,7 @@ QueueWorker.getWorker(
       throw error;
     }
   },
-  { concurrency: 50 }, // Process up to 50 telemetry jobs concurrently
+  { concurrency: OPEN_TELEMETRY_INGEST_CONCURRENCY },
 );
 
 logger.debug("Unified telemetry worker initialized");

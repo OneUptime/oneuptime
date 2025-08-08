@@ -537,6 +537,8 @@ openTelemetryIngest:
   replicaCount: 1
   disableTelemetryCollection: false
   disableAutoscaler: false
+  # Max concurrent telemetry jobs processed by each pod
+  concurrency: 100
   ports:
     http: 3403
   resources:
