@@ -30,6 +30,11 @@ router.post(
       userOnCallLogTimelineId:
         (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
       customTwilioConfig: body["customTwilioConfig"] as any,
+      incidentId: (body["incidentId"] as ObjectID) || undefined,
+      alertId: (body["alertId"] as ObjectID) || undefined,
+      scheduledMaintenanceId:
+        (body["scheduledMaintenanceId"] as ObjectID) || undefined,
+      statusPageId: (body["statusPageId"] as ObjectID) || undefined,
     });
 
     return Response.sendEmptySuccessResponse(req, res);

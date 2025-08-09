@@ -21,6 +21,10 @@ export class MailService extends BaseService {
       mailServer?: EmailServer | undefined;
       userOnCallLogTimelineId?: ObjectID;
       projectId?: ObjectID | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -46,6 +50,23 @@ export class MailService extends BaseService {
 
     if (options?.projectId) {
       body["projectId"] = options.projectId.toString();
+    }
+
+    if (options?.incidentId) {
+      body["incidentId"] = options.incidentId.toString();
+    }
+
+    if (options?.alertId) {
+      body["alertId"] = options.alertId.toString();
+    }
+
+    if (options?.scheduledMaintenanceId) {
+      body["scheduledMaintenanceId"] =
+        options.scheduledMaintenanceId.toString();
+    }
+
+    if (options?.statusPageId) {
+      body["statusPageId"] = options.statusPageId.toString();
     }
 
     return await API.post<EmptyResponseData>(

@@ -31,6 +31,10 @@ export default class SmsService {
       customTwilioConfig?: TwilioConfig | undefined;
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let smsError: Error | null = null;
@@ -69,6 +73,22 @@ export default class SmsService {
 
       if (options.projectId) {
         smsLog.projectId = options.projectId;
+      }
+
+      if (options.incidentId) {
+        smsLog.incidentId = options.incidentId;
+      }
+
+      if (options.alertId) {
+        smsLog.alertId = options.alertId;
+      }
+
+      if (options.scheduledMaintenanceId) {
+        smsLog.scheduledMaintenanceId = options.scheduledMaintenanceId;
+      }
+
+      if (options.statusPageId) {
+        smsLog.statusPageId = options.statusPageId;
       }
 
       const twilioConfig: TwilioConfig | null =

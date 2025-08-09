@@ -2357,6 +2357,7 @@ export default class StatusPageAPI extends BaseAPI<
               statusPage.smtpConfig,
             ),
             projectId: statusPage.projectId!,
+            statusPageId: statusPage.id!,
           },
         );
       }
@@ -2372,6 +2373,7 @@ export default class StatusPageAPI extends BaseAPI<
           customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
             statusPage.callSmsConfig,
           ),
+          statusPageId: statusPage.id!,
         }).catch((err: Error) => {
           logger.error(err);
         });

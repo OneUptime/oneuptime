@@ -345,6 +345,10 @@ export default class MailService {
           emailServer?: EmailServer | undefined;
           userOnCallLogTimelineId?: ObjectID | undefined;
           timeout?: number | undefined;
+          incidentId?: ObjectID | undefined;
+          alertId?: ObjectID | undefined;
+          scheduledMaintenanceId?: ObjectID | undefined;
+          statusPageId?: ObjectID | undefined;
         }
       | undefined,
   ): Promise<void> {
@@ -358,6 +362,22 @@ export default class MailService {
 
       if (options.emailServer?.id) {
         emailLog.projectSmtpConfigId = options.emailServer?.id;
+      }
+
+      if (options.incidentId) {
+        emailLog.incidentId = options.incidentId;
+      }
+
+      if (options.alertId) {
+        emailLog.alertId = options.alertId;
+      }
+
+      if (options.scheduledMaintenanceId) {
+        emailLog.scheduledMaintenanceId = options.scheduledMaintenanceId;
+      }
+
+      if (options.statusPageId) {
+        emailLog.statusPageId = options.statusPageId;
       }
     }
 

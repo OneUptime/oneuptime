@@ -295,6 +295,7 @@ export class Service extends DatabaseService<Model> {
         MailService.sendMail(emailMessage, {
           userOnCallLogTimelineId: updatedLog.id!,
           projectId: options.projectId,
+          alertId: alert.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -340,6 +341,7 @@ export class Service extends DatabaseService<Model> {
         MailService.sendMail(emailMessage, {
           userOnCallLogTimelineId: updatedLog.id!,
           projectId: options.projectId,
+          incidentId: incident.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -407,6 +409,7 @@ export class Service extends DatabaseService<Model> {
         SmsService.sendSms(smsMessage, {
           projectId: alert.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
+          alertId: alert.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -452,6 +455,7 @@ export class Service extends DatabaseService<Model> {
         SmsService.sendSms(smsMessage, {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
+          incidentId: incident.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -519,6 +523,7 @@ export class Service extends DatabaseService<Model> {
         CallService.makeCall(callRequest, {
           projectId: alert.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
+          alertId: alert.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -563,6 +568,7 @@ export class Service extends DatabaseService<Model> {
         CallService.makeCall(callRequest, {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
+          incidentId: incident.id!,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,

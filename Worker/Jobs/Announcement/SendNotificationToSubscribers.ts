@@ -260,6 +260,7 @@ RunCron(
                       ProjectCallSMSConfigService.toTwilioConfig(
                         statuspage.callSmsConfig,
                       ),
+                    statusPageId: statuspage.id!,
                   }).catch((err: Error) => {
                     logger.error(err);
                   });
@@ -328,6 +329,7 @@ RunCron(
                         statuspage.smtpConfig,
                       ),
                       projectId: statuspage.projectId,
+                      statusPageId: statuspage.id!,
                     },
                   ).catch((err: Error) => {
                     logger.error(err);

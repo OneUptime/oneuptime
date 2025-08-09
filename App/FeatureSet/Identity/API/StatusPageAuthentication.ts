@@ -168,6 +168,7 @@ router.post(
           },
           {
             projectId: statusPage.projectId!,
+            statusPageId: statusPage.id!,
           },
         ).catch((err: Error) => {
           logger.error(err);
@@ -306,6 +307,7 @@ router.post(
         },
         {
           projectId: statusPage.projectId!,
+          statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {
         logger.error(err);

@@ -778,6 +778,7 @@ export class Service extends DatabaseService<StatusPage> {
             statuspage.smtpConfig,
           ),
           projectId: statuspage.projectId,
+          statusPageId: statuspage.id!,
         },
       ).catch((err: Error) => {
         logger.error(err);

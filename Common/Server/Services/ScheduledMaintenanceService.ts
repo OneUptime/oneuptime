@@ -251,6 +251,8 @@ export class Service extends DatabaseService<Model> {
               customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
                 statuspage.callSmsConfig,
               ),
+              statusPageId: statuspage.id!,
+              scheduledMaintenanceId: event.id!,
             }).catch((err: Error) => {
               logger.error(err);
             });
@@ -319,6 +321,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   statuspage.smtpConfig,
                 ),
                 projectId: statuspage.projectId!,
+                statusPageId: statuspage.id!,
+                scheduledMaintenanceId: event.id!,
               },
             ).catch((err: Error) => {
               logger.error(err);

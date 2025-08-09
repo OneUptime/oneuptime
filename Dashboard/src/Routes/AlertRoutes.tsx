@@ -25,6 +25,24 @@ const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
   },
 );
 
+const AlertViewNotificationLogsEmail: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/View/NotificationLogsEmail");
+});
+
+const AlertViewNotificationLogsSms: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/View/NotificationLogsSms");
+});
+
+const AlertViewNotificationLogsCall: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Alerts/View/NotificationLogsCall");
+});
+
 const AlertsWorkspaceConnectionSlack: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -281,6 +299,42 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                     PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
                   ] as Route
                 }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_EMAIL_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertViewNotificationLogsEmail
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_EMAIL_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_SMS_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertViewNotificationLogsSms
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_SMS_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_CALL_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AlertViewNotificationLogsCall
+                {...props}
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_CALL_LOGS] as Route}
               />
             </Suspense>
           }

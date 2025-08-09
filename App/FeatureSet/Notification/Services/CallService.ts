@@ -36,6 +36,10 @@ export default class CallService {
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
       customTwilioConfig?: TwilioConfig | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let callError: Error | null = null;
@@ -88,6 +92,22 @@ export default class CallService {
 
       if (options.projectId) {
         callLog.projectId = options.projectId;
+      }
+
+      if (options.incidentId) {
+        callLog.incidentId = options.incidentId;
+      }
+
+      if (options.alertId) {
+        callLog.alertId = options.alertId;
+      }
+
+      if (options.scheduledMaintenanceId) {
+        callLog.scheduledMaintenanceId = options.scheduledMaintenanceId;
+      }
+
+      if (options.statusPageId) {
+        callLog.statusPageId = options.statusPageId;
       }
 
       let project: Project | null = null;

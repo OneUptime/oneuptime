@@ -43,6 +43,18 @@ router.post(
       emailServer: mailServer,
       userOnCallLogTimelineId:
         (body["userOnCallLogTimelineId"] as ObjectID) || undefined,
+      incidentId: body["incidentId"]
+        ? new ObjectID(body["incidentId"].toString())
+        : undefined,
+      alertId: body["alertId"]
+        ? new ObjectID(body["alertId"].toString())
+        : undefined,
+      scheduledMaintenanceId: body["scheduledMaintenanceId"]
+        ? new ObjectID(body["scheduledMaintenanceId"].toString())
+        : undefined,
+      statusPageId: body["statusPageId"]
+        ? new ObjectID(body["statusPageId"].toString())
+        : undefined,
     });
 
     return Response.sendEmptySuccessResponse(req, res);

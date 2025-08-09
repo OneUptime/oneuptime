@@ -26,6 +26,10 @@ export class SmsService extends BaseService {
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID;
       customTwilioConfig?: TwilioConfig | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -44,6 +48,10 @@ export class SmsService extends BaseService {
               options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
           }
         : undefined,
+  incidentId: options.incidentId?.toString(),
+  alertId: options.alertId?.toString(),
+  scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
+  statusPageId: options.statusPageId?.toString(),
     };
 
     return await API.post<EmptyResponseData>(

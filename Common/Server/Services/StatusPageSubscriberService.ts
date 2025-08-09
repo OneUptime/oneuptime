@@ -313,6 +313,7 @@ export class Service extends DatabaseService<Model> {
           customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
             statusPage.callSmsConfig,
           ),
+          statusPageId: createdItem.statusPageId!,
         },
       ).catch((err: Error) => {
         logger.error(err);
@@ -509,6 +510,7 @@ Stay informed about service availability! 🚀`;
           mailServer: ProjectSMTPConfigService.toEmailServer(
             statusPage.smtpConfig,
           ),
+          statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {
         logger.error(err);
@@ -635,6 +637,7 @@ Stay informed about service availability! 🚀`;
           mailServer: ProjectSMTPConfigService.toEmailServer(
             statusPage.smtpConfig,
           ),
+          statusPageId: statusPage.id!,
         },
       ).catch((err: Error) => {
         logger.error("Error sending subscription email:");
