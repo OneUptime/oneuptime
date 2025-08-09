@@ -261,6 +261,7 @@ RunCron(
                         statuspage.callSmsConfig,
                       ),
                     statusPageId: statuspage.id!,
+                    statusPageAnnouncementId: announcement.id!,
                   }).catch((err: Error) => {
                     logger.error(err);
                   });
@@ -330,6 +331,7 @@ RunCron(
                       ),
                       projectId: statuspage.projectId,
                       statusPageId: statuspage.id!,
+                      statusPageAnnouncementId: announcement.id!,
                     },
                   ).catch((err: Error) => {
                     logger.error(err);

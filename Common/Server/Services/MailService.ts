@@ -25,6 +25,7 @@ export class MailService extends BaseService {
   alertId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -67,6 +68,11 @@ export class MailService extends BaseService {
 
     if (options?.statusPageId) {
       body["statusPageId"] = options.statusPageId.toString();
+    }
+
+    if (options?.statusPageAnnouncementId) {
+      body["statusPageAnnouncementId"] =
+        options.statusPageAnnouncementId.toString();
     }
 
     return await API.post<EmptyResponseData>(

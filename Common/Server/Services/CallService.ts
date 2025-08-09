@@ -30,6 +30,7 @@ export class CallService extends BaseService {
   alertId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -51,6 +52,7 @@ export class CallService extends BaseService {
   alertId: options.alertId?.toString(),
   scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
   statusPageId: options.statusPageId?.toString(),
+  statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),
     };
 
     return await API.post<EmptyResponseData>(

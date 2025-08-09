@@ -40,6 +40,7 @@ export default class CallService {
   alertId?: ObjectID | undefined;
   scheduledMaintenanceId?: ObjectID | undefined;
   statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let callError: Error | null = null;
@@ -108,6 +109,10 @@ export default class CallService {
 
       if (options.statusPageId) {
         callLog.statusPageId = options.statusPageId;
+      }
+
+      if (options.statusPageAnnouncementId) {
+        callLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
       }
 
       let project: Project | null = null;

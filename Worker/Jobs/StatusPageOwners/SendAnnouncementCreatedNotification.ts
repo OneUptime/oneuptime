@@ -12,6 +12,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import StatusPageAnnouncementService from "Common/Server/Services/StatusPageAnnouncementService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
+// (no direct sends here; we will pass context through notification settings)
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -123,6 +124,7 @@ RunCron(
               requireInteraction: false,
             });
 
+          // Send notifications via settings service with context for logs
           await UserNotificationSettingService.sendUserNotification({
             userId: user.id!,
             projectId: announcement.projectId!,
@@ -132,7 +134,8 @@ RunCron(
             pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
-          });
+            statusPageAnnouncementId: announcement.id!,
+          } as any);
         }
       }
     }

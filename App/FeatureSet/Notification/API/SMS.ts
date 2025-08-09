@@ -35,6 +35,8 @@ router.post(
       scheduledMaintenanceId:
         (body["scheduledMaintenanceId"] as ObjectID) || undefined,
       statusPageId: (body["statusPageId"] as ObjectID) || undefined,
+      statusPageAnnouncementId:
+        (body["statusPageAnnouncementId"] as ObjectID) || undefined,
     });
 
     return Response.sendEmptySuccessResponse(req, res);

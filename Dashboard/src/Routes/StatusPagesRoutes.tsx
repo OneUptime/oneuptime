@@ -170,10 +170,26 @@ const AnnouncementCreate: LazyExoticComponent<
   return import("../Pages/StatusPages/AnnouncementCreate");
 });
 
-const AnnouncementView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/StatusPages/AnnouncementView");
-  });
+const AnnouncementView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/AnnouncementView");
+});
+
+const AnnouncementViewLayout: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/AnnouncementLayout");
+});
+
+const AnnouncementViewEmailLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements/View/NotificationLogsEmail");
+});
+const AnnouncementViewSmsLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements/View/NotificationLogsSms");
+});
+const AnnouncementViewCallLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements/View/NotificationLogsCall");
+});
+const AnnouncementViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements/View/Delete");
+});
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -230,13 +246,66 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         path={StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW] || ""}
         element={
           <Suspense fallback={Loader}>
-            <AnnouncementView
-              {...props}
-              pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route}
-            />
+            <AnnouncementViewLayout {...props} />
           </Suspense>
         }
-      />
+      >
+        <PageRoute
+          index
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementView
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementViewEmailLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementViewSmsLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementViewCallLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_DELETE)}
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementViewDelete
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_DELETE] as Route}
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
 
       <PageRoute
         path={StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW] || ""}

@@ -55,6 +55,9 @@ router.post(
       statusPageId: body["statusPageId"]
         ? new ObjectID(body["statusPageId"].toString())
         : undefined,
+      statusPageAnnouncementId: body["statusPageAnnouncementId"]
+        ? new ObjectID(body["statusPageAnnouncementId"].toString())
+        : undefined,
     });
 
     return Response.sendEmptySuccessResponse(req, res);

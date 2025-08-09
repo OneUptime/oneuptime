@@ -4,6 +4,7 @@ import Alert from "./Alert";
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import StatusPage from "./StatusPage";
 import ProjectSmtpConfig from "./ProjectSmtpConfig";
+import StatusPageAnnouncement from "./StatusPageAnnouncement";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -520,6 +521,64 @@ export default class EmailLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public statusPageId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "statusPageAnnouncementId",
+    type: TableColumnType.Entity,
+    modelType: StatusPageAnnouncement,
+    title: "Status Page Announcement",
+    description:
+      "Status Page Announcement associated with this email (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return StatusPageAnnouncement;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "statusPageAnnouncementId" })
+  public statusPageAnnouncement?: StatusPageAnnouncement = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Status Page Announcement ID",
+    description:
+      "ID of Status Page Announcement associated with this email (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public statusPageAnnouncementId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
