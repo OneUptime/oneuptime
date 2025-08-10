@@ -61,6 +61,16 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Call}
         />
+        <SideMenuItem
+          link={{
+            title: "Push Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bell}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

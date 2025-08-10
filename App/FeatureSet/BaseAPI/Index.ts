@@ -282,6 +282,9 @@ import ShortLinkService, {
 import SmsLogService, {
   Service as SmsLogServiceType,
 } from "Common/Server/Services/SmsLogService";
+import PushNotificationLogService, {
+  Service as PushNotificationLogServiceType,
+} from "Common/Server/Services/PushNotificationLogService";
 import SpanService, {
   SpanService as SpanServiceType,
 } from "Common/Server/Services/SpanService";
@@ -379,6 +382,7 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
+import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
@@ -1529,6 +1533,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PushNotificationLog, PushNotificationLogServiceType>(
+        PushNotificationLog,
+        PushNotificationLogService,
+      ).getRouter(),
     );
 
     app.use(

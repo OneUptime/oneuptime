@@ -214,6 +214,10 @@ const SettingsEmailLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/EmailLog");
   });
+const SettingsPushLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Settings/PushLog");
+  });
 const SettingsNotifications: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -567,6 +571,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsEmailLog
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PUSH_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsPushLog
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_PUSH_LOGS] as Route}
               />
             </Suspense>
           }

@@ -343,6 +343,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Email,
         },
+        {
+          link: {
+            title: "Push Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_PUSH_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
       ],
     },
     {

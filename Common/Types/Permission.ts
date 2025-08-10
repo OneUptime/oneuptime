@@ -142,6 +142,7 @@ enum Permission {
   ReadSmsLog = "ReadSmsLog",
   ReadEmailLog = "ReadEmailLog",
   ReadCallLog = "ReadCallLog",
+  ReadPushLog = "ReadPushLog",
 
   CreateIncidentOwnerTeam = "CreateIncidentOwnerTeam",
   DeleteIncidentOwnerTeam = "DeleteIncidentOwnerTeam",
@@ -2999,6 +3000,14 @@ export class PermissionHelper {
         permission: Permission.ReadCallLog,
         title: "Read Call Log",
         description: "This permission can read Call Logs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.ReadPushLog,
+        title: "Read Push Log",
+        description: "This permission can read Push Notification Logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

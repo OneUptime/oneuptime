@@ -152,6 +152,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Call Logs",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PUSH_LOGS, [
+      "Project",
+      "Settings",
+      "Push Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_EMAIL_LOGS, [
       "Project",
       "Settings",

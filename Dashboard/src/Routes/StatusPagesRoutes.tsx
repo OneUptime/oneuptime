@@ -187,6 +187,9 @@ const AnnouncementViewSmsLogs: LazyExoticComponent<FunctionComponent<ComponentPr
 const AnnouncementViewCallLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
   return import("../Pages/StatusPages/Announcements/View/NotificationLogsCall");
 });
+const AnnouncementViewPushLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements/View/NotificationLogsPush");
+});
 const AnnouncementViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
   return import("../Pages/StatusPages/Announcements/View/Delete");
 });
@@ -290,6 +293,17 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <AnnouncementViewCallLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <AnnouncementViewPushLogs
+                {...props}
+                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS] as Route}
               />
             </Suspense>
           }
