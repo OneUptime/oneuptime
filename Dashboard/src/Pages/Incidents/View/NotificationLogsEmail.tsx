@@ -12,22 +12,43 @@ import EmailStatus from "Common/Types/Mail/MailStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 
-const IncidentEmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const IncidentEmailLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const columns: Columns<EmailLog> = [
     { field: { toEmail: true }, title: "To", type: FieldType.Email },
-    { field: { fromEmail: true }, title: "From", type: FieldType.Email, hideOnMobile: true },
-    { field: { subject: true }, title: "Subject", type: FieldType.Text, hideOnMobile: true },
+    {
+      field: { fromEmail: true },
+      title: "From",
+      type: FieldType.Email,
+      hideOnMobile: true,
+    },
+    {
+      field: { subject: true },
+      title: "Subject",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-    { field: { status: true }, title: "Status", type: FieldType.Text, getElement: (item: EmailLog): ReactElement => {
-      if (item["status"]) {
-        return (
-          <Pill isMinimal={false} color={item["status"] === EmailStatus.Success ? Green : Red} text={item["status"] as string} />
-        );
-      }
-      return <></>;
-    } },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Text,
+      getElement: (item: EmailLog): ReactElement => {
+        if (item["status"]) {
+          return (
+            <Pill
+              isMinimal={false}
+              color={item["status"] === EmailStatus.Success ? Green : Red}
+              text={item["status"] as string}
+            />
+          );
+        }
+        return <></>;
+      },
+    },
   ];
 
   const filters: Array<Filter<EmailLog>> = [
@@ -45,9 +66,15 @@ const IncidentEmailLogs: FunctionComponent<PageComponentProps> = (): ReactElemen
       isCreateable={false}
       showViewIdButton={true}
       userPreferencesKey="incident-email-logs-table"
-      query={{ projectId: ProjectUtil.getCurrentProjectId()!, incidentId: modelId }}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        incidentId: modelId,
+      }}
       selectMoreFields={{ statusMessage: true }}
-      cardProps={{ title: "Email Logs", description: "Emails sent for this incident." }}
+      cardProps={{
+        title: "Email Logs",
+        description: "Emails sent for this incident.",
+      }}
       noItemsMessage="No email logs for this incident."
       showRefreshButton={true}
       columns={columns}

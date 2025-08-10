@@ -359,8 +359,7 @@ export default class PushNotificationLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Scheduled Maintenance associated with this Push (if any)",
+    description: "Scheduled Maintenance associated with this Push (if any)",
   })
   @ManyToOne(
     () => {
@@ -473,8 +472,7 @@ export default class PushNotificationLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: StatusPageAnnouncement,
     title: "Status Page Announcement",
-    description:
-      "Status Page Announcement associated with this Push (if any)",
+    description: "Status Page Announcement associated with this Push (if any)",
   })
   @ManyToOne(
     () => {

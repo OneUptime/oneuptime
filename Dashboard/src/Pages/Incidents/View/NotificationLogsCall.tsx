@@ -12,21 +12,37 @@ import CallStatus from "Common/Types/Call/CallStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 
-const IncidentCallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const IncidentCallLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const columns: Columns<CallLog> = [
     { field: { toNumber: true }, title: "To", type: FieldType.Phone },
-    { field: { fromNumber: true }, title: "From", type: FieldType.Phone, hideOnMobile: true },
+    {
+      field: { fromNumber: true },
+      title: "From",
+      type: FieldType.Phone,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-    { field: { status: true }, title: "Status", type: FieldType.Text, getElement: (item: CallLog): ReactElement => {
-      if (item["status"]) {
-        return (
-          <Pill isMinimal={false} color={item["status"] === CallStatus.Success ? Green : Red} text={item["status"] as string} />
-        );
-      }
-      return <></>;
-    } },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Text,
+      getElement: (item: CallLog): ReactElement => {
+        if (item["status"]) {
+          return (
+            <Pill
+              isMinimal={false}
+              color={item["status"] === CallStatus.Success ? Green : Red}
+              text={item["status"] as string}
+            />
+          );
+        }
+        return <></>;
+      },
+    },
   ];
 
   const filters: Array<Filter<CallLog>> = [
@@ -44,9 +60,15 @@ const IncidentCallLogs: FunctionComponent<PageComponentProps> = (): ReactElement
       isCreateable={false}
       showViewIdButton={true}
       userPreferencesKey="incident-call-logs-table"
-      query={{ projectId: ProjectUtil.getCurrentProjectId()!, incidentId: modelId }}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        incidentId: modelId,
+      }}
       selectMoreFields={{ statusMessage: true }}
-      cardProps={{ title: "Call Logs", description: "Calls made for this incident." }}
+      cardProps={{
+        title: "Call Logs",
+        description: "Calls made for this incident.",
+      }}
       noItemsMessage="No call logs for this incident."
       showRefreshButton={true}
       columns={columns}

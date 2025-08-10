@@ -12,21 +12,37 @@ import SmsStatus from "Common/Types/SmsStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 
-const AnnouncementSmsLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AnnouncementSmsLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const columns: Columns<SmsLog> = [
     { field: { toNumber: true }, title: "To", type: FieldType.Phone },
-    { field: { fromNumber: true }, title: "From", type: FieldType.Phone, hideOnMobile: true },
+    {
+      field: { fromNumber: true },
+      title: "From",
+      type: FieldType.Phone,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-    { field: { status: true }, title: "Status", type: FieldType.Text, getElement: (item: SmsLog): ReactElement => {
-      if (item["status"]) {
-        return (
-          <Pill isMinimal={false} color={item["status"] === SmsStatus.Success ? Green : Red} text={item["status"] as string} />
-        );
-      }
-      return <></>;
-    } },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Text,
+      getElement: (item: SmsLog): ReactElement => {
+        if (item["status"]) {
+          return (
+            <Pill
+              isMinimal={false}
+              color={item["status"] === SmsStatus.Success ? Green : Red}
+              text={item["status"] as string}
+            />
+          );
+        }
+        return <></>;
+      },
+    },
   ];
 
   const filters: Array<Filter<SmsLog>> = [
@@ -44,9 +60,15 @@ const AnnouncementSmsLogs: FunctionComponent<PageComponentProps> = (): ReactElem
       isCreateable={false}
       showViewIdButton={true}
       userPreferencesKey="announcement-sms-logs-table"
-      query={{ projectId: ProjectUtil.getCurrentProjectId()!, statusPageAnnouncementId: modelId }}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        statusPageAnnouncementId: modelId,
+      }}
       selectMoreFields={{ statusMessage: true }}
-      cardProps={{ title: "SMS Logs", description: "SMS sent for this announcement." }}
+      cardProps={{
+        title: "SMS Logs",
+        description: "SMS sent for this announcement.",
+      }}
       noItemsMessage="No SMS logs for this announcement."
       showRefreshButton={true}
       columns={columns}

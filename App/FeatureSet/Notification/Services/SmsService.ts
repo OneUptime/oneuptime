@@ -31,11 +31,11 @@ export default class SmsService {
       customTwilioConfig?: TwilioConfig | undefined;
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID | undefined;
-  incidentId?: ObjectID | undefined;
-  alertId?: ObjectID | undefined;
-  scheduledMaintenanceId?: ObjectID | undefined;
-  statusPageId?: ObjectID | undefined;
-  statusPageAnnouncementId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let smsError: Error | null = null;

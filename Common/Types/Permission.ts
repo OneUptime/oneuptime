@@ -3007,7 +3007,8 @@ export class PermissionHelper {
       {
         permission: Permission.ReadPushLog,
         title: "Read Push Log",
-        description: "This permission can read Push Notification Logs of this project.",
+        description:
+          "This permission can read Push Notification Logs of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

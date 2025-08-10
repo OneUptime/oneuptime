@@ -6,7 +6,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import AnnouncementSideMenu from "./AnnouncementSideMenu";
 
-const AnnouncementViewLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AnnouncementViewLayout: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
   return (
@@ -16,7 +18,7 @@ const AnnouncementViewLayout: FunctionComponent<PageComponentProps> = (): ReactE
       modelId={modelId}
       modelNameField="title"
       breadcrumbLinks={[]}
-  sideMenu={<AnnouncementSideMenu modelId={modelId} />}
+      sideMenu={<AnnouncementSideMenu modelId={modelId} />}
     >
       <Outlet />
     </ModelPage>

@@ -10,7 +10,12 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import PushStatus from "Common/Types/PushNotification/PushStatus";
 
@@ -23,21 +28,41 @@ const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     { field: { _id: true }, title: "Log ID", type: FieldType.ObjectID },
     { field: { title: true }, title: "Title", type: FieldType.Text },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown, filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(PushStatus) },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      filterDropdownOptions:
+        DropdownUtil.getDropdownOptionsFromEnum(PushStatus),
+    },
   ];
 
   const columns: Columns<PushNotificationLog> = [
     { field: { title: true }, title: "Title", type: FieldType.Text },
-    { field: { deviceType: true }, title: "Device Type", type: FieldType.Text, hideOnMobile: true },
+    {
+      field: { deviceType: true },
+      title: "Device Type",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-    { field: { status: true }, title: "Status", type: FieldType.Text, getElement: (item: PushNotificationLog): ReactElement => {
-      if (item["status"]) {
-        return (
-          <Pill isMinimal={false} color={item["status"] === PushStatus.Success ? Green : Red} text={item["status"] as string} />
-        );
-      }
-      return <></>;
-    } },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Text,
+      getElement: (item: PushNotificationLog): ReactElement => {
+        if (item["status"]) {
+          return (
+            <Pill
+              isMinimal={false}
+              color={item["status"] === PushStatus.Success ? Green : Red}
+              text={item["status"] as string}
+            />
+          );
+        }
+        return <></>;
+      },
+    },
   ];
 
   return (
@@ -58,7 +83,10 @@ const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "View Body",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.List,
-              onClick: async (item: PushNotificationLog, onCompleteAction: VoidFunction) => {
+              onClick: async (
+                item: PushNotificationLog,
+                onCompleteAction: VoidFunction,
+              ) => {
                 setText(item["body"] as string);
                 setTitle("Body");
                 setShowModal(true);
@@ -69,7 +97,10 @@ const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "View Status Message",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.Error,
-              onClick: async (item: PushNotificationLog, onCompleteAction: VoidFunction) => {
+              onClick: async (
+                item: PushNotificationLog,
+                onCompleteAction: VoidFunction,
+              ) => {
                 setText(item["statusMessage"] as string);
                 setTitle("Status Message");
                 setShowModal(true);
@@ -78,8 +109,14 @@ const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
           isViewable={false}
-          cardProps={{ title: "Push Logs", description: "Logs of all the Push notifications sent by this project in the last 30 days." }}
-          noItemsMessage={"Looks like no Push notifications were sent by this project in the last 30 days."}
+          cardProps={{
+            title: "Push Logs",
+            description:
+              "Logs of all the Push notifications sent by this project in the last 30 days.",
+          }}
+          noItemsMessage={
+            "Looks like no Push notifications were sent by this project in the last 30 days."
+          }
           showRefreshButton={true}
           filters={filters}
           columns={columns}

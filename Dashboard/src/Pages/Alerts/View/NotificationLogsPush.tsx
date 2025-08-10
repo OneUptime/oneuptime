@@ -13,26 +13,48 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 
-const AlertPushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AlertPushLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const columns: Columns<PushNotificationLog> = [
     { field: { title: true }, title: "Title", type: FieldType.Text },
-    { field: { deviceType: true }, title: "Device Type", type: FieldType.Text, hideOnMobile: true },
+    {
+      field: { deviceType: true },
+      title: "Device Type",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-    { field: { status: true }, title: "Status", type: FieldType.Text, getElement: (item: PushNotificationLog): ReactElement => {
-      if (item["status"]) {
-        return (
-          <Pill isMinimal={false} color={item["status"] === PushStatus.Success ? Green : Red} text={item["status"] as string} />
-        );
-      }
-      return <></>;
-    } },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Text,
+      getElement: (item: PushNotificationLog): ReactElement => {
+        if (item["status"]) {
+          return (
+            <Pill
+              isMinimal={false}
+              color={item["status"] === PushStatus.Success ? Green : Red}
+              text={item["status"] as string}
+            />
+          );
+        }
+        return <></>;
+      },
+    },
   ];
 
   const filters: Array<Filter<PushNotificationLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-  { field: { status: true }, title: "Status", type: FieldType.Dropdown, filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(PushStatus) },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      filterDropdownOptions:
+        DropdownUtil.getDropdownOptionsFromEnum(PushStatus),
+    },
   ];
 
   return (
@@ -45,9 +67,15 @@ const AlertPushLogs: FunctionComponent<PageComponentProps> = (): ReactElement =>
       isCreateable={false}
       showViewIdButton={true}
       userPreferencesKey="alert-push-logs-table"
-      query={{ projectId: ProjectUtil.getCurrentProjectId()!, alertId: modelId }}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        alertId: modelId,
+      }}
       selectMoreFields={{ statusMessage: true, body: true }}
-      cardProps={{ title: "Push Logs", description: "Push notifications sent for this alert." }}
+      cardProps={{
+        title: "Push Logs",
+        description: "Push notifications sent for this alert.",
+      }}
       noItemsMessage="No Push logs for this alert."
       showRefreshButton={true}
       columns={columns}

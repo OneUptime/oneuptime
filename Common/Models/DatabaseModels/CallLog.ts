@@ -390,8 +390,7 @@ export default class CallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Scheduled Maintenance associated with this Call (if any)",
+    description: "Scheduled Maintenance associated with this Call (if any)",
   })
   @ManyToOne(
     () => {
@@ -504,8 +503,7 @@ export default class CallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: StatusPageAnnouncement,
     title: "Status Page Announcement",
-    description:
-      "Status Page Announcement associated with this Call (if any)",
+    description: "Status Page Announcement associated with this Call (if any)",
   })
   @ManyToOne(
     () => {

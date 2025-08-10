@@ -8,7 +8,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import React, { FunctionComponent, ReactElement } from "react";
 
-const AnnouncementDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AnnouncementDelete: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
@@ -17,9 +19,12 @@ const AnnouncementDelete: FunctionComponent<PageComponentProps> = (): ReactEleme
       modelId={modelId}
       onDeleteSuccess={() => {
         Navigation.navigate(
-          RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route, {
-            modelId,
-          }),
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.STATUS_PAGE_ANNOUNCEMENTS] as Route,
+            {
+              modelId,
+            },
+          ),
         );
       }}
     />

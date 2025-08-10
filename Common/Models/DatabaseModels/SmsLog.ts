@@ -390,8 +390,7 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Scheduled Maintenance associated with this SMS (if any)",
+    description: "Scheduled Maintenance associated with this SMS (if any)",
   })
   @ManyToOne(
     () => {
@@ -504,8 +503,7 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: StatusPageAnnouncement,
     title: "Status Page Announcement",
-    description:
-      "Status Page Announcement associated with this SMS (if any)",
+    description: "Status Page Announcement associated with this SMS (if any)",
   })
   @ManyToOne(
     () => {
