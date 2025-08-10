@@ -141,6 +141,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+        <SideMenuItem
+          link={{
+            title: "Workspace Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW_WORKSPACE_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Chat}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Incident Notes">

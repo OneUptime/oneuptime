@@ -218,6 +218,11 @@ const SettingsPushLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/Settings/PushLog");
   });
+const SettingsWorkspaceLog: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/WorkspaceLog");
+});
 const SettingsNotifications: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -583,6 +588,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               <SettingsPushLog
                 {...props}
                 pageRoute={RouteMap[PageMap.SETTINGS_PUSH_LOGS] as Route}
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_WORKSPACE_LOGS)}
+          element={
+            <Suspense fallback={Loader}>
+              <SettingsWorkspaceLog
+                {...props}
+                pageRoute={RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route}
               />
             </Suspense>
           }
