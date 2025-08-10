@@ -19,7 +19,10 @@ import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+import {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+} from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
@@ -224,7 +227,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const createdChannel of createdChannels) {
         try {
-          const responses =
+          const responses: Array<WorkspaceSendMessageResponse> =
             await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
               projectId: data.projectId,
               messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
@@ -243,10 +246,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             });
 
           // Log results for test sends (created channels)
-          const getMessageSummary = (wt: WorkspaceType): string => {
-            const blocks = messageBlocksByWorkspaceTypes.find((b) => {
-              return b.workspaceType === wt;
-            })?.messageBlocks;
+          const getMessageSummary: (wt: WorkspaceType) => string = (
+            wt: WorkspaceType,
+          ): string => {
+            const blocks: Array<WorkspaceMessageBlock> | undefined =
+              messageBlocksByWorkspaceTypes.find(
+                (b: MessageBlocksByWorkspaceType) => {
+                  return b.workspaceType === wt;
+                },
+              )?.messageBlocks;
             if (!blocks) {
               return "";
             }
@@ -259,7 +267,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 texts.push((block as WorkspacePayloadMarkdown).text);
               }
             }
-            const joined = texts.join(" \n").trim();
+            const joined: string = texts.join(" \n").trim();
             return joined.length > 300 ? joined.slice(0, 297) + "..." : joined;
           };
 
@@ -310,7 +318,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const existingChannelName of existingChannelNames) {
         try {
-          const responses =
+          const responses: Array<WorkspaceSendMessageResponse> =
             await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
               projectId: data.projectId,
               messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
@@ -329,10 +337,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             });
 
           // Log results for test sends (existing channels)
-          const getMessageSummary = (wt: WorkspaceType): string => {
-            const blocks = messageBlocksByWorkspaceTypes.find((b) => {
-              return b.workspaceType === wt;
-            })?.messageBlocks;
+          const getMessageSummary: (wt: WorkspaceType) => string = (
+            wt: WorkspaceType,
+          ): string => {
+            const blocks: Array<WorkspaceMessageBlock> | undefined =
+              messageBlocksByWorkspaceTypes.find(
+                (b: MessageBlocksByWorkspaceType) => {
+                  return b.workspaceType === wt;
+                },
+              )?.messageBlocks;
             if (!blocks) {
               return "";
             }
@@ -345,7 +358,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 texts.push((block as WorkspacePayloadMarkdown).text);
               }
             }
-            const joined = texts.join(" \n").trim();
+            const joined: string = texts.join(" \n").trim();
             return joined.length > 300 ? joined.slice(0, 297) + "..." : joined;
           };
 
@@ -550,17 +563,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       workspaceNotificationPaylaods.push(workspaceMessagePayload);
     }
 
-    const responses =
+    const responses: Array<WorkspaceSendMessageResponse> =
       await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
         projectId: data.projectId,
         messagePayloadsByWorkspace: workspaceNotificationPaylaods,
       });
 
     // Create logs for each response/thread
-    const getMessageSummary = (wt: WorkspaceType): string => {
-      const blocks = messageBlocksByWorkspaceTypes.find((b) => {
-        return b.workspaceType === wt;
-      })?.messageBlocks;
+    const getMessageSummary: (wt: WorkspaceType) => string = (
+      wt: WorkspaceType,
+    ): string => {
+      const blocks: Array<WorkspaceMessageBlock> | undefined =
+        messageBlocksByWorkspaceTypes.find(
+          (b: MessageBlocksByWorkspaceType) => {
+            return b.workspaceType === wt;
+          },
+        )?.messageBlocks;
       if (!blocks) {
         return "";
       }
@@ -573,7 +591,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           texts.push((block as WorkspacePayloadMarkdown).text);
         }
       }
-      const joined = texts.join(" \n").trim();
+      const joined: string = texts.join(" \n").trim();
       return joined.length > 300 ? joined.slice(0, 297) + "..." : joined;
     };
 
