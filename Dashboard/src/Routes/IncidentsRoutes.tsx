@@ -38,38 +38,16 @@ const IncidentView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Incidents/View/Index");
   });
 
-const IncidentViewNotificationLogsEmail: LazyExoticComponent<
+const IncidentViewNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsEmail");
+  return import("../Pages/Incidents/View/NotificationLogs");
 });
 
-const IncidentViewNotificationLogsSms: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsSms");
-});
-
-const IncidentViewNotificationLogsCall: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsCall");
-});
-const IncidentViewNotificationLogsPush: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsPush");
-});
-const IncidentViewNotificationLogsWorkspace: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsWorkspace");
-});
-const IncidentViewDelete: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/Delete");
-});
+const IncidentViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Incidents/View/Delete");
+  });
 
 const IncidentWorkspaceConnectionSlack: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -397,7 +375,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_EMAIL_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsEmail
+              <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_EMAIL_LOGS] as Route}
               />
@@ -409,7 +387,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SMS_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsSms
+              <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SMS_LOGS] as Route}
               />
@@ -421,7 +399,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_CALL_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsCall
+              <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_CALL_LOGS] as Route}
               />
@@ -432,7 +410,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_PUSH_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsPush
+              <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.INCIDENT_VIEW_PUSH_LOGS] as Route}
               />
@@ -445,7 +423,7 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsWorkspace
+              <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.INCIDENT_VIEW_WORKSPACE_LOGS] as Route

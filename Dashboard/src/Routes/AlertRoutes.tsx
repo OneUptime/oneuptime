@@ -25,33 +25,10 @@ const AlertView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(
   },
 );
 
-const AlertViewNotificationLogsEmail: LazyExoticComponent<
+const AlertViewNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/Alerts/View/NotificationLogsEmail");
-});
-
-const AlertViewNotificationLogsSms: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/NotificationLogsSms");
-});
-
-const AlertViewNotificationLogsCall: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/NotificationLogsCall");
-});
-const AlertViewNotificationLogsPush: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/NotificationLogsPush");
-});
-
-const AlertViewNotificationLogsWorkspace: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Alerts/View/NotificationLogsWorkspace");
+  return import("../Pages/Alerts/View/NotificationLogs");
 });
 
 const AlertsWorkspaceConnectionSlack: LazyExoticComponent<
@@ -319,7 +296,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_EMAIL_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <AlertViewNotificationLogsEmail
+              <AlertViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_EMAIL_LOGS] as Route}
               />
@@ -331,7 +308,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_SMS_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <AlertViewNotificationLogsSms
+              <AlertViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_SMS_LOGS] as Route}
               />
@@ -343,7 +320,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_CALL_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <AlertViewNotificationLogsCall
+              <AlertViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_CALL_LOGS] as Route}
               />
@@ -354,7 +331,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_PUSH_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <AlertViewNotificationLogsPush
+              <AlertViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_PUSH_LOGS] as Route}
               />
@@ -366,7 +343,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_WORKSPACE_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <AlertViewNotificationLogsWorkspace
+              <AlertViewNotificationLogs
                 {...props}
                 pageRoute={RouteMap[PageMap.ALERT_VIEW_WORKSPACE_LOGS] as Route}
               />

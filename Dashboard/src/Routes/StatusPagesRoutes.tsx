@@ -181,34 +181,10 @@ const AnnouncementViewLayout: LazyExoticComponent<
   return import("../Pages/StatusPages/AnnouncementLayout");
 });
 
-const AnnouncementViewEmailLogs: LazyExoticComponent<
+const AnnouncementViewNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import(
-    "../Pages/StatusPages/Announcements/View/NotificationLogsEmail"
-  );
-});
-const AnnouncementViewSmsLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogsSms");
-});
-const AnnouncementViewCallLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogsCall");
-});
-const AnnouncementViewPushLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogsPush");
-});
-const AnnouncementViewWorkspaceLogs: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import(
-    "../Pages/StatusPages/Announcements/View/NotificationLogsWorkspace"
-  );
+  return import("../Pages/StatusPages/Announcements/View/NotificationLogs");
 });
 const AnnouncementViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -292,7 +268,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <Suspense fallback={Loader}>
-              <AnnouncementViewEmailLogs
+              <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS] as Route
@@ -305,7 +281,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <AnnouncementViewSmsLogs
+              <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS] as Route
@@ -320,7 +296,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <Suspense fallback={Loader}>
-              <AnnouncementViewCallLogs
+              <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS] as Route
@@ -335,7 +311,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <Suspense fallback={Loader}>
-              <AnnouncementViewPushLogs
+              <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS] as Route
@@ -350,7 +326,7 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           )}
           element={
             <Suspense fallback={Loader}>
-              <AnnouncementViewWorkspaceLogs
+              <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ANNOUNCEMENT_VIEW_WORKSPACE_LOGS] as Route

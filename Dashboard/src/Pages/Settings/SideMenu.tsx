@@ -318,48 +318,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
-            title: "SMS Logs",
+            title: "Notification Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.SMS,
-        },
-        {
-          link: {
-            title: "Call Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Call,
-        },
-        {
-          link: {
-            title: "Email Logs",
-            to: RouteUtil.populateRouteParams(
+              // Point to any of the legacy routes; unified page will render tabs
               RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route,
             ),
           },
-          icon: IconProp.Email,
-        },
-        {
-          link: {
-            title: "Push Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_PUSH_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Bell,
-        },
-        {
-          link: {
-            title: "Workspace Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Chat,
+          icon: IconProp.List,
         },
       ],
     },
