@@ -21,11 +21,11 @@ export class MailService extends BaseService {
       mailServer?: EmailServer | undefined;
       userOnCallLogTimelineId?: ObjectID;
       projectId?: ObjectID | undefined;
-  incidentId?: ObjectID | undefined;
-  alertId?: ObjectID | undefined;
-  scheduledMaintenanceId?: ObjectID | undefined;
-  statusPageId?: ObjectID | undefined;
-  statusPageAnnouncementId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {

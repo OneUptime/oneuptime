@@ -320,7 +320,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-        
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_SMS_LOGS)}
           element={
