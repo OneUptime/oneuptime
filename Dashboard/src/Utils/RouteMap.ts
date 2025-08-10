@@ -529,6 +529,30 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_EMAIL_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_EMAIL_LOGS]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_SMS_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_SMS_LOGS]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_CALL_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_CALL_LOGS]
+    }`,
+  ),
+
+  [PageMap.ALERT_VIEW_PUSH_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_PUSH_LOGS]
+    }`,
+  ),
+
   [PageMap.ALERT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_VIEW_DELETE]
@@ -655,6 +679,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_EMAIL_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_EMAIL_LOGS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_SMS_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_SMS_LOGS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_CALL_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_CALL_LOGS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_PUSH_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_PUSH_LOGS]
     }`,
   ),
 
@@ -983,6 +1031,36 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ANNOUNCEMENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_DELETE]
     }`,
   ),
 
