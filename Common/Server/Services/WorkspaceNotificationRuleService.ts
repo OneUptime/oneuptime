@@ -224,32 +224,38 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const createdChannel of createdChannels) {
         try {
-          const responses = await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-            projectId: data.projectId,
-            messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
-              (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-                return {
-                  _type: "WorkspaceMessagePayload",
-                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                  messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                  channelNames: [],
-                  channelIds: [createdChannel.id],
-                };
-              },
-            ),
-          });
+          const responses =
+            await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+              projectId: data.projectId,
+              messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
+                (
+                  messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
+                ) => {
+                  return {
+                    _type: "WorkspaceMessagePayload",
+                    workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                    messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+                    channelNames: [],
+                    channelIds: [createdChannel.id],
+                  };
+                },
+              ),
+            });
 
           // Log results for test sends (created channels)
           const getMessageSummary = (wt: WorkspaceType): string => {
-            const blocks = messageBlocksByWorkspaceTypes.find(
-              (b) => b.workspaceType === wt,
-            )?.messageBlocks;
+            const blocks = messageBlocksByWorkspaceTypes.find((b) => {
+              return b.workspaceType === wt;
+            })?.messageBlocks;
             if (!blocks) {
               return "";
             }
             const texts: Array<string> = [];
             for (const block of blocks) {
-              if ((block as WorkspacePayloadMarkdown)._type === "WorkspacePayloadMarkdown") {
+              if (
+                (block as WorkspacePayloadMarkdown)._type ===
+                "WorkspacePayloadMarkdown"
+              ) {
                 texts.push((block as WorkspacePayloadMarkdown).text);
               }
             }
@@ -261,7 +267,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             const messageSummary: string = getMessageSummary(res.workspaceType);
 
             if (!res.threads || res.threads.length === 0) {
-              const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+              const log: WorkspaceNotificationLog =
+                new WorkspaceNotificationLog();
               log.projectId = data.projectId;
               log.workspaceType = res.workspaceType;
               log.messageSummary = messageSummary;
@@ -277,7 +284,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             }
 
             for (const thread of res.threads) {
-              const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+              const log: WorkspaceNotificationLog =
+                new WorkspaceNotificationLog();
               log.projectId = data.projectId;
               log.workspaceType = res.workspaceType;
               log.channelId = thread.channel.id;
@@ -302,32 +310,38 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const existingChannelName of existingChannelNames) {
         try {
-          const responses = await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-            projectId: data.projectId,
-            messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
-              (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-                return {
-                  _type: "WorkspaceMessagePayload",
-                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                  messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                  channelNames: [existingChannelName],
-                  channelIds: [],
-                };
-              },
-            ),
-          });
+          const responses =
+            await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+              projectId: data.projectId,
+              messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
+                (
+                  messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
+                ) => {
+                  return {
+                    _type: "WorkspaceMessagePayload",
+                    workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                    messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+                    channelNames: [existingChannelName],
+                    channelIds: [],
+                  };
+                },
+              ),
+            });
 
           // Log results for test sends (existing channels)
           const getMessageSummary = (wt: WorkspaceType): string => {
-            const blocks = messageBlocksByWorkspaceTypes.find(
-              (b) => b.workspaceType === wt,
-            )?.messageBlocks;
+            const blocks = messageBlocksByWorkspaceTypes.find((b) => {
+              return b.workspaceType === wt;
+            })?.messageBlocks;
             if (!blocks) {
               return "";
             }
             const texts: Array<string> = [];
             for (const block of blocks) {
-              if ((block as WorkspacePayloadMarkdown)._type === "WorkspacePayloadMarkdown") {
+              if (
+                (block as WorkspacePayloadMarkdown)._type ===
+                "WorkspacePayloadMarkdown"
+              ) {
                 texts.push((block as WorkspacePayloadMarkdown).text);
               }
             }
@@ -339,7 +353,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             const messageSummary: string = getMessageSummary(res.workspaceType);
 
             if (!res.threads || res.threads.length === 0) {
-              const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+              const log: WorkspaceNotificationLog =
+                new WorkspaceNotificationLog();
               log.projectId = data.projectId;
               log.workspaceType = res.workspaceType;
               log.messageSummary = messageSummary;
@@ -355,7 +370,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             }
 
             for (const thread of res.threads) {
-              const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+              const log: WorkspaceNotificationLog =
+                new WorkspaceNotificationLog();
               log.projectId = data.projectId;
               log.workspaceType = res.workspaceType;
               log.channelId = thread.channel.id;
@@ -534,22 +550,26 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       workspaceNotificationPaylaods.push(workspaceMessagePayload);
     }
 
-    const responses = await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-      projectId: data.projectId,
-      messagePayloadsByWorkspace: workspaceNotificationPaylaods,
-    });
+    const responses =
+      await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+        projectId: data.projectId,
+        messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+      });
 
     // Create logs for each response/thread
     const getMessageSummary = (wt: WorkspaceType): string => {
-      const blocks = messageBlocksByWorkspaceTypes.find(
-        (b) => b.workspaceType === wt,
-      )?.messageBlocks;
+      const blocks = messageBlocksByWorkspaceTypes.find((b) => {
+        return b.workspaceType === wt;
+      })?.messageBlocks;
       if (!blocks) {
         return "";
       }
       const texts: Array<string> = [];
       for (const block of blocks) {
-        if ((block as WorkspacePayloadMarkdown)._type === "WorkspacePayloadMarkdown") {
+        if (
+          (block as WorkspacePayloadMarkdown)._type ===
+          "WorkspacePayloadMarkdown"
+        ) {
           texts.push((block as WorkspacePayloadMarkdown).text);
         }
       }

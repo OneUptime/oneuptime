@@ -352,15 +352,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Bell,
         },
-            {
-              link: {
-                title: "Workspace Logs",
-                to: RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route,
-                ),
-              },
-              icon: IconProp.Chat,
-            },
+        {
+          link: {
+            title: "Workspace Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.Chat,
+        },
       ],
     },
     {

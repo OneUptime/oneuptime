@@ -440,7 +440,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_WORKSPACE_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_WORKSPACE_LOGS,
+          )}
           element={
             <Suspense fallback={Loader}>
               <IncidentViewNotificationLogsWorkspace

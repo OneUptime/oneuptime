@@ -14,13 +14,24 @@ import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 
-const IncidentWorkspaceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const IncidentWorkspaceLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const columns: Columns<WorkspaceNotificationLog> = [
-    { field: { workspaceType: true }, title: "Workspace", type: FieldType.Text },
+    {
+      field: { workspaceType: true },
+      title: "Workspace",
+      type: FieldType.Text,
+    },
     { field: { channelName: true }, title: "Channel", type: FieldType.Text },
-    { field: { threadId: true }, title: "Thread ID", type: FieldType.Text, hideOnMobile: true },
+    {
+      field: { threadId: true },
+      title: "Thread ID",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
       field: { status: true },
@@ -31,7 +42,11 @@ const IncidentWorkspaceLogs: FunctionComponent<PageComponentProps> = (): ReactEl
           return (
             <Pill
               isMinimal={false}
-              color={item["status"] === WorkspaceNotificationStatus.Success ? Green : Red}
+              color={
+                item["status"] === WorkspaceNotificationStatus.Success
+                  ? Green
+                  : Red
+              }
               text={item["status"] as string}
             />
           );
@@ -47,13 +62,16 @@ const IncidentWorkspaceLogs: FunctionComponent<PageComponentProps> = (): ReactEl
       field: { status: true },
       title: "Status",
       type: FieldType.Dropdown,
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(WorkspaceNotificationStatus),
+      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+        WorkspaceNotificationStatus,
+      ),
     },
     {
       field: { workspaceType: true },
       title: "Workspace",
       type: FieldType.Dropdown,
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(WorkspaceType),
+      filterDropdownOptions:
+        DropdownUtil.getDropdownOptionsFromEnum(WorkspaceType),
     },
   ];
 
@@ -71,7 +89,11 @@ const IncidentWorkspaceLogs: FunctionComponent<PageComponentProps> = (): ReactEl
         projectId: ProjectUtil.getCurrentProjectId()!,
         incidentId: modelId,
       }}
-      selectMoreFields={{ statusMessage: true, messageSummary: true, channelId: true }}
+      selectMoreFields={{
+        statusMessage: true,
+        messageSummary: true,
+        channelId: true,
+      }}
       cardProps={{
         title: "Workspace Logs",
         description: "Messages sent to Slack / Teams for this incident.",

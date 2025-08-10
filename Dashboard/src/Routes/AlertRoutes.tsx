@@ -368,9 +368,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <Suspense fallback={Loader}>
               <AlertViewNotificationLogsWorkspace
                 {...props}
-                pageRoute={
-                  RouteMap[PageMap.ALERT_VIEW_WORKSPACE_LOGS] as Route
-                }
+                pageRoute={RouteMap[PageMap.ALERT_VIEW_WORKSPACE_LOGS] as Route}
               />
             </Suspense>
           }

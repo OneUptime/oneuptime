@@ -1549,10 +1549,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<WorkspaceNotificationLog, WorkspaceNotificationLogServiceType>(
+      new BaseAPI<
         WorkspaceNotificationLog,
-        WorkspaceNotificationLogService,
-      ).getRouter(),
+        WorkspaceNotificationLogServiceType
+      >(WorkspaceNotificationLog, WorkspaceNotificationLogService).getRouter(),
     );
 
     app.use(

@@ -1581,7 +1581,7 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-    [PageMap.SETTINGS_PUSH_LOGS]: new Route(
+  [PageMap.SETTINGS_PUSH_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_PUSH_LOGS]
     }`,

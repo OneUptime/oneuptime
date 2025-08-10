@@ -599,9 +599,7 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <Suspense fallback={Loader}>
               <SettingsWorkspaceLog
                 {...props}
-                pageRoute={
-                  RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route
-                }
+                pageRoute={RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route}
               />
             </Suspense>
           }
