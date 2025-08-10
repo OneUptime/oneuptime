@@ -159,6 +159,7 @@ import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceSettingService from "./WorkspaceSettingService";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
+import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 import MonitorLogService from "./MonitorLogService";
@@ -338,6 +339,7 @@ const services: Array<BaseService> = [
   WorkspaceUserAuthTokenService,
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
+  WorkspaceNotificationLogService,
 ];
 
 export const AnalyticsServices: Array<

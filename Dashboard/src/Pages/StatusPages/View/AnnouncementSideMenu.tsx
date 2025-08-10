@@ -71,6 +71,16 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+        <SideMenuItem
+          link={{
+            title: "Workspace Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ANNOUNCEMENT_VIEW_WORKSPACE_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Chat}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
