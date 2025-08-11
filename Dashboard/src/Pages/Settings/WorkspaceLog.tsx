@@ -1,5 +1,4 @@
 import PageComponentProps from "../PageComponentProps";
-import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
@@ -16,7 +15,7 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 const SettingsWorkspaceLog: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  Navigation.navigateIfNoProject();
+  // Ensure project scope via query; no navigation guard needed here.
 
   const columns: Columns<WorkspaceNotificationLog> = [
     {
