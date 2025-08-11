@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -8,6 +13,8 @@ import ReactFlow, {
   Node,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import ELK from "elkjs/lib/elk.bundled.js";
+import type { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk-api";
 
 export interface ServiceNodeData {
   id: string;
@@ -78,43 +85,132 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
     return luminance > 0.5 ? "#111827" : "#ffffff";
   };
 
-  const nodes: Node[] = useMemo(() => {
-    return props.services.map((svc: ServiceNodeData) => {
-      const background: string = svc.color || "#ffffff";
-      const textColor: string = getContrastText(background);
-      return {
-        id: svc.id,
-        data: { label: svc.name },
-        position: { x: Math.random() * 600, y: Math.random() * 400 },
-        style: {
-          borderRadius: 8,
-          padding: 8,
-          border: "1px solid rgba(0,0,0,0.08)",
-          background,
-          color: textColor,
-          boxShadow: "0 1px 2px rgba(16,24,40,.05)",
-        },
-      };
-    });
-  }, [props.services]);
+  const [rfNodes, setRfNodes] = useState<Node[]>([]);
+  const [rfEdges, setRfEdges] = useState<Edge[]>([]);
 
-  const edges: Edge[] = useMemo(() => {
-    return props.dependencies.map((dep: ServiceEdgeData, idx: number) => {
-      const stroke = "#94a3b8"; // slate-400
-      return {
-        id: `e-${idx}`,
-        source: dep.fromServiceId,
-        target: dep.toServiceId,
-        animated: false,
-        style: { stroke, strokeWidth: 2 },
-        markerEnd: {
-          type: MarkerType.Arrow,
-          color: stroke,
-        },
-        type: "smoothstep",
-      };
+  useEffect(() => {
+    const elk = new ELK();
+    // fixed node dimensions for layout (px)
+    const NODE_WIDTH = 220;
+    const NODE_HEIGHT = 56;
+
+    const sortedServices = [...props.services].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+    const sortedDeps = [...props.dependencies].sort((a, b) => {
+      if (a.fromServiceId === b.fromServiceId) {
+        return a.toServiceId.localeCompare(b.toServiceId);
+      }
+      return a.fromServiceId.localeCompare(b.fromServiceId);
     });
-  }, [props.dependencies]);
+
+    const elkGraph: ElkNode = {
+      id: "root",
+      layoutOptions: {
+        algorithm: "layered",
+        "elk.direction": "RIGHT",
+        "elk.layered.spacing.nodeNodeBetweenLayers": "120",
+        "elk.spacing.nodeNode": "60",
+        "elk.edgeRouting": "POLYLINE",
+      },
+      children: sortedServices.map((svc: ServiceNodeData) => {
+        return {
+          id: svc.id,
+          width: NODE_WIDTH,
+          height: NODE_HEIGHT,
+        } as ElkNode;
+      }),
+      edges: sortedDeps.map((dep: ServiceEdgeData): ElkExtendedEdge => ({
+        id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
+        sources: [dep.fromServiceId],
+        targets: [dep.toServiceId],
+      })),
+    };
+
+    const layout = async (): Promise<void> => {
+      try {
+  const res: any = await elk.layout(elkGraph as any);
+        const placedNodes: Node[] = (res.children || []).map((child: any) => {
+          const svc: ServiceNodeData | undefined = sortedServices.find((s) => s.id === child.id);
+          const background: string = svc?.color || "#ffffff";
+          const textColor: string = getContrastText(background);
+          return {
+            id: child.id || "",
+            data: { label: svc?.name || "" },
+            position: { x: child.x || 0, y: child.y || 0 },
+            style: {
+              borderRadius: 8,
+              padding: 8,
+              border: "1px solid rgba(0,0,0,0.08)",
+              background,
+              color: textColor,
+              boxShadow: "0 1px 2px rgba(16,24,40,.05)",
+              width: NODE_WIDTH,
+              height: NODE_HEIGHT,
+            },
+          } as Node;
+        });
+
+        const stroke = "#94a3b8"; // slate-400
+        const placedEdges: Edge[] = sortedDeps.map(
+          (dep: ServiceEdgeData): Edge => ({
+            id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
+            source: dep.fromServiceId,
+            target: dep.toServiceId,
+            animated: false,
+            style: { stroke, strokeWidth: 2 },
+            markerEnd: { type: MarkerType.Arrow, color: stroke },
+            type: "smoothstep",
+          }),
+        );
+
+        setRfNodes(placedNodes);
+        setRfEdges(placedEdges);
+      } catch (e) {
+        // Fallback: deterministic grid by name
+  const sorted = sortedServices;
+        const COLS = 4;
+        const GAP_X = 260;
+        const GAP_Y = 120;
+        const nodes: Node[] = sorted.map((svc: ServiceNodeData, i: number) => {
+          const col = i % COLS;
+          const row = Math.floor(i / COLS);
+          const x = col * GAP_X;
+          const y = row * GAP_Y;
+          const background: string = svc.color || "#ffffff";
+          const textColor: string = getContrastText(background);
+          return {
+            id: svc.id,
+            data: { label: svc.name },
+            position: { x, y },
+            style: {
+              borderRadius: 8,
+              padding: 8,
+              border: "1px solid rgba(0,0,0,0.08)",
+              background,
+              color: textColor,
+              boxShadow: "0 1px 2px rgba(16,24,40,.05)",
+              width: NODE_WIDTH,
+              height: NODE_HEIGHT,
+            },
+          };
+        });
+        const stroke = "#94a3b8";
+  const edges: Edge[] = sortedDeps.map((dep: ServiceEdgeData) => ({
+          id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
+          source: dep.fromServiceId,
+          target: dep.toServiceId,
+          animated: false,
+          style: { stroke, strokeWidth: 2 },
+          markerEnd: { type: MarkerType.Arrow, color: stroke },
+          type: "smoothstep",
+        }));
+        setRfNodes(nodes);
+        setRfEdges(edges);
+      }
+    };
+
+    layout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.services, props.dependencies]);
 
   return (
     <div style={{ width: "100%", height: 600 }}>
@@ -127,8 +223,8 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
       `}</style>
       <ReactFlow
         className="service-dependency-graph"
-        nodes={nodes}
-        edges={edges}
+        nodes={rfNodes}
+        edges={rfEdges}
         fitView
         nodesDraggable={false}
         nodesConnectable={false}
