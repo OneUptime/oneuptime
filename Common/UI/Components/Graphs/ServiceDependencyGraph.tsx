@@ -3,6 +3,7 @@ import ReactFlow, {
   Background,
   Controls,
   Edge,
+  MarkerType,
   MiniMap,
   Node,
 } from "reactflow";
@@ -99,15 +100,17 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
 
   const edges: Edge[] = useMemo(() => {
     return props.dependencies.map((dep: ServiceEdgeData, idx: number) => {
+      const stroke = "#94a3b8"; // slate-400
       return {
         id: `e-${idx}`,
         source: dep.fromServiceId,
         target: dep.toServiceId,
         animated: false,
-        style: { stroke: "#94a3b8", strokeWidth: 2 },
+        style: { stroke, strokeWidth: 2 },
         markerEnd: {
-          type: 2, // MarkerType.Arrow
-        } as any,
+          type: MarkerType.Arrow,
+          color: stroke,
+        },
         type: "smoothstep",
       };
     });
@@ -115,7 +118,15 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
 
   return (
     <div style={{ width: "100%", height: 600 }}>
+      <style>{`
+        /* Hide/transparentize connection handles (ports) for read-only view */
+        .service-dependency-graph .react-flow__handle {
+          background: transparent !important;
+          border-color: transparent !important;
+        }
+      `}</style>
       <ReactFlow
+        className="service-dependency-graph"
         nodes={nodes}
         edges={edges}
         fitView
