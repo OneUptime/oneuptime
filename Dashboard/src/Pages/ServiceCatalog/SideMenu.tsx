@@ -28,7 +28,7 @@ const ServiceCatalogSideMenu: FunctionComponent = (): ReactElement => {
               RouteMap[PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH] as Route,
             ),
           },
-          icon: IconProp.Graph,
+          icon: IconProp.Workflow,
         },
       ],
     },
