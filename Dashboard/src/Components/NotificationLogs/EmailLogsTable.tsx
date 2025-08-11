@@ -11,110 +11,110 @@ import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 
 export interface EmailLogsTableProps {
-  id?: string;
-  userPreferencesKey?: string;
-  name?: string;
-  cardProps?: { title: string; description?: string };
-  noItemsMessage?: string;
-  query?: Record<string, any>;
-  selectMoreFields?: Record<string, boolean>;
-  showViewIdButton?: boolean;
-  isViewable?: boolean;
-  actionButtons?: Array<ActionButtonSchema<EmailLog>>;
-  columns?: Columns<EmailLog>;
-  filters?: Array<Filter<EmailLog>>;
-  singularName?: string; // e.g., "incident"
-  pluralName?: string; // e.g., "incidents"
+    id?: string;
+    userPreferencesKey?: string;
+    name?: string;
+    cardProps?: { title: string; description?: string };
+    noItemsMessage?: string;
+    query?: Record<string, any>;
+    selectMoreFields?: Record<string, boolean>;
+    showViewIdButton?: boolean;
+    isViewable?: boolean;
+    actionButtons?: Array<ActionButtonSchema<EmailLog>>;
+    columns?: Columns<EmailLog>;
+    filters?: Array<Filter<EmailLog>>;
+    singularName?: string; // e.g., "incident"
+    pluralName?: string; // e.g., "incidents"
 }
 
 const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
-  props: EmailLogsTableProps,
+    props: EmailLogsTableProps,
 ): ReactElement => {
-  const defaultColumns: Columns<EmailLog> = [
-    { field: { toEmail: true }, title: "To", type: FieldType.Email },
-    {
-      field: { fromEmail: true },
-      title: "From",
-      type: FieldType.Email,
-      hideOnMobile: true,
-    },
-    {
-      field: { subject: true },
-      title: "Subject",
-      type: FieldType.Text,
-      hideOnMobile: true,
-    },
-    { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-    {
-      field: { status: true },
-      title: "Status",
-      type: FieldType.Text,
-      getElement: (item: EmailLog): ReactElement => {
-        if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              color={item["status"] === EmailStatus.Success ? Green : Red}
-              text={item["status"] as string}
-            />
-          );
-        }
-        return <></>;
-      },
-    },
-  ];
+    const defaultColumns: Columns<EmailLog> = [
+        { field: { toEmail: true }, title: "To", type: FieldType.Email },
+        {
+            field: { fromEmail: true },
+            title: "From",
+            type: FieldType.Email,
+            hideOnMobile: true,
+        },
+        {
+            field: { subject: true },
+            title: "Subject",
+            type: FieldType.Text,
+            hideOnMobile: true,
+        },
+        { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
+        {
+            field: { status: true },
+            title: "Status",
+            type: FieldType.Text,
+            getElement: (item: EmailLog): ReactElement => {
+                if (item["status"]) {
+                    return (
+                        <Pill
+                            isMinimal={false}
+                            color={item["status"] === EmailStatus.Success ? Green : Red}
+                            text={item["status"] as string}
+                        />
+                    );
+                }
+                return <></>;
+            },
+        },
+    ];
 
-  const defaultFilters: Array<Filter<EmailLog>> = [
-    { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown },
-  ];
+    const defaultFilters: Array<Filter<EmailLog>> = [
+        { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
+        { field: { status: true }, title: "Status", type: FieldType.Dropdown },
+    ];
 
-  return (
-    <ModelTable<EmailLog>
-      modelType={EmailLog}
-      id={
-        props.id ||
-        (props.singularName
-          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
-          : "email-logs-table")
-      }
-      name={props.name || "Email Logs"}
-      isDeleteable={false}
-      isEditable={false}
-      isCreateable={false}
-      showViewIdButton={props.showViewIdButton ?? true}
-  isViewable={props.isViewable}
-      userPreferencesKey={
-        props.userPreferencesKey ||
-        (props.singularName
-          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
-          : "email-logs-table")
-      }
-      query={{
-        projectId: ProjectUtil.getCurrentProjectId()!,
-        ...(props.query || {}),
-      }}
-      selectMoreFields={{ statusMessage: true, ...(props.selectMoreFields || {}) }}
-      cardProps={{
-        title: props.cardProps?.title || "Email Logs",
-        description:
-          props.cardProps?.description ||
-          (props.singularName
-            ? `Emails sent for this ${props.singularName}.`
-            : "Emails sent."),
-      }}
-      noItemsMessage={
-        props.noItemsMessage ||
-        (props.singularName
-          ? `No email logs for this ${props.singularName}.`
-          : "No email logs.")
-      }
-      showRefreshButton={true}
-  columns={props.columns || defaultColumns}
-  filters={props.filters || defaultFilters}
-  actionButtons={props.actionButtons}
-    />
-  );
+    return (
+        <ModelTable<EmailLog>
+            modelType={EmailLog}
+            id={
+                props.id ||
+                (props.singularName
+                    ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
+                    : "email-logs-table")
+            }
+            name={props.name || "Email Logs"}
+            isDeleteable={false}
+            isEditable={false}
+            isCreateable={false}
+            showViewIdButton={props.showViewIdButton ?? true}
+            isViewable={props.isViewable}
+            userPreferencesKey={
+                props.userPreferencesKey ||
+                (props.singularName
+                    ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
+                    : "email-logs-table")
+            }
+            query={{
+                projectId: ProjectUtil.getCurrentProjectId()!,
+                ...(props.query || {}),
+            }}
+            selectMoreFields={{ statusMessage: true, ...(props.selectMoreFields || {}) }}
+            cardProps={{
+                title: props.cardProps?.title || "Email Logs",
+                description:
+                    props.cardProps?.description ||
+                    (props.singularName
+                        ? `Emails sent for this ${props.singularName}.`
+                        : "Emails sent."),
+            }}
+            noItemsMessage={
+                props.noItemsMessage ||
+                (props.singularName
+                    ? `No email logs for this ${props.singularName}.`
+                    : "No email logs.")
+            }
+            showRefreshButton={true}
+            columns={props.columns || defaultColumns}
+            filters={props.filters || defaultFilters}
+            actionButtons={props.actionButtons}
+        />
+    );
 };
 
 export default EmailLogsTable;
