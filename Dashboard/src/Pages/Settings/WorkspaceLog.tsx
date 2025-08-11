@@ -1,16 +1,15 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
-import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceLogsTable from "../../Components/NotificationLogs/WorkspaceLogsTable";
 
 const SettingsWorkspaceLog: FunctionComponent<
   PageComponentProps
@@ -74,18 +73,10 @@ const SettingsWorkspaceLog: FunctionComponent<
   ];
 
   return (
-    <ModelTable<WorkspaceNotificationLog>
-      modelType={WorkspaceNotificationLog}
+    <WorkspaceLogsTable
       id="settings-workspace-logs-table"
-      name="Workspace Logs"
-      isDeleteable={false}
-      isEditable={false}
-      isCreateable={false}
-      showViewIdButton={true}
       userPreferencesKey="settings-workspace-logs-table"
-      query={{
-        projectId: ProjectUtil.getCurrentProjectId()!,
-      }}
+      name="Workspace Logs"
       selectMoreFields={{
         statusMessage: true,
         messageSummary: true,
@@ -96,9 +87,9 @@ const SettingsWorkspaceLog: FunctionComponent<
         description: "Messages sent to Slack / Teams from this project.",
       }}
       noItemsMessage="No Workspace logs for this project."
-      showRefreshButton={true}
       columns={columns}
       filters={filters}
+      showViewIdButton
     />
   );
 };

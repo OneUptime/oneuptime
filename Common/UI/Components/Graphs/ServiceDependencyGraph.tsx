@@ -14,8 +14,8 @@ import ReactFlow, {
   Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import type { ElkExtendedEdge, ElkNode } from "elkjs";
 import ELK from "elkjs/lib/elk.bundled.js";
-import type { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk-api";
 
 export interface ServiceNodeData {
   id: string;

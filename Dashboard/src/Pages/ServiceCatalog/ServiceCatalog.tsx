@@ -1,14 +1,10 @@
 import LabelsElement from "../../Components/Label/Labels";
 import ServiceCatalogElement from "../../Components/ServiceCatalog/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -20,21 +16,7 @@ const ServiceCatalogPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
-    <Page
-      title={"Service Catalog"}
-      breadcrumbLinks={[
-        {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: "Service Catalog",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SERVICE_CATALOG] as Route,
-          ),
-        },
-      ]}
-    >
+
       <ModelTable<ServiceCatalog>
         modelType={ServiceCatalog}
         id="service-catalog-table"
@@ -163,7 +145,6 @@ const ServiceCatalogPage: FunctionComponent<
           },
         ]}
       />
-    </Page>
   );
 };
 
