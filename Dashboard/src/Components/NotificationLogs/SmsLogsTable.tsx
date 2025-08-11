@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -9,6 +9,9 @@ import SmsStatus from "Common/Types/SmsStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 export interface SmsLogsTableProps {
   id?: string;
@@ -30,6 +33,9 @@ export interface SmsLogsTableProps {
 const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   props: SmsLogsTableProps,
 ): ReactElement => {
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalText, setModalText] = useState<string>("");
+  const [modalTitle, setModalTitle] = useState<string>("");
   const defaultColumns: Columns<SmsLog> = [
     { field: { toNumber: true }, title: "To", type: FieldType.Phone },
     {
@@ -64,50 +70,89 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   ];
 
   return (
-    <ModelTable<SmsLog>
-      modelType={SmsLog}
-      id={
-        props.id ||
-        (props.singularName
-          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
-          : "sms-logs-table")
-      }
-      name={props.name || "SMS Logs"}
-      isDeleteable={false}
-      isEditable={false}
-      isCreateable={false}
-      showViewIdButton={props.showViewIdButton ?? true}
-  isViewable={props.isViewable}
-      userPreferencesKey={
-        props.userPreferencesKey ||
-        (props.singularName
-          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
-          : "sms-logs-table")
-      }
-      query={{
-        projectId: ProjectUtil.getCurrentProjectId()!,
-        ...(props.query || {}),
-      }}
-      selectMoreFields={{ statusMessage: true, ...(props.selectMoreFields || {}) }}
-      cardProps={{
-        title: props.cardProps?.title || "SMS Logs",
-        description:
-          props.cardProps?.description ||
+    <>
+      <ModelTable<SmsLog>
+        modelType={SmsLog}
+        id={
+          props.id ||
           (props.singularName
-            ? `SMS sent for this ${props.singularName}.`
-            : "SMS sent."),
-      }}
-      noItemsMessage={
-        props.noItemsMessage ||
-        (props.singularName
-          ? `No SMS logs for this ${props.singularName}.`
-          : "No SMS logs.")
-      }
-      showRefreshButton={true}
-  columns={props.columns || defaultColumns}
-  filters={props.filters || defaultFilters}
-  actionButtons={props.actionButtons}
-    />
+            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
+            : "sms-logs-table")
+        }
+        name={props.name || "SMS Logs"}
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={false}
+        showViewIdButton={props.showViewIdButton ?? true}
+        isViewable={props.isViewable}
+        userPreferencesKey={
+          props.userPreferencesKey ||
+          (props.singularName
+            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
+            : "sms-logs-table")
+        }
+        query={{
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          ...(props.query || {}),
+        }}
+        selectMoreFields={{ smsText: true, statusMessage: true, ...(props.selectMoreFields || {}) }}
+        cardProps={{
+          title: props.cardProps?.title || "SMS Logs",
+          description:
+            props.cardProps?.description ||
+            (props.singularName
+              ? `SMS sent for this ${props.singularName}.`
+              : "SMS sent."),
+        }}
+        noItemsMessage={
+          props.noItemsMessage ||
+          (props.singularName
+            ? `No SMS logs for this ${props.singularName}.`
+            : "No SMS logs.")
+        }
+        showRefreshButton={true}
+        columns={props.columns || defaultColumns}
+        filters={props.filters || defaultFilters}
+        actionButtons={
+          props.actionButtons || [
+            {
+              title: "View SMS Text",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.List,
+              onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
+                setModalText(item["smsText"] as string);
+                setModalTitle("SMS Text");
+                setShowModal(true);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "View Status Message",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.Error,
+              onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
+                setModalText(item["statusMessage"] as string);
+                setModalTitle("Status Message");
+                setShowModal(true);
+                onCompleteAction();
+              },
+            },
+          ]
+        }
+      />
+
+      {showModal && (
+        <ConfirmModal
+          title={modalTitle}
+          description={modalText}
+          onSubmit={() => {
+            setShowModal(false);
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
+    </>
   );
 };
 

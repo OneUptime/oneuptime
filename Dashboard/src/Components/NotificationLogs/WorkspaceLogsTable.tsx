@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -11,6 +11,9 @@ import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 export interface WorkspaceLogsTableProps {
   id?: string;
@@ -32,6 +35,9 @@ export interface WorkspaceLogsTableProps {
 const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
   props: WorkspaceLogsTableProps,
 ): ReactElement => {
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalText, setModalText] = useState<string>("");
+  const [modalTitle, setModalTitle] = useState<string>("");
   const defaultColumns: Columns<WorkspaceNotificationLog> = [
     {
       field: { workspaceType: true },
@@ -89,55 +95,100 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
   ];
 
   return (
-    <ModelTable<WorkspaceNotificationLog>
-      modelType={WorkspaceNotificationLog}
-      id={
-        props.id ||
-        (props.singularName
-          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
-          : "workspace-logs-table")
-      }
-      name={props.name || "Workspace Logs"}
-      isDeleteable={false}
-      isEditable={false}
-      isCreateable={false}
-      showViewIdButton={props.showViewIdButton ?? true}
-  isViewable={props.isViewable}
-      userPreferencesKey={
-        props.userPreferencesKey ||
-        (props.singularName
-          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
-          : "workspace-logs-table")
-      }
-      query={{
-        projectId: ProjectUtil.getCurrentProjectId()!,
-        ...(props.query || {}),
-      }}
-      selectMoreFields={{
-        statusMessage: true,
-        messageSummary: true,
-        channelId: true,
-        ...(props.selectMoreFields || {}),
-      }}
-      cardProps={{
-        title: props.cardProps?.title || "Workspace Logs",
-        description:
-          props.cardProps?.description ||
+    <>
+      <ModelTable<WorkspaceNotificationLog>
+        modelType={WorkspaceNotificationLog}
+        id={
+          props.id ||
           (props.singularName
-            ? `Messages sent to Slack / Teams for this ${props.singularName}.`
-            : "Messages sent to Slack / Teams."),
-      }}
-      noItemsMessage={
-        props.noItemsMessage ||
-        (props.singularName
-          ? `No Workspace logs for this ${props.singularName}.`
-          : "No Workspace logs.")
-      }
-      showRefreshButton={true}
-  columns={props.columns || defaultColumns}
-  filters={props.filters || defaultFilters}
-  actionButtons={props.actionButtons}
-    />
+            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
+            : "workspace-logs-table")
+        }
+        name={props.name || "Workspace Logs"}
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={false}
+        showViewIdButton={props.showViewIdButton ?? true}
+        isViewable={props.isViewable}
+        userPreferencesKey={
+          props.userPreferencesKey ||
+          (props.singularName
+            ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
+            : "workspace-logs-table")
+        }
+        query={{
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          ...(props.query || {}),
+        }}
+        selectMoreFields={{
+          statusMessage: true,
+          messageSummary: true,
+          channelId: true,
+          ...(props.selectMoreFields || {}),
+        }}
+        cardProps={{
+          title: props.cardProps?.title || "Workspace Logs",
+          description:
+            props.cardProps?.description ||
+            (props.singularName
+              ? `Messages sent to Slack / Teams for this ${props.singularName}.`
+              : "Messages sent to Slack / Teams."),
+        }}
+        noItemsMessage={
+          props.noItemsMessage ||
+          (props.singularName
+            ? `No Workspace logs for this ${props.singularName}.`
+            : "No Workspace logs.")
+        }
+        showRefreshButton={true}
+        columns={props.columns || defaultColumns}
+        filters={props.filters || defaultFilters}
+        actionButtons={
+          props.actionButtons || [
+            {
+              title: "View Message Summary",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.List,
+              onClick: async (
+                item: WorkspaceNotificationLog,
+                onCompleteAction: VoidFunction,
+              ) => {
+                setModalText(item["messageSummary"] as string);
+                setModalTitle("Message Summary");
+                setShowModal(true);
+                onCompleteAction();
+              },
+            },
+            {
+              title: "View Status Message",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              icon: IconProp.Error,
+              onClick: async (
+                item: WorkspaceNotificationLog,
+                onCompleteAction: VoidFunction,
+              ) => {
+                setModalText(item["statusMessage"] as string);
+                setModalTitle("Status Message");
+                setShowModal(true);
+                onCompleteAction();
+              },
+            },
+          ]
+        }
+      />
+
+      {showModal && (
+        <ConfirmModal
+          title={modalTitle}
+          description={modalText}
+          onSubmit={() => {
+            setShowModal(false);
+          }}
+          submitButtonText="Close"
+          submitButtonType={ButtonStyleType.NORMAL}
+        />
+      )}
+    </>
   );
 };
 
