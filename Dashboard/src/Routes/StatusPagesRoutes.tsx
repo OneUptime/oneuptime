@@ -264,72 +264,14 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS,
+            PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS,
           )}
           element={
             <Suspense fallback={Loader}>
               <AnnouncementViewNotificationLogs
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS,
-          )}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS,
-          )}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_PUSH_LOGS] as Route
-                }
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.ANNOUNCEMENT_VIEW_WORKSPACE_LOGS,
-          )}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewNotificationLogs
-                {...props}
-                pageRoute={
-                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_WORKSPACE_LOGS] as Route
+                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS] as Route
                 }
               />
             </Suspense>

@@ -320,8 +320,8 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           link: {
             title: "Notification Logs",
             to: RouteUtil.populateRouteParams(
-              // Point to any of the legacy routes; unified page will render tabs
-              RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route,
+              // Unified Notification Logs route renders tabs
+              RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route,
             ),
           },
           icon: IconProp.List,

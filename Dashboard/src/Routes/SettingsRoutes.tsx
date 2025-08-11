@@ -294,12 +294,14 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SMS_LOGS)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_NOTIFICATION_LOGS)}
           element={
             <Suspense fallback={Loader}>
               <SettingsNotificationLogs
                 {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }
@@ -541,53 +543,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_CALL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <SettingsNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_EMAIL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <SettingsNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_PUSH_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <SettingsNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_PUSH_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_WORKSPACE_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <SettingsNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_WORKSPACE_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
 
         <PageRoute
           path={RouteUtil.getLastPathForKey(

@@ -372,66 +372,20 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_EMAIL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_EMAIL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SMS_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SMS_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_CALL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_CALL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_PUSH_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_PUSH_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.INCIDENT_VIEW_WORKSPACE_LOGS,
-          )}
+          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS)}
           element={
             <Suspense fallback={Loader}>
               <IncidentViewNotificationLogs
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.INCIDENT_VIEW_WORKSPACE_LOGS] as Route
+                  RouteMap[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS] as Route
                 }
               />
             </Suspense>
           }
         />
+
+        
       </PageRoute>
     </Routes>
   );

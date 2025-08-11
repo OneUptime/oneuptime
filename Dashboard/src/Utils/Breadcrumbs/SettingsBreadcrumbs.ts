@@ -142,25 +142,10 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Notification Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SMS_LOGS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_NOTIFICATION_LOGS, [
       "Project",
       "Settings",
-      "SMS Logs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_CALL_LOGS, [
-      "Project",
-      "Settings",
-      "Call Logs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PUSH_LOGS, [
-      "Project",
-      "Settings",
-      "Push Logs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_EMAIL_LOGS, [
-      "Project",
-      "Settings",
-      "Email Logs",
+      "Notification Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_PROBES, [
       "Project",

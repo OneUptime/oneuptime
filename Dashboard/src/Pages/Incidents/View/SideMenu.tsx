@@ -105,7 +105,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Notification Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_VIEW_EMAIL_LOGS] as Route,
+              RouteMap[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS] as Route,
               { modelId: props.modelId },
             ),
           }}

@@ -35,7 +35,7 @@ const AnnouncementSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "Notification Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS] as Route,
+              RouteMap[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS] as Route,
               { modelId: props.modelId },
             ),
           }}
