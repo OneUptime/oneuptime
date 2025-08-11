@@ -3,6 +3,7 @@ import ReactFlow, {
   Background,
   Controls,
   Edge,
+  MarkerType,
   MiniMap,
   Node,
 } from "reactflow";
@@ -27,8 +28,60 @@ export interface ServiceDependencyGraphProps {
 const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
   props: ServiceDependencyGraphProps,
 ): ReactElement => {
+  const computeLuminance = (r: number, g: number, b: number): number => {
+    const transform = (v: number): number => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    const R: number = transform(r);
+    const G: number = transform(g);
+    const B: number = transform(b);
+    return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+  };
+
+  const getContrastText = (bg?: string): string => {
+    if (!bg) {
+      return "#111827"; // gray-900
+    }
+    // normalize to hex like #rrggbb
+    let hex: string = bg.trim();
+    if (hex.startsWith("rgb")) {
+      // basic rgb(a) parser
+      const m: RegExpMatchArray | null = hex
+        .replace(/\s+/g, "")
+        .match(/rgba?\((\d+),(\d+),(\d+)/i);
+      if (m) {
+        const r: number = parseInt(m[1] as string, 10);
+        const g: number = parseInt(m[2] as string, 10);
+        const b: number = parseInt(m[3] as string, 10);
+        const luminance: number = computeLuminance(r, g, b);
+        return luminance > 0.5 ? "#111827" : "#ffffff";
+      }
+      return "#111827";
+    }
+    if (hex[0] === "#") {
+      hex = hex.slice(1);
+    }
+    if (hex.length === 3) {
+      hex = hex
+        .split("")
+        .map((c) => c + c)
+        .join("");
+    }
+    if (hex.length !== 6) {
+      return "#111827";
+    }
+    const r: number = parseInt(hex.slice(0, 2), 16);
+    const g: number = parseInt(hex.slice(2, 4), 16);
+    const b: number = parseInt(hex.slice(4, 6), 16);
+    const luminance: number = computeLuminance(r, g, b);
+    return luminance > 0.5 ? "#111827" : "#ffffff";
+  };
+
   const nodes: Node[] = useMemo(() => {
     return props.services.map((svc: ServiceNodeData) => {
+      const background: string = svc.color || "#ffffff";
+      const textColor: string = getContrastText(background);
       return {
         id: svc.id,
         data: { label: svc.name },
@@ -36,8 +89,9 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
         style: {
           borderRadius: 8,
           padding: 8,
-          border: "1px solid #e5e7eb",
-          background: "#fff",
+          border: "1px solid rgba(0,0,0,0.08)",
+          background,
+          color: textColor,
           boxShadow: "0 1px 2px rgba(16,24,40,.05)",
         },
       };
@@ -46,15 +100,17 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
 
   const edges: Edge[] = useMemo(() => {
     return props.dependencies.map((dep: ServiceEdgeData, idx: number) => {
+      const stroke = "#94a3b8"; // slate-400
       return {
         id: `e-${idx}`,
         source: dep.fromServiceId,
         target: dep.toServiceId,
         animated: false,
-        style: { stroke: "#94a3b8", strokeWidth: 2 },
+        style: { stroke, strokeWidth: 2 },
         markerEnd: {
-          type: 2, // MarkerType.Arrow
-        } as any,
+          type: MarkerType.Arrow,
+          color: stroke,
+        },
         type: "smoothstep",
       };
     });
@@ -62,8 +118,29 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
 
   return (
     <div style={{ width: "100%", height: 600 }}>
-      <ReactFlow nodes={nodes} edges={edges} fitView>
-        <MiniMap />
+      <style>{`
+        /* Hide/transparentize connection handles (ports) for read-only view */
+        .service-dependency-graph .react-flow__handle {
+          background: transparent !important;
+          border-color: transparent !important;
+        }
+      `}</style>
+      <ReactFlow
+        className="service-dependency-graph"
+        nodes={nodes}
+        edges={edges}
+        fitView
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        edgesUpdatable={false}
+        connectOnClick={false}
+      >
+        <MiniMap
+          nodeColor={(n) =>
+            (n.style as any)?.background || (n.data as any)?.color || "#ffffff"
+          }
+        />
         <Controls />
         <Background gap={12} size={1} />
       </ReactFlow>
