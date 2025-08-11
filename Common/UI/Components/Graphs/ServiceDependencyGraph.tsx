@@ -11,6 +11,7 @@ import ReactFlow, {
   MarkerType,
   MiniMap,
   Node,
+  Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import ELK from "elkjs/lib/elk.bundled.js";
@@ -136,6 +137,8 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
             id: child.id || "",
             data: { label: svc?.name || "" },
             position: { x: child.x || 0, y: child.y || 0 },
+            sourcePosition: Position.Right,
+            targetPosition: Position.Left,
             style: {
               borderRadius: 8,
               padding: 8,
@@ -181,6 +184,8 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
             id: svc.id,
             data: { label: svc.name },
             position: { x, y },
+            sourcePosition: Position.Right,
+            targetPosition: Position.Left,
             style: {
               borderRadius: 8,
               padding: 8,
