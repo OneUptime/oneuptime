@@ -23,6 +23,8 @@ export interface EmailLogsTableProps {
   actionButtons?: Array<ActionButtonSchema<EmailLog>>;
   columns?: Columns<EmailLog>;
   filters?: Array<Filter<EmailLog>>;
+  singularName?: string; // e.g., "incident"
+  pluralName?: string; // e.g., "incidents"
 }
 
 const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
@@ -70,14 +72,24 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
   return (
     <ModelTable<EmailLog>
       modelType={EmailLog}
-      id={props.id || "email-logs-table"}
+      id={
+        props.id ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
+          : "email-logs-table")
+      }
       name={props.name || "Email Logs"}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       showViewIdButton={props.showViewIdButton ?? true}
   isViewable={props.isViewable}
-      userPreferencesKey={props.userPreferencesKey || "email-logs-table"}
+      userPreferencesKey={
+        props.userPreferencesKey ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
+          : "email-logs-table")
+      }
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
         ...(props.query || {}),
@@ -85,9 +97,18 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       selectMoreFields={{ statusMessage: true, ...(props.selectMoreFields || {}) }}
       cardProps={{
         title: props.cardProps?.title || "Email Logs",
-        description: props.cardProps?.description || "Emails sent.",
+        description:
+          props.cardProps?.description ||
+          (props.singularName
+            ? `Emails sent for this ${props.singularName}.`
+            : "Emails sent."),
       }}
-      noItemsMessage={props.noItemsMessage || "No email logs."}
+      noItemsMessage={
+        props.noItemsMessage ||
+        (props.singularName
+          ? `No email logs for this ${props.singularName}.`
+          : "No email logs.")
+      }
       showRefreshButton={true}
   columns={props.columns || defaultColumns}
   filters={props.filters || defaultFilters}

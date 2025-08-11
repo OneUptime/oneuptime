@@ -25,6 +25,8 @@ export interface WorkspaceLogsTableProps {
   actionButtons?: Array<ActionButtonSchema<WorkspaceNotificationLog>>;
   columns?: Columns<WorkspaceNotificationLog>;
   filters?: Array<Filter<WorkspaceNotificationLog>>;
+  singularName?: string;
+  pluralName?: string;
 }
 
 const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
@@ -89,14 +91,24 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
   return (
     <ModelTable<WorkspaceNotificationLog>
       modelType={WorkspaceNotificationLog}
-      id={props.id || "workspace-logs-table"}
+      id={
+        props.id ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
+          : "workspace-logs-table")
+      }
       name={props.name || "Workspace Logs"}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       showViewIdButton={props.showViewIdButton ?? true}
   isViewable={props.isViewable}
-      userPreferencesKey={props.userPreferencesKey || "workspace-logs-table"}
+      userPreferencesKey={
+        props.userPreferencesKey ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
+          : "workspace-logs-table")
+      }
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
         ...(props.query || {}),
@@ -111,9 +123,16 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         title: props.cardProps?.title || "Workspace Logs",
         description:
           props.cardProps?.description ||
-          "Messages sent to Slack / Teams.",
+          (props.singularName
+            ? `Messages sent to Slack / Teams for this ${props.singularName}.`
+            : "Messages sent to Slack / Teams."),
       }}
-      noItemsMessage={props.noItemsMessage || "No Workspace logs."}
+      noItemsMessage={
+        props.noItemsMessage ||
+        (props.singularName
+          ? `No Workspace logs for this ${props.singularName}.`
+          : "No Workspace logs.")
+      }
       showRefreshButton={true}
   columns={props.columns || defaultColumns}
   filters={props.filters || defaultFilters}

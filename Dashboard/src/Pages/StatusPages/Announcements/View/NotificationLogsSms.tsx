@@ -7,20 +7,7 @@ import SmsLogsTable from "../../../../Components/NotificationLogs/SmsLogsTable";
 const AnnouncementSmsLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <SmsLogsTable
-      id="announcement-sms-logs-table"
-      userPreferencesKey="announcement-sms-logs-table"
-      showViewIdButton
-      query={{ statusPageAnnouncementId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{
-        title: "SMS Logs",
-        description: "SMS sent for this announcement.",
-      }}
-      noItemsMessage="No SMS logs for this announcement."
-    />
-  );
+  return <SmsLogsTable singularName="announcement" query={{ statusPageAnnouncementId: modelId }} />;
 };
 
 export default AnnouncementSmsLogs;

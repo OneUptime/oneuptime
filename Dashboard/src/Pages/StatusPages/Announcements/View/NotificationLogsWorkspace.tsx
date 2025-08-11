@@ -9,16 +9,8 @@ const AnnouncementWorkspaceLogs: FunctionComponent<PageComponentProps> = (): Rea
 
   return (
     <WorkspaceLogsTable
-      id="announcement-workspace-logs-table"
-      userPreferencesKey="announcement-workspace-logs-table"
-      showViewIdButton
+      singularName="announcement"
       query={{ statusPageAnnouncementId: modelId }}
-      selectMoreFields={{ statusMessage: true, messageSummary: true, channelId: true }}
-      cardProps={{
-        title: "Workspace Logs",
-        description: "Messages sent to Slack / Teams for this announcement.",
-      }}
-      noItemsMessage="No Workspace logs for this announcement."
     />
   );
 };

@@ -9,17 +9,7 @@ const AlertSmsLogs: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <SmsLogsTable
-      id="alert-sms-logs-table"
-      userPreferencesKey="alert-sms-logs-table"
-      showViewIdButton
-      query={{ alertId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{ title: "SMS Logs", description: "SMS sent for this alert." }}
-      noItemsMessage="No SMS logs for this alert."
-    />
-  );
+  return <SmsLogsTable singularName="alert" query={{ alertId: modelId }} />;
 };
 
 export default AlertSmsLogs;

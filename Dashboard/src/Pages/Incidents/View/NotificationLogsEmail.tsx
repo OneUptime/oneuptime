@@ -7,20 +7,7 @@ import EmailLogsTable from "../../../Components/NotificationLogs/EmailLogsTable"
 const IncidentEmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <EmailLogsTable
-      id="incident-email-logs-table"
-      userPreferencesKey="incident-email-logs-table"
-      showViewIdButton
-      query={{ incidentId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{
-        title: "Email Logs",
-        description: "Emails sent for this incident.",
-      }}
-      noItemsMessage="No email logs for this incident."
-    />
-  );
+  return <EmailLogsTable singularName="incident" query={{ incidentId: modelId }} />;
 };
 
 export default IncidentEmailLogs;

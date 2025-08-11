@@ -9,16 +9,8 @@ const AnnouncementEmailLogs: FunctionComponent<PageComponentProps> = (): ReactEl
 
   return (
     <EmailLogsTable
-      id="announcement-email-logs-table"
-      userPreferencesKey="announcement-email-logs-table"
-      showViewIdButton
+      singularName="announcement"
       query={{ statusPageAnnouncementId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{
-        title: "Email Logs",
-        description: "Emails sent for this announcement.",
-      }}
-      noItemsMessage="No email logs for this announcement."
     />
   );
 };

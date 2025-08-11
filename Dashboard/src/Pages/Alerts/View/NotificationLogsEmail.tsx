@@ -9,20 +9,7 @@ const AlertEmailLogs: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <EmailLogsTable
-      id="alert-email-logs-table"
-      userPreferencesKey="alert-email-logs-table"
-      showViewIdButton
-      query={{ alertId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{
-        title: "Email Logs",
-        description: "Emails sent for this alert.",
-      }}
-      noItemsMessage="No email logs for this alert."
-    />
-  );
+  return <EmailLogsTable singularName="alert" query={{ alertId: modelId }} />;
 };
 
 export default AlertEmailLogs;

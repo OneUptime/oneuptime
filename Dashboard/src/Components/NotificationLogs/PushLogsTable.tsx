@@ -24,6 +24,8 @@ export interface PushLogsTableProps {
   actionButtons?: Array<ActionButtonSchema<PushNotificationLog>>;
   columns?: Columns<PushNotificationLog>;
   filters?: Array<Filter<PushNotificationLog>>;
+  singularName?: string;
+  pluralName?: string;
 }
 
 const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
@@ -70,14 +72,24 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
   return (
     <ModelTable<PushNotificationLog>
       modelType={PushNotificationLog}
-      id={props.id || "push-logs-table"}
+      id={
+        props.id ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-push-logs-table`
+          : "push-logs-table")
+      }
       name={props.name || "Push Logs"}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       showViewIdButton={props.showViewIdButton ?? true}
   isViewable={props.isViewable}
-      userPreferencesKey={props.userPreferencesKey || "push-logs-table"}
+      userPreferencesKey={
+        props.userPreferencesKey ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-push-logs-table`
+          : "push-logs-table")
+      }
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
         ...(props.query || {}),
@@ -85,9 +97,18 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       selectMoreFields={{ statusMessage: true, body: true, ...(props.selectMoreFields || {}) }}
       cardProps={{
         title: props.cardProps?.title || "Push Logs",
-        description: props.cardProps?.description || "Push notifications sent.",
+        description:
+          props.cardProps?.description ||
+          (props.singularName
+            ? `Push notifications sent for this ${props.singularName}.`
+            : "Push notifications sent."),
       }}
-      noItemsMessage={props.noItemsMessage || "No Push logs."}
+      noItemsMessage={
+        props.noItemsMessage ||
+        (props.singularName
+          ? `No Push logs for this ${props.singularName}.`
+          : "No Push logs.")
+      }
       showRefreshButton={true}
   columns={props.columns || defaultColumns}
   filters={props.filters || defaultFilters}

@@ -7,17 +7,7 @@ import SmsLogsTable from "../../../Components/NotificationLogs/SmsLogsTable";
 const StatusPageSmsLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <SmsLogsTable
-      id="status-page-sms-logs-table"
-      userPreferencesKey="status-page-sms-logs-table"
-      showViewIdButton
-      query={{ statusPageId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{ title: "SMS Logs", description: "SMS sent for this status page." }}
-      noItemsMessage="No SMS logs for this status page."
-    />
-  );
+  return <SmsLogsTable singularName="status page" query={{ statusPageId: modelId }} />;
 };
 
 export default StatusPageSmsLogs;

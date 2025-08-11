@@ -7,20 +7,7 @@ import CallLogsTable from "../../../Components/NotificationLogs/CallLogsTable";
 const StatusPageCallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <CallLogsTable
-      id="status-page-call-logs-table"
-      userPreferencesKey="status-page-call-logs-table"
-      showViewIdButton
-      query={{ statusPageId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{
-        title: "Call Logs",
-        description: "Calls made for this status page.",
-      }}
-      noItemsMessage="No call logs for this status page."
-    />
-  );
+  return <CallLogsTable singularName="status page" query={{ statusPageId: modelId }} />;
 };
 
 export default StatusPageCallLogs;

@@ -9,17 +9,7 @@ const AlertCallLogs: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <CallLogsTable
-      id="alert-call-logs-table"
-      userPreferencesKey="alert-call-logs-table"
-      showViewIdButton
-      query={{ alertId: modelId }}
-      selectMoreFields={{ statusMessage: true }}
-      cardProps={{ title: "Call Logs", description: "Calls made for this alert." }}
-      noItemsMessage="No call logs for this alert."
-    />
-  );
+  return <CallLogsTable singularName="alert" query={{ alertId: modelId }} />;
 };
 
 export default AlertCallLogs;

@@ -23,6 +23,8 @@ export interface SmsLogsTableProps {
   actionButtons?: Array<ActionButtonSchema<SmsLog>>;
   columns?: Columns<SmsLog>;
   filters?: Array<Filter<SmsLog>>;
+  singularName?: string;
+  pluralName?: string;
 }
 
 const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
@@ -64,14 +66,24 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   return (
     <ModelTable<SmsLog>
       modelType={SmsLog}
-      id={props.id || "sms-logs-table"}
+      id={
+        props.id ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
+          : "sms-logs-table")
+      }
       name={props.name || "SMS Logs"}
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
       showViewIdButton={props.showViewIdButton ?? true}
   isViewable={props.isViewable}
-      userPreferencesKey={props.userPreferencesKey || "sms-logs-table"}
+      userPreferencesKey={
+        props.userPreferencesKey ||
+        (props.singularName
+          ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
+          : "sms-logs-table")
+      }
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
         ...(props.query || {}),
@@ -79,9 +91,18 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       selectMoreFields={{ statusMessage: true, ...(props.selectMoreFields || {}) }}
       cardProps={{
         title: props.cardProps?.title || "SMS Logs",
-        description: props.cardProps?.description || "SMS sent.",
+        description:
+          props.cardProps?.description ||
+          (props.singularName
+            ? `SMS sent for this ${props.singularName}.`
+            : "SMS sent."),
       }}
-      noItemsMessage={props.noItemsMessage || "No SMS logs."}
+      noItemsMessage={
+        props.noItemsMessage ||
+        (props.singularName
+          ? `No SMS logs for this ${props.singularName}.`
+          : "No SMS logs.")
+      }
       showRefreshButton={true}
   columns={props.columns || defaultColumns}
   filters={props.filters || defaultFilters}

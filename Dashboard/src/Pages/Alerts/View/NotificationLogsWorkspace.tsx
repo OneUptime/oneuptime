@@ -7,20 +7,7 @@ import WorkspaceLogsTable from "../../../Components/NotificationLogs/WorkspaceLo
 const AlertWorkspaceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return (
-    <WorkspaceLogsTable
-      id="alert-workspace-logs-table"
-      userPreferencesKey="alert-workspace-logs-table"
-      showViewIdButton
-      query={{ alertId: modelId }}
-      selectMoreFields={{ statusMessage: true, messageSummary: true, channelId: true }}
-      cardProps={{
-        title: "Workspace Logs",
-        description: "Messages sent to Slack / Teams for this alert.",
-      }}
-      noItemsMessage="No Workspace logs for this alert."
-    />
-  );
+  return <WorkspaceLogsTable singularName="alert" query={{ alertId: modelId }} />;
 };
 
 export default AlertWorkspaceLogs;
