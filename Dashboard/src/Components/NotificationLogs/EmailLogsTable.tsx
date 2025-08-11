@@ -45,12 +45,6 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             type: FieldType.Email,
             hideOnMobile: true,
         },
-        {
-            field: { subject: true },
-            title: "Subject",
-            type: FieldType.Text,
-            hideOnMobile: true,
-        },
         { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
         {
             field: { status: true },
