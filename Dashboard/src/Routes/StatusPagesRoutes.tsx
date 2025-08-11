@@ -192,6 +192,13 @@ const AnnouncementViewDelete: LazyExoticComponent<
   return import("../Pages/StatusPages/Announcements/View/Delete");
 });
 
+const StatusPageViewNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  // @ts-ignore - file exists; dynamic import path is correct
+  return import("../Pages/StatusPages/View/NotificationLogs");
+});
+
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -301,6 +308,21 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPagesView
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPageViewNotificationLogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }
