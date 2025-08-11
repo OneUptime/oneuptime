@@ -1,26 +1,20 @@
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import { Green, Red } from "Common/Types/BrandColors";
-import CallStatus from "Common/Types/Call/CallStatus";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Column from "Common/UI/Components/ModelTable/Column";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import CallLogsTable from "../../Components/NotificationLogs/CallLogsTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Red } from "Common/Types/BrandColors";
+import CallStatus from "Common/Types/Call/CallStatus";
 
 const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewCallTextModal, setShowViewCallTextModal] =
@@ -140,21 +134,11 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <ModelTable<CallLog>
-          modelType={CallLog}
+        <CallLogsTable
           id="call-logs-table"
-          isDeleteable={false}
-          isEditable={false}
-          isCreateable={false}
-          name="Call Logs"
           userPreferencesKey="call-logs-table"
-          query={{
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          }}
-          selectMoreFields={{
-            callData: true,
-            statusMessage: true,
-          }}
+          name="Call Logs"
+          selectMoreFields={{ callData: true, statusMessage: true }}
           actionButtons={[
             {
               title: "View Call Text",
@@ -165,10 +149,8 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 onCompleteAction: VoidFunction,
               ) => {
                 setCallText(JSON.stringify(item["callData"]) as string);
-
                 setCallModalTitle("Call Text");
                 setShowViewCallTextModal(true);
-
                 onCompleteAction();
               },
             },
@@ -181,10 +163,8 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 onCompleteAction: VoidFunction,
               ) => {
                 setCallText(item["statusMessage"] as string);
-
                 setCallModalTitle("Status Message");
                 setShowViewCallTextModal(true);
-
                 onCompleteAction();
               },
             },
@@ -198,7 +178,7 @@ const CallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           noItemsMessage={
             "Looks like no Call is sent by this project in the last 30 days."
           }
-          showRefreshButton={true}
+          showViewIdButton
           filters={filters}
           columns={modelTableColumns}
         />

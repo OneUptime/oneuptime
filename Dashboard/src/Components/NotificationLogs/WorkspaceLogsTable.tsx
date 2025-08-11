@@ -1,22 +1,36 @@
-import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import WorkspaceLogsTable from "../../Components/NotificationLogs/WorkspaceLogsTable";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 
-const SettingsWorkspaceLog: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
-  // Ensure project scope via query; no navigation guard needed here.
+export interface WorkspaceLogsTableProps {
+  id?: string;
+  userPreferencesKey?: string;
+  name?: string;
+  cardProps?: { title: string; description?: string };
+  noItemsMessage?: string;
+  query?: Record<string, any>;
+  selectMoreFields?: Record<string, boolean>;
+  showViewIdButton?: boolean;
+  isViewable?: boolean;
+  actionButtons?: Array<ActionButtonSchema<WorkspaceNotificationLog>>;
+  columns?: Columns<WorkspaceNotificationLog>;
+  filters?: Array<Filter<WorkspaceNotificationLog>>;
+}
 
-  const columns: Columns<WorkspaceNotificationLog> = [
+const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
+  props: WorkspaceLogsTableProps,
+): ReactElement => {
+  const defaultColumns: Columns<WorkspaceNotificationLog> = [
     {
       field: { workspaceType: true },
       title: "Workspace",
@@ -53,7 +67,7 @@ const SettingsWorkspaceLog: FunctionComponent<
     },
   ];
 
-  const filters: Array<Filter<WorkspaceNotificationLog>> = [
+  const defaultFilters: Array<Filter<WorkspaceNotificationLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
     {
       field: { status: true },
@@ -73,25 +87,39 @@ const SettingsWorkspaceLog: FunctionComponent<
   ];
 
   return (
-    <WorkspaceLogsTable
-      id="settings-workspace-logs-table"
-      userPreferencesKey="settings-workspace-logs-table"
-      name="Workspace Logs"
+    <ModelTable<WorkspaceNotificationLog>
+      modelType={WorkspaceNotificationLog}
+      id={props.id || "workspace-logs-table"}
+      name={props.name || "Workspace Logs"}
+      isDeleteable={false}
+      isEditable={false}
+      isCreateable={false}
+      showViewIdButton={props.showViewIdButton ?? true}
+  isViewable={props.isViewable}
+      userPreferencesKey={props.userPreferencesKey || "workspace-logs-table"}
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        ...(props.query || {}),
+      }}
       selectMoreFields={{
         statusMessage: true,
         messageSummary: true,
         channelId: true,
+        ...(props.selectMoreFields || {}),
       }}
       cardProps={{
-        title: "Workspace Logs",
-        description: "Messages sent to Slack / Teams from this project.",
+        title: props.cardProps?.title || "Workspace Logs",
+        description:
+          props.cardProps?.description ||
+          "Messages sent to Slack / Teams.",
       }}
-      noItemsMessage="No Workspace logs for this project."
-      columns={columns}
-      filters={filters}
-      showViewIdButton
+      noItemsMessage={props.noItemsMessage || "No Workspace logs."}
+      showRefreshButton={true}
+  columns={props.columns || defaultColumns}
+  filters={props.filters || defaultFilters}
+  actionButtons={props.actionButtons}
     />
   );
 };
 
-export default SettingsWorkspaceLog;
+export default WorkspaceLogsTable;

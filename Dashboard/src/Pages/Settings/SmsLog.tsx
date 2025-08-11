@@ -1,6 +1,4 @@
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import SmsStatus from "Common/Types/SmsStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -8,18 +6,14 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Column from "Common/UI/Components/ModelTable/Column";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import SmsLogsTable from "../../Components/NotificationLogs/SmsLogsTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Red } from "Common/Types/BrandColors";
 
 const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showViewSmsTextModal, setShowViewSmsTextModal] =
@@ -136,22 +130,13 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <ModelTable<SmsLog>
-          modelType={SmsLog}
+        <SmsLogsTable
           id="sms-logs-table"
           userPreferencesKey="sms-logs-table"
-          isDeleteable={false}
-          isEditable={false}
-          isCreateable={false}
           name="SMS Logs"
-          query={{
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          }}
-          selectMoreFields={{
-            smsText: true,
-            statusMessage: true,
-          }}
+          selectMoreFields={{ smsText: true, statusMessage: true }}
           filters={filters}
+          columns={modelTableColumns}
           actionButtons={[
             {
               title: "View SMS Text",
@@ -159,10 +144,8 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               icon: IconProp.List,
               onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
                 setSmsText(item["smsText"] as string);
-
                 setSmsModalTitle("SMS Text");
                 setShowViewSmsTextModal(true);
-
                 onCompleteAction();
               },
             },
@@ -172,10 +155,8 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               icon: IconProp.Error,
               onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
                 setSmsText(item["statusMessage"] as string);
-
                 setSmsModalTitle("Status Message");
                 setShowViewSmsTextModal(true);
-
                 onCompleteAction();
               },
             },
@@ -189,8 +170,6 @@ const SMSLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           noItemsMessage={
             "Looks like no SMS is sent by this project in the last 30 days."
           }
-          showRefreshButton={true}
-          columns={modelTableColumns}
         />
 
         {showViewSmsTextModal && (

@@ -1,23 +1,17 @@
-import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import PushStatus from "Common/Types/PushNotification/PushStatus";
+import PushLogsTable from "../../Components/NotificationLogs/PushLogsTable";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Red } from "Common/Types/BrandColors";
 
 const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -68,15 +62,10 @@ const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <ModelTable<PushNotificationLog>
-          modelType={PushNotificationLog}
+        <PushLogsTable
           id="push-logs-table"
-          isDeleteable={false}
-          isEditable={false}
-          isCreateable={false}
-          name="Push Logs"
           userPreferencesKey="push-logs-table"
-          query={{ projectId: ProjectUtil.getCurrentProjectId()! }}
+          name="Push Logs"
           selectMoreFields={{ body: true, statusMessage: true }}
           actionButtons={[
             {
@@ -117,7 +106,6 @@ const PushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           noItemsMessage={
             "Looks like no Push notifications were sent by this project in the last 30 days."
           }
-          showRefreshButton={true}
           filters={filters}
           columns={columns}
         />
