@@ -44,10 +44,11 @@ const IncidentViewNotificationLogs: LazyExoticComponent<
   return import("../Pages/Incidents/View/NotificationLogs");
 });
 
-const IncidentViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Incidents/View/Delete");
-  });
+const IncidentViewDelete: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Incidents/View/Delete");
+});
 
 const IncidentWorkspaceConnectionSlack: LazyExoticComponent<
   FunctionComponent<ComponentProps>
@@ -372,7 +373,9 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS,
+          )}
           element={
             <Suspense fallback={Loader}>
               <IncidentViewNotificationLogs
@@ -384,8 +387,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
-
-        
       </PageRoute>
     </Routes>
   );

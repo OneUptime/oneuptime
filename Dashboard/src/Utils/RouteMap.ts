@@ -991,7 +991,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-
   [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]

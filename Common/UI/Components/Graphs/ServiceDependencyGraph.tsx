@@ -1,5 +1,11 @@
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
-import ReactFlow, { Background, Controls, Edge, MiniMap, Node } from "reactflow";
+import ReactFlow, {
+  Background,
+  Controls,
+  Edge,
+  MiniMap,
+  Node,
+} from "reactflow";
 import "reactflow/dist/style.css";
 
 export interface ServiceNodeData {
@@ -22,32 +28,36 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
   props: ServiceDependencyGraphProps,
 ): ReactElement => {
   const nodes: Node[] = useMemo(() => {
-    return props.services.map((svc) => ({
-      id: svc.id,
-      data: { label: svc.name },
-      position: { x: Math.random() * 600, y: Math.random() * 400 },
-      style: {
-        borderRadius: 8,
-        padding: 8,
-        border: "1px solid #e5e7eb",
-        background: "#fff",
-        boxShadow: "0 1px 2px rgba(16,24,40,.05)",
-      },
-    }));
+    return props.services.map((svc: ServiceNodeData) => {
+      return {
+        id: svc.id,
+        data: { label: svc.name },
+        position: { x: Math.random() * 600, y: Math.random() * 400 },
+        style: {
+          borderRadius: 8,
+          padding: 8,
+          border: "1px solid #e5e7eb",
+          background: "#fff",
+          boxShadow: "0 1px 2px rgba(16,24,40,.05)",
+        },
+      };
+    });
   }, [props.services]);
 
   const edges: Edge[] = useMemo(() => {
-    return props.dependencies.map((dep, idx) => ({
-      id: `e-${idx}`,
-      source: dep.fromServiceId,
-      target: dep.toServiceId,
-      animated: false,
-      style: { stroke: "#94a3b8", strokeWidth: 2 },
-      markerEnd: {
-        type: 2, // MarkerType.Arrow
-      } as any,
-      type: "smoothstep",
-    }));
+    return props.dependencies.map((dep: ServiceEdgeData, idx: number) => {
+      return {
+        id: `e-${idx}`,
+        source: dep.fromServiceId,
+        target: dep.toServiceId,
+        animated: false,
+        style: { stroke: "#94a3b8", strokeWidth: 2 },
+        markerEnd: {
+          type: 2, // MarkerType.Arrow
+        } as any,
+        type: "smoothstep",
+      };
+    });
   }, [props.dependencies]);
 
   return (

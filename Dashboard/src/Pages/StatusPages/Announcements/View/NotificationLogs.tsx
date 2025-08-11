@@ -19,7 +19,10 @@ const AnnouncementNotificationLogs: FunctionComponent<PageComponentProps> = (
           { name: "SMS", children: <AnnouncementSmsLogs {...props} /> },
           { name: "Call", children: <AnnouncementCallLogs {...props} /> },
           { name: "Push", children: <AnnouncementPushLogs {...props} /> },
-          { name: "Workspace", children: <AnnouncementWorkspaceLogs {...props} /> },
+          {
+            name: "Workspace",
+            children: <AnnouncementWorkspaceLogs {...props} />,
+          },
         ]}
         onTabChange={() => {}}
       />

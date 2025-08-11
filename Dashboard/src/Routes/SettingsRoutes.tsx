@@ -543,7 +543,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.SETTINGS_NOTIFICATION_SETTINGS,

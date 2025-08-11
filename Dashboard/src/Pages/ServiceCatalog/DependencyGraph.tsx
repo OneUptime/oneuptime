@@ -1,4 +1,10 @@
-import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import PageComponentProps from "../PageComponentProps";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -7,47 +13,55 @@ import ServiceCatalog from "Common/Models/DatabaseModels/ServiceCatalog";
 import ServiceCatalogDependency from "Common/Models/DatabaseModels/ServiceCatalogDependency";
 import Card from "Common/UI/Components/Card/Card";
 import ServiceDependencyGraph from "Common/UI/Components/Graphs/ServiceDependencyGraph";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import ObjectID from "Common/Types/ObjectID";
 
-const ServiceCatalogDependencyGraphPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ServiceCatalogDependencyGraphPage: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const [services, setServices] = useState<Array<ServiceCatalog>>([]);
-  const [dependencies, setDependencies] = useState<Array<ServiceCatalogDependency>>([]);
+  const [dependencies, setDependencies] = useState<
+    Array<ServiceCatalogDependency>
+  >([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData: PromiseVoidFunction = async (): Promise<void> => {
       try {
         setLoading(true);
         setError("");
 
-        const projectId = ProjectUtil.getCurrentProjectId()!;
+        const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-        const servicesRes: ListResult<ServiceCatalog> = await ModelAPI.getList<ServiceCatalog>({
-          modelType: ServiceCatalog,
-          query: { projectId },
-          select: {
-            _id: true,
-            name: true,
-            slug: true,
-            serviceColor: true,
-          },
-          sort: { createdAt: SortOrder.Descending },
-          limit: 1000,
-          skip: 0,
-        });
+        const servicesRes: ListResult<ServiceCatalog> =
+          await ModelAPI.getList<ServiceCatalog>({
+            modelType: ServiceCatalog,
+            query: { projectId },
+            select: {
+              _id: true,
+              name: true,
+              slug: true,
+              serviceColor: true,
+            },
+            sort: { createdAt: SortOrder.Descending },
+            limit: 1000,
+            skip: 0,
+          });
 
-        const dependenciesRes: ListResult<ServiceCatalogDependency> = await ModelAPI.getList<ServiceCatalogDependency>({
-          modelType: ServiceCatalogDependency,
-          query: { projectId },
-          select: {
-            _id: true,
-            serviceCatalogId: true,
-            dependencyServiceCatalogId: true,
-          },
-          sort: { createdAt: SortOrder.Descending },
-          limit: 5000,
-          skip: 0,
-        });
+        const dependenciesRes: ListResult<ServiceCatalogDependency> =
+          await ModelAPI.getList<ServiceCatalogDependency>({
+            modelType: ServiceCatalogDependency,
+            query: { projectId },
+            select: {
+              _id: true,
+              serviceCatalogId: true,
+              dependencyServiceCatalogId: true,
+            },
+            sort: { createdAt: SortOrder.Descending },
+            limit: 5000,
+            skip: 0,
+          });
 
         setServices(servicesRes.data);
         setDependencies(dependenciesRes.data);
@@ -63,7 +77,10 @@ const ServiceCatalogDependencyGraphPage: FunctionComponent<PageComponentProps> =
 
   return (
     <Fragment>
-      <Card title="Dependency Graph" description="Visualize relationships across all services.">
+      <Card
+        title="Dependency Graph"
+        description="Visualize relationships across all services."
+      >
         <>
           {loading ? <div>Loading...</div> : null}
           {error ? <div className="text-red-500">{error}</div> : null}
@@ -72,17 +89,19 @@ const ServiceCatalogDependencyGraphPage: FunctionComponent<PageComponentProps> =
           ) : null}
           {!loading && !error && services.length > 0 ? (
             <ServiceDependencyGraph
-              services={services.map((s: ServiceCatalog) => ({
-                id: s.id!.toString(),
-                name: s.name || "",
-                color: (s as any).serviceColor?.toString?.() || undefined,
-              }))}
-              dependencies={dependencies.map(
-                (d: ServiceCatalogDependency) => ({
+              services={services.map((s: ServiceCatalog) => {
+                return {
+                  id: s.id!.toString(),
+                  name: s.name || "",
+                  color: (s as any).serviceColor?.toString?.() || undefined,
+                };
+              })}
+              dependencies={dependencies.map((d: ServiceCatalogDependency) => {
+                return {
                   fromServiceId: d.serviceCatalogId!.toString(),
                   toServiceId: d.dependencyServiceCatalogId!.toString(),
-                }),
-              )}
+                };
+              })}
             />
           ) : null}
         </>

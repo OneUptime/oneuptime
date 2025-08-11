@@ -15,10 +15,19 @@ const AlertNotificationLogs: FunctionComponent<PageComponentProps> = (
     <div>
       <Tabs
         tabs={[
-          { name: "Email", children: <AlertViewNotificationLogsEmail {...props} /> },
+          {
+            name: "Email",
+            children: <AlertViewNotificationLogsEmail {...props} />,
+          },
           { name: "SMS", children: <AlertSmsLogs {...props} /> },
-          { name: "Call", children: <AlertViewNotificationLogsCall {...props} /> },
-          { name: "Push", children: <AlertViewNotificationLogsPush {...props} /> },
+          {
+            name: "Call",
+            children: <AlertViewNotificationLogsCall {...props} />,
+          },
+          {
+            name: "Push",
+            children: <AlertViewNotificationLogsPush {...props} />,
+          },
           { name: "Workspace", children: <AlertWorkspaceLogs {...props} /> },
         ]}
         onTabChange={() => {}}

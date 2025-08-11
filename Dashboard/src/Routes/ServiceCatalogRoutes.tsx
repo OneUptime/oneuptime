@@ -80,7 +80,7 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-  <PageRoute path="/" element={<ServiceCatalogLayout {...props} />}>
+      <PageRoute path="/" element={<ServiceCatalogLayout {...props} />}>
         <PageRoute
           path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG] || ""}
           element={

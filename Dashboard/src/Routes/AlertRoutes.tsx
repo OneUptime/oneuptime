@@ -139,8 +139,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        
-
         <PageRoute
           path={
             AlertsRoutePath[
@@ -208,9 +206,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               <Suspense fallback={Loader}>
                 <AlertViewRemediation
                   {...props}
-                  pageRoute={
-                    RouteMap[PageMap.ALERT_VIEW_REMEDIATION] as Route
-                  }
+                  pageRoute={RouteMap[PageMap.ALERT_VIEW_REMEDIATION] as Route}
                 />
               </Suspense>
             }
@@ -296,8 +292,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             }
           />
         </PageRoute>
-
-        
       </PageRoute>
     </Routes>
   );
