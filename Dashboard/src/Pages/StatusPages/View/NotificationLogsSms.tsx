@@ -4,10 +4,17 @@ import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement } from "react";
 import SmsLogsTable from "../../../Components/NotificationLogs/SmsLogsTable";
 
-const StatusPageSmsLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const StatusPageSmsLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return <SmsLogsTable singularName="status page" query={{ statusPageId: modelId }} />;
+  return (
+    <SmsLogsTable
+      singularName="status page"
+      query={{ statusPageId: modelId }}
+    />
+  );
 };
 
 export default StatusPageSmsLogs;

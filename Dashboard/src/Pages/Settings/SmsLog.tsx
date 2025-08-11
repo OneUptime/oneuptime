@@ -10,7 +10,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import SmsLogsTable from "../../Components/NotificationLogs/SmsLogsTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";

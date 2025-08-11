@@ -95,7 +95,11 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
           ...(props.query || {}),
         }}
-        selectMoreFields={{ smsText: true, statusMessage: true, ...(props.selectMoreFields || {}) }}
+        selectMoreFields={{
+          smsText: true,
+          statusMessage: true,
+          ...(props.selectMoreFields || {}),
+        }}
         cardProps={{
           title: props.cardProps?.title || "SMS Logs",
           description:

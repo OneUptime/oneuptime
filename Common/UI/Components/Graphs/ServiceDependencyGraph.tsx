@@ -73,7 +73,9 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
     if (hex.length === 3) {
       hex = hex
         .split("")
-        .map((c) => c + c)
+        .map((c) => {
+          return c + c;
+        })
         .join("");
     }
     if (hex.length !== 6) {
@@ -95,7 +97,9 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
     const NODE_WIDTH = 220;
     const NODE_HEIGHT = 56;
 
-    const sortedServices = [...props.services].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+    const sortedServices = [...props.services].sort((a, b) => {
+      return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+    });
     const sortedDeps = [...props.dependencies].sort((a, b) => {
       if (a.fromServiceId === b.fromServiceId) {
         return a.toServiceId.localeCompare(b.toServiceId);
@@ -119,18 +123,22 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
           height: NODE_HEIGHT,
         } as ElkNode;
       }),
-      edges: sortedDeps.map((dep: ServiceEdgeData): ElkExtendedEdge => ({
-        id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
-        sources: [dep.fromServiceId],
-        targets: [dep.toServiceId],
-      })),
+      edges: sortedDeps.map((dep: ServiceEdgeData): ElkExtendedEdge => {
+        return {
+          id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
+          sources: [dep.fromServiceId],
+          targets: [dep.toServiceId],
+        };
+      }),
     };
 
     const layout = async (): Promise<void> => {
       try {
-  const res: any = await elk.layout(elkGraph as any);
+        const res: any = await elk.layout(elkGraph as any);
         const placedNodes: Node[] = (res.children || []).map((child: any) => {
-          const svc: ServiceNodeData | undefined = sortedServices.find((s) => s.id === child.id);
+          const svc: ServiceNodeData | undefined = sortedServices.find((s) => {
+            return s.id === child.id;
+          });
           const background: string = svc?.color || "#ffffff";
           const textColor: string = getContrastText(background);
           return {
@@ -154,22 +162,24 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
 
         const stroke = "#94a3b8"; // slate-400
         const placedEdges: Edge[] = sortedDeps.map(
-          (dep: ServiceEdgeData): Edge => ({
-            id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
-            source: dep.fromServiceId,
-            target: dep.toServiceId,
-            animated: false,
-            style: { stroke, strokeWidth: 2 },
-            markerEnd: { type: MarkerType.Arrow, color: stroke },
-            type: "smoothstep",
-          }),
+          (dep: ServiceEdgeData): Edge => {
+            return {
+              id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
+              source: dep.fromServiceId,
+              target: dep.toServiceId,
+              animated: false,
+              style: { stroke, strokeWidth: 2 },
+              markerEnd: { type: MarkerType.Arrow, color: stroke },
+              type: "smoothstep",
+            };
+          },
         );
 
         setRfNodes(placedNodes);
         setRfEdges(placedEdges);
       } catch (e) {
         // Fallback: deterministic grid by name
-  const sorted = sortedServices;
+        const sorted = sortedServices;
         const COLS = 4;
         const GAP_X = 260;
         const GAP_Y = 120;
@@ -199,15 +209,17 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
           };
         });
         const stroke = "#94a3b8";
-  const edges: Edge[] = sortedDeps.map((dep: ServiceEdgeData) => ({
-          id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
-          source: dep.fromServiceId,
-          target: dep.toServiceId,
-          animated: false,
-          style: { stroke, strokeWidth: 2 },
-          markerEnd: { type: MarkerType.Arrow, color: stroke },
-          type: "smoothstep",
-        }));
+        const edges: Edge[] = sortedDeps.map((dep: ServiceEdgeData) => {
+          return {
+            id: `e-${dep.fromServiceId}-${dep.toServiceId}`,
+            source: dep.fromServiceId,
+            target: dep.toServiceId,
+            animated: false,
+            style: { stroke, strokeWidth: 2 },
+            markerEnd: { type: MarkerType.Arrow, color: stroke },
+            type: "smoothstep",
+          };
+        });
         setRfNodes(nodes);
         setRfEdges(edges);
       }
@@ -238,9 +250,13 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
         connectOnClick={false}
       >
         <MiniMap
-          nodeColor={(n) =>
-            (n.style as any)?.background || (n.data as any)?.color || "#ffffff"
-          }
+          nodeColor={(n) => {
+            return (
+              (n.style as any)?.background ||
+              (n.data as any)?.color ||
+              "#ffffff"
+            );
+          }}
         />
         <Controls />
         <Background gap={12} size={1} />

@@ -71,7 +71,8 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Dropdown,
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(PushStatus),
+      filterDropdownOptions:
+        DropdownUtil.getDropdownOptionsFromEnum(PushStatus),
     },
   ];
 
@@ -101,7 +102,11 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
           ...(props.query || {}),
         }}
-        selectMoreFields={{ statusMessage: true, body: true, ...(props.selectMoreFields || {}) }}
+        selectMoreFields={{
+          statusMessage: true,
+          body: true,
+          ...(props.selectMoreFields || {}),
+        }}
         cardProps={{
           title: props.cardProps?.title || "Push Logs",
           description:

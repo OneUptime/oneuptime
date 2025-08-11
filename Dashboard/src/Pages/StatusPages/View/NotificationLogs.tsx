@@ -19,7 +19,10 @@ const StatusPageNotificationLogs: FunctionComponent<PageComponentProps> = (
             name: "Email",
             children: <StatusPageViewNotificationLogsEmail {...props} />,
           },
-          { name: "SMS", children: <StatusPageViewNotificationLogsSms {...props} /> },
+          {
+            name: "SMS",
+            children: <StatusPageViewNotificationLogsSms {...props} />,
+          },
           {
             name: "Call",
             children: <StatusPageViewNotificationLogsCall {...props} />,

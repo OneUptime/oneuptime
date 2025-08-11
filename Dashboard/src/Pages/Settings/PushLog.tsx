@@ -6,7 +6,12 @@ import Filter from "Common/UI/Components/ModelFilter/Filter";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import PushStatus from "Common/Types/PushNotification/PushStatus";
 import PushLogsTable from "../../Components/NotificationLogs/PushLogsTable";

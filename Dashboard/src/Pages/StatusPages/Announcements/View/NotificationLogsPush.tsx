@@ -4,10 +4,17 @@ import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement } from "react";
 import PushLogsTable from "../../../../Components/NotificationLogs/PushLogsTable";
 
-const AnnouncementPushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AnnouncementPushLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return <PushLogsTable singularName="announcement" query={{ statusPageAnnouncementId: modelId }} />;
+  return (
+    <PushLogsTable
+      singularName="announcement"
+      query={{ statusPageAnnouncementId: modelId }}
+    />
+  );
 };
 
 export default AnnouncementPushLogs;

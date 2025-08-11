@@ -266,7 +266,6 @@ const AnnouncementView: FunctionComponent<
           }}
         />
         <div className="mt-4"></div>
-
       </Fragment>
     </Page>
   );

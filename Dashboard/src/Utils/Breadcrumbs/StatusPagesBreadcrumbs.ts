@@ -138,12 +138,7 @@ export function getStatusPagesBreadcrumbs(
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS,
-      [
-        "Project",
-        "Status Pages",
-        "View Status Page",
-        "Notification Logs",
-      ],
+      ["Project", "Status Pages", "View Status Page", "Notification Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_DELETE, [
       "Project",

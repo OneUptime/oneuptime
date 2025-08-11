@@ -998,7 +998,7 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-    [PageMap.ANNOUNCEMENT_VIEW_DELETE]: new Route(
+  [PageMap.ANNOUNCEMENT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_DELETE]
     }`,

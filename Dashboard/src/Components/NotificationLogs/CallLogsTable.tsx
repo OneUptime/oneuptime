@@ -95,7 +95,11 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
           ...(props.query || {}),
         }}
-        selectMoreFields={{ callData: true, statusMessage: true, ...(props.selectMoreFields || {}) }}
+        selectMoreFields={{
+          callData: true,
+          statusMessage: true,
+          ...(props.selectMoreFields || {}),
+        }}
         cardProps={{
           title: props.cardProps?.title || "Call Logs",
           description:
@@ -119,7 +123,10 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
               title: "View Call Text",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.List,
-              onClick: async (item: CallLog, onCompleteAction: VoidFunction) => {
+              onClick: async (
+                item: CallLog,
+                onCompleteAction: VoidFunction,
+              ) => {
                 setModalText(JSON.stringify(item["callData"]) as string);
                 setModalTitle("Call Text");
                 setShowModal(true);
@@ -130,7 +137,10 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
               title: "View Status Message",
               buttonStyleType: ButtonStyleType.NORMAL,
               icon: IconProp.Error,
-              onClick: async (item: CallLog, onCompleteAction: VoidFunction) => {
+              onClick: async (
+                item: CallLog,
+                onCompleteAction: VoidFunction,
+              ) => {
                 setModalText(item["statusMessage"] as string);
                 setModalTitle("Status Message");
                 setShowModal(true);

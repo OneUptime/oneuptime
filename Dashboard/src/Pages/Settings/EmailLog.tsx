@@ -8,7 +8,12 @@ import Filter from "Common/UI/Components/ModelFilter/Filter";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
-import React, { Fragment, FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import EmailLogsTable from "../../Components/NotificationLogs/EmailLogsTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -30,7 +35,8 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       field: { status: true },
       title: "Status",
       type: FieldType.Dropdown,
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(EmailStatus),
+      filterDropdownOptions:
+        DropdownUtil.getDropdownOptionsFromEnum(EmailStatus),
     },
   ];
 
@@ -43,38 +49,57 @@ const EmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           name="Email Logs"
           showViewIdButton
           selectMoreFields={{ subject: true, statusMessage: true }}
-          columns={[
-            {
-              field: { projectSmtpConfig: { name: true } },
-              title: "SMTP Server",
-              type: FieldType.Element,
-              getElement: (item: EmailLog): ReactElement => (
-                <CustomSMTPElement
-                  smtp={item["projectSmtpConfig"] as ProjectSmtpConfig}
-                />
-              ),
-            },
-            { field: { fromEmail: true }, title: "From Email", type: FieldType.Email, hideOnMobile: true },
-            { field: { toEmail: true }, title: "To Email", type: FieldType.Email },
-            { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
-            {
-              field: { status: true },
-              title: "Status",
-              type: FieldType.Text,
-              getElement: (item: EmailLog): ReactElement => {
-                if (item["status"]) {
+          columns={
+            [
+              {
+                field: { projectSmtpConfig: { name: true } },
+                title: "SMTP Server",
+                type: FieldType.Element,
+                getElement: (item: EmailLog): ReactElement => {
                   return (
-                    <Pill
-                      isMinimal={false}
-                      color={item["status"] === EmailStatus.Success ? Green : Red}
-                      text={item["status"] as string}
+                    <CustomSMTPElement
+                      smtp={item["projectSmtpConfig"] as ProjectSmtpConfig}
                     />
                   );
-                }
-                return <></>;
+                },
               },
-            },
-          ] as Columns<EmailLog>}
+              {
+                field: { fromEmail: true },
+                title: "From Email",
+                type: FieldType.Email,
+                hideOnMobile: true,
+              },
+              {
+                field: { toEmail: true },
+                title: "To Email",
+                type: FieldType.Email,
+              },
+              {
+                field: { createdAt: true },
+                title: "Sent at",
+                type: FieldType.DateTime,
+              },
+              {
+                field: { status: true },
+                title: "Status",
+                type: FieldType.Text,
+                getElement: (item: EmailLog): ReactElement => {
+                  if (item["status"]) {
+                    return (
+                      <Pill
+                        isMinimal={false}
+                        color={
+                          item["status"] === EmailStatus.Success ? Green : Red
+                        }
+                        text={item["status"] as string}
+                      />
+                    );
+                  }
+                  return <></>;
+                },
+              },
+            ] as Columns<EmailLog>
+          }
           filters={filters}
           actionButtons={[
             {

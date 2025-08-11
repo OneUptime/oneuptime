@@ -4,10 +4,14 @@ import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement } from "react";
 import EmailLogsTable from "../../../Components/NotificationLogs/EmailLogsTable";
 
-const IncidentEmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const IncidentEmailLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  return <EmailLogsTable singularName="incident" query={{ incidentId: modelId }} />;
+  return (
+    <EmailLogsTable singularName="incident" query={{ incidentId: modelId }} />
+  );
 };
 
 export default IncidentEmailLogs;
