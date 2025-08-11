@@ -928,6 +928,11 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/service-catalog`,
   ),
 
+  // Root-level Service Catalog pages
+  [PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/dependency-graph`,
+  ),
+
   [PageMap.SERVICE_CATALOG_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service-catalog/${
       ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW]
