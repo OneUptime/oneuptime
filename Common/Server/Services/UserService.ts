@@ -200,6 +200,8 @@ export class Service extends DatabaseService<Model> {
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),
           },
+        }, {
+          userId: user.id!,
         }).catch((err: Error) => {
           logger.error(err);
         });
@@ -311,6 +313,8 @@ export class Service extends DatabaseService<Model> {
               ).toString(),
               homeUrl: new URL(httpProtocol, host).toString(),
             },
+          }, {
+            userId: newUser.id!,
           }).catch((err: Error) => {
             logger.error(err);
           });

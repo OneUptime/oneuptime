@@ -182,6 +182,7 @@ export default class UserPushAPI extends BaseAPI<
             {
               isSensitive: false,
               projectId: device.projectId!,
+              userId: device.userId!,
             },
           );
 

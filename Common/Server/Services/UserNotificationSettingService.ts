@@ -192,6 +192,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           data.pushNotificationMessage,
           {
             projectId: data.projectId,
+            userId: data.userId,
           },
         ).catch((err: Error) => {
           logger.error(err);
