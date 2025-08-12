@@ -96,7 +96,7 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
   const [rfEdges, setRfEdges] = useState<Edge[]>([]);
 
   useEffect((): void => {
-    const elk: ELK = new ELK();
+  const elk: any = new ELK();
     // fixed node dimensions for layout (px)
     const NODE_WIDTH: number = 220;
     const NODE_HEIGHT: number = 56;
