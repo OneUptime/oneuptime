@@ -14,11 +14,20 @@ import webpush from "web-push";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import UserPush from "../../Models/DatabaseModels/UserPush";
+import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog";
+import PushNotificationLogService from "./PushNotificationLogService";
+import PushStatus from "../../Types/PushNotification/PushStatus";
 
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
   isSensitive?: boolean;
   userOnCallLogTimelineId?: ObjectID | undefined;
+  // Optional relations for richer logging
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  statusPageId?: ObjectID | undefined;
+  statusPageAnnouncementId?: ObjectID | undefined;
 }
 
 export default class PushNotificationService {
@@ -49,7 +58,7 @@ export default class PushNotificationService {
     request: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
-    logger.info(
+  logger.info(
       `Sending push notification to ${request.deviceTokens?.length} devices`,
     );
 
@@ -76,7 +85,7 @@ export default class PushNotificationService {
       );
     }
 
-    const results: Array<any> = await Promise.allSettled(promises);
+  const results: Array<any> = await Promise.allSettled(promises);
 
     let successCount: number = 0;
     let errorCount: number = 0;
@@ -96,6 +105,53 @@ export default class PushNotificationService {
     logger.info(
       `Push notification results: ${successCount} successful, ${errorCount} failed`,
     );
+
+    // Create one push log per device if projectId provided
+    if (options.projectId) {
+      for (let i = 0; i < results.length; i++) {
+        const result: any = results[i];
+        const log: PushNotificationLog = new PushNotificationLog();
+        log.projectId = options.projectId;
+        log.title = request.message.title || "";
+        log.body = options.isSensitive
+          ? "Sensitive message not logged"
+          : request.message.body || "";
+        log.deviceType = request.deviceType;
+
+        // relations if provided
+        if (options.incidentId) {
+          log.incidentId = options.incidentId;
+        }
+        if (options.alertId) {
+          log.alertId = options.alertId;
+        }
+        if (options.scheduledMaintenanceId) {
+          log.scheduledMaintenanceId = options.scheduledMaintenanceId;
+        }
+        if (options.statusPageId) {
+          log.statusPageId = options.statusPageId;
+        }
+        if (options.statusPageAnnouncementId) {
+          log.statusPageAnnouncementId = options.statusPageAnnouncementId;
+        }
+
+        if (result.status === "fulfilled") {
+          log.status = PushStatus.Success;
+          log.statusMessage = "Push notification sent";
+        } else {
+          log.status = PushStatus.Error;
+          const reason: string =
+            (result && (result.reason?.message || result.reason?.toString?.())) ||
+            `Failed to send push notification`;
+          log.statusMessage = reason;
+        }
+
+        await PushNotificationLogService.create({
+          data: log,
+          props: { isRoot: true },
+        });
+      }
+    }
 
     // Update user on call log timeline status if provided
     if (options.userOnCallLogTimelineId) {
@@ -120,7 +176,7 @@ export default class PushNotificationService {
       });
     }
 
-    if (errorCount > 0 && successCount === 0) {
+  if (errorCount > 0 && successCount === 0) {
       throw new Error(
         `Failed to send push notification to all ${errorCount} devices`,
       );

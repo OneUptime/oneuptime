@@ -130,6 +130,7 @@ export default class UserPushAPI extends BaseAPI<
             deviceToken: true,
             deviceType: true,
             isVerified: true,
+            projectId: true,
           },
         });
 
@@ -180,6 +181,7 @@ export default class UserPushAPI extends BaseAPI<
             },
             {
               isSensitive: false,
+              projectId: device.projectId!,
             },
           );
 
