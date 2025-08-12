@@ -113,7 +113,9 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
           props.noItemsMessage ||
           (props.singularName
             ? `No email logs for this ${props.singularName}.`
-            : "No email logs.")
+            : props.pluralName
+              ? `No ${props.pluralName.toLowerCase()} email logs.`
+              : "No email logs.")
         }
         showRefreshButton={true}
         columns={props.columns || defaultColumns}

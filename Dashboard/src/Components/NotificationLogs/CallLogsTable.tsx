@@ -112,7 +112,9 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
           props.noItemsMessage ||
           (props.singularName
             ? `No call logs for this ${props.singularName}.`
-            : "No call logs.")
+            : props.pluralName
+              ? `No ${props.pluralName.toLowerCase()} call logs.`
+              : "No call logs.")
         }
         showRefreshButton={true}
         columns={props.columns || defaultColumns}

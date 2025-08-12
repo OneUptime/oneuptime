@@ -138,7 +138,9 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           props.noItemsMessage ||
           (props.singularName
             ? `No Workspace logs for this ${props.singularName}.`
-            : "No Workspace logs.")
+            : props.pluralName
+              ? `No ${props.pluralName.toLowerCase()} Workspace logs.`
+              : "No Workspace logs.")
         }
         showRefreshButton={true}
         columns={props.columns || defaultColumns}

@@ -119,7 +119,9 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
           props.noItemsMessage ||
           (props.singularName
             ? `No Push logs for this ${props.singularName}.`
-            : "No Push logs.")
+            : props.pluralName
+              ? `No ${props.pluralName.toLowerCase()} Push logs.`
+              : "No Push logs.")
         }
         showRefreshButton={true}
         columns={props.columns || defaultColumns}

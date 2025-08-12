@@ -25,6 +25,6 @@ declare module "elkjs/lib/elk.bundled.js" {
   }
 
   export default class ELK {
-    layout(graph: ElkNode): Promise<ElkNode>;
+    public layout(graph: ElkNode): Promise<ElkNode>;
   }
 }

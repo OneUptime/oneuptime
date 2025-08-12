@@ -112,7 +112,9 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
           props.noItemsMessage ||
           (props.singularName
             ? `No SMS logs for this ${props.singularName}.`
-            : "No SMS logs.")
+            : props.pluralName
+              ? `No ${props.pluralName.toLowerCase()} SMS logs.`
+              : "No SMS logs.")
         }
         showRefreshButton={true}
         columns={props.columns || defaultColumns}
