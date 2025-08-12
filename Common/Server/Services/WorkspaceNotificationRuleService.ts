@@ -274,22 +274,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           for (const res of responses) {
             const messageSummary: string = getMessageSummary(res.workspaceType);
 
-            if (!res.threads || res.threads.length === 0) {
-              const log: WorkspaceNotificationLog =
-                new WorkspaceNotificationLog();
-              log.projectId = data.projectId;
-              log.workspaceType = res.workspaceType;
-              log.messageSummary = messageSummary;
-              log.status = WorkspaceNotificationStatus.Error;
-              log.statusMessage =
-                "Message not sent - missing workspace auth/bot or no channels configured";
-
-              await WorkspaceNotificationLogService.create({
-                data: log,
-                props: { isRoot: true },
-              });
-              continue;
-            }
 
             for (const thread of res.threads) {
               const log: WorkspaceNotificationLog =
@@ -365,22 +349,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           for (const res of responses) {
             const messageSummary: string = getMessageSummary(res.workspaceType);
 
-            if (!res.threads || res.threads.length === 0) {
-              const log: WorkspaceNotificationLog =
-                new WorkspaceNotificationLog();
-              log.projectId = data.projectId;
-              log.workspaceType = res.workspaceType;
-              log.messageSummary = messageSummary;
-              log.status = WorkspaceNotificationStatus.Error;
-              log.statusMessage =
-                "Message not sent - missing workspace auth/bot or no channels configured";
-
-              await WorkspaceNotificationLogService.create({
-                data: log,
-                props: { isRoot: true },
-              });
-              continue;
-            }
 
             for (const thread of res.threads) {
               const log: WorkspaceNotificationLog =
@@ -597,34 +565,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const res of responses) {
       const messageSummary: string = getMessageSummary(res.workspaceType);
-
-      if (!res.threads || res.threads.length === 0) {
-        const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
-        log.projectId = data.projectId;
-        log.workspaceType = res.workspaceType;
-        log.messageSummary = messageSummary;
-        log.status = WorkspaceNotificationStatus.Error;
-        log.statusMessage =
-          "Message not sent - missing workspace auth/bot or no channels configured";
-
-        // attach resource relations
-        if (data.notificationFor.incidentId) {
-          log.incidentId = data.notificationFor.incidentId;
-        }
-        if (data.notificationFor.alertId) {
-          log.alertId = data.notificationFor.alertId;
-        }
-        if (data.notificationFor.scheduledMaintenanceId) {
-          log.scheduledMaintenanceId =
-            data.notificationFor.scheduledMaintenanceId;
-        }
-
-        await WorkspaceNotificationLogService.create({
-          data: log,
-          props: { isRoot: true },
-        });
-        continue;
-      }
 
       for (const thread of res.threads) {
         const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
