@@ -113,6 +113,7 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import logger from "Common/Server/Utils/Logger";
 import { WORKER_CONCURRENCY } from "./Config";
+import MetricsAPI from "./API/Metrics";
 
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 
@@ -123,6 +124,9 @@ const WorkersFeatureSet: FeatureSet = {
     try {
       // attach bull board to the app
       app.use(Queue.getInspectorRoute(), Queue.getQueueInspectorRouter());
+
+  // expose metrics endpoint used by KEDA
+  app.use(["/worker", "/"], MetricsAPI);
 
       // run async database migrations
       RunDatabaseMigrations().catch((err: Error) => {

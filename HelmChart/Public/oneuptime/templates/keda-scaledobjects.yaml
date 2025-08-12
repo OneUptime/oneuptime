@@ -50,3 +50,10 @@ KEDA ScaledObjects for various services
 {{- include "oneuptime.kedaScaledObject" $probeKedaArgs }}
 {{- end }}
 {{- end }}
+
+{{/* Worker KEDA ScaledObject */}}
+{{- if and .Values.keda.enabled .Values.worker.keda.enabled (not .Values.worker.disableAutoscaler) }}
+{{- $metricsConfig := dict "enabled" .Values.worker.keda.enabled "minReplicas" .Values.worker.keda.minReplicas "maxReplicas" .Values.worker.keda.maxReplicas "pollingInterval" .Values.worker.keda.pollingInterval "cooldownPeriod" .Values.worker.keda.cooldownPeriod "triggers" (list (dict "query" "oneuptime_worker_queue_size" "threshold" .Values.worker.keda.queueSizeThreshold "port" .Values.worker.ports.http)) }}
+{{- $workerKedaArgs := dict "ServiceName" "worker" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.worker.disableAutoscaler }}
+{{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}
+{{- end }}
