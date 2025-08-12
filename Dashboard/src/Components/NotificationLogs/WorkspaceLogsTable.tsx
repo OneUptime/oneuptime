@@ -14,6 +14,7 @@ import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSc
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 export interface WorkspaceLogsTableProps {
   id?: string;
@@ -182,7 +183,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       {showModal && (
         <ConfirmModal
           title={modalTitle}
-          description={modalText}
+          description={<MarkdownViewer text={modalText} />}
           onSubmit={() => {
             setShowModal(false);
           }}
