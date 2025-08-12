@@ -36,6 +36,7 @@ export default class SmsService {
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let smsError: Error | null = null;
@@ -94,6 +95,10 @@ export default class SmsService {
 
       if (options.statusPageAnnouncementId) {
         smsLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
+      }
+
+      if (options.userId) {
+        smsLog.userId = options.userId;
       }
 
       const twilioConfig: TwilioConfig | null =

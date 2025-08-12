@@ -286,6 +286,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               log.messageSummary = messageSummary;
               log.status = WorkspaceNotificationStatus.Success;
               log.statusMessage = "Test message posted to workspace channel";
+              log.userId = data.testByUserId;
 
               await WorkspaceNotificationLogService.create({
                 data: log,
@@ -361,6 +362,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               log.messageSummary = messageSummary;
               log.status = WorkspaceNotificationStatus.Success;
               log.statusMessage = "Test message posted to workspace channel";
+              log.userId = data.testByUserId;
 
               await WorkspaceNotificationLogService.create({
                 data: log,
@@ -586,6 +588,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         if (data.notificationFor.scheduledMaintenanceId) {
           log.scheduledMaintenanceId =
             data.notificationFor.scheduledMaintenanceId;
+        }
+
+        if (data.workspaceNotification.notifyUserId) {
+          log.userId = data.workspaceNotification.notifyUserId;
         }
 
         await WorkspaceNotificationLogService.create({

@@ -44,6 +44,12 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       type: FieldType.Phone,
       hideOnMobile: true,
     },
+    {
+      field: { user: { name: true } },
+      title: "Initiated by",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
       field: { status: true },
@@ -98,6 +104,9 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
         selectMoreFields={{
           callData: true,
           statusMessage: true,
+          user: {
+            name: true,
+          },
           ...(props.selectMoreFields || {}),
         }}
         cardProps={{

@@ -46,6 +46,12 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       type: FieldType.Text,
     },
     { field: { channelName: true }, title: "Channel", type: FieldType.Text },
+    {
+      field: { user: { name: true } },
+      title: "Initiated by",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
       field: { status: true },
@@ -119,6 +125,9 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           statusMessage: true,
           messageSummary: true,
           channelId: true,
+          user: {
+            name: true,
+          },
           ...(props.selectMoreFields || {}),
         }}
         cardProps={{

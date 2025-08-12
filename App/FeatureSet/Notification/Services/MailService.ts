@@ -350,6 +350,7 @@ export default class MailService {
           scheduledMaintenanceId?: ObjectID | undefined;
           statusPageId?: ObjectID | undefined;
           statusPageAnnouncementId?: ObjectID | undefined;
+          userId?: ObjectID | undefined;
         }
       | undefined,
   ): Promise<void> {
@@ -383,6 +384,10 @@ export default class MailService {
 
       if (options.statusPageAnnouncementId) {
         emailLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
+      }
+
+      if (options.userId) {
+        emailLog.userId = options.userId;
       }
     }
 

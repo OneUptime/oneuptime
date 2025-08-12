@@ -31,6 +31,7 @@ export class SmsService extends BaseService {
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -54,6 +55,7 @@ export class SmsService extends BaseService {
       scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
       statusPageId: options.statusPageId?.toString(),
       statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),
+      userId: options.userId?.toString(),
     };
 
     return await API.post<EmptyResponseData>(

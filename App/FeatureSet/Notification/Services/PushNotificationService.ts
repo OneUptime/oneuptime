@@ -14,6 +14,7 @@ export default class PushNotificationService {
       scheduledMaintenanceId?: ObjectID | undefined;
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
     } = {},
   ): Promise<void> {
     // Delegate to Common service which now handles logging and timeline updates
@@ -26,6 +27,7 @@ export default class PushNotificationService {
       scheduledMaintenanceId: options.scheduledMaintenanceId,
       statusPageId: options.statusPageId,
       statusPageAnnouncementId: options.statusPageAnnouncementId,
+      userId: options.userId,
     });
   }
 }

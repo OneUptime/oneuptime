@@ -344,6 +344,62 @@ export default class WorkspaceNotificationLog extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.ReadWorkspaceNotificationLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "User",
+    description: "User who initiated this workspace notification (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userId" })
+  public user?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadWorkspaceNotificationLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User ID",
+    description: "ID of User who initiated this workspace notification (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
       Permission.ReadPushLog,
     ],
     update: [],

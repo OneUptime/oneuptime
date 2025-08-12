@@ -330,6 +330,62 @@ export default class SmsLog extends BaseModel {
     update: [],
   })
   @TableColumn({
+    manyToOneRelationColumn: "userId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "User",
+    description: "User who initiated this SMS (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userId" })
+  public user?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User ID",
+    description: "ID of User who initiated this SMS (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "alertId",
     type: TableColumnType.Entity,
     modelType: Alert,

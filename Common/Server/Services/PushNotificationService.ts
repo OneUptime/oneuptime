@@ -28,6 +28,7 @@ export interface PushNotificationOptions {
   scheduledMaintenanceId?: ObjectID | undefined;
   statusPageId?: ObjectID | undefined;
   statusPageAnnouncementId?: ObjectID | undefined;
+  userId?: ObjectID | undefined;
 }
 
 export default class PushNotificationService {
@@ -133,6 +134,9 @@ export default class PushNotificationService {
         }
         if (options.statusPageAnnouncementId) {
           log.statusPageAnnouncementId = options.statusPageAnnouncementId;
+        }
+        if (options.userId) {
+          log.userId = options.userId;
         }
 
         if (result.status === "fulfilled") {

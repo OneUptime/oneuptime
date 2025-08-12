@@ -45,6 +45,12 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       type: FieldType.Text,
       hideOnMobile: true,
     },
+    {
+      field: { user: { name: true } },
+      title: "Initiated by",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
       field: { status: true },
@@ -105,6 +111,9 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
         selectMoreFields={{
           statusMessage: true,
           body: true,
+          user: {
+            name: true,
+          },
           ...(props.selectMoreFields || {}),
         }}
         cardProps={{

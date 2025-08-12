@@ -45,6 +45,12 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       type: FieldType.Email,
       hideOnMobile: true,
     },
+    {
+      field: { user: { name: true } },
+      title: "Initiated by",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
       field: { status: true },
@@ -99,6 +105,9 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
         selectMoreFields={{
           subject: true,
           statusMessage: true,
+          user: {
+            name: true,
+          },
           ...(props.selectMoreFields || {}),
         }}
         cardProps={{

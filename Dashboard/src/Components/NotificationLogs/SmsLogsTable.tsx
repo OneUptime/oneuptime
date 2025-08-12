@@ -44,6 +44,12 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       type: FieldType.Phone,
       hideOnMobile: true,
     },
+    {
+      field: { user: { name: true } },
+      title: "Initiated by",
+      type: FieldType.Text,
+      hideOnMobile: true,
+    },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
       field: { status: true },
@@ -98,6 +104,9 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
         selectMoreFields={{
           smsText: true,
           statusMessage: true,
+          user: {
+            name: true,
+          },
           ...(props.selectMoreFields || {}),
         }}
         cardProps={{
