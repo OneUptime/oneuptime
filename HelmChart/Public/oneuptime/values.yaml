@@ -43,6 +43,9 @@ nginx:
   disableAutoscaler: false
   listenAddress: ""
   listenOptions: ""
+  serverNamesHash:
+    bucketSize: ""
+    maxSize: ""
   ports:
     http: 80
     https: 443
