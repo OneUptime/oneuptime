@@ -125,8 +125,8 @@ const WorkersFeatureSet: FeatureSet = {
       // attach bull board to the app
       app.use(Queue.getInspectorRoute(), Queue.getQueueInspectorRouter());
 
-  // expose metrics endpoint used by KEDA
-  app.use(["/worker", "/"], MetricsAPI);
+      // expose metrics endpoint used by KEDA
+      app.use(["/worker", "/"], MetricsAPI);
 
       // run async database migrations
       RunDatabaseMigrations().catch((err: Error) => {
