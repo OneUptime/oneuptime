@@ -69,6 +69,12 @@ const OnCallDutyPolicyViewLogsView: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutyPolicy/ExecutionLogView");
 });
+
+const OnCallDutyPolicyViewNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutyPolicy/NotificationLogs");
+});
 const OnCallDutyPolicyViewEscalation: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -100,6 +106,12 @@ const OnCallDutyScheduleViewLayers: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
   return import("../Pages/OnCallDuty/OnCallDutySchedule/Layers");
+});
+
+const OnCallDutyScheduleViewNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/OnCallDuty/OnCallDutySchedule/NotificationLogs");
 });
 
 // slack
@@ -405,6 +417,24 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
             </Suspense>
           }
         />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyPolicyViewNotificationLogs
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS
+                  ] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
       </PageRoute>
       <PageRoute
         path={OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW] || ""}
@@ -450,6 +480,24 @@ const OnCallDutyRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <OnCallDutyScheduleViewNotificationLogs
+                {...props}
+                pageRoute={
+                  RouteMap[
+                    PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS
+                  ] as Route
                 }
               />
             </Suspense>

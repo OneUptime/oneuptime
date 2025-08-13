@@ -6,6 +6,10 @@ import StatusPage from "./StatusPage";
 import ProjectSmtpConfig from "./ProjectSmtpConfig";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
 import User from "./User";
+import OnCallDutyPolicy from "./OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
+import Team from "./Team";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -633,6 +637,234 @@ export default class EmailLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public statusPageAnnouncementId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "onCallDutyPolicyId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicy,
+    title: "On-Call Duty Policy",
+    description: "On-Call Duty Policy associated with this email (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "onCallDutyPolicyId" })
+  public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Duty Policy ID",
+    description:
+      "ID of On-Call Duty Policy associated with this email (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "onCallDutyPolicyEscalationRuleId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicyEscalationRule,
+    title: "On-Call Duty Policy Escalation Rule",
+    description: "On-Call Duty Policy Escalation Rule associated with this email (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicyEscalationRule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "onCallDutyPolicyEscalationRuleId" })
+  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Duty Policy Escalation Rule ID",
+    description:
+      "ID of On-Call Duty Policy Escalation Rule associated with this email (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicySchedule,
+    title: "On-Call Duty Policy Schedule",
+    description: "On-Call Duty Policy Schedule associated with this email (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicySchedule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "onCallDutyPolicyScheduleId" })
+  public onCallDutyPolicySchedule?: OnCallDutyPolicySchedule = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Duty Policy Schedule ID",
+    description:
+      "ID of On-Call Duty Policy Schedule associated with this email (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyScheduleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "teamId",
+    type: TableColumnType.Entity,
+    modelType: Team,
+    title: "Team",
+    description: "Team associated with this email (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return Team;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "teamId" })
+  public team?: Team = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadEmailLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Team ID",
+    description:
+      "ID of Team associated with this email (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
