@@ -675,7 +675,14 @@ export class Service extends DatabaseService<Model> {
         // send push notification.
         PushNotificationService.sendPushNotification(
           {
-            deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+            devices: [
+              {
+                token: notificationRuleItem.userPush.deviceToken!,
+                ...(notificationRuleItem.userPush.deviceName && {
+                  name: notificationRuleItem.userPush.deviceName,
+                }),
+              },
+            ],
             message: pushMessage,
             deviceType: notificationRuleItem.userPush.deviceType!,
           },
@@ -738,7 +745,14 @@ export class Service extends DatabaseService<Model> {
         // send push notification.
         PushNotificationService.sendPushNotification(
           {
-            deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+            devices: [
+              {
+                token: notificationRuleItem.userPush.deviceToken!,
+                ...(notificationRuleItem.userPush.deviceName && {
+                  name: notificationRuleItem.userPush.deviceName,
+                }),
+              },
+            ],
             message: pushMessage,
             deviceType: notificationRuleItem.userPush.deviceType!,
           },

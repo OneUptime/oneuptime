@@ -30,12 +30,6 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
   const [modalTitle, setModalTitle] = useState<string>("");
   const defaultColumns: Columns<PushNotificationLog> = [
     {
-      field: { title: true },
-      title: "Title",
-      type: FieldType.Text,
-      noValueMessage: "-",
-    },
-    {
       field: { deviceType: true },
       title: "Device Type",
       type: FieldType.Text,
@@ -130,6 +124,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
           ...(props.query || {}),
         }}
         selectMoreFields={{
+          title: true,
           statusMessage: true,
           body: true,
           deviceName: true,
@@ -153,15 +148,18 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
         filters={defaultFilters}
         actionButtons={[
           {
-            title: "View Body",
+            title: "View Message",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (
               item: PushNotificationLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setModalText(item["body"] as string);
-              setModalTitle("Body");
+              const title = item["title"] as string;
+              const body = item["body"] as string;
+              const combinedMessage = `${title ? `Title: ${title}\n\n` : ''}${body ? `Body: ${body}` : ''}`;
+              setModalText(combinedMessage);
+              setModalTitle("Push Notification Message");
               setShowModal(true);
               onCompleteAction();
             },

@@ -20,7 +20,9 @@ router.post(
 
     await PushService.send(
       {
-        deviceTokens: (body["deviceTokens"] as string[]) || [],
+        devices: ((body["deviceTokens"] as string[]) || []).map((token: string) => ({
+          token,
+        })),
         deviceType: (body["deviceType"] as any) || "web",
         message: body["message"] as any,
       },
