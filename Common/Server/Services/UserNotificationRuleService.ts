@@ -299,7 +299,7 @@ export class Service extends DatabaseService<Model> {
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-          userBelongsToTeamId: options.userBelongsToTeamId,
+          teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
@@ -351,7 +351,7 @@ export class Service extends DatabaseService<Model> {
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-          userBelongsToTeamId: options.userBelongsToTeamId,
+          teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
@@ -425,7 +425,7 @@ export class Service extends DatabaseService<Model> {
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-          userBelongsToTeamId: options.userBelongsToTeamId,
+          teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
@@ -477,7 +477,7 @@ export class Service extends DatabaseService<Model> {
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-          userBelongsToTeamId: options.userBelongsToTeamId,
+          teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
@@ -544,14 +544,14 @@ export class Service extends DatabaseService<Model> {
 
         // send call.
 
-        CallService.makeCall(callRequest, {
+        await CallService.makeCall(callRequest, {
           projectId: alert.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-          userBelongsToTeamId: options.userBelongsToTeamId,
+          teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
@@ -595,14 +595,14 @@ export class Service extends DatabaseService<Model> {
 
         // send call.
 
-        CallService.makeCall(callRequest, {
+        await CallService.makeCall(callRequest, {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
           userId: notificationRuleItem.userId!,
           onCallPolicyId: options.onCallPolicyId,
           onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-          userBelongsToTeamId: options.userBelongsToTeamId,
+          teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
@@ -686,7 +686,7 @@ export class Service extends DatabaseService<Model> {
             userId: notificationRuleItem.userId!,
             onCallPolicyId: options.onCallPolicyId,
             onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-            userBelongsToTeamId: options.userBelongsToTeamId,
+            teamId: options.userBelongsToTeamId,
             onCallDutyPolicyExecutionLogTimelineId:
               options.onCallDutyPolicyExecutionLogTimelineId,
           },
@@ -749,7 +749,7 @@ export class Service extends DatabaseService<Model> {
             userId: notificationRuleItem.userId!,
             onCallPolicyId: options.onCallPolicyId,
             onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-            userBelongsToTeamId: options.userBelongsToTeamId,
+            teamId: options.userBelongsToTeamId,
             onCallDutyPolicyExecutionLogTimelineId:
               options.onCallDutyPolicyExecutionLogTimelineId,
           },

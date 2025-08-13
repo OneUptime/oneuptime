@@ -19,12 +19,12 @@ export class CallService extends BaseService {
   }
 
   @CaptureSpan()
-  public async makeCall(
+  public  async makeCall(
     callRequest: CallRequest,
     options: {
       projectId?: ObjectID | undefined; // project id for sms log
       isSensitive?: boolean; // if true, message will not be logged
-      userOnCallLogTimelineId?: ObjectID;
+      userOnCallLogTimelineId?: ObjectID | undefined;
       customTwilioConfig?: TwilioConfig | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
@@ -35,10 +35,9 @@ export class CallService extends BaseService {
       // On-call policy related fields
       onCallPolicyId?: ObjectID | undefined;
       onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userBelongsToTeamId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
-      overridedByUserId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -65,11 +64,10 @@ export class CallService extends BaseService {
       onCallPolicyId: options.onCallPolicyId?.toString(),
       onCallPolicyEscalationRuleId:
         options.onCallPolicyEscalationRuleId?.toString(),
-      userBelongsToTeamId: options.userBelongsToTeamId?.toString(),
+      teamId: options.teamId?.toString(),
       onCallDutyPolicyExecutionLogTimelineId:
         options.onCallDutyPolicyExecutionLogTimelineId?.toString(),
       onCallScheduleId: options.onCallScheduleId?.toString(),
-      overridedByUserId: options.overridedByUserId?.toString(),
     };
 
     return await API.post<EmptyResponseData>(

@@ -44,6 +44,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     scheduledMaintenanceId?: ObjectID | undefined;
     statusPageId?: ObjectID | undefined;
     statusPageAnnouncementId?: ObjectID | undefined;
+    teamId?: ObjectID | undefined;
   }): Promise<void> {
     if (!data.projectId) {
       throw new BadDataException(
@@ -102,6 +103,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
+              teamId: data.teamId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -140,6 +142,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
+              teamId: data.teamId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -165,7 +168,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
 
         for (const userCall of userCalls) {
-          CallService.makeCall(
+          await CallService.makeCall(
             {
               ...data.callRequestMessage,
               to: userCall.phone!,
@@ -178,6 +181,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
+              teamId: data.teamId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -196,6 +200,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           {
             projectId: data.projectId,
             userId: data.userId,
+            teamId: data.teamId,
           },
         ).catch((err: Error) => {
           logger.error(err);
