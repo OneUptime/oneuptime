@@ -13,6 +13,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
+import UserElement from "../User/User";
+import User from "Common/Models/DatabaseModels/User";
 
 export interface SmsLogsTableProps {
   query?: Query<BaseModel>;
@@ -26,18 +28,38 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
   const defaultColumns: Columns<SmsLog> = [
-    { field: { toNumber: true }, title: "To", type: FieldType.Phone },
+    {
+      field: { toNumber: true },
+      title: "To",
+      type: FieldType.Phone,
+      noValueMessage: "-",
+    },
     {
       field: { fromNumber: true },
       title: "From",
       type: FieldType.Phone,
       hideOnMobile: true,
+      noValueMessage: "-",
     },
     {
-      field: { user: { name: true } },
+      field: {
+        user: {
+          name: true,
+          email: true,
+          profilePictureId: true,
+        },
+      },
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
+      noValueMessage: "-",
+      getElement: (item: SmsLog): ReactElement => {
+        if (!item["user"]) {
+          return <p>-</p>;
+        }
+
+        return <UserElement user={item["user"] as User} />;
+      },
     },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {

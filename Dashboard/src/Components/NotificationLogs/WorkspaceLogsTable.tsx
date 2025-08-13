@@ -24,6 +24,8 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
+import UserElement from "../User/User";
+import User from "Common/Models/DatabaseModels/User";
 
 export interface WorkspaceLogsTableProps {
   query?: Query<BaseModel>;
@@ -41,6 +43,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { workspaceType: true },
       title: "Workspace",
       type: FieldType.Text,
+      noValueMessage: "-",
     },
     {
       field: { actionType: true },
@@ -79,12 +82,31 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         );
       },
     },
-    { field: { channelName: true }, title: "Channel", type: FieldType.Text },
     {
-      field: { user: { name: true } },
+      field: { channelName: true },
+      title: "Channel",
+      type: FieldType.Text,
+      noValueMessage: "-",
+    },
+    {
+      field: {
+        user: {
+          name: true,
+          email: true,
+          profilePictureId: true,
+        },
+      },
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
+      noValueMessage: "-",
+      getElement: (item: WorkspaceNotificationLog): ReactElement => {
+        if (!item["user"]) {
+          return <p>-</p>;
+        }
+
+        return <UserElement user={item["user"] as User} />;
+      },
     },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {

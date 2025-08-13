@@ -14,6 +14,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
+import UserElement from "../User/User";
+import User from "Common/Models/DatabaseModels/User";
 
 export interface PushLogsTableProps {
   query?: Query<BaseModel>;
@@ -27,18 +29,38 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
   const defaultColumns: Columns<PushNotificationLog> = [
-    { field: { title: true }, title: "Title", type: FieldType.Text },
+    {
+      field: { title: true },
+      title: "Title",
+      type: FieldType.Text,
+      noValueMessage: "-",
+    },
     {
       field: { deviceType: true },
       title: "Device Type",
       type: FieldType.Text,
       hideOnMobile: true,
+      noValueMessage: "-",
     },
     {
-      field: { user: { name: true } },
+      field: {
+        user: {
+          name: true,
+          email: true,
+          profilePictureId: true,
+        },
+      },
       title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
+      noValueMessage: "-",
+      getElement: (item: PushNotificationLog): ReactElement => {
+        if (!item["user"]) {
+          return <p>-</p>;
+        }
+
+        return <UserElement user={item["user"] as User} />;
+      },
     },
     { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
     {
