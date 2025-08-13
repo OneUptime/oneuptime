@@ -261,7 +261,7 @@ router.post(
         logger.info("User forgot password: " + user.email?.toString());
         logger.info("Reset Password URL: " + tokenVerifyUrl);
 
-        MailService.sendMail({
+  MailService.sendMail({
           toEmail: user.email!,
           subject: "Password Reset Request for OneUptime",
           templateType: EmailTemplateType.ForgotPassword,
@@ -269,7 +269,7 @@ router.post(
             homeURL: new URL(httpProtocol, host).toString(),
             tokenVerifyUrl: tokenVerifyUrl,
           },
-        }).catch((err: Error) => {
+  }, { userId: alreadySavedUser.id! }).catch((err: Error) => {
           logger.error(err);
         });
 
@@ -376,14 +376,14 @@ router.post(
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-      MailService.sendMail({
+  MailService.sendMail({
         toEmail: user.email!,
         subject: "Email Verified.",
         templateType: EmailTemplateType.EmailVerified,
         vars: {
           homeURL: new URL(httpProtocol, host).toString(),
         },
-      }).catch((err: Error) => {
+  }, { userId: user.id! }).catch((err: Error) => {
         logger.error(err);
       });
 
@@ -465,14 +465,14 @@ router.post(
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-      MailService.sendMail({
+  MailService.sendMail({
         toEmail: alreadySavedUser.email!,
         subject: "Password Changed.",
         templateType: EmailTemplateType.PasswordChanged,
         vars: {
           homeURL: new URL(httpProtocol, host).toString(),
         },
-      }).catch((err: Error) => {
+  }, { userId: alreadySavedUser.id! }).catch((err: Error) => {
         logger.error(err);
       });
 

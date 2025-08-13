@@ -45,7 +45,6 @@ import {
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
-import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -1276,14 +1275,10 @@ export class ProjectService extends DatabaseService<Model> {
       return;
     }
 
-    const emails: Array<Email> = owners.map((owner: User) => {
-      return owner.email!;
-    });
-
-    for (const email of emails) {
+  for (const owner of owners) {
       MailService.sendMail(
         {
-          toEmail: email,
+      toEmail: owner.email!,
           templateType: EmailTemplateType.SimpleMessage,
           vars: {
             subject: subject,
@@ -1293,6 +1288,7 @@ export class ProjectService extends DatabaseService<Model> {
         },
         {
           projectId,
+      userId: owner.id!,
         },
       ).catch((err: Error) => {
         logger.error(err);

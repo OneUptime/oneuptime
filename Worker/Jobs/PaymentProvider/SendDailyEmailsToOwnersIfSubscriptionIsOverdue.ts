@@ -100,6 +100,7 @@ RunCron(
             },
             {
               projectId: project.id!,
+              userId: owner.id!,
             },
           ).catch((err: Error) => {
             logger.error(err);

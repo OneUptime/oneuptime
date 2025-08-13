@@ -101,6 +101,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -138,6 +139,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -175,6 +177,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               scheduledMaintenanceId: data.scheduledMaintenanceId,
               statusPageId: data.statusPageId,
               statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
             },
           ).catch((err: Error) => {
             logger.error(err);
