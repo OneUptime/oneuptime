@@ -64,29 +64,13 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
 
     const todaysEvents: Array<Event> = props.events.filter((event: Event) => {
-      let doesEventBelongsToToday: boolean = false;
+      // An event belongs to today if it overlaps any part of the day.
+      // Overlap check (inclusive): event.start <= endOfDay AND event.end >= startOfDay
+      const overlapsToday: boolean =
+        OneUptimeDate.isOnOrBefore(event.startDate, endOfTheDay) &&
+        OneUptimeDate.isOnOrAfter(event.endDate, startOfTheDay);
 
-      /// if the event starts or end today.
-      if (
-        OneUptimeDate.isBetween(event.startDate, startOfTheDay, endOfTheDay)
-      ) {
-        doesEventBelongsToToday = true;
-      }
-
-      if (OneUptimeDate.isBetween(event.endDate, startOfTheDay, endOfTheDay)) {
-        doesEventBelongsToToday = true;
-      }
-
-      // if the event is outside start or end day but overlaps the day completely.
-
-      if (
-        OneUptimeDate.isBetween(startOfTheDay, event.startDate, endOfTheDay) &&
-        OneUptimeDate.isBetween(endOfTheDay, startOfTheDay, event.endDate)
-      ) {
-        doesEventBelongsToToday = true;
-      }
-
-      return doesEventBelongsToToday;
+      return overlapsToday;
     });
 
     const secondsOfEvent: Dictionary<number> = {};
