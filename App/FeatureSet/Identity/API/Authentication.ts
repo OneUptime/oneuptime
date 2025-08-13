@@ -270,8 +270,7 @@ router.post(
               homeURL: new URL(httpProtocol, host).toString(),
               tokenVerifyUrl: tokenVerifyUrl,
             },
-          },
-          { userId: alreadySavedUser.id! },
+          }
         ).catch((err: Error) => {
           logger.error(err);
         });
