@@ -300,6 +300,8 @@ export default class WorkspaceNotificationLog extends BaseModel {
     title: "Action Type",
     description: "Type of workspace action performed",
     canReadOnRelationQuery: false,
+    isDefaultValueColumn: true,
+    defaultValue: WorkspaceNotificationActionType.SendMessage,
   })
   @Column({
     nullable: false,
