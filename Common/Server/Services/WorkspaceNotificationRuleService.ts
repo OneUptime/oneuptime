@@ -288,6 +288,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               log.status = WorkspaceNotificationStatus.Success;
               log.statusMessage = "Test message posted to workspace channel";
               log.userId = data.testByUserId;
+              log.actionType = WorkspaceNotificationActionType.SendMessage;
 
               await WorkspaceNotificationLogService.create({
                 data: log,
@@ -363,6 +364,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               log.status = WorkspaceNotificationStatus.Success;
               log.statusMessage = "Test message posted to workspace channel";
               log.userId = data.testByUserId;
+              log.actionType = WorkspaceNotificationActionType.SendMessage;
 
               await WorkspaceNotificationLogService.create({
                 data: log,
