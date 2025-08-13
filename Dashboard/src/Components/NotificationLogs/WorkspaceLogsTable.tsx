@@ -68,17 +68,25 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
 
         // Map action type to a brand color
         const colorMap: Record<WorkspaceNotificationActionType, typeof Blue> = {
-          [WorkspaceNotificationActionType.MessageSent]: Blue,
-          [WorkspaceNotificationActionType.ChannelCreated]: Purple,
-          [WorkspaceNotificationActionType.UserInvited]: Orange,
+          [WorkspaceNotificationActionType.SendMessage]: Blue,
+          [WorkspaceNotificationActionType.CreateChannel]: Purple,
+          [WorkspaceNotificationActionType.InviteUser]: Orange,
           [WorkspaceNotificationActionType.ButtonPressed]: Yellow,
+        };
+
+
+        const textMap: Record<WorkspaceNotificationActionType, string> = {
+          [WorkspaceNotificationActionType.SendMessage]: "Send Message",
+          [WorkspaceNotificationActionType.CreateChannel]: "Create Channel",
+          [WorkspaceNotificationActionType.InviteUser]: "Invite User",
+          [WorkspaceNotificationActionType.ButtonPressed]: "Button Pressed",
         };
 
         return (
           <Pill
             isMinimal={true}
             color={colorMap[actionType] || Blue}
-            text={actionType as string}
+            text={textMap[actionType] || "Unknown Action"}
           />
         );
       },

@@ -577,7 +577,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         log.threadId = thread.threadId;
         log.messageSummary = messageSummary;
         log.status = WorkspaceNotificationStatus.Success;
-        log.actionType = WorkspaceNotificationActionType.MessageSent;
+        log.actionType = WorkspaceNotificationActionType.SendMessage;
         log.statusMessage = "Message posted to workspace channel";
 
         if (data.notificationFor.incidentId) {
@@ -1210,7 +1210,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               userId: userId,
             };
 
-            await WorkspaceNotificationLogService.logUserInvited(logData, {
+            await WorkspaceNotificationLogService.logInviteUser(logData, {
               isRoot: true,
             });
           }
@@ -1386,7 +1386,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logData.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
         }
 
-        await WorkspaceNotificationLogService.logChannelCreated(logData, {
+        await WorkspaceNotificationLogService.logCreateChannel(logData, {
           isRoot: true,
         });
       } catch (err) {

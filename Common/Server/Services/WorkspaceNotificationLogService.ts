@@ -107,7 +107,7 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  public async logChannelCreated(
+  public async logCreateChannel(
     data: {
       projectId: ObjectID;
       workspaceType: WorkspaceType;
@@ -128,7 +128,7 @@ export class Service extends DatabaseService<Model> {
       workspaceType: data.workspaceType,
       channelId: data.channelId,
       channelName: data.channelName,
-      actionType: WorkspaceNotificationActionType.ChannelCreated,
+      actionType: WorkspaceNotificationActionType.CreateChannel,
       status: WorkspaceNotificationStatus.Success,
       statusMessage: "Channel created successfully",
       messageSummary: `Channel "${data.channelName}" was created`,
@@ -157,7 +157,7 @@ export class Service extends DatabaseService<Model> {
     return await this.createWorkspaceLog(logData, props);
   }
 
-  public async logUserInvited(
+  public async logInviteUser(
     data: {
       projectId: ObjectID;
       workspaceType: WorkspaceType;
@@ -180,7 +180,7 @@ export class Service extends DatabaseService<Model> {
       channelId: data.channelId,
       channelName: data.channelName,
       userId: data.userId,
-      actionType: WorkspaceNotificationActionType.UserInvited,
+      actionType: WorkspaceNotificationActionType.InviteUser,
       status: WorkspaceNotificationStatus.Success,
       statusMessage: "User invited to channel successfully",
       messageSummary: `User was invited to channel "${data.channelName}"`,

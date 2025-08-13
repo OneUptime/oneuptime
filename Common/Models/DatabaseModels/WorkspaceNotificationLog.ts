@@ -306,7 +306,7 @@ export default class WorkspaceNotificationLog extends BaseModel {
     nullable: false,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: WorkspaceNotificationActionType.MessageSent,
+    default: WorkspaceNotificationActionType.SendMessage,
   })
   public actionType?: WorkspaceNotificationActionType = undefined;
 
