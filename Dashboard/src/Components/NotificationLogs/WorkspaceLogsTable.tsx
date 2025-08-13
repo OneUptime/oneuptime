@@ -45,6 +45,11 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       title: "Workspace",
       type: FieldType.Text,
     },
+    {
+      field: { actionType: true },
+      title: "Action",
+      type: FieldType.Text,
+    },
     { field: { channelName: true }, title: "Channel", type: FieldType.Text },
     {
       field: { user: { name: true } },
