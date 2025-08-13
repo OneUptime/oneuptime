@@ -13,6 +13,8 @@ import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSc
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Query from "Common/Types/BaseDatabase/Query";
+import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 
 export interface PushLogsTableProps {
   id?: string;
@@ -20,7 +22,7 @@ export interface PushLogsTableProps {
   name?: string;
   cardProps?: { title: string; description?: string };
   noItemsMessage?: string;
-  query?: Record<string, any>;
+    query?: Query<BaseModel>;
   selectMoreFields?: Record<string, boolean>;
   showViewIdButton?: boolean;
   isViewable?: boolean;
