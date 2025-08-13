@@ -74,7 +74,6 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           [WorkspaceNotificationActionType.ButtonPressed]: Yellow,
         };
 
-
         const textMap: Record<WorkspaceNotificationActionType, string> = {
           [WorkspaceNotificationActionType.SendMessage]: "Send Message",
           [WorkspaceNotificationActionType.CreateChannel]: "Create Channel",

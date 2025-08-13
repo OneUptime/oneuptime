@@ -26,33 +26,23 @@ const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
         tabs={[
           {
             name: "Email",
-            children: (
-              <EmailLogsTable {...commonProps} />
-            ),
+            children: <EmailLogsTable {...commonProps} />,
           },
           {
             name: "SMS",
-            children: (
-              <SmsLogsTable {...commonProps} />
-            ),
+            children: <SmsLogsTable {...commonProps} />,
           },
           {
             name: "Call",
-            children: (
-              <CallLogsTable {...commonProps} />
-            ),
+            children: <CallLogsTable {...commonProps} />,
           },
           {
             name: "Push",
-            children: (
-              <PushLogsTable {...commonProps} />
-            ),
+            children: <PushLogsTable {...commonProps} />,
           },
           {
             name: "Workspace",
-            children: (
-              <WorkspaceLogsTable {...commonProps} />
-            ),
+            children: <WorkspaceLogsTable {...commonProps} />,
           },
         ]}
         onTabChange={() => {}}
