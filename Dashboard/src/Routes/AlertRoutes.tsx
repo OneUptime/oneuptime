@@ -91,7 +91,11 @@ const AlertViewRemediation: LazyExoticComponent<
   return import("../Pages/Alerts/View/Remediation");
 });
 
-// Removed unused AlertDescription lazy import
+const AlertDescription: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/Alerts/View/Description");
+  });
+
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -142,7 +146,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             AlertsRoutePath[
-              PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+            PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
             ] || ""
           }
           element={
@@ -151,7 +155,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[
-                    PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+                  PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
                   ] as Route
                 }
               />
@@ -159,7 +163,10 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        <PageRoute
+        
+      </PageRoute>
+
+      <PageRoute
           path={AlertsRoutePath[PageMap.ALERT_VIEW] || ""}
           element={<AlertViewLayout {...props} />}
         >
@@ -189,6 +196,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               </Suspense>
             }
           />
+
+          <PageRoute
+            path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_DESCRIPTION)}
+            element={
+              <Suspense fallback={Loader}>
+                <AlertDescription
+                  {...props}
+                  pageRoute={RouteMap[PageMap.ALERT_VIEW_DESCRIPTION] as Route}
+                />
+              </Suspense>
+            }
+          />
+
+
           <PageRoute
             path={RouteUtil.getLastPathForKey(PageMap.ALERT_VIEW_ROOT_CAUSE)}
             element={
@@ -273,7 +294,7 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
                   {...props}
                   pageRoute={
                     RouteMap[
-                      PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
+                    PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS
                     ] as Route
                   }
                 />
@@ -292,7 +313,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             }
           />
         </PageRoute>
-      </PageRoute>
     </Routes>
   );
 };
