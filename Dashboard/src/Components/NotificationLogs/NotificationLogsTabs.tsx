@@ -1,7 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
-import Navigation from "Common/UI/Utils/Navigation";
-import ObjectID from "Common/Types/ObjectID";
 import EmailLogsTable from "./EmailLogsTable";
 import SmsLogsTable from "./SmsLogsTable";
 import CallLogsTable from "./CallLogsTable";
@@ -10,22 +8,16 @@ import WorkspaceLogsTable from "./WorkspaceLogsTable";
 
 export interface NotificationLogsTabsProps {
   singularName?: string; // e.g., "incident", "alert", "scheduled maintenance", "status page" - optional for global logs
-  queryKey?: string; // e.g., "incidentId", "alertId", "scheduledMaintenanceId", "statusPageId" - optional for global logs
+  query?: Record<string, any>; // query object to filter logs - optional for global logs
 }
 
 const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
   props: NotificationLogsTabsProps,
 ): ReactElement => {
-  let query: Record<string, any> = {};
-
-  if (props.queryKey) {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-    query = { [props.queryKey]: modelId };
-  }
 
   const commonProps = {
     ...(props.singularName && { singularName: props.singularName }),
-    query,
+    query: props.query || {},
   };
 
   return (
