@@ -4,13 +4,15 @@ import NotificationLogsTabs from "../../../../Components/NotificationLogs/Notifi
 import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 
-const AnnouncementNotificationLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AnnouncementNotificationLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  
+
   return (
-    <NotificationLogsTabs 
-      singularName="announcement" 
-      query={{ statusPageAnnouncementId: modelId }} 
+    <NotificationLogsTabs
+      singularName="announcement"
+      query={{ statusPageAnnouncementId: modelId }}
     />
   );
 };

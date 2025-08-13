@@ -4,14 +4,13 @@ import NotificationLogsTabs from "../../../Components/NotificationLogs/Notificat
 import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 
-const AlertNotificationLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const AlertNotificationLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  
+
   return (
-    <NotificationLogsTabs 
-      singularName="alert" 
-      query={{ alertId: modelId }} 
-    />
+    <NotificationLogsTabs singularName="alert" query={{ alertId: modelId }} />
   );
 };
 

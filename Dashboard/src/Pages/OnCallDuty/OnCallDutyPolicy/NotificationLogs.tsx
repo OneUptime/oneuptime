@@ -4,13 +4,15 @@ import NotificationLogsTabs from "../../../Components/NotificationLogs/Notificat
 import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 
-const OnCallDutyPolicyNotificationLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const OnCallDutyPolicyNotificationLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  
+
   return (
-    <NotificationLogsTabs 
-      singularName="on-call policy" 
-      query={{ onCallDutyPolicyId: modelId }} 
+    <NotificationLogsTabs
+      singularName="on-call policy"
+      query={{ onCallDutyPolicyId: modelId }}
     />
   );
 };

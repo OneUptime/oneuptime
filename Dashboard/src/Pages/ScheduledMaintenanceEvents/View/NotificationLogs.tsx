@@ -4,13 +4,15 @@ import NotificationLogsTabs from "../../../Components/NotificationLogs/Notificat
 import Navigation from "Common/UI/Utils/Navigation";
 import ObjectID from "Common/Types/ObjectID";
 
-const ScheduledMaintenanceNotificationLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+const ScheduledMaintenanceNotificationLogs: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  
+
   return (
-    <NotificationLogsTabs 
-      singularName="scheduled maintenance" 
-      query={{ scheduledMaintenanceId: modelId }} 
+    <NotificationLogsTabs
+      singularName="scheduled maintenance"
+      query={{ scheduledMaintenanceId: modelId }}
     />
   );
 };

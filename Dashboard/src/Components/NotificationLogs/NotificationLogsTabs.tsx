@@ -14,7 +14,6 @@ export interface NotificationLogsTabsProps {
 const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
   props: NotificationLogsTabsProps,
 ): ReactElement => {
-
   const commonProps = {
     ...(props.singularName && { singularName: props.singularName }),
     query: props.query || {},
