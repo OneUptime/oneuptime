@@ -84,7 +84,11 @@ export default class PushNotificationService {
     );
     logger.info(`Notification message: ${JSON.stringify(request.message)}`);
 
-    const deviceNames = request.devices.map(device => device.name).filter(Boolean);
+    const deviceNames: (string | undefined)[] = request.devices
+      .map((device: { token: string; name?: string }) => {
+        return device.name;
+      })
+      .filter(Boolean);
     if (deviceNames.length > 0) {
       logger.info(`Device names: ${deviceNames.join(", ")}`);
     }
@@ -103,8 +107,13 @@ export default class PushNotificationService {
     let errorCount: number = 0;
 
     results.forEach((result: any, index: number) => {
-      const device = request.devices[index];
-      const deviceInfo = device?.name
+      const device:
+        | {
+            token: string;
+            name?: string;
+          }
+        | undefined = request.devices[index];
+      const deviceInfo: string = device?.name
         ? `device "${device.name}" (${index + 1})`
         : `device ${index + 1}`;
 
@@ -127,7 +136,12 @@ export default class PushNotificationService {
     if (options.projectId) {
       for (let i: number = 0; i < results.length; i++) {
         const result: any = results[i];
-        const device = request.devices[i];
+        const device:
+          | {
+              token: string;
+              name?: string;
+            }
+          | undefined = request.devices[i];
         const log: PushNotificationLog = new PushNotificationLog();
         log.projectId = options.projectId;
         log.title = request.message.title || "";
