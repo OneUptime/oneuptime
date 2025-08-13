@@ -433,7 +433,7 @@ export default class IncidentStateTimeline extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.CreateIncidentPublicNote,
+      Permission.CreateIncidentStateTimeline,
     ],
     read: [
       Permission.ProjectOwner,
