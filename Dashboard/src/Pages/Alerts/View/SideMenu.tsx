@@ -109,7 +109,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.List}
+          icon={IconProp.Bell}
         />
       </SideMenuSection>
 

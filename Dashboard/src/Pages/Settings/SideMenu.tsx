@@ -324,7 +324,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
               RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route,
             ),
           },
-          icon: IconProp.List,
+          icon: IconProp.Bell,
         },
       ],
     },
