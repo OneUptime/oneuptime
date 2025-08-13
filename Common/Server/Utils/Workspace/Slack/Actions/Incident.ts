@@ -28,6 +28,8 @@ import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSever
 import IncidentSeverityService from "../../../../Services/IncidentSeverityService";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import MonitorService from "../../../../Services/MonitorService";
 import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "../../../../Services/MonitorStatusService";
@@ -573,6 +575,36 @@ export default class SlackIncidentActions {
 
       await IncidentService.acknowledgeIncident(incidentId, userId);
 
+      // Log the button interaction
+      if (slackRequest.projectId) {
+        try {
+          const logData: {
+            projectId: ObjectID;
+            workspaceType: WorkspaceType;
+            channelId?: string;
+            userId: ObjectID;
+            buttonAction: string;
+            incidentId?: ObjectID;
+          } = {
+            projectId: slackRequest.projectId,
+            workspaceType: WorkspaceType.Slack,
+            userId: userId,
+            buttonAction: "acknowledge_incident",
+          };
+
+          if (slackRequest.slackChannelId) {
+            logData.channelId = slackRequest.slackChannelId;
+          }
+          logData.incidentId = incidentId;
+
+          await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+        } catch (err) {
+          logger.error("Error logging button interaction:");
+          logger.error(err);
+          // Don't throw the error, just log it so the main flow continues
+        }
+      }
+
       // Incident Feed will send a message to the channel that the incident has been Acknowledged.
       return;
     }
@@ -887,6 +919,36 @@ export default class SlackIncidentActions {
           },
         ),
     });
+
+    // Log the button interaction
+    if (data.slackRequest.projectId && data.slackRequest.userId) {
+      try {
+        const logData: {
+          projectId: ObjectID;
+          workspaceType: WorkspaceType;
+          channelId?: string;
+          userId: ObjectID;
+          buttonAction: string;
+          incidentId: ObjectID;
+        } = {
+          projectId: data.slackRequest.projectId,
+          workspaceType: WorkspaceType.Slack,
+          userId: data.slackRequest.userId,
+          buttonAction: "change_incident_state",
+          incidentId: incidentId,
+        };
+
+        if (data.slackRequest.slackChannelId) {
+          logData.channelId = data.slackRequest.slackChannelId;
+        }
+
+        await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+      } catch (err) {
+        logger.error("Error logging button interaction:");
+        logger.error(err);
+        // Don't throw the error, just log it so the main flow continues
+      }
+    }
   }
 
   @CaptureSpan()

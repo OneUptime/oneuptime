@@ -48,6 +48,7 @@ import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import WorkspaceNotificationLog from "../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
+import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -171,6 +172,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       try {
         // create channel
         createdChannels = await this.createChannelsBasedOnRules({
+          projectId: data.projectId,
           projectOrUserAuthTokenForWorkspace: projectAuthToken,
           workspaceType: rule.workspaceType!,
           notificationRules: [rule],
@@ -575,6 +577,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         log.threadId = thread.threadId;
         log.messageSummary = messageSummary;
         log.status = WorkspaceNotificationStatus.Success;
+        log.actionType = WorkspaceNotificationActionType.MessageSent;
         log.statusMessage = "Message posted to workspace channel";
 
         if (data.notificationFor.incidentId) {
@@ -802,11 +805,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug("Creating channels based on rules");
       const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
         await this.createChannelsBasedOnRules({
+          projectId: data.projectId,
           projectOrUserAuthTokenForWorkspace: authToken,
           workspaceType: workspaceType,
           notificationRules: notificationRules,
           channelNameSiffix: data.channelNameSiffix,
           notificationEventType: data.notificationRuleEventType,
+          notificationFor: data.notificationFor,
         });
 
       logger.debug("createdWorkspaceChannels");
@@ -1182,6 +1187,45 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           workspaceUserIds: workspaceUserIds,
         },
       });
+
+      // Log user invitations
+      try {
+        for (const userId of userIds) {
+          for (const channel of channelsToInviteToBasedOnRule) {
+            const logData: {
+              projectId: ObjectID;
+              workspaceType: WorkspaceType;
+              channelId: string;
+              channelName: string;
+              userId: ObjectID;
+              incidentId?: ObjectID;
+              alertId?: ObjectID;
+              scheduledMaintenanceId?: ObjectID;
+              onCallDutyPolicyId?: ObjectID;
+            } = {
+              projectId: data.projectId,
+              workspaceType: workspaceType,
+              channelId: channel.id,
+              channelName: channel.name,
+              userId: userId,
+            };
+
+            // Add resource associations from notification rules if available
+            // We'll use the first notification rule's associations as they should be consistent
+            if (data.notificationRules.length > 0) {
+              const firstRule = data.notificationRules[0];
+              // The notification rules don't directly contain resource IDs, 
+              // so we'll leave these undefined for now
+            }
+
+            await WorkspaceNotificationLogService.logUserInvited(logData, { isRoot: true });
+          }
+        }
+      } catch (err) {
+        logger.error("Error logging user invitations:");
+        logger.error(err);
+        // Don't throw the error, just log it so the main flow continues
+      }
     }
   }
 
@@ -1252,11 +1296,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public async createChannelsBasedOnRules(data: {
+    projectId: ObjectID;
     projectOrUserAuthTokenForWorkspace: string;
     workspaceType: WorkspaceType;
     notificationRules: Array<WorkspaceNotificationRule>;
     channelNameSiffix: string;
     notificationEventType: NotificationRuleEventType;
+    notificationFor?: NotificationFor;
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     logger.debug("createChannelsBasedOnRules called with data:");
     logger.debug(data);
@@ -1312,6 +1358,45 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       logger.debug("Channel created:");
       logger.debug(channel);
+
+      // Log the channel creation
+      try {
+        const logData: {
+          projectId: ObjectID;
+          workspaceType: WorkspaceType;
+          channelId: string;
+          channelName: string;
+          incidentId?: ObjectID;
+          alertId?: ObjectID;
+          scheduledMaintenanceId?: ObjectID;
+          onCallDutyPolicyId?: ObjectID;
+        } = {
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          channelId: channel.id,
+          channelName: channel.name,
+        };
+
+        // Add resource associations only if they exist
+        if (data.notificationFor?.incidentId) {
+          logData.incidentId = data.notificationFor.incidentId;
+        }
+        if (data.notificationFor?.alertId) {
+          logData.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor?.scheduledMaintenanceId) {
+          logData.scheduledMaintenanceId = data.notificationFor.scheduledMaintenanceId;
+        }
+        if (data.notificationFor?.onCallDutyPolicyId) {
+          logData.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
+        }
+
+        await WorkspaceNotificationLogService.logChannelCreated(logData, { isRoot: true });
+      } catch (err) {
+        logger.error("Error logging channel creation:");
+        logger.error(err);
+        // Don't throw the error, just log it so the main flow continues
+      }
 
       createdChannelNames.push(channel.name);
       createdWorkspaceChannels.push(notificationWorkspaceChannel);

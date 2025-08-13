@@ -28,6 +28,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
+import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -57,7 +58,7 @@ import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotifica
   pluralName: "Workspace Notification Logs",
   icon: IconProp.Chat,
   tableDescription:
-    "Logs of all the messages sent to Slack and Microsoft Teams for this project.",
+    "Logs of all workspace activities including messages, channel creation, user invitations, and button interactions for Slack and Microsoft Teams.",
 })
 export default class WorkspaceNotificationLog extends BaseModel {
   @ColumnAccessControl({
@@ -283,6 +284,31 @@ export default class WorkspaceNotificationLog extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public status?: WorkspaceNotificationStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadWorkspaceNotificationLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Action Type",
+    description: "Type of workspace action performed",
+    canReadOnRelationQuery: false,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: WorkspaceNotificationActionType.MessageSent,
+  })
+  public actionType?: WorkspaceNotificationActionType = undefined;
 
   // Relations to resources that triggered this message (nullable)
 

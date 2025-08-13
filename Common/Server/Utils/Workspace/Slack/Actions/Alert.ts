@@ -23,6 +23,8 @@ import AlertStateService from "../../../../Services/AlertStateService";
 import logger from "../../../Logger";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 export default class SlackAlertActions {
   @CaptureSpan()
@@ -123,6 +125,36 @@ export default class SlackAlertActions {
       }
 
       await AlertService.acknowledgeAlert(alertId, userId);
+
+      // Log the button interaction
+      if (slackRequest.projectId) {
+        try {
+          const logData: {
+            projectId: ObjectID;
+            workspaceType: WorkspaceType;
+            channelId?: string;
+            userId: ObjectID;
+            buttonAction: string;
+            alertId?: ObjectID;
+          } = {
+            projectId: slackRequest.projectId,
+            workspaceType: WorkspaceType.Slack,
+            userId: userId,
+            buttonAction: "acknowledge_alert",
+          };
+
+          if (slackRequest.slackChannelId) {
+            logData.channelId = slackRequest.slackChannelId;
+          }
+          logData.alertId = alertId;
+
+          await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+        } catch (err) {
+          logger.error("Error logging button interaction:");
+          logger.error(err);
+          // Don't throw the error, just log it so the main flow continues
+        }
+      }
 
       // Alert Feed will send a message to the channel that the alert has been Acknowledged.
       return;
@@ -436,6 +468,36 @@ export default class SlackAlertActions {
           },
         ),
     });
+
+    // Log the button interaction
+    if (data.slackRequest.projectId && data.slackRequest.userId) {
+      try {
+        const logData: {
+          projectId: ObjectID;
+          workspaceType: WorkspaceType;
+          channelId?: string;
+          userId: ObjectID;
+          buttonAction: string;
+          alertId?: ObjectID;
+        } = {
+          projectId: data.slackRequest.projectId,
+          workspaceType: WorkspaceType.Slack,
+          userId: data.slackRequest.userId,
+          buttonAction: "change_alert_state",
+        };
+
+        if (data.slackRequest.slackChannelId) {
+          logData.channelId = data.slackRequest.slackChannelId;
+        }
+        logData.alertId = alertId;
+
+        await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+      } catch (err) {
+        logger.error("Error logging button interaction:");
+        logger.error(err);
+        // Don't throw the error, just log it so the main flow continues
+      }
+    }
   }
 
   @CaptureSpan()
