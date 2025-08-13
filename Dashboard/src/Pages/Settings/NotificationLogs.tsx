@@ -5,7 +5,7 @@ import EmailLogsTable from "../../Components/NotificationLogs/EmailLogsTable";
 import SmsLogsTable from "../../Components/NotificationLogs/SmsLogsTable";
 import CallLogsTable from "../../Components/NotificationLogs/CallLogsTable";
 import PushLogsTable from "../../Components/NotificationLogs/PushLogsTable";
-import SettingsWorkspaceLog from "./WorkspaceLog";
+import WorkspaceLogsTable from "../../Components/NotificationLogs/WorkspaceLogsTable";
 
 const SettingsEmailLogs: FunctionComponent<
   PageComponentProps
@@ -29,6 +29,13 @@ const SettingsPushLogs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return <PushLogsTable />;
+};
+
+
+const SettingsWorkspaceLog: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  return <WorkspaceLogsTable />;
 };
 
 const SettingsNotificationLogs: FunctionComponent<PageComponentProps> = (
