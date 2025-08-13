@@ -589,7 +589,8 @@ export default class PushNotificationLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicy,
     title: "On-Call Duty Policy",
-    description: "On-Call Duty Policy associated with this Push Notification (if any)",
+    description:
+      "On-Call Duty Policy associated with this Push Notification (if any)",
   })
   @ManyToOne(
     () => {
@@ -646,7 +647,8 @@ export default class PushNotificationLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicyEscalationRule,
     title: "On-Call Duty Policy Escalation Rule",
-    description: "On-Call Duty Policy Escalation Rule associated with this Push Notification (if any)",
+    description:
+      "On-Call Duty Policy Escalation Rule associated with this Push Notification (if any)",
   })
   @ManyToOne(
     () => {
@@ -660,7 +662,8 @@ export default class PushNotificationLog extends BaseModel {
     },
   )
   @JoinColumn({ name: "onCallDutyPolicyEscalationRuleId" })
-  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -703,7 +706,8 @@ export default class PushNotificationLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Duty Policy Schedule",
-    description: "On-Call Duty Policy Schedule associated with this Push Notification (if any)",
+    description:
+      "On-Call Duty Policy Schedule associated with this Push Notification (if any)",
   })
   @ManyToOne(
     () => {
@@ -792,8 +796,7 @@ export default class PushNotificationLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description:
-      "ID of Team associated with this Push Notification (if any)",
+    description: "ID of Team associated with this Push Notification (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,

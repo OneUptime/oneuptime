@@ -38,7 +38,6 @@ import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -597,7 +596,9 @@ export default class SlackIncidentActions {
           }
           logData.incidentId = incidentId;
 
-          await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+          await WorkspaceNotificationLogService.logButtonPressed(logData, {
+            isRoot: true,
+          });
         } catch (err) {
           logger.error("Error logging button interaction:");
           logger.error(err);
@@ -942,7 +943,9 @@ export default class SlackIncidentActions {
           logData.channelId = data.slackRequest.slackChannelId;
         }
 
-        await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+        await WorkspaceNotificationLogService.logButtonPressed(logData, {
+          isRoot: true,
+        });
       } catch (err) {
         logger.error("Error logging button interaction:");
         logger.error(err);

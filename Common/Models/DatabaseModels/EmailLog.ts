@@ -710,7 +710,8 @@ export default class EmailLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicyEscalationRule,
     title: "On-Call Duty Policy Escalation Rule",
-    description: "On-Call Duty Policy Escalation Rule associated with this email (if any)",
+    description:
+      "On-Call Duty Policy Escalation Rule associated with this email (if any)",
   })
   @ManyToOne(
     () => {
@@ -724,7 +725,8 @@ export default class EmailLog extends BaseModel {
     },
   )
   @JoinColumn({ name: "onCallDutyPolicyEscalationRuleId" })
-  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -767,7 +769,8 @@ export default class EmailLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Duty Policy Schedule",
-    description: "On-Call Duty Policy Schedule associated with this email (if any)",
+    description:
+      "On-Call Duty Policy Schedule associated with this email (if any)",
   })
   @ManyToOne(
     () => {
@@ -856,8 +859,7 @@ export default class EmailLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description:
-      "ID of Team associated with this email (if any)",
+    description: "ID of Team associated with this email (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,

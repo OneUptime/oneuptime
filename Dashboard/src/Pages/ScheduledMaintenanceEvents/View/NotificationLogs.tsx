@@ -8,18 +8,30 @@ import ScheduledMaintenanceCallLogs from "./NotificationLogsCall";
 import ScheduledMaintenancePushLogs from "./NotificationLogsPush";
 import ScheduledMaintenanceWorkspaceLogs from "./NotificationLogsWorkspace";
 
-const ScheduledMaintenanceNotificationLogs: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const ScheduledMaintenanceNotificationLogs: FunctionComponent<
+  PageComponentProps
+> = (props: PageComponentProps): ReactElement => {
   return (
     <div>
       <Tabs
         tabs={[
-          { name: "Email", children: <ScheduledMaintenanceEmailLogs {...props} /> },
+          {
+            name: "Email",
+            children: <ScheduledMaintenanceEmailLogs {...props} />,
+          },
           { name: "SMS", children: <ScheduledMaintenanceSmsLogs {...props} /> },
-          { name: "Call", children: <ScheduledMaintenanceCallLogs {...props} /> },
-          { name: "Push", children: <ScheduledMaintenancePushLogs {...props} /> },
-          { name: "Workspace", children: <ScheduledMaintenanceWorkspaceLogs {...props} /> },
+          {
+            name: "Call",
+            children: <ScheduledMaintenanceCallLogs {...props} />,
+          },
+          {
+            name: "Push",
+            children: <ScheduledMaintenancePushLogs {...props} />,
+          },
+          {
+            name: "Workspace",
+            children: <ScheduledMaintenanceWorkspaceLogs {...props} />,
+          },
         ]}
         onTabChange={() => {}}
       />

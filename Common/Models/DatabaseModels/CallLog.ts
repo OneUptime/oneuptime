@@ -652,8 +652,7 @@ export default class CallLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "On-Call Duty Policy ID",
-    description:
-      "ID of On-Call Duty Policy associated with this Call (if any)",
+    description: "ID of On-Call Duty Policy associated with this Call (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -677,7 +676,8 @@ export default class CallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicyEscalationRule,
     title: "On-Call Duty Policy Escalation Rule",
-    description: "On-Call Duty Policy Escalation Rule associated with this Call (if any)",
+    description:
+      "On-Call Duty Policy Escalation Rule associated with this Call (if any)",
   })
   @ManyToOne(
     () => {
@@ -691,7 +691,8 @@ export default class CallLog extends BaseModel {
     },
   )
   @JoinColumn({ name: "onCallDutyPolicyEscalationRuleId" })
-  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule = undefined;
+  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule =
+    undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -734,7 +735,8 @@ export default class CallLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: OnCallDutyPolicySchedule,
     title: "On-Call Duty Policy Schedule",
-    description: "On-Call Duty Policy Schedule associated with this Call (if any)",
+    description:
+      "On-Call Duty Policy Schedule associated with this Call (if any)",
   })
   @ManyToOne(
     () => {
@@ -823,8 +825,7 @@ export default class CallLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Team ID",
-    description:
-      "ID of Team associated with this Call (if any)",
+    description: "ID of Team associated with this Call (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,
