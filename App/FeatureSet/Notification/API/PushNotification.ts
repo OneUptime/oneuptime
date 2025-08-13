@@ -46,8 +46,7 @@ router.post(
           (body["onCallDutyPolicyExecutionLogTimelineId"] as ObjectID) ||
           undefined,
         onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
-        overridedByUserId:
-          (body["overridedByUserId"] as ObjectID) || undefined,
+        overridedByUserId: (body["overridedByUserId"] as ObjectID) || undefined,
       },
     );
 
