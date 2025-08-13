@@ -195,7 +195,6 @@ const AnnouncementViewDelete: LazyExoticComponent<
 const StatusPageViewNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  // @ts-ignore - file exists; dynamic import path is correct
   return import("../Pages/StatusPages/View/NotificationLogs");
 });
 
