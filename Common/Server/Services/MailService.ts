@@ -30,10 +30,9 @@ export class MailService extends BaseService {
       // On-call policy related fields
       onCallPolicyId?: ObjectID | undefined;
       onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
-      overridedByUserId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -96,10 +95,6 @@ export class MailService extends BaseService {
         options.onCallPolicyEscalationRuleId.toString();
     }
 
-    if (options?.userBelongsToTeamId) {
-      body["userBelongsToTeamId"] = options.userBelongsToTeamId.toString();
-    }
-
     if (options?.onCallDutyPolicyExecutionLogTimelineId) {
       body["onCallDutyPolicyExecutionLogTimelineId"] =
         options.onCallDutyPolicyExecutionLogTimelineId.toString();
@@ -109,8 +104,8 @@ export class MailService extends BaseService {
       body["onCallScheduleId"] = options.onCallScheduleId.toString();
     }
 
-    if (options?.overridedByUserId) {
-      body["overridedByUserId"] = options.overridedByUserId.toString();
+    if (options?.teamId) {
+      body["teamId"] = options.teamId.toString();
     }
 
     return await API.post<EmptyResponseData>(

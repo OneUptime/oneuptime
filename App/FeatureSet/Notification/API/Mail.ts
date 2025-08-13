@@ -67,9 +67,6 @@ router.post(
       onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
         ? new ObjectID(body["onCallPolicyEscalationRuleId"].toString())
         : undefined,
-      userBelongsToTeamId: body["userBelongsToTeamId"]
-        ? new ObjectID(body["userBelongsToTeamId"].toString())
-        : undefined,
       onCallDutyPolicyExecutionLogTimelineId: body[
         "onCallDutyPolicyExecutionLogTimelineId"
       ]
@@ -80,8 +77,8 @@ router.post(
       onCallScheduleId: body["onCallScheduleId"]
         ? new ObjectID(body["onCallScheduleId"].toString())
         : undefined,
-      overridedByUserId: body["overridedByUserId"]
-        ? new ObjectID(body["overridedByUserId"].toString())
+      teamId: body["teamId"]
+        ? new ObjectID(body["teamId"].toString())
         : undefined,
     });
 

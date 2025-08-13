@@ -40,10 +40,9 @@ export default class SmsService {
       // On-call policy related fields
       onCallPolicyId?: ObjectID | undefined;
       onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
-      overridedByUserId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let smsError: Error | null = null;
@@ -106,6 +105,10 @@ export default class SmsService {
 
       if (options.userId) {
         smsLog.userId = options.userId;
+      }
+
+      if (options.teamId) {
+        smsLog.teamId = options.teamId;
       }
 
       const twilioConfig: TwilioConfig | null =

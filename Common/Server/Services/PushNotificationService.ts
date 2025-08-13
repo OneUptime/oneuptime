@@ -32,10 +32,9 @@ export interface PushNotificationOptions {
   // On-call policy related fields
   onCallPolicyId?: ObjectID | undefined;
   onCallPolicyEscalationRuleId?: ObjectID | undefined;
-  userBelongsToTeamId?: ObjectID | undefined;
   onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
   onCallScheduleId?: ObjectID | undefined;
-  overridedByUserId?: ObjectID | undefined;
+  teamId?: ObjectID | undefined;
 }
 
 export default class PushNotificationService {
@@ -144,6 +143,9 @@ export default class PushNotificationService {
         }
         if (options.userId) {
           log.userId = options.userId;
+        }
+        if (options.teamId) {
+          log.teamId = options.teamId;
         }
 
         if (result.status === "fulfilled") {

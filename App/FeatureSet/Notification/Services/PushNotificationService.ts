@@ -17,10 +17,9 @@ export default class PushNotificationService {
       userId?: ObjectID | undefined;
       onCallPolicyId?: ObjectID | undefined;
       onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
-      overridedByUserId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     } = {},
   ): Promise<void> {
     // Delegate to Common service which now handles logging and timeline updates
@@ -36,11 +35,10 @@ export default class PushNotificationService {
       userId: options.userId,
       onCallPolicyId: options.onCallPolicyId,
       onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
-      userBelongsToTeamId: options.userBelongsToTeamId,
       onCallDutyPolicyExecutionLogTimelineId:
         options.onCallDutyPolicyExecutionLogTimelineId,
       onCallScheduleId: options.onCallScheduleId,
-      overridedByUserId: options.overridedByUserId,
+      teamId: options.teamId,
     });
   }
 }

@@ -354,10 +354,9 @@ export default class MailService {
           // On-call policy related fields
           onCallPolicyId?: ObjectID | undefined;
           onCallPolicyEscalationRuleId?: ObjectID | undefined;
-          userBelongsToTeamId?: ObjectID | undefined;
           onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
           onCallScheduleId?: ObjectID | undefined;
-          overridedByUserId?: ObjectID | undefined;
+          teamId?: ObjectID | undefined;
         }
       | undefined,
   ): Promise<void> {
@@ -395,6 +394,10 @@ export default class MailService {
 
       if (options.userId) {
         emailLog.userId = options.userId;
+      }
+
+      if (options.teamId) {
+        emailLog.teamId = options.teamId;
       }
     }
 

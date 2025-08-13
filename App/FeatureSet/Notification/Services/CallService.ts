@@ -45,10 +45,9 @@ export default class CallService {
       // On-call policy related fields
       onCallPolicyId?: ObjectID | undefined;
       onCallPolicyEscalationRuleId?: ObjectID | undefined;
-      userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
       onCallScheduleId?: ObjectID | undefined;
-      overridedByUserId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let callError: Error | null = null;
@@ -125,6 +124,10 @@ export default class CallService {
 
       if (options.userId) {
         callLog.userId = options.userId;
+      }
+
+      if (options.teamId) {
+        callLog.teamId = options.teamId;
       }
 
       let project: Project | null = null;
