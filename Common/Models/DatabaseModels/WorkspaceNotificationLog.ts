@@ -225,17 +225,16 @@ export default class WorkspaceNotificationLog extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
-    title: "Message Summary",
-    description: "Short summary of the message content",
+    type: TableColumnType.VeryLongText,
+    title: "Message",
+    description: "Content of the message",
     canReadOnRelationQuery: false,
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
-  public messageSummary?: string = undefined;
+  public message?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

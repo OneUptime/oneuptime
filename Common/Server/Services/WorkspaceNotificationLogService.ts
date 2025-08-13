@@ -13,7 +13,7 @@ export interface WorkspaceLogData {
   channelId?: string | undefined;
   channelName?: string | undefined;
   threadId?: string | undefined;
-  messageSummary?: string | undefined;
+  message?: string | undefined;
   actionType: WorkspaceNotificationActionType;
   status: WorkspaceNotificationStatus;
   statusMessage?: string | undefined;
@@ -61,8 +61,8 @@ export class Service extends DatabaseService<Model> {
     if (data.threadId) {
       log.threadId = data.threadId;
     }
-    if (data.messageSummary) {
-      log.messageSummary = data.messageSummary;
+    if (data.message) {
+      log.message = data.message;
     }
     if (data.statusMessage) {
       log.statusMessage = data.statusMessage;
@@ -131,7 +131,7 @@ export class Service extends DatabaseService<Model> {
       actionType: WorkspaceNotificationActionType.CreateChannel,
       status: WorkspaceNotificationStatus.Success,
       statusMessage: "Channel created successfully",
-      messageSummary: `Channel "${data.channelName}" was created`,
+      message: `Channel "${data.channelName}" was created`,
     };
 
     // Add resource associations only if they exist
@@ -183,7 +183,7 @@ export class Service extends DatabaseService<Model> {
       actionType: WorkspaceNotificationActionType.InviteUser,
       status: WorkspaceNotificationStatus.Success,
       statusMessage: "User invited to channel successfully",
-      messageSummary: `User was invited to channel "${data.channelName}"`,
+      message: `User was invited to channel "${data.channelName}"`,
     };
 
     // Add resource associations only if they exist
@@ -235,7 +235,7 @@ export class Service extends DatabaseService<Model> {
       actionType: WorkspaceNotificationActionType.ButtonPressed,
       status: WorkspaceNotificationStatus.Success,
       statusMessage: "Button interaction completed",
-      messageSummary: `User pressed button: ${data.buttonAction}`,
+      message: `User pressed button: ${data.buttonAction}`,
     };
 
     // Add optional properties only if they exist

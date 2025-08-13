@@ -177,7 +177,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
-          messageSummary: true,
+          message: true,
           channelId: true,
           user: {
             name: true,
@@ -199,15 +199,15 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         filters={defaultFilters}
         actionButtons={[
           {
-            title: "View Message Summary",
+            title: "View Message",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (
               item: WorkspaceNotificationLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setModalText(item["messageSummary"] as string);
-              setModalTitle("Message Summary");
+              setModalText(item["message"] as string);
+              setModalTitle("Message");
               setShowModal(true);
               onCompleteAction();
             },

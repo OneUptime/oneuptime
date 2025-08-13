@@ -284,7 +284,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               log.channelId = thread.channel.id;
               log.channelName = thread.channel.name;
               log.threadId = thread.threadId;
-              log.messageSummary = messageSummary;
+              log.message = messageSummary;
               log.status = WorkspaceNotificationStatus.Success;
               log.statusMessage = "Test message posted to workspace channel";
               log.userId = data.testByUserId;
@@ -359,7 +359,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               log.channelId = thread.channel.id;
               log.channelName = thread.channel.name;
               log.threadId = thread.threadId;
-              log.messageSummary = messageSummary;
+              log.message = messageSummary;
               log.status = WorkspaceNotificationStatus.Success;
               log.statusMessage = "Test message posted to workspace channel";
               log.userId = data.testByUserId;
@@ -575,7 +575,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         log.channelId = thread.channel.id;
         log.channelName = thread.channel.name;
         log.threadId = thread.threadId;
-        log.messageSummary = messageSummary;
+        log.message = messageSummary;
         log.status = WorkspaceNotificationStatus.Success;
         log.actionType = WorkspaceNotificationActionType.SendMessage;
         log.statusMessage = "Message posted to workspace channel";
