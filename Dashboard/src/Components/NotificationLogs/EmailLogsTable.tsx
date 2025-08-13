@@ -47,7 +47,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
     },
     {
       field: { user: { name: true } },
-      title: "Initiated by",
+      title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
     },

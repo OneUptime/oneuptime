@@ -47,7 +47,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
     },
     {
       field: { user: { name: true } },
-      title: "Initiated by",
+      title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
     },

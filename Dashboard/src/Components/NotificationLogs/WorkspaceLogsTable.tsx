@@ -4,8 +4,16 @@ import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNoti
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import {
+  Green,
+  Red,
+  Blue,
+  Purple,
+  Orange,
+  Yellow,
+} from "Common/Types/BrandColors";
 import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
+import WorkspaceNotificationActionType from "Common/Types/Workspace/WorkspaceNotificationActionType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -49,11 +57,36 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { actionType: true },
       title: "Action",
       type: FieldType.Text,
+      getElement: (item: WorkspaceNotificationLog): ReactElement => {
+        const actionType: WorkspaceNotificationActionType | undefined = item[
+          "actionType"
+        ] as WorkspaceNotificationActionType | undefined;
+
+        if (!actionType) {
+          return <></>;
+        }
+
+        // Map action type to a brand color
+        const colorMap: Record<WorkspaceNotificationActionType, typeof Blue> = {
+          [WorkspaceNotificationActionType.MessageSent]: Blue,
+          [WorkspaceNotificationActionType.ChannelCreated]: Purple,
+          [WorkspaceNotificationActionType.UserInvited]: Orange,
+          [WorkspaceNotificationActionType.ButtonPressed]: Yellow,
+        };
+
+        return (
+          <Pill
+            isMinimal={true}
+            color={colorMap[actionType] || Blue}
+            text={actionType as string}
+          />
+        );
+      },
     },
     { field: { channelName: true }, title: "Channel", type: FieldType.Text },
     {
       field: { user: { name: true } },
-      title: "Initiated by",
+      title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
     },

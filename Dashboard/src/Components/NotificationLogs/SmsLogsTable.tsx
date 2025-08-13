@@ -46,7 +46,7 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
     },
     {
       field: { user: { name: true } },
-      title: "Initiated by",
+      title: "User",
       type: FieldType.Text,
       hideOnMobile: true,
     },
