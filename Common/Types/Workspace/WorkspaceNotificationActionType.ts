@@ -1,6 +1,6 @@
 enum WorkspaceNotificationActionType {
   MessageSent = "MessageSent",
-  ChannelCreated = "ChannelCreated", 
+  ChannelCreated = "ChannelCreated",
   UserInvited = "UserInvited",
   ButtonPressed = "ButtonPressed",
 }

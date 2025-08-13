@@ -605,7 +605,9 @@ export default class SlackScheduledMaintenanceActions {
           }
           logData.scheduledMaintenanceId = scheduledMaintenanceId;
 
-          await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+          await WorkspaceNotificationLogService.logButtonPressed(logData, {
+            isRoot: true,
+          });
         } catch (err) {
           logger.error("Error logging button interaction:");
           logger.error(err);
@@ -732,7 +734,9 @@ export default class SlackScheduledMaintenanceActions {
           }
           logData.scheduledMaintenanceId = scheduledMaintenanceId;
 
-          await WorkspaceNotificationLogService.logButtonPressed(logData, { isRoot: true });
+          await WorkspaceNotificationLogService.logButtonPressed(logData, {
+            isRoot: true,
+          });
         } catch (err) {
           logger.error("Error logging button interaction:");
           logger.error(err);

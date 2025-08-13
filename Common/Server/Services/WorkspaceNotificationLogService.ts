@@ -17,7 +17,7 @@ export interface WorkspaceLogData {
   actionType: WorkspaceNotificationActionType;
   status: WorkspaceNotificationStatus;
   statusMessage?: string | undefined;
-  
+
   // Relations to resources (optional)
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
@@ -41,54 +41,88 @@ export class Service extends DatabaseService<Model> {
 
   public async createWorkspaceLog(
     data: WorkspaceLogData,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<Model> {
     const log: Model = new Model();
-    
+
     // Required fields
     log.projectId = data.projectId;
     log.workspaceType = data.workspaceType;
     log.actionType = data.actionType;
     log.status = data.status;
-    
+
     // Optional fields
-    if (data.channelId) log.channelId = data.channelId;
-    if (data.channelName) log.channelName = data.channelName;
-    if (data.threadId) log.threadId = data.threadId;
-    if (data.messageSummary) log.messageSummary = data.messageSummary;
-    if (data.statusMessage) log.statusMessage = data.statusMessage;
-    
+    if (data.channelId) {
+      log.channelId = data.channelId;
+    }
+    if (data.channelName) {
+      log.channelName = data.channelName;
+    }
+    if (data.threadId) {
+      log.threadId = data.threadId;
+    }
+    if (data.messageSummary) {
+      log.messageSummary = data.messageSummary;
+    }
+    if (data.statusMessage) {
+      log.statusMessage = data.statusMessage;
+    }
+
     // Resource relations
-    if (data.incidentId) log.incidentId = data.incidentId;
-    if (data.alertId) log.alertId = data.alertId;
-    if (data.scheduledMaintenanceId) log.scheduledMaintenanceId = data.scheduledMaintenanceId;
-    if (data.userId) log.userId = data.userId;
-    if (data.teamId) log.teamId = data.teamId;
-    if (data.onCallDutyPolicyId) log.onCallDutyPolicyId = data.onCallDutyPolicyId;
-    if (data.onCallDutyPolicyEscalationRuleId) log.onCallDutyPolicyEscalationRuleId = data.onCallDutyPolicyEscalationRuleId;
-    if (data.onCallDutyPolicyScheduleId) log.onCallDutyPolicyScheduleId = data.onCallDutyPolicyScheduleId;
-    if (data.statusPageId) log.statusPageId = data.statusPageId;
-    if (data.statusPageAnnouncementId) log.statusPageAnnouncementId = data.statusPageAnnouncementId;
-    
+    if (data.incidentId) {
+      log.incidentId = data.incidentId;
+    }
+    if (data.alertId) {
+      log.alertId = data.alertId;
+    }
+    if (data.scheduledMaintenanceId) {
+      log.scheduledMaintenanceId = data.scheduledMaintenanceId;
+    }
+    if (data.userId) {
+      log.userId = data.userId;
+    }
+    if (data.teamId) {
+      log.teamId = data.teamId;
+    }
+    if (data.onCallDutyPolicyId) {
+      log.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    }
+    if (data.onCallDutyPolicyEscalationRuleId) {
+      log.onCallDutyPolicyEscalationRuleId =
+        data.onCallDutyPolicyEscalationRuleId;
+    }
+    if (data.onCallDutyPolicyScheduleId) {
+      log.onCallDutyPolicyScheduleId = data.onCallDutyPolicyScheduleId;
+    }
+    if (data.statusPageId) {
+      log.statusPageId = data.statusPageId;
+    }
+    if (data.statusPageAnnouncementId) {
+      log.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    }
+
     return await this.create({
       data: log,
-      props
+      props,
     });
   }
 
-  public async logChannelCreated(data: {
-    projectId: ObjectID;
-    workspaceType: WorkspaceType;
-    channelId: string;
-    channelName: string;
-    // Optional resource associations
-    incidentId?: ObjectID;
-    alertId?: ObjectID;
-    scheduledMaintenanceId?: ObjectID;
-    onCallDutyPolicyId?: ObjectID;
-    statusPageId?: ObjectID;
-    statusPageAnnouncementId?: ObjectID;
-  }, props: DatabaseCommonInteractionProps): Promise<Model> {
+  public async logChannelCreated(
+    data: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      channelId: string;
+      channelName: string;
+      // Optional resource associations
+      incidentId?: ObjectID;
+      alertId?: ObjectID;
+      scheduledMaintenanceId?: ObjectID;
+      onCallDutyPolicyId?: ObjectID;
+      statusPageId?: ObjectID;
+      statusPageAnnouncementId?: ObjectID;
+    },
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Model> {
     const logData: WorkspaceLogData = {
       projectId: data.projectId,
       workspaceType: data.workspaceType,
@@ -101,30 +135,45 @@ export class Service extends DatabaseService<Model> {
     };
 
     // Add resource associations only if they exist
-    if (data.incidentId) logData.incidentId = data.incidentId;
-    if (data.alertId) logData.alertId = data.alertId;
-    if (data.scheduledMaintenanceId) logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
-    if (data.onCallDutyPolicyId) logData.onCallDutyPolicyId = data.onCallDutyPolicyId;
-    if (data.statusPageId) logData.statusPageId = data.statusPageId;
-    if (data.statusPageAnnouncementId) logData.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    if (data.incidentId) {
+      logData.incidentId = data.incidentId;
+    }
+    if (data.alertId) {
+      logData.alertId = data.alertId;
+    }
+    if (data.scheduledMaintenanceId) {
+      logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
+    }
+    if (data.onCallDutyPolicyId) {
+      logData.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    }
+    if (data.statusPageId) {
+      logData.statusPageId = data.statusPageId;
+    }
+    if (data.statusPageAnnouncementId) {
+      logData.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    }
 
     return await this.createWorkspaceLog(logData, props);
   }
 
-  public async logUserInvited(data: {
-    projectId: ObjectID;
-    workspaceType: WorkspaceType;
-    channelId: string;
-    channelName: string;
-    userId: ObjectID;
-    // Optional resource associations
-    incidentId?: ObjectID;
-    alertId?: ObjectID;
-    scheduledMaintenanceId?: ObjectID;
-    onCallDutyPolicyId?: ObjectID;
-    statusPageId?: ObjectID;
-    statusPageAnnouncementId?: ObjectID;
-  }, props: DatabaseCommonInteractionProps): Promise<Model> {
+  public async logUserInvited(
+    data: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      channelId: string;
+      channelName: string;
+      userId: ObjectID;
+      // Optional resource associations
+      incidentId?: ObjectID;
+      alertId?: ObjectID;
+      scheduledMaintenanceId?: ObjectID;
+      onCallDutyPolicyId?: ObjectID;
+      statusPageId?: ObjectID;
+      statusPageAnnouncementId?: ObjectID;
+    },
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Model> {
     const logData: WorkspaceLogData = {
       projectId: data.projectId,
       workspaceType: data.workspaceType,
@@ -138,32 +187,47 @@ export class Service extends DatabaseService<Model> {
     };
 
     // Add resource associations only if they exist
-    if (data.incidentId) logData.incidentId = data.incidentId;
-    if (data.alertId) logData.alertId = data.alertId;
-    if (data.scheduledMaintenanceId) logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
-    if (data.onCallDutyPolicyId) logData.onCallDutyPolicyId = data.onCallDutyPolicyId;
-    if (data.statusPageId) logData.statusPageId = data.statusPageId;
-    if (data.statusPageAnnouncementId) logData.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    if (data.incidentId) {
+      logData.incidentId = data.incidentId;
+    }
+    if (data.alertId) {
+      logData.alertId = data.alertId;
+    }
+    if (data.scheduledMaintenanceId) {
+      logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
+    }
+    if (data.onCallDutyPolicyId) {
+      logData.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    }
+    if (data.statusPageId) {
+      logData.statusPageId = data.statusPageId;
+    }
+    if (data.statusPageAnnouncementId) {
+      logData.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    }
 
     return await this.createWorkspaceLog(logData, props);
   }
 
-  public async logButtonPressed(data: {
-    projectId: ObjectID;
-    workspaceType: WorkspaceType;
-    channelId?: string;
-    channelName?: string;
-    threadId?: string;
-    userId: ObjectID;
-    buttonAction: string;
-    // Optional resource associations
-    incidentId?: ObjectID;
-    alertId?: ObjectID;
-    scheduledMaintenanceId?: ObjectID;
-    onCallDutyPolicyId?: ObjectID;
-    statusPageId?: ObjectID;
-    statusPageAnnouncementId?: ObjectID;
-  }, props: DatabaseCommonInteractionProps): Promise<Model> {
+  public async logButtonPressed(
+    data: {
+      projectId: ObjectID;
+      workspaceType: WorkspaceType;
+      channelId?: string;
+      channelName?: string;
+      threadId?: string;
+      userId: ObjectID;
+      buttonAction: string;
+      // Optional resource associations
+      incidentId?: ObjectID;
+      alertId?: ObjectID;
+      scheduledMaintenanceId?: ObjectID;
+      onCallDutyPolicyId?: ObjectID;
+      statusPageId?: ObjectID;
+      statusPageAnnouncementId?: ObjectID;
+    },
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Model> {
     const logData: WorkspaceLogData = {
       projectId: data.projectId,
       workspaceType: data.workspaceType,
@@ -175,17 +239,35 @@ export class Service extends DatabaseService<Model> {
     };
 
     // Add optional properties only if they exist
-    if (data.channelId) logData.channelId = data.channelId;
-    if (data.channelName) logData.channelName = data.channelName;
-    if (data.threadId) logData.threadId = data.threadId;
+    if (data.channelId) {
+      logData.channelId = data.channelId;
+    }
+    if (data.channelName) {
+      logData.channelName = data.channelName;
+    }
+    if (data.threadId) {
+      logData.threadId = data.threadId;
+    }
 
     // Add resource associations only if they exist
-    if (data.incidentId) logData.incidentId = data.incidentId;
-    if (data.alertId) logData.alertId = data.alertId;
-    if (data.scheduledMaintenanceId) logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
-    if (data.onCallDutyPolicyId) logData.onCallDutyPolicyId = data.onCallDutyPolicyId;
-    if (data.statusPageId) logData.statusPageId = data.statusPageId;
-    if (data.statusPageAnnouncementId) logData.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    if (data.incidentId) {
+      logData.incidentId = data.incidentId;
+    }
+    if (data.alertId) {
+      logData.alertId = data.alertId;
+    }
+    if (data.scheduledMaintenanceId) {
+      logData.scheduledMaintenanceId = data.scheduledMaintenanceId;
+    }
+    if (data.onCallDutyPolicyId) {
+      logData.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    }
+    if (data.statusPageId) {
+      logData.statusPageId = data.statusPageId;
+    }
+    if (data.statusPageAnnouncementId) {
+      logData.statusPageAnnouncementId = data.statusPageAnnouncementId;
+    }
 
     return await this.createWorkspaceLog(logData, props);
   }

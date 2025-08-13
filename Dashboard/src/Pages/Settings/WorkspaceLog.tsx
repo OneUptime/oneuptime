@@ -11,6 +11,7 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceLogsTable from "../../Components/NotificationLogs/WorkspaceLogsTable";
 import WorkspaceNotificationActionType from "Common/Types/Workspace/WorkspaceNotificationActionType";
+import Color from "Common/Types/Color";
 
 const SettingsWorkspaceLog: FunctionComponent<
   PageComponentProps
@@ -29,9 +30,9 @@ const SettingsWorkspaceLog: FunctionComponent<
       type: FieldType.Text,
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
         if (item["actionType"]) {
-          let color = Green;
-          let text = item["actionType"] as string;
-          
+          let color: Color = Green;
+          let text: string = item["actionType"] as string;
+
           // Color code different action types
           switch (item["actionType"]) {
             case WorkspaceNotificationActionType.MessageSent:
@@ -52,13 +53,7 @@ const SettingsWorkspaceLog: FunctionComponent<
               break;
           }
 
-          return (
-            <Pill
-              isMinimal={false}
-              color={color}
-              text={text}
-            />
-          );
+          return <Pill isMinimal={false} color={color} text={text} />;
         }
         return <></>;
       },
@@ -130,11 +125,11 @@ const SettingsWorkspaceLog: FunctionComponent<
         statusMessage: true,
         messageSummary: true,
         channelId: true,
-        actionType: true,
       }}
       cardProps={{
         title: "Workspace Activity Logs",
-        description: "All workspace activities including messages, channel creation, user invitations, and button interactions for Slack / Teams.",
+        description:
+          "All workspace activities including messages, channel creation, user invitations, and button interactions for Slack / Teams.",
       }}
       noItemsMessage="No workspace activity logs for this project."
       columns={columns}

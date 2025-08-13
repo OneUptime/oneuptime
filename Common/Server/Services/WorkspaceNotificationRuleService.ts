@@ -1210,7 +1210,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               userId: userId,
             };
 
-            await WorkspaceNotificationLogService.logUserInvited(logData, { isRoot: true });
+            await WorkspaceNotificationLogService.logUserInvited(logData, {
+              isRoot: true,
+            });
           }
         }
       } catch (err) {
@@ -1377,13 +1379,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           logData.alertId = data.notificationFor.alertId;
         }
         if (data.notificationFor?.scheduledMaintenanceId) {
-          logData.scheduledMaintenanceId = data.notificationFor.scheduledMaintenanceId;
+          logData.scheduledMaintenanceId =
+            data.notificationFor.scheduledMaintenanceId;
         }
         if (data.notificationFor?.onCallDutyPolicyId) {
           logData.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
         }
 
-        await WorkspaceNotificationLogService.logChannelCreated(logData, { isRoot: true });
+        await WorkspaceNotificationLogService.logChannelCreated(logData, {
+          isRoot: true,
+        });
       } catch (err) {
         logger.error("Error logging channel creation:");
         logger.error(err);
