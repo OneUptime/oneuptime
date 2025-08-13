@@ -19,7 +19,7 @@ export class CallService extends BaseService {
   }
 
   @CaptureSpan()
-  public  async makeCall(
+  public async makeCall(
     callRequest: CallRequest,
     options: {
       projectId?: ObjectID | undefined; // project id for sms log
