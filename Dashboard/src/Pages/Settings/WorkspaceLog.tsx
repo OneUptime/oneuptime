@@ -4,12 +4,13 @@ import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNoti
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Green, Red, Blue, Purple, Orange } from "Common/Types/BrandColors";
 import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceLogsTable from "../../Components/NotificationLogs/WorkspaceLogsTable";
+import WorkspaceNotificationActionType from "Common/Types/Workspace/WorkspaceNotificationActionType";
 
 const SettingsWorkspaceLog: FunctionComponent<
   PageComponentProps
@@ -22,6 +23,46 @@ const SettingsWorkspaceLog: FunctionComponent<
       title: "Workspace",
       type: FieldType.Text,
     },
+    {
+      field: { actionType: true },
+      title: "Action Type",
+      type: FieldType.Text,
+      getElement: (item: WorkspaceNotificationLog): ReactElement => {
+        if (item["actionType"]) {
+          let color = Green;
+          let text = item["actionType"] as string;
+          
+          // Color code different action types
+          switch (item["actionType"]) {
+            case WorkspaceNotificationActionType.MessageSent:
+              text = "Message";
+              color = Green;
+              break;
+            case WorkspaceNotificationActionType.ChannelCreated:
+              text = "Channel Created";
+              color = Blue;
+              break;
+            case WorkspaceNotificationActionType.UserInvited:
+              text = "User Invited";
+              color = Purple;
+              break;
+            case WorkspaceNotificationActionType.ButtonPressed:
+              text = "Button Pressed";
+              color = Orange;
+              break;
+          }
+
+          return (
+            <Pill
+              isMinimal={false}
+              color={color}
+              text={text}
+            />
+          );
+        }
+        return <></>;
+      },
+    },
     { field: { channelName: true }, title: "Channel", type: FieldType.Text },
     {
       field: { threadId: true },
@@ -29,7 +70,7 @@ const SettingsWorkspaceLog: FunctionComponent<
       type: FieldType.Text,
       hideOnMobile: true,
     },
-    { field: { createdAt: true }, title: "Sent at", type: FieldType.DateTime },
+    { field: { createdAt: true }, title: "Date", type: FieldType.DateTime },
     {
       field: { status: true },
       title: "Status",
@@ -54,7 +95,15 @@ const SettingsWorkspaceLog: FunctionComponent<
   ];
 
   const filters: Array<Filter<WorkspaceNotificationLog>> = [
-    { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
+    { field: { createdAt: true }, title: "Date", type: FieldType.Date },
+    {
+      field: { actionType: true },
+      title: "Action Type",
+      type: FieldType.Dropdown,
+      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+        WorkspaceNotificationActionType,
+      ),
+    },
     {
       field: { status: true },
       title: "Status",
@@ -81,12 +130,13 @@ const SettingsWorkspaceLog: FunctionComponent<
         statusMessage: true,
         messageSummary: true,
         channelId: true,
+        actionType: true,
       }}
       cardProps={{
-        title: "Workspace Logs",
-        description: "Messages sent to Slack / Teams from this project.",
+        title: "Workspace Activity Logs",
+        description: "All workspace activities including messages, channel creation, user invitations, and button interactions for Slack / Teams.",
       }}
-      noItemsMessage="No Workspace logs for this project."
+      noItemsMessage="No workspace activity logs for this project."
       columns={columns}
       filters={filters}
       showViewIdButton
