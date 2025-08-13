@@ -31,7 +31,6 @@ const SettingsPushLogs: FunctionComponent<
   return <PushLogsTable />;
 };
 
-
 const SettingsWorkspaceLog: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
