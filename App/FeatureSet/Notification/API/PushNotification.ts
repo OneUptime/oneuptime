@@ -36,6 +36,18 @@ router.post(
         statusPageId: (body["statusPageId"] as ObjectID) || undefined,
         statusPageAnnouncementId:
           (body["statusPageAnnouncementId"] as ObjectID) || undefined,
+        userId: (body["userId"] as ObjectID) || undefined,
+        onCallPolicyId: (body["onCallPolicyId"] as ObjectID) || undefined,
+        onCallPolicyEscalationRuleId:
+          (body["onCallPolicyEscalationRuleId"] as ObjectID) || undefined,
+        userBelongsToTeamId:
+          (body["userBelongsToTeamId"] as ObjectID) || undefined,
+        onCallDutyPolicyExecutionLogTimelineId:
+          (body["onCallDutyPolicyExecutionLogTimelineId"] as ObjectID) ||
+          undefined,
+        onCallScheduleId: (body["onCallScheduleId"] as ObjectID) || undefined,
+        overridedByUserId:
+          (body["overridedByUserId"] as ObjectID) || undefined,
       },
     );
 

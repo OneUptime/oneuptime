@@ -351,6 +351,13 @@ export default class MailService {
           statusPageId?: ObjectID | undefined;
           statusPageAnnouncementId?: ObjectID | undefined;
           userId?: ObjectID | undefined;
+          // On-call policy related fields
+          onCallPolicyId?: ObjectID | undefined;
+          onCallPolicyEscalationRuleId?: ObjectID | undefined;
+          userBelongsToTeamId?: ObjectID | undefined;
+          onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+          onCallScheduleId?: ObjectID | undefined;
+          overridedByUserId?: ObjectID | undefined;
         }
       | undefined,
   ): Promise<void> {

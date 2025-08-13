@@ -32,6 +32,13 @@ export class CallService extends BaseService {
       statusPageId?: ObjectID | undefined;
       statusPageAnnouncementId?: ObjectID | undefined;
       userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      userBelongsToTeamId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      overridedByUserId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -55,6 +62,14 @@ export class CallService extends BaseService {
       statusPageId: options.statusPageId?.toString(),
       statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),
       userId: options.userId?.toString(),
+      onCallPolicyId: options.onCallPolicyId?.toString(),
+      onCallPolicyEscalationRuleId:
+        options.onCallPolicyEscalationRuleId?.toString(),
+      userBelongsToTeamId: options.userBelongsToTeamId?.toString(),
+      onCallDutyPolicyExecutionLogTimelineId:
+        options.onCallDutyPolicyExecutionLogTimelineId?.toString(),
+      onCallScheduleId: options.onCallScheduleId?.toString(),
+      overridedByUserId: options.overridedByUserId?.toString(),
     };
 
     return await API.post<EmptyResponseData>(

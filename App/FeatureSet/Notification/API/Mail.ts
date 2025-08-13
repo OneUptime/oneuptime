@@ -61,6 +61,28 @@ router.post(
       userId: body["userId"]
         ? new ObjectID(body["userId"].toString())
         : undefined,
+      onCallPolicyId: body["onCallPolicyId"]
+        ? new ObjectID(body["onCallPolicyId"].toString())
+        : undefined,
+      onCallPolicyEscalationRuleId: body["onCallPolicyEscalationRuleId"]
+        ? new ObjectID(body["onCallPolicyEscalationRuleId"].toString())
+        : undefined,
+      userBelongsToTeamId: body["userBelongsToTeamId"]
+        ? new ObjectID(body["userBelongsToTeamId"].toString())
+        : undefined,
+      onCallDutyPolicyExecutionLogTimelineId: body[
+        "onCallDutyPolicyExecutionLogTimelineId"
+      ]
+        ? new ObjectID(
+            body["onCallDutyPolicyExecutionLogTimelineId"].toString(),
+          )
+        : undefined,
+      onCallScheduleId: body["onCallScheduleId"]
+        ? new ObjectID(body["onCallScheduleId"].toString())
+        : undefined,
+      overridedByUserId: body["overridedByUserId"]
+        ? new ObjectID(body["overridedByUserId"].toString())
+        : undefined,
     });
 
     return Response.sendEmptySuccessResponse(req, res);
