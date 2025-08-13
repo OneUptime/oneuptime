@@ -198,6 +198,30 @@ export default class PushNotificationLog extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.ShortText,
+    title: "Device Name",
+    description: "Name of the device this was sent to",
+    canReadOnRelationQuery: false,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public deviceName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadPushLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.LongText,
     title: "Status Message",
     description: "Status Message (if any)",

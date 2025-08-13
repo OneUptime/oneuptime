@@ -43,6 +43,13 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       noValueMessage: "-",
     },
     {
+      field: { deviceName: true },
+      title: "Device Name",
+      type: FieldType.Text,
+      hideOnMobile: true,
+      noValueMessage: "Unknown Device",
+    },
+    {
       field: {
         user: {
           name: true,
@@ -85,6 +92,11 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
   const defaultFilters: Array<Filter<PushNotificationLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
     {
+      field: { deviceName: true },
+      title: "Device Name",
+      type: FieldType.Text,
+    },
+    {
       field: { status: true },
       title: "Status",
       type: FieldType.Dropdown,
@@ -120,6 +132,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
         selectMoreFields={{
           statusMessage: true,
           body: true,
+          deviceName: true,
           user: {
             name: true,
           },
