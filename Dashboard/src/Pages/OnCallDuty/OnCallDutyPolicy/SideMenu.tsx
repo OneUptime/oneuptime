@@ -82,6 +82,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           subItemLink={subItemMenuLink}
           subItemIcon={IconProp.Clock}
         />
+        <SideMenuItem
+          link={{
+            title: "Notification Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bell}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

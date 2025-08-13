@@ -1,14 +1,10 @@
 import LabelsElement from "../../Components/Label/Labels";
 import ServiceCatalogElement from "../../Components/ServiceCatalog/ServiceElement";
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import TechStack from "Common/Types/ServiceCatalog/TechStack";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -20,150 +16,134 @@ const ServiceCatalogPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
-    <Page
-      title={"Service Catalog"}
-      breadcrumbLinks={[
+    <ModelTable<ServiceCatalog>
+      modelType={ServiceCatalog}
+      id="service-catalog-table"
+      userPreferencesKey="service-catalog-table"
+      isDeleteable={false}
+      isEditable={false}
+      isCreateable={true}
+      name="Service Catalog"
+      isViewable={true}
+      cardProps={{
+        title: "Service Catalog",
+        description: "List and manage services for this project here.",
+      }}
+      showViewIdButton={true}
+      noItemsMessage={"No services found."}
+      selectMoreFields={{
+        serviceColor: true,
+      }}
+      formFields={[
         {
-          title: "Project",
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+          field: {
+            name: true,
+          },
+          title: "Name",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: "Service Name",
+          validation: {
+            minLength: 2,
+          },
         },
         {
-          title: "Service Catalog",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SERVICE_CATALOG] as Route,
-          ),
+          field: {
+            description: true,
+          },
+          title: "Description",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: "Description",
+        },
+        {
+          field: {
+            techStack: true,
+          },
+          title: "Tech Stack",
+          description:
+            "Tech stack used in the service. This will help other developers understand the service better.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          required: true,
+          placeholder: "Tech Stack",
+          dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
         },
       ]}
-    >
-      <ModelTable<ServiceCatalog>
-        modelType={ServiceCatalog}
-        id="service-catalog-table"
-        userPreferencesKey="service-catalog-table"
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={true}
-        name="Service Catalog"
-        isViewable={true}
-        cardProps={{
-          title: "Service Catalog",
-          description: "List and manage services for this project here.",
-        }}
-        showViewIdButton={true}
-        noItemsMessage={"No services found."}
-        selectMoreFields={{
-          serviceColor: true,
-        }}
-        formFields={[
-          {
-            field: {
+      showRefreshButton={true}
+      viewPageRoute={Navigation.getCurrentRoute()}
+      filters={[
+        {
+          field: {
+            name: true,
+          },
+          title: "Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            description: true,
+          },
+          title: "Description",
+          type: FieldType.LongText,
+        },
+        {
+          field: {
+            labels: {
               name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Service Name",
-            validation: {
-              minLength: 2,
+              color: true,
             },
           },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
+          title: "Labels",
+          type: FieldType.EntityArray,
+          filterEntityType: Label,
+          filterQuery: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
           },
-          {
-            field: {
-              techStack: true,
-            },
-            title: "Tech Stack",
-            description:
-              "Tech stack used in the service. This will help other developers understand the service better.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: true,
-            placeholder: "Tech Stack",
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(TechStack),
+          filterDropdownField: {
+            label: "name",
+            value: "_id",
           },
-        ]}
-        showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
-        filters={[
-          {
-            field: {
+        },
+      ]}
+      columns={[
+        {
+          field: {
+            name: true,
+          },
+          title: "Name",
+          type: FieldType.Element,
+          getElement: (service: ServiceCatalog): ReactElement => {
+            return (
+              <Fragment>
+                <ServiceCatalogElement serviceCatalog={service} />
+              </Fragment>
+            );
+          },
+        },
+        {
+          field: {
+            description: true,
+          },
+          noValueMessage: "-",
+          title: "Description",
+          type: FieldType.LongText,
+        },
+        {
+          field: {
+            labels: {
               name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
+              color: true,
             },
           },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (service: ServiceCatalog): ReactElement => {
-              return (
-                <Fragment>
-                  <ServiceCatalogElement serviceCatalog={service} />
-                </Fragment>
-              );
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
+          title: "Labels",
+          type: FieldType.EntityArray,
 
-            getElement: (item: ServiceCatalog): ReactElement => {
-              return <LabelsElement labels={item["labels"] || []} />;
-            },
+          getElement: (item: ServiceCatalog): ReactElement => {
+            return <LabelsElement labels={item["labels"] || []} />;
           },
-        ]}
-      />
-    </Page>
+        },
+      ]}
+    />
   );
 };
 

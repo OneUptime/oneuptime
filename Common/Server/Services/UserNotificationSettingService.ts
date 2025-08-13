@@ -39,11 +39,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     smsMessage: SMSMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
-  incidentId?: ObjectID | undefined;
-  alertId?: ObjectID | undefined;
-  scheduledMaintenanceId?: ObjectID | undefined;
-  statusPageId?: ObjectID | undefined;
-  statusPageAnnouncementId?: ObjectID | undefined;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    scheduledMaintenanceId?: ObjectID | undefined;
+    statusPageId?: ObjectID | undefined;
+    statusPageAnnouncementId?: ObjectID | undefined;
+    teamId?: ObjectID | undefined;
   }): Promise<void> {
     if (!data.projectId) {
       throw new BadDataException(
@@ -89,18 +90,20 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
 
         for (const userEmail of userEmails) {
-      MailService.sendMail(
+          MailService.sendMail(
             {
               ...data.emailEnvelope,
               toEmail: userEmail.email!,
             },
             {
               projectId: data.projectId,
-        incidentId: data.incidentId,
-        alertId: data.alertId,
-        scheduledMaintenanceId: data.scheduledMaintenanceId,
-        statusPageId: data.statusPageId,
-        statusPageAnnouncementId: data.statusPageAnnouncementId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -126,18 +129,20 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
 
         for (const userSms of userSmses) {
-      SmsService.sendSms(
+          SmsService.sendSms(
             {
               ...data.smsMessage,
               to: userSms.phone!,
             },
             {
               projectId: data.projectId,
-        incidentId: data.incidentId,
-        alertId: data.alertId,
-        scheduledMaintenanceId: data.scheduledMaintenanceId,
-        statusPageId: data.statusPageId,
-        statusPageAnnouncementId: data.statusPageAnnouncementId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -163,18 +168,20 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
 
         for (const userCall of userCalls) {
-      CallService.makeCall(
+          CallService.makeCall(
             {
               ...data.callRequestMessage,
               to: userCall.phone!,
             },
             {
               projectId: data.projectId,
-        incidentId: data.incidentId,
-        alertId: data.alertId,
-        scheduledMaintenanceId: data.scheduledMaintenanceId,
-        statusPageId: data.statusPageId,
-        statusPageAnnouncementId: data.statusPageAnnouncementId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -192,6 +199,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           data.pushNotificationMessage,
           {
             projectId: data.projectId,
+            userId: data.userId,
+            teamId: data.teamId,
           },
         ).catch((err: Error) => {
           logger.error(err);

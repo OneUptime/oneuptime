@@ -127,9 +127,11 @@ export default class UserPushAPI extends BaseAPI<
           },
           select: {
             userId: true,
+            deviceName: true,
             deviceToken: true,
             deviceType: true,
             isVerified: true,
+            projectId: true,
           },
         });
 
@@ -174,12 +176,21 @@ export default class UserPushAPI extends BaseAPI<
 
           await PushNotificationService.sendPushNotification(
             {
-              deviceTokens: [device.deviceToken!],
+              devices: [
+                {
+                  token: device.deviceToken!,
+                  ...(device.deviceName && {
+                    name: device.deviceName,
+                  }),
+                },
+              ],
               message: testMessage,
               deviceType: device.deviceType!,
             },
             {
               isSensitive: false,
+              projectId: device.projectId!,
+              userId: device.userId!,
             },
           );
 

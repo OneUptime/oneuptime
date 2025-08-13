@@ -38,23 +38,12 @@ const IncidentView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Incidents/View/Index");
   });
 
-const IncidentViewNotificationLogsEmail: LazyExoticComponent<
+const IncidentViewNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsEmail");
+  return import("../Pages/Incidents/View/NotificationLogs");
 });
 
-const IncidentViewNotificationLogsSms: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsSms");
-});
-
-const IncidentViewNotificationLogsCall: LazyExoticComponent<
-  FunctionComponent<ComponentProps>
-> = lazy(() => {
-  return import("../Pages/Incidents/View/NotificationLogsCall");
-});
 const IncidentViewDelete: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -384,36 +373,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_EMAIL_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS,
+          )}
           element={
             <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsEmail
+              <IncidentViewNotificationLogs
                 {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_EMAIL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_SMS_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsSms
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_SMS_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.INCIDENT_VIEW_CALL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <IncidentViewNotificationLogsCall
-                {...props}
-                pageRoute={RouteMap[PageMap.INCIDENT_VIEW_CALL_LOGS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }

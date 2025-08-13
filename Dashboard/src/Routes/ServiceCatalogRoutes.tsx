@@ -1,6 +1,7 @@
 import Loader from "../Components/Loader/Loader";
 import ComponentProps from "../Pages/PageComponentProps";
 import StatusPageViewLayout from "../Pages/ServiceCatalog/View/Layout";
+import ServiceCatalogLayout from "../Pages/ServiceCatalog/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -21,6 +22,11 @@ const ServiceCatalog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
   lazy(() => {
     return import("../Pages/ServiceCatalog/ServiceCatalog");
   });
+const ServiceCatalogDependencyGraph: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/ServiceCatalog/DependencyGraph");
+});
 const ServiceCatalogView: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -74,17 +80,34 @@ const ServiceCatalogRoutes: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <Routes>
-      <PageRoute
-        path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG] || ""}
-        element={
-          <Suspense fallback={Loader}>
-            <ServiceCatalog
-              {...props}
-              pageRoute={RouteMap[PageMap.SERVICE_CATALOG] as Route}
-            />
-          </Suspense>
-        }
-      />
+      <PageRoute path="/" element={<ServiceCatalogLayout {...props} />}>
+        <PageRoute
+          path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG] || ""}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalog
+                {...props}
+                pageRoute={RouteMap[PageMap.SERVICE_CATALOG] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <ServiceCatalogDependencyGraph
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+      </PageRoute>
 
       <PageRoute
         path={ServiceCatalogRoutePath[PageMap.SERVICE_CATALOG_VIEW] || ""}

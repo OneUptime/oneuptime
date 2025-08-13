@@ -202,18 +202,11 @@ const SettingsSCIM: LazyExoticComponent<FunctionComponent<ComponentProps>> =
     return import("../Pages/Settings/SCIM");
   });
 
-const SettingsSmsLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Settings/SmsLog");
-  });
-const SettingsCallLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Settings/CallLog");
-  });
-const SettingsEmailLog: LazyExoticComponent<FunctionComponent<ComponentProps>> =
-  lazy(() => {
-    return import("../Pages/Settings/EmailLog");
-  });
+const SettingsNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/Settings/NotificationLogs");
+});
 const SettingsNotifications: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -301,12 +294,14 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SMS_LOGS)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_NOTIFICATION_LOGS)}
           element={
             <Suspense fallback={Loader}>
-              <SettingsSmsLog
+              <SettingsNotificationLogs
                 {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }
@@ -543,30 +538,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
                     PageMap.SETTINGS_SCHEDULED_MAINTENANCE_NOTE_TEMPLATES_VIEW
                   ] as Route
                 }
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_CALL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <SettingsCallLog
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_EMAIL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <SettingsEmailLog
-                {...props}
-                pageRoute={RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route}
               />
             </Suspense>
           }

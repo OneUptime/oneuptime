@@ -5,6 +5,10 @@ import ScheduledMaintenance from "./ScheduledMaintenance";
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
 import User from "./User";
+import OnCallDutyPolicy from "./OnCallDutyPolicy";
+import OnCallDutyPolicyEscalationRule from "./OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicySchedule from "./OnCallDutyPolicySchedule";
+import Team from "./Team";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -330,6 +334,62 @@ export default class SmsLog extends BaseModel {
     update: [],
   })
   @TableColumn({
+    manyToOneRelationColumn: "userId",
+    type: TableColumnType.Entity,
+    modelType: User,
+    title: "User",
+    description: "User who initiated this SMS (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userId" })
+  public user?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User ID",
+    description: "ID of User who initiated this SMS (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "alertId",
     type: TableColumnType.Entity,
     modelType: Alert,
@@ -390,8 +450,7 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: ScheduledMaintenance,
     title: "Scheduled Maintenance",
-    description:
-      "Scheduled Maintenance associated with this SMS (if any)",
+    description: "Scheduled Maintenance associated with this SMS (if any)",
   })
   @ManyToOne(
     () => {
@@ -504,8 +563,7 @@ export default class SmsLog extends BaseModel {
     type: TableColumnType.Entity,
     modelType: StatusPageAnnouncement,
     title: "Status Page Announcement",
-    description:
-      "Status Page Announcement associated with this SMS (if any)",
+    description: "Status Page Announcement associated with this SMS (if any)",
   })
   @ManyToOne(
     () => {
@@ -546,6 +604,235 @@ export default class SmsLog extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public statusPageAnnouncementId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "onCallDutyPolicyId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicy,
+    title: "On-Call Duty Policy",
+    description: "On-Call Duty Policy associated with this SMS (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "onCallDutyPolicyId" })
+  public onCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Duty Policy ID",
+    description: "ID of On-Call Duty Policy associated with this SMS (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "onCallDutyPolicyEscalationRuleId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicyEscalationRule,
+    title: "On-Call Duty Policy Escalation Rule",
+    description:
+      "On-Call Duty Policy Escalation Rule associated with this SMS (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicyEscalationRule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "onCallDutyPolicyEscalationRuleId" })
+  public onCallDutyPolicyEscalationRule?: OnCallDutyPolicyEscalationRule =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Duty Policy Escalation Rule ID",
+    description:
+      "ID of On-Call Duty Policy Escalation Rule associated with this SMS (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyEscalationRuleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "onCallDutyPolicyScheduleId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicySchedule,
+    title: "On-Call Duty Policy Schedule",
+    description:
+      "On-Call Duty Policy Schedule associated with this SMS (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicySchedule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "onCallDutyPolicyScheduleId" })
+  public onCallDutyPolicySchedule?: OnCallDutyPolicySchedule = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "On-Call Duty Policy Schedule ID",
+    description:
+      "ID of On-Call Duty Policy Schedule associated with this SMS (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public onCallDutyPolicyScheduleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "teamId",
+    type: TableColumnType.Entity,
+    modelType: Team,
+    title: "Team",
+    description: "Team associated with this SMS (if any)",
+  })
+  @ManyToOne(
+    () => {
+      return Team;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "teamId" })
+  public team?: Team = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadSmsLog,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Team ID",
+    description: "ID of Team associated with this SMS (if any)",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public teamId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

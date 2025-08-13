@@ -318,30 +318,13 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         },
         {
           link: {
-            title: "SMS Logs",
+            title: "Notification Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_SMS_LOGS] as Route,
+              // Unified Notification Logs route renders tabs
+              RouteMap[PageMap.SETTINGS_NOTIFICATION_LOGS] as Route,
             ),
           },
-          icon: IconProp.SMS,
-        },
-        {
-          link: {
-            title: "Call Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_CALL_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Call,
-        },
-        {
-          link: {
-            title: "Email Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_EMAIL_LOGS] as Route,
-            ),
-          },
-          icon: IconProp.Email,
+          icon: IconProp.Bell,
         },
       ],
     },

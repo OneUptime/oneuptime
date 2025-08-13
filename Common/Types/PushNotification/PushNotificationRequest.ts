@@ -1,5 +1,8 @@
 interface PushNotificationRequest {
-  deviceTokens: string[];
+  devices: Array<{
+    token: string;
+    name?: string;
+  }>;
   message: {
     title: string;
     body: string;

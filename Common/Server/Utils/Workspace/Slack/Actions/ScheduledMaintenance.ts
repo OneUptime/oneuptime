@@ -34,6 +34,7 @@ import OneUptimeDate from "../../../../../Types/Date";
 import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -582,6 +583,38 @@ export default class SlackScheduledMaintenanceActions {
         userId,
       );
 
+      // Log the button interaction
+      if (slackRequest.projectId) {
+        try {
+          const logData: {
+            projectId: ObjectID;
+            workspaceType: WorkspaceType;
+            channelId?: string;
+            userId: ObjectID;
+            buttonAction: string;
+            scheduledMaintenanceId?: ObjectID;
+          } = {
+            projectId: slackRequest.projectId,
+            workspaceType: WorkspaceType.Slack,
+            userId: userId,
+            buttonAction: "mark_scheduled_maintenance_as_ongoing",
+          };
+
+          if (slackRequest.slackChannelId) {
+            logData.channelId = slackRequest.slackChannelId;
+          }
+          logData.scheduledMaintenanceId = scheduledMaintenanceId;
+
+          await WorkspaceNotificationLogService.logButtonPressed(logData, {
+            isRoot: true,
+          });
+        } catch (err) {
+          logger.error("Error logging button interaction:");
+          logger.error(err);
+          // Don't throw the error, just log it so the main flow continues
+        }
+      }
+
       // Scheduled Maintenance Feed will send a message to the channel that the scheduledMaintenance has been Ongoing.
       return;
     }
@@ -678,6 +711,38 @@ export default class SlackScheduledMaintenanceActions {
         scheduledMaintenanceId,
         userId,
       );
+
+      // Log the button interaction
+      if (slackRequest.projectId) {
+        try {
+          const logData: {
+            projectId: ObjectID;
+            workspaceType: WorkspaceType;
+            channelId?: string;
+            userId: ObjectID;
+            buttonAction: string;
+            scheduledMaintenanceId?: ObjectID;
+          } = {
+            projectId: slackRequest.projectId,
+            workspaceType: WorkspaceType.Slack,
+            userId: userId,
+            buttonAction: "mark_scheduled_maintenance_as_complete",
+          };
+
+          if (slackRequest.slackChannelId) {
+            logData.channelId = slackRequest.slackChannelId;
+          }
+          logData.scheduledMaintenanceId = scheduledMaintenanceId;
+
+          await WorkspaceNotificationLogService.logButtonPressed(logData, {
+            isRoot: true,
+          });
+        } catch (err) {
+          logger.error("Error logging button interaction:");
+          logger.error(err);
+          // Don't throw the error, just log it so the main flow continues
+        }
+      }
 
       return;
     }

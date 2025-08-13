@@ -204,7 +204,7 @@ const OnCallDutyPolicyOwners: FunctionComponent<
             type: FieldType.Entity,
             getElement: (item: OnCallDutyPolicyOwnerUser): ReactElement => {
               if (!item["user"]) {
-                throw new BadDataException("User not found");
+                return <p>-</p>;
               }
 
               return <UserElement user={item["user"] as User} />;

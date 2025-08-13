@@ -170,25 +170,32 @@ const AnnouncementCreate: LazyExoticComponent<
   return import("../Pages/StatusPages/AnnouncementCreate");
 });
 
-const AnnouncementView: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
-  return import("../Pages/StatusPages/AnnouncementView");
-});
+const AnnouncementView: LazyExoticComponent<FunctionComponent<ComponentProps>> =
+  lazy(() => {
+    return import("../Pages/StatusPages/AnnouncementView");
+  });
 
-const AnnouncementViewLayout: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+const AnnouncementViewLayout: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
   return import("../Pages/StatusPages/AnnouncementLayout");
 });
 
-const AnnouncementViewEmailLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogsEmail");
+const AnnouncementViewNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/Announcements/View/NotificationLogs");
 });
-const AnnouncementViewSmsLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogsSms");
-});
-const AnnouncementViewCallLogs: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
-  return import("../Pages/StatusPages/Announcements/View/NotificationLogsCall");
-});
-const AnnouncementViewDelete: LazyExoticComponent<FunctionComponent<ComponentProps>> = lazy(() => {
+const AnnouncementViewDelete: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
   return import("../Pages/StatusPages/Announcements/View/Delete");
+});
+
+const StatusPageViewNotificationLogs: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/View/NotificationLogs");
 });
 
 const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
@@ -262,34 +269,16 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS)}
+          path={RouteUtil.getLastPathForKey(
+            PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS,
+          )}
           element={
             <Suspense fallback={Loader}>
-              <AnnouncementViewEmailLogs
+              <AnnouncementViewNotificationLogs
                 {...props}
-                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewSmsLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS] as Route}
-              />
-            </Suspense>
-          }
-        />
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS)}
-          element={
-            <Suspense fallback={Loader}>
-              <AnnouncementViewCallLogs
-                {...props}
-                pageRoute={RouteMap[PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }
@@ -318,6 +307,21 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPagesView
                 {...props}
                 pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW] as Route}
+              />
+            </Suspense>
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPageViewNotificationLogs
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS] as Route
+                }
               />
             </Suspense>
           }

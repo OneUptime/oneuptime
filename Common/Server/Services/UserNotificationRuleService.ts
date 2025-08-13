@@ -296,6 +296,12 @@ export class Service extends DatabaseService<Model> {
           userOnCallLogTimelineId: updatedLog.id!,
           projectId: options.projectId,
           alertId: alert.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -342,6 +348,12 @@ export class Service extends DatabaseService<Model> {
           userOnCallLogTimelineId: updatedLog.id!,
           projectId: options.projectId,
           incidentId: incident.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -404,12 +416,18 @@ export class Service extends DatabaseService<Model> {
           updatedLog.id!,
         );
 
-        // send email.
+        // send sms.
 
         SmsService.sendSms(smsMessage, {
           projectId: alert.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -450,12 +468,18 @@ export class Service extends DatabaseService<Model> {
             updatedLog.id!,
           );
 
-        // send email.
+        // send sms.
 
         SmsService.sendSms(smsMessage, {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -518,12 +542,18 @@ export class Service extends DatabaseService<Model> {
             updatedLog.id!,
           );
 
-        // send email.
+        // send call.
 
         CallService.makeCall(callRequest, {
           projectId: alert.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -563,12 +593,18 @@ export class Service extends DatabaseService<Model> {
             updatedLog.id!,
           );
 
-        // send email.
+        // send call.
 
         CallService.makeCall(callRequest, {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -639,13 +675,27 @@ export class Service extends DatabaseService<Model> {
         // send push notification.
         PushNotificationService.sendPushNotification(
           {
-            deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+            devices: [
+              {
+                token: notificationRuleItem.userPush.deviceToken!,
+                ...(notificationRuleItem.userPush.deviceName && {
+                  name: notificationRuleItem.userPush.deviceName,
+                }),
+              },
+            ],
             message: pushMessage,
             deviceType: notificationRuleItem.userPush.deviceType!,
           },
           {
             projectId: options.projectId,
             userOnCallLogTimelineId: updatedLog.id!,
+            alertId: alert.id!,
+            userId: notificationRuleItem.userId!,
+            onCallPolicyId: options.onCallPolicyId,
+            onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+            teamId: options.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              options.onCallDutyPolicyExecutionLogTimelineId,
           },
         ).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
@@ -695,13 +745,27 @@ export class Service extends DatabaseService<Model> {
         // send push notification.
         PushNotificationService.sendPushNotification(
           {
-            deviceTokens: [notificationRuleItem.userPush.deviceToken!],
+            devices: [
+              {
+                token: notificationRuleItem.userPush.deviceToken!,
+                ...(notificationRuleItem.userPush.deviceName && {
+                  name: notificationRuleItem.userPush.deviceName,
+                }),
+              },
+            ],
             message: pushMessage,
             deviceType: notificationRuleItem.userPush.deviceType!,
           },
           {
             projectId: options.projectId,
             userOnCallLogTimelineId: updatedLog.id!,
+            incidentId: incident.id!,
+            userId: notificationRuleItem.userId!,
+            onCallPolicyId: options.onCallPolicyId,
+            onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+            teamId: options.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              options.onCallDutyPolicyExecutionLogTimelineId,
           },
         ).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({

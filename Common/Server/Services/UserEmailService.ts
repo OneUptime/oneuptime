@@ -136,6 +136,7 @@ export class Service extends DatabaseService<Model> {
       },
       {
         projectId: item.projectId!,
+        userId: item.userId!,
       },
     ).catch((err: Error) => {
       logger.error(err);
