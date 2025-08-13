@@ -168,7 +168,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
         });
 
         for (const userCall of userCalls) {
-          await CallService.makeCall(
+          CallService.makeCall(
             {
               ...data.callRequestMessage,
               to: userCall.phone!,

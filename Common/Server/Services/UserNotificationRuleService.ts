@@ -544,7 +544,7 @@ export class Service extends DatabaseService<Model> {
 
         // send call.
 
-        await CallService.makeCall(callRequest, {
+        CallService.makeCall(callRequest, {
           projectId: alert.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           alertId: alert.id!,
@@ -595,7 +595,7 @@ export class Service extends DatabaseService<Model> {
 
         // send call.
 
-        await CallService.makeCall(callRequest, {
+        CallService.makeCall(callRequest, {
           projectId: incident.projectId,
           userOnCallLogTimelineId: updatedLog.id!,
           incidentId: incident.id!,
