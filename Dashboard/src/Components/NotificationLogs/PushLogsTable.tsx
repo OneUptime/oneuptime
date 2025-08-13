@@ -155,9 +155,9 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
               item: PushNotificationLog,
               onCompleteAction: VoidFunction,
             ) => {
-              const title = item["title"] as string;
-              const body = item["body"] as string;
-              const combinedMessage = `${title ? `Title: ${title}\n\n` : ''}${body ? `Body: ${body}` : ''}`;
+              const title: string = item["title"] as string;
+              const body: string = item["body"] as string;
+              const combinedMessage: string = `${title ? `Title: ${title}\n\n` : ""}${body ? `Body: ${body}` : ""}`;
               setModalText(combinedMessage);
               setModalTitle("Push Notification Message");
               setShowModal(true);
