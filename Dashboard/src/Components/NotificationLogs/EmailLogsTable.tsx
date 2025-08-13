@@ -115,10 +115,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             title: "View Subject",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
-            onClick: async (
-              item: EmailLog,
-              onCompleteAction: VoidFunction,
-            ) => {
+            onClick: async (item: EmailLog, onCompleteAction: VoidFunction) => {
               setModalText(JSON.stringify(item["subject"]) as string);
               setModalTitle("Subject of Email Message");
               setShowModal(true);
@@ -129,10 +126,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             title: "View Status Message",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Error,
-            onClick: async (
-              item: EmailLog,
-              onCompleteAction: VoidFunction,
-            ) => {
+            onClick: async (item: EmailLog, onCompleteAction: VoidFunction) => {
               setModalText(item["statusMessage"] as string);
               setModalTitle("Status Message");
               setShowModal(true);
