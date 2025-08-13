@@ -193,16 +193,19 @@ export class Service extends DatabaseService<Model> {
 
       for (const user of onUpdate.carryForward) {
         // password changed, send password changed mail
-        MailService.sendMail({
-          toEmail: user.email!,
-          subject: "Password Changed.",
-          templateType: EmailTemplateType.PasswordChanged,
-          vars: {
-            homeURL: new URL(httpProtocol, host).toString(),
+        MailService.sendMail(
+          {
+            toEmail: user.email!,
+            subject: "Password Changed.",
+            templateType: EmailTemplateType.PasswordChanged,
+            vars: {
+              homeURL: new URL(httpProtocol, host).toString(),
+            },
           },
-        }, {
-          userId: user.id!,
-        }).catch((err: Error) => {
+          {
+            userId: user.id!,
+          },
+        ).catch((err: Error) => {
           logger.error(err);
         });
       }
@@ -298,24 +301,27 @@ export class Service extends DatabaseService<Model> {
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-          MailService.sendMail({
-            toEmail: newUser.email!,
-            subject: "You have changed your email. Please verify your email.",
-            templateType: EmailTemplateType.EmailChanged,
-            vars: {
-              name: newUser.name!.toString(),
-              tokenVerifyUrl: new URL(
-                httpProtocol,
-                host,
-                new Route(AccountsRoute.toString()).addRoute(
-                  "/verify-email/" + generatedToken.toString(),
-                ),
-              ).toString(),
-              homeUrl: new URL(httpProtocol, host).toString(),
+          MailService.sendMail(
+            {
+              toEmail: newUser.email!,
+              subject: "You have changed your email. Please verify your email.",
+              templateType: EmailTemplateType.EmailChanged,
+              vars: {
+                name: newUser.name!.toString(),
+                tokenVerifyUrl: new URL(
+                  httpProtocol,
+                  host,
+                  new Route(AccountsRoute.toString()).addRoute(
+                    "/verify-email/" + generatedToken.toString(),
+                  ),
+                ).toString(),
+                homeUrl: new URL(httpProtocol, host).toString(),
+              },
             },
-          }, {
-            userId: newUser.id!,
-          }).catch((err: Error) => {
+            {
+              userId: newUser.id!,
+            },
+          ).catch((err: Error) => {
             logger.error(err);
           });
 

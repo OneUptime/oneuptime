@@ -274,7 +274,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           for (const res of responses) {
             const messageSummary: string = getMessageSummary(res.workspaceType);
 
-
             for (const thread of res.threads) {
               const log: WorkspaceNotificationLog =
                 new WorkspaceNotificationLog();
@@ -349,7 +348,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
           for (const res of responses) {
             const messageSummary: string = getMessageSummary(res.workspaceType);
-
 
             for (const thread of res.threads) {
               const log: WorkspaceNotificationLog =

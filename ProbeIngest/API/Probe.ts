@@ -122,10 +122,10 @@ router.post(
         // If global probe offline? If yes, then email master-admin.
         // If not a global probe then them email project owners.
 
-  const isGlobalProbe: boolean = !probe.projectId;
-  const emailsToNotify: Email[] = [];
-  // Map recipient email -> platform userId (when known)
-  const emailToUserIdMap: Map<string, ObjectID> = new Map();
+        const isGlobalProbe: boolean = !probe.projectId;
+        const emailsToNotify: Email[] = [];
+        // Map recipient email -> platform userId (when known)
+        const emailToUserIdMap: Map<string, ObjectID> = new Map();
 
         let emailReason: string = "";
 
@@ -213,7 +213,7 @@ router.post(
         // now send an email to all the emailsToNotify
         // Skip sending email if billing is enabled
         if (!IsBillingEnabled) {
-      for (const email of emailsToNotify) {
+          for (const email of emailsToNotify) {
             MailService.sendMail(
               {
                 toEmail: email,
@@ -231,8 +231,8 @@ router.post(
               },
               {
                 projectId: probe.projectId,
-        // Try to attribute email to a known owner
-        userId: emailToUserIdMap.get(email.toString()) || undefined,
+                // Try to attribute email to a known owner
+                userId: emailToUserIdMap.get(email.toString()) || undefined,
               },
             ).catch((err: Error) => {
               logger.error(err);

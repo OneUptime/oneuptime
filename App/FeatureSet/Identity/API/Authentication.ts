@@ -261,15 +261,18 @@ router.post(
         logger.info("User forgot password: " + user.email?.toString());
         logger.info("Reset Password URL: " + tokenVerifyUrl);
 
-  MailService.sendMail({
-          toEmail: user.email!,
-          subject: "Password Reset Request for OneUptime",
-          templateType: EmailTemplateType.ForgotPassword,
-          vars: {
-            homeURL: new URL(httpProtocol, host).toString(),
-            tokenVerifyUrl: tokenVerifyUrl,
+        MailService.sendMail(
+          {
+            toEmail: user.email!,
+            subject: "Password Reset Request for OneUptime",
+            templateType: EmailTemplateType.ForgotPassword,
+            vars: {
+              homeURL: new URL(httpProtocol, host).toString(),
+              tokenVerifyUrl: tokenVerifyUrl,
+            },
           },
-  }, { userId: alreadySavedUser.id! }).catch((err: Error) => {
+          { userId: alreadySavedUser.id! },
+        ).catch((err: Error) => {
           logger.error(err);
         });
 
@@ -376,14 +379,17 @@ router.post(
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-  MailService.sendMail({
-        toEmail: user.email!,
-        subject: "Email Verified.",
-        templateType: EmailTemplateType.EmailVerified,
-        vars: {
-          homeURL: new URL(httpProtocol, host).toString(),
+      MailService.sendMail(
+        {
+          toEmail: user.email!,
+          subject: "Email Verified.",
+          templateType: EmailTemplateType.EmailVerified,
+          vars: {
+            homeURL: new URL(httpProtocol, host).toString(),
+          },
         },
-  }, { userId: user.id! }).catch((err: Error) => {
+        { userId: user.id! },
+      ).catch((err: Error) => {
         logger.error(err);
       });
 
@@ -465,14 +471,17 @@ router.post(
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-  MailService.sendMail({
-        toEmail: alreadySavedUser.email!,
-        subject: "Password Changed.",
-        templateType: EmailTemplateType.PasswordChanged,
-        vars: {
-          homeURL: new URL(httpProtocol, host).toString(),
+      MailService.sendMail(
+        {
+          toEmail: alreadySavedUser.email!,
+          subject: "Password Changed.",
+          templateType: EmailTemplateType.PasswordChanged,
+          vars: {
+            homeURL: new URL(httpProtocol, host).toString(),
+          },
         },
-  }, { userId: alreadySavedUser.id! }).catch((err: Error) => {
+        { userId: alreadySavedUser.id! },
+      ).catch((err: Error) => {
         logger.error(err);
       });
 

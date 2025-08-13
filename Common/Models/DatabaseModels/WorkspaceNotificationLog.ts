@@ -385,7 +385,8 @@ export default class WorkspaceNotificationLog extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "User ID",
-    description: "ID of User who initiated this workspace notification (if any)",
+    description:
+      "ID of User who initiated this workspace notification (if any)",
   })
   @Column({
     type: ColumnType.ObjectID,

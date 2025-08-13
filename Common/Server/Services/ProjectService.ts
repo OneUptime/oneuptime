@@ -1275,10 +1275,10 @@ export class ProjectService extends DatabaseService<Model> {
       return;
     }
 
-  for (const owner of owners) {
+    for (const owner of owners) {
       MailService.sendMail(
         {
-      toEmail: owner.email!,
+          toEmail: owner.email!,
           templateType: EmailTemplateType.SimpleMessage,
           vars: {
             subject: subject,
@@ -1288,7 +1288,7 @@ export class ProjectService extends DatabaseService<Model> {
         },
         {
           projectId,
-      userId: owner.id!,
+          userId: owner.id!,
         },
       ).catch((err: Error) => {
         logger.error(err);

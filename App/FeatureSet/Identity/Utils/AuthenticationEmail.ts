@@ -35,7 +35,7 @@ export default class AuthenticationEmail {
     const host: Hostname = await DatabaseConfig.getHost();
     const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-  MailService.sendMail({
+    MailService.sendMail({
       toEmail: user.email!,
       subject: "Please verify email.",
       templateType: EmailTemplateType.SignupWelcomeEmail,
@@ -50,7 +50,7 @@ export default class AuthenticationEmail {
         ).toString(),
         homeUrl: new URL(httpProtocol, host).toString(),
       },
-  }).catch((err: Error) => {
+    }).catch((err: Error) => {
       logger.error(err);
     });
   }

@@ -185,7 +185,7 @@ export class Service extends DatabaseService<Model> {
     CallService.makeCall(callRequest, {
       projectId: item.projectId,
       isSensitive: true,
-  userId: item.userId!,
+      userId: item.userId!,
     }).catch((err: Error) => {
       logger.error(err);
     });

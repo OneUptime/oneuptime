@@ -59,7 +59,7 @@ export default class PushNotificationService {
     request: PushNotificationRequest,
     options: PushNotificationOptions = {},
   ): Promise<void> {
-  logger.info(
+    logger.info(
       `Sending push notification to ${request.deviceTokens?.length} devices`,
     );
 
@@ -86,7 +86,7 @@ export default class PushNotificationService {
       );
     }
 
-  const results: Array<any> = await Promise.allSettled(promises);
+    const results: Array<any> = await Promise.allSettled(promises);
 
     let successCount: number = 0;
     let errorCount: number = 0;
@@ -145,7 +145,8 @@ export default class PushNotificationService {
         } else {
           log.status = PushStatus.Error;
           const reason: string =
-            (result && (result.reason?.message || result.reason?.toString?.())) ||
+            (result &&
+              (result.reason?.message || result.reason?.toString?.())) ||
             `Failed to send push notification`;
           log.statusMessage = reason;
         }
@@ -180,7 +181,7 @@ export default class PushNotificationService {
       });
     }
 
-  if (errorCount > 0 && successCount === 0) {
+    if (errorCount > 0 && successCount === 0) {
       throw new Error(
         `Failed to send push notification to all ${errorCount} devices`,
       );
