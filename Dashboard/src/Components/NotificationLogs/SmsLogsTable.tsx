@@ -8,7 +8,6 @@ import { Green, Red } from "Common/Types/BrandColors";
 import SmsStatus from "Common/Types/SmsStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -16,20 +15,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 
 export interface SmsLogsTableProps {
-  id?: string;
-  userPreferencesKey?: string;
-  name?: string;
-  cardProps?: { title: string; description?: string };
-  noItemsMessage?: string;
   query?: Query<BaseModel>;
-  selectMoreFields?: Record<string, boolean>;
-  showViewIdButton?: boolean;
-  isViewable?: boolean;
-  actionButtons?: Array<ActionButtonSchema<SmsLog>>;
-  columns?: Columns<SmsLog>;
-  filters?: Array<Filter<SmsLog>>;
   singularName?: string;
-  pluralName?: string;
 }
 
 const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
@@ -82,22 +69,20 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       <ModelTable<SmsLog>
         modelType={SmsLog}
         id={
-          props.id ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
-            : "sms-logs-table")
+            : "sms-logs-table"
         }
-        name={props.name || "SMS Logs"}
+        name="SMS Logs"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        showViewIdButton={props.showViewIdButton ?? true}
-        isViewable={props.isViewable}
+        showViewIdButton={true}
+        isViewable={false}
         userPreferencesKey={
-          props.userPreferencesKey ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-sms-logs-table`
-            : "sms-logs-table")
+            : "sms-logs-table"
         }
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -109,53 +94,45 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
           user: {
             name: true,
           },
-          ...(props.selectMoreFields || {}),
         }}
         cardProps={{
-          title: props.cardProps?.title || "SMS Logs",
-          description:
-            props.cardProps?.description ||
-            (props.singularName
-              ? `SMS sent for this ${props.singularName}.`
-              : "SMS sent for this project."),
+          title: "SMS Logs",
+          description: props.singularName
+            ? `SMS sent for this ${props.singularName}.`
+            : "SMS sent for this project.",
         }}
         noItemsMessage={
-          props.noItemsMessage ||
-          (props.singularName
+          props.singularName
             ? `No SMS logs for this ${props.singularName}.`
-            : props.pluralName
-              ? `No ${props.pluralName.toLowerCase()} SMS logs.`
-              : "No SMS logs.")
+            : "No SMS logs."
         }
         showRefreshButton={true}
-        columns={props.columns || defaultColumns}
-        filters={props.filters || defaultFilters}
-        actionButtons={
-          props.actionButtons || [
-            {
-              title: "View SMS Text",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.List,
-              onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
-                setModalText(item["smsText"] as string);
-                setModalTitle("SMS Text");
-                setShowModal(true);
-                onCompleteAction();
-              },
+        columns={defaultColumns}
+        filters={defaultFilters}
+        actionButtons={[
+          {
+            title: "View SMS Text",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.List,
+            onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
+              setModalText(item["smsText"] as string);
+              setModalTitle("SMS Text");
+              setShowModal(true);
+              onCompleteAction();
             },
-            {
-              title: "View Status Message",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.Error,
-              onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
-                setModalText(item["statusMessage"] as string);
-                setModalTitle("Status Message");
-                setShowModal(true);
-                onCompleteAction();
-              },
+          },
+          {
+            title: "View Status Message",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Error,
+            onClick: async (item: SmsLog, onCompleteAction: VoidFunction) => {
+              setModalText(item["statusMessage"] as string);
+              setModalTitle("Status Message");
+              setShowModal(true);
+              onCompleteAction();
             },
-          ]
-        }
+          },
+        ]}
       />
 
       {showModal && (

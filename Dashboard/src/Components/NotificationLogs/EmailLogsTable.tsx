@@ -8,7 +8,6 @@ import { Green, Red } from "Common/Types/BrandColors";
 import EmailStatus from "Common/Types/Mail/MailStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -16,20 +15,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 
 export interface EmailLogsTableProps {
-  id?: string;
-  userPreferencesKey?: string;
-  name?: string;
-  cardProps?: { title: string; description?: string };
-  noItemsMessage?: string;
   query?: Query<BaseModel>;
-  selectMoreFields?: Record<string, boolean>;
-  showViewIdButton?: boolean;
-  isViewable?: boolean;
-  actionButtons?: Array<ActionButtonSchema<EmailLog>>;
-  columns?: Columns<EmailLog>;
-  filters?: Array<Filter<EmailLog>>;
   singularName?: string; // e.g., "incident"
-  pluralName?: string; // e.g., "incidents"
 }
 
 const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
@@ -83,22 +70,20 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
       <ModelTable<EmailLog>
         modelType={EmailLog}
         id={
-          props.id ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
-            : "email-logs-table")
+            : "email-logs-table"
         }
-        name={props.name || "Email Logs"}
+        name="Email Logs"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        showViewIdButton={props.showViewIdButton ?? true}
-        isViewable={props.isViewable}
+        showViewIdButton={true}
+        isViewable={false}
         userPreferencesKey={
-          props.userPreferencesKey ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-email-logs-table`
-            : "email-logs-table")
+            : "email-logs-table"
         }
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -110,59 +95,51 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
           user: {
             name: true,
           },
-          ...(props.selectMoreFields || {}),
         }}
         cardProps={{
-          title: props.cardProps?.title || "Email Logs",
-          description:
-            props.cardProps?.description ||
-            (props.singularName
-              ? `Emails sent for this ${props.singularName}.`
-              : "Emails sent for this project."),
+          title: "Email Logs",
+          description: props.singularName
+            ? `Emails sent for this ${props.singularName}.`
+            : "Emails sent for this project.",
         }}
         noItemsMessage={
-          props.noItemsMessage ||
-          (props.singularName
+          props.singularName
             ? `No email logs for this ${props.singularName}.`
-            : props.pluralName
-              ? `No ${props.pluralName.toLowerCase()} email logs.`
-              : "No email logs.")
+            : "No email logs."
         }
         showRefreshButton={true}
-        columns={props.columns || defaultColumns}
-        filters={props.filters || defaultFilters}
-        actionButtons={
-          props.actionButtons || [
-            {
-              title: "View Subject",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.List,
-              onClick: async (
-                item: EmailLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setModalText(JSON.stringify(item["subject"]) as string);
-                setModalTitle("Subject of Email Message");
-                setShowModal(true);
-                onCompleteAction();
-              },
+        columns={defaultColumns}
+        filters={defaultFilters}
+        actionButtons={[
+          {
+            title: "View Subject",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.List,
+            onClick: async (
+              item: EmailLog,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setModalText(JSON.stringify(item["subject"]) as string);
+              setModalTitle("Subject of Email Message");
+              setShowModal(true);
+              onCompleteAction();
             },
-            {
-              title: "View Status Message",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.Error,
-              onClick: async (
-                item: EmailLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setModalText(item["statusMessage"] as string);
-                setModalTitle("Status Message");
-                setShowModal(true);
-                onCompleteAction();
-              },
+          },
+          {
+            title: "View Status Message",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Error,
+            onClick: async (
+              item: EmailLog,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setModalText(item["statusMessage"] as string);
+              setModalTitle("Status Message");
+              setShowModal(true);
+              onCompleteAction();
             },
-          ]
-        }
+          },
+        ]}
       />
 
       {showModal && (

@@ -18,7 +18,6 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -27,20 +26,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 
 export interface WorkspaceLogsTableProps {
-  id?: string;
-  userPreferencesKey?: string;
-  name?: string;
-  cardProps?: { title: string; description?: string };
-  noItemsMessage?: string;
   query?: Query<BaseModel>;
-  selectMoreFields?: Record<string, boolean>;
-  showViewIdButton?: boolean;
-  isViewable?: boolean;
-  actionButtons?: Array<ActionButtonSchema<WorkspaceNotificationLog>>;
-  columns?: Columns<WorkspaceNotificationLog>;
-  filters?: Array<Filter<WorkspaceNotificationLog>>;
   singularName?: string;
-  pluralName?: string;
 }
 
 const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
@@ -147,22 +134,20 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       <ModelTable<WorkspaceNotificationLog>
         modelType={WorkspaceNotificationLog}
         id={
-          props.id ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
-            : "workspace-logs-table")
+            : "workspace-logs-table"
         }
-        name={props.name || "Workspace Logs"}
+        name="Workspace Logs"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        showViewIdButton={props.showViewIdButton ?? true}
-        isViewable={props.isViewable}
+        showViewIdButton={true}
+        isViewable={false}
         userPreferencesKey={
-          props.userPreferencesKey ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-workspace-logs-table`
-            : "workspace-logs-table")
+            : "workspace-logs-table"
         }
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -175,59 +160,51 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
           user: {
             name: true,
           },
-          ...(props.selectMoreFields || {}),
         }}
         cardProps={{
-          title: props.cardProps?.title || "Workspace Logs",
-          description:
-            props.cardProps?.description ||
-            (props.singularName
-              ? `Messages sent to Slack / Teams for this ${props.singularName}.`
-              : "Messages sent to Slack / Teams."),
+          title: "Workspace Logs",
+          description: props.singularName
+            ? `Messages sent to Slack / Teams for this ${props.singularName}.`
+            : "Messages sent to Slack / Teams.",
         }}
         noItemsMessage={
-          props.noItemsMessage ||
-          (props.singularName
+          props.singularName
             ? `No Workspace logs for this ${props.singularName}.`
-            : props.pluralName
-              ? `No ${props.pluralName.toLowerCase()} Workspace logs.`
-              : "No Workspace logs.")
+            : "No Workspace logs."
         }
         showRefreshButton={true}
-        columns={props.columns || defaultColumns}
-        filters={props.filters || defaultFilters}
-        actionButtons={
-          props.actionButtons || [
-            {
-              title: "View Message Summary",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.List,
-              onClick: async (
-                item: WorkspaceNotificationLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setModalText(item["messageSummary"] as string);
-                setModalTitle("Message Summary");
-                setShowModal(true);
-                onCompleteAction();
-              },
+        columns={defaultColumns}
+        filters={defaultFilters}
+        actionButtons={[
+          {
+            title: "View Message Summary",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.List,
+            onClick: async (
+              item: WorkspaceNotificationLog,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setModalText(item["messageSummary"] as string);
+              setModalTitle("Message Summary");
+              setShowModal(true);
+              onCompleteAction();
             },
-            {
-              title: "View Status Message",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.Error,
-              onClick: async (
-                item: WorkspaceNotificationLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setModalText(item["statusMessage"] as string);
-                setModalTitle("Status Message");
-                setShowModal(true);
-                onCompleteAction();
-              },
+          },
+          {
+            title: "View Status Message",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Error,
+            onClick: async (
+              item: WorkspaceNotificationLog,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setModalText(item["statusMessage"] as string);
+              setModalTitle("Status Message");
+              setShowModal(true);
+              onCompleteAction();
             },
-          ]
-        }
+          },
+        ]}
       />
 
       {showModal && (

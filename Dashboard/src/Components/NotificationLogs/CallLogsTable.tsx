@@ -8,7 +8,6 @@ import { Green, Red } from "Common/Types/BrandColors";
 import CallStatus from "Common/Types/Call/CallStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
-import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -16,20 +15,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 
 export interface CallLogsTableProps {
-  id?: string;
-  userPreferencesKey?: string;
-  name?: string;
-  cardProps?: { title: string; description?: string };
-  noItemsMessage?: string;
   query?: Query<BaseModel>;
-  selectMoreFields?: Record<string, boolean>;
-  showViewIdButton?: boolean;
-  isViewable?: boolean;
-  actionButtons?: Array<ActionButtonSchema<CallLog>>;
-  columns?: Columns<CallLog>;
-  filters?: Array<Filter<CallLog>>;
   singularName?: string;
-  pluralName?: string;
 }
 
 const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
@@ -82,22 +69,20 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       <ModelTable<CallLog>
         modelType={CallLog}
         id={
-          props.id ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-call-logs-table`
-            : "call-logs-table")
+            : "call-logs-table"
         }
-        name={props.name || "Call Logs"}
+        name="Call Logs"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        showViewIdButton={props.showViewIdButton ?? true}
-        isViewable={props.isViewable}
+        showViewIdButton={true}
+        isViewable={false}
         userPreferencesKey={
-          props.userPreferencesKey ||
-          (props.singularName
+          props.singularName
             ? `${props.singularName.replace(/\s+/g, "-").toLowerCase()}-call-logs-table`
-            : "call-logs-table")
+            : "call-logs-table"
         }
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -109,59 +94,51 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
           user: {
             name: true,
           },
-          ...(props.selectMoreFields || {}),
         }}
         cardProps={{
-          title: props.cardProps?.title || "Call Logs",
-          description:
-            props.cardProps?.description ||
-            (props.singularName
-              ? `Calls made for this ${props.singularName}.`
-              : "Calls made for this project."),
+          title: "Call Logs",
+          description: props.singularName
+            ? `Calls made for this ${props.singularName}.`
+            : "Calls made for this project.",
         }}
         noItemsMessage={
-          props.noItemsMessage ||
-          (props.singularName
+          props.singularName
             ? `No call logs for this ${props.singularName}.`
-            : props.pluralName
-              ? `No ${props.pluralName.toLowerCase()} call logs.`
-              : "No call logs.")
+            : "No call logs."
         }
         showRefreshButton={true}
-        columns={props.columns || defaultColumns}
-        filters={props.filters || defaultFilters}
-        actionButtons={
-          props.actionButtons || [
-            {
-              title: "View Call Text",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.List,
-              onClick: async (
-                item: CallLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setModalText(JSON.stringify(item["callData"]) as string);
-                setModalTitle("Call Text");
-                setShowModal(true);
-                onCompleteAction();
-              },
+        columns={defaultColumns}
+        filters={defaultFilters}
+        actionButtons={[
+          {
+            title: "View Call Text",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.List,
+            onClick: async (
+              item: CallLog,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setModalText(JSON.stringify(item["callData"]) as string);
+              setModalTitle("Call Text");
+              setShowModal(true);
+              onCompleteAction();
             },
-            {
-              title: "View Status Message",
-              buttonStyleType: ButtonStyleType.NORMAL,
-              icon: IconProp.Error,
-              onClick: async (
-                item: CallLog,
-                onCompleteAction: VoidFunction,
-              ) => {
-                setModalText(item["statusMessage"] as string);
-                setModalTitle("Status Message");
-                setShowModal(true);
-                onCompleteAction();
-              },
+          },
+          {
+            title: "View Status Message",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Error,
+            onClick: async (
+              item: CallLog,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setModalText(item["statusMessage"] as string);
+              setModalTitle("Status Message");
+              setShowModal(true);
+              onCompleteAction();
             },
-          ]
-        }
+          },
+        ]}
       />
 
       {showModal && (
