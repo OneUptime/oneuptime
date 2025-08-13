@@ -270,7 +270,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               }
             }
             const joined: string = texts.join(" \n").trim();
-            return joined.length > 300 ? joined.slice(0, 297) + "..." : joined;
+            return joined;
           };
 
           for (const res of responses) {
@@ -345,7 +345,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               }
             }
             const joined: string = texts.join(" \n").trim();
-            return joined.length > 300 ? joined.slice(0, 297) + "..." : joined;
+            return joined;
           };
 
           for (const res of responses) {
@@ -562,7 +562,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
       const joined: string = texts.join(" \n").trim();
-      return joined.length > 300 ? joined.slice(0, 297) + "..." : joined;
+      return joined;
     };
 
     for (const res of responses) {
