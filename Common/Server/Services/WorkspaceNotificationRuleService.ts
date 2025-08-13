@@ -1210,14 +1210,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               userId: userId,
             };
 
-            // Add resource associations from notification rules if available
-            // We'll use the first notification rule's associations as they should be consistent
-            if (data.notificationRules.length > 0) {
-              const firstRule = data.notificationRules[0];
-              // The notification rules don't directly contain resource IDs, 
-              // so we'll leave these undefined for now
-            }
-
             await WorkspaceNotificationLogService.logUserInvited(logData, { isRoot: true });
           }
         }
