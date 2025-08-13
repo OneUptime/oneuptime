@@ -1,13 +1,27 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import PageComponentProps from "../PageComponentProps";
-
-// Reuse existing individual log pages as tab contents
-import EmailLogs from "./EmailLog";
-import SMSLogs from "./SmsLog";
-import CallLogs from "./CallLog";
-import PushLogs from "./PushLog";
+import EmailLogsTable from "../../Components/NotificationLogs/EmailLogsTable";
+import SmsLogsTable from "../../Components/NotificationLogs/SmsLogsTable";
+import CallLogsTable from "../../Components/NotificationLogs/CallLogsTable";
+import PushLogsTable from "../../Components/NotificationLogs/PushLogsTable";
 import SettingsWorkspaceLog from "./WorkspaceLog";
+
+const SettingsEmailLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return <EmailLogsTable />;
+};
+
+const SettingsSmsLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return <SmsLogsTable />;
+};
+
+const SettingsCallLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return <CallLogsTable />;
+};
+
+const SettingsPushLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  return <PushLogsTable />;
+};
 
 const SettingsNotificationLogs: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -18,19 +32,19 @@ const SettingsNotificationLogs: FunctionComponent<PageComponentProps> = (
         tabs={[
           {
             name: "Email",
-            children: <EmailLogs {...props} />,
+            children: <SettingsEmailLogs {...props} />,
           },
           {
             name: "SMS",
-            children: <SMSLogs {...props} />,
+            children: <SettingsSmsLogs {...props} />,
           },
           {
             name: "Call",
-            children: <CallLogs {...props} />,
+            children: <SettingsCallLogs {...props} />,
           },
           {
             name: "Push",
-            children: <PushLogs {...props} />,
+            children: <SettingsPushLogs {...props} />,
           },
           {
             name: "Workspace",
