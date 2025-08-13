@@ -52,7 +52,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Email}
+          icon={IconProp.List}
         />
       </SideMenuSection>
 
