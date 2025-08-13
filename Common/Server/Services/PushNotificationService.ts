@@ -109,7 +109,7 @@ export default class PushNotificationService {
 
     // Create one push log per device if projectId provided
     if (options.projectId) {
-      for (let i = 0; i < results.length; i++) {
+      for (let i: number = 0; i < results.length; i++) {
         const result: any = results[i];
         const log: PushNotificationLog = new PushNotificationLog();
         log.projectId = options.projectId;
