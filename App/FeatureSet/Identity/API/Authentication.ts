@@ -480,7 +480,6 @@ router.post(
             homeURL: new URL(httpProtocol, host).toString(),
           },
         },
-        { userId: alreadySavedUser.id! },
       ).catch((err: Error) => {
         logger.error(err);
       });
