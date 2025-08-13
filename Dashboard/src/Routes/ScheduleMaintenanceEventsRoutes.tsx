@@ -93,7 +93,7 @@ const ScheduledMaintenanceEventsViewCustomFields: LazyExoticComponent<
 const ScheduledMaintenanceEventViewNotificationLogs: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
-  return import("../Pages/ScheduledMaintenanceEvents/View/Notification");
+  return import("../Pages/ScheduledMaintenanceEvents/View/NotificationLogs");
 });
 
 const ScheduledMaintenanceEventViewDescription: LazyExoticComponent<
