@@ -21,7 +21,7 @@ export interface SmsLogsTableProps {
   name?: string;
   cardProps?: { title: string; description?: string };
   noItemsMessage?: string;
-    query?: Query<BaseModel>;
+  query?: Query<BaseModel>;
   selectMoreFields?: Record<string, boolean>;
   showViewIdButton?: boolean;
   isViewable?: boolean;
