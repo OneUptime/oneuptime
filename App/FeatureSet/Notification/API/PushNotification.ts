@@ -18,15 +18,19 @@ router.post(
   async (req: ExpressRequest, res: ExpressResponse) => {
     const body: JSONObject = JSONFunctions.deserialize(req.body);
 
+    // Support both new devices format and legacy deviceTokens/deviceNames format
+    let devices: Array<{ token: string; name?: string }> = [];
+
+    if (body["devices"]) {
+      // New format: devices as array of objects
+      devices = body["devices"] as Array<{ token: string; name?: string }>;
+    } else {
+      throw new Error("Invalid request format: 'devices' array is required.");
+    }
+
     await PushService.send(
       {
-        devices: ((body["deviceTokens"] as string[]) || []).map(
-          (token: string) => {
-            return {
-              token,
-            };
-          },
-        ),
+        devices,
         deviceType: (body["deviceType"] as any) || "web",
         message: body["message"] as any,
       },
