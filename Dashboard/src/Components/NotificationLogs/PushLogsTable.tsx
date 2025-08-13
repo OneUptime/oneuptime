@@ -122,7 +122,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
             props.cardProps?.description ||
             (props.singularName
               ? `Push notifications sent for this ${props.singularName}.`
-              : "Push notifications sent."),
+              : "Push notifications sent for this project."),
         }}
         noItemsMessage={
           props.noItemsMessage ||

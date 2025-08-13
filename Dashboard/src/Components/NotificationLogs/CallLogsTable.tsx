@@ -115,7 +115,7 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
             props.cardProps?.description ||
             (props.singularName
               ? `Calls made for this ${props.singularName}.`
-              : "Calls made."),
+              : "Calls made for this project."),
         }}
         noItemsMessage={
           props.noItemsMessage ||

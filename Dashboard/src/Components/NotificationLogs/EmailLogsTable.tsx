@@ -116,7 +116,7 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             props.cardProps?.description ||
             (props.singularName
               ? `Emails sent for this ${props.singularName}.`
-              : "Emails sent."),
+              : "Emails sent for this project."),
         }}
         noItemsMessage={
           props.noItemsMessage ||

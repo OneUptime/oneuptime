@@ -115,7 +115,7 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
             props.cardProps?.description ||
             (props.singularName
               ? `SMS sent for this ${props.singularName}.`
-              : "SMS sent."),
+              : "SMS sent for this project."),
         }}
         noItemsMessage={
           props.noItemsMessage ||
