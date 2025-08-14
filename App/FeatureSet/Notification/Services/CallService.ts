@@ -29,9 +29,10 @@ import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
 
 /**
- * Extracts all sayMessage values from a CallRequest's data array
+ * Extracts the main sayMessage values from a CallRequest's data array for call summary.
+ * Excludes acknowledgment responses, error messages, and other system messages.
  * @param callRequest The call request containing data array with various objects
- * @returns A string containing all sayMessage values separated by newlines
+ * @returns A string containing main call content messages separated by newlines
  */
 function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
   const sayMessages: string[] = [];
@@ -46,24 +47,13 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
       if ((item as GatherInput).introMessage) {
         sayMessages.push((item as GatherInput).introMessage);
       }
-      // Check if the item is a GatherInput with noInputMessage
-      if ((item as GatherInput).noInputMessage) {
-        sayMessages.push((item as GatherInput).noInputMessage);
-      }
-      // Check for onInputCallRequest messages
-      if ((item as GatherInput).onInputCallRequest) {
-        const onInputCallRequest = (item as GatherInput).onInputCallRequest;
-        for (const key in onInputCallRequest) {
-          const inputRequest = onInputCallRequest[key];
-          if (onInputCallRequest && inputRequest && inputRequest.sayMessage) {
-            sayMessages.push(inputRequest.sayMessage);
-          }
-        }
-      }
+      // NOTE: Excluding noInputMessage and onInputCallRequest messages from summary
+      // as they contain system responses like "Good bye", "Invalid input", "You have acknowledged"
+      // which should not be included in the call summary according to user requirements
     }
   }
   
-  return sayMessages.length > 0 ? sayMessages.join('\n') : 'No message content found';
+  return sayMessages.length > 0 ? sayMessages.join(' ') : 'No message content found';
 }
 
 export default class CallService {
