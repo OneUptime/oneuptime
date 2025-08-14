@@ -116,9 +116,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_ANNOUNCEMENTS]: "announcements",
   [PageMap.ANNOUNCEMENT_CREATE]: "announcements/create",
   [PageMap.ANNOUNCEMENT_VIEW]: `announcements/${RouteParams.ModelID}`,
-  [PageMap.ANNOUNCEMENT_VIEW_EMAIL_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs/email`,
-  [PageMap.ANNOUNCEMENT_VIEW_SMS_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs/sms`,
-  [PageMap.ANNOUNCEMENT_VIEW_CALL_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs/call`,
+  [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs`,
   [PageMap.ANNOUNCEMENT_VIEW_DELETE]: `announcements/${RouteParams.ModelID}/delete`,
   [PageMap.STATUS_PAGE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
@@ -147,6 +145,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_REPORTS]: `${RouteParams.ModelID}/reports`,
   [PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS]: `${RouteParams.ModelID}/authentication-settings`,
   [PageMap.STATUS_PAGE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
 };
 
 export const IncidentsRoutePath: Dictionary<string> = {
@@ -162,9 +161,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.INCIDENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
-  [PageMap.INCIDENT_VIEW_EMAIL_LOGS]: `${RouteParams.ModelID}/notification-logs/email`,
-  [PageMap.INCIDENT_VIEW_SMS_LOGS]: `${RouteParams.ModelID}/notification-logs/sms`,
-  [PageMap.INCIDENT_VIEW_CALL_LOGS]: `${RouteParams.ModelID}/notification-logs/call`,
+  [PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.INCIDENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.INCIDENT_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.INCIDENT_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
@@ -181,9 +178,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
   [PageMap.ALERT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: `${RouteParams.ModelID}/on-call-policy-execution-logs`,
-  [PageMap.ALERT_VIEW_EMAIL_LOGS]: `${RouteParams.ModelID}/notification-logs/email`,
-  [PageMap.ALERT_VIEW_SMS_LOGS]: `${RouteParams.ModelID}/notification-logs/sms`,
-  [PageMap.ALERT_VIEW_CALL_LOGS]: `${RouteParams.ModelID}/notification-logs/call`,
+  [PageMap.ALERT_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
   [PageMap.ALERT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.ALERT_VIEW_DESCRIPTION]: `${RouteParams.ModelID}/description`,
   [PageMap.ALERT_VIEW_ROOT_CAUSE]: `${RouteParams.ModelID}/root-cause`,
@@ -208,14 +203,13 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
   [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: `${RouteParams.ModelID}/public-notes`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
   [PageMap.SCHEDULED_MAINTENANCE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS]: `${RouteParams.ModelID}/notification-logs`,
 };
 
 export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DANGERZONE]: "danger-zone",
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
-  [PageMap.SETTINGS_SMS_LOGS]: "sms-logs",
-  [PageMap.SETTINGS_EMAIL_LOGS]: "email-logs",
-  [PageMap.SETTINGS_CALL_LOGS]: "call-logs",
+  [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_APIKEYS]: `api-keys`,
   [PageMap.SETTINGS_APIKEY_VIEW]: `api-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
@@ -280,12 +274,14 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW]: `schedules/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_DELETE]: `schedules/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: `schedules/${RouteParams.ModelID}/layers`,
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]: `schedules/${RouteParams.ModelID}/notification-logs`,
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_DELETE]: `policies/${RouteParams.ModelID}/delete`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOGS]: `policies/${RouteParams.ModelID}/execution-logs`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_CUSTOM_FIELDS]: `policies/${RouteParams.ModelID}/custom-fields`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: `policies/${RouteParams.ModelID}/execution-logs/${RouteParams.SubModelID}`,
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS]: `policies/${RouteParams.ModelID}/notification-logs`,
   //owners
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_OWNERS]: `policies/${RouteParams.ModelID}/owners`,
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION]: `policies/${RouteParams.ModelID}/escalation`,
@@ -525,6 +521,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_NOTIFICATION_LOGS]
+    }`,
+  ),
+
   [PageMap.ALERT_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_VIEW_DELETE]
@@ -651,6 +653,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_NOTIFICATION_LOGS]
     }`,
   ),
 
@@ -788,6 +796,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS
+      ]
+    }`,
+  ),
+
   [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
@@ -870,6 +886,11 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.SERVICE_CATALOG]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service-catalog`,
+  ),
+
+  // Root-level Service Catalog pages
+  [PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service-catalog/dependency-graph`,
   ),
 
   [PageMap.SERVICE_CATALOG_VIEW]: new Route(
@@ -979,6 +1000,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ANNOUNCEMENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]
+    }`,
+  ),
+
+  [PageMap.ANNOUNCEMENT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.ANNOUNCEMENT_VIEW_DELETE]
     }`,
   ),
 
@@ -1144,6 +1177,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_NOTIFICATION_LOGS]
+    }`,
+  ),
+
   [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
   [PageMap.AUTOMATION_SCRIPTS]: new Route(
@@ -1179,6 +1218,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_NOTIFICATION_LOGS]
     }`,
   ),
 
@@ -1263,6 +1308,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_EXECUTION_LOG_VIEW]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_POLICY_VIEW_NOTIFICATION_LOGS]
     }`,
   ),
 
@@ -1550,21 +1601,9 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_SMS_LOGS]: new Route(
+  [PageMap.SETTINGS_NOTIFICATION_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SMS_LOGS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_EMAIL_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_EMAIL_LOGS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_CALL_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_CALL_LOGS]
+      SettingsRoutePath[PageMap.SETTINGS_NOTIFICATION_LOGS]
     }`,
   ),
 

@@ -15,13 +15,14 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import ProjectUtil from "Common/UI/Utils/Project";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertView from "../../../Components/Alert/Alert";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -227,7 +228,14 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
           },
         }}
         noItemsMessage={"This policy has not executed so far."}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        onViewPage={async (item: OnCallDutyPolicyExecutionLog) => {
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]!,
+            {
+              modelId: item._id!.toString(),
+            },
+          );
+        }}
         showRefreshButton={true}
         showViewIdButton={true}
         filters={filters}

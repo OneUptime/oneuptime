@@ -43,6 +43,9 @@ nginx:
   disableAutoscaler: false
   listenAddress: ""
   listenOptions: ""
+  serverNamesHash:
+    bucketSize: ""
+    maxSize: ""
   ports:
     http: 80
     https: 443
@@ -481,6 +484,17 @@ worker:
   ports:
     http: 1445
   resources:
+  # KEDA autoscaling configuration based on queue metrics
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    # Scale up when queue size exceeds this threshold
+    queueSizeThreshold: 100
+    # Polling interval for metrics (in seconds)
+    pollingInterval: 30
+    # Cooldown period after scaling (in seconds)
+    cooldownPeriod: 300
 
 workflow:
   replicaCount: 1

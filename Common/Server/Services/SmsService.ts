@@ -26,11 +26,18 @@ export class SmsService extends BaseService {
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID;
       customTwilioConfig?: TwilioConfig | undefined;
-  incidentId?: ObjectID | undefined;
-  alertId?: ObjectID | undefined;
-  scheduledMaintenanceId?: ObjectID | undefined;
-  statusPageId?: ObjectID | undefined;
-  statusPageAnnouncementId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -49,11 +56,19 @@ export class SmsService extends BaseService {
               options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
           }
         : undefined,
-  incidentId: options.incidentId?.toString(),
-  alertId: options.alertId?.toString(),
-  scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
-  statusPageId: options.statusPageId?.toString(),
-  statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),
+      incidentId: options.incidentId?.toString(),
+      alertId: options.alertId?.toString(),
+      scheduledMaintenanceId: options.scheduledMaintenanceId?.toString(),
+      statusPageId: options.statusPageId?.toString(),
+      statusPageAnnouncementId: options.statusPageAnnouncementId?.toString(),
+      userId: options.userId?.toString(),
+      onCallPolicyId: options.onCallPolicyId?.toString(),
+      onCallPolicyEscalationRuleId:
+        options.onCallPolicyEscalationRuleId?.toString(),
+      onCallDutyPolicyExecutionLogTimelineId:
+        options.onCallDutyPolicyExecutionLogTimelineId?.toString(),
+      onCallScheduleId: options.onCallScheduleId?.toString(),
+      teamId: options.teamId?.toString(),
     };
 
     return await API.post<EmptyResponseData>(

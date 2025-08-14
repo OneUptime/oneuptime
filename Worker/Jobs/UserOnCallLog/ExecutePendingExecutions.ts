@@ -40,6 +40,7 @@ RunCron(
           onCallDutyPolicyExecutionLogTimelineId: true,
           onCallDutyPolicyExecutionLogId: true,
           onCallDutyPolicyId: true,
+          onCallDutyScheduleId: true,
           userBelongsToTeamId: true,
         },
         props: {
@@ -213,6 +214,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
             userBelongsToTeamId: pendingNotificationLog.userBelongsToTeamId,
             onCallDutyPolicyExecutionLogTimelineId:
               pendingNotificationLog.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: pendingNotificationLog.onCallDutyScheduleId,
           },
         );
       }

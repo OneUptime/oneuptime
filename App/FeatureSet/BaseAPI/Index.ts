@@ -282,6 +282,9 @@ import ShortLinkService, {
 import SmsLogService, {
   Service as SmsLogServiceType,
 } from "Common/Server/Services/SmsLogService";
+import PushNotificationLogService, {
+  Service as PushNotificationLogServiceType,
+} from "Common/Server/Services/PushNotificationLogService";
 import SpanService, {
   SpanService as SpanServiceType,
 } from "Common/Server/Services/SpanService";
@@ -379,6 +382,8 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
+import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
+import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import EmailVerificationToken from "Common/Models/DatabaseModels/EmailVerificationToken";
@@ -480,6 +485,9 @@ import TelemetryAttribute from "Common/Models/AnalyticsModels/TelemetryAttribute
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetyException from "Common/Models/DatabaseModels/TelemetryException";
 import CopilotActionTypePriority from "Common/Models/DatabaseModels/CopilotActionTypePriority";
+import WorkspaceNotificationLogService, {
+  Service as WorkspaceNotificationLogServiceType,
+} from "Common/Server/Services/WorkspaceNotificationLogService";
 
 // scheduled maintenance template
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
@@ -1529,6 +1537,22 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<PushNotificationLog, PushNotificationLogServiceType>(
+        PushNotificationLog,
+        PushNotificationLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        WorkspaceNotificationLog,
+        WorkspaceNotificationLogServiceType
+      >(WorkspaceNotificationLog, WorkspaceNotificationLogService).getRouter(),
     );
 
     app.use(

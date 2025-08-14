@@ -250,6 +250,7 @@ export class Service extends DatabaseService<Model> {
           userBelongsToTeamId: createdItem.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             createdItem.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: createdItem.onCallDutyScheduleId,
         },
       );
     }

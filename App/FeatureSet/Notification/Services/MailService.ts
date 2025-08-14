@@ -350,6 +350,13 @@ export default class MailService {
           scheduledMaintenanceId?: ObjectID | undefined;
           statusPageId?: ObjectID | undefined;
           statusPageAnnouncementId?: ObjectID | undefined;
+          userId?: ObjectID | undefined;
+          // On-call policy related fields
+          onCallPolicyId?: ObjectID | undefined;
+          onCallPolicyEscalationRuleId?: ObjectID | undefined;
+          onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+          onCallScheduleId?: ObjectID | undefined;
+          teamId?: ObjectID | undefined;
         }
       | undefined,
   ): Promise<void> {
@@ -383,6 +390,28 @@ export default class MailService {
 
       if (options.statusPageAnnouncementId) {
         emailLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
+      }
+
+      if (options.userId) {
+        emailLog.userId = options.userId;
+      }
+
+      if (options.teamId) {
+        emailLog.teamId = options.teamId;
+      }
+
+      // Set OnCall-related fields
+      if (options.onCallPolicyId) {
+        emailLog.onCallDutyPolicyId = options.onCallPolicyId;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        emailLog.onCallDutyPolicyEscalationRuleId =
+          options.onCallPolicyEscalationRuleId;
+      }
+
+      if (options.onCallScheduleId) {
+        emailLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
     }
 

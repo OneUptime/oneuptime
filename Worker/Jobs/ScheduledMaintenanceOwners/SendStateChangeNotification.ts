@@ -174,6 +174,7 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          scheduledMaintenanceId: scheduledMaintenance.id!,
           eventType:
             NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_STATE_CHANGED_OWNER_NOTIFICATION,
         });

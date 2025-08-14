@@ -128,8 +128,8 @@ export class Service extends DatabaseService<Model> {
         },
       },
       {
-  projectId: statusPage.projectId,
-  statusPageId: statusPage.id!,
+        projectId: statusPage.projectId,
+        statusPageId: statusPage.id!,
       },
     ).catch((err: Error) => {
       logger.error(err);

@@ -1,3 +1,8 @@
+## Hash tuning for many/long server names. Can be overridden via env vars.
+## Defaults are provided by envsubst-on-templates.sh if not set.
+server_names_hash_bucket_size ${SERVER_NAMES_HASH_BUCKET_SIZE};
+server_names_hash_max_size ${SERVER_NAMES_HASH_MAX_SIZE};
+
 upstream accounts {
     server ${SERVER_ACCOUNTS_HOSTNAME}:${ACCOUNTS_PORT} weight=10 max_fails=3 fail_timeout=30s;
 }

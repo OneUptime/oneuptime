@@ -134,7 +134,26 @@ export default class UptimeUtil {
           eventList[eventList.length - 1]!.endDate,
         )
       ) {
-        if (monitorEvent.priority > eventList[eventList.length - 1]!.priority) {
+        let isEndDateOfCurrenteventAfterLastEvent: boolean = false;
+        if (
+          eventList[eventList.length - 1] &&
+          eventList[eventList.length - 1]?.endDate
+        ) {
+          isEndDateOfCurrenteventAfterLastEvent =
+            OneUptimeDate.isAfter(
+              monitorEvent.endDate,
+              eventList[eventList.length - 1]!.endDate,
+            ) ||
+            OneUptimeDate.isEqualBySeconds(
+              monitorEvent.endDate,
+              eventList[eventList.length - 1]!.endDate,
+            );
+        }
+
+        if (
+          monitorEvent.priority > eventList[eventList.length - 1]!.priority ||
+          isEndDateOfCurrenteventAfterLastEvent
+        ) {
           // end the last event at the start of this event.
 
           const tempLastEvent: Event = {

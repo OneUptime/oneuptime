@@ -7,6 +7,15 @@ export function getServiceCatalogBreadcrumbs(
   path: string,
 ): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG, [
+      "Project",
+      "Service Catalog",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_DEPENDENCY_GRAPH, [
+      "Project",
+      "Service Catalog",
+      "Dependency Graph",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_CATALOG_VIEW, [
       "Project",
       "Service Catalog",

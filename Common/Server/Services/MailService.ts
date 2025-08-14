@@ -21,11 +21,18 @@ export class MailService extends BaseService {
       mailServer?: EmailServer | undefined;
       userOnCallLogTimelineId?: ObjectID;
       projectId?: ObjectID | undefined;
-  incidentId?: ObjectID | undefined;
-  alertId?: ObjectID | undefined;
-  scheduledMaintenanceId?: ObjectID | undefined;
-  statusPageId?: ObjectID | undefined;
-  statusPageAnnouncementId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     },
   ): Promise<HTTPResponse<EmptyResponseData>> {
     const body: JSONObject = {
@@ -73,6 +80,32 @@ export class MailService extends BaseService {
     if (options?.statusPageAnnouncementId) {
       body["statusPageAnnouncementId"] =
         options.statusPageAnnouncementId.toString();
+    }
+
+    if (options?.userId) {
+      body["userId"] = options.userId.toString();
+    }
+
+    if (options?.onCallPolicyId) {
+      body["onCallPolicyId"] = options.onCallPolicyId.toString();
+    }
+
+    if (options?.onCallPolicyEscalationRuleId) {
+      body["onCallPolicyEscalationRuleId"] =
+        options.onCallPolicyEscalationRuleId.toString();
+    }
+
+    if (options?.onCallDutyPolicyExecutionLogTimelineId) {
+      body["onCallDutyPolicyExecutionLogTimelineId"] =
+        options.onCallDutyPolicyExecutionLogTimelineId.toString();
+    }
+
+    if (options?.onCallScheduleId) {
+      body["onCallScheduleId"] = options.onCallScheduleId.toString();
+    }
+
+    if (options?.teamId) {
+      body["teamId"] = options.teamId.toString();
     }
 
     return await API.post<EmptyResponseData>(

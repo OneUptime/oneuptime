@@ -28,6 +28,36 @@ import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
 
+/**
+ * Extracts the main sayMessage values from a CallRequest's data array for call summary.
+ * Excludes acknowledgment responses, error messages, and other system messages.
+ * @param callRequest The call request containing data array with various objects
+ * @returns A string containing main call content messages separated by newlines
+ */
+function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
+  const sayMessages: string[] = [];
+
+  if (callRequest.data && Array.isArray(callRequest.data)) {
+    for (const item of callRequest.data) {
+      // Check if the item is a Say object with sayMessage
+      if ((item as Say).sayMessage) {
+        sayMessages.push((item as Say).sayMessage);
+      }
+      // Check if the item is a GatherInput with introMessage
+      if ((item as GatherInput).introMessage) {
+        sayMessages.push((item as GatherInput).introMessage);
+      }
+      // NOTE: Excluding noInputMessage and onInputCallRequest messages from summary
+      // as they contain system responses like "Good bye", "Invalid input", "You have acknowledged"
+      // which should not be included in the call summary according to user requirements
+    }
+  }
+
+  return sayMessages.length > 0
+    ? sayMessages.join(" ")
+    : "No message content found";
+}
+
 export default class CallService {
   public static async makeCall(
     callRequest: CallRequest,
@@ -36,11 +66,18 @@ export default class CallService {
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID | undefined; // user notification log timeline id
       customTwilioConfig?: TwilioConfig | undefined;
-  incidentId?: ObjectID | undefined;
-  alertId?: ObjectID | undefined;
-  scheduledMaintenanceId?: ObjectID | undefined;
-  statusPageId?: ObjectID | undefined;
-  statusPageAnnouncementId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
     },
   ): Promise<void> {
     let callError: Error | null = null;
@@ -87,8 +124,10 @@ export default class CallService {
       callLog.fromNumber = fromNumber;
       callLog.callData =
         options && options.isSensitive
-          ? { message: "This call is sensitive and is not logged" }
-          : JSON.parse(JSON.stringify(callRequest));
+          ? ({ message: "This call is sensitive and is not logged" } as any)
+          : ({
+              message: extractSayMessagesFromCallRequest(callRequest),
+            } as any);
       callLog.callCostInUSDCents = 0;
 
       if (options.projectId) {
@@ -113,6 +152,28 @@ export default class CallService {
 
       if (options.statusPageAnnouncementId) {
         callLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
+      }
+
+      if (options.userId) {
+        callLog.userId = options.userId;
+      }
+
+      if (options.teamId) {
+        callLog.teamId = options.teamId;
+      }
+
+      // Set OnCall-related fields
+      if (options.onCallPolicyId) {
+        callLog.onCallDutyPolicyId = options.onCallPolicyId;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        callLog.onCallDutyPolicyEscalationRuleId =
+          options.onCallPolicyEscalationRuleId;
+      }
+
+      if (options.onCallScheduleId) {
+        callLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
 
       let project: Project | null = null;

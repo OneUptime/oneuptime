@@ -124,6 +124,8 @@ router.post(
 
         const isGlobalProbe: boolean = !probe.projectId;
         const emailsToNotify: Email[] = [];
+        // Map recipient email -> platform userId (when known)
+        const emailToUserIdMap: Map<string, ObjectID> = new Map();
 
         let emailReason: string = "";
 
@@ -177,6 +179,10 @@ router.post(
           for (const owner of owners) {
             if (owner.email) {
               emailsToNotify.push(owner.email);
+              // Track mapping for attribution when sending email
+              if (owner.id) {
+                emailToUserIdMap.set(owner.email.toString(), owner.id);
+              }
             }
           }
 
@@ -225,6 +231,8 @@ router.post(
               },
               {
                 projectId: probe.projectId,
+                // Try to attribute email to a known owner
+                userId: emailToUserIdMap.get(email.toString()) || undefined,
               },
             ).catch((err: Error) => {
               logger.error(err);

@@ -103,33 +103,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="Notification Logs">
         <SideMenuItem
           link={{
-            title: "Email Logs",
+            title: "Notification Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_EMAIL_LOGS] as Route,
+              RouteMap[PageMap.ALERT_VIEW_NOTIFICATION_LOGS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Email}
-        />
-        <SideMenuItem
-          link={{
-            title: "SMS Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_SMS_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.SMS}
-        />
-        <SideMenuItem
-          link={{
-            title: "Call Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERT_VIEW_CALL_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Call}
+          icon={IconProp.Bell}
         />
       </SideMenuSection>
 

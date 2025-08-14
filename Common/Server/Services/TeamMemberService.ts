@@ -140,6 +140,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           },
           {
             projectId: createBy.data.projectId!,
+            userId: user.id!,
           },
         ).catch((err: Error) => {
           logger.error(err);

@@ -25,8 +25,22 @@ auto_envsubst() {
     subdir=$(dirname "$relative_path")
     # create a subdirectory where the template file exists
     mkdir -p "$output_dir/$subdir"
+
+    # Make a temp copy to allow conditional line removal
+    tmpfile=$(mktemp)
+    cp "$template" "$tmpfile"
+
+    # If hash tuning envs are not set, remove their lines from the template
+    if [ -z "${SERVER_NAMES_HASH_BUCKET_SIZE}" ]; then
+      sed -i '/^[[:space:]]*server_names_hash_bucket_size[[:space:]]/d' "$tmpfile"
+    fi
+    if [ -z "${SERVER_NAMES_HASH_MAX_SIZE}" ]; then
+      sed -i '/^[[:space:]]*server_names_hash_max_size[[:space:]]/d' "$tmpfile"
+    fi
+
     echo "$ME: Running envsubst on $template to $output_path"
-    envsubst "$defined_envs" < "$template" > "$output_path"
+    envsubst "$defined_envs" < "$tmpfile" > "$output_path"
+    rm -f "$tmpfile"
   done
 }
 

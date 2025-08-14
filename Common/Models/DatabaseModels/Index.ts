@@ -100,6 +100,8 @@ import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 import ShortLink from "./ShortLink";
 // SMS
 import SmsLog from "./SmsLog";
+import PushNotificationLog from "./PushNotificationLog";
+import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 // Status Page
 import StatusPage from "./StatusPage";
 import StatusPageAnnouncement from "./StatusPageAnnouncement";
@@ -292,6 +294,8 @@ const AllModelTypes: Array<{
   StatusPageOwnerUser,
 
   SmsLog,
+  PushNotificationLog,
+  WorkspaceNotificationLog,
   CallLog,
   EmailLog,
 

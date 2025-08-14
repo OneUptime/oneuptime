@@ -2,6 +2,7 @@ import CallAPI from "./API/Call";
 // API
 import MailAPI from "./API/Mail";
 import SmsAPI from "./API/SMS";
+import PushNotificationAPI from "./API/PushNotification";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import "./Utils/Handlebars";
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -15,6 +16,7 @@ const NotificationFeatureSet: FeatureSet = {
 
     app.use([`/${APP_NAME}/email`, "/email"], MailAPI);
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);
+    app.use([`/${APP_NAME}/push`, "/push"], PushNotificationAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
   },

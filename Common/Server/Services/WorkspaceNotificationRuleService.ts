@@ -19,7 +19,10 @@ import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
-import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+import {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+} from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
@@ -42,6 +45,10 @@ import Text from "../../Types/Text";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import WorkspaceNotificationLog from "../../Models/DatabaseModels/WorkspaceNotificationLog";
+import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
+import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
+import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -165,6 +172,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       try {
         // create channel
         createdChannels = await this.createChannelsBasedOnRules({
+          projectId: data.projectId,
           projectOrUserAuthTokenForWorkspace: projectAuthToken,
           workspaceType: rule.workspaceType!,
           notificationRules: [rule],
@@ -221,20 +229,73 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const createdChannel of createdChannels) {
         try {
-          await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-            projectId: data.projectId,
-            messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
-              (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-                return {
-                  _type: "WorkspaceMessagePayload",
-                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                  messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                  channelNames: [],
-                  channelIds: [createdChannel.id],
-                };
-              },
-            ),
-          });
+          const responses: Array<WorkspaceSendMessageResponse> =
+            await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+              projectId: data.projectId,
+              messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
+                (
+                  messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
+                ) => {
+                  return {
+                    _type: "WorkspaceMessagePayload",
+                    workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                    messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+                    channelNames: [],
+                    channelIds: [createdChannel.id],
+                  };
+                },
+              ),
+            });
+
+          // Log results for test sends (created channels)
+          const getMessageSummary: (wt: WorkspaceType) => string = (
+            wt: WorkspaceType,
+          ): string => {
+            const blocks: Array<WorkspaceMessageBlock> | undefined =
+              messageBlocksByWorkspaceTypes.find(
+                (b: MessageBlocksByWorkspaceType) => {
+                  return b.workspaceType === wt;
+                },
+              )?.messageBlocks;
+            if (!blocks) {
+              return "";
+            }
+            const texts: Array<string> = [];
+            for (const block of blocks) {
+              if (
+                (block as WorkspacePayloadMarkdown)._type ===
+                "WorkspacePayloadMarkdown"
+              ) {
+                texts.push((block as WorkspacePayloadMarkdown).text);
+              }
+            }
+            const joined: string = texts.join(" \n").trim();
+            return joined;
+          };
+
+          for (const res of responses) {
+            const messageSummary: string = getMessageSummary(res.workspaceType);
+
+            for (const thread of res.threads) {
+              const log: WorkspaceNotificationLog =
+                new WorkspaceNotificationLog();
+              log.projectId = data.projectId;
+              log.workspaceType = res.workspaceType;
+              log.channelId = thread.channel.id;
+              log.channelName = thread.channel.name;
+              log.threadId = thread.threadId;
+              log.message = messageSummary;
+              log.status = WorkspaceNotificationStatus.Success;
+              log.statusMessage = "Test message posted to workspace channel";
+              log.userId = data.testByUserId;
+              log.actionType = WorkspaceNotificationActionType.SendMessage;
+
+              await WorkspaceNotificationLogService.create({
+                data: log,
+                props: { isRoot: true },
+              });
+            }
+          }
         } catch (err) {
           throw new BadDataException(
             "Cannot post message to channel. " + (err as Error)?.message,
@@ -244,20 +305,73 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       for (const existingChannelName of existingChannelNames) {
         try {
-          await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-            projectId: data.projectId,
-            messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
-              (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-                return {
-                  _type: "WorkspaceMessagePayload",
-                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
-                  messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
-                  channelNames: [existingChannelName],
-                  channelIds: [],
-                };
-              },
-            ),
-          });
+          const responses: Array<WorkspaceSendMessageResponse> =
+            await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+              projectId: data.projectId,
+              messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
+                (
+                  messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType,
+                ) => {
+                  return {
+                    _type: "WorkspaceMessagePayload",
+                    workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                    messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+                    channelNames: [existingChannelName],
+                    channelIds: [],
+                  };
+                },
+              ),
+            });
+
+          // Log results for test sends (existing channels)
+          const getMessageSummary: (wt: WorkspaceType) => string = (
+            wt: WorkspaceType,
+          ): string => {
+            const blocks: Array<WorkspaceMessageBlock> | undefined =
+              messageBlocksByWorkspaceTypes.find(
+                (b: MessageBlocksByWorkspaceType) => {
+                  return b.workspaceType === wt;
+                },
+              )?.messageBlocks;
+            if (!blocks) {
+              return "";
+            }
+            const texts: Array<string> = [];
+            for (const block of blocks) {
+              if (
+                (block as WorkspacePayloadMarkdown)._type ===
+                "WorkspacePayloadMarkdown"
+              ) {
+                texts.push((block as WorkspacePayloadMarkdown).text);
+              }
+            }
+            const joined: string = texts.join(" \n").trim();
+            return joined;
+          };
+
+          for (const res of responses) {
+            const messageSummary: string = getMessageSummary(res.workspaceType);
+
+            for (const thread of res.threads) {
+              const log: WorkspaceNotificationLog =
+                new WorkspaceNotificationLog();
+              log.projectId = data.projectId;
+              log.workspaceType = res.workspaceType;
+              log.channelId = thread.channel.id;
+              log.channelName = thread.channel.name;
+              log.threadId = thread.threadId;
+              log.message = messageSummary;
+              log.status = WorkspaceNotificationStatus.Success;
+              log.statusMessage = "Test message posted to workspace channel";
+              log.userId = data.testByUserId;
+              log.actionType = WorkspaceNotificationActionType.SendMessage;
+
+              await WorkspaceNotificationLogService.create({
+                data: log,
+                props: { isRoot: true },
+              });
+            }
+          }
         } catch (err) {
           throw new BadDataException(
             "Cannot post message to channel. " + (err as Error)?.message,
@@ -421,10 +535,74 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       workspaceNotificationPaylaods.push(workspaceMessagePayload);
     }
 
-    await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-      projectId: data.projectId,
-      messagePayloadsByWorkspace: workspaceNotificationPaylaods,
-    });
+    const responses: Array<WorkspaceSendMessageResponse> =
+      await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+        projectId: data.projectId,
+        messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+      });
+
+    // Create logs for each response/thread
+    const getMessageSummary: (wt: WorkspaceType) => string = (
+      wt: WorkspaceType,
+    ): string => {
+      const blocks: Array<WorkspaceMessageBlock> | undefined =
+        messageBlocksByWorkspaceTypes.find(
+          (b: MessageBlocksByWorkspaceType) => {
+            return b.workspaceType === wt;
+          },
+        )?.messageBlocks;
+      if (!blocks) {
+        return "";
+      }
+      const texts: Array<string> = [];
+      for (const block of blocks) {
+        if (
+          (block as WorkspacePayloadMarkdown)._type ===
+          "WorkspacePayloadMarkdown"
+        ) {
+          texts.push((block as WorkspacePayloadMarkdown).text);
+        }
+      }
+      const joined: string = texts.join(" \n").trim();
+      return joined;
+    };
+
+    for (const res of responses) {
+      const messageSummary: string = getMessageSummary(res.workspaceType);
+
+      for (const thread of res.threads) {
+        const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+        log.projectId = data.projectId;
+        log.workspaceType = res.workspaceType;
+        log.channelId = thread.channel.id;
+        log.channelName = thread.channel.name;
+        log.threadId = thread.threadId;
+        log.message = messageSummary;
+        log.status = WorkspaceNotificationStatus.Success;
+        log.actionType = WorkspaceNotificationActionType.SendMessage;
+        log.statusMessage = "Message posted to workspace channel";
+
+        if (data.notificationFor.incidentId) {
+          log.incidentId = data.notificationFor.incidentId;
+        }
+        if (data.notificationFor.alertId) {
+          log.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor.scheduledMaintenanceId) {
+          log.scheduledMaintenanceId =
+            data.notificationFor.scheduledMaintenanceId;
+        }
+
+        if (data.workspaceNotification.notifyUserId) {
+          log.userId = data.workspaceNotification.notifyUserId;
+        }
+
+        await WorkspaceNotificationLogService.create({
+          data: log,
+          props: { isRoot: true },
+        });
+      }
+    }
   }
 
   private async getWorkspaceChannelsByNotificationFor(data: {
@@ -629,11 +807,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug("Creating channels based on rules");
       const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
         await this.createChannelsBasedOnRules({
+          projectId: data.projectId,
           projectOrUserAuthTokenForWorkspace: authToken,
           workspaceType: workspaceType,
           notificationRules: notificationRules,
           channelNameSiffix: data.channelNameSiffix,
           notificationEventType: data.notificationRuleEventType,
+          notificationFor: data.notificationFor,
         });
 
       logger.debug("createdWorkspaceChannels");
@@ -1009,6 +1189,39 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           workspaceUserIds: workspaceUserIds,
         },
       });
+
+      // Log user invitations
+      try {
+        for (const userId of userIds) {
+          for (const channel of channelsToInviteToBasedOnRule) {
+            const logData: {
+              projectId: ObjectID;
+              workspaceType: WorkspaceType;
+              channelId: string;
+              channelName: string;
+              userId: ObjectID;
+              incidentId?: ObjectID;
+              alertId?: ObjectID;
+              scheduledMaintenanceId?: ObjectID;
+              onCallDutyPolicyId?: ObjectID;
+            } = {
+              projectId: data.projectId,
+              workspaceType: workspaceType,
+              channelId: channel.id,
+              channelName: channel.name,
+              userId: userId,
+            };
+
+            await WorkspaceNotificationLogService.logInviteUser(logData, {
+              isRoot: true,
+            });
+          }
+        }
+      } catch (err) {
+        logger.error("Error logging user invitations:");
+        logger.error(err);
+        // Don't throw the error, just log it so the main flow continues
+      }
     }
   }
 
@@ -1079,11 +1292,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public async createChannelsBasedOnRules(data: {
+    projectId: ObjectID;
     projectOrUserAuthTokenForWorkspace: string;
     workspaceType: WorkspaceType;
     notificationRules: Array<WorkspaceNotificationRule>;
     channelNameSiffix: string;
     notificationEventType: NotificationRuleEventType;
+    notificationFor?: NotificationFor;
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     logger.debug("createChannelsBasedOnRules called with data:");
     logger.debug(data);
@@ -1139,6 +1354,48 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       logger.debug("Channel created:");
       logger.debug(channel);
+
+      // Log the channel creation
+      try {
+        const logData: {
+          projectId: ObjectID;
+          workspaceType: WorkspaceType;
+          channelId: string;
+          channelName: string;
+          incidentId?: ObjectID;
+          alertId?: ObjectID;
+          scheduledMaintenanceId?: ObjectID;
+          onCallDutyPolicyId?: ObjectID;
+        } = {
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          channelId: channel.id,
+          channelName: channel.name,
+        };
+
+        // Add resource associations only if they exist
+        if (data.notificationFor?.incidentId) {
+          logData.incidentId = data.notificationFor.incidentId;
+        }
+        if (data.notificationFor?.alertId) {
+          logData.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor?.scheduledMaintenanceId) {
+          logData.scheduledMaintenanceId =
+            data.notificationFor.scheduledMaintenanceId;
+        }
+        if (data.notificationFor?.onCallDutyPolicyId) {
+          logData.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
+        }
+
+        await WorkspaceNotificationLogService.logCreateChannel(logData, {
+          isRoot: true,
+        });
+      } catch (err) {
+        logger.error("Error logging channel creation:");
+        logger.error(err);
+        // Don't throw the error, just log it so the main flow continues
+      }
 
       createdChannelNames.push(channel.name);
       createdWorkspaceChannels.push(notificationWorkspaceChannel);
