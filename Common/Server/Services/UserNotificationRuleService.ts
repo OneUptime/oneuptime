@@ -72,6 +72,7 @@ export class Service extends DatabaseService<Model> {
       userNotificationLogId: ObjectID;
       userBelongsToTeamId?: ObjectID | undefined;
       onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
     },
   ): Promise<void> {
     // get user notification log and see if this rule has already been executed. If so then skip.
@@ -302,6 +303,7 @@ export class Service extends DatabaseService<Model> {
           teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -354,6 +356,7 @@ export class Service extends DatabaseService<Model> {
           teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -428,6 +431,7 @@ export class Service extends DatabaseService<Model> {
           teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -480,6 +484,7 @@ export class Service extends DatabaseService<Model> {
           teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -554,6 +559,7 @@ export class Service extends DatabaseService<Model> {
           teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -605,6 +611,7 @@ export class Service extends DatabaseService<Model> {
           teamId: options.userBelongsToTeamId,
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
         }).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
             id: updatedLog.id!,
@@ -696,6 +703,7 @@ export class Service extends DatabaseService<Model> {
             teamId: options.userBelongsToTeamId,
             onCallDutyPolicyExecutionLogTimelineId:
               options.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: options.onCallScheduleId,
           },
         ).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
@@ -766,6 +774,7 @@ export class Service extends DatabaseService<Model> {
             teamId: options.userBelongsToTeamId,
             onCallDutyPolicyExecutionLogTimelineId:
               options.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: options.onCallScheduleId,
           },
         ).catch(async (err: Error) => {
           await UserOnCallLogTimelineService.updateOneById({
