@@ -406,7 +406,8 @@ export default class MailService {
       }
 
       if (options.onCallPolicyEscalationRuleId) {
-        emailLog.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+        emailLog.onCallDutyPolicyEscalationRuleId =
+          options.onCallPolicyEscalationRuleId;
       }
 
       if (options.onCallScheduleId) {

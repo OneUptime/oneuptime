@@ -15,6 +15,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import { JSONObject } from "Common/Types/JSON";
 
 export interface CallLogsTableProps {
   query?: Query<BaseModel>;
@@ -137,10 +138,13 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (item: CallLog, onCompleteAction: VoidFunction) => {
-              const callData = item["callData"] as any;
-              const displayText = callData && typeof callData === 'object' && callData.message 
-                ? callData.message 
-                : JSON.stringify(callData);
+              const callData: JSONObject | undefined = item["callData"] as
+                | JSONObject
+                | undefined;
+              const displayText: string =
+                callData && typeof callData === "object" && callData["message"]
+                  ? (callData["message"] as string)
+                  : JSON.stringify(callData);
               setModalText(displayText as string);
               setModalTitle("Call Text");
               setShowModal(true);

@@ -183,7 +183,8 @@ export default class PushNotificationService {
           log.onCallDutyPolicyId = options.onCallPolicyId;
         }
         if (options.onCallPolicyEscalationRuleId) {
-          log.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+          log.onCallDutyPolicyEscalationRuleId =
+            options.onCallPolicyEscalationRuleId;
         }
         if (options.onCallScheduleId) {
           log.onCallDutyPolicyScheduleId = options.onCallScheduleId;

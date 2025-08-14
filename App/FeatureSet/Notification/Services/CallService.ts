@@ -36,7 +36,7 @@ import Phone from "Common/Types/Phone";
  */
 function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
   const sayMessages: string[] = [];
-  
+
   if (callRequest.data && Array.isArray(callRequest.data)) {
     for (const item of callRequest.data) {
       // Check if the item is a Say object with sayMessage
@@ -52,8 +52,10 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
       // which should not be included in the call summary according to user requirements
     }
   }
-  
-  return sayMessages.length > 0 ? sayMessages.join(' ') : 'No message content found';
+
+  return sayMessages.length > 0
+    ? sayMessages.join(" ")
+    : "No message content found";
 }
 
 export default class CallService {
@@ -123,7 +125,9 @@ export default class CallService {
       callLog.callData =
         options && options.isSensitive
           ? ({ message: "This call is sensitive and is not logged" } as any)
-          : ({ message: extractSayMessagesFromCallRequest(callRequest) } as any);
+          : ({
+              message: extractSayMessagesFromCallRequest(callRequest),
+            } as any);
       callLog.callCostInUSDCents = 0;
 
       if (options.projectId) {
@@ -164,7 +168,8 @@ export default class CallService {
       }
 
       if (options.onCallPolicyEscalationRuleId) {
-        callLog.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+        callLog.onCallDutyPolicyEscalationRuleId =
+          options.onCallPolicyEscalationRuleId;
       }
 
       if (options.onCallScheduleId) {

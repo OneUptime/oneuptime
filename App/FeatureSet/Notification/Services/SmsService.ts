@@ -117,7 +117,8 @@ export default class SmsService {
       }
 
       if (options.onCallPolicyEscalationRuleId) {
-        smsLog.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+        smsLog.onCallDutyPolicyEscalationRuleId =
+          options.onCallPolicyEscalationRuleId;
       }
 
       if (options.onCallScheduleId) {

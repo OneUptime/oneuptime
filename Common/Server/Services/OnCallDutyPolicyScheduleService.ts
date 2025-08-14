@@ -273,7 +273,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
             onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            onCallPolicyEscalationRuleId: escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallPolicyEscalationRuleId:
+              escalationRule.onCallDutyPolicyEscalationRule!.id!,
             onCallScheduleId: data.scheduleId,
           });
 
@@ -392,7 +393,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
             onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            onCallPolicyEscalationRuleId: escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallPolicyEscalationRuleId:
+              escalationRule.onCallDutyPolicyEscalationRule!.id!,
             onCallScheduleId: data.scheduleId,
           });
 
@@ -531,7 +533,8 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
             onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            onCallPolicyEscalationRuleId: escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallPolicyEscalationRuleId:
+              escalationRule.onCallDutyPolicyEscalationRule!.id!,
             onCallScheduleId: data.scheduleId,
           });
 

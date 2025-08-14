@@ -112,7 +112,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               // OnCall-related fields
               onCallPolicyId: data.onCallPolicyId,
               onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-              onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
               onCallScheduleId: data.onCallScheduleId,
             },
           ).catch((err: Error) => {
@@ -156,7 +157,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               // OnCall-related fields
               onCallPolicyId: data.onCallPolicyId,
               onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-              onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
               onCallScheduleId: data.onCallScheduleId,
             },
           ).catch((err: Error) => {
@@ -200,7 +202,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               // OnCall-related fields
               onCallPolicyId: data.onCallPolicyId,
               onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-              onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
               onCallScheduleId: data.onCallScheduleId,
             },
           ).catch((err: Error) => {
@@ -224,7 +227,8 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             // OnCall-related fields
             onCallPolicyId: data.onCallPolicyId,
             onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
-            onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              data.onCallDutyPolicyExecutionLogTimelineId,
             onCallScheduleId: data.onCallScheduleId,
           },
         ).catch((err: Error) => {

@@ -23,7 +23,6 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertView from "../../../Components/Alert/Alert";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
-import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -230,9 +229,12 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={"This policy has not executed so far."}
         onViewPage={async (item: OnCallDutyPolicyExecutionLog) => {
-          return RouteUtil.populateRouteParams(RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]!, {
-            modelId: item._id!.toString(),
-          });
+          return RouteUtil.populateRouteParams(
+            RouteMap[PageMap.ON_CALL_DUTY_EXECUTION_LOGS_TIMELINE]!,
+            {
+              modelId: item._id!.toString(),
+            },
+          );
         }}
         showRefreshButton={true}
         showViewIdButton={true}

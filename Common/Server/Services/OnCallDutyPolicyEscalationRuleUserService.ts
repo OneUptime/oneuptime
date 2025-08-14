@@ -127,7 +127,8 @@ export class Service extends DatabaseService<Model> {
       eventType:
         NotificationSettingEventType.SEND_WHEN_USER_IS_ADDED_TO_ON_CALL_POLICY,
       onCallPolicyId: createdModel.onCallDutyPolicy!.id!,
-      onCallPolicyEscalationRuleId: createdModel.onCallDutyPolicyEscalationRule!.id!,
+      onCallPolicyEscalationRuleId:
+        createdModel.onCallDutyPolicyEscalationRule!.id!,
     });
 
     // add workspace message.
@@ -331,7 +332,8 @@ export class Service extends DatabaseService<Model> {
         eventType:
           NotificationSettingEventType.SEND_WHEN_USER_IS_REMOVED_FROM_ON_CALL_POLICY,
         onCallPolicyId: deletedItem.onCallDutyPolicy!.id!,
-        onCallPolicyEscalationRuleId: deletedItem.onCallDutyPolicyEscalationRule!.id!,
+        onCallPolicyEscalationRuleId:
+          deletedItem.onCallDutyPolicyEscalationRule!.id!,
       });
     }
 
