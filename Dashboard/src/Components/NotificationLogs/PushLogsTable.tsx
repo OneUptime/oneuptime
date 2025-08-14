@@ -30,13 +30,6 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
   const [modalTitle, setModalTitle] = useState<string>("");
   const defaultColumns: Columns<PushNotificationLog> = [
     {
-      field: { deviceType: true },
-      title: "Device Type",
-      type: FieldType.Text,
-      hideOnMobile: true,
-      noValueMessage: "-",
-    },
-    {
       field: { deviceName: true },
       title: "Device Name",
       type: FieldType.Text,

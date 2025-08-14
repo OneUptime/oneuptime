@@ -137,7 +137,11 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.List,
             onClick: async (item: CallLog, onCompleteAction: VoidFunction) => {
-              setModalText(JSON.stringify(item["callData"]) as string);
+              const callData = item["callData"] as any;
+              const displayText = callData && typeof callData === 'object' && callData.message 
+                ? callData.message 
+                : JSON.stringify(callData);
+              setModalText(displayText as string);
               setModalTitle("Call Text");
               setShowModal(true);
               onCompleteAction();
