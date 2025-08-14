@@ -54,8 +54,9 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
       if ((item as GatherInput).onInputCallRequest) {
         const onInputCallRequest = (item as GatherInput).onInputCallRequest;
         for (const key in onInputCallRequest) {
-          if (onInputCallRequest[key] && onInputCallRequest[key].sayMessage) {
-            sayMessages.push(onInputCallRequest[key].sayMessage);
+          const inputRequest = onInputCallRequest[key];
+          if (onInputCallRequest && inputRequest && inputRequest.sayMessage) {
+            sayMessages.push(inputRequest.sayMessage);
           }
         }
       }
