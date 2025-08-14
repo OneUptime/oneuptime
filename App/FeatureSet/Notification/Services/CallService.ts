@@ -28,6 +28,43 @@ import Twilio from "twilio";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
 
+/**
+ * Extracts all sayMessage values from a CallRequest's data array
+ * @param callRequest The call request containing data array with various objects
+ * @returns A string containing all sayMessage values separated by newlines
+ */
+function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
+  const sayMessages: string[] = [];
+  
+  if (callRequest.data && Array.isArray(callRequest.data)) {
+    for (const item of callRequest.data) {
+      // Check if the item is a Say object with sayMessage
+      if ((item as Say).sayMessage) {
+        sayMessages.push((item as Say).sayMessage);
+      }
+      // Check if the item is a GatherInput with introMessage
+      if ((item as GatherInput).introMessage) {
+        sayMessages.push((item as GatherInput).introMessage);
+      }
+      // Check if the item is a GatherInput with noInputMessage
+      if ((item as GatherInput).noInputMessage) {
+        sayMessages.push((item as GatherInput).noInputMessage);
+      }
+      // Check for onInputCallRequest messages
+      if ((item as GatherInput).onInputCallRequest) {
+        const onInputCallRequest = (item as GatherInput).onInputCallRequest;
+        for (const key in onInputCallRequest) {
+          if (onInputCallRequest[key] && onInputCallRequest[key].sayMessage) {
+            sayMessages.push(onInputCallRequest[key].sayMessage);
+          }
+        }
+      }
+    }
+  }
+  
+  return sayMessages.length > 0 ? sayMessages.join('\n') : 'No message content found';
+}
+
 export default class CallService {
   public static async makeCall(
     callRequest: CallRequest,
@@ -94,8 +131,8 @@ export default class CallService {
       callLog.fromNumber = fromNumber;
       callLog.callData =
         options && options.isSensitive
-          ? { message: "This call is sensitive and is not logged" }
-          : JSON.parse(JSON.stringify(callRequest));
+          ? ({ message: "This call is sensitive and is not logged" } as any)
+          : ({ message: extractSayMessagesFromCallRequest(callRequest) } as any);
       callLog.callCostInUSDCents = 0;
 
       if (options.projectId) {
