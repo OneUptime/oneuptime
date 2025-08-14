@@ -399,6 +399,19 @@ export default class MailService {
       if (options.teamId) {
         emailLog.teamId = options.teamId;
       }
+
+      // Set OnCall-related fields
+      if (options.onCallPolicyId) {
+        emailLog.onCallDutyPolicyId = options.onCallPolicyId;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        emailLog.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+      }
+
+      if (options.onCallScheduleId) {
+        emailLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
+      }
     }
 
     // default vars.

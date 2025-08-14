@@ -272,6 +272,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
+            onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
+            onCallPolicyEscalationRuleId: escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallScheduleId: data.scheduleId,
           });
 
           // add end log for user.
@@ -388,6 +391,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
+            onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
+            onCallPolicyEscalationRuleId: escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallScheduleId: data.scheduleId,
           });
 
           // add start log for user.
@@ -524,6 +530,9 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             pushNotificationMessage: pushMessage,
             eventType:
               NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,
+            onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
+            onCallPolicyEscalationRuleId: escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallScheduleId: data.scheduleId,
           });
 
           const onCallDutyPolicyId: ObjectID =

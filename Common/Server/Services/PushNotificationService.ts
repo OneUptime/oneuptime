@@ -178,6 +178,17 @@ export default class PushNotificationService {
           log.teamId = options.teamId;
         }
 
+        // Set OnCall-related fields
+        if (options.onCallPolicyId) {
+          log.onCallDutyPolicyId = options.onCallPolicyId;
+        }
+        if (options.onCallPolicyEscalationRuleId) {
+          log.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+        }
+        if (options.onCallScheduleId) {
+          log.onCallDutyPolicyScheduleId = options.onCallScheduleId;
+        }
+
         if (result.status === "fulfilled") {
           log.status = PushStatus.Success;
           log.statusMessage = "Push notification sent";

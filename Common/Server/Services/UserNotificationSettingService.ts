@@ -45,6 +45,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     statusPageId?: ObjectID | undefined;
     statusPageAnnouncementId?: ObjectID | undefined;
     teamId?: ObjectID | undefined;
+    // OnCall-related fields
+    onCallPolicyId?: ObjectID | undefined;
+    onCallPolicyEscalationRuleId?: ObjectID | undefined;
+    onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+    onCallScheduleId?: ObjectID | undefined;
   }): Promise<void> {
     if (!data.projectId) {
       throw new BadDataException(
@@ -104,6 +109,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
               teamId: data.teamId,
+              // OnCall-related fields
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -143,6 +153,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
               teamId: data.teamId,
+              // OnCall-related fields
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -182,6 +197,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
               statusPageAnnouncementId: data.statusPageAnnouncementId,
               userId: data.userId,
               teamId: data.teamId,
+              // OnCall-related fields
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
             },
           ).catch((err: Error) => {
             logger.error(err);
@@ -201,6 +221,11 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             projectId: data.projectId,
             userId: data.userId,
             teamId: data.teamId,
+            // OnCall-related fields
+            onCallPolicyId: data.onCallPolicyId,
+            onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+            onCallDutyPolicyExecutionLogTimelineId: data.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: data.onCallScheduleId,
           },
         ).catch((err: Error) => {
           logger.error(err);

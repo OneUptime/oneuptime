@@ -130,6 +130,19 @@ export default class CallService {
         callLog.teamId = options.teamId;
       }
 
+      // Set OnCall-related fields
+      if (options.onCallPolicyId) {
+        callLog.onCallDutyPolicyId = options.onCallPolicyId;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        callLog.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+      }
+
+      if (options.onCallScheduleId) {
+        callLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
+      }
+
       let project: Project | null = null;
 
       // make sure project has enough balance.

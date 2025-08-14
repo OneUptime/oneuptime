@@ -111,6 +111,19 @@ export default class SmsService {
         smsLog.teamId = options.teamId;
       }
 
+      // Set OnCall-related fields
+      if (options.onCallPolicyId) {
+        smsLog.onCallDutyPolicyId = options.onCallPolicyId;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        smsLog.onCallDutyPolicyEscalationRuleId = options.onCallPolicyEscalationRuleId;
+      }
+
+      if (options.onCallScheduleId) {
+        smsLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
+      }
+
       const twilioConfig: TwilioConfig | null =
         options.customTwilioConfig || (await getTwilioConfig());
 
