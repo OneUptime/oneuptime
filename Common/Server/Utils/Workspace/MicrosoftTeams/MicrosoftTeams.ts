@@ -344,13 +344,27 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     // add channel ids.
     for (const channelId of data.workspaceMessagePayload.channelIds) {
-      const channel: WorkspaceChannel = {
-        id: channelId,
-        name: "",
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      };
+      try {
+        // Get the channel info including name from channel ID
+        const channel: WorkspaceChannel = await this.getWorkspaceChannelFromChannelId({
+          authToken: data.authToken,
+          channelId: channelId,
+        });
 
-      workspaceChannelsToPostTo.push(channel);
+        workspaceChannelsToPostTo.push(channel);
+      } catch (err) {
+        logger.error(`Error getting channel info for channel ID ${channelId}:`);
+        logger.error(err);
+        
+        // Fallback: create channel object with empty name if API call fails
+        const channel: WorkspaceChannel = {
+          id: channelId,
+          name: channelId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        };
+
+        workspaceChannelsToPostTo.push(channel);
+      }
     }
 
     logger.debug("Channel IDs to post to:");
