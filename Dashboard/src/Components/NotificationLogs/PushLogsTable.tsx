@@ -16,6 +16,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 export interface PushLogsTableProps {
   query?: Query<BaseModel>;
@@ -150,7 +151,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
             ) => {
               const title: string = item["title"] as string;
               const body: string = item["body"] as string;
-              const combinedMessage: string = `${title ? `Title: ${title}\n\n` : ""}${body ? `Body: ${body}` : ""}`;
+              const combinedMessage: string = `${title ? `**${title}**\n\n` : ""}${body ? `${body}` : ""}`;
               setModalText(combinedMessage);
               setModalTitle("Push Notification Message");
               setShowModal(true);
@@ -177,7 +178,7 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       {showModal && (
         <ConfirmModal
           title={modalTitle}
-          description={modalText}
+          description={<MarkdownViewer text={modalText} />}
           onSubmit={() => {
             setShowModal(false);
           }}
