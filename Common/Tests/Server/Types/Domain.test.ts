@@ -6,8 +6,8 @@ describe("Domain TXT Record Verification", () => {
 
   test("should throw user-friendly error for ENODATA", async () => {
     // Testing with a domain that exists but has no TXT records
-    const domain = "nonexistentsubdomain-test.google.com";
-    const verificationText = "test-verification-text";
+    const domain: string = "nonexistentsubdomain-test.google.com";
+    const verificationText: string = "test-verification-text";
 
     await expect(
       Domain.verifyTxtRecord(domain, verificationText),
@@ -28,8 +28,9 @@ describe("Domain TXT Record Verification", () => {
 
   test("should throw user-friendly error for non-existent domain", async () => {
     // Testing with a domain that doesn't exist
-    const domain = "thisisadomainthatdoesnotexistanywhere12345.nonexistent";
-    const verificationText = "test-verification-text";
+    const domain: string =
+      "thisisadomainthatdoesnotexistanywhere12345.nonexistent";
+    const verificationText: string = "test-verification-text";
 
     await expect(
       Domain.verifyTxtRecord(domain, verificationText),
@@ -55,7 +56,7 @@ describe("Domain CNAME Record Verification", () => {
 
   test("should throw user-friendly error for CNAME ENODATA", async () => {
     // Testing with a domain that exists but has no CNAME records (e.g., A record only domain)
-    const domain = "google.com"; // This is an A record, not CNAME
+    const domain: string = "google.com"; // This is an A record, not CNAME
 
     await expect(Domain.getCnameRecords({ domain })).rejects.toThrow(
       BadDataException,
@@ -76,10 +77,10 @@ describe("Domain CNAME Record Verification", () => {
 
   test("should get CNAME records for valid CNAME domain", async () => {
     // This test might be flaky depending on DNS changes, but let's try with a known CNAME
-    const domain = "www.github.com"; // This usually has CNAME records
+    const domain: string = "www.github.com"; // This usually has CNAME records
 
     try {
-      const cnameRecords = await Domain.getCnameRecords({ domain });
+      const cnameRecords: string[] = await Domain.getCnameRecords({ domain });
       expect(Array.isArray(cnameRecords)).toBe(true);
       expect(cnameRecords.length).toBeGreaterThan(0);
     } catch (error) {
