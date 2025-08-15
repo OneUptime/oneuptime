@@ -8,6 +8,8 @@ Once the provider is generated, it will be installed locally. You can test it in
 
 When running terraform apply, please ensure you have added the -auto-approve flag to avoid manual approval prompts. The command should look like this:
 
+When editing terraform files, please do not edit API key or oneuptime_url variables. 
+
 Now, please fix this in terraform provider: 
 
 <PROMPT>
