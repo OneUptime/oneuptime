@@ -455,7 +455,7 @@ export default class OnCallDutyPolicy extends BaseModel {
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
+    type: TableColumnType.Number,
     canReadOnRelationQuery: true,
     title: "Repeat Policy Times If No One Acknowledges",
     description:
