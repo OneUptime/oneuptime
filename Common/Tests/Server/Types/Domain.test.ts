@@ -10,7 +10,7 @@ describe("Domain TXT Record Verification", () => {
     const verificationText = "test-verification-text";
 
     await expect(
-      Domain.verifyTxtRecord(domain, verificationText)
+      Domain.verifyTxtRecord(domain, verificationText),
     ).rejects.toThrow(BadDataException);
 
     try {
@@ -18,7 +18,9 @@ describe("Domain TXT Record Verification", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BadDataException);
       if (error instanceof BadDataException) {
-        expect(error.message).toContain("Domain \"nonexistentsubdomain-test.google.com\" not found. Please check if the domain is correct and accessible.");
+        expect(error.message).toContain(
+          'Domain "nonexistentsubdomain-test.google.com" not found. Please check if the domain is correct and accessible.',
+        );
         expect(error.message).toContain(domain);
       }
     }
@@ -30,7 +32,7 @@ describe("Domain TXT Record Verification", () => {
     const verificationText = "test-verification-text";
 
     await expect(
-      Domain.verifyTxtRecord(domain, verificationText)
+      Domain.verifyTxtRecord(domain, verificationText),
     ).rejects.toThrow(BadDataException);
 
     try {
@@ -55,9 +57,9 @@ describe("Domain CNAME Record Verification", () => {
     // Testing with a domain that exists but has no CNAME records (e.g., A record only domain)
     const domain = "google.com"; // This is an A record, not CNAME
 
-    await expect(
-      Domain.getCnameRecords({ domain })
-    ).rejects.toThrow(BadDataException);
+    await expect(Domain.getCnameRecords({ domain })).rejects.toThrow(
+      BadDataException,
+    );
 
     try {
       await Domain.getCnameRecords({ domain });

@@ -17,9 +17,12 @@ export default class Domain extends DomainCommon {
               logger.debug(
                 `DNS CNAME lookup failed for domain ${data.domain}: ${err.message}`,
               );
-              
+
               // Handle specific DNS error types with user-friendly messages
-              if (err.message.includes("ENODATA") || err.message.includes("queryCname ENODATA")) {
+              if (
+                err.message.includes("ENODATA") ||
+                err.message.includes("queryCname ENODATA")
+              ) {
                 reject(
                   new BadDataException(
                     `No CNAME records found for domain "${data.domain}". Please ensure you have added the CNAME record and wait for DNS propagation (up to 72 hours).`,
@@ -27,8 +30,11 @@ export default class Domain extends DomainCommon {
                 );
                 return;
               }
-              
-              if (err.message.includes("ENOTFOUND") || err.message.includes("queryCname ENOTFOUND")) {
+
+              if (
+                err.message.includes("ENOTFOUND") ||
+                err.message.includes("queryCname ENOTFOUND")
+              ) {
                 reject(
                   new BadDataException(
                     `Domain "${data.domain}" not found. Please check if the domain is correct and accessible.`,
@@ -36,8 +42,11 @@ export default class Domain extends DomainCommon {
                 );
                 return;
               }
-              
-              if (err.message.includes("ETIMEDOUT") || err.message.includes("queryCname ETIMEDOUT")) {
+
+              if (
+                err.message.includes("ETIMEDOUT") ||
+                err.message.includes("queryCname ETIMEDOUT")
+              ) {
                 reject(
                   new BadDataException(
                     `DNS lookup timeout for domain "${data.domain}". Please try again later.`,
@@ -45,7 +54,7 @@ export default class Domain extends DomainCommon {
                 );
                 return;
               }
-              
+
               // Generic DNS error fallback
               reject(
                 new BadDataException(
@@ -84,32 +93,41 @@ export default class Domain extends DomainCommon {
               logger.debug(
                 `DNS TXT lookup failed for domain ${domain.toString()}: ${err.message}`,
               );
-              
+
               // Handle specific DNS error types with user-friendly messages
-              if (err.message.includes("ENODATA") || err.message.includes("queryTxt ENODATA")) {
+              if (
+                err.message.includes("ENODATA") ||
+                err.message.includes("queryTxt ENODATA")
+              ) {
                 return reject(
                   new BadDataException(
                     `No TXT records found for domain "${domain.toString()}". Please ensure you have added the TXT record and wait for DNS propagation (up to 72 hours).`,
                   ),
                 );
               }
-              
-              if (err.message.includes("ENOTFOUND") || err.message.includes("queryTxt ENOTFOUND")) {
+
+              if (
+                err.message.includes("ENOTFOUND") ||
+                err.message.includes("queryTxt ENOTFOUND")
+              ) {
                 return reject(
                   new BadDataException(
                     `Domain "${domain.toString()}" not found. Please check if the domain is correct and accessible.`,
                   ),
                 );
               }
-              
-              if (err.message.includes("ETIMEDOUT") || err.message.includes("queryTxt ETIMEDOUT")) {
+
+              if (
+                err.message.includes("ETIMEDOUT") ||
+                err.message.includes("queryTxt ETIMEDOUT")
+              ) {
                 return reject(
                   new BadDataException(
                     `DNS lookup timeout for domain "${domain.toString()}". Please try again later.`,
                   ),
                 );
               }
-              
+
               // Generic DNS error fallback
               return reject(
                 new BadDataException(
