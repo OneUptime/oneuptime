@@ -1,9 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
-import Model, {
-  SlackMiscData,
-} from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import Model from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -66,7 +64,7 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     authToken: string;
     workspaceUserId: string;
-    miscData: SlackMiscData;
+  miscData: NonNullable<Model["miscData"]>;
   }): Promise<void> {
     let userAuth: Model | null = await this.findOneBy({
       query: {
@@ -90,7 +88,7 @@ export class Service extends DatabaseService<Model> {
       userAuth.authToken = data.authToken;
       userAuth.workspaceType = data.workspaceType;
       userAuth.workspaceUserId = data.workspaceUserId;
-      userAuth.miscData = data.miscData;
+  userAuth.miscData = data.miscData || {};
 
       await this.create({
         data: userAuth,
@@ -104,7 +102,7 @@ export class Service extends DatabaseService<Model> {
         data: {
           authToken: data.authToken,
           workspaceUserId: data.workspaceUserId,
-          miscData: data.miscData,
+          miscData: (data.miscData as unknown as object) || {},
         },
         props: {
           isRoot: true,
