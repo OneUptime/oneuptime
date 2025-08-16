@@ -8,6 +8,7 @@ import Realtime from "Common/Server/Utils/Realtime";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import Redis from "Common/Server/Infrastructure/Redis";
 import { ClickhouseAppInstance } from "Common/Server/Infrastructure/ClickhouseDatabase";
+import { WORKER_CONCURRENCY } from "./Config";
 import "ejs";
 
 const APP_NAME: string = "worker";
@@ -22,6 +23,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     });
 
     logger.debug("Telemetry initialized");
+
+    logger.info(`Worker Service - Queue concurrency: ${WORKER_CONCURRENCY}`);
 
     const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
       // Check the status of infrastructure components

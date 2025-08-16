@@ -11,6 +11,7 @@ import Realtime from "Common/Server/Utils/Realtime";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import "./Jobs/ServerMonitorIngest/ProcessServerMonitorIngest";
+import { SERVER_MONITOR_INGEST_CONCURRENCY } from "./Config";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -34,6 +35,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     Telemetry.init({
       serviceName: APP_NAME,
     });
+
+    logger.info(`ServerMonitorIngest Service - Queue concurrency: ${SERVER_MONITOR_INGEST_CONCURRENCY}`);
 
     // init the app
     await App.init({

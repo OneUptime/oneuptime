@@ -1,4 +1,4 @@
-import { PORT } from "./Config";
+import { PORT, PROBE_MONITORING_WORKERS, PROBE_MONITOR_FETCH_LIMIT, PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS, PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS, PROBE_MONITOR_RETRY_LIMIT } from "./Config";
 import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
@@ -19,6 +19,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     Telemetry.init({
       serviceName: APP_NAME,
     });
+
+    logger.info(`Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`);
 
     // init the app
     await App.init({
