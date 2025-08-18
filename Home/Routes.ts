@@ -1338,7 +1338,7 @@ const HomeFeatureSet: FeatureSet = {
           const xml: string = await generateSitemapXml();
           res.setHeader("Content-Type", "text/xml");
           res.send(xml);
-        } catch (err) {
+        } catch {
           // Fallback minimal static sitemap if dynamic generation fails
           const fallback: string = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://oneuptime.com/</loc></url>\n</urlset>`;
           res.setHeader("Content-Type", "text/xml");

@@ -645,11 +645,14 @@ const products: Dictionary<Product> = {
   },
 };
 
-export const getProductCompareSlugs = (): Array<string> => {
-  return Object.keys(products);
-};
+export const getProductCompareSlugs: () => Array<string> =
+  (): Array<string> => {
+    return Object.keys(products);
+  };
 
-const ProductCompare = (product: string): Product => {
+const ProductCompare: (product: string) => Product = (
+  product: string,
+): Product => {
   return products[product] as Product;
 };
 

@@ -36,9 +36,8 @@ jest.mock("../../../Server/Services/ProjectUserService", () => {
 
 // Get the mocked module to access the mock functions
 import ProjectUserService from "../../../Server/Services/ProjectUserService";
-const mockProjectUserService = ProjectUserService as jest.Mocked<
-  typeof ProjectUserService
->;
+const mockProjectUserService: jest.Mocked<typeof ProjectUserService> =
+  ProjectUserService as jest.Mocked<typeof ProjectUserService>;
 
 describe("TeamMemberService", () => {
   beforeEach(async () => {
