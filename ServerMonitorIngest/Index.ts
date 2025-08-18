@@ -36,7 +36,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    logger.info(`ServerMonitorIngest Service - Queue concurrency: ${SERVER_MONITOR_INGEST_CONCURRENCY}`);
+    logger.info(
+      `ServerMonitorIngest Service - Queue concurrency: ${SERVER_MONITOR_INGEST_CONCURRENCY}`,
+    );
 
     // init the app
     await App.init({

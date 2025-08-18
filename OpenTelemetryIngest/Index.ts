@@ -37,7 +37,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    logger.info(`OpenTelemetryIngest Service - Queue concurrency: ${OPEN_TELEMETRY_INGEST_CONCURRENCY}`);
+    logger.info(
+      `OpenTelemetryIngest Service - Queue concurrency: ${OPEN_TELEMETRY_INGEST_CONCURRENCY}`,
+    );
 
     // init the app
     await App.init({

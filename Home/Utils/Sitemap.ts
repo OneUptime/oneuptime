@@ -29,26 +29,49 @@ export const generateSitemapXml = async (): Promise<string> => {
     const app: ExpressApplication = Express.getExpressApp();
     const stack: any[] = (app as any)?._router?.stack || [];
     for (const layer of stack) {
-      if (!layer) { continue; }
+      if (!layer) {
+        continue;
+      }
       const route = layer.route || layer?.handle?.route;
-      if (!route) { continue; }
+      if (!route) {
+        continue;
+      }
       // Only include GET handlers
       const methods: any = route.methods || {};
-      if (!methods.get) { continue; }
-  const path: string | string[] | undefined = route.path || route?.route?.path;
-  const rawPaths: Array<string | undefined> = Array.isArray(path) ? path : [path];
-  const paths: string[] = rawPaths.filter((p): p is string => !!p);
-  for (let p of paths) {
-        if (!p || typeof p !== "string") { continue; }
+      if (!methods.get) {
+        continue;
+      }
+      const path: string | string[] | undefined =
+        route.path || route?.route?.path;
+      const rawPaths: Array<string | undefined> = Array.isArray(path)
+        ? path
+        : [path];
+      const paths: string[] = rawPaths.filter((p): p is string => {
+        return Boolean(p);
+      });
+      for (let p of paths) {
+        if (!p || typeof p !== "string") {
+          continue;
+        }
         // Filters: skip parameterized, wildcard, api or file-serving or sitemap itself
-  if (p.includes(":") || p.includes("*") || p.includes("sitemap")) { continue; }
-  // Exclude script or installer endpoints
-  if (p.endsWith(".sh")) { continue; }
-        if (p.startsWith("/api") || p.startsWith("/blog/post")) { continue; }
+        if (p.includes(":") || p.includes("*") || p.includes("sitemap")) {
+          continue;
+        }
+        // Exclude script or installer endpoints
+        if (p.endsWith(".sh")) {
+          continue;
+        }
+        if (p.startsWith("/api") || p.startsWith("/blog/post")) {
+          continue;
+        }
         // We'll add compare pages separately with real slugs; skip base compare param route
-        if (p.startsWith("/compare")) { continue; }
+        if (p.startsWith("/compare")) {
+          continue;
+        }
         // Normalize slash
-        if (!p.startsWith("/")) { p = `/${p}`; }
+        if (!p.startsWith("/")) {
+          p = `/${p}`;
+        }
         discoveredStaticPaths.add(p);
       }
     }
@@ -64,7 +87,9 @@ export const generateSitemapXml = async (): Promise<string> => {
 
   // Product compare pages
   const productComparePaths: string[] = getProductCompareSlugs().map(
-    (slug: string) => `/compare/${slug}`,
+    (slug: string) => {
+      return `/compare/${slug}`;
+    },
   );
 
   // Blog posts
@@ -83,10 +108,7 @@ export const generateSitemapXml = async (): Promise<string> => {
   // Blog tags
   const tags: string[] = await BlogPostUtil.getTags();
   const tagEntries = tags.map((tag: string) => {
-    const tagSlug: string = tag
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .trim();
+    const tagSlug: string = tag.toLowerCase().replace(/\s+/g, "-").trim();
     return {
       loc: `${baseUrl.toString()}blog/tag/${tagSlug}`,
       lastmod: OneUptimeDate.getCurrentDate().toISOString(),
@@ -95,16 +117,23 @@ export const generateSitemapXml = async (): Promise<string> => {
 
   const timestamp: string = OneUptimeDate.getCurrentDate().toISOString();
 
-  interface Entry { loc: string; lastmod: string }
+  interface Entry {
+    loc: string;
+    lastmod: string;
+  }
   const entries: Entry[] = [
-    ...staticPaths.map((p: string) => ({
-      loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
-      lastmod: timestamp,
-    })),
-    ...productComparePaths.map((p: string) => ({
-      loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
-      lastmod: timestamp,
-    })),
+    ...staticPaths.map((p: string) => {
+      return {
+        loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
+        lastmod: timestamp,
+      };
+    }),
+    ...productComparePaths.map((p: string) => {
+      return {
+        loc: `${baseUrl.toString()}${p.replace(/^\//, "")}`,
+        lastmod: timestamp,
+      };
+    }),
     ...blogPostEntries,
     ...tagEntries,
   ];
@@ -124,8 +153,12 @@ export const generateSitemapXml = async (): Promise<string> => {
   const baseUrlString: string = baseUrl.toString();
   const orderedEntries = Array.from(dedupMap.values());
   orderedEntries.sort((a, b) => {
-    if (a.loc === baseUrlString) { return -1; }
-    if (b.loc === baseUrlString) { return 1; }
+    if (a.loc === baseUrlString) {
+      return -1;
+    }
+    if (b.loc === baseUrlString) {
+      return 1;
+    }
     return 0; // preserve relative order otherwise
   });
 

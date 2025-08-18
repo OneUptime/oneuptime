@@ -37,7 +37,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    logger.info(`IncomingRequestIngest Service - Queue concurrency: ${INCOMING_REQUEST_INGEST_CONCURRENCY}`);
+    logger.info(
+      `IncomingRequestIngest Service - Queue concurrency: ${INCOMING_REQUEST_INGEST_CONCURRENCY}`,
+    );
 
     // init the app
     await App.init({

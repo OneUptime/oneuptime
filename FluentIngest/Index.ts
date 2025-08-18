@@ -36,7 +36,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    logger.info(`FluentIngest Service - Queue concurrency: ${FLUENT_INGEST_CONCURRENCY}`);
+    logger.info(
+      `FluentIngest Service - Queue concurrency: ${FLUENT_INGEST_CONCURRENCY}`,
+    );
 
     // init the app
     await App.init({

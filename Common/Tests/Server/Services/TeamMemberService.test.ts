@@ -36,13 +36,17 @@ jest.mock("../../../Server/Services/ProjectUserService", () => {
 
 // Get the mocked module to access the mock functions
 import ProjectUserService from "../../../Server/Services/ProjectUserService";
-const mockProjectUserService = ProjectUserService as jest.Mocked<typeof ProjectUserService>;
+const mockProjectUserService = ProjectUserService as jest.Mocked<
+  typeof ProjectUserService
+>;
 
 describe("TeamMemberService", () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     // Re-setup the mock after resetAllMocks
-    mockProjectUserService.refreshProjectUsersByProject.mockResolvedValue(undefined);
+    mockProjectUserService.refreshProjectUsersByProject.mockResolvedValue(
+      undefined,
+    );
     await TestDatabaseMock.connectDbMock();
   });
 
