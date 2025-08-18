@@ -120,7 +120,16 @@ export const generateSitemapXml = async (): Promise<string> => {
   const urlset: XMLBuilder = create().ele("urlset");
   urlset.att("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9");
 
-  for (const entry of dedupMap.values()) {
+  // Ensure home URL is first
+  const baseUrlString: string = baseUrl.toString();
+  const orderedEntries = Array.from(dedupMap.values());
+  orderedEntries.sort((a, b) => {
+    if (a.loc === baseUrlString) { return -1; }
+    if (b.loc === baseUrlString) { return 1; }
+    return 0; // preserve relative order otherwise
+  });
+
+  for (const entry of orderedEntries) {
     const urlEle: XMLBuilder = urlset.ele("url");
     urlEle.ele("loc").txt(entry.loc);
     urlEle.ele("lastmod").txt(entry.lastmod);
