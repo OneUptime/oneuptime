@@ -1,6 +1,3 @@
+# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow: /api/*
-Disallow: /StatusPage/*
-Disallow: /admin/*
-Disallow: /dashboard/*
-Sitemap: https://oneuptime.com/sitemap.xml
+Disallow:
