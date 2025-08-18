@@ -18,7 +18,7 @@ import Express, {
   ExpressStatic,
 } from "Common/Server/Utils/Express";
 import "ejs";
-import builder from "xmlbuilder2";
+import { create } from "xmlbuilder2";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 import OSSFriends, { OSSFriend } from "./Utils/OSSFriends";
 import Reviews from "./Utils/Reviews";
@@ -1380,11 +1380,13 @@ const HomeFeatureSet: FeatureSet = {
         const today: Date = OneUptimeDate.getOneDayAgo();
         const timestamp: string = today.toISOString();
 
-        const urlset: XMLBuilder = builder.create().ele("urlset");
+  // Initialize XML document root
+  const urlset: XMLBuilder = create().ele("urlset");
 
         // Apply attributes to root element
         for (const key in urlsetAttr) {
-          urlset.att({ key: urlsetAttr[key] });
+          // xmlbuilder2 expects (.att(name, value)) for single attribute
+            urlset.att(key, urlsetAttr[key] as string);
         }
 
         //Append urls to root element
