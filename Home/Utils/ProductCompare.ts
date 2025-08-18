@@ -35,8 +35,8 @@ export interface Product {
   productDescription: string;
 }
 
-export default (product: string): Product => {
-  const products: Dictionary<Product> = {
+// Export products dictionary so we can build dynamic sitemap and other features.
+const products: Dictionary<Product> = {
     pagerduty: {
       productName: "PagerDuty",
       iconUrl: "/img/pagerduty.jpeg",
@@ -647,7 +647,14 @@ export default (product: string): Product => {
         },
       ],
     },
-  };
+};
 
+export const getProductCompareSlugs = (): Array<string> => {
+  return Object.keys(products);
+};
+
+const ProductCompare = (product: string): Product => {
   return products[product] as Product;
 };
+
+export default ProductCompare;

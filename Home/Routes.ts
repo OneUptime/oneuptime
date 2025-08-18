@@ -3,11 +3,11 @@ import "./API/BlogAPI";
 import { StaticPath, ViewsPath } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
 import ProductCompare, { Product } from "./Utils/ProductCompare";
+import generateSitemapXml from "./Utils/Sitemap";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
-import Dictionary from "Common/Types/Dictionary";
+// Removed unused imports after dynamic sitemap refactor
 import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -18,8 +18,7 @@ import Express, {
   ExpressStatic,
 } from "Common/Server/Utils/Express";
 import "ejs";
-import { create } from "xmlbuilder2";
-import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
+// xmlbuilder imports removed (handled inside Sitemap util)
 import OSSFriends, { OSSFriend } from "./Utils/OSSFriends";
 import Reviews from "./Utils/Reviews";
 
@@ -895,9 +894,9 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
-      "/logs-manageemnt",
+      "/logs-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
-        res.redirect("/product/logs-manageemnt");
+        res.redirect("/product/logs-management");
       },
     );
 
@@ -1331,78 +1330,19 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
-    // Generate sitemap
-    app.get(
-      "/sitemap.xml",
-      async (_req: ExpressRequest, res: ExpressResponse) => {
-        const siteUrls: Array<URL> = [
-          URL.fromString("https://oneuptime.com/"),
-          URL.fromString("https://oneuptime.com/pricing"),
-          URL.fromString("https://oneuptime.com/support"),
-          URL.fromString("https://oneuptime.com/about"),
-          URL.fromString("https://oneuptime.com/product/status-page"),
-          URL.fromString("https://oneuptime.com/product/incident-management"),
-          URL.fromString("https://oneuptime.com/product/on-call"),
-          URL.fromString("https://oneuptime.com/enterprise/overview"),
-          URL.fromString("https://oneuptime.com/enterprise/demo"),
-          URL.fromString("https://oneuptime.com/legal/terms"),
-          URL.fromString("https://oneuptime.com/legal/privacy"),
-          URL.fromString("https://oneuptime.com/legal/gdpr"),
-          URL.fromString("https://oneuptime.com/legal/ccpa"),
-          URL.fromString("https://oneuptime.com/legal"),
-          URL.fromString("https://oneuptime.com/compare/pagerduty"),
-          URL.fromString("https://oneuptime.com/compare/pingdom"),
-          URL.fromString("https://oneuptime.com/compare/status-page.io"),
-          URL.fromString("https://oneuptime.com/compare/incident.io"),
-          URL.fromString("https://oneuptime.com/legal/soc-2"),
-          URL.fromString("https://oneuptime.com/legal/soc-3"),
-          URL.fromString("https://oneuptime.com/legal/iso-27017"),
-          URL.fromString("https://oneuptime.com/legal/iso-27018"),
-          URL.fromString("https://oneuptime.com/legal/hipaa"),
-          URL.fromString("https://oneuptime.com/legal/pci"),
-          URL.fromString("https://oneuptime.com/legal/sla"),
-          URL.fromString("https://oneuptime.com/legal/iso-27001"),
-          URL.fromString("https://oneuptime.com/legal/data-residency"),
-          URL.fromString("https://oneuptime.com/legal/dmca"),
-          URL.fromString("https://oneuptime.com/legal/subprocessors"),
-          URL.fromString("https://oneuptime.com/legal/contact"),
-        ];
-
-        // Build xml
-        const urlsetAttr: Dictionary<string> = {
-          xmlns: "http://www.sitemaps.org/schemas/sitemap/0.9",
-          "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-          "xsi:schemaLocation":
-            "http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd",
-        };
-
-        // Get previous day's date/timestamp
-        const today: Date = OneUptimeDate.getOneDayAgo();
-        const timestamp: string = today.toISOString();
-
-  // Initialize XML document root
-  const urlset: XMLBuilder = create().ele("urlset");
-
-        // Apply attributes to root element
-        for (const key in urlsetAttr) {
-          // xmlbuilder2 expects (.att(name, value)) for single attribute
-            urlset.att(key, urlsetAttr[key] as string);
-        }
-
-        //Append urls to root element
-        siteUrls.forEach((url: URL) => {
-          const urlElement: XMLBuilder = urlset.ele("url");
-          urlElement.ele("loc").txt(url.toString());
-          urlElement.ele("lastmod").txt(timestamp);
-        });
-
-        // Generate xml file
-        const xml: string = urlset.end({ prettyPrint: true });
-
+    // Dynamic Sitemap
+    app.get("/sitemap.xml", async (_req: ExpressRequest, res: ExpressResponse) => {
+      try {
+        const xml: string = await generateSitemapXml();
         res.setHeader("Content-Type", "text/xml");
         res.send(xml);
-      },
-    );
+      } catch (err) {
+        // Fallback minimal static sitemap if dynamic generation fails
+        const fallback: string = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>https://oneuptime.com/</loc></url>\n</urlset>`;
+        res.setHeader("Content-Type", "text/xml");
+        res.status(200).send(fallback);
+      }
+    });
 
     /*
      * Cache policy for static contents
