@@ -20,16 +20,11 @@
     <div class="relative isolate overflow-hidden bg-white">
       <div class="py-24 sm:py-32">
 
-        <%- include('./Partials/BlogTitleAndDescription', { title: 'Engineering Uptime', smallTitle: '- Blog by OneUptime', description: 'Latest posts on Observability, Monitoring, Reliability and more.' }) -%>
-
-  <%- include('./Partials/AllTagsFilter', { allTags: allTags, tagName: null }) -%>
-
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
-          
-          <div>
-
+          <%- include('./Partials/BlogTitleAndDescription', { title: 'Engineering Uptime', smallTitle: '- Blog by OneUptime', description: 'Latest posts on Observability, Monitoring, Reliability and more.' }) -%>
+          <div class="mt-16">
             <% if(blogPosts.length> 0){ %>
-              <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+              <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 xl:grid-cols-3">
                 <% for(var i=0; i<blogPosts.length; i++) { %>
                   <%- include('./Partials/ListItem', { blogPost: blogPosts[i] }) -%>
                 <% } %>
@@ -38,12 +33,10 @@
             <% } else { %>
               <div class="text-center text-gray-600 text-lg py-12">No blog posts found.</div>
             <% } %>
-
+            <div class="mt-20">
               <%- include('./Partials/OpenSourceCommitment', {blogPost: null}) -%>
-
+            </div>
           </div>
-
-
         </div>
       </div>
 

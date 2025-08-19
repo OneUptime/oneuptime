@@ -20,16 +20,11 @@
     <div class="relative isolate overflow-hidden bg-white">
       <div class="py-24 sm:py-32">
 
-        <%- include('./Partials/BlogTitleAndDescription', { title: 'Latest posts on '+tagName, smallTitle: "", description: 'Here are some of the latest posts on '+tagName }) -%>
-
-  <%- include('./Partials/AllTagsFilter', { allTags: allTags, tagName: tagName }) -%>
-
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
-          
-          <div>
-
+          <%- include('./Partials/BlogTitleAndDescription', { title: 'Latest posts on '+tagName, smallTitle: "", description: 'Here are some of the latest posts on '+tagName }) -%>
+          <div class="mt-16">
             <% if(blogPosts.length> 0){ %>
-              <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+              <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 xl:grid-cols-3">
                 <% for(var i=0; i<blogPosts.length; i++) { %>
                   <%- include('./Partials/ListItem', { blogPost: blogPosts[i] }) -%>
                 <% } %>
@@ -38,11 +33,10 @@
             <% } else { %>
               <div class="text-center text-gray-600 text-lg py-12">No posts found for this tag.</div>
             <% } %>
-
+            <div class="mt-20">
+              <%- include('./Partials/OpenSourceCommitment', {blogPost: null}) -%>
+            </div>
           </div>
-          <%- include('./Partials/OpenSourceCommitment', {blogPost: null}) -%>
-
-
         </div>
       </div>
 
