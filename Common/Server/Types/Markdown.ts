@@ -19,8 +19,8 @@ export default class Markdown {
     markdown: string,
     contentType: MarkdownContentType,
   ): Promise<string> {
-  // Basic sanitization: neutralize script tags but preserve markdown syntax like '>' for blockquotes.
-  markdown = markdown.replace(/<script/gi, "&lt;script");
+    // Basic sanitization: neutralize script tags but preserve markdown syntax like '>' for blockquotes.
+    markdown = markdown.replace(/<script/gi, "&lt;script");
 
     let renderer: Renderer | null = null;
 
@@ -77,7 +77,7 @@ export default class Markdown {
     };
 
     renderer.code = function (code, language) {
-  return `<pre class="language-${language} rounded-xl bg-slate-900/95 text-slate-100 p-5 overflow-x-auto text-sm shadow-md ring-1 ring-slate-900/10"><code class="language-${language}">${code}</code></pre>`;
+      return `<pre class="language-${language} rounded-xl bg-slate-900/95 text-slate-100 p-5 overflow-x-auto text-sm shadow-md ring-1 ring-slate-900/10"><code class="language-${language}">${code}</code></pre>`;
     };
 
     renderer.heading = function (text, level) {
@@ -142,7 +142,8 @@ export default class Markdown {
       const cls: string = ordered
         ? "list-decimal pl-6 my-6 space-y-2 text-gray-700"
         : "list-disc pl-6 my-6 space-y-2 text-gray-700";
-      const startAttr: string = ordered && start !== 1 ? ` start=\"${start}\"` : "";
+      const startAttr: string =
+        ordered && start !== 1 ? ` start=\"${start}\"` : "";
       return `<${tag}${startAttr} class="${cls}">${body}</${tag}>`;
     };
     renderer.listitem = function (text) {

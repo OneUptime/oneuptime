@@ -93,24 +93,40 @@ app.get(
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tagName: string = req.params["tagName"] as string;
-  const tagSlug: string = tagName; // original slug
+      const tagSlug: string = tagName; // original slug
 
-  // Pagination params
-  const pageParam: string | undefined = req.query["page"] as string | undefined;
-  const pageSizeParam: string | undefined = req.query["pageSize"] as string | undefined;
-  let page: number = pageParam ? parseInt(pageParam, 10) : 1;
-  let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 50;
-  if (isNaN(page) || page < 1) { page = 1; }
-  if (isNaN(pageSize) || pageSize < 1) { pageSize = 50; }
-  if (pageSize > 100) { pageSize = 100; }
+      // Pagination params
+      const pageParam: string | undefined = req.query["page"] as
+        | string
+        | undefined;
+      const pageSizeParam: string | undefined = req.query["pageSize"] as
+        | string
+        | undefined;
+      let page: number = pageParam ? parseInt(pageParam, 10) : 1;
+      let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 50;
+      if (isNaN(page) || page < 1) {
+        page = 1;
+      }
+      if (isNaN(pageSize) || pageSize < 1) {
+        pageSize = 50;
+      }
+      if (pageSize > 100) {
+        pageSize = 100;
+      }
 
-  const allPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList(tagName);
-  const totalPosts: number = allPosts.length;
-  const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
-  if (page > totalPages) { page = totalPages; }
-  const start: number = (page - 1) * pageSize;
-  const paginatedPosts: Array<BlogPostHeader> = allPosts.slice(start, start + pageSize);
-  const allTags: Array<string> = await BlogPostUtil.getTags();
+      const allPosts: Array<BlogPostHeader> =
+        await BlogPostUtil.getBlogPostList(tagName);
+      const totalPosts: number = allPosts.length;
+      const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
+      if (page > totalPages) {
+        page = totalPages;
+      }
+      const start: number = (page - 1) * pageSize;
+      const paginatedPosts: Array<BlogPostHeader> = allPosts.slice(
+        start,
+        start + pageSize,
+      );
+      const allTags: Array<string> = await BlogPostUtil.getTags();
 
       res.render(`${ViewsPath}/Blog/ListByTag`, {
         support: false,
@@ -121,7 +137,7 @@ app.get(
         blogPosts: paginatedPosts,
         tagName: Text.fromDashesToPascalCase(tagName),
         tagSlug: tagSlug,
-  allTags: allTags,
+        allTags: allTags,
         page: page,
         pageSize: pageSize,
         totalPages: totalPages,
@@ -140,20 +156,36 @@ app.get(
 app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
   try {
     const req: ExpressRequest = _req; // alias for clarity
-    const pageParam: string | undefined = req.query["page"] as string | undefined;
-    const pageSizeParam: string | undefined = req.query["pageSize"] as string | undefined;
+    const pageParam: string | undefined = req.query["page"] as
+      | string
+      | undefined;
+    const pageSizeParam: string | undefined = req.query["pageSize"] as
+      | string
+      | undefined;
     let page: number = pageParam ? parseInt(pageParam, 10) : 1;
     let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 50;
-    if (isNaN(page) || page < 1) { page = 1; }
-    if (isNaN(pageSize) || pageSize < 1) { pageSize = 50; }
-    if (pageSize > 100) { pageSize = 100; }
+    if (isNaN(page) || page < 1) {
+      page = 1;
+    }
+    if (isNaN(pageSize) || pageSize < 1) {
+      pageSize = 50;
+    }
+    if (pageSize > 100) {
+      pageSize = 100;
+    }
 
-    const allPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
+    const allPosts: Array<BlogPostHeader> =
+      await BlogPostUtil.getBlogPostList();
     const totalPosts: number = allPosts.length;
     const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
-    if (page > totalPages) { page = totalPages; }
+    if (page > totalPages) {
+      page = totalPages;
+    }
     const start: number = (page - 1) * pageSize;
-    const paginatedPosts: Array<BlogPostHeader> = allPosts.slice(start, start + pageSize);
+    const paginatedPosts: Array<BlogPostHeader> = allPosts.slice(
+      start,
+      start + pageSize,
+    );
     const allTags: Array<string> = await BlogPostUtil.getTags();
 
     res.render(`${ViewsPath}/Blog/List`, {

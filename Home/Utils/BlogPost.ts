@@ -133,7 +133,6 @@ export default class BlogPostUtil {
     return blogPost;
   }
 
-
   public static async getTags(): Promise<string[]> {
     // check if tags are in cache
 
@@ -184,15 +183,23 @@ export default class BlogPostUtil {
     let blogPostAuthor: BlogPostAuthor | null = null;
     try {
       const blogsMeta: Array<JSONObject> = await this.getBlogsMeta();
-      const blogMeta: JSONObject | undefined = blogsMeta.find((b: JSONObject) => {
-        return (b["post"] as string) === fileName;
-      });
-      const username: string | undefined = blogMeta?.["authorGitHubUsername"] as string | undefined;
+      const blogMeta: JSONObject | undefined = blogsMeta.find(
+        (b: JSONObject) => {
+          return (b["post"] as string) === fileName;
+        },
+      );
+      const username: string | undefined = blogMeta?.[
+        "authorGitHubUsername"
+      ] as string | undefined;
       if (username) {
         const authorsMeta: JSONObject = await this.getAuthorsMeta();
-        const authorMeta: JSONObject | undefined = authorsMeta[username] as JSONObject | undefined;
-        const authorName: string | undefined = (authorMeta?.["authorName"] as string) || undefined;
-        const authorBio: string | undefined = (authorMeta?.["authorBio"] as string) || undefined;
+        const authorMeta: JSONObject | undefined = authorsMeta[username] as
+          | JSONObject
+          | undefined;
+        const authorName: string | undefined =
+          (authorMeta?.["authorName"] as string) || undefined;
+        const authorBio: string | undefined =
+          (authorMeta?.["authorBio"] as string) || undefined;
         blogPostAuthor = {
           username,
           githubUrl: `https://github.com/${username}`,
@@ -386,7 +393,7 @@ export default class BlogPostUtil {
       githubUrl: authorGitHubUrl,
       profileImageUrl: authorProfileImageUrl,
       // Do NOT call GitHub; use username as name placeholder.
-  name: authorUsername,
+      name: authorUsername,
     };
   }
 }
