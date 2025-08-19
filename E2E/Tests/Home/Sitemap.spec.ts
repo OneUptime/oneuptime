@@ -49,19 +49,19 @@ test.describe("Home: Sitemap", () => {
 
     // Ensure at least one dynamic section appears
     const hasBlog: boolean = locs.some((l: string) => {
-      return /\/blog\b/.test(l);
+      return (/\/blog\b/).test(l);
     });
     const hasCompare: boolean = locs.some((l: string) => {
-      return /\/compare\//.test(l);
+      return (/\/compare\//).test(l);
     });
     const hasProductPages: boolean = locs.some((l: string) => {
-      return /\/product\//.test(l);
+      return (/\/product\//).test(l);
     });
     const hasDocs: boolean = locs.some((l: string) => {
-      return /\/docs\//.test(l);
+      return (/\/docs\//).test(l);
     });
     const hasLegal: boolean = locs.some((l: string) => {
-      return /\/legal\//.test(l);
+      return (/\/legal\//).test(l);
     });
     expect(hasBlog).toBeTruthy();
     expect(hasCompare).toBeTruthy();

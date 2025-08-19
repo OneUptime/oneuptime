@@ -33,18 +33,21 @@ const HomeFeatureSet: FeatureSet = {
 
     //Routes
     // Middleware to inject baseUrl for templates (used for canonical links)
-    app.use(async (_req: ExpressRequest, res: ExpressResponse, next: () => void) => {
-      if (!res.locals['homeUrl']) {
-        try {
-          res.locals['homeUrl'] = (await DatabaseConfig.getHomeUrl()).toString().replace(/\/$/, "");
-        } catch (err) {
-          // Fallback hard-coded production domain if env misconfigured
-          res.locals['homeUrl'] = "https://oneuptime.com";
+    app.use(
+      async (_req: ExpressRequest, res: ExpressResponse, next: () => void) => {
+        if (!res.locals["homeUrl"]) {
+          try {
+            res.locals["homeUrl"] = (await DatabaseConfig.getHomeUrl())
+              .toString()
+              .replace(/\/$/, "");
+          } catch (_err) {
+            // Fallback hard-coded production domain if env misconfigured
+            res.locals["homeUrl"] = "https://oneuptime.com";
+          }
         }
-      }
-      next();
-    });
-
+        next();
+      },
+    );
 
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
