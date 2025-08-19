@@ -73,7 +73,7 @@ export default class BlogPostUtil {
       }
       this.authorsMetaCache = jsonContent as JSONObject;
       return this.authorsMetaCache || ({} as JSONObject);
-    } catch (_err) {
+    } catch {
       this.authorsMetaCache = {} as JSONObject;
       return this.authorsMetaCache;
     }
@@ -208,7 +208,7 @@ export default class BlogPostUtil {
           bio: authorBio,
         };
       }
-    } catch (_err) {
+    } catch {
       // ignore and fallback
     }
 

@@ -143,7 +143,7 @@ export default class Markdown {
         ? "list-decimal pl-6 my-6 space-y-2 text-gray-700"
         : "list-disc pl-6 my-6 space-y-2 text-gray-700";
       const startAttr: string =
-        ordered && start !== 1 ? ` start=\"${start}\"` : "";
+        ordered && start !== 1 ? ` start="${start}"` : "";
       return `<${tag}${startAttr} class="${cls}">${body}</${tag}>`;
     };
     renderer.listitem = function (text) {
@@ -161,9 +161,9 @@ export default class Markdown {
     };
     renderer.tablecell = function (content, flags) {
       const type: string = flags.header ? "th" : "td";
-      const base = "px-4 py-2 border-r last:border-r-0 border-gray-200";
-      const align = flags.align ? ` text-${flags.align}` : "";
-      const weight = flags.header ? " font-semibold bg-gray-50" : "";
+      const base: string = "px-4 py-2 border-r last:border-r-0 border-gray-200";
+      const align: string = flags.align ? ` text-${flags.align}` : "";
+      const weight: string = flags.header ? " font-semibold bg-gray-50" : "";
       return `<${type} class="${base}${align}${weight}">${content}</${type}>`;
     };
 
