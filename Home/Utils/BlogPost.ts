@@ -1,14 +1,9 @@
-import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONArray, JSONObject, JSONObjectOrArray } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Text from "Common/Types/Text";
-import API from "Common/Utils/API";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import { BlogRootPath } from "./Config";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -138,29 +133,6 @@ export default class BlogPostUtil {
     return blogPost;
   }
 
-  public static async getNameOfGitHubUser(username: string): Promise<string> {
-    const fileUrl: URL = URL.fromString(
-      `https://api.github.com/users/${username}`,
-    );
-
-    const fileData:
-      | HTTPResponse<
-          | JSONObjectOrArray
-          | BaseModel
-          | BaseModel[]
-          | AnalyticsBaseModel
-          | AnalyticsBaseModel[]
-        >
-      | HTTPErrorResponse = await API.get(fileUrl);
-
-    if (fileData.isFailure()) {
-      throw fileData as HTTPErrorResponse;
-    }
-
-    const name: string =
-      (fileData.data as JSONObject)?.["name"]?.toString() || "";
-    return name;
-  }
 
   public static async getTags(): Promise<string[]> {
     // check if tags are in cache
