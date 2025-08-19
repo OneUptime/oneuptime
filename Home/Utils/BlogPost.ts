@@ -44,6 +44,25 @@ export interface BlogPost extends BlogPostBaseProps {
 }
 
 export default class BlogPostUtil {
+  // Cache Blogs.json contents to avoid repeated disk reads and external calls.
+  private static blogsMetaCache: Array<JSONObject> | null = null;
+  private static async getBlogsMeta(): Promise<Array<JSONObject>> {
+    if (this.blogsMetaCache) {
+      return this.blogsMetaCache;
+    }
+
+    const filePath: string = `${BlogRootPath}/Blogs.json`;
+    let jsonContent: string | JSONArray = await LocalFile.read(filePath);
+    if (typeof jsonContent === "string") {
+      jsonContent = JSONFunctions.parseJSONArray(jsonContent);
+    }
+    const blogs: Array<JSONObject> = JSONFunctions.deserializeArray(
+      jsonContent as Array<JSONObject>,
+    );
+    this.blogsMetaCache = blogs;
+    return blogs;
+  }
+
   public static async getBlogPostList(
     tagName?: string | undefined,
   ): Promise<BlogPostHeader[]> {
@@ -168,8 +187,37 @@ export default class BlogPostUtil {
 
     let markdownContent: string = await LocalFile.read(filePath);
 
-    const blogPostAuthor: BlogPostAuthor | null =
-      await this.getAuthorFromFileContent(markdownContent);
+    // Resolve author WITHOUT hitting GitHub API. Prefer Blogs.json metadata.
+    let blogPostAuthor: BlogPostAuthor | null = null;
+    try {
+      const blogsMeta: Array<JSONObject> = await this.getBlogsMeta();
+      const meta: JSONObject | undefined = blogsMeta.find((b: JSONObject) => {
+        return (b["post"] as string) === fileName;
+      });
+      if (meta) {
+        const username: string | undefined = meta["authorGitHubUsername"] as
+          | string
+          | undefined;
+        const authorName: string | undefined = meta["authorName"] as
+          | string
+          | undefined;
+        if (username) {
+          blogPostAuthor = {
+            username: username,
+            githubUrl: `https://github.com/${username}`,
+            profileImageUrl: `https://avatars.githubusercontent.com/${username}`,
+            name: authorName || username,
+          };
+        }
+      }
+    } catch (err) {
+      // Swallow – fallback below.
+    }
+
+    // Fallback to parsing markdown (no network) if metadata missing.
+    if (!blogPostAuthor) {
+      blogPostAuthor = await this.getAuthorFromFileContent(markdownContent);
+    }
 
     const title: string = this.getTitleFromFileContent(markdownContent);
     const description: string =
@@ -346,7 +394,8 @@ export default class BlogPostUtil {
       username: authorUsername,
       githubUrl: authorGitHubUrl,
       profileImageUrl: authorProfileImageUrl,
-      name: await this.getNameOfGitHubUser(authorUsername),
+      // Do NOT call GitHub; use username as name placeholder.
+      name: authorUsername,
     };
   }
 }
