@@ -4,6 +4,7 @@ import { StaticPath, ViewsPath } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
 import ProductCompare, { Product } from "./Utils/ProductCompare";
 import generateSitemapXml from "./Utils/Sitemap";
+import DatabaseConfig from "Common/Server/DatabaseConfig";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -31,6 +32,20 @@ const HomeFeatureSet: FeatureSet = {
     const app: ExpressApplication = Express.getExpressApp();
 
     //Routes
+    // Middleware to inject baseUrl for templates (used for canonical links)
+    app.use(async (_req: ExpressRequest, res: ExpressResponse, next: () => void) => {
+      if (!res.locals['homeUrl']) {
+        try {
+          res.locals['homeUrl'] = (await DatabaseConfig.getHomeUrl()).toString().replace(/\/$/, "");
+        } catch (err) {
+          // Fallback hard-coded production domain if env misconfigured
+          res.locals['homeUrl'] = "https://oneuptime.com";
+        }
+      }
+      next();
+    });
+
+
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
       const { reviewsList1, reviewsList2, reviewsList3 } = Reviews;
 
