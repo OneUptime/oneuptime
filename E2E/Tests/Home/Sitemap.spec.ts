@@ -68,6 +68,14 @@ test.describe("Home: Sitemap", () => {
       // eslint-disable-next-line prettier/prettier
       return (/\/legal\//).test(l);
     });
+
+
+    const hasReference: boolean = locs.some((l: string) => {
+      // eslint-disable-next-line prettier/prettier
+      return (/\/reference\//).test(l);
+    });
+
+    expect(hasReference).toBeTruthy();
     expect(hasBlog).toBeTruthy();
     expect(hasCompare).toBeTruthy();
     expect(hasProductPages).toBeTruthy();
