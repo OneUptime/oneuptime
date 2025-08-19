@@ -24,8 +24,8 @@
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex justify-center space-x-8" aria-label="Product feature tabs" role="tablist">
                     <!-- Current: "border-indigo-500 text-indigo-600", Default: "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700" -->
-                    <button type="button" onclick="showTab(1)" id="tab-1" role="tab" aria-selected="true" aria-controls="panel-1"
-                        class="tab-1-button cursor-pointer border-indigo-500 text-indigo-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0">
+                    <button type="button" onclick="showTab('status-pages')" id="tab-status-pages" role="tab" aria-selected="true" aria-controls="panel-status-pages"
+                        class="tab-status-pages-button tab-1-button cursor-pointer border-indigo-500 text-indigo-600 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="0" aria-label="Status Pages - communicates service availability to users">
                         <!-- Current: "text-indigo-500", Default: "text-gray-400 group-hover:text-gray-500" -->
                         <svg class="icon-tab-1 text-gray-400 text-indigo-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -35,8 +35,8 @@
                         </svg>
                         <span>Status Pages</span>
                     </button>
-                    <button type="button" onclick="showTab(2)" id="tab-2" role="tab" aria-selected="false" aria-controls="panel-2"
-                        class="tab-2-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1">
+                    <button type="button" onclick="showTab('monitoring')" id="tab-monitoring" role="tab" aria-selected="false" aria-controls="panel-monitoring"
+                        class="tab-monitoring-button tab-2-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Monitoring - uptime, performance and synthetic checks">
                         <svg class="icon-tab-2 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6">
@@ -45,8 +45,8 @@
                         </svg>
                         <span>Monitoring</span>
                     </button>
-                    <button type="button" onclick="showTab(3)" id="tab-3" role="tab" aria-selected="false" aria-controls="panel-3"
-                        class="tab-3-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1">
+                    <button type="button" onclick="showTab('incidents')" id="tab-incidents" role="tab" aria-selected="false" aria-controls="panel-incidents"
+                        class="tab-incidents-button tab-3-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Incidents - detect, respond and learn from outages">
                         <svg xmlns="http://www.w3.org/2000/svg"
                             class="icon-tab-3 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5" fill="none"
                             viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -55,8 +55,8 @@
                         </svg>
                         <span>Incidents</span>
                     </button>
-                    <button type="button" onclick="showTab(4)" id="tab-4" role="tab" aria-selected="false" aria-controls="panel-4"
-                        class="tab-4-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1">
+                    <button type="button" onclick="showTab('on-call')" id="tab-on-call" role="tab" aria-selected="false" aria-controls="panel-on-call"
+                        class="tab-on-call-button tab-4-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="On Call Alerts - intelligent alert routing and scheduling">
                         <svg class="icon-tab-4 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-6 h-6">
@@ -66,16 +66,16 @@
                         <span>On Call Alerts</span>
                     </button>
 
-                    <button type="button" onclick="showTab(5)" id="tab-5" role="tab" aria-selected="false" aria-controls="panel-5"
-                        class="tab-5-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1">
+                    <button type="button" onclick="showTab('logs')" id="tab-logs" role="tab" aria-selected="false" aria-controls="panel-logs"
+                        class="tab-logs-button tab-5-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Logs - centralized log management and analytics">
                         <svg class="icon-tab-5 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" >
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
                           </svg>
                         <span>Logs</span>
                     </button>
 
-                    <button type="button" onclick="showTab(6)" id="tab-6" role="tab" aria-selected="false" aria-controls="panel-6"
-                        class="tab-6-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1">
+                    <button type="button" onclick="showTab('apm')" id="tab-apm" role="tab" aria-selected="false" aria-controls="panel-apm"
+                        class="tab-apm-button tab-6-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="APM - metrics, traces and error tracking for applications">
                     
                         <svg class="icon-tab-6 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -85,8 +85,8 @@
                         <span>APM</span>
                     </button>
 
-                    <button type="button" onclick="showTab(7)" id="tab-7" role="tab" aria-selected="false" aria-controls="panel-7"
-                        class="tab-7-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1">
+                    <button type="button" onclick="showTab('workflows')" id="tab-workflows" role="tab" aria-selected="false" aria-controls="panel-workflows"
+                        class="tab-workflows-button tab-7-button cursor-pointer  border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 group inline-flex items-center border-b-2 py-4 px-1 font-medium focus:outline-none" tabindex="-1" aria-label="Workflows - automate reliability operations and responses">
                     
                         <svg class="icon-tab-7 text-gray-400 group-hover:text-gray-500 -ml-0.5 mr-2 h-5 w-5"
                             xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -580,32 +580,43 @@
 
 
 <script>
-    let currentActiveTab = 1;
+    // Semantic tab slugs in desired order
+    const TAB_ORDER = ['status-pages','monitoring','incidents','on-call','logs','apm','workflows'];
+    let currentActiveTab = 'status-pages';
 
+
+    function normalize(tab){
+        // allow old numeric references for backward compatibility
+        if(typeof tab === 'number' || /^\d+$/.test(tab)){ return TAB_ORDER[Number(tab)-1] || 'status-pages'; }
+        return tab;
+    }
 
     function hideTab(tab) {
-        const panel = document.querySelector(`.tab-${tab}`);
+        tab = normalize(tab);
+        const panel = document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}`) || document.querySelector(`.tab-${tab}`);
         if (panel) { panel.style.display = 'none'; panel.setAttribute('aria-hidden','true'); }
 
-        const button = document.querySelector(`.tab-${tab}-button`);
+        const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${TAB_ORDER.indexOf(tab)+1}-button`);
         if (button) {
             button.classList.remove('border-indigo-500', 'text-indigo-600');
             button.classList.add('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
             button.setAttribute('aria-selected','false');
             button.setAttribute('tabindex','-1');
         }
-        const icon = document.querySelector(`.icon-tab-${tab}`);
+        const icon = document.querySelector(`.icon-tab-${TAB_ORDER.indexOf(tab)+1}`) || document.querySelector(`.icon-tab-${tab}`);
         if (icon) { icon.classList.remove('text-indigo-500'); icon.classList.add('text-gray-400'); }
     }
 
     function showTab(tab) {
+        tab = normalize(tab);
         if (tab === currentActiveTab) { return; }
         hideTab(currentActiveTab);
 
-        const panel = document.querySelector(`.tab-${tab}`);
+        const numericIndex = TAB_ORDER.indexOf(tab)+1;
+        const panel = document.querySelector(`.tab-${numericIndex}`) || document.querySelector(`.tab-${tab}`);
         if (panel) { panel.style.display = 'block'; panel.setAttribute('aria-hidden','false'); }
 
-        const button = document.querySelector(`.tab-${tab}-button`);
+        const button = document.querySelector(`.tab-${tab}-button`) || document.querySelector(`.tab-${numericIndex}-button`);
         if (button) {
             button.classList.remove('border-transparent', 'text-gray-500', 'hover:border-gray-300', 'hover:text-gray-700');
             button.classList.add('border-indigo-500', 'text-indigo-600');
@@ -614,48 +625,47 @@
             button.focus();
         }
 
-        const icon = document.querySelector(`.icon-tab-${tab}`);
+        const icon = document.querySelector(`.icon-tab-${numericIndex}`) || document.querySelector(`.icon-tab-${tab}`);
         if (icon) { icon.classList.remove('text-gray-400'); icon.classList.add('text-indigo-500'); }
 
         currentActiveTab = tab;
-        // Update hash (optional) for sharable URLs without reloading
         if (history.replaceState) { history.replaceState(null, '', `#tab-${tab}`); }
     }
 
     // Initialize tabs accessibility + allow keyboard navigation (arrow keys)
     document.addEventListener('DOMContentLoaded', () => {
         // Mark all panels with role="tabpanel" and associate with buttons
-        for (let i=1;i<=7;i++) {
-            const panel = document.querySelector(`.tab-${i}`);
+        TAB_ORDER.forEach((slug, idx) => {
+            const panel = document.querySelector(`.tab-${idx+1}`) || document.querySelector(`.tab-${slug}`);
             if (panel) {
                 panel.setAttribute('role','tabpanel');
-                panel.setAttribute('id',`panel-${i}`);
-                panel.setAttribute('aria-labelledby',`tab-${i}`);
-                if (i !== currentActiveTab) { panel.style.display='none'; panel.setAttribute('aria-hidden','true'); }
+                panel.setAttribute('id',`panel-${slug}`);
+                panel.setAttribute('aria-labelledby',`tab-${slug}`);
+                if (slug !== currentActiveTab) { panel.style.display='none'; panel.setAttribute('aria-hidden','true'); }
                 else { panel.setAttribute('aria-hidden','false'); }
             }
-        }
+        });
 
-        // Support deep linking via hash like #tab-3
+        // Support deep linking via hash like #tab-apm or legacy #tab-6
         const hash = window.location.hash;
-        if (hash && /^#tab-[1-7]$/.test(hash)) {
-            const tabNum = parseInt(hash.replace('#tab-',''), 10);
-            if (tabNum && tabNum !== currentActiveTab) { showTab(tabNum); }
+        if (hash && /^#tab-/.test(hash)) {
+            const raw = hash.replace('#tab-','');
+            showTab(raw);
         }
 
         // Keyboard navigation
-        const tabButtons = Array.from(document.querySelectorAll('[role="tab"]'));
+    const tabButtons = Array.from(document.querySelectorAll('[role="tab"]'));
         tabButtons.forEach(btn => {
             btn.addEventListener('keydown', e => {
                 const idx = tabButtons.indexOf(e.currentTarget);
                 if (e.key === 'ArrowRight') {
                     e.preventDefault();
                     const next = tabButtons[(idx+1)%tabButtons.length];
-                    const num = parseInt(next.id.replace('tab-',''),10); showTab(num);
+            const ident = next.id.replace('tab-',''); showTab(ident);
                 } else if (e.key === 'ArrowLeft') {
                     e.preventDefault();
                     const prev = tabButtons[(idx-1+tabButtons.length)%tabButtons.length];
-                    const num = parseInt(prev.id.replace('tab-',''),10); showTab(num);
+            const ident = prev.id.replace('tab-',''); showTab(ident);
                 }
             });
         });
