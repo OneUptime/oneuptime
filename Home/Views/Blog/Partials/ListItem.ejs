@@ -1,33 +1,29 @@
-<li class="py-5">
-    <div class="min-w-0">
-        <a href="<%= blogPost.blogUrl %>">
-            
-      <div class="min-w-0 flex-auto">
-        <p class="font-semibold text-2xl leading-6 text-gray-900">
-          <%= blogPost.title %>
-        </p>
-        <p class="mt-2 leading-5 text-gray-600">
-          <%= blogPost.description %>
-        </p>
+<div class="group relative flex flex-col rounded-2xl border border-gray-200 bg-white/70 backdrop-blur-sm p-6 shadow-sm ring-1 ring-gray-200/60 hover:shadow-lg hover:border-indigo-300 transition-all duration-200">
+  <div class="flex-1 flex flex-col">
+    <div class="flex items-start gap-3">
+      <div class="flex-1">
+        <a href="<%= blogPost.blogUrl %>" class="no-underline">
+          <h2 class="text-xl font-semibold tracking-tight text-gray-900 group-hover:text-indigo-600 transition-colors">
+            <%= blogPost.title %>
+          </h2>
+        </a>
+        <p class="mt-3 text-sm leading-6 text-gray-600 line-clamp-4"><%= blogPost.description %></p>
       </div>
-      </a>
     </div>
-    <div class="-mt-5">
+    <div class="mt-4">
       <%- include('./Tags', { blogPost: blogPost }) -%>
     </div>
-    <div class="mt-5">
-      <div class="">
-
-        <a href="https://github.com/<%- blogPost.authorGitHubUsername -%>" target="_blank">
-          <div class="flex items-center gap-x-6">
-            <p class="text-sm font-medium leading-7 tracking-tight text-gray-600">
-              <span class="text-gray-500">By</span> @<%- blogPost.authorGitHubUsername -%> <span
-                  class="text-gray-500"> on
-                  <%- blogPost.formattedPostDate -%></span>
-            </p>
-          </div>
-      </div>
+    <div class="mt-6 flex items-center justify-between">
+      <a href="https://github.com/<%- blogPost.authorGitHubUsername -%>" target="_blank" class="flex items-center gap-3">
+        <img src="https://avatars.githubusercontent.com/<%- blogPost.authorGitHubUsername -%>?s=64" alt="@<%- blogPost.authorGitHubUsername -%>" class="h-10 w-10 rounded-full ring-2 ring-white shadow-sm">
+        <div class="text-xs text-gray-600">
+          <span class="text-gray-500">By</span> @<%- blogPost.authorGitHubUsername -%><br/>
+          <span class="text-gray-400"><%- blogPost.formattedPostDate -%></span>
+        </div>
       </a>
-
+      <a href="<%= blogPost.blogUrl %>" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 inline-flex items-center gap-1">Read more
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+      </a>
     </div>
-  </li>
+  </div>
+</div>

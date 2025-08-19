@@ -27,18 +27,14 @@
           <div>
 
             <% if(blogPosts.length> 0){ %>
-              <ul role="list" class="divide-y divide-gray-100 list-none">
-
-                <% for(var i=0; i<blogPosts.length; i++) {%>
-
-
-
+              <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+                <% for(var i=0; i<blogPosts.length; i++) { %>
                   <%- include('./Partials/ListItem', { blogPost: blogPosts[i] }) -%>
-
-                    <% } %>
-
-              </ul>
-              <% } %>
+                <% } %>
+              </div>
+            <% } else { %>
+              <div class="text-center text-gray-600 text-lg py-12">No posts found for this tag.</div>
+            <% } %>
 
           </div>
           <%- include('./Partials/OpenSourceCommitment', {blogPost: null}) -%>
