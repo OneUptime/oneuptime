@@ -8,22 +8,22 @@
 </head>
 
 <body class="flex min-h-full bg-white">
-    <div class="flex w-full flex-col" x-data="{open:false}" x-cloak>
+    <div class="flex w-full flex-col">
         <%- include('./Partials/Header.ejs') %>
         <!-- Mobile top bar with menu button -->
         <div class="flex items-center justify-between lg:hidden border-b border-slate-200 px-4 py-2 gap-2">
-            <button aria-label="Open navigation" @click="open=true" class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm active:scale-[.97]">
+            <button aria-label="Open navigation" data-mobile-menu-open class="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm active:scale-[.97]">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                 Menu
             </button>
             <h1 class="text-sm font-semibold text-slate-700 truncate"><%- link.title %></h1>
         </div>
         <!-- Mobile nav overlay -->
-        <div x-show="open" x-transition.opacity class="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" @click="open=false"></div>
-        <aside x-show="open" x-transition:enter="transform transition ease-out duration-200" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-white px-6 py-6 shadow-lg ring-1 ring-slate-900/10 lg:hidden">
+        <div data-mobile-menu-overlay class="fixed inset-0 z-40 bg-slate-900/40 lg:hidden hidden"></div>
+        <aside data-mobile-menu-drawer class="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto bg-white px-6 py-6 shadow-lg ring-1 ring-slate-900/10 lg:hidden transform transition ease-out duration-200 -translate-x-full hidden">
             <div class="flex items-center justify-between mb-4">
                 <span class="text-sm font-semibold text-slate-700">Documentation</span>
-                <button aria-label="Close navigation" @click="open=false" class="rounded-md p-2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"><svg class="h-5 w-5" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                <button aria-label="Close navigation" data-mobile-menu-close class="rounded-md p-2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"><svg class="h-5 w-5" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
             </div>
             <%- include('./Partials/Nav.ejs') %>
         </aside>
@@ -42,8 +42,44 @@
             </div>
         </div>
     </div>
-    <!-- Alpine.js (small footprint) for menu state -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.10/cdn.min.js" integrity="sha512-ZznS2J6DPd7OJbRRqtD9h5pz50QmY7VErZdYwjmJeS4bO2G/0Zl2adXeh6gbE4Aa16Bq7EAWj2p8TnqRO2YCWg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Mobile menu toggle (vanilla JS) -->
+    <script>
+        (function(){
+            const openBtn = document.querySelector('[data-mobile-menu-open]');
+            const closeBtn = document.querySelector('[data-mobile-menu-close]');
+            const overlay = document.querySelector('[data-mobile-menu-overlay]');
+            const drawer = document.querySelector('[data-mobile-menu-drawer]');
+            if(!openBtn || !overlay || !drawer){ return; }
+            function openMenu(){
+                overlay.classList.remove('hidden');
+                drawer.classList.remove('hidden');
+                // trigger slide in
+                requestAnimationFrame(()=>{
+                    drawer.classList.remove('-translate-x-full');
+                });
+                document.body.classList.add('overflow-hidden');
+            }
+            function closeMenu(){
+                drawer.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+                // after transition hide drawer
+                drawer.addEventListener('transitionend', function handler(e){
+                    if(e.propertyName === 'transform'){
+                        if(drawer.classList.contains('-translate-x-full')){
+                            drawer.classList.add('hidden');
+                        }
+                        drawer.removeEventListener('transitionend', handler);
+                    }
+                });
+            }
+            openBtn.addEventListener('click', openMenu);
+            overlay.addEventListener('click', closeMenu);
+            closeBtn && closeBtn.addEventListener('click', closeMenu);
+            // Close on escape
+            document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeMenu(); }});
+        })();
+    </script>
 </body>
 
 </html>
