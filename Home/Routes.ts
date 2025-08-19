@@ -26,6 +26,7 @@ import Reviews from "./Utils/Reviews";
 // import jobs.
 import "./Jobs/UpdateBlog";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 const HomeFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -37,9 +38,20 @@ const HomeFeatureSet: FeatureSet = {
       async (_req: ExpressRequest, res: ExpressResponse, next: () => void) => {
         if (!res.locals["homeUrl"]) {
           try {
-            res.locals["homeUrl"] = (await DatabaseConfig.getHomeUrl())
-              .toString()
-              .replace(/\/$/, "");
+            // Try to get cached home URL first.
+            let homeUrl: string | undefined = LocalCache.getString(
+              "home",
+              "url",
+            );
+
+            if (!homeUrl) {
+              homeUrl = (await DatabaseConfig.getHomeUrl())
+                .toString()
+                .replace(/\/$/, "");
+              LocalCache.setString("home", "url", homeUrl);
+            }
+
+            res.locals["homeUrl"] = homeUrl;
           } catch {
             // Fallback hard-coded production domain if env misconfigured
             res.locals["homeUrl"] = "https://oneuptime.com";
