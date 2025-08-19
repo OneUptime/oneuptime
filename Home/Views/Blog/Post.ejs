@@ -97,11 +97,6 @@
                     <div class="mt-8">
                         <%- include('./Partials/Tags', { blogPost: blogPost }) -%>
                     </div>
-                    <% if(blogPost.socialMediaImageUrl){ %>
-                    <div class="mt-12">
-                        <img src="<%- blogPost.socialMediaImageUrl -%>" alt="Cover image" class="w-full rounded-2xl shadow-sm border border-gray-200/70" loading="lazy" onerror="this.style.display='none'" />
-                    </div>
-                    <% } %>
                 </div>
             </div>
 
