@@ -191,6 +191,7 @@ export default class BlogPostUtil {
     let blogPostAuthor: BlogPostAuthor | null = null;
     try {
       const blogsMeta: Array<JSONObject> = await this.getBlogsMeta();
+
       const meta: JSONObject | undefined = blogsMeta.find((b: JSONObject) => {
         return (b["post"] as string) === fileName;
       });
