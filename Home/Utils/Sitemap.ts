@@ -50,7 +50,7 @@ export const generateSitemapXml: () => Promise<string> =
         const paths: string[] = rawPaths.filter(
           (p: string | undefined): p is string => {
             return Boolean(p);
-          },
+          }
         );
         for (let p of paths) {
           if (!p || typeof p !== "string") {
@@ -80,6 +80,10 @@ export const generateSitemapXml: () => Promise<string> =
       }
       // Ensure root present
       discoveredStaticPaths.add("/");
+      // Ensure docs main landing page present (may be served statically and not discoverable)
+      discoveredStaticPaths.add("/docs");
+      // add /reference
+      discoveredStaticPaths.add("/reference");
     } catch {
       // If introspection fails, fall back to minimal set
       discoveredStaticPaths.add("/");
@@ -92,7 +96,7 @@ export const generateSitemapXml: () => Promise<string> =
     const productComparePaths: string[] = getProductCompareSlugs().map(
       (slug: string) => {
         return `/compare/${slug}`;
-      },
+      }
     );
 
     // Blog posts
