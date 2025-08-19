@@ -1,17 +1,17 @@
-<div class="mb-24">
-<div class="mx-auto flex justify-center text-center ">
-    <h1 class="max-w-5xl text-center text-6xl font-bold text-gray-900 leading-tight">
+<div class="relative mb-16 md:mb-20">
+  <div class="mx-auto flex justify-center text-center">
+    <div>
+      <h1 class="max-w-5xl text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 leading-tight bg-clip-text">
         <%= title %>
-    </h1>
+      </h1>
+      <%  if(smallTitle){ %>
+        <h3 class="max-w-5xl mt-4 text-2xl font-semibold text-indigo-600/80 leading-tight">
+          <%= smallTitle %>
+        </h3>
+      <% } %>
+      <p class="max-w-3xl mx-auto text-lg md:text-2xl leading-8 text-gray-600 mt-6">
+        <%= description %>
+      </p>
     </div>
-    <div class="mx-auto flex justify-center text-center ">
-    <%  if(smallTitle){ %> 
-    <h3 class="max-w-5xl mt-5 text-center text-2xl font-medium text-gray-900 leading-tight">
-      <%= smallTitle %>
-    </h3>
-    <% } %>
   </div>
-  <p class="text-2xl text-center leading-8 text-gray-600 mt-8 leading-normal">
-    <%= description %>
-</p>
 </div>
