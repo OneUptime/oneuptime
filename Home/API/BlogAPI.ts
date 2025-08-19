@@ -93,9 +93,24 @@ app.get(
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tagName: string = req.params["tagName"] as string;
+  const tagSlug: string = tagName; // original slug
 
-      const blogPosts: Array<BlogPostHeader> =
-        await BlogPostUtil.getBlogPostList(tagName);
+  // Pagination params
+  const pageParam: string | undefined = req.query["page"] as string | undefined;
+  const pageSizeParam: string | undefined = req.query["pageSize"] as string | undefined;
+  let page: number = pageParam ? parseInt(pageParam, 10) : 1;
+  let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 50;
+  if (isNaN(page) || page < 1) { page = 1; }
+  if (isNaN(pageSize) || pageSize < 1) { pageSize = 50; }
+  if (pageSize > 100) { pageSize = 100; }
+
+  const allPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList(tagName);
+  const totalPosts: number = allPosts.length;
+  const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
+  if (page > totalPages) { page = totalPages; }
+  const start: number = (page - 1) * pageSize;
+  const paginatedPosts: Array<BlogPostHeader> = allPosts.slice(start, start + pageSize);
+  const allTags: Array<string> = await BlogPostUtil.getTags();
 
       res.render(`${ViewsPath}/Blog/ListByTag`, {
         support: false,
@@ -103,8 +118,15 @@ app.get(
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
-        blogPosts: blogPosts,
+        blogPosts: paginatedPosts,
         tagName: Text.fromDashesToPascalCase(tagName),
+        tagSlug: tagSlug,
+  allTags: allTags,
+        page: page,
+        pageSize: pageSize,
+        totalPages: totalPages,
+        totalPosts: totalPosts,
+        basePath: `/blog/tag/${tagSlug}`,
         enableGoogleTagManager: IsBillingEnabled,
       });
     } catch (e) {
@@ -117,8 +139,22 @@ app.get(
 // main blog page
 app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
   try {
-    const blogPosts: Array<BlogPostHeader> =
-      await BlogPostUtil.getBlogPostList();
+    const req: ExpressRequest = _req; // alias for clarity
+    const pageParam: string | undefined = req.query["page"] as string | undefined;
+    const pageSizeParam: string | undefined = req.query["pageSize"] as string | undefined;
+    let page: number = pageParam ? parseInt(pageParam, 10) : 1;
+    let pageSize: number = pageSizeParam ? parseInt(pageSizeParam, 10) : 50;
+    if (isNaN(page) || page < 1) { page = 1; }
+    if (isNaN(pageSize) || pageSize < 1) { pageSize = 50; }
+    if (pageSize > 100) { pageSize = 100; }
+
+    const allPosts: Array<BlogPostHeader> = await BlogPostUtil.getBlogPostList();
+    const totalPosts: number = allPosts.length;
+    const totalPages: number = Math.ceil(totalPosts / pageSize) || 1;
+    if (page > totalPages) { page = totalPages; }
+    const start: number = (page - 1) * pageSize;
+    const paginatedPosts: Array<BlogPostHeader> = allPosts.slice(start, start + pageSize);
+    const allTags: Array<string> = await BlogPostUtil.getTags();
 
     res.render(`${ViewsPath}/Blog/List`, {
       support: false,
@@ -126,7 +162,13 @@ app.get("/blog", async (_req: ExpressRequest, res: ExpressResponse) => {
       cta: true,
       blackLogo: false,
       requestDemoCta: false,
-      blogPosts: blogPosts,
+      blogPosts: paginatedPosts,
+      page: page,
+      pageSize: pageSize,
+      totalPages: totalPages,
+      totalPosts: totalPosts,
+      basePath: `/blog`,
+      allTags: allTags,
       enableGoogleTagManager: IsBillingEnabled,
     });
   } catch (e) {

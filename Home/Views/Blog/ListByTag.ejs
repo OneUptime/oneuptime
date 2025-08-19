@@ -22,6 +22,8 @@
 
         <%- include('./Partials/BlogTitleAndDescription', { title: 'Latest posts on '+tagName, smallTitle: "", description: 'Here are some of the latest posts on '+tagName }) -%>
 
+  <%- include('./Partials/AllTagsFilter', { allTags: allTags, tagName: tagName }) -%>
+
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           
           <div>
@@ -32,6 +34,7 @@
                   <%- include('./Partials/ListItem', { blogPost: blogPosts[i] }) -%>
                 <% } %>
               </div>
+              <%- include('./Partials/Pagination', { page: page, pageSize: pageSize, totalPages: totalPages, totalPosts: totalPosts, basePath: basePath }) -%>
             <% } else { %>
               <div class="text-center text-gray-600 text-lg py-12">No posts found for this tag.</div>
             <% } %>

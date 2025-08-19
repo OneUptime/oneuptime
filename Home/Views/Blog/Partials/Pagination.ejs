@@ -1,0 +1,37 @@
+<% if(totalPages && totalPages > 1){ %>
+  <nav class="mt-16 flex items-center justify-between" aria-label="Pagination">
+    <div>
+      <% if(page > 1){ %>
+        <a href="<%- basePath %>?page=<%- page-1 %>&pageSize=<%- pageSize %>" class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Previous</a>
+      <% } else { %>
+        <span class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium border border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed">Previous</span>
+      <% } %>
+    </div>
+    <div class="hidden md:flex items-center gap-1">
+      <% const windowSize = 5; let start = Math.max(1, page - Math.floor(windowSize/2)); let end = Math.min(totalPages, start + windowSize -1); if(end-start+1 < windowSize){ start = Math.max(1, end-windowSize+1);} %>
+      <% if(start > 1){ %>
+        <a href="<%- basePath %>?page=1&pageSize=<%- pageSize %>" class="px-3 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50">1</a>
+        <% if(start > 2){ %><span class="px-2 text-gray-400">…</span><% } %>
+      <% } %>
+      <% for(let p = start; p<=end; p++){ %>
+        <% if(p === page){ %>
+          <span class="px-3 py-2 text-sm font-semibold rounded-md bg-indigo-600 text-white border border-indigo-600"><%- p %></span>
+        <% } else { %>
+          <a href="<%- basePath %>?page=<%- p %>&pageSize=<%- pageSize %>" class="px-3 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50"><%- p %></a>
+        <% } %>
+      <% } %>
+      <% if(end < totalPages){ %>
+        <% if(end < totalPages-1){ %><span class="px-2 text-gray-400">…</span><% } %>
+        <a href="<%- basePath %>?page=<%- totalPages %>&pageSize=<%- pageSize %>" class="px-3 py-2 text-sm font-medium rounded-md border border-gray-200 bg-white hover:bg-gray-50"><%- totalPages %></a>
+      <% } %>
+    </div>
+    <div class="flex items-center gap-2">
+      <% if(page < totalPages){ %>
+        <a href="<%- basePath %>?page=<%- page+1 %>&pageSize=<%- pageSize %>" class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Next</a>
+      <% } else { %>
+        <span class="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium border border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed">Next</span>
+      <% } %>
+    </div>
+  </nav>
+  <p class="mt-4 text-center text-xs text-gray-500">Showing <%- ((page-1)*pageSize)+1 %> - <%- Math.min(page*pageSize, totalPosts) %> of <%- totalPosts %> posts</p>
+<% } %>
