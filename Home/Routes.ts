@@ -40,7 +40,7 @@ const HomeFeatureSet: FeatureSet = {
             res.locals["homeUrl"] = (await DatabaseConfig.getHomeUrl())
               .toString()
               .replace(/\/$/, "");
-          } catch (_err) {
+          } catch {
             // Fallback hard-coded production domain if env misconfigured
             res.locals["homeUrl"] = "https://oneuptime.com";
           }

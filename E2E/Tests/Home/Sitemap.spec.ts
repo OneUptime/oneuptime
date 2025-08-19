@@ -49,18 +49,23 @@ test.describe("Home: Sitemap", () => {
 
     // Ensure at least one dynamic section appears
     const hasBlog: boolean = locs.some((l: string) => {
+      // eslint-disable-next-line prettier/prettier
       return (/\/blog\b/).test(l);
     });
     const hasCompare: boolean = locs.some((l: string) => {
+      // eslint-disable-next-line prettier/prettier
       return (/\/compare\//).test(l);
     });
     const hasProductPages: boolean = locs.some((l: string) => {
+      // eslint-disable-next-line prettier/prettier
       return (/\/product\//).test(l);
     });
     const hasDocs: boolean = locs.some((l: string) => {
+      // eslint-disable-next-line prettier/prettier
       return (/\/docs\//).test(l);
     });
     const hasLegal: boolean = locs.some((l: string) => {
+      // eslint-disable-next-line prettier/prettier
       return (/\/legal\//).test(l);
     });
     expect(hasBlog).toBeTruthy();
