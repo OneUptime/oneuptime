@@ -19,6 +19,7 @@ export interface BlogPostAuthor {
   githubUrl: string;
   profileImageUrl: string;
   name: string;
+  bio?: string | undefined; // optional bio from Authors.json
 }
 
 export interface BlogPostBaseProps {
@@ -46,6 +47,8 @@ export interface BlogPost extends BlogPostBaseProps {
 export default class BlogPostUtil {
   // Cache Blogs.json contents to avoid repeated disk reads and external calls.
   private static blogsMetaCache: Array<JSONObject> | null = null;
+  // Cache Authors.json (keyed by github username)
+  private static authorsMetaCache: JSONObject | null = null;
   private static async getBlogsMeta(): Promise<Array<JSONObject>> {
     if (this.blogsMetaCache) {
       return this.blogsMetaCache;
@@ -61,6 +64,24 @@ export default class BlogPostUtil {
     );
     this.blogsMetaCache = blogs;
     return blogs;
+  }
+
+  private static async getAuthorsMeta(): Promise<JSONObject> {
+    if (this.authorsMetaCache) {
+      return this.authorsMetaCache;
+    }
+    const filePath: string = `${BlogRootPath}/Authors.json`;
+    try {
+      let jsonContent: string | JSONObject = await LocalFile.read(filePath);
+      if (typeof jsonContent === "string") {
+        jsonContent = JSONFunctions.parse(jsonContent) as JSONObject;
+      }
+      this.authorsMetaCache = jsonContent as JSONObject;
+      return this.authorsMetaCache || ({} as JSONObject);
+    } catch (_err) {
+      this.authorsMetaCache = {} as JSONObject;
+      return this.authorsMetaCache;
+    }
   }
 
   public static async getBlogPostList(
@@ -187,32 +208,29 @@ export default class BlogPostUtil {
 
     let markdownContent: string = await LocalFile.read(filePath);
 
-    // Resolve author WITHOUT hitting GitHub API. Prefer Blogs.json metadata.
+    // Resolve author WITHOUT hitting GitHub API. Use Blogs.json to get username, Authors.json for name/bio.
     let blogPostAuthor: BlogPostAuthor | null = null;
     try {
       const blogsMeta: Array<JSONObject> = await this.getBlogsMeta();
-
-      const meta: JSONObject | undefined = blogsMeta.find((b: JSONObject) => {
+      const blogMeta: JSONObject | undefined = blogsMeta.find((b: JSONObject) => {
         return (b["post"] as string) === fileName;
       });
-      if (meta) {
-        const username: string | undefined = meta["authorGitHubUsername"] as
-          | string
-          | undefined;
-        const authorName: string | undefined = meta["authorName"] as
-          | string
-          | undefined;
-        if (username) {
-          blogPostAuthor = {
-            username: username,
-            githubUrl: `https://github.com/${username}`,
-            profileImageUrl: `https://avatars.githubusercontent.com/${username}`,
-            name: authorName || username,
-          };
-        }
+      const username: string | undefined = blogMeta?.["authorGitHubUsername"] as string | undefined;
+      if (username) {
+        const authorsMeta: JSONObject = await this.getAuthorsMeta();
+        const authorMeta: JSONObject | undefined = authorsMeta[username] as JSONObject | undefined;
+        const authorName: string | undefined = (authorMeta?.["authorName"] as string) || undefined;
+        const authorBio: string | undefined = (authorMeta?.["authorBio"] as string) || undefined;
+        blogPostAuthor = {
+          username,
+          githubUrl: `https://github.com/${username}`,
+          profileImageUrl: `https://avatars.githubusercontent.com/${username}`,
+          name: authorName || username,
+          bio: authorBio,
+        };
       }
-    } catch (err) {
-      // Swallow – fallback below.
+    } catch (_err) {
+      // ignore and fallback
     }
 
     // Fallback to parsing markdown (no network) if metadata missing.
@@ -396,7 +414,7 @@ export default class BlogPostUtil {
       githubUrl: authorGitHubUrl,
       profileImageUrl: authorProfileImageUrl,
       // Do NOT call GitHub; use username as name placeholder.
-      name: authorUsername,
+  name: authorUsername,
     };
   }
 }

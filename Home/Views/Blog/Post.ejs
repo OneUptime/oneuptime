@@ -133,7 +133,7 @@
                                 <div>
                                     <h3 class="text-lg font-semibold text-gray-900"><%- blogPost.author.name -%></h3>
                                     <p class="text-sm text-gray-600 mb-2">@<%- blogPost.author.username -%> • <%- blogPost.formattedPostDate -%> • <span id="reading-time-inline"></span></p>
-                                    <div class="text-sm text-gray-700">Building reliable software at OneUptime. Follow along for more on observability & reliability.</div>
+                                    <div class="text-sm text-gray-700"><%- blogPost.author.bio || 'Building reliable software at OneUptime. Follow along for more on observability & reliability.' -%></div>
                                     <div class="mt-3 flex gap-3">
                                         <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="text-xs font-medium text-indigo-600 hover:text-indigo-500 inline-flex items-center gap-1">View GitHub
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5h6m0 0v6m0-6L10 14"/></svg>
