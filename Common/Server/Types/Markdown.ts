@@ -77,7 +77,7 @@ export default class Markdown {
     };
 
     renderer.code = function (code, language) {
-      return `<pre class="language-${language} rounded-md"><code class="language-${language} rounded-md">${code}</code></pre>`;
+  return `<pre class="language-${language} rounded-xl bg-slate-900/95 text-slate-100 p-5 overflow-x-auto text-sm shadow-md ring-1 ring-slate-900/10"><code class="language-${language}">${code}</code></pre>`;
     };
 
     renderer.heading = function (text, level) {
@@ -169,6 +169,22 @@ export default class Markdown {
     // Inline code
     renderer.codespan = function (code) {
       return `<code class="rounded-md bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600">${code}</code>`;
+    };
+
+    // Horizontal rule
+    renderer.hr = function () {
+      return '<hr class="my-12 border-t border-gray-200" />';
+    };
+
+    // Emphasis / Strong / Strikethrough
+    renderer.strong = function (text) {
+      return `<strong class="font-semibold text-gray-800">${text}</strong>`;
+    };
+    renderer.em = function (text) {
+      return `<em class="italic text-gray-700">${text}</em>`;
+    };
+    renderer.del = function (text) {
+      return `<del class="line-through text-gray-400">${text}</del>`;
     };
 
     // Images
