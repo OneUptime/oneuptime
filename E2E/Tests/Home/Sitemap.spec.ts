@@ -1,10 +1,10 @@
 import { BASE_URL, IS_BILLING_ENABLED } from "../../Config";
-import { Page, expect, test } from "@playwright/test";
+import { Page, expect, test, Response } from "@playwright/test";
 import URL from "Common/Types/API/URL";
 
 // Helper to fetch sitemap XML via a normal page navigation.
 async function fetchSitemap(page: Page): Promise<string> {
-  const response = await page.goto(
+  const response: Response | null = await page.goto(
     URL.fromString(`${BASE_URL.toString()}sitemap.xml`).toString(),
     { waitUntil: "networkidle" },
   );
@@ -12,13 +12,13 @@ async function fetchSitemap(page: Page): Promise<string> {
   expect(response?.status(), "sitemap.xml should return 200").toBe(200);
 
   // Raw content (Playwright wraps XML in HTML view sometimes); extract text.
-  const body = await page.$("body");
-  const xml = (await body?.innerText()) || (await page.content());
+  const body: Awaited<ReturnType<typeof page.$>> = await page.$("body");
+  const xml: string = (await body?.innerText()) || (await page.content());
   return xml;
 }
 
 function extractLocs(xml: string): string[] {
-  const regex = /<loc>(.*?)<\/loc>/g;
+  const regex: RegExp = /<loc>(.*?)<\/loc>/g;
   const locs: string[] = [];
   let match: RegExpExecArray | null;
   while ((match = regex.exec(xml)) !== null) {
@@ -48,15 +48,25 @@ test.describe("Home: Sitemap", () => {
     expect(first!.endsWith("/")).toBeTruthy();
 
     // Ensure at least one dynamic section appears
-    const hasBlog: boolean = locs.some((l: string) => /\/blog\b/.test(l));
-    const hasCompare: boolean = locs.some((l: string) => /\/compare\//.test(l));
-    const hasProductPages: boolean = locs.some((l: string) => /\/product\//.test(l));
-    const hasDocs: boolean = locs.some((l: string) => /\/docs\//.test(l));
-    const hasLegal: boolean = locs.some((l: string) => /\/legal\//.test(l));
+    const hasBlog: boolean = locs.some((l: string) => {
+      return /\/blog\b/.test(l);
+    });
+    const hasCompare: boolean = locs.some((l: string) => {
+      return /\/compare\//.test(l);
+    });
+    const hasProductPages: boolean = locs.some((l: string) => {
+      return /\/product\//.test(l);
+    });
+    const hasDocs: boolean = locs.some((l: string) => {
+      return /\/docs\//.test(l);
+    });
+    const hasLegal: boolean = locs.some((l: string) => {
+      return /\/legal\//.test(l);
+    });
     expect(hasBlog).toBeTruthy();
     expect(hasCompare).toBeTruthy();
     expect(hasProductPages).toBeTruthy();
     expect(hasDocs).toBeTruthy();
-    expect(hasLegal).toBeTruthy(); 
+    expect(hasLegal).toBeTruthy();
   });
 });
