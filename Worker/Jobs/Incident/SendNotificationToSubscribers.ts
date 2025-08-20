@@ -34,7 +34,7 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
-import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import MicrosoftTeamsWorkspace from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
 RunCron(
   "Incident:SendNotificationToSubscribers",
@@ -465,9 +465,9 @@ RunCron(
 [View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
 
                   // send Microsoft Teams notification with markdown conversion
-                  MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+                  MicrosoftTeamsWorkspace.sendMessageToChannelViaIncomingWebhook({
                     url: subscriber.microsoftTeamsIncomingWebhookUrl,
-                    text: MicrosoftTeamsUtil.convertMarkdownToTeamsRichText(
+                    text: MicrosoftTeamsWorkspace.convertMarkdownToTeamsRichText(
                       markdownMessage,
                     ),
                   }).catch((err: Error) => {

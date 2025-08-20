@@ -1,18 +1,19 @@
-import { AdaptiveCard } from "adaptivecards";
 import URL from "../../../../Types/API/URL";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
-import API from "../../../API/API";
-import logger from "../../../Utils/Logger";
+import API from "../../../../Utils/API";
+import logger from "../../Logger";
+import WorkspaceBase from "../WorkspaceBase";
+import { JSONObject } from "../../../../Types/JSON";
 
-export default class MicrosoftTeamsUtil {
-  public static async sendMessageToChannelViaIncomingWebhook(data: {
+export default class MicrosoftTeamsWorkspace extends WorkspaceBase {
+  public static override async sendMessageToChannelViaIncomingWebhook(data: {
     url: URL;
     text: string;
-  }): Promise<void> {
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     try {
-      const response: HTTPResponse<any> | HTTPErrorResponse = await API.fetch(
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.fetch(
         HTTPMethod.POST,
         data.url,
         {
@@ -40,14 +41,26 @@ export default class MicrosoftTeamsUtil {
       );
 
       if (response instanceof HTTPErrorResponse) {
-        throw response;
+        return response;
       }
 
       logger.debug("Message sent to Microsoft Teams channel successfully");
+      return response;
     } catch (err) {
       logger.error("Error sending message to Microsoft Teams channel:");
       logger.error(err);
-      throw err;
+      
+      if (err instanceof HTTPErrorResponse) {
+        return err;
+      }
+      
+      return new HTTPErrorResponse(
+        500,
+        {
+          message: "Failed to send message to Microsoft Teams channel",
+        },
+        {}
+      );
     }
   }
 

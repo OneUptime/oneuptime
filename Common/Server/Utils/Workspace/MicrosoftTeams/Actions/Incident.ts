@@ -2,7 +2,7 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentService from "../../../../Services/IncidentService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
-import MicrosoftTeamsUtil from "../MicrosoftTeams";
+import MicrosoftTeamsWorkspace from "../MicrosoftTeams";
 import MicrosoftTeamsActionType from "./ActionTypes";
 import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
 import Response from "../../../Response";
