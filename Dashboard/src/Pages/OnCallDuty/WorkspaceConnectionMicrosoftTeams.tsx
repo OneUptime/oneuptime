@@ -11,27 +11,23 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ComingSoon from "Common/UI/Components/ComingSoon/ComingSoon";
 
-const MonitorsPage: FunctionComponent<
+const OnCallDutyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [isMicrosoftTeamsConnected, setIsMicrosoftTeamsConnected] =
+  const [isTeamsConnected, setIsTeamsConnected] =
     React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const [showComingSoon, setShowComingSoon] = React.useState<boolean>(false);
-
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
-    setShowComingSoon(true);
     try {
       setError(null);
       setIsLoading(true);
-      const isMicrosoftTeamsConnected: boolean =
+      const isTeamsConnected: boolean =
         await WorkspaceUtil.isWorkspaceConnected(WorkspaceType.MicrosoftTeams);
 
-      setIsMicrosoftTeamsConnected(isMicrosoftTeamsConnected);
+      setIsTeamsConnected(isTeamsConnected);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -53,35 +49,27 @@ const MonitorsPage: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (showComingSoon) {
+  if (!isTeamsConnected) {
     return (
-      <ComingSoon
-        title="Microsoft Teams Integration is coming soon, but you can still integrate Teams with Workflows!"
-        description="We are working hard to bring you the Microsoft Teams integration. In the meantime, you can still integrate with Workflows to receive on call duty alerts in Microsoft Teams. Please click on Workflows in the top navigation to get started."
+      <EmptyState
+        id="on-call-duty-workspace-teams-empty-state"
+        icon={IconProp.Slack}
+        title={"Microsoft Teams is not connected to this OneUptime project"}
+        description={
+          "To connect Microsoft Teams to this OneUptime project, please go to Settings > Microsoft Teams Integration and connect your Teams workspace."
+        }
       />
     );
   }
 
   return (
-    <div>
-      {isMicrosoftTeamsConnected && (
-        <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.OnCallDutyPolicy}
-        />
-      )}
-      {!isMicrosoftTeamsConnected && (
-        <div>
-          <EmptyState
-            id="MicrosoftTeams-connection"
-            icon={IconProp.MicrosoftTeams}
-            title="MicrosoftTeams is not connected yet!"
-            description="Connect your Microsoft Teams workspace to receive alert notifications. Please go to Project Settings > Workspace Connections > Microsoft Teams to connect your workspace."
-          />
-        </div>
-      )}
-    </div>
+    <WorkspaceNotificationRuleTable
+      workspaceType={WorkspaceType.MicrosoftTeams}
+      notificationRuleEventType={
+        NotificationRuleEventType.OnCallDutyPolicyExecuted
+      }
+    />
   );
 };
 
-export default MonitorsPage;
+export default OnCallDutyPage;

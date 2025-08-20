@@ -34,6 +34,7 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
 RunCron(
   "Incident:SendNotificationToSubscribers",
@@ -445,6 +446,35 @@ RunCron(
                   });
                   logger.debug(
                     `Slack notification queued for subscriber ${subscriber._id}.`,
+                  );
+                }
+
+                if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+                  logger.debug(
+                    `Queueing Microsoft Teams notification to subscriber ${subscriber._id} via incoming webhook.`,
+                  );
+                  // Create markdown message for Microsoft Teams
+                  const markdownMessage: string = `## 🚨 Incident - ${incident.title || ""}
+
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+
+**Resources Affected:** ${resourcesAffectedString}
+
+**Description:** ${incident.description || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+
+                  // send Microsoft Teams notification with markdown conversion
+                  MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+                    url: subscriber.microsoftTeamsIncomingWebhookUrl,
+                    text: MicrosoftTeamsUtil.convertMarkdownToTeamsRichText(
+                      markdownMessage,
+                    ),
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                  logger.debug(
+                    `Microsoft Teams notification queued for subscriber ${subscriber._id}.`,
                   );
                 }
               } catch (err) {
