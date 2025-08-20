@@ -111,6 +111,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Slack}
         />
+        <SideMenuItem
+          link={{
+            title: "Microsoft Teams Subscribers",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.SendMessage}
+        />
 
         {/* <SideMenuItem
                     link={{

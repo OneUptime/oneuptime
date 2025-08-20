@@ -20,7 +20,7 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
       throw new BadDataException("ScheduledMaintenance ID is required");
     }
 
-    // MicrosoftTeams.
+    // Microsoft Teams.
 
     const blockMicrosoftTeams: Array<WorkspaceMessageBlock> = [];
 
@@ -45,13 +45,13 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
     // view data.
     const viewScheduledMaintenanceButton: WorkspaceMessagePayloadButton = {
       _type: "WorkspaceMessagePayloadButton",
-      title: "🔗 View ScheduledMaintenance",
+      title: "🔗 View Event",
       url: await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
         data.projectId!,
         data.scheduledMaintenanceId!,
       ),
       value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewScheduledMaintenance,
+      actionId: MicrosoftTeamsActionType.VIEW_SCHEDULED_MAINTENANCE,
     };
 
     buttons.push(viewScheduledMaintenanceButton);
@@ -62,7 +62,7 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
         _type: "WorkspaceMessagePayloadButton",
         title: "⌛ Mark as Ongoing",
         value: data.scheduledMaintenanceId?.toString() || "",
-        actionId: MicrosoftTeamsActionType.MarkScheduledMaintenanceAsOngoing,
+        actionId: MicrosoftTeamsActionType.MARK_SCHEDULED_MAINTENANCE_AS_ONGOING,
       };
 
     buttons.push(acknowledgeScheduledMaintenanceButton);
@@ -72,7 +72,7 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "✅ Mark as Completed",
       value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.MarkScheduledMaintenanceAsComplete,
+      actionId: MicrosoftTeamsActionType.RESOLVE_SCHEDULED_MAINTENANCE,
     };
 
     buttons.push(resolveScheduledMaintenanceButton);
@@ -81,9 +81,9 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
     const changeScheduledMaintenanceStateButton: WorkspaceMessagePayloadButton =
       {
         _type: "WorkspaceMessagePayloadButton",
-        title: "➡️ Change Scheduled Maintenance State",
+        title: "➡️ Change State",
         value: data.scheduledMaintenanceId?.toString() || "",
-        actionId: MicrosoftTeamsActionType.ViewChangeScheduledMaintenanceState,
+        actionId: MicrosoftTeamsActionType.VIEW_CHANGE_SCHEDULED_MAINTENANCE_STATE,
       };
 
     buttons.push(changeScheduledMaintenanceStateButton);
@@ -93,7 +93,7 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
       value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewAddScheduledMaintenanceNote,
+      actionId: MicrosoftTeamsActionType.CREATE_SCHEDULED_MAINTENANCE_NOTE,
     };
 
     buttons.push(addNoteButton);

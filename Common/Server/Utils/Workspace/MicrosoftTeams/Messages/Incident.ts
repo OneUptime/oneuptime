@@ -20,7 +20,7 @@ export default class MicrosoftTeamsIncidentMessages {
       throw new BadDataException("Incident ID is required");
     }
 
-    // MicrosoftTeams.
+    // Microsoft Teams.
 
     const blockMicrosoftTeams: Array<WorkspaceMessageBlock> = [];
 
@@ -51,7 +51,7 @@ export default class MicrosoftTeamsIncidentMessages {
         data.incidentId!,
       ),
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewIncident,
+      actionId: MicrosoftTeamsActionType.VIEW_INCIDENT,
     };
 
     buttons.push(viewIncidentButton);
@@ -61,7 +61,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewExecuteIncidentOnCallPolicy,
+      actionId: MicrosoftTeamsActionType.EXECUTE_INCIDENT_ON_CALL_POLICY,
     };
 
     buttons.push(executeOnCallButton);
@@ -71,7 +71,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "👀 Acknowledge Incident",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.AcknowledgeIncident,
+      actionId: MicrosoftTeamsActionType.ACKNOWLEDGE_INCIDENT,
     };
 
     buttons.push(acknowledgeIncidentButton);
@@ -81,7 +81,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "✅ Resolve Incident",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ResolveIncident,
+      actionId: MicrosoftTeamsActionType.RESOLVE_INCIDENT,
     };
 
     buttons.push(resolveIncidentButton);
@@ -91,7 +91,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Incident State",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewChangeIncidentState,
+      actionId: MicrosoftTeamsActionType.VIEW_CHANGE_INCIDENT_STATE,
     };
 
     buttons.push(changeIncidentStateButton);
@@ -101,7 +101,7 @@ export default class MicrosoftTeamsIncidentMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
       value: data.incidentId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewAddIncidentNote,
+      actionId: MicrosoftTeamsActionType.CREATE_INCIDENT_NOTE,
     };
 
     buttons.push(addNoteButton);
