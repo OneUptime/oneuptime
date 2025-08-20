@@ -1898,12 +1898,49 @@ jobs:
           configuration: "./Scripts/Release/ChangelogConfig.json"
       - run: echo "Changelog:"    
       - run: echo "${{steps.build_changelog.outputs.changelog}}"
+      - name: Fallback to commit messages if changelog empty
+        id: fallback_changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGELOG_CONTENT="${{steps.build_changelog.outputs.changelog}}"
+          OLD_PLACEHOLDER="No significant changes were made. We have just fixed minor bugs for this release. You can find the detailed information in the commit history."
+          NEW_PLACEHOLDER="(auto) No categorized pull requests. Fallback will list raw commit messages."
+          if echo "$CHANGELOG_CONTENT" | grep -Fq "$OLD_PLACEHOLDER" || echo "$CHANGELOG_CONTENT" | grep -Fq "$NEW_PLACEHOLDER"; then
+            echo "Detected empty placeholder changelog. Building commit list fallback."
+            # Find previous tag (skip the most recent tag which might be for an older release). If none, include all commits.
+            if prev_tag=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null); then
+              echo "Previous tag: $prev_tag"
+              commits=$(git log --pretty=format:'- %s (%h)' "$prev_tag"..HEAD)
+            else
+              echo "No previous tag found; using full commit history on this branch."
+              commits=$(git log --pretty=format:'- %s (%h)')
+            fi
+            # If still empty (e.g., no commits), keep placeholder to avoid empty body.
+            if [ -z "$commits" ]; then
+              commits="(no commits found)"
+            fi
+            {
+              echo "changelog<<'EOF'"
+              echo "## Commit Messages"
+              echo ""
+              echo "$commits"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            # Pass through original changelog
+            {
+              echo "changelog<<'EOF'"
+              echo "$CHANGELOG_CONTENT"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
       - uses: ncipollo/release-action@v1
         with:
           tag: "7.0.${{needs.generate-build-number.outputs.build_number}}"
           artifactErrorsFailBuild: true
           body: |
-            ${{steps.build_changelog.outputs.changelog}}
+            ${{steps.fallback_changelog.outputs.changelog}}
 
 
   infrastructure-agent-deploy:
