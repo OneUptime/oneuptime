@@ -11,7 +11,7 @@ export interface ComponentProps {
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
   enableSlackSubscribers: boolean;
-  enableMicrosoftTeamsSubscribers?: boolean;
+  enableMicrosoftTeamsSubscribers: boolean;
 }
 
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (

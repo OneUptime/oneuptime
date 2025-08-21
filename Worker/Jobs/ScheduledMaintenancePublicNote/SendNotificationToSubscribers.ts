@@ -37,6 +37,7 @@ import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMai
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
 RunCron(
   "ScheduledMaintenancePublicNote:SendNotificationToSubscribers",
@@ -355,6 +356,30 @@ RunCron(
               SlackUtil.sendMessageToChannelViaIncomingWebhook({
                 url: subscriber.slackIncomingWebhookUrl,
                 text: SlackUtil.convertMarkdownToSlackRichText(markdownMessage),
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+            }
+
+            if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+              logger.debug(
+                `Queueing Microsoft Teams notification to subscriber ${subscriber._id} for public note ${publicNote.id}.`,
+              );
+              // Create markdown message for Teams
+              const markdownMessage: string = `## Scheduled Maintenance Update - ${statusPageName}
+
+**Event:** ${event.title || ""}
+
+**New Note Added**
+
+**Note:** ${publicNote.note || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+
+              // send Teams notification
+              MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+                url: subscriber.microsoftTeamsIncomingWebhookUrl,
+                text: markdownMessage,
               }).catch((err: Error) => {
                 logger.error(err);
               });

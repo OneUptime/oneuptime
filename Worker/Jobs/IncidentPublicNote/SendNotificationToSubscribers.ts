@@ -36,6 +36,7 @@ import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500 } from "Common/Types/BrandColors";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
 RunCron(
   "IncidentPublicNote:SendNotificationToSubscribers",
@@ -430,6 +431,39 @@ ${incidentPublicNote.note || ""}
               });
               logger.debug(
                 `Slack notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
+              );
+            }
+
+            if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+              // send Teams message here.
+              const resourcesAffectedText: string =
+                statusPageToResources[statuspage._id!]
+                  ?.map((r: StatusPageResource) => {
+                    return r.displayName;
+                  })
+                  .join(", ") || "None";
+
+              // Create markdown message for Teams
+              const markdownMessage: string = `## Incident - ${incident.title || ""}
+
+**New note has been added to an incident**
+
+**Resources Affected:** ${resourcesAffectedText}
+**Severity:** ${incident.incidentSeverity?.name || " - "}
+
+**Note:**
+${incidentPublicNote.note || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+
+              MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+                url: subscriber.microsoftTeamsIncomingWebhookUrl,
+                text: markdownMessage,
+              }).catch((err: Error) => {
+                logger.error(err);
+              });
+              logger.debug(
+                `Microsoft Teams notification queued for subscriber ${subscriber._id} for public note ${incidentPublicNote.id}.`,
               );
             }
           }
