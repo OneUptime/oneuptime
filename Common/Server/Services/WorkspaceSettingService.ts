@@ -2,7 +2,7 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  SlackSettings,
+  Settings,
 } from "../../Models/DatabaseModels/WorkspaceSetting";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -37,7 +37,7 @@ export class Service extends DatabaseService<Model> {
   public async refreshSetting(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
-    settings: SlackSettings;
+    settings: Settings;
   }): Promise<void> {
     let workspaceSetting: Model | null = await this.findOneBy({
       query: {
@@ -76,6 +76,27 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  @CaptureSpan()
+  public async getSettings(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+  }): Promise<Settings | null> {
+    const ws: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+      },
+      select: {
+        settings: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return ws?.settings || null;
   }
 }
 export default new Service();
