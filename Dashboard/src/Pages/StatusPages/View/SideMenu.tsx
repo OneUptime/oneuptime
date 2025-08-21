@@ -115,7 +115,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link={{
             title: "MS Teams Subscribers",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS] as Route,
+              RouteMap[
+                PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
+              ] as Route,
               { modelId: props.modelId },
             ),
           }}

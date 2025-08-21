@@ -502,7 +502,7 @@ export default class StatusPageAPI extends BaseAPI<
             footerHTML: true,
             enableEmailSubscribers: true,
             enableSlackSubscribers: true,
-            enableMicrosoftTeamsSubscribers: true, 
+            enableMicrosoftTeamsSubscribers: true,
             enableSmsSubscribers: true,
             isPublicStatusPage: true,
             allowSubscribersToChooseResources: true,
@@ -2221,7 +2221,6 @@ export default class StatusPageAPI extends BaseAPI<
         "Email, phone or slack workspace name is required to subscribe to this status page.",
       );
     }
-
 
     const email: Email | undefined = req.body.data["subscriberEmail"]
       ? new Email(req.body.data["subscriberEmail"] as string)

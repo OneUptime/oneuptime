@@ -4,11 +4,10 @@ import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../../Utils/API";
 import logger from "../../Logger";
-import WorkspaceBase  from "../WorkspaceBase";
+import WorkspaceBase from "../WorkspaceBase";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class MicrosoftTeams extends WorkspaceBase {
-
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     // Teams MessageCard has limited markdown support. Headings like '##' are not supported
     // and single newlines can collapse. Convert common patterns to a structured card.
@@ -24,7 +23,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     let title: string = "";
     const facts: Array<JSONObject> = [];
     const actions: Array<JSONObject> = [];
-    let bodyTextParts: Array<string> = [];
+    const bodyTextParts: Array<string> = [];
 
     // Extract title from the first non-empty line and strip markdown heading markers
     if (lines.length > 0) {
@@ -43,8 +42,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
       let lineWithoutLinks: string = line;
       let match: RegExpExecArray | null = null;
       while ((match = linkRegex.exec(line))) {
-        const name: string = (match[1] ?? "");
-        const url: string = (match[2] ?? "");
+        const name: string = match[1] ?? "";
+        const url: string = match[2] ?? "";
         actions.push({
           ["@type"]: "OpenUri",
           name: name,
@@ -66,7 +65,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
       if (factMatch) {
         const name: string = (factMatch[1] ?? "").trim();
         const value: string = (factMatch[2] ?? "").trim();
-        if (name.toLowerCase() === "description" || name.toLowerCase() === "note") {
+        if (
+          name.toLowerCase() === "description" ||
+          name.toLowerCase() === "note"
+        ) {
           bodyTextParts.push(`**${name}:** ${value}`);
         } else {
           facts.push({ name: name, value: value });
@@ -117,19 +119,27 @@ export default class MicrosoftTeams extends WorkspaceBase {
       await API.post(data.url, payload);
 
     if (!apiResult) {
-      logger.error("Could not send message to Teams channel via incoming webhook.");
-      throw new Error("Could not send message to Teams channel via incoming webhook.");
+      logger.error(
+        "Could not send message to Teams channel via incoming webhook.",
+      );
+      throw new Error(
+        "Could not send message to Teams channel via incoming webhook.",
+      );
     }
 
     if (apiResult instanceof HTTPErrorResponse) {
-      logger.error("Error sending message to Teams channel via incoming webhook:");
+      logger.error(
+        "Error sending message to Teams channel via incoming webhook:",
+      );
       logger.error(apiResult);
       throw apiResult;
     }
 
-    logger.debug("Message sent to Teams channel via incoming webhook successfully:");
+    logger.debug(
+      "Message sent to Teams channel via incoming webhook successfully:",
+    );
     logger.debug(apiResult);
-    
+
     return apiResult;
   }
 
@@ -137,7 +147,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
     incomingWebhookUrl: URL,
   ): boolean {
     // Check if the URL contains outlook.office.com or office.com webhook pattern
-    const urlString = incomingWebhookUrl.toString();
-    return urlString.includes("outlook.office.com") || urlString.includes("office.com");
+    const urlString: string = incomingWebhookUrl.toString();
+    return (
+      urlString.includes("outlook.office.com") ||
+      urlString.includes("office.com")
+    );
   }
 }

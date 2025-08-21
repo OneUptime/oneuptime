@@ -29,9 +29,9 @@ import React, {
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 
-const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
+const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
+  PageComponentProps
+> = (props: PageComponentProps): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -43,8 +43,10 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<PageComponentProps>
     setAllowSubscribersToChooseEventTypes,
   ] = React.useState<boolean>(false);
 
-  const [isMicrosoftTeamsSubscribersEnabled, setIsMicrosoftTeamsSubscribersEnabled] =
-    React.useState<boolean>(false);
+  const [
+    isMicrosoftTeamsSubscribersEnabled,
+    setIsMicrosoftTeamsSubscribersEnabled,
+  ] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>("");
   const [
@@ -91,7 +93,9 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<PageComponentProps>
       }
 
       if (statusPage && statusPage.enableMicrosoftTeamsSubscribers) {
-        setIsMicrosoftTeamsSubscribersEnabled(statusPage.enableMicrosoftTeamsSubscribers);
+        setIsMicrosoftTeamsSubscribersEnabled(
+          statusPage.enableMicrosoftTeamsSubscribers,
+        );
       }
 
       setIsLoading(false);
@@ -124,7 +128,8 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<PageComponentProps>
         },
         stepId: "subscriber-info",
         title: "Microsoft Teams Workspace Name",
-        description: "Name of the Microsoft Teams workspace for identification.",
+        description:
+          "Name of the Microsoft Teams workspace for identification.",
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "my-company-workspace",

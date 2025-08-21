@@ -455,7 +455,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -477,7 +479,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -499,7 +503,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -533,7 +539,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -555,7 +563,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -591,7 +601,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -617,7 +629,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -639,7 +653,9 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
@@ -661,13 +677,18 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />
 
           <PageRoute
-            path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS]?.toString() || ""}
+            path={
+              RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS]?.toString() ||
+              ""
+            }
             element={
               <MicrosoftTeamsSubscribe
                 onLoadComplete={() => {
@@ -676,14 +697,18 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
-                pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route}
+                pageRoute={
+                  RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route
+                }
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
                 }
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
-                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+                enableMicrosoftTeamsSubscribers={
+                  enableMicrosoftTeamsSubscribers
+                }
               />
             }
           />

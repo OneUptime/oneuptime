@@ -50,7 +50,7 @@ export const generateSitemapXml: () => Promise<string> =
         const paths: string[] = rawPaths.filter(
           (p: string | undefined): p is string => {
             return Boolean(p);
-          }
+          },
         );
         for (let p of paths) {
           if (!p || typeof p !== "string") {
@@ -96,7 +96,7 @@ export const generateSitemapXml: () => Promise<string> =
     const productComparePaths: string[] = getProductCompareSlugs().map(
       (slug: string) => {
         return `/compare/${slug}`;
-      }
+      },
     );
 
     // Blog posts
