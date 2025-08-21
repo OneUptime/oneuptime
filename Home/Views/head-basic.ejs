@@ -162,5 +162,4 @@
 
 <!-- Canonical and Manifest -->
 <% /* Expect a homeUrl variable like https://oneuptime.com passed from server; fallback to production domain */ %>
-<link rel="canonical" href="<%= (typeof homeUrl !== 'undefined' && homeUrl) ? homeUrl.replace(/\/$/, '') : 'https://oneuptime.com' %>/">
 <link rel="manifest" href="/manifest.json">
