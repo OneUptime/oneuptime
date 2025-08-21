@@ -172,14 +172,13 @@ export default class WorkspaceUtil {
 
       if (workspaceType === WorkspaceType.Slack) {
         botUserId = (projectAuthToken.miscData as SlackMiscData).botUserId;
-      }
-
-      if (!botUserId) {
-        responses.push({
-          workspaceType: workspaceType,
-          threads: [],
-        });
-        continue;
+        if (!botUserId) {
+          responses.push({
+            workspaceType: workspaceType,
+            threads: [],
+          });
+          continue;
+        }
       }
 
       if (!projectAuthToken.authToken) {
@@ -192,7 +191,7 @@ export default class WorkspaceUtil {
 
       const result: WorkspaceSendMessageResponse =
         await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
-          userId: botUserId,
+          userId: botUserId || projectAuthToken.workspaceProjectId || "",
           authToken: projectAuthToken.authToken,
           workspaceMessagePayload: messagePayloadByWorkspace,
         });

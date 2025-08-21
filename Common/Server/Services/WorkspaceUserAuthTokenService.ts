@@ -2,7 +2,7 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  SlackMiscData,
+  MiscData,
 } from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -66,7 +66,7 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
     authToken: string;
     workspaceUserId: string;
-    miscData: SlackMiscData;
+    miscData: MiscData;
   }): Promise<void> {
     let userAuth: Model | null = await this.findOneBy({
       query: {
