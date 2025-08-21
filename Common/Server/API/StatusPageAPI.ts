@@ -2484,15 +2484,28 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     if (
-      !req.body.data["subscriberEmail"] &&
-      !req.body.data["subscriberPhone"] &&
-      !req.body.data["slackWorkspaceName"]
+      req.body.data["microsoftTeamsWorkspaceName"] &&
+      !statusPage.enableMicrosoftTeamsSubscribers
     ) {
       logger.debug(
-        `No email, phone, or slack workspace name provided for subscription to status page with ID: ${objectId}`,
+        `Microsoft Teams subscribers not enabled for status page with ID: ${objectId}`,
       );
       throw new BadDataException(
-        "Email, phone or slack workspace name is required to subscribe to this status page.",
+        "Microsoft Teams subscribers not enabled for this status page.",
+      );
+    }
+
+    if (
+      !req.body.data["subscriberEmail"] &&
+      !req.body.data["subscriberPhone"] &&
+      !req.body.data["slackWorkspaceName"] &&
+      !req.body.data["microsoftTeamsWorkspaceName"]
+    ) {
+      logger.debug(
+        `No email, phone, slack workspace name, or Microsoft Teams workspace name provided for subscription to status page with ID: ${objectId}`,
+      );
+      throw new BadDataException(
+        "Email, phone, slack workspace name, or Microsoft Teams workspace name is required to subscribe to this status page.",
       );
     }
 
@@ -2514,6 +2527,18 @@ export default class StatusPageAPI extends BaseAPI<
       "slackWorkspaceName"
     ]
       ? (req.body.data["slackWorkspaceName"] as string)
+      : undefined;
+
+    const microsoftTeamsIncomingWebhookUrl: string | undefined = req.body.data[
+      "microsoftTeamsIncomingWebhookUrl"
+    ]
+      ? (req.body.data["microsoftTeamsIncomingWebhookUrl"] as string)
+      : undefined;
+
+    const microsoftTeamsWorkspaceName: string | undefined = req.body.data[
+      "microsoftTeamsWorkspaceName"
+    ]
+      ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
       : undefined;
 
     let statusPageSubscriber: StatusPageSubscriber | null = null;
@@ -2572,6 +2597,23 @@ export default class StatusPageAPI extends BaseAPI<
         `Setting subscriber slack workspace name: ${slackWorkspaceName}`,
       );
       statusPageSubscriber.slackWorkspaceName = slackWorkspaceName;
+    }
+
+    if (microsoftTeamsIncomingWebhookUrl) {
+      logger.debug(
+        `Setting subscriber Microsoft Teams webhook: ${microsoftTeamsIncomingWebhookUrl}`,
+      );
+      statusPageSubscriber.microsoftTeamsIncomingWebhookUrl = URL.fromString(
+        microsoftTeamsIncomingWebhookUrl,
+      );
+    }
+
+    if (microsoftTeamsWorkspaceName) {
+      logger.debug(
+        `Setting subscriber Microsoft Teams workspace name: ${microsoftTeamsWorkspaceName}`,
+      );
+      statusPageSubscriber.microsoftTeamsWorkspaceName =
+        microsoftTeamsWorkspaceName;
     }
 
     if (
