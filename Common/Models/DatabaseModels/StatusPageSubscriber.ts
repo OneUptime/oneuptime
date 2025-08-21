@@ -427,15 +427,14 @@ export default class StatusPageSubscriber extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.VeryLongText,
     title: "Microsoft Teams Workspace Name",
     description:
       "Name of the Microsoft Teams workspace for validation and identification",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.VeryLongText,
   })
   public microsoftTeamsWorkspaceName?: string = undefined;
 
