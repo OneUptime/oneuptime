@@ -748,6 +748,7 @@ Stay informed about service availability! 🚀`;
         subscriberPhone: true,
         subscriberWebhook: true,
         slackIncomingWebhookUrl: true,
+        microsoftTeamsIncomingWebhookUrl: true,
         isSubscribedToAllResources: true,
         statusPageResources: true,
         isSubscribedToAllEventTypes: true,
