@@ -32,6 +32,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -221,6 +222,23 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    // Validate Microsoft Teams webhook URL if provided
+    if (data.data.microsoftTeamsIncomingWebhookUrl) {
+      logger.debug(
+        `Microsoft Teams Incoming Webhook URL: ${data.data.microsoftTeamsIncomingWebhookUrl}`,
+      );
+      if (
+        !MicrosoftTeamsUtil.isValidMicrosoftTeamsIncomingWebhookUrl(
+          data.data.microsoftTeamsIncomingWebhookUrl,
+        )
+      ) {
+        logger.debug("Invalid Microsoft Teams Incoming Webhook URL.");
+        throw new BadDataException(
+          "Invalid Microsoft Teams Incoming Webhook URL.",
+        );
+      }
+    }
+
     data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(
       100000,
       999999,
@@ -378,6 +396,43 @@ Stay informed about service availability! 🚀`;
         logger.debug("Slack notification sent successfully.");
       } catch (error) {
         logger.error("Error sending Slack notification:");
+        logger.error(error);
+      }
+    }
+
+    // if Microsoft Teams incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the Teams channel.
+    if (
+      createdItem.microsoftTeamsIncomingWebhookUrl &&
+      createdItem.sendYouHaveSubscribedMessage
+    ) {
+      logger.debug("Sending Microsoft Teams notification for new subscriber.");
+      const teamsMessage: string = `## 📢 New Subscription to ${statusPageName}
+
+**You have successfully subscribed to receive status updates!**
+
+🔗 **Status Page:** [${statusPageName}](${statusPageURL})
+📧 **Manage Subscription:** [Update preferences or unsubscribe](${unsubscribeLink})
+
+You will receive real-time notifications for:
+• Incidents and outages 
+• Scheduled maintenance events  
+• Service announcements
+• Status updates
+
+Stay informed about service availability! 🚀`;
+
+      logger.debug(`Teams Message: ${teamsMessage}`);
+
+      try {
+        await MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+          url: URL.fromString(
+            createdItem.microsoftTeamsIncomingWebhookUrl.toString(),
+          ),
+          text: teamsMessage,
+        });
+        logger.debug("Microsoft Teams notification sent successfully.");
+      } catch (error) {
+        logger.error("Error sending Microsoft Teams notification:");
         logger.error(error);
       }
     }

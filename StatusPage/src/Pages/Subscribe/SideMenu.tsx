@@ -67,7 +67,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
       {props.enableMicrosoftTeamsSubscribers ? (
         <SideMenuItem
           link={{
-            title: "Microsoft Teams",
+            title: "MS Teams",
             to: RouteUtil.populateRouteParams(
               props.isPreviewStatusPage
                 ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route)
