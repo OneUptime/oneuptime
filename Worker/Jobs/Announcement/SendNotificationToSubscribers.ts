@@ -27,6 +27,7 @@ import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscri
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
+import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 
 RunCron(
   "Announcement:SendNotificationToSubscribers",
@@ -284,6 +285,26 @@ RunCron(
                     text: SlackUtil.convertMarkdownToSlackRichText(
                       markdownMessage,
                     ),
+                  }).catch((err: Error) => {
+                    logger.error(err);
+                  });
+                }
+
+                if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+                  logger.debug(
+                    `Queueing Microsoft Teams notification to subscriber ${subscriber._id} for announcement ${announcement.id}.`,
+                  );
+                  // Create markdown message for Teams
+                  const markdownMessage: string = `## 📢 Announcement - ${announcement.title || ""}
+
+**Description:** ${announcement.description || ""}
+
+[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
+
+                  // send Teams notification here.
+                  MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+                    url: subscriber.microsoftTeamsIncomingWebhookUrl,
+                    text: markdownMessage,
                   }).catch((err: Error) => {
                     logger.error(err);
                   });

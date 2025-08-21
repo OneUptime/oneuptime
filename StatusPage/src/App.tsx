@@ -113,6 +113,11 @@ const SlackSubscribe: React.LazyExoticComponent<
 > = lazy(() => {
   return import("./Pages/Subscribe/SlackSubscribe");
 });
+const MicrosoftTeamsSubscribe: React.LazyExoticComponent<
+  React.FunctionComponent<SubscribePageProps>
+> = lazy(() => {
+  return import("./Pages/Subscribe/MicrosoftTeamsSubscribe");
+});
 
 // forbidden page
 const PageForbidden: React.LazyExoticComponent<
@@ -143,6 +148,8 @@ const App: () => JSX.Element = () => {
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
   const [enableSlackSubscribers, setenableSlackSubscribers] =
+    useState<boolean>(false);
+  const [enableMicrosoftTeamsSubscribers, setenableMicrosoftTeamsSubscribers] =
     useState<boolean>(false);
   const [statusPageName, setStatusPageName] = useState<string>("");
   const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>("");
@@ -224,6 +231,12 @@ const App: () => JSX.Element = () => {
             "statusPage.enableSlackSubscribers",
           ) as boolean;
 
+        const enableMicrosoftTeamsSubscribers: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.enableMicrosoftTeamsSubscribers",
+          ) as boolean;
+
         const allowSubscribersToChooseResources: boolean =
           JSONFunctions.getJSONValueInPath(
             masterpage || {},
@@ -243,6 +256,7 @@ const App: () => JSX.Element = () => {
 
         setenableSMSSubscribers(enableSMSSubscribers);
         setenableSlackSubscribers(enableSlackSubscribers);
+        setenableMicrosoftTeamsSubscribers(enableMicrosoftTeamsSubscribers);
         setenableEmailSubscribers(enableEmailSubscribers);
 
         StatusPageUtil.setIsPrivateStatusPage(isPrivateStatusPage);
@@ -441,6 +455,7 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -462,6 +477,7 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -483,6 +499,7 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -516,6 +533,29 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.SUBSCRIBE_MICROSOFT_TEAMS]?.toString() || ""}
+            element={
+              <MicrosoftTeamsSubscribe
+                pageRoute={RouteMap[PageMap.SUBSCRIBE_MICROSOFT_TEAMS] as Route}
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -551,6 +591,7 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -576,6 +617,7 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -597,6 +639,7 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />
@@ -618,6 +661,29 @@ const App: () => JSX.Element = () => {
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
+              />
+            }
+          />
+
+          <PageRoute
+            path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS]?.toString() || ""}
+            element={
+              <MicrosoftTeamsSubscribe
+                onLoadComplete={() => {
+                  onPageLoadComplete();
+                }}
+                allowSubscribersToChooseEventTypes={
+                  allowSubscriberToChooseEventTypes
+                }
+                pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route}
+                allowSubscribersToChooseResources={
+                  allowSubscribersToChooseResources
+                }
+                enableEmailSubscribers={enableEmailSubscribers}
+                enableSMSSubscribers={enableSMSSubscribers}
+                enableSlackSubscribers={enableSlackSubscribers}
+                enableMicrosoftTeamsSubscribers={enableMicrosoftTeamsSubscribers}
               />
             }
           />

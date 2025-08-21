@@ -11,6 +11,7 @@ export interface ComponentProps {
   enableEmailSubscribers: boolean;
   enableSMSSubscribers: boolean;
   enableSlackSubscribers: boolean;
+  enableMicrosoftTeamsSubscribers?: boolean;
 }
 
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
@@ -59,6 +60,21 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Slack}
+        />
+      ) : (
+        <></>
+      )}
+      {props.enableMicrosoftTeamsSubscribers ? (
+        <SideMenuItem
+          link={{
+            title: "Microsoft Teams",
+            to: RouteUtil.populateRouteParams(
+              props.isPreviewStatusPage
+                ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route)
+                : (RouteMap[PageMap.SUBSCRIBE_MICROSOFT_TEAMS] as Route),
+            ),
+          }}
+          icon={IconProp.MicrosoftTeams}
         />
       ) : (
         <></>

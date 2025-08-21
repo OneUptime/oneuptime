@@ -128,6 +128,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: `${RouteParams.ModelID}/email-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: `${RouteParams.ModelID}/sms-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS]: `${RouteParams.ModelID}/slack-subscribers`,
+  [PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS]: `${RouteParams.ModelID}/microsoft-teams-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: `${RouteParams.ModelID}/webhook-subscribers`,
   [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: `${RouteParams.ModelID}/header-style`,
   [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: `${RouteParams.ModelID}/footer-style`,
@@ -1078,6 +1079,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS]
     }`,
   ),
 

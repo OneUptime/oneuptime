@@ -49,6 +49,11 @@ const StatusPagesViewSlackSubscribers: LazyExoticComponent<
 > = lazy(() => {
   return import("../Pages/StatusPages/View/SlackSubscribers");
 });
+const StatusPagesViewMicrosoftTeamsSubscribers: LazyExoticComponent<
+  FunctionComponent<ComponentProps>
+> = lazy(() => {
+  return import("../Pages/StatusPages/View/MicrosoftTeamsSubscribers");
+});
 const StatusPagesViewWebhookSubscribers: LazyExoticComponent<
   FunctionComponent<ComponentProps>
 > = lazy(() => {
@@ -634,6 +639,22 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
                 {...props}
                 pageRoute={
                   RouteMap[PageMap.STATUS_PAGE_VIEW_SLACK_SUBSCRIBERS] as Route
+                }
+              />
+            </Suspense>
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS,
+          )}
+          element={
+            <Suspense fallback={Loader}>
+              <StatusPagesViewMicrosoftTeamsSubscribers
+                {...props}
+                pageRoute={
+                  RouteMap[PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS] as Route
                 }
               />
             </Suspense>

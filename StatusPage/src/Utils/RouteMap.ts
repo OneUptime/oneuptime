@@ -17,6 +17,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SUBSCRIBE_EMAIL]: new Route(`/subscribe/email`),
   [PageMap.SUBSCRIBE_SMS]: new Route(`/subscribe/sms`),
   [PageMap.SUBSCRIBE_SLACK]: new Route(`/subscribe/slack`),
+  [PageMap.SUBSCRIBE_MICROSOFT_TEAMS]: new Route(`/subscribe/microsoft-teams`),
   [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
   [PageMap.UPDATE_SUBSCRIPTION]: new Route(`/update-subscription/:id`),
   [PageMap.CONFIRM_SUBSCRIPTION]: new Route(`/confirm-subscription/:id`),
@@ -69,6 +70,10 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.PREVIEW_SUBSCRIBE_SLACK]: new Route(
     `/status-page/${RouteParams.StatusPageId}/subscribe/slack`,
+  ),
+
+  [PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS]: new Route(
+    `/status-page/${RouteParams.StatusPageId}/subscribe/microsoft-teams`,
   ),
 
   [PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS]: new Route(
