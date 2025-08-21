@@ -21,6 +21,7 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import logger from "../Utils/Logger";
 
 export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
@@ -147,6 +148,11 @@ export default class MicrosoftTeamsAPI {
         );
 
         if (tokenResp instanceof HTTPErrorResponse) {
+          
+          logger.error(
+            tokenResp.jsonData
+          );
+
           return Response.sendErrorResponse(
             req,
             res,
