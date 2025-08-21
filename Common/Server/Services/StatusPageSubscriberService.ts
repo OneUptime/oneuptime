@@ -388,16 +388,18 @@ Stay informed about service availability! 🚀`;
 
       logger.debug(`Slack Message: ${slackMessage}`);
 
-      try {
-        await SlackUtil.sendMessageToChannelViaIncomingWebhook({
+      
+        
+        SlackUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(createdItem.slackIncomingWebhookUrl.toString()),
           text: SlackUtil.convertMarkdownToSlackRichText(slackMessage),
+        }).then(()=>{
+          logger.debug("Slack notification sent successfully.");
+        }).catch((err: Error) => {
+          logger.error("Error sending Slack notification:");
+          logger.error(err);
         });
-        logger.debug("Slack notification sent successfully.");
-      } catch (error) {
-        logger.error("Error sending Slack notification:");
-        logger.error(error);
-      }
+       
     }
 
     // if Microsoft Teams incoming webhook is provided and sendYouHaveSubscribedMessage is true, then send a message to the Teams channel.
@@ -423,18 +425,18 @@ Stay informed about service availability! 🚀`;
 
       logger.debug(`Teams Message: ${teamsMessage}`);
 
-      try {
-        await MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
+      
+        MicrosoftTeamsUtil.sendMessageToChannelViaIncomingWebhook({
           url: URL.fromString(
             createdItem.microsoftTeamsIncomingWebhookUrl.toString(),
           ),
           text: teamsMessage,
+        }).then(()=>{
+          logger.debug("Microsoft Teams notification sent successfully.");
+        }).catch((err: Error) => {
+          logger.error("Error sending Microsoft Teams notification:");
+          logger.error(err);
         });
-        logger.debug("Microsoft Teams notification sent successfully.");
-      } catch (error) {
-        logger.error("Error sending Microsoft Teams notification:");
-        logger.error(error);
-      }
     }
 
     logger.debug("onCreateSuccess completed.");
