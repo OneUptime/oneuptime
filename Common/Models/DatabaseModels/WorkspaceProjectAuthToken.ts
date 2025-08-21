@@ -27,6 +27,12 @@ export interface SlackMiscData extends MiscData {
   botUserId: string;
 }
 
+export interface MicrosoftTeamsMiscData extends MiscData {
+  teamId: string;
+  teamName: string;
+  tenantId: string;
+}
+
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
