@@ -42,7 +42,7 @@ export default class MicrosoftTeamsAPI {
             "TeamMember.ReadWrite.All"
           ],
           redirectUris: [
-            `${AppApiClientUrl.toString()}/teams/auth/{projectId}/{userId}`
+            `${AppApiClientUrl.toString()}/api/teams/auth`
           ],
           environment_variables: {
             MICROSOFT_TEAMS_APP_CLIENT_ID: "Required - Your Azure AD App Client ID",
@@ -57,7 +57,7 @@ export default class MicrosoftTeamsAPI {
 
     // OAuth redirect for project install (admin installs app in a team)
     router.get(
-      "/teams/auth/:projectId/:userId",
+      "/teams/auth",
       async (req: ExpressRequest, res: ExpressResponse) => {
         if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
           return Response.sendErrorResponse(
@@ -69,13 +69,34 @@ export default class MicrosoftTeamsAPI {
           );
         }
 
-        const projectIdStr: string | undefined = req.params["projectId"];
-        const userIdStr: string | undefined = req.params["userId"];
-        if (!projectIdStr || !userIdStr) {
+        // Extract project_id and user_id from state parameter
+        const stateParam: string | undefined = req.query["state"]?.toString();
+        if (!stateParam) {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid request"),
+            new BadDataException("Missing state parameter"),
+          );
+        }
+
+        let projectIdStr: string;
+        let userIdStr: string;
+        let authType: string;
+        
+        try {
+          const stateData = JSON.parse(Buffer.from(stateParam, 'base64').toString());
+          projectIdStr = stateData.projectId;
+          userIdStr = stateData.userId;
+          authType = stateData.authType;
+          
+          if (!projectIdStr || !userIdStr || !authType) {
+            throw new Error("Invalid state data");
+          }
+        } catch (error) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid state parameter"),
           );
         }
 
@@ -103,7 +124,7 @@ export default class MicrosoftTeamsAPI {
         }
 
         const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/teams/auth/${projectIdStr}/${userIdStr}`,
+          `${AppApiClientUrl.toString()}/teams/auth`,
         );
 
         // Exchange code for tokens
@@ -146,136 +167,45 @@ export default class MicrosoftTeamsAPI {
           );
         }
 
-        // We use access token to fetch the primary team id and bot identity for storage
-        await WorkspaceProjectAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectIdStr),
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          authToken: accessToken,
-          workspaceProjectId: MicrosoftTenantId,
-          miscData: {
-            teamId: MicrosoftTenantId,
-            teamName: "Microsoft Teams",
-            tenantId: MicrosoftTenantId,
-          },
-        });
+        // Handle different auth types based on state parameter
+        if (authType === 'project') {
+          // Project-level installation - save both project and user auth tokens
+          await WorkspaceProjectAuthTokenService.refreshAuthToken({
+            projectId: new ObjectID(projectIdStr),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            authToken: accessToken,
+            workspaceProjectId: MicrosoftTenantId,
+            miscData: {
+              teamId: MicrosoftTenantId,
+              teamName: "Microsoft Teams",
+              tenantId: MicrosoftTenantId,
+            },
+          });
 
-        // Also save user auth for the installing user
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectIdStr),
-          userId: new ObjectID(userIdStr),
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          authToken: accessToken,
-          workspaceUserId: userIdStr,
-          miscData: {
-            userId: userIdStr,
-          },
-        });
-
-        return Response.redirect(req, res, settingsUrl);
-      },
-    );
-
-    // User-specific auth endpoint similar to Slack
-    router.get(
-      "/teams/auth/:projectId/:userId/user",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "Microsoft Teams App Client credentials are not set",
-            ),
-          );
+          // Also save user auth for the installing user
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: new ObjectID(projectIdStr),
+            userId: new ObjectID(userIdStr),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            authToken: accessToken,
+            workspaceUserId: userIdStr,
+            miscData: {
+              userId: userIdStr,
+            },
+          });
+        } else if (authType === 'user') {
+          // User-level authentication only
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: new ObjectID(projectIdStr),
+            userId: new ObjectID(userIdStr),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            authToken: accessToken,
+            workspaceUserId: userIdStr,
+            miscData: {
+              userId: userIdStr,
+            },
+          });
         }
-
-        const projectIdStr: string | undefined = req.params["projectId"];
-        const userIdStr: string | undefined = req.params["userId"];
-        if (!projectIdStr || !userIdStr) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid request"),
-          );
-        }
-
-        const error: string | undefined = req.query["error"]?.toString();
-        const code: string | undefined = req.query["code"]?.toString();
-
-        const settingsUrl: URL = URL.fromString(
-          `${DashboardClientUrl.toString()}/${projectIdStr.toString()}/settings/microsoft-teams-integration`,
-        );
-
-        if (error) {
-          return Response.redirect(
-            req,
-            res,
-            settingsUrl.addQueryParam("error", error),
-          );
-        }
-
-        if (!code) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Missing code"),
-          );
-        }
-
-        const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/teams/auth/${projectIdStr}/${userIdStr}/user`,
-        );
-
-        // Exchange code for tokens
-        const tokenResp:
-          | HTTPErrorResponse
-          | HTTPResponse<JSONObject> = await API.post(
-          URL.fromString(
-            `https://login.microsoftonline.com/${MicrosoftTenantId}/oauth2/v2.0/token`,
-          ),
-          {
-            client_id: MicrosoftTeamsAppClientId,
-            client_secret: MicrosoftTeamsAppClientSecret,
-            grant_type: "authorization_code",
-            code: code,
-            redirect_uri: redirectUri.toString(),
-          },
-          {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        );
-
-        if (tokenResp instanceof HTTPErrorResponse) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Error from Microsoft: " + tokenResp.message),
-          );
-        }
-
-        const accessToken: string | undefined = (tokenResp.jsonData as JSONObject)[
-          "access_token"
-        ] as string;
-
-        if (!accessToken) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("No access token from Microsoft"),
-          );
-        }
-
-        // Save user auth token
-        await WorkspaceUserAuthTokenService.refreshAuthToken({
-          projectId: new ObjectID(projectIdStr),
-          userId: new ObjectID(userIdStr),
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          authToken: accessToken,
-          workspaceUserId: userIdStr, // This should be the actual Teams user ID
-          miscData: {
-            userId: userIdStr,
-          },
-        });
 
         return Response.redirect(req, res, settingsUrl);
       },

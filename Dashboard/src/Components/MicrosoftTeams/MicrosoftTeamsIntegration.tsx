@@ -217,7 +217,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const redirectUri: string = `${APP_API_URL}/teams/auth/${projectId.toString()}/${userId.toString()}`;
+      const redirectUri: string = `${APP_API_URL}/teams/auth`;
 
       // Required scopes for Teams integration
       const scopes: Array<string> = [
@@ -229,15 +229,30 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       ];
 
       const project_install_redirect_uri: string = redirectUri;
-      const user_signin_redirect_uri: string = `${APP_API_URL}/teams/auth/${projectId.toString()}/${userId.toString()}/user`;
+      const user_signin_redirect_uri: string = redirectUri;
+
+      // Create state parameter to pass project_id and user_id
+      const stateData = {
+        projectId: projectId.toString(),
+        userId: userId.toString(),
+        authType: 'project'
+      };
+      const stateParam = btoa(JSON.stringify(stateData));
+
+      const userStateData = {
+        projectId: projectId.toString(),
+        userId: userId.toString(),
+        authType: 'user'
+      };
+      const userStateParam = btoa(JSON.stringify(userStateData));
 
       if (!isProjectAccountConnected) {
         // Project-level installation
-        const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(project_install_redirect_uri)}&scope=${encodeURIComponent(scopes.join(" "))}&response_mode=query`;
+        const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(project_install_redirect_uri)}&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(stateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(authUrl));
       } else {
         // User-level authentication only  
-        const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(["https://graph.microsoft.com/User.Read"].join(" "))}&response_mode=query`;
+        const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(["https://graph.microsoft.com/User.Read"].join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(userAuthUrl));
       }
     } else {

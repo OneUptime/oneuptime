@@ -22,7 +22,7 @@ Microsoft Teams is not connected to OneUptime. Here are the steps you need to fo
 4. Fill in the application details:
    - **Name**: OneUptime Integration
    - **Supported account types**: Accounts in any organizational directory (Any Azure AD directory - Multitenant)
-   - **Redirect URI**: Select "Web" and add: \`${window.location.origin}/api/teams/auth/PROJECT_ID/USER_ID\`
+   - **Redirect URI**: Select "Web" and add: \`${window.location.origin}/api/teams/auth\`
 5. Click **Register**
 
 ##### Step 2: Configure App Permissions
