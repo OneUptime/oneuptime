@@ -34,7 +34,7 @@ export default class MicrosoftTeamsAPI {
         // return basic manifest information for Teams app setup
         const manifest: JSONObject = {
           name: "OneUptime Teams Integration",
-          description: "OneUptime integration for Microsoft Teams",
+          description: "OneUptime integration for Microsoft Teams (Multi-tenant)",
           permissions: [
             "Team.ReadBasic.All",
             "Channel.ReadBasic.All", 
@@ -48,7 +48,17 @@ export default class MicrosoftTeamsAPI {
           environment_variables: {
             MICROSOFT_TEAMS_APP_CLIENT_ID: "Required - Your Azure AD App Client ID",
             MICROSOFT_TEAMS_APP_CLIENT_SECRET: "Required - Your Azure AD App Client Secret",
-            MICROSOFT_TENANT_ID: "Required - Your Azure AD Tenant ID or 'common'"
+            MICROSOFT_TENANT_ID: "Optional - Set to 'common' for multi-tenant (default) or specific tenant ID"
+          },
+          setup_instructions: {
+            azure_ad_app_registration: [
+              "1. Go to Azure Portal > App Registrations > New Registration",
+              "2. Set 'Supported account types' to 'Accounts in any organizational directory (Any Azure AD directory - Multitenant)'",
+              "3. Add redirect URI: " + AppApiClientUrl.toString() + "/api/teams/auth",
+              "4. In 'API permissions', add Microsoft Graph permissions listed above",
+              "5. Generate a client secret and copy the client ID and secret",
+              "6. Set MICROSOFT_TENANT_ID to 'common' for multi-tenant support"
+            ]
           }
         };
 
@@ -128,12 +138,12 @@ export default class MicrosoftTeamsAPI {
           `${AppApiClientUrl.toString()}/teams/auth`,
         );
 
-        // Exchange code for tokens
+        // Exchange code for tokens - use 'common' endpoint for multi-tenant support
         const tokenResp:
           | HTTPErrorResponse
           | HTTPResponse<JSONObject> = await API.post(
           URL.fromString(
-            `https://login.microsoftonline.com/${MicrosoftTenantId}/oauth2/v2.0/token`,
+            `https://login.microsoftonline.com/common/oauth2/v2.0/token`,
           ),
           {
             client_id: MicrosoftTeamsAppClientId,
@@ -164,6 +174,10 @@ export default class MicrosoftTeamsAPI {
         const accessToken: string | undefined = (tokenResp.jsonData as JSONObject)[
           "access_token"
         ] as string;
+        
+        const idToken: string | undefined = (tokenResp.jsonData as JSONObject)[
+          "id_token"
+        ] as string;
 
         if (!accessToken) {
           return Response.sendErrorResponse(
@@ -173,6 +187,45 @@ export default class MicrosoftTeamsAPI {
           );
         }
 
+        // Extract tenant information from the ID token
+        let tenantId: string = MicrosoftTenantId || "common";
+        let tenantName: string = "Microsoft Teams";
+        let teamId: string = tenantId;
+
+        if (idToken) {
+          try {
+            // Decode JWT payload (second part after splitting by '.')
+            const tokenParts = idToken.split('.');
+            if (tokenParts.length >= 2 && tokenParts[1]) {
+              const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+              
+              // Extract tenant information from token claims
+              if (payload.tid) {
+                tenantId = payload.tid;
+                teamId = payload.tid;
+              }
+              
+              // Try to get tenant name from various claims
+              if (payload.tenant_name) {
+                tenantName = payload.tenant_name;
+              } else if (payload.tenant_display_name) {
+                tenantName = payload.tenant_display_name;
+              } else if (payload.iss && payload.iss.includes('/')) {
+                // Extract tenant ID from issuer if available
+                const issuerParts = payload.iss.split('/');
+                const issuerTenantId = issuerParts[issuerParts.length - 2];
+                if (issuerTenantId && issuerTenantId !== 'common') {
+                  tenantId = issuerTenantId;
+                  teamId = issuerTenantId;
+                }
+              }
+            }
+          } catch (error) {
+            logger.error("Error decoding ID token: " + (error as Error).message);
+            // Continue with default values
+          }
+        }
+
         // Handle different auth types based on state parameter
         if (authType === 'project') {
           // Project-level installation - save both project and user auth tokens
@@ -180,11 +233,11 @@ export default class MicrosoftTeamsAPI {
             projectId: new ObjectID(projectIdStr),
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: accessToken,
-            workspaceProjectId: MicrosoftTenantId,
+            workspaceProjectId: tenantId,
             miscData: {
-              teamId: MicrosoftTenantId,
-              teamName: "Microsoft Teams",
-              tenantId: MicrosoftTenantId,
+              teamId: teamId,
+              teamName: tenantName,
+              tenantId: tenantId,
             },
           });
 
@@ -197,6 +250,7 @@ export default class MicrosoftTeamsAPI {
             workspaceUserId: userIdStr,
             miscData: {
               userId: userIdStr,
+              tenantId: tenantId,
             },
           });
         } else if (authType === 'user') {
@@ -209,6 +263,7 @@ export default class MicrosoftTeamsAPI {
             workspaceUserId: userIdStr,
             miscData: {
               userId: userIdStr,
+              tenantId: tenantId,
             },
           });
         }
