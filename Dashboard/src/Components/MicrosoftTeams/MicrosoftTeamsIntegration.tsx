@@ -38,6 +38,7 @@ export interface ComponentProps {
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  
   const [error, setError] = React.useState<ReactElement | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isUserAccountConnected, setIsUserAccountConnected] =
