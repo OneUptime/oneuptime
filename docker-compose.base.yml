@@ -71,6 +71,8 @@ x-common-variables: &common-variables
     OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
 
     SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
+    
+    MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
 
 x-common-ui-variables: &common-ui-variables
     <<: *common-variables   
@@ -131,6 +133,9 @@ x-common-server-variables: &common-server-variables
 
     SLACK_APP_CLIENT_SECRET: ${SLACK_APP_CLIENT_SECRET}
     SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
+
+    MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
+    MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID}
 
 services:
 
