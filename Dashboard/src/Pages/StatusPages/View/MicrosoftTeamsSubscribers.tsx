@@ -138,7 +138,7 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<PageComponentProps>
         description: "Status page updates will be sent to this Teams channel.",
         fieldType: FormFieldSchemaType.URL,
         required: true,
-        placeholder: "https://outlook.office.com/webhook/...",
+        placeholder: "https://xxxxx.office.com/webhook/...",
         disableSpellCheck: true,
       },
       {

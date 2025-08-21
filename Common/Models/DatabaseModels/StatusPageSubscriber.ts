@@ -392,14 +392,14 @@ export default class StatusPageSubscriber extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortURL,
+    type: TableColumnType.LongURL,
     title: "Microsoft Teams Incoming Webhook URL",
     description:
       "Microsoft Teams incoming webhook URL to send notifications to Teams channel",
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortURL,
+    type: ColumnType.LongURL,
     transformer: URL.getDatabaseTransformer(),
   })
   public microsoftTeamsIncomingWebhookUrl?: URL = undefined;
