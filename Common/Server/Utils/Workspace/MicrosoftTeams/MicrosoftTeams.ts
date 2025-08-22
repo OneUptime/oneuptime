@@ -643,20 +643,57 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
-    for (let channelName of data.workspaceMessagePayload.channelNames) {
-      const ch: WorkspaceChannel | undefined =
-        existingWorkspaceChannels[channelName];
-      if (ch) {
-        workspaceChannelsToPostTo.push(ch);
+    // Helper to sanitize channel name similar to Slack normalization
+    const sanitizeChannelName = (name: string): string => {
+      return name
+        .trim()
+        .replace(/^#/, "") // remove leading '#'
+        .replace(/\s+/g, "-") // spaces to dashes
+        .toLowerCase();
+    };
+
+    const requestedChannelNames: Array<string> = data.workspaceMessagePayload.channelNames || [];
+    logger.debug(
+      `MicrosoftTeamsUtil.sendMessage requested channel names (raw): ${JSON.stringify(requestedChannelNames)}`,
+    );
+
+    for (let channelName of requestedChannelNames) {
+      const sanitized: string = sanitizeChannelName(channelName);
+      const directMatch: WorkspaceChannel | undefined = existingWorkspaceChannels[channelName];
+      const sanitizedMatch: WorkspaceChannel | undefined = existingWorkspaceChannels[sanitized];
+
+      if (directMatch) {
+        workspaceChannelsToPostTo.push(directMatch);
+        logger.debug(
+          `Matched Teams channel by direct name '${channelName}' -> id: ${directMatch.id}`,
+        );
+      } else if (sanitizedMatch) {
+        workspaceChannelsToPostTo.push(sanitizedMatch);
+        logger.debug(
+          `Matched Teams channel by sanitized name '${sanitized}' (original '${channelName}') -> id: ${sanitizedMatch.id}`,
+        );
+      } else {
+        logger.error(
+          `Teams channel not found for requested name '${channelName}' (sanitized '${sanitized}'). Available channels: ${Object.keys(existingWorkspaceChannels).join(",")}`,
+        );
       }
     }
 
     for (const channelId of data.workspaceMessagePayload.channelIds) {
-      const ch: WorkspaceChannel = await this.getWorkspaceChannelFromChannelId({
-        authToken: data.authToken,
-        channelId: channelId,
-      });
-      workspaceChannelsToPostTo.push(ch);
+      try {
+        const ch: WorkspaceChannel = await this.getWorkspaceChannelFromChannelId({
+          authToken: data.authToken,
+          channelId: channelId,
+        });
+        workspaceChannelsToPostTo.push(ch);
+        logger.debug(
+          `Matched Teams channel by ID '${channelId}' -> name: ${ch.name}`,
+        );
+      } catch (err) {
+        logger.error(
+          `Unable to resolve Teams channel id '${channelId}': ${(err as Error).message}`,
+        );
+      }
     }
 
     const response: WorkspaceSendMessageResponse = {

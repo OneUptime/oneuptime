@@ -174,7 +174,15 @@ export default class MicrosoftTeamsAPI {
         const accessToken: string | undefined = (tokenResp.jsonData as JSONObject)[
           "access_token"
         ] as string;
-        
+
+        const refreshToken: string | undefined = (tokenResp.jsonData as JSONObject)[
+          "refresh_token"
+        ] as string;
+
+        const expiresIn: number | undefined = (tokenResp.jsonData as JSONObject)[
+          "expires_in"
+        ] as number; // seconds
+
         const idToken: string | undefined = (tokenResp.jsonData as JSONObject)[
           "id_token"
         ] as string;
@@ -227,6 +235,10 @@ export default class MicrosoftTeamsAPI {
         }
 
         // Handle different auth types based on state parameter
+        const tokenExpiryDate: string | undefined = expiresIn
+          ? new Date(Date.now() + (expiresIn - 60) * 1000).toISOString() // subtract 60s buffer
+          : undefined;
+
         if (authType === 'project') {
           // Project-level installation - save both project and user auth tokens
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
@@ -238,11 +250,13 @@ export default class MicrosoftTeamsAPI {
               teamId: teamId,
               teamName: tenantName,
               tenantId: tenantId,
+              refreshToken: refreshToken || "",
+              tokenExpiresAt: tokenExpiryDate || "",
             },
           });
 
           // Also save user auth for the installing user
-          await WorkspaceUserAuthTokenService.refreshAuthToken({
+      await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectIdStr),
             userId: new ObjectID(userIdStr),
             workspaceType: WorkspaceType.MicrosoftTeams,
@@ -251,6 +265,8 @@ export default class MicrosoftTeamsAPI {
             miscData: {
               userId: userIdStr,
               tenantId: tenantId,
+        refreshToken: refreshToken || "",
+        tokenExpiresAt: tokenExpiryDate || "",
             },
           });
         } else if (authType === 'user') {
@@ -264,6 +280,8 @@ export default class MicrosoftTeamsAPI {
             miscData: {
               userId: userIdStr,
               tenantId: tenantId,
+        refreshToken: refreshToken || "",
+        tokenExpiresAt: tokenExpiryDate || "",
             },
           });
         }

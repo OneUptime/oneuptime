@@ -11,12 +11,33 @@ export default class Exception extends Error {
     this._code = value;
   }
 
-  public constructor(code: ExceptionCode, message: string) {
-    super(message);
+  public constructor(code: ExceptionCode, message: unknown) {
+    super(Exception.formatMessage(message));
     this.code = code;
   }
 
   public getMessage(): string {
     return this.message;
+  }
+
+  // Normalizes unknown message types to a string to avoid `[object Object]` in API responses.
+  private static formatMessage(message: unknown): string {
+    if (message === undefined || message === null) {
+      return "An error occurred"; // generic fallback
+    }
+    if (typeof message === "string") {
+      return message;
+    }
+    if (message instanceof Error) {
+      const base: string = message.message || message.toString();
+      return message.name && !base.startsWith(message.name)
+        ? `${message.name}: ${base}`
+        : base;
+    }
+    try {
+      return JSON.stringify(message);
+    } catch (_) {
+      return Object.prototype.toString.call(message);
+    }
   }
 }

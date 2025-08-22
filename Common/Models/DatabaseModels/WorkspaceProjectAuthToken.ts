@@ -31,6 +31,9 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   teamId: string;
   teamName: string;
   tenantId: string;
+  // Below fields are optional and used for refreshing access tokens.
+  refreshToken?: string; // Microsoft OAuth refresh token
+  tokenExpiresAt?: string; // ISO date string of when current access token expires
 }
 
 @TenantColumn("projectId")
