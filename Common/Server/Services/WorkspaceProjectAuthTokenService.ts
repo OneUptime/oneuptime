@@ -65,6 +65,29 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async getByAuthToken(data: {
+    authToken: string;
+    workspaceType: WorkspaceType;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        authToken: data.authToken,
+        workspaceType: data.workspaceType,
+      },
+      select: {
+        authToken: true,
+        workspaceProjectId: true,
+        miscData: true,
+        projectId: true,
+        workspaceType: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
