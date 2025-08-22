@@ -405,6 +405,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           eventType: props.eventType,
+          // Ensure we only fetch rules for the current workspace (Slack / MicrosoftTeams)
+          workspaceType: props.workspaceType,
         }}
         userPreferencesKey="workspace-notification-rules-table"
         actionButtons={[
