@@ -22,6 +22,28 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
+  // Very small markdown subset -> HTML for Teams message body.
+  // Teams message body (Graph API /messages) supports basic HTML tags like <b>, <i>, <code>, <br/>.
+  // We intentionally keep this lightweight to avoid bringing full markdown parser server-side for Teams path.
+  private static convertMarkdownToTeamsHTMLIfNeeded(text: string): string {
+    if (!text) {
+      return text;
+    }
+    let html: string = text;
+    // Escape existing '<' to avoid injection, but allow basic tags we add later.
+    html = html.replace(/</g, "&lt;");
+    // Bold **text** or __text__ -> <b>text</b>
+    html = html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    html = html.replace(/__(.+?)__/g, "<b>$1</b>");
+    // Italic *text* or _text_ (avoid converting inside bold we already processed). Use negative lookahead/lookbehind basics.
+    html = html.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, "<i>$1</i>");
+  html = html.replace(/(^|\s)_([^_]+)_/g, (_match: string, p1: string, p2: string) => `${p1}<i>${p2}</i>`);
+    // Inline code `code`
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Replace line breaks with <br/>
+    html = html.replace(/\r?\n/g, "<br/>");
+    return html;
+  }
   public static isValidMicrosoftTeamsIncomingWebhookUrl(
     incomingWebhookUrl: URL,
   ): boolean {
@@ -586,22 +608,45 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     blocks: Array<JSONObject>;
   }): Promise<WorkspaceThread> {
     const teamId: string = await this.getTeamIdFromAuthToken(data.authToken);
+    logger.debug("Teams sendPayloadBlocksToChannel: raw blocks:");
+    logger.debug(JSON.stringify(data.blocks, null, 2));
 
-    // Convert blocks to simple HTML content by concatenating markdown texts
+    // Build HTML content from blocks. We expect block shapes produced by getMarkdownBlock/getHeaderBlock etc.
     const texts: Array<string> = [];
     for (const block of data.blocks) {
-      const textCandidate: string | undefined = (block as JSONObject)["text"]
-        ? (((block as JSONObject)["text"] as JSONObject)["text"] as string)
-        : undefined;
-      if (textCandidate) {
-        texts.push(textCandidate);
+      try {
+        const b: JSONObject = block as JSONObject;
+        // Standard Adaptive Card-like TextBlock shape: { type: 'TextBlock', text: '...' }
+        if (typeof b["text"] === "string") {
+          const val: string = (b["text"] as string).trim();
+            if (val) {
+              texts.push(this.convertMarkdownToTeamsHTMLIfNeeded(val));
+            }
+          continue;
+        }
+        // Fallback nested case: { text: { text: '...' } }
+        if (b["text"] && typeof b["text"] === "object") {
+          const inner: unknown = (b["text"] as JSONObject)["text"];
+          if (typeof inner === "string" && inner.trim()) {
+            texts.push(this.convertMarkdownToTeamsHTMLIfNeeded(inner.trim()));
+          }
+        }
+      } catch (err) {
+        logger.error("Error parsing Teams block text: " + (err as Error).message);
       }
     }
-    const content: string = texts.join("\n\n");
+
+    let content: string = texts.join("<br/><br/>");
+    if (!content || content.trim().length === 0) {
+      content = "(No content)"; // Avoid Graph 400 "Missing body content"
+    }
+
+    logger.debug("Teams sendPayloadBlocksToChannel: final HTML content:");
+    logger.debug(content);
     const body: JSONObject = {
       body: {
         contentType: "html",
-        content: content.replace(/\n/g, "<br/>") || "",
+        content: content,
       },
     } as unknown as JSONObject;
 
@@ -617,15 +662,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       },
     );
     if (resp instanceof HTTPErrorResponse) {
+      logger.error("Teams sendPayloadBlocksToChannel: error response from Graph API");
+      logger.error(resp);
       throw resp;
     }
-    const messageId: string | undefined = (resp.jsonData as JSONObject)[
-      "id"
-    ] as string;
-    return {
-      channel: data.workspaceChannel,
-      threadId: messageId || "",
-    };
+    const messageId: string | undefined = (resp.jsonData as JSONObject)["id"] as string | undefined;
+    if (!messageId) {
+      logger.error("Teams sendPayloadBlocksToChannel: message ID missing in Graph response");
+    } else {
+      logger.debug(`Teams sendPayloadBlocksToChannel: message posted. ID: ${messageId}`);
+    }
+    return { channel: data.workspaceChannel, threadId: messageId || "" };
   }
 
   @CaptureSpan()
