@@ -134,7 +134,7 @@ export default class Markdown {
       // Code block (override)
       renderer.code = function (code, language) {
         const langClass = language ? `language-${language}` : "";
-        return `<div class="my-6 group relative"><pre class="${langClass} overflow-x-auto rounded-xl bg-gray-900 text-gray-100 p-4 text-sm leading-6"><code class="${langClass}">${code}</code></pre></div>`;
+        return `<div class="my-6 group relative"><pre class="${langClass}"><code class="${langClass}">${code}</code></pre></div>`;
       };
 
       // Inline code
