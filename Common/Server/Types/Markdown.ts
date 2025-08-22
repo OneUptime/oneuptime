@@ -139,6 +139,13 @@ export default class Markdown {
 
       // Inline code
       renderer.codespan = function (code) {
+        // Remove accidental wrapping backticks if they leaked through (e.g., `` `config.env` ``)
+        if (code.startsWith('`') && code.endsWith('`')) {
+          const inner: string = code.slice(1, -1);
+          if (!inner.includes('`')) {
+            code = inner;
+          }
+        }
         return `<code class="mx-0.5 rounded-md bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[0.85em] font-medium text-pink-600 dark:text-pink-400">${code}</code>`;
       };
 
@@ -291,6 +298,12 @@ export default class Markdown {
 
     // Inline code
     renderer.codespan = function (code) {
+      if (code.startsWith('`') && code.endsWith('`')) {
+        const inner: string = code.slice(1, -1);
+        if (!inner.includes('`')) {
+          code = inner;
+        }
+      }
       return `<code class="rounded-md bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600">${code}</code>`;
     };
 
