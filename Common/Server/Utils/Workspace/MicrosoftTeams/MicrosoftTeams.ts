@@ -20,8 +20,37 @@ import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
+import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import MicrosoftTeamsTokenRefresher from "./MicrosoftTeamsTokenRefresher";
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
+  // Attempt to refresh a stored project access token (not user token) if it's near expiry.
+  private static async getRefreshedProjectAccessTokenIfPossible(
+    token: string,
+  ): Promise<string> {
+    try {
+      const projectAuth = await WorkspaceProjectAuthTokenService.getByAuthToken({
+        authToken: token,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+      if (!projectAuth) {
+        return token; // Likely a user-scoped token; refresh logic currently only implemented for project token.
+      }
+      const refreshed = await MicrosoftTeamsTokenRefresher.refreshProjectAuthTokenIfExpired({
+        projectAuthToken: projectAuth,
+      });
+      if (refreshed.authToken && refreshed.authToken !== token) {
+        logger.debug("MicrosoftTeamsUtil: auto-refreshed project access token.");
+        return refreshed.authToken;
+      }
+    } catch (err) {
+      logger.error(
+        "MicrosoftTeamsUtil: token refresh attempt failed: " +
+          (err as Error).message,
+      );
+    }
+    return token;
+  }
   // Very small markdown subset -> HTML for Teams message body.
   // Teams message body (Graph API /messages) supports basic HTML tags like <b>, <i>, <code>, <br/>.
   // We intentionally keep this lightweight to avoid bringing full markdown parser server-side for Teams path.
@@ -186,6 +215,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   private static async getTeamIdFromAuthToken(token: string): Promise<string> {
+  // Ensure we use a refreshed project token if available.
+  token = await this.getRefreshedProjectAccessTokenIfPossible(token);
     // We attempt to get the first joined team for this token. In a future update, we can persist a selected team.
     const resp: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(
       URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
@@ -242,6 +273,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static override async getAllWorkspaceChannels(data: {
     authToken: string;
   }): Promise<Dictionary<WorkspaceChannel>> {
+    data.authToken = await this.getRefreshedProjectAccessTokenIfPossible(
+      data.authToken,
+    );
     const channels: Dictionary<WorkspaceChannel> = {};
     const teamId: string = await this.getTeamIdFromAuthToken(data.authToken);
 
@@ -290,6 +324,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
   }): Promise<WorkspaceChannel> {
+    data.authToken = await this.getRefreshedProjectAccessTokenIfPossible(
+      data.authToken,
+    );
     const teamId: string = await this.getTeamIdFromAuthToken(data.authToken);
     const body: JSONObject = {
       displayName: data.channelName,
@@ -341,6 +378,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelId: string;
   }): Promise<WorkspaceChannel> {
+    data.authToken = await this.getRefreshedProjectAccessTokenIfPossible(
+      data.authToken,
+    );
     const teamId: string = await this.getTeamIdFromAuthToken(data.authToken);
     const resp: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get(
       URL.fromString(
@@ -607,6 +647,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
   }): Promise<WorkspaceThread> {
+    data.authToken = await this.getRefreshedProjectAccessTokenIfPossible(
+      data.authToken,
+    );
     const teamId: string = await this.getTeamIdFromAuthToken(data.authToken);
     logger.debug("Teams sendPayloadBlocksToChannel: raw blocks:");
     logger.debug(JSON.stringify(data.blocks, null, 2));
@@ -681,6 +724,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     userId: string;
   }): Promise<WorkspaceSendMessageResponse> {
+    data.authToken = await this.getRefreshedProjectAccessTokenIfPossible(
+      data.authToken,
+    );
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       data.workspaceMessagePayload,
     );
