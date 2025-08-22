@@ -12,6 +12,9 @@ import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
   WorkspaceModalBlock,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadHeader,
+  WorkspacePayloadButtons,
+  WorkspaceMessagePayloadButton,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import Dictionary from "../../../../Types/Dictionary";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -28,6 +31,79 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       urlStr.includes("webhook.office.com/") ||
       urlStr.startsWith("https://outlook.office.com/webhook/")
     );
+  }
+
+  // ---------------- Block Builders (Adaptive Card JSON) ----------------
+  // These override the abstract WorkspaceBase implementations. Without these
+  // Teams notifications that include these block types throw NotImplementedException.
+
+  @CaptureSpan()
+  public static override getMarkdownBlock(data: {
+    payloadMarkdownBlock: WorkspacePayloadMarkdown;
+  }): JSONObject {
+    return {
+      type: "TextBlock",
+      text: data.payloadMarkdownBlock.text || "",
+      wrap: true,
+    } as JSONObject;
+  }
+
+  @CaptureSpan()
+  public static override getHeaderBlock(data: {
+    payloadHeaderBlock: WorkspacePayloadHeader;
+  }): JSONObject {
+    return {
+      type: "TextBlock",
+      text: `**${data.payloadHeaderBlock.text || ""}**`,
+      size: "Large",
+      weight: "Bolder",
+      wrap: true,
+      spacing: "Medium",
+    } as JSONObject;
+  }
+
+  @CaptureSpan()
+  public static override getDividerBlock(): JSONObject {
+    // Adaptive Cards do not have a dedicated divider element until v1.6 ("ActionSet" separator etc.).
+    // Use an empty TextBlock with separator to visually separate sections.
+    return {
+      type: "TextBlock",
+      text: "",
+      separator: true,
+      spacing: "Medium",
+    } as JSONObject;
+  }
+
+  @CaptureSpan()
+  public static override getButtonsBlock(data: {
+    payloadButtonsBlock: WorkspacePayloadButtons;
+  }): JSONObject {
+    const actions: Array<JSONObject> = data.payloadButtonsBlock.buttons.map(
+      (btn: WorkspaceMessagePayloadButton): JSONObject => {
+        if (btn.url) {
+          return {
+            type: "Action.OpenUrl",
+            title: btn.title,
+            url: btn.url.toString(),
+          } as JSONObject;
+        }
+
+        // Action.Submit can carry arbitrary data back in invoke payload
+        return {
+          type: "Action.Submit",
+          title: btn.title,
+          data: {
+            actionId: btn.actionId,
+            value: btn.value,
+          },
+        } as JSONObject;
+      },
+    );
+
+    return {
+      type: "ActionSet",
+      actions: actions,
+    } as JSONObject;
   }
 
   @CaptureSpan()
