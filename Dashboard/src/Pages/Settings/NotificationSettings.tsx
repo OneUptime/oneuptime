@@ -80,7 +80,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         name="Enable Notifications"
         cardProps={{
           title: "Enable Notifications",
-          description: "Enable Call and SMS notifications for this project.",
+          description: "Enable Call, SMS, and WhatsApp notifications for this project.",
         }}
         isEditable={true}
         editButtonText="Edit Notification Settings"
@@ -102,6 +102,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Enable SMS Notifications",
             description:
               "Enable SMS notifications for this project. This will be used for alerting users by sending an SMS.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              enableWhatsAppNotifications: true,
+            },
+            title: "Enable WhatsApp Notifications",
+            description:
+              "Enable WhatsApp notifications for this project. This will be used for alerting users by WhatsApp.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
