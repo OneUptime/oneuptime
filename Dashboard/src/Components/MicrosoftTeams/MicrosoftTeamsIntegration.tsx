@@ -25,14 +25,24 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
+import { JSONObject } from "Common/Types/JSON";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import Modal from "Common/UI/Components/Modal/Modal";
+import Button from "Common/UI/Components/Button/Button";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
+}
+
+export interface TeamsTeam {
+  id: string;
+  displayName: string;
+  description?: string;
 }
 
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
@@ -51,6 +61,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [teamsTeamName, setTeamsTeamName] = React.useState<string | null>(null);
+  const [currentTeamId, setCurrentTeamId] = React.useState<string | null>(null);
+  const [availableTeams, setAvailableTeams] = React.useState<TeamsTeam[]>([]);
+  const [showTeamPicker, setShowTeamPicker] = React.useState<boolean>(false);
+  const [isLoadingTeams, setIsLoadingTeams] = React.useState<boolean>(false);
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -59,6 +73,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       props.onDisconnected();
     }
   }, [isProjectAccountConnected, props]);
+
+  useEffect(() => {
+    // Fetch available teams when user is connected
+    if (isUserAccountConnected && userAuthTokenId) {
+      fetchAvailableTeams().catch((err) => {
+        console.error("Failed to fetch teams:", err);
+      });
+    }
+  }, [isUserAccountConnected, userAuthTokenId]);
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -86,11 +109,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
-        const teamsTeamName: string | undefined = (
-          projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData
-        ).teamName;
+        const miscData = projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData;
+        const teamsTeamName: string | undefined = miscData.teamName;
+        const teamId: string | undefined = miscData.teamId;
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
         setTeamsTeamName(teamsTeamName || 'Microsoft Teams');
+        setCurrentTeamId(teamId || null);
       }
 
       // fetch user auth token.
@@ -119,6 +143,83 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setError(<div>{API.getFriendlyErrorMessage(error as Error)}</div>);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAvailableTeams: PromiseVoidFunction = async (): Promise<void> => {
+    if (!userAuthTokenId) return;
+    
+    try {
+      setIsLoadingTeams(true);
+      setError(null);
+      
+      const response = await API.post<JSONObject>(
+        URL.fromString(APP_API_URL.toString()).addRoute("/teams/get-teams"),
+        {
+          userAuthTokenId: userAuthTokenId.toString(),
+        },
+        {
+          ...API.getDefaultHeaders(),
+        }
+      );
+
+      if (response.data && (response.data as JSONObject)["teams"] && Array.isArray((response.data as JSONObject)["teams"])) {
+        setAvailableTeams(((response.data as JSONObject)["teams"] as unknown) as TeamsTeam[]);
+      }
+    } catch (error) {
+      setError(
+        <div>Failed to fetch teams: {API.getFriendlyErrorMessage(error as Exception)}</div>
+      );
+    } finally {
+      setIsLoadingTeams(false);
+    }
+  };
+
+  const selectTeam = async (team: TeamsTeam): Promise<void> => {
+    if (!projectAuthTokenId) return;
+    
+    try {
+      setIsButtonLoading(true);
+      setError(null);
+
+      // Get current misc data to preserve existing values
+      const currentAuth = await ModelAPI.getItem({
+        modelType: WorkspaceProjectAuthToken,
+        id: projectAuthTokenId,
+        select: { miscData: true },
+      });
+
+      if (!currentAuth) {
+        throw new BadDataException("Could not find project authentication token");
+      }
+
+      const currentMiscData = (currentAuth.miscData as MicrosoftTeamsMiscData) || {};
+      
+      // Update the project auth token with the selected team
+      const updatedMiscData: MicrosoftTeamsMiscData = {
+        ...currentMiscData,
+        teamId: team.id,
+        teamName: team.displayName,
+        tenantId: currentMiscData.tenantId || "common", // Preserve existing tenantId or use default
+      };
+
+      await ModelAPI.updateById({
+        modelType: WorkspaceProjectAuthToken,
+        id: projectAuthTokenId,
+        data: {
+          miscData: updatedMiscData,
+        },
+      });
+
+      setCurrentTeamId(team.id);
+      setTeamsTeamName(team.displayName);
+      setShowTeamPicker(false);
+    } catch (error) {
+      setError(
+        <div>Failed to select team: {API.getFriendlyErrorMessage(error as Exception)}</div>
+      );
+    } finally {
+      setIsButtonLoading(false);
     }
   };
 
@@ -157,6 +258,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     cardTitle = `You are connected with ${teamsTeamName} on Microsoft Teams`;
     cardDescription = `Your account is already connected with Microsoft Teams.`;
     cardButtons = [
+      {
+        title: `Change Team`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: async () => {
+          setShowTeamPicker(true);
+        },
+        icon: IconProp.Settings,
+      },
       {
         title: `Disconnect`,
         isLoading: isButtonLoading,
@@ -348,6 +458,58 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           buttons={cardButtons}
         />
       </div>
+      
+      {showTeamPicker && (
+        <Modal
+          title="Select Microsoft Teams Team"
+          description="Choose which Microsoft Teams team to connect to OneUptime"
+          isLoading={isLoadingTeams}
+          onClose={() => setShowTeamPicker(false)}
+          submitButtonText="Close"
+          onSubmit={() => setShowTeamPicker(false)}
+        >
+          <div className="space-y-3">
+            {isLoadingTeams && <PageLoader isVisible={true} />}
+            {!isLoadingTeams && availableTeams.length === 0 && (
+              <div className="text-center py-4 text-gray-500">
+                No teams found. Please ensure you're a member of at least one Microsoft Teams team.
+              </div>
+            )}
+            {!isLoadingTeams && availableTeams.map((team) => (
+              <div
+                key={team.id}
+                className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  currentTeamId === team.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                }`}
+                onClick={() => selectTeam(team)}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">{team.displayName}</h3>
+                    {team.description && (
+                      <p className="text-sm text-gray-500 mt-1">{team.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {currentTeamId === team.id && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Current
+                      </span>
+                    )}
+                    <Button
+                      title={currentTeamId === team.id ? "Selected" : "Select"}
+                      buttonStyle={currentTeamId === team.id ? ButtonStyleType.SUCCESS : ButtonStyleType.PRIMARY}
+                      onClick={() => selectTeam(team)}
+                      isLoading={isButtonLoading}
+                      disabled={currentTeamId === team.id}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
     </Fragment>
   );
 };

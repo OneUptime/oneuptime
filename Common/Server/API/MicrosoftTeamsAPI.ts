@@ -290,6 +290,87 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
+    // Endpoint to get available teams for a user
+    router.post(
+      "/teams/get-teams",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const userAuthTokenId: string = req.body["userAuthTokenId"] as string;
+          
+          if (!userAuthTokenId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("User auth token ID is required"),
+            );
+          }
+
+          // Get the user auth token
+          const userAuthToken = await WorkspaceUserAuthTokenService.findOneById({
+            id: new ObjectID(userAuthTokenId),
+            select: {
+              authToken: true,
+              userId: true,
+              projectId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!userAuthToken) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("User auth token not found"),
+            );
+          }
+
+          // Make API call to Microsoft Graph to get user's joined teams
+          const response = await API.get(
+            URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+            undefined,
+            {
+              Authorization: `Bearer ${userAuthToken.authToken}`,
+              "Content-Type": "application/json",
+            }
+          );
+
+          if (response instanceof HTTPErrorResponse) {
+            logger.error("Error getting teams from Microsoft Graph:");
+            logger.error(response);
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Failed to fetch teams from Microsoft Graph"),
+            );
+          }
+
+          const teamsData = response.data as JSONObject;
+          const teams = (teamsData["value"] as Array<JSONObject>) || [];
+
+          // Transform the teams data to match our interface
+          const transformedTeams = teams.map((team) => ({
+            id: team["id"] as string,
+            displayName: team["displayName"] as string,
+            description: team["description"] as string || undefined,
+          }));
+
+          return Response.sendJsonObjectResponse(req, res, {
+            teams: transformedTeams,
+          });
+        } catch (error) {
+          logger.error("Error in /teams/get-teams endpoint:");
+          logger.error(error);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Failed to fetch teams"),
+          );
+        }
+      },
+    );
+
     return router;
   }
 }

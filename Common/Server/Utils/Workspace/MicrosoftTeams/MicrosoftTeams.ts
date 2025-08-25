@@ -27,6 +27,8 @@ import WorkspaceMessagePayload, {
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
+import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectAuthToken, { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export default class MicrosoftTeams extends WorkspaceBase {
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
@@ -128,8 +130,24 @@ export default class MicrosoftTeams extends WorkspaceBase {
   // Helper method to get team ID from auth token data
   private static async getTeamId(authToken: string): Promise<string> {
     try {
-      // First, try to get the team ID from the user's joined teams
-      // This approach works when the bot/app is added to a team
+      // First, try to get the team ID from stored project auth token configuration
+      const projectAuth: WorkspaceProjectAuthToken | null = 
+        await WorkspaceProjectAuthTokenService.getByAuthToken({
+          authToken: authToken,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
+
+      if (projectAuth && projectAuth.miscData) {
+        const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        if (miscData.teamId) {
+          logger.debug(`Using stored team ID: ${miscData.teamId}`);
+          return miscData.teamId;
+        }
+      }
+
+      logger.debug("No stored team ID found, fetching from Microsoft Graph API");
+
+      // Fallback: Get team ID from the user's joined teams
       const response = await this.makeGraphApiCall(
         "/me/joinedTeams",
         authToken,
@@ -149,31 +167,91 @@ export default class MicrosoftTeams extends WorkspaceBase {
         throw new BadRequestException("No teams found for this user/app");
       }
 
-      // For now, use the first team. In a production environment, you might want to:
-      // 1. Store the specific team ID in your database during the OAuth flow
-      // 2. Allow users to select which team to use
-      // 3. Use a specific team ID from configuration
-      const firstTeam = teams[0];
-      const teamId = firstTeam!["id"] as string;
+      // If there's only one team, use it
+      if (teams.length === 1) {
+        const teamId = teams[0]!["id"] as string;
+        const teamName = teams[0]!["displayName"] as string;
+        
+        logger.debug(`Found single team: ${teamName} (${teamId})`);
+        
+        // Optionally update the stored configuration with the discovered team info
+        await this.updateStoredTeamConfiguration(projectAuth, teamId, teamName);
+        
+        return teamId;
+      }
+
+      // Multiple teams found - use the first one but log a warning
+      const firstTeam = teams[0]!;
+      const teamId = firstTeam["id"] as string;
+      const teamName = firstTeam["displayName"] as string;
+
+      logger.warn(`Multiple teams found (${teams.length}). Using first team: ${teamName} (${teamId})`);
+      logger.debug("Available teams:");
+      logger.debug(teams.map(t => ({
+        id: t["id"],
+        name: t["displayName"]
+      })));
+
+      // Optionally update the stored configuration
+      await this.updateStoredTeamConfiguration(projectAuth, teamId, teamName);
 
       if (!teamId) {
         throw new BadRequestException("Invalid team data received from Microsoft Graph");
       }
 
-      logger.debug(`Using team ID: ${teamId}`);
       return teamId;
     } catch (error) {
       logger.error("Error getting team ID:");
       logger.error(error);
       
-      // If the above approach fails, you could implement fallback strategies:
-      // 1. Use a stored team ID from database/configuration
-      // 2. Try alternative Microsoft Graph endpoints
-      // 3. Prompt for team ID configuration
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       
       throw new BadRequestException(
         "Unable to determine team ID. Please ensure the app is properly installed in a Microsoft Teams team."
       );
+    }
+  }
+
+  // Helper method to update stored team configuration  
+  private static async updateStoredTeamConfiguration(
+    projectAuth: WorkspaceProjectAuthToken | null,
+    teamId: string,
+    teamName: string
+  ): Promise<void> {
+    if (!projectAuth) {
+      logger.debug("No project auth token found, cannot update team configuration");
+      return;
+    }
+
+    try {
+      const currentMiscData = (projectAuth.miscData as MicrosoftTeamsMiscData) || {};
+      
+      // Only update if team ID is different or missing
+      if (currentMiscData.teamId !== teamId) {
+        const updatedMiscData: MicrosoftTeamsMiscData = {
+          ...currentMiscData,
+          teamId: teamId,
+          teamName: teamName,
+        };
+
+        await WorkspaceProjectAuthTokenService.updateOneById({
+          id: projectAuth.id!,
+          data: {
+            miscData: updatedMiscData,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        logger.debug(`Updated stored team configuration: ${teamName} (${teamId})`);
+      }
+    } catch (error) {
+      logger.error("Error updating stored team configuration:");
+      logger.error(error);
+      // Don't throw here - this is a nice-to-have feature
     }
   }
 
