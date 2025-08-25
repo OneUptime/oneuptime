@@ -21,7 +21,6 @@ export class MigrationName1756143847054 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "UserWhatsApp" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "phone" character varying(30) NOT NULL, "userId" uuid, "createdByUserId" uuid, "deletedByUserId" uuid, "isVerified" boolean NOT NULL DEFAULT false, "verificationCode" character varying(100), CONSTRAINT "PK_19ab8aa5949cb38d08930e959ad" PRIMARY KEY ("_id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_cacaefed4f479bf300d4065c80" ON "UserWhatsApp" ("projectId") `);
         await queryRunner.query(`CREATE INDEX "IDX_b99e3db0cecd0e5f15b1f6738a" ON "UserWhatsApp" ("userId") `);
-        await queryRunner.query(`CREATE INDEX "IDX_b99e3db0cecd0e5f15b1f6738a" ON "UserWhatsApp" ("userId") `);
         await queryRunner.query(`ALTER TABLE "UserNotificationRule" ADD "userWhatsAppId" uuid`);
         await queryRunner.query(`ALTER TABLE "UserOnCallLogTimeline" ADD "userWhatsAppId" uuid`);
         await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`);
@@ -73,7 +72,6 @@ export class MigrationName1756143847054 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type": "Recurring", "value": {"intervalType": "Day", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}'`);
         await queryRunner.query(`ALTER TABLE "UserOnCallLogTimeline" DROP COLUMN "userWhatsAppId"`);
         await queryRunner.query(`ALTER TABLE "UserNotificationRule" DROP COLUMN "userWhatsAppId"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_b99e3db0cecd0e5f15b1f6738a"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_b99e3db0cecd0e5f15b1f6738a"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_cacaefed4f479bf300d4065c80"`);
         await queryRunner.query(`DROP TABLE "UserWhatsApp"`);
