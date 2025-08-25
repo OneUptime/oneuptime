@@ -1,6 +1,6 @@
 import {
-  SMSDefaultCostInCents,
-  SMSHighRiskCostInCents,
+  WhatsAppTextDefaultCostInCents,
+  WhatsAppTextHighRiskCostInCents,
   getTwilioConfig,
 } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
@@ -60,10 +60,10 @@ export default class WhatsAppService {
         IsBillingEnabled && !options.customTwilioConfig;
 
       if (shouldChargeForWhatsApp) {
-        whatsappCost = SMSDefaultCostInCents / 100; // WhatsApp typically costs similar to SMS
+        whatsappCost = WhatsAppTextDefaultCostInCents / 100;
 
         if (isHighRiskPhoneNumber(to)) {
-          whatsappCost = SMSHighRiskCostInCents / 100;
+          whatsappCost = WhatsAppTextHighRiskCostInCents / 100;
         }
       }
 
