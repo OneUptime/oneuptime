@@ -669,27 +669,79 @@
 
         </div>
 
-
-        <div
-          class="mt-20 flex flex-col items-start gap-x-8 gap-y-6 rounded-md p-8 ring-1 ring-gray-900/10 sm:gap-y-10 sm:p-10 lg:col-span-2 lg:flex-row lg:items-center">
-          <div class="lg:min-w-0 lg:flex-1">
-            <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-600">SMS Pricing</h3>
-            <p class="mt-1 text-base leading-7 text-gray-600">We bill you on per SMS sent. Our pricing starts at $0.10
-              USD per SMS sent to United States, Canada, UK and EU. For other countries, please contact support. Email
-              alerts are free and always will be.</p>
+        <!-- Communication Pricing Table -->
+        <div class="mx-auto mt-16 max-w-2xl rounded-lg ring-1 ring-gray-200 sm:mt-20 lg:mx-0 lg:max-w-none">
+          <div class="p-8 sm:p-10">
+            <h3 class="text-2xl font-bold tracking-tight text-gray-900 mb-6">Communication Pricing</h3>
+            <p class="mt-4 text-base leading-7 text-gray-600 mb-8">
+              We have worldwide coverage. Pay only for what you use. Pricing for alerts and notifications sent through different channels. 
+            </p>
+            
+            <!-- Pricing Table -->
+            <div class="overflow-hidden rounded-lg shadow ring-1 ring-black ring-opacity-5">
+              <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                      Communication Type
+                    </th>
+                    <th scope="col" class="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                      Pricing
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                  <!-- Email Row -->
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">Email</div>
+                      <div class="text-sm text-gray-500">Email notifications sent to any user</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-semibold text-gray-900">FREE</div>
+                      <div class="text-sm text-gray-500">Always free</div>
+                    </td>
+                  </tr>
+                  
+                  <!-- WhatsApp Row -->
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">WhatsApp</div>
+                      <div class="text-sm text-gray-500">WhatsApp messages sent to any user</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-semibold text-gray-900">$0.05</div>
+                      <div class="text-sm text-gray-500">per message</div>
+                    </td>
+                  </tr>
+                  
+                  <!-- SMS Row -->
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">SMS</div>
+                      <div class="text-sm text-gray-500">Text messages sent to any user</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-semibold text-gray-900">$0.20</div>
+                      <div class="text-sm text-gray-500">per SMS sent</div>
+                    </td>
+                  </tr>
+                  
+                  <!-- Call Row -->
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-medium text-gray-900">Voice Call</div>
+                      <div class="text-sm text-gray-500">Phone calls sent to any country in the world</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="text-sm font-semibold text-gray-900">$0.20</div>
+                      <div class="text-sm text-gray-500">per minute</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <!-- <a href="#" class="rounded-md px-3.5 py-2 text-sm font-semibold leading-6 text-gray-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See SMS Pricing <span aria-hidden="true">&rarr;</span></a> -->
-        </div>
-
-        <div
-          class="mt-5 flex flex-col items-start gap-x-8 gap-y-6 rounded-md p-8 ring-1 ring-gray-900/10 sm:gap-y-10 sm:p-10 lg:col-span-2 lg:flex-row lg:items-center">
-          <div class="lg:min-w-0 lg:flex-1">
-            <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-600">Call Pricing</h3>
-            <p class="mt-1 text-base leading-7 text-gray-600">We bill you on per call we make. Our pricing starts at
-              $0.10 USD per minute per call we make to United States, Canada, UK and EU. For other countries, please
-              contact support. Email alerts are free and always will be.</p>
-          </div>
-          <!-- <a href="#" class="rounded-md px-3.5 py-2 text-sm font-semibold leading-6 text-gray-600 ring-1 ring-inset ring-indigo-200 hover:ring-indigo-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">See SMS Pricing <span aria-hidden="true">&rarr;</span></a> -->
         </div>
       </div>
 
