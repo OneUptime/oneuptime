@@ -1,5 +1,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Preconnect to external image/avatar domains to reduce layout shift & latency -->
+<link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin>
+<link rel="dns-prefetch" href="//avatars.githubusercontent.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
     rel="stylesheet">
 <style>
@@ -19,6 +22,8 @@
         right: 0;
         top: 0;
         width: auto;
+    appearance: none; /* standard */
+    -webkit-appearance: none; /* vendor */
     }
 
     input[type="date"]::-webkit-calendar-picker-indicator {
@@ -32,6 +37,8 @@
         right: 0;
         top: 0;
         width: auto;
+    appearance: none;
+    -webkit-appearance: none;
     }
 
     /*Chrome*/
