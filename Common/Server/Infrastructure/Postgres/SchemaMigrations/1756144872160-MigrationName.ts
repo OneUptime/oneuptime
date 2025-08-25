@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddWhatsAppNotificationFields1756144872160 implements MigrationInterface {
-    name = 'AddWhatsAppNotificationFields1756144872160'
+    public name = 'AddWhatsAppNotificationFields1756144872160'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "Project" ADD "enableWhatsAppNotifications" boolean NOT NULL DEFAULT false`);
