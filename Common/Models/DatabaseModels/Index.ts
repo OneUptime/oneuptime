@@ -100,6 +100,7 @@ import ServiceCopilotCodeRepository from "./ServiceCopilotCodeRepository";
 import ShortLink from "./ShortLink";
 // SMS
 import SmsLog from "./SmsLog";
+import WhatsAppLog from "./WhatsAppLog";
 import PushNotificationLog from "./PushNotificationLog";
 import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 // Status Page
@@ -136,6 +137,7 @@ import UserNotificationSetting from "./UserNotificationSetting";
 import UserOnCallLog from "./UserOnCallLog";
 import UserOnCallLogTimeline from "./UserOnCallLogTimeline";
 import UserSms from "./UserSMS";
+import UserWhatsApp from "./UserWhatsApp";
 // Workflows.
 import Workflow from "./Workflow";
 import WorkflowLog from "./WorkflowLog";
@@ -294,6 +296,7 @@ const AllModelTypes: Array<{
   StatusPageOwnerUser,
 
   SmsLog,
+  WhatsAppLog,
   PushNotificationLog,
   WorkspaceNotificationLog,
   CallLog,
@@ -301,6 +304,7 @@ const AllModelTypes: Array<{
 
   UserEmail,
   UserSms,
+  UserWhatsApp,
   UserCall,
   UserPush,
 

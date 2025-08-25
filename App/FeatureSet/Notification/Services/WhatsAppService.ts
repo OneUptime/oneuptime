@@ -1,0 +1,366 @@
+import {
+  SMSDefaultCostInCents,
+  SMSHighRiskCostInCents,
+  getTwilioConfig,
+} from "../Config";
+import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
+import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
+import Phone from "Common/Types/Phone";
+import WhatsAppStatus from "Common/Types/WhatsAppStatus";
+import Text from "Common/Types/Text";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import NotificationService from "Common/Server/Services/NotificationService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import logger from "Common/Server/Utils/Logger";
+import Project from "Common/Models/DatabaseModels/Project";
+import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
+import Twilio from "twilio";
+import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
+
+export default class WhatsAppService {
+  public static async sendWhatsApp(
+    to: Phone,
+    message: string,
+    options: {
+      projectId?: ObjectID | undefined; // project id for whatsapp log
+      customTwilioConfig?: TwilioConfig | undefined;
+      isSensitive?: boolean; // if true, message will not be logged
+      userOnCallLogTimelineId?: ObjectID | undefined;
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+      scheduledMaintenanceId?: ObjectID | undefined;
+      statusPageId?: ObjectID | undefined;
+      statusPageAnnouncementId?: ObjectID | undefined;
+      userId?: ObjectID | undefined;
+      // On-call policy related fields
+      onCallPolicyId?: ObjectID | undefined;
+      onCallPolicyEscalationRuleId?: ObjectID | undefined;
+      onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+      onCallScheduleId?: ObjectID | undefined;
+      teamId?: ObjectID | undefined;
+    },
+  ): Promise<void> {
+    let whatsappError: Error | null = null;
+    const whatsappLog: WhatsAppLog = new WhatsAppLog();
+
+    try {
+      // check number of messages to send for this entire message. Each WhatsApp message can have more characters than SMS
+      const messageSegments: number = Math.ceil(message.length / 1000); // WhatsApp has higher character limit
+
+      message = Text.trimLines(message);
+
+      let whatsappCost: number = 0;
+
+      const shouldChargeForWhatsApp: boolean =
+        IsBillingEnabled && !options.customTwilioConfig;
+
+      if (shouldChargeForWhatsApp) {
+        whatsappCost = SMSDefaultCostInCents / 100; // WhatsApp typically costs similar to SMS
+
+        if (isHighRiskPhoneNumber(to)) {
+          whatsappCost = SMSHighRiskCostInCents / 100;
+        }
+      }
+
+      if (messageSegments > 1) {
+        whatsappCost = whatsappCost * messageSegments;
+      }
+
+      whatsappLog.toNumber = to;
+
+      whatsappLog.whatsAppText =
+        options && options.isSensitive
+          ? "This message is sensitive and is not logged"
+          : message;
+      whatsappLog.whatsAppCostInUSDCents = 0;
+
+      if (options.projectId) {
+        whatsappLog.projectId = options.projectId;
+      }
+
+      if (options.incidentId) {
+        whatsappLog.incidentId = options.incidentId;
+      }
+
+      if (options.alertId) {
+        whatsappLog.alertId = options.alertId;
+      }
+
+      if (options.scheduledMaintenanceId) {
+        whatsappLog.scheduledMaintenanceId = options.scheduledMaintenanceId;
+      }
+
+      if (options.statusPageId) {
+        whatsappLog.statusPageId = options.statusPageId;
+      }
+
+      if (options.statusPageAnnouncementId) {
+        whatsappLog.statusPageAnnouncementId = options.statusPageAnnouncementId;
+      }
+
+      if (options.userId) {
+        whatsappLog.userId = options.userId;
+      }
+
+      if (options.teamId) {
+        whatsappLog.teamId = options.teamId;
+      }
+
+      // Set OnCall-related fields
+      if (options.onCallPolicyId) {
+        whatsappLog.onCallDutyPolicyId = options.onCallPolicyId;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        whatsappLog.onCallDutyPolicyEscalationRuleId =
+          options.onCallPolicyEscalationRuleId;
+      }
+
+      if (options.onCallScheduleId) {
+        whatsappLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
+      }
+
+      const twilioConfig: TwilioConfig | null =
+        options.customTwilioConfig || (await getTwilioConfig());
+
+      if (!twilioConfig) {
+        throw new BadDataException("Twilio Config not found");
+      }
+
+      const client: Twilio.Twilio = Twilio(
+        twilioConfig.accountSid,
+        twilioConfig.authToken,
+      );
+
+      const fromNumber: Phone = twilioConfig.primaryPhoneNumber;
+
+      if (!fromNumber) {
+        throw new BadDataException("Twilio Phone Number not found");
+      }
+
+      whatsappLog.fromNumber = fromNumber;
+
+      let project: Project | null = null;
+
+      // make sure project has enough balance.
+
+      if (options.projectId) {
+        project = await ProjectService.findOneById({
+          id: options.projectId,
+          select: {
+            smsOrCallCurrentBalanceInUSDCents: true,
+            enableSmsNotifications: true,
+            lowCallAndSMSBalanceNotificationSentToOwners: true,
+            name: true,
+            notEnabledSmsOrCallNotificationSentToOwners: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!project) {
+          whatsappLog.status = WhatsAppStatus.Error;
+          whatsappLog.statusMessage = `Project ${options.projectId.toString()} not found.`;
+          logger.error(whatsappLog.statusMessage);
+          await WhatsAppLogService.create({
+            data: whatsappLog,
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+
+        if (!project.enableSmsNotifications) {
+          whatsappLog.status = WhatsAppStatus.Error;
+          whatsappLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
+          logger.error(whatsappLog.statusMessage);
+          await WhatsAppLogService.create({
+            data: whatsappLog,
+            props: {
+              isRoot: true,
+            },
+          });
+          if (!project.notEnabledSmsOrCallNotificationSentToOwners) {
+            await ProjectService.updateOneById({
+              data: {
+                notEnabledSmsOrCallNotificationSentToOwners: true,
+              },
+              id: project.id!,
+              props: {
+                isRoot: true,
+              },
+            });
+            await ProjectService.sendEmailToProjectOwners(
+              project.id!,
+              "WhatsApp notifications not enabled for " + (project.name || ""),
+              `We tried to send a WhatsApp message to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This WhatsApp message was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
+            );
+          }
+          return;
+        }
+
+        if (shouldChargeForWhatsApp) {
+          // check if auto recharge is enabled and current balance is low.
+          let updatedBalance: number =
+            project.smsOrCallCurrentBalanceInUSDCents!;
+          try {
+            updatedBalance = await NotificationService.rechargeIfBalanceIsLow(
+              project.id!,
+            );
+          } catch (err) {
+            logger.error(err);
+          }
+
+          project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
+
+          if (!project.smsOrCallCurrentBalanceInUSDCents) {
+            whatsappLog.status = WhatsAppStatus.LowBalance;
+            whatsappLog.statusMessage = `Project ${options.projectId.toString()} does not have enough WhatsApp balance.`;
+            logger.error(whatsappLog.statusMessage);
+            await WhatsAppLogService.create({
+              data: whatsappLog,
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
+              await ProjectService.updateOneById({
+                data: {
+                  lowCallAndSMSBalanceNotificationSentToOwners: true,
+                },
+                id: project.id!,
+                props: {
+                  isRoot: true,
+                },
+              });
+              await ProjectService.sendEmailToProjectOwners(
+                project.id!,
+                "Low SMS and Call Balance for " + (project.name || ""),
+                `We tried to send a WhatsApp message to ${to.toString()} with message: <br/> <br/> ${message} <br/>This WhatsApp message was not sent because project does not have enough balance to send WhatsApp messages. Current balance is ${
+                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
+                } USD cents. Required balance to send this WhatsApp message is ${whatsappCost} USD. Please enable auto recharge or recharge manually.`,
+              );
+            }
+            return;
+          }
+
+          if (project.smsOrCallCurrentBalanceInUSDCents < whatsappCost * 100) {
+            whatsappLog.status = WhatsAppStatus.LowBalance;
+            whatsappLog.statusMessage = `Project does not have enough balance to send WhatsApp message. Current balance is ${
+              project.smsOrCallCurrentBalanceInUSDCents / 100
+            } USD. Required balance is ${whatsappCost} USD to send this WhatsApp message.`;
+            logger.error(whatsappLog.statusMessage);
+            await WhatsAppLogService.create({
+              data: whatsappLog,
+              props: {
+                isRoot: true,
+              },
+            });
+            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
+              await ProjectService.updateOneById({
+                data: {
+                  lowCallAndSMSBalanceNotificationSentToOwners: true,
+                },
+                id: project.id!,
+                props: {
+                  isRoot: true,
+                },
+              });
+              await ProjectService.sendEmailToProjectOwners(
+                project.id!,
+                "Low SMS and Call Balance for " + (project.name || ""),
+                `We tried to send a WhatsApp message to ${to.toString()} with message: <br/> <br/> ${message} <br/> <br/> This WhatsApp message was not sent because project does not have enough balance to send WhatsApp messages. Current balance is ${
+                  project.smsOrCallCurrentBalanceInUSDCents / 100
+                } USD. Required balance is ${whatsappCost} USD to send this WhatsApp message. Please enable auto recharge or recharge manually.`,
+              );
+            }
+            return;
+          }
+        }
+      }
+
+      // Send WhatsApp message using Twilio WhatsApp API
+      const whatsappTo = `whatsapp:${to.toString()}`;
+      const whatsappFrom = `whatsapp:${fromNumber.toString()}`;
+
+      const twilioMessage: MessageInstance = await client.messages.create({
+        body: message,
+        to: whatsappTo,
+        from: whatsappFrom,
+      });
+
+      whatsappLog.status = WhatsAppStatus.Success;
+      whatsappLog.statusMessage = "Message ID: " + twilioMessage.sid;
+
+      logger.debug("WhatsApp message sent successfully.");
+      logger.debug(whatsappLog.statusMessage);
+
+      if (shouldChargeForWhatsApp && project) {
+        whatsappLog.whatsAppCostInUSDCents = whatsappCost * 100;
+
+        project.smsOrCallCurrentBalanceInUSDCents = Math.floor(
+          project.smsOrCallCurrentBalanceInUSDCents! - whatsappCost * 100,
+        );
+
+        await ProjectService.updateOneById({
+          data: {
+            smsOrCallCurrentBalanceInUSDCents:
+              project.smsOrCallCurrentBalanceInUSDCents,
+            notEnabledSmsOrCallNotificationSentToOwners: false, // reset this flag
+          },
+          id: project.id!,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    } catch (e: any) {
+      whatsappLog.whatsAppCostInUSDCents = 0;
+      whatsappLog.status = WhatsAppStatus.Error;
+      whatsappLog.statusMessage =
+        e && e.message ? e.message.toString() : e.toString();
+
+      logger.error("WhatsApp message failed to send.");
+      logger.error(whatsappLog.statusMessage);
+
+      whatsappError = e;
+    }
+
+    if (options.projectId) {
+      await WhatsAppLogService.create({
+        data: whatsappLog,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (options.userOnCallLogTimelineId) {
+      await UserOnCallLogTimelineService.updateOneById({
+        data: {
+          status:
+            whatsappLog.status === WhatsAppStatus.Success
+              ? UserNotificationStatus.Sent
+              : UserNotificationStatus.Error,
+          statusMessage: whatsappLog.statusMessage!,
+        },
+        id: options.userOnCallLogTimelineId,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (whatsappError) {
+      throw whatsappError;
+    }
+  }
+}

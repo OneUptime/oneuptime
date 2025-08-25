@@ -9,6 +9,7 @@ import IncidentSeverityService from "./IncidentSeverityService";
 import MailService from "./MailService";
 import ShortLinkService from "./ShortLinkService";
 import SmsService from "./SmsService";
+import WhatsAppService from "./WhatsAppService";
 import UserEmailService from "./UserEmailService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
@@ -29,6 +30,7 @@ import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleT
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
+import WhatsApp from "../../Types/WhatsApp/WhatsApp";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationExecutionStatus from "../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
@@ -142,6 +144,10 @@ export class Service extends DatabaseService<Model> {
         userPush: {
           deviceToken: true,
           deviceType: true,
+          isVerified: true,
+        },
+        userWhatsApp: {
+          phone: true,
           isVerified: true,
         },
       },
@@ -507,6 +513,133 @@ export class Service extends DatabaseService<Model> {
       // create a log.
       logTimelineItem.status = UserNotificationStatus.Error;
       logTimelineItem.statusMessage = `SMS not sent because phone ${notificationRuleItem.userSms?.phone.toString()} is not verified.`;
+
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // send whatsapp.
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      //send whatsapp for alert
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.AlertCreated &&
+        alert
+      ) {
+        // create an error log.
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsappMessage: WhatsApp = await this.generateWhatsAppTemplateForAlertCreated(
+          notificationRuleItem.userWhatsApp.phone,
+          alert,
+          updatedLog.id!,
+        );
+
+        // send whatsapp.
+
+        WhatsAppService.sendWhatsApp(whatsappMessage, {
+          projectId: alert.projectId,
+          userOnCallLogTimelineId: updatedLog.id!,
+          alertId: alert.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+
+      // send whatsapp for incident
+      if (
+        options.userNotificationEventType ===
+          UserNotificationEventType.IncidentCreated &&
+        incident
+      ) {
+        // create an error log.
+        logTimelineItem.status = UserNotificationStatus.Sending;
+        logTimelineItem.statusMessage = `Sending WhatsApp to ${notificationRuleItem.userWhatsApp?.phone.toString()}.`;
+        logTimelineItem.userWhatsAppId = notificationRuleItem.userWhatsApp.id!;
+
+        const updatedLog: UserOnCallLogTimeline =
+          await UserOnCallLogTimelineService.create({
+            data: logTimelineItem,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const whatsappMessage: WhatsApp =
+          await this.generateWhatsAppTemplateForIncidentCreated(
+            notificationRuleItem.userWhatsApp.phone,
+            incident,
+            updatedLog.id!,
+          );
+
+        // send whatsapp.
+
+        WhatsAppService.sendWhatsApp(whatsappMessage, {
+          projectId: incident.projectId,
+          userOnCallLogTimelineId: updatedLog.id!,
+          incidentId: incident.id!,
+          userId: notificationRuleItem.userId!,
+          onCallPolicyId: options.onCallPolicyId,
+          onCallPolicyEscalationRuleId: options.onCallPolicyEscalationRuleId,
+          teamId: options.userBelongsToTeamId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            options.onCallDutyPolicyExecutionLogTimelineId,
+          onCallScheduleId: options.onCallScheduleId,
+        }).catch(async (err: Error) => {
+          await UserOnCallLogTimelineService.updateOneById({
+            id: updatedLog.id!,
+            data: {
+              status: UserNotificationStatus.Error,
+              statusMessage: err.message || "Error sending WhatsApp.",
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        });
+      }
+    }
+
+    if (
+      notificationRuleItem.userWhatsApp?.phone &&
+      !notificationRuleItem.userWhatsApp?.isVerified
+    ) {
+      // create a log.
+      logTimelineItem.status = UserNotificationStatus.Error;
+      logTimelineItem.statusMessage = `WhatsApp not sent because phone ${notificationRuleItem.userWhatsApp?.phone.toString()} is not verified.`;
 
       await UserOnCallLogTimelineService.create({
         data: logTimelineItem,
@@ -968,6 +1101,66 @@ export class Service extends DatabaseService<Model> {
     };
 
     return sms;
+  }
+
+  @CaptureSpan()
+  public async generateWhatsAppTemplateForAlertCreated(
+    to: Phone,
+    alert: Alert,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsApp> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+      new URL(
+        httpProtocol,
+        host,
+        new Route(AppApiRoute.toString())
+          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+      ),
+    );
+    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
+
+    const whatsapp: WhatsApp = {
+      to,
+      message: `This is a message from OneUptime. A new alert has been created. ${
+        alert.title
+      }. To acknowledge this alert, please click on the following link ${url.toString()}`,
+    };
+
+    return whatsapp;
+  }
+
+  @CaptureSpan()
+  public async generateWhatsAppTemplateForIncidentCreated(
+    to: Phone,
+    incident: Incident,
+    userOnCallLogTimelineId: ObjectID,
+  ): Promise<WhatsApp> {
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const shortUrl: ShortLink = await ShortLinkService.saveShortLinkFor(
+      new URL(
+        httpProtocol,
+        host,
+        new Route(AppApiRoute.toString())
+          .addRoute(new UserOnCallLogTimeline().crudApiPath!)
+          .addRoute("/acknowledge/" + userOnCallLogTimelineId.toString()),
+      ),
+    );
+    const url: URL = await ShortLinkService.getShortenedUrl(shortUrl);
+
+    const whatsapp: WhatsApp = {
+      to,
+      message: `This is a message from OneUptime. A new incident has been created. ${
+        incident.title
+      }. To acknowledge this incident, please click on the following link ${url.toString()}`,
+    };
+
+    return whatsapp;
   }
 
   @CaptureSpan()

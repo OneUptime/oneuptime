@@ -91,6 +91,7 @@ import ServiceCopilotCodeRepositoryService from "./ServiceCopilotCodeRepositoryS
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
+import WhatsAppLogService from "./WhatsAppLogService";
 import SmsService from "./SmsService";
 import SpanService from "./SpanService";
 import StatusPageAnnouncementService from "./StatusPageAnnouncementService";
@@ -124,6 +125,7 @@ import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
 import UserTwoFactorAuthService from "./UserTwoFactorAuthService";
 import UserSmsService from "./UserSmsService";
+import UserWhatsAppService from "./UserWhatsAppService";
 import WorkflowLogService from "./WorkflowLogService";
 // Workflows.
 import WorkflowService from "./WorkflowService";
@@ -340,6 +342,9 @@ const services: Array<BaseService> = [
   WorkspaceSettingService,
   WorkspaceNotificationRuleService,
   WorkspaceNotificationLogService,
+
+  WhatsAppLogService,
+  UserWhatsAppService
 ];
 
 export const AnalyticsServices: Array<

@@ -29,6 +29,7 @@ import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
+import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
@@ -1663,6 +1664,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserWhatsAppAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
 

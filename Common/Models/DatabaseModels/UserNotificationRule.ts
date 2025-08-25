@@ -6,6 +6,7 @@ import UserCall from "./UserCall";
 import UserEmail from "./UserEmail";
 import UserPush from "./UserPush";
 import UserSMS from "./UserSMS";
+import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -428,6 +429,52 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userEmailId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "userWhatsAppId",
+    type: TableColumnType.Entity,
+    modelType: UserWhatsApp,
+    title: "User WhatsApp",
+    description: "Relation to User WhatsApp Resource in which this object belongs",
+  })
+  @ManyToOne(
+    () => {
+      return UserWhatsApp;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "userWhatsAppId" })
+  public userWhatsApp?: UserWhatsApp = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "User WhatsApp ID",
+    description: "ID of User WhatsApp in which this object belongs",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public userWhatsAppId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
