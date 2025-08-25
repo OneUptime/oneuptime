@@ -126,10 +126,55 @@ export default class MicrosoftTeams extends WorkspaceBase {
   }
 
   // Helper method to get team ID from auth token data
-  private static async getTeamId(_authToken: string): Promise<string> {
-    // In a real implementation, you would extract this from the auth token or stored metadata
-    // For now, return a placeholder - this should be implemented based on your auth structure
-    return "your-team-id"; // This needs to be replaced with actual team ID extraction
+  private static async getTeamId(authToken: string): Promise<string> {
+    try {
+      // First, try to get the team ID from the user's joined teams
+      // This approach works when the bot/app is added to a team
+      const response = await this.makeGraphApiCall(
+        "/me/joinedTeams",
+        authToken,
+        "GET",
+      );
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error getting joined teams from Microsoft Graph:");
+        logger.error(response);
+        throw new BadRequestException("Unable to retrieve team information");
+      }
+
+      const teamsData = response.jsonData as JSONObject;
+      const teams = teamsData["value"] as Array<JSONObject>;
+
+      if (!teams || teams.length === 0) {
+        throw new BadRequestException("No teams found for this user/app");
+      }
+
+      // For now, use the first team. In a production environment, you might want to:
+      // 1. Store the specific team ID in your database during the OAuth flow
+      // 2. Allow users to select which team to use
+      // 3. Use a specific team ID from configuration
+      const firstTeam = teams[0];
+      const teamId = firstTeam!["id"] as string;
+
+      if (!teamId) {
+        throw new BadRequestException("Invalid team data received from Microsoft Graph");
+      }
+
+      logger.debug(`Using team ID: ${teamId}`);
+      return teamId;
+    } catch (error) {
+      logger.error("Error getting team ID:");
+      logger.error(error);
+      
+      // If the above approach fails, you could implement fallback strategies:
+      // 1. Use a stored team ID from database/configuration
+      // 2. Try alternative Microsoft Graph endpoints
+      // 3. Prompt for team ID configuration
+      
+      throw new BadRequestException(
+        "Unable to determine team ID. Please ensure the app is properly installed in a Microsoft Teams team."
+      );
+    }
   }
 
   // Helper method to make Microsoft Graph API calls
