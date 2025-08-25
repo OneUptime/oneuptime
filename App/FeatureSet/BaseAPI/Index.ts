@@ -283,6 +283,9 @@ import ShortLinkService, {
 import SmsLogService, {
   Service as SmsLogServiceType,
 } from "Common/Server/Services/SmsLogService";
+import WhatsAppLogService, {
+  Service as WhatsAppLogServiceType,
+} from "Common/Server/Services/WhatsAppLogService";
 import PushNotificationLogService, {
   Service as PushNotificationLogServiceType,
 } from "Common/Server/Services/PushNotificationLogService";
@@ -454,6 +457,7 @@ import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalog
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import ShortLink from "Common/Models/DatabaseModels/ShortLink";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
+import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 // Custom Fields API
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
@@ -1538,6 +1542,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<SmsLog, SmsLogServiceType>(SmsLog, SmsLogService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WhatsAppLog, WhatsAppLogServiceType>(
+        WhatsAppLog,
+        WhatsAppLogService,
+      ).getRouter(),
     );
 
     app.use(

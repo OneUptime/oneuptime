@@ -85,7 +85,7 @@ const WhatsApp: () => JSX.Element = (): ReactElement => {
           {
             title: "Resend Code",
             buttonStyleType: ButtonStyleType.NORMAL,
-            icon: IconProp.WhatsApp,
+            icon: IconProp.SMS,
             isVisible: (item: UserWhatsApp): boolean => {
               if (item["isVerified"]) {
                 return false;
