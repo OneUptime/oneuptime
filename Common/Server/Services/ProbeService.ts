@@ -22,6 +22,7 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import logger from "../Utils/Logger";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { SMSMessage } from "../../Types/SMS/SMS";
+import { WhatsAppMessage } from "../../Types/WhatsApp/WhatsApp";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import DatabaseConfig from "../DatabaseConfig";
@@ -359,6 +360,10 @@ export class Service extends DatabaseService<Model> {
           message: `This is a message from OneUptime. Probe ${probe.name} is ${connectionStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
+        const whatsApp: WhatsAppMessage = {
+          message: `This is a message from OneUptime. Probe ${probe.name} is ${connectionStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        };
+
         const callMessage: CallRequestMessage = {
           data: [
             {
@@ -392,6 +397,7 @@ export class Service extends DatabaseService<Model> {
           projectId: probe.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
+          whatsAppMessage: whatsApp,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
           eventType:
