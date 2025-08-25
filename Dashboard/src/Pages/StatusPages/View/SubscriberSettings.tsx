@@ -131,7 +131,8 @@ const StatusPageDelete: FunctionComponent<
         name="Status Page > Branding > Subscriber > Microsoft Teams"
         cardProps={{
           title: "Microsoft Teams Subscribers",
-          description: "Microsoft Teams subscriber settings for this status page.",
+          description:
+            "Microsoft Teams subscriber settings for this status page.",
         }}
         isEditable={true}
         formFields={[
@@ -142,7 +143,8 @@ const StatusPageDelete: FunctionComponent<
             title: "Enable Microsoft Teams Subscribers",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            placeholder: "Can Microsoft Teams subscribers subscribe to this status page?",
+            placeholder:
+              "Can Microsoft Teams subscribers subscribe to this status page?",
           },
         ]}
         modelDetailProps={{

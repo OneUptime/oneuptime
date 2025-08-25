@@ -1203,7 +1203,8 @@ export default class StatusPage extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Enable Microsoft Teams Subscribers",
-    description: "Can Microsoft Teams subscribers subscribe to this Status Page?",
+    description:
+      "Can Microsoft Teams subscribers subscribe to this Status Page?",
     defaultValue: false,
   })
   @Column({

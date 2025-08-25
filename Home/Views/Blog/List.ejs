@@ -35,7 +35,7 @@
                       <h2 class="mt-5 text-3xl md:text-4xl font-bold tracking-tight text-gray-900 group-hover:text-indigo-700 transition-colors"><%- featured.title %></h2>
                       <p class="mt-5 text-base md:text-lg leading-relaxed text-gray-600 line-clamp-5"><%- featured.description %></p>
                       <div class="mt-6 text-xs text-gray-500 flex flex-wrap items-center gap-2">
-                        <img class="h-8 w-8 rounded-full ring-2 ring-white shadow" src="https://avatars.githubusercontent.com/<%- featured.authorGitHubUsername -%>?s=80" alt="@<%- featured.authorGitHubUsername -%>">
+                        <img class="h-8 w-8 rounded-full ring-2 ring-white shadow" src="https://avatars.githubusercontent.com/<%- featured.authorGitHubUsername -%>?s=80" alt="@<%- featured.authorGitHubUsername -%>" width="32" height="32" loading="lazy" decoding="async">
                         <span>@<%- featured.authorGitHubUsername -%></span>
                         <span class="select-none">•</span>
                         <span><%- featured.formattedPostDate -%></span>

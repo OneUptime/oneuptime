@@ -82,7 +82,8 @@
                     <div class="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
                         <% if(blogPost.author){ %>
                         <a href="<%- blogPost.author.githubUrl -%>" target="_blank" class="flex items-center space-x-2 group">
-                            <img class="h-8 w-8 rounded-full ring-2 ring-indigo-200 group-hover:ring-indigo-400 transition" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>">
+                            <!-- Added explicit width & height to stabilize layout (CLS) -->
+                            <img class="h-8 w-8 rounded-full ring-2 ring-indigo-200 group-hover:ring-indigo-400 transition" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="32" height="32" decoding="async">
                             <span class="font-medium text-gray-700 group-hover:text-gray-900 transition">@<%- blogPost.author.username -%></span>
                         </a>
                         <span class="hidden sm:inline select-none">•</span>
@@ -129,7 +130,8 @@
                             <!-- Author -->
                             <% if(blogPost.author){ %>
                             <div class="mt-16 p-6 rounded-2xl bg-white/60 backdrop-blur border border-gray-200 shadow-sm flex gap-6 items-start">
-                                <img class="h-16 w-16 rounded-full ring-2 ring-indigo-200" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>">
+                                <!-- Added explicit width/height + lazy loading for below-the-fold author bio image -->
+                                <img class="h-16 w-16 rounded-full ring-2 ring-indigo-200" src="<%- blogPost.author.profileImageUrl -%>" alt="<%- blogPost.author.name -%>" width="64" height="64" loading="lazy" decoding="async">
                                 <div>
                                     <h3 class="text-lg font-semibold text-gray-900"><%- blogPost.author.name -%></h3>
                                     <p class="text-sm text-gray-600 mb-2">@<%- blogPost.author.username -%> • <%- blogPost.formattedPostDate -%> • <span id="reading-time-inline"></span></p>
@@ -153,7 +155,8 @@
                             <div class="sticky top-28 space-y-8">
                                 <div class="rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-6 shadow-sm">
                                     <h2 class="text-sm font-semibold tracking-wide text-gray-900 uppercase mb-4">On this page</h2>
-                                    <nav id="toc" class="text-sm leading-6 space-y-2 text-gray-700"></nav>
+                                    <!-- Reserve initial space for TOC to reduce layout shift once populated -->
+                                    <nav id="toc" aria-label="Table of contents" class="text-sm leading-6 space-y-2 text-gray-700 min-h-[3rem]"></nav>
                                 </div>
                             </div>
                         </aside>
@@ -203,6 +206,38 @@
                             toc.appendChild(a);
                         });
                     } catch (e) {}
+
+                    // Stabilize images inside blog body (add width/height if missing & lazy-load non-hero images)
+                    try {
+                        const imgs = document.querySelectorAll('.blog-body img');
+                        imgs.forEach((img, index) => {
+                            // If width/height already specified, skip dimension inference
+                            if(!img.hasAttribute('width') || !img.hasAttribute('height')){
+                                if(img.naturalWidth && img.naturalHeight){
+                                    img.setAttribute('width', img.naturalWidth);
+                                    img.setAttribute('height', img.naturalHeight);
+                                } else {
+                                    // If not yet loaded, attach a one-time listener
+                                    img.addEventListener('load', function handler(){
+                                        if(!img.hasAttribute('width') && img.naturalWidth){ img.setAttribute('width', img.naturalWidth); }
+                                        if(!img.hasAttribute('height') && img.naturalHeight){ img.setAttribute('height', img.naturalHeight); }
+                                        img.removeEventListener('load', handler);
+                                    });
+                                }
+                            }
+                            // Lazy-load images after the first one (often top/hero) for better LCP while reducing CLS
+                            if(index > 0 && !img.hasAttribute('loading')){
+                                img.setAttribute('loading', 'lazy');
+                            }
+                            if(!img.hasAttribute('decoding')){
+                                img.setAttribute('decoding', 'async');
+                            }
+                            // Ensure display block for centered images without causing late shifts
+                            if(!img.className.includes('inline') && !img.className.includes('block')){
+                                img.classList.add('block');
+                            }
+                        });
+                    } catch(e) {}
                 })();
             </script>
 </body>

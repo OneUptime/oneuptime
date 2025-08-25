@@ -654,7 +654,9 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               <StatusPagesViewMicrosoftTeamsSubscribers
                 {...props}
                 pageRoute={
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS] as Route
+                  RouteMap[
+                    PageMap.STATUS_PAGE_VIEW_MICROSOFT_TEAMS_SUBSCRIBERS
+                  ] as Route
                 }
               />
             </Suspense>

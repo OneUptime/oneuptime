@@ -262,7 +262,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
           enableSMSSubscribers={props.enableSMSSubscribers}
           enableEmailSubscribers={props.enableEmailSubscribers}
           enableSlackSubscribers={props.enableSlackSubscribers}
-          enableMicrosoftTeamsSubscribers={props.enableMicrosoftTeamsSubscribers}
+          enableMicrosoftTeamsSubscribers={
+            props.enableMicrosoftTeamsSubscribers
+          }
         />
       }
     >
