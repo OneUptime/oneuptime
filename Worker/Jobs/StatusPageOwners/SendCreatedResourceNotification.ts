@@ -6,6 +6,7 @@ import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import { WhatsAppMessage } from "Common/Types/WhatsApp/WhatsApp";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -101,6 +102,10 @@ RunCron(
           message: `This is a message from OneUptime. New status page created - ${statusPage.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
+        const whatsApp: WhatsAppMessage = {
+          message: `This is a message from OneUptime. New status page created - ${statusPage.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        };
+
         const callMessage: CallRequestMessage = {
           data: [
             {
@@ -128,6 +133,7 @@ RunCron(
           projectId: statusPage.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
+          whatsAppMessage: whatsApp,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
           eventType:

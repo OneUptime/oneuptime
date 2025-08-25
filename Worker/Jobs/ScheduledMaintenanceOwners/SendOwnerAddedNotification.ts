@@ -7,6 +7,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import { WhatsAppMessage } from "Common/Types/WhatsApp/WhatsApp";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
@@ -204,6 +205,10 @@ RunCron(
           message: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenance.title}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
+        const whatsApp: WhatsAppMessage = {
+          message: `This is a message from OneUptime. You have been added as the owner of the scheduled maintenance event - ${scheduledMaintenance.title}. To view this event, go to OneUptime Dashboard. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        };
+
         const callMessage: CallRequestMessage = {
           data: [
             {
@@ -231,6 +236,7 @@ RunCron(
           projectId: scheduledMaintenance.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
+          whatsAppMessage: whatsApp,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
           scheduledMaintenanceId: scheduledMaintenance.id!,

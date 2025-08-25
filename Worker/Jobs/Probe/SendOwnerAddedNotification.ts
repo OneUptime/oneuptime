@@ -7,6 +7,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import { SMSMessage } from "Common/Types/SMS/SMS";
+import { WhatsAppMessage } from "Common/Types/WhatsApp/WhatsApp";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import ProbeOwnerTeamService from "Common/Server/Services/ProbeOwnerTeamService";
@@ -169,6 +170,10 @@ RunCron(
           message: `This is a message from OneUptime. You have been added as the owner of the probe: ${probe.name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
+        const whatsApp: WhatsAppMessage = {
+          message: `This is a message from OneUptime. You have been added as the owner of the probe: ${probe.name!}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        };
+
         const callMessage: CallRequestMessage = {
           data: [
             {
@@ -193,6 +198,7 @@ RunCron(
           projectId: probe.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
+          whatsAppMessage: whatsApp,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
           eventType:
