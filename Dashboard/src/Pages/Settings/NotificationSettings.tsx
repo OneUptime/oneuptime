@@ -130,6 +130,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               description:
                 "Enable SMS notifications for this project. This will be used for alerting users by SMS.",
             },
+            {
+              field: {
+                enableWhatsAppNotifications: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable WhatsApp Notifications",
+              placeholder: "Not Enabled",
+              description:
+                "Enable WhatsApp notifications for this project. This will be used for alerting users by WhatsApp.",
+            },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,
         }}

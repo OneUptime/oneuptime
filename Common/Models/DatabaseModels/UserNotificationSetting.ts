@@ -303,6 +303,22 @@ class UserNotificationSetting extends BaseModel {
     type: ColumnType.Boolean,
     default: false,
   })
+  public alertByWhatsApp?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
   public alertByPush?: boolean = undefined;
 }
 

@@ -154,7 +154,7 @@ export default class WhatsAppService {
           id: options.projectId,
           select: {
             smsOrCallCurrentBalanceInUSDCents: true,
-            enableSmsNotifications: true,
+            enableWhatsAppNotifications: true,
             lowCallAndSMSBalanceNotificationSentToOwners: true,
             name: true,
             notEnabledSmsOrCallNotificationSentToOwners: true,
@@ -177,9 +177,9 @@ export default class WhatsAppService {
           return;
         }
 
-        if (!project.enableSmsNotifications) {
+        if (!project.enableWhatsAppNotifications) {
           whatsappLog.status = WhatsAppStatus.Error;
-          whatsappLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
+          whatsappLog.statusMessage = `WhatsApp notifications are not enabled for this project. Please enable WhatsApp notifications in Project Settings.`;
           logger.error(whatsappLog.statusMessage);
           await WhatsAppLogService.create({
             data: whatsappLog,

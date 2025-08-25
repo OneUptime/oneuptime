@@ -73,7 +73,7 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
       select: {
-        enableSmsNotifications: true,
+        enableWhatsAppNotifications: true,
         smsOrCallCurrentBalanceInUSDCents: true,
       },
     });
@@ -82,9 +82,9 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Project not found");
     }
 
-    if (!project.enableSmsNotifications) {
+    if (!project.enableWhatsAppNotifications) {
       throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        "WhatsApp notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
       );
     }
 

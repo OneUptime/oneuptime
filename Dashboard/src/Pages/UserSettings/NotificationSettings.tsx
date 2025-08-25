@@ -89,6 +89,15 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
+              alertByWhatsApp: true,
+            },
+            title: "Alert By WhatsApp",
+            description: "Select if you want to be alerted by WhatsApp.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
               alertByCall: true,
             },
             title: "Alert By Call",
@@ -129,6 +138,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               alertBySMS: true,
             },
             title: "SMS Alerts",
+            type: FieldType.Boolean,
+          },
+          {
+            field: {
+              alertByWhatsApp: true,
+            },
+            title: "WhatsApp Alerts",
             type: FieldType.Boolean,
           },
           {
