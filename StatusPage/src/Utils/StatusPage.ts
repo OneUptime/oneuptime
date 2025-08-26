@@ -36,12 +36,17 @@ export default class StatusPageUtil {
   }
 
   public static navigateToLoginPage(): void {
-    Navigation.navigate(
-      new Route(
+
+    const route = new Route(
         StatusPageUtil.isPreviewPage()
           ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
           : `/login?redirectUrl=${Navigation.getCurrentPath()}`,
-      ),
+      );
+
+      console.trace("Navigating to login page:", route.toString());
+
+    Navigation.navigate(
+      route,
       { forceNavigate: true },
     );
   }
