@@ -271,6 +271,7 @@ jobs:
               --tag ghcr.io/oneuptime/nginx:7.0.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+              .
 
   e2e-docker-image-deploy:
     needs: [generate-build-number]
