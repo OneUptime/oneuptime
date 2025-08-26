@@ -1007,9 +1007,9 @@ export default class OtelIngestService {
                     logger.warn(
                       `Error processing span timestamps: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
                     );
-                    const currentNano =
+                    const currentNano: number =
                       OneUptimeDate.getCurrentDateAsUnixNano();
-                    const currentTime = OneUptimeDate.getCurrentDate();
+                    const currentTime: Date = OneUptimeDate.getCurrentDate();
                     dbSpan.startTimeUnixNano = currentNano;
                     dbSpan.endTimeUnixNano = currentNano;
                     dbSpan.startTime = currentTime;

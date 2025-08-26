@@ -144,8 +144,8 @@ export default class OTelIngestService {
         }
         newDbMetric.startTimeUnixNano = startTimeUnixNano;
         newDbMetric.startTime = OneUptimeDate.fromUnixNano(startTimeUnixNano);
-      } catch (error) {
-        const currentNano = OneUptimeDate.getCurrentDateAsUnixNano();
+      } catch {
+        const currentNano: number = OneUptimeDate.getCurrentDateAsUnixNano();
         newDbMetric.startTimeUnixNano = currentNano;
         newDbMetric.startTime = OneUptimeDate.getCurrentDate();
       }
@@ -167,8 +167,8 @@ export default class OTelIngestService {
         }
         newDbMetric.timeUnixNano = timeUnixNano;
         newDbMetric.time = OneUptimeDate.fromUnixNano(timeUnixNano);
-      } catch (error) {
-        const currentNano = OneUptimeDate.getCurrentDateAsUnixNano();
+      } catch {
+        const currentNano: number = OneUptimeDate.getCurrentDateAsUnixNano();
         newDbMetric.timeUnixNano = currentNano;
         newDbMetric.time = OneUptimeDate.getCurrentDate();
       }
