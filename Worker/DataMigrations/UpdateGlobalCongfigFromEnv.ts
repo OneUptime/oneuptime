@@ -28,6 +28,14 @@ export default class UpdateGlobalConfigFromEnv extends DataMigrationBase {
         twilioAuthToken: process.env["TWILIO_AUTH_TOKEN"] || "",
         twilioPrimaryPhoneNumber: process.env["TWILIO_PHONE_NUMBER"] || "",
 
+        // Update Meta WhatsApp
+        metaWhatsAppAccessToken: process.env["META_WHATSAPP_ACCESS_TOKEN"] || "",
+        metaWhatsAppPhoneNumberId: process.env["META_WHATSAPP_PHONE_NUMBER_ID"] || "",
+        metaWhatsAppBusinessAccountId: process.env["META_WHATSAPP_BUSINESS_ACCOUNT_ID"] || "",
+        metaWhatsAppAppId: process.env["META_WHATSAPP_APP_ID"] || "",
+        metaWhatsAppAppSecret: process.env["META_WHATSAPP_APP_SECRET"] || "",
+        metaWhatsAppWebhookVerifyToken: process.env["META_WHATSAPP_WEBHOOK_VERIFY_TOKEN"] || "",
+
         // Update SMTP
         smtpUsername: process.env["SMTP_USERNAME"] || "",
         smtpPassword: process.env["SMTP_PASSWORD"] || "",
