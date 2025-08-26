@@ -335,6 +335,7 @@ jobs:
               --tag ghcr.io/oneuptime/e2e:7.0.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+              .
 
   isolated-vm-docker-image-deploy:
     needs: [generate-build-number]
@@ -399,6 +400,7 @@ jobs:
               --tag ghcr.io/oneuptime/isolated-vm:7.0.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+              .
 
   home-docker-image-deploy:
     needs: [generate-build-number]
@@ -463,6 +465,7 @@ jobs:
               --tag ghcr.io/oneuptime/home:7.0.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+              .
           
             
 
@@ -530,6 +533,7 @@ jobs:
               --tag ghcr.io/oneuptime/test-server:7.0.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+              .
 
   otel-collector-docker-image-deploy:
     needs: [generate-build-number]
