@@ -238,8 +238,13 @@ export default class OtelIngestService {
                     }),
                   };
 
-                  if (scopeLog["scope"] && Object.keys(scopeLog["scope"]).length > 0) {
-                    const scopeAttributes: JSONObject = scopeLog["scope"] as JSONObject;
+                  if (
+                    scopeLog["scope"] &&
+                    Object.keys(scopeLog["scope"]).length > 0
+                  ) {
+                    const scopeAttributes: JSONObject = scopeLog[
+                      "scope"
+                    ] as JSONObject;
                     for (const key of Object.keys(scopeAttributes)) {
                       attributesObject[`scope.${key}`] = scopeAttributes[
                         key
@@ -264,25 +269,31 @@ export default class OtelIngestService {
                         // Use parseFloat for string conversion to handle very large numbers more safely
                         timeUnixNano = parseFloat(log["timeUnixNano"]);
                         if (isNaN(timeUnixNano)) {
-                          throw new Error(`Invalid timestamp string: ${log["timeUnixNano"]}`);
+                          throw new Error(
+                            `Invalid timestamp string: ${log["timeUnixNano"]}`,
+                          );
                         }
                       } else {
-                        timeUnixNano = log["timeUnixNano"] as number || OneUptimeDate.getCurrentDateAsUnixNano();
+                        timeUnixNano =
+                          (log["timeUnixNano"] as number) ||
+                          OneUptimeDate.getCurrentDateAsUnixNano();
                       }
-                      
-                      
-                        dbLog.timeUnixNano = timeUnixNano;
-                        dbLog.time = OneUptimeDate.fromUnixNano(timeUnixNano);
-                      
+
+                      dbLog.timeUnixNano = timeUnixNano;
+                      dbLog.time = OneUptimeDate.fromUnixNano(timeUnixNano);
                     } catch (timeError) {
-                      logger.warn(`Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`);
+                      logger.warn(
+                        `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
+                      );
                       const currentTime: Date = OneUptimeDate.getCurrentDate();
-                      dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+                      dbLog.timeUnixNano =
+                        OneUptimeDate.getCurrentDateAsUnixNano();
                       dbLog.time = currentTime;
                     }
                   } else {
                     const currentTime: Date = OneUptimeDate.getCurrentDate();
-                    dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+                    dbLog.timeUnixNano =
+                      OneUptimeDate.getCurrentDateAsUnixNano();
                     dbLog.time = currentTime;
                   }
 
@@ -290,7 +301,8 @@ export default class OtelIngestService {
                     (log["severityNumber"] as number) || 0;
 
                   if (typeof logSeverityNumber === "string") {
-                    logSeverityNumber = this.convertSeverityNumber(logSeverityNumber);
+                    logSeverityNumber =
+                      this.convertSeverityNumber(logSeverityNumber);
                   }
 
                   dbLog.severityNumber = logSeverityNumber;
@@ -299,7 +311,11 @@ export default class OtelIngestService {
                   // Handle log body safely
                   try {
                     const logBody: JSONObject = log["body"] as JSONObject;
-                    if (logBody && typeof logBody === "object" && logBody["stringValue"]) {
+                    if (
+                      logBody &&
+                      typeof logBody === "object" &&
+                      logBody["stringValue"]
+                    ) {
                       dbLog.body = logBody["stringValue"] as string;
                     } else if (typeof log["body"] === "string") {
                       dbLog.body = log["body"] as string;
@@ -307,20 +323,26 @@ export default class OtelIngestService {
                       dbLog.body = JSON.stringify(log["body"] || "");
                     }
                   } catch (bodyError) {
-                    logger.warn(`Error processing log body: ${bodyError instanceof Error ? bodyError.message : String(bodyError)}`);
+                    logger.warn(
+                      `Error processing log body: ${bodyError instanceof Error ? bodyError.message : String(bodyError)}`,
+                    );
                     dbLog.body = String(log["body"] || "");
                   }
 
                   // Handle trace and span IDs safely
                   try {
-                    dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
-                  } catch (traceError) {
+                    dbLog.traceId = Text.convertBase64ToHex(
+                      log["traceId"] as string,
+                    );
+                  } catch {
                     dbLog.traceId = "";
                   }
-                  
+
                   try {
-                    dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
-                  } catch (spanError) {
+                    dbLog.spanId = Text.convertBase64ToHex(
+                      log["spanId"] as string,
+                    );
+                  } catch {
                     dbLog.spanId = "";
                   }
 
@@ -371,7 +393,9 @@ export default class OtelIngestService {
         }),
       ]);
 
-      logger.debug(`Successfully processed ${dbLogs.length} logs for project: ${(req as TelemetryRequest).projectId}`);
+      logger.debug(
+        `Successfully processed ${dbLogs.length} logs for project: ${(req as TelemetryRequest).projectId}`,
+      );
 
       // Memory cleanup: Clear large objects to help GC
       try {
