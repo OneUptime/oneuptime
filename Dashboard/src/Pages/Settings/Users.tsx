@@ -41,7 +41,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isViewable={true}
         cardProps={{
           title: "Users",
-          description: "Here is a list of all the team members in this project.",
+          description:
+            "Here is a list of all the team members in this project.",
           buttons: [
             {
               title: "Invite User",

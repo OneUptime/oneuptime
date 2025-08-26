@@ -197,7 +197,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       onCreate.createBy.data.projectId!,
     );
 
-
     return createdItem;
   }
 
@@ -241,7 +240,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           item.user?.email as Email,
         );
       }
-
     }
 
     return { updateBy, carryForward: onUpdate.carryForward };
@@ -324,7 +322,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         item.userId!,
         item.projectId!,
       );
-
     }
 
     return onDelete;
