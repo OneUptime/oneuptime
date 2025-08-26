@@ -34,7 +34,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         userPreferencesKey="users-table"
         isDeleteable={false}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         onFilterApplied={(isApplied: boolean) => {
           setIsFilterApplied(isApplied);
         }}
