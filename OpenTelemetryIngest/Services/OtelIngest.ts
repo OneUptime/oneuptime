@@ -163,8 +163,16 @@ export default class OtelIngestService {
       const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
+      let resourceLogCounter: number = 0;
       for (const resourceLog of resourceLogs) {
         try {
+          // Yield every 50 resource logs to avoid blocking event loop and triggering stall detection
+          if (resourceLogCounter % 50 === 0) {
+            // Allow I/O (like Redis lock extension) to be processed
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.resolve();
+          }
+          resourceLogCounter++;
           const serviceName: string = this.getServiceNameFromAttributes(
             req,
             ((resourceLog["resource"] as JSONObject)?.[
@@ -215,8 +223,14 @@ export default class OtelIngestService {
             continue;
           }
 
+          let scopeLogCounter: number = 0;
           for (const scopeLog of scopeLogs) {
             try {
+              if (scopeLogCounter % 100 === 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.resolve();
+              }
+              scopeLogCounter++;
               const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
 
               if (!logRecords || !Array.isArray(logRecords)) {
@@ -224,8 +238,14 @@ export default class OtelIngestService {
                 continue;
               }
 
+              let logRecordCounter: number = 0;
               for (const log of logRecords) {
                 try {
+                  if (logRecordCounter % 500 === 0) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await Promise.resolve();
+                  }
+                  logRecordCounter++;
                   const dbLog: Log = new Log();
 
                   const attributesObject: Dictionary<
@@ -503,8 +523,14 @@ export default class OtelIngestService {
       // example: "cpu.usage" -> [serviceId1, serviceId2]
       const metricNameServiceNameMap: Dictionary<MetricType> = {};
 
+      let resourceMetricCounter: number = 0;
       for (const resourceMetric of resourceMetrics) {
         try {
+          if (resourceMetricCounter % 25 === 0) {
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.resolve();
+          }
+          resourceMetricCounter++;
           const serviceName: string = this.getServiceNameFromAttributes(
             req,
             ((resourceMetric["resource"] as JSONObject)?.[
@@ -560,8 +586,14 @@ export default class OtelIngestService {
             continue;
           }
 
+          let scopeMetricCounter: number = 0;
           for (const scopeMetric of scopeMetrics) {
             try {
+              if (scopeMetricCounter % 50 === 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.resolve();
+              }
+              scopeMetricCounter++;
               const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
 
               if (!metrics || !Array.isArray(metrics)) {
@@ -569,8 +601,14 @@ export default class OtelIngestService {
                 continue;
               }
 
+              let metricCounter: number = 0;
               for (const metric of metrics) {
                 try {
+                  if (metricCounter % 100 === 0) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await Promise.resolve();
+                  }
+                  metricCounter++;
                   const dbMetric: Metric = new Metric();
                   dbMetric.projectId = (req as TelemetryRequest).projectId;
                   dbMetric.serviceId =
@@ -836,8 +874,14 @@ export default class OtelIngestService {
       const attributeKeySet: Set<string> = new Set<string>();
       const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
 
+      let resourceSpanCounter: number = 0;
       for (const resourceSpan of resourceSpans) {
         try {
+          if (resourceSpanCounter % 25 === 0) {
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.resolve();
+          }
+            resourceSpanCounter++;
           // get service name from resourceSpan attributes
           const serviceName: string = this.getServiceNameFromAttributes(
             req,
@@ -891,8 +935,14 @@ export default class OtelIngestService {
             continue;
           }
 
+          let scopeSpanCounter: number = 0;
           for (const scopeSpan of scopeSpans) {
             try {
+              if (scopeSpanCounter % 50 === 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.resolve();
+              }
+              scopeSpanCounter++;
               const spans: JSONArray = scopeSpan["spans"] as JSONArray;
 
               if (!spans || !Array.isArray(spans)) {
@@ -900,8 +950,14 @@ export default class OtelIngestService {
                 continue;
               }
 
+              let spanCounter: number = 0;
               for (const span of spans) {
                 try {
+                  if (spanCounter % 200 === 0) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await Promise.resolve();
+                  }
+                  spanCounter++;
                   const dbSpan: Span = new Span();
 
                   const attributesObject: Dictionary<
