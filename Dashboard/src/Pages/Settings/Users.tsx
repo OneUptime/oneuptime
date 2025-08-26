@@ -32,7 +32,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         id="teams-table"
         name="Settings > Users"
         userPreferencesKey="users-table"
-        isDeleteable={false}
+        isDeleteable={true}
         isEditable={false}
         isCreateable={false}
         onFilterApplied={(isApplied: boolean) => {
