@@ -89,6 +89,11 @@ const handleUserTeamOperations: (
             ignoreHooks: true,
           },
         });
+
+        logger.debug(
+          `SCIM Team operations - user added to team: ${team.id}`,
+        );
+        
       } else {
         logger.debug(
           `SCIM Team operations - user already member of team: ${team.id}`,
