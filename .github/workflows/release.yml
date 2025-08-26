@@ -1921,7 +1921,7 @@ jobs:
               commits="(no commits found)"
             fi
             {
-              echo "changelog<<'EOF'"
+              echo "changelog<<EOF"
               echo "## Commit Messages"
               echo ""
               echo "$commits"
@@ -1930,7 +1930,7 @@ jobs:
           else
             # Pass through original changelog
             {
-              echo "changelog<<'EOF'"
+              echo "changelog<<EOF"
               echo "$CHANGELOG_CONTENT"
               echo "EOF"
             } >> "$GITHUB_OUTPUT"
