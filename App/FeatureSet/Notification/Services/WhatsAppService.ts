@@ -1,10 +1,10 @@
 import {
   WhatsAppTextDefaultCostInCents,
   WhatsAppTextHighRiskCostInCents,
-  getTwilioConfig,
+  getMetaWhatsAppConfig,
 } from "../Config";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
-import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import MetaWhatsAppConfig from "Common/Types/WhatsApp/MetaWhatsAppConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
@@ -19,8 +19,7 @@ import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTi
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
 import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
-import Twilio from "twilio";
-import { MessageInstance } from "twilio/lib/rest/api/v2010/account/message";
+import { JSONObject } from "Common/Types/JSON";
 
 export default class WhatsAppService {
   public static async sendWhatsApp(
@@ -28,7 +27,7 @@ export default class WhatsAppService {
     message: string,
     options: {
       projectId?: ObjectID | undefined; // project id for whatsapp log
-      customTwilioConfig?: TwilioConfig | undefined;
+      customMetaWhatsAppConfig?: MetaWhatsAppConfig | undefined;
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID | undefined;
       incidentId?: ObjectID | undefined;
@@ -57,7 +56,7 @@ export default class WhatsAppService {
       let whatsappCost: number = 0;
 
       const shouldChargeForWhatsApp: boolean =
-        IsBillingEnabled && !options.customTwilioConfig;
+        IsBillingEnabled && !options.customMetaWhatsAppConfig;
 
       if (shouldChargeForWhatsApp) {
         whatsappCost = WhatsAppTextDefaultCostInCents / 100;
@@ -125,25 +124,15 @@ export default class WhatsAppService {
         whatsappLog.onCallDutyPolicyScheduleId = options.onCallScheduleId;
       }
 
-      const twilioConfig: TwilioConfig | null =
-        options.customTwilioConfig || (await getTwilioConfig());
+      const metaWhatsAppConfig: MetaWhatsAppConfig | null =
+        options.customMetaWhatsAppConfig || (await getMetaWhatsAppConfig());
 
-      if (!twilioConfig) {
-        throw new BadDataException("Twilio Config not found");
+      if (!metaWhatsAppConfig) {
+        throw new BadDataException("Meta WhatsApp Config not found");
       }
 
-      const client: Twilio.Twilio = Twilio(
-        twilioConfig.accountSid,
-        twilioConfig.authToken,
-      );
-
-      const fromNumber: Phone = twilioConfig.primaryPhoneNumber;
-
-      if (!fromNumber) {
-        throw new BadDataException("Twilio Phone Number not found");
-      }
-
-      whatsappLog.fromNumber = fromNumber;
+      // No fromNumber for Meta WhatsApp Business API as it uses Phone Number ID
+      whatsappLog.fromNumber = new Phone(metaWhatsAppConfig.phoneNumberId);
 
       let project: Project | null = null;
 
@@ -287,18 +276,41 @@ export default class WhatsAppService {
         }
       }
 
-      // Send WhatsApp message using Twilio WhatsApp API
-      const whatsappTo = `whatsapp:${to.toString()}`;
-      const whatsappFrom = `whatsapp:${fromNumber.toString()}`;
+      // Send WhatsApp message using Meta WhatsApp Business API
+      const metaApiUrl = `https://graph.facebook.com/v18.0/${metaWhatsAppConfig.phoneNumberId}/messages`;
+      
+      const messagePayload: JSONObject = {
+        messaging_product: "whatsapp",
+        to: to.toString(),
+        type: "text",
+        text: {
+          body: message,
+        },
+      };
 
-      const twilioMessage: MessageInstance = await client.messages.create({
-        body: message,
-        to: whatsappTo,
-        from: whatsappFrom,
+      // Use fetch directly since the Meta API doesn't fit the existing URL pattern
+      const fetchResponse = await fetch(metaApiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${metaWhatsAppConfig.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(messagePayload),
       });
 
+      if (!fetchResponse.ok) {
+        const errorText = await fetchResponse.text();
+        throw new BadDataException(
+          `Failed to send WhatsApp message: ${fetchResponse.status} - ${errorText}`,
+        );
+      }
+
+      const responseData = await fetchResponse.json() as JSONObject;
+      const messages = responseData["messages"] as any;
+      const messageId = messages && Array.isArray(messages) && messages[0] ? messages[0]["id"] as string : "unknown";
+
       whatsappLog.status = WhatsAppStatus.Success;
-      whatsappLog.statusMessage = "Message ID: " + twilioMessage.sid;
+      whatsappLog.statusMessage = "Message ID: " + (messageId || "unknown");
 
       logger.debug("WhatsApp message sent successfully.");
       logger.debug(whatsappLog.statusMessage);

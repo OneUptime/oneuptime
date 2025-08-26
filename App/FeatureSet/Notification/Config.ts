@@ -1,4 +1,5 @@
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import MetaWhatsAppConfig from "Common/Types/WhatsApp/MetaWhatsAppConfig";
 import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -245,3 +246,50 @@ export const WhatsAppTextHighRiskCostInCents: number = process.env[
 ]
   ? parseInt(process.env["WHATSAPP_TEXT_HIGH_RISK_COST_IN_CENTS"])
   : 0;
+
+type GetMetaWhatsAppConfigFunction = () => Promise<MetaWhatsAppConfig | null>;
+
+export const getMetaWhatsAppConfig: GetMetaWhatsAppConfigFunction =
+  async (): Promise<MetaWhatsAppConfig | null> => {
+    const globalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          metaWhatsAppAccessToken: true,
+          metaWhatsAppPhoneNumberId: true,
+          metaWhatsAppBusinessAccountId: true,
+          metaWhatsAppAppId: true,
+          metaWhatsAppAppSecret: true,
+          metaWhatsAppWebhookVerifyToken: true,
+        },
+      });
+
+    if (!globalConfig) {
+      throw new BadDataException("Global Config not found");
+    }
+
+    if (
+      !globalConfig.metaWhatsAppAccessToken ||
+      !globalConfig.metaWhatsAppPhoneNumberId ||
+      !globalConfig.metaWhatsAppBusinessAccountId ||
+      !globalConfig.metaWhatsAppAppId ||
+      !globalConfig.metaWhatsAppAppSecret ||
+      !globalConfig.metaWhatsAppWebhookVerifyToken
+    ) {
+      return null;
+    }
+
+    return {
+      accessToken: globalConfig.metaWhatsAppAccessToken,
+      phoneNumberId: globalConfig.metaWhatsAppPhoneNumberId,
+      businessAccountId: globalConfig.metaWhatsAppBusinessAccountId,
+      appId: globalConfig.metaWhatsAppAppId,
+      appSecret: globalConfig.metaWhatsAppAppSecret,
+      webhookVerifyToken: globalConfig.metaWhatsAppWebhookVerifyToken,
+    };
+  };

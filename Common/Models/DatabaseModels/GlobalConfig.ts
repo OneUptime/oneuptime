@@ -388,4 +388,114 @@ export default class GlobalConfig extends GlobalConfigModel {
     transformer: Email.getDatabaseTransformer(),
   })
   public adminNotificationEmail?: Email = undefined;
+
+  // Meta WhatsApp Business API Config
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Access Token",
+    description: "Access Token for Meta WhatsApp Business API",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppAccessToken?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Phone Number ID",
+    description: "Phone Number ID for Meta WhatsApp Business API",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppPhoneNumberId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Business Account ID",
+    description: "Business Account ID for Meta WhatsApp Business API",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppBusinessAccountId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp App ID",
+    description: "App ID for Meta WhatsApp Business API",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppAppId?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp App Secret",
+    description: "App Secret for Meta WhatsApp Business API",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppAppSecret?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Meta WhatsApp Webhook Verify Token",
+    description: "Webhook Verify Token for Meta WhatsApp Business API",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public metaWhatsAppWebhookVerifyToken?: string = undefined;
 }

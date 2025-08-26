@@ -6,7 +6,7 @@ import HTTPResponse from "../../Types/API/HTTPResponse";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
-import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
+import MetaWhatsAppConfig from "../../Types/WhatsApp/MetaWhatsAppConfig";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
@@ -30,7 +30,7 @@ export class WhatsAppService extends BaseService {
       projectId?: ObjectID | undefined; // project id for whatsapp log
       isSensitive?: boolean; // if true, message will not be logged
       userOnCallLogTimelineId?: ObjectID;
-      customTwilioConfig?: TwilioConfig | undefined;
+      customMetaWhatsAppConfig?: MetaWhatsAppConfig | undefined;
       incidentId?: ObjectID | undefined;
       alertId?: ObjectID | undefined;
       scheduledMaintenanceId?: ObjectID | undefined;
@@ -51,14 +51,14 @@ export class WhatsAppService extends BaseService {
       projectId: options.projectId?.toString(),
       isSensitive: options.isSensitive,
       userOnCallLogTimelineId: options.userOnCallLogTimelineId?.toString(),
-      customTwilioConfig: options.customTwilioConfig
+      customMetaWhatsAppConfig: options.customMetaWhatsAppConfig
         ? {
-            accountSid: options.customTwilioConfig.accountSid!,
-            authToken: options.customTwilioConfig.authToken!,
-            primaryPhoneNumber:
-              options.customTwilioConfig.primaryPhoneNumber.toString(),
-            secondaryPhoneNumbers:
-              options.customTwilioConfig.secondaryPhoneNumbers?.toString(),
+            accessToken: options.customMetaWhatsAppConfig.accessToken!,
+            phoneNumberId: options.customMetaWhatsAppConfig.phoneNumberId!,
+            businessAccountId: options.customMetaWhatsAppConfig.businessAccountId!,
+            appId: options.customMetaWhatsAppConfig.appId!,
+            appSecret: options.customMetaWhatsAppConfig.appSecret!,
+            webhookVerifyToken: options.customMetaWhatsAppConfig.webhookVerifyToken!,
           }
         : undefined,
       incidentId: options.incidentId?.toString(),
