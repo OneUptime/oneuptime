@@ -184,18 +184,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker images
-        run: |
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --file ./MCP/Dockerfile.tpl \
-            --tag oneuptime/mcp-server:${{ steps.version.outputs.version }} \
-            --tag oneuptime/mcp-server:release \
-            --tag ghcr.io/oneuptime/mcp-server:${{ steps.version.outputs.version }} \
-            --tag ghcr.io/oneuptime/mcp-server:release \
-            --build-arg GIT_SHA=${{ github.sha }} \
-            --build-arg APP_VERSION=${{ steps.version.outputs.version }} \
-            --push .
-          echo "✅ Pushed Docker images to Docker Hub and GitHub Container Registry"
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --file ./MCP/Dockerfile.tpl \
+              --tag oneuptime/mcp-server:${{ steps.version.outputs.version }} \
+              --tag oneuptime/mcp-server:release \
+              --tag ghcr.io/oneuptime/mcp-server:${{ steps.version.outputs.version }} \
+              --tag ghcr.io/oneuptime/mcp-server:release \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=${{ steps.version.outputs.version }} \
+              --push .
+            echo "✅ Pushed Docker images to Docker Hub and GitHub Container Registry"
 
       - name: Upload MCP server artifact
         uses: actions/upload-artifact@v4
@@ -252,17 +256,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Nginx/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Nginx/Dockerfile \
+              --context . \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/nginx:release \
+              --tag oneuptime/nginx:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --tag ghcr.io/oneuptime/nginx:release \
+              --tag ghcr.io/oneuptime/nginx:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   e2e-docker-image-deploy:
     needs: [generate-build-number]
@@ -312,17 +321,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./E2E/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./E2E/Dockerfile \
+              --context . \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/e2e:release \
+              --tag oneuptime/e2e:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --tag ghcr.io/oneuptime/e2e:release \
+              --tag ghcr.io/oneuptime/e2e:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   isolated-vm-docker-image-deploy:
     needs: [generate-build-number]
@@ -372,17 +386,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./IsolatedVM/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./IsolatedVM/Dockerfile \
+              --context . \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/isolated-vm:release \
+              --tag oneuptime/isolated-vm:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --tag ghcr.io/oneuptime/isolated-vm:release \
+              --tag ghcr.io/oneuptime/isolated-vm:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   home-docker-image-deploy:
     needs: [generate-build-number]
@@ -432,17 +451,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Home/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Home/Dockerfile \
+              --context . \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/home:release \
+              --tag oneuptime/home:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --tag ghcr.io/oneuptime/home:release \
+              --tag ghcr.io/oneuptime/home:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
           
             
 
@@ -495,17 +519,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./TestServer/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./TestServer/Dockerfile \
+              --context . \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag oneuptime/test-server:release \
+              --tag oneuptime/test-server:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --tag ghcr.io/oneuptime/test-server:release \
+              --tag ghcr.io/oneuptime/test-server:7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
 
   otel-collector-docker-image-deploy:
     needs: [generate-build-number]
@@ -555,17 +584,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./OTelCollector/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./OTelCollector/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
 
 
@@ -617,17 +649,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./StatusPage/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./StatusPage/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   test-docker-image-deploy:
     needs: [generate-build-number]
@@ -677,17 +712,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Tests/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Tests/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   probe-ingest-docker-image-deploy:
     needs: [generate-build-number]
@@ -737,17 +775,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./ProbeIngest/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./ProbeIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   
   server-monitor-ingest-docker-image-deploy:
@@ -798,17 +839,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./ServerMonitorIngest/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./ServerMonitorIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
           
           
   
@@ -860,17 +904,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./OpenTelemetryIngest/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./OpenTelemetryIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
 
   incoming-request-ingest-docker-image-deploy:
@@ -921,17 +968,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./IncomingRequestIngest/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./IncomingRequestIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   fluent-ingest-docker-image-deploy:
     needs: [generate-build-number]
@@ -981,17 +1031,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./FluentIngest/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./FluentIngest/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   probe-docker-image-deploy:
     needs: [generate-build-number]
@@ -1041,17 +1094,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Probe/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Probe/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   admin-dashboard-docker-image-deploy:
     needs: [generate-build-number]
@@ -1101,17 +1157,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./AdminDashboard/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./AdminDashboard/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
 
   dashboard-docker-image-deploy:
@@ -1162,17 +1221,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Dashboard/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Dashboard/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   app-docker-image-deploy:
     needs: [generate-build-number]
@@ -1222,17 +1284,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./App/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./App/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
 
   copilot-docker-image-deploy:
@@ -1283,17 +1348,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Copilot/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Copilot/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
   accounts-docker-image-deploy:
     needs: [generate-build-number]
@@ -1343,17 +1411,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Accounts/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Accounts/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
 
 
   publish-npm-packages:
@@ -1443,17 +1514,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./LLM/Dockerfile
-          context: ./LLM
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./LLM/Dockerfile \
+              --context ./LLM \
+              --platform linux/amd64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
         
   docs-docker-image-deploy: 
     needs: generate-build-number
@@ -1505,17 +1579,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Docs/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Docs/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
         
   
 
@@ -1570,17 +1647,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Worker/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64 
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Worker/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
         
   
 
@@ -1635,17 +1715,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./Workflow/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./Workflow/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
             
   
 
@@ -1761,17 +1844,20 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: nick-fields/retry@v3
         with:
-          file: ./APIReference/Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_SHA=${{ github.sha }}
-            APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+          timeout_minutes: 45
+          max_attempts: 3
+          command: |
+            docker buildx build \
+              --file ./APIReference/Dockerfile \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              --tag ${{ steps.meta.outputs.tags }} \
+              --label ${{ steps.meta.outputs.labels }} \
+              --build-arg GIT_SHA=${{ github.sha }} \
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              .
             
   
   

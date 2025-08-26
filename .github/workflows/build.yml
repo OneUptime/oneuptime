@@ -23,7 +23,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./Accounts/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Accounts/Dockerfile .
 
   docker-build-isolated-vm:
     runs-on: ubuntu-latest
@@ -38,7 +42,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./IsolatedVM/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./IsolatedVM/Dockerfile .
 
   docker-build-home:
     runs-on: ubuntu-latest
@@ -53,7 +61,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./Home/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Home/Dockerfile .
 
   docker-build-worker:
     runs-on: ubuntu-latest
@@ -68,7 +80,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./Worker/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Worker/Dockerfile .
 
   docker-build-workflow:
     runs-on: ubuntu-latest
@@ -83,7 +99,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./Workflow/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Workflow/Dockerfile .
 
   docker-build-api-reference:
     runs-on: ubuntu-latest
@@ -98,7 +118,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./APIReference/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./APIReference/Dockerfile .
 
   docker-build-docs:
     runs-on: ubuntu-latest
@@ -113,7 +137,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./Docs/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Docs/Dockerfile .
 
 
   docker-build-otel-collector:
@@ -129,7 +157,11 @@ jobs:
       
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./OTelCollector/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./OTelCollector/Dockerfile .
 
   docker-build-app:
     runs-on: ubuntu-latest
@@ -145,7 +177,11 @@ jobs:
         
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./App/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./App/Dockerfile .
 
 
   docker-build-copilot:
@@ -161,7 +197,11 @@ jobs:
 
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./Copilot/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Copilot/Dockerfile .
 
   docker-build-e2e:
     runs-on: ubuntu-latest
@@ -177,7 +217,11 @@ jobs:
         
       # build image for accounts service
       - name: build docker image
-        run: sudo docker build -f ./E2E/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./E2E/Dockerfile .
 
   docker-build-admin-dashboard:
     runs-on: ubuntu-latest
@@ -192,7 +236,11 @@ jobs:
 
       # build image for home
       - name: build docker image
-        run: sudo docker build -f ./AdminDashboard/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./AdminDashboard/Dockerfile .
 
   docker-build-dashboard:
     runs-on: ubuntu-latest
@@ -207,7 +255,11 @@ jobs:
 
       # build image for home
       - name: build docker image
-        run: sudo docker build -f ./Dashboard/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Dashboard/Dockerfile .
 
   docker-build-probe:
     runs-on: ubuntu-latest
@@ -222,7 +274,11 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./Probe/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./Probe/Dockerfile .
 
   docker-build-probe-ingest:
     runs-on: ubuntu-latest
@@ -237,7 +293,11 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./ProbeIngest/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./ProbeIngest/Dockerfile .
 
   docker-build-server-monitor-ingest:
     runs-on: ubuntu-latest
@@ -252,7 +312,11 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./ServerMonitorIngest/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./ServerMonitorIngest/Dockerfile .
 
   docker-build-open-telemetry-ingest:
     runs-on: ubuntu-latest
@@ -267,7 +331,11 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./OpenTelemetryIngest/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./OpenTelemetryIngest/Dockerfile .
 
   docker-build-incoming-request-ingest:
     runs-on: ubuntu-latest
@@ -282,7 +350,11 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./IncomingRequestIngest/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./IncomingRequestIngest/Dockerfile .
 
   docker-build-fluent-ingest:
     runs-on: ubuntu-latest
@@ -297,7 +369,11 @@ jobs:
         
       # build image probe api
       - name: build docker image
-        run: sudo docker build -f ./FluentIngest/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./FluentIngest/Dockerfile .
 
   docker-build-status-page:
     runs-on: ubuntu-latest
@@ -312,7 +388,11 @@ jobs:
         
       # build image for home
       - name: build docker image
-        run: sudo docker build -f ./StatusPage/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./StatusPage/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -327,4 +407,8 @@ jobs:
 
       # build image for mail service
       - name: build docker image
-        run: sudo docker build -f ./TestServer/Dockerfile .
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build -f ./TestServer/Dockerfile .
