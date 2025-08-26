@@ -1,12 +1,11 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import UserElement from "../../Components/User/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamsElement from "../../Components/Team/TeamsElement";
+import TeamElement from "../../Components/Team/Team";
 import Route from "Common/Types/API/Route";
 import { RouteUtil } from "../../Utils/RouteMap";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -16,6 +15,8 @@ import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Green, Yellow } from "Common/Types/BrandColors";
 
 const Teams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -26,8 +27,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <ModelTable<ProjectUser>
-        modelType={ProjectUser}
+      <ModelTable<TeamMember>
+        modelType={TeamMember}
         id="teams-table"
         name="Settings > Users"
         userPreferencesKey="users-table"
@@ -40,7 +41,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isViewable={true}
         cardProps={{
           title: "Users",
-          description: "Here is a list of all the users in this project.",
+          description: "Here is a list of all the team members in this project.",
           buttons: [
             {
               title: "Invite User",
@@ -61,7 +62,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         showRefreshButton={true}
-        onViewPage={(item: ProjectUser) => {
+        onViewPage={(item: TeamMember) => {
           const viewPageRoute: string =
             RouteUtil.populateRouteParams(props.pageRoute).toString() +
             "/" +
@@ -72,12 +73,12 @@ const Teams: FunctionComponent<PageComponentProps> = (
         filters={[
           {
             field: {
-              acceptedTeams: {
+              team: {
                 name: true,
               },
             },
-            title: "Teams member of",
-            type: FieldType.EntityArray,
+            title: "Team",
+            type: FieldType.Entity,
             filterEntityType: Team,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
@@ -89,20 +90,10 @@ const Teams: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              invitedTeams: {
-                name: true,
-              },
+              hasAcceptedInvitation: true,
             },
-            title: "Teams invited to",
-            type: FieldType.EntityArray,
-            filterEntityType: Team,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
+            title: "Status",
+            type: FieldType.Boolean,
           },
         ]}
         columns={[
@@ -116,7 +107,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             },
             title: "User",
             type: FieldType.Element,
-            getElement: (item: ProjectUser) => {
+            getElement: (item: TeamMember) => {
               if (!item.user) {
                 return <p>User not found</p>;
               }
@@ -125,26 +116,31 @@ const Teams: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              acceptedTeams: {
+              team: {
                 name: true,
+                _id: true,
               },
             },
-            title: "Teams member of",
+            title: "Team",
             type: FieldType.Element,
-            getElement: (item: ProjectUser) => {
-              return <TeamsElement teams={item.acceptedTeams || []} />;
+            getElement: (item: TeamMember) => {
+              if (!item.team) {
+                return <p>No team assigned</p>;
+              }
+              return <TeamElement team={item.team!} />;
             },
           },
           {
             field: {
-              invitedTeams: {
-                name: true,
-              },
+              hasAcceptedInvitation: true,
             },
-            title: "Teams invited to",
+            title: "Status",
             type: FieldType.Element,
-            getElement: (item: ProjectUser) => {
-              return <TeamsElement teams={item.invitedTeams || []} />;
+            getElement: (item: TeamMember) => {
+              if (item.hasAcceptedInvitation) {
+                return <Pill text="Member" color={Green} />;
+              }
+              return <Pill text="Invitation Sent" color={Yellow} />;
             },
           },
         ]}
