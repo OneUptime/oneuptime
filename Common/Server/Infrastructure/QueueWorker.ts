@@ -37,9 +37,7 @@ export default class QueueWorker {
       },
       concurrency: options.concurrency,
       // Only set these values if provided so we do not override BullMQ defaults
-      ...(options.lockDuration
-        ? { lockDuration: options.lockDuration }
-        : {}),
+      ...(options.lockDuration ? { lockDuration: options.lockDuration } : {}),
       ...(options.maxStalledCount !== undefined
         ? { maxStalledCount: options.maxStalledCount }
         : {}),

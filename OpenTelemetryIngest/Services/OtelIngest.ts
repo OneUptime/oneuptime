@@ -881,7 +881,7 @@ export default class OtelIngestService {
             // eslint-disable-next-line no-await-in-loop
             await Promise.resolve();
           }
-            resourceSpanCounter++;
+          resourceSpanCounter++;
           // get service name from resourceSpan attributes
           const serviceName: string = this.getServiceNameFromAttributes(
             req,

@@ -91,7 +91,7 @@ class BaseAPI extends API {
     return defaultHeaders;
   }
 
-  protected static logoutUser(){ 
+  protected static logoutUser() {
     return User.logout();
   }
 

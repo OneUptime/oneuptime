@@ -25,7 +25,7 @@ export default class API extends BaseAPI {
   }
 
   public static override logoutUser(): void {
-     UserUtil.logout(StatusPageUtil.getStatusPageId()!);
+    UserUtil.logout(StatusPageUtil.getStatusPageId()!);
   }
 
   public static override getForbiddenRoute(): Route {
