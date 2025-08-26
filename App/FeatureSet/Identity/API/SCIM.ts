@@ -161,6 +161,7 @@ router.get(
       const { startIndex, count } = parseSCIMQueryParams(req);
       const filter: string = req.query["filter"] as string;
 
+
       logSCIMOperation(
         "Users list",
         "project",
@@ -188,11 +189,50 @@ router.get(
           );
 
           if (email) {
-            const user: User | null = await UserService.findOneBy({
-              query: { email: new Email(email) },
-              select: { _id: true },
-              props: { isRoot: true },
-            });
+            let user: User | null = null;
+            
+            // Check if the extracted value is a valid email format
+            if (Email.isValid(email)) {
+              // Query by email
+              user = await UserService.findOneBy({
+                query: { email: new Email(email) },
+                select: { _id: true },
+                props: { isRoot: true },
+              });
+              logSCIMOperation(
+                "Users list",
+                "project",
+                req.params["projectScimId"]!,
+                `queried by email: ${email}`,
+              );
+            } else {
+              // If not a valid email, treat it as a userId (e.g., GUID from Azure)
+              try {
+                user = await UserService.findOneBy({
+                  query: { _id: new ObjectID(email) },
+                  select: { _id: true },
+                  props: { isRoot: true },
+                });
+                logSCIMOperation(
+                  "Users list",
+                  "project",
+                  req.params["projectScimId"]!,
+                  `queried by userId: ${email}`,
+                );
+              } catch (error) {
+                logSCIMOperation(
+                  "Users list",
+                  "project",
+                  req.params["projectScimId"]!,
+                  `invalid userId format: ${email}, returning empty results`,
+                );
+                return Response.sendJsonObjectResponse(
+                  req,
+                  res,
+                  generateUsersListResponse([], startIndex, 0),
+                );
+              }
+            }
             if (user && user.id) {
               query.userId = user.id;
               logSCIMOperation(
@@ -461,6 +501,9 @@ router.put(
       if (email || name) {
         const updateData: any = {};
         if (email) {
+          if (!Email.isValid(email)) {
+            throw new BadRequestException(`Invalid email format: ${email}`);
+          }
           updateData.email = new Email(email);
         }
         if (name) {
@@ -600,6 +643,10 @@ router.post(
 
       if (!email) {
         throw new BadRequestException("userName or email is required");
+      }
+
+      if (!Email.isValid(email)) {
+        throw new BadRequestException(`Invalid email format: ${email}`);
       }
 
       // Check if user already exists
