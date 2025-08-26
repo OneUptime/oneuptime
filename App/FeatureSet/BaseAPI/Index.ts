@@ -538,10 +538,7 @@ import WorkspaceSettingService, {
   Service as WorkspaceSettingServiceType,
 } from "Common/Server/Services/WorkspaceSettingService";
 
-import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
-import ProjectUserService, {
-  Service as ProjectUserServiceType,
-} from "Common/Server/Services/ProjectUserService";
+
 
 import MonitorFeed from "Common/Models/DatabaseModels/MonitorFeed";
 import MonitorFeedService, {
@@ -733,14 +730,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorTest, MonitorTestServiceType>(
         MonitorTest,
         MonitorTestService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ProjectUser, ProjectUserServiceType>(
-        ProjectUser,
-        ProjectUserService,
       ).getRouter(),
     );
 
