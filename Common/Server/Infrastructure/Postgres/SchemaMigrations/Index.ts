@@ -163,7 +163,7 @@ import { MigrationName1755778495455 } from "./1755778495455-MigrationName";
 import { MigrationName1755778934927 } from "./1755778934927-MigrationName";
 import { MigrationName1756143847054 } from "./1756143847054-MigrationName";
 import { AddWhatsAppNotificationFields1756144872160 } from "./1756144872160-MigrationName";
-
+import {MigrationName1756201378749} from "./1756201378749-MigrationName";
 
 export default [
   InitialMigration,
@@ -330,5 +330,6 @@ export default [
   MigrationName1755778495455,
   MigrationName1755778934927,
   MigrationName1756143847054,
-  AddWhatsAppNotificationFields1756144872160
+  AddWhatsAppNotificationFields1756144872160,
+  MigrationName1756201378749
 ];
