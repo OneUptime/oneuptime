@@ -92,7 +92,7 @@ The following example shows how to use a JavaScript expression to monitor an inc
 
 // you can combine multiple expressions using logical operators
 
-"{{requestBody.item}"} === "hello" && "{{requestHeaders.contentType}}" === "text/html"
+"{{requestBody.item}}" === "hello" && "{{requestHeaders.contentType}}" === "text/html"
 
 // you can use the following for arrays
 
