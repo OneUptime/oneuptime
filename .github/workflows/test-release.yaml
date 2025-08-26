@@ -280,7 +280,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./LLM/Dockerfile \
-              --context ./LLM \
               --platform linux/amd64 \
               --push \
               --tag oneuptime/llm:test \
@@ -289,7 +288,7 @@ jobs:
               --tag ghcr.io/oneuptime/llm:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
-              .
+              ./LLM
 
 
   nginx-docker-image-deploy:
@@ -348,7 +347,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Nginx/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/nginx:test \
@@ -416,7 +414,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./E2E/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/e2e:test \
@@ -483,7 +480,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./TestServer/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/test-server:test \
@@ -550,7 +546,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./OTelCollector/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/otel-collector:test \
@@ -617,7 +612,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./IsolatedVM/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/isolated-vm:test \
@@ -684,7 +678,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Home/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/home:test \
@@ -753,7 +746,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./StatusPage/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/status-page:test \
@@ -822,7 +814,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Tests/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/test:test \
@@ -889,7 +880,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./ProbeIngest/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/probe-ingest:test \
@@ -958,7 +948,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./ServerMonitorIngest/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/server-monitor-ingest:test \
@@ -1028,7 +1017,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./IncomingRequestIngest/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/incoming-request-ingest:test \
@@ -1095,7 +1083,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./OpenTelemetryIngest/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/open-telemetry-ingest:test \
@@ -1162,7 +1149,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./FluentIngest/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/fluent-ingest:test \
@@ -1229,7 +1215,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Probe/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/probe:test \
@@ -1296,7 +1281,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Dashboard/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/dashboard:test \
@@ -1363,7 +1347,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./AdminDashboard/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/admin-dashboard:test \
@@ -1430,7 +1413,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./App/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/app:test \
@@ -1500,7 +1482,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./APIReference/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/api-reference:test \
@@ -1569,7 +1550,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Accounts/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/accounts:test \
@@ -1636,7 +1616,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Worker/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/worker:test \
@@ -1703,7 +1682,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Copilot/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/copilot:test \
@@ -1771,7 +1749,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Workflow/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/workflow:test \
@@ -1839,7 +1816,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Docs/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/docs:test \

@@ -263,7 +263,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Nginx/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/nginx:release \
@@ -328,7 +327,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./E2E/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/e2e:release \
@@ -393,7 +391,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./IsolatedVM/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/isolated-vm:release \
@@ -458,7 +455,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./Home/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/home:release \
@@ -526,7 +522,6 @@ jobs:
           command: |
             docker buildx build \
               --file ./TestServer/Dockerfile \
-              --context . \
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/test-server:release \
@@ -1521,13 +1516,13 @@ jobs:
           command: |
             docker buildx build \
               --file ./LLM/Dockerfile \
-              --context ./LLM \
               --platform linux/amd64 \
               --push \
               --tag ${{ steps.meta.outputs.tags }} \
               --label ${{ steps.meta.outputs.labels }} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}}
+              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              ./LLM
         
   docs-docker-image-deploy: 
     needs: generate-build-number
