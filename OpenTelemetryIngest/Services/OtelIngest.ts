@@ -151,158 +151,248 @@ export default class OtelIngestService {
 
   @CaptureSpan()
   private static async processLogsAsync(req: ExpressRequest): Promise<void> {
-    const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
+    try {
+      const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
-    const dbLogs: Array<Log> = [];
-    const attributeKeySet: Set<string> = new Set<string>();
-    const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
-
-    for (const resourceLog of resourceLogs) {
-      const serviceName: string = this.getServiceNameFromAttributes(
-        req,
-        ((resourceLog["resource"] as JSONObject)?.[
-          "attributes"
-        ] as JSONArray) || [],
-      );
-
-      if (!serviceDictionary[serviceName]) {
-        const service: {
-          serviceId: ObjectID;
-          dataRententionInDays: number;
-        } = await OTelIngestService.telemetryServiceFromName({
-          serviceName: serviceName,
-          projectId: (req as TelemetryRequest).projectId,
-        });
-
-        serviceDictionary[serviceName] = {
-          serviceName: serviceName,
-          serviceId: service.serviceId,
-          dataRententionInDays: service.dataRententionInDays,
-          dataIngestedInGB: 0,
-        };
+      if (!resourceLogs || !Array.isArray(resourceLogs)) {
+        logger.error("Invalid resourceLogs format in request body");
+        throw new BadRequestException("Invalid resourceLogs format");
       }
 
-      const resourceAttributes: Dictionary<
-        AttributeType | Array<AttributeType>
-      > = {
-        ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        }),
-        ...TelemetryUtil.getAttributes({
-          items:
+      const dbLogs: Array<Log> = [];
+      const attributeKeySet: Set<string> = new Set<string>();
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+
+      for (const resourceLog of resourceLogs) {
+        try {
+          const serviceName: string = this.getServiceNameFromAttributes(
+            req,
             ((resourceLog["resource"] as JSONObject)?.[
               "attributes"
             ] as JSONArray) || [],
-          prefixKeysWithString: "resource",
-        }),
-      };
+          );
 
-      const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
-      serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+          if (!serviceDictionary[serviceName]) {
+            const service: {
+              serviceId: ObjectID;
+              dataRententionInDays: number;
+            } = await OTelIngestService.telemetryServiceFromName({
+              serviceName: serviceName,
+              projectId: (req as TelemetryRequest).projectId,
+            });
 
-      const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
+            serviceDictionary[serviceName] = {
+              serviceName: serviceName,
+              serviceId: service.serviceId,
+              dataRententionInDays: service.dataRententionInDays,
+              dataIngestedInGB: 0,
+            };
+          }
 
-      for (const scopeLog of scopeLogs) {
-        const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
-
-        for (const log of logRecords) {
-          const dbLog: Log = new Log();
-
-          const attributesObject: Dictionary<
+          const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...resourceAttributes,
+            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceName: serviceName,
+            }),
             ...TelemetryUtil.getAttributes({
-              items: (log["attributes"] as JSONArray) || [],
-              prefixKeysWithString: "logAttributes",
+              items:
+                ((resourceLog["resource"] as JSONObject)?.[
+                  "attributes"
+                ] as JSONArray) || [],
+              prefixKeysWithString: "resource",
             }),
           };
 
-          if (scopeLog["scope"] && Object.keys(scopeLog["scope"]).length > 0) {
-            const scopeAttributes: JSONObject = scopeLog["scope"] as JSONObject;
-            for (const key of Object.keys(scopeAttributes)) {
-              attributesObject[`scope.${key}`] = scopeAttributes[
-                key
-              ] as AttributeType;
+          const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
+          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+
+          const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
+
+          if (!scopeLogs || !Array.isArray(scopeLogs)) {
+            logger.warn("Invalid scopeLogs format, skipping resource log");
+            continue;
+          }
+
+          for (const scopeLog of scopeLogs) {
+            try {
+              const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
+
+              if (!logRecords || !Array.isArray(logRecords)) {
+                logger.warn("Invalid logRecords format, skipping scope log");
+                continue;
+              }
+
+              for (const log of logRecords) {
+                try {
+                  const dbLog: Log = new Log();
+
+                  const attributesObject: Dictionary<
+                    AttributeType | Array<AttributeType>
+                  > = {
+                    ...resourceAttributes,
+                    ...TelemetryUtil.getAttributes({
+                      items: (log["attributes"] as JSONArray) || [],
+                      prefixKeysWithString: "logAttributes",
+                    }),
+                  };
+
+                  if (scopeLog["scope"] && Object.keys(scopeLog["scope"]).length > 0) {
+                    const scopeAttributes: JSONObject = scopeLog["scope"] as JSONObject;
+                    for (const key of Object.keys(scopeAttributes)) {
+                      attributesObject[`scope.${key}`] = scopeAttributes[
+                        key
+                      ] as AttributeType;
+                    }
+                  }
+
+                  dbLog.attributes = attributesObject;
+                  Object.keys(dbLog.attributes).forEach((key: string) => {
+                    return attributeKeySet.add(key);
+                  });
+
+                  dbLog.projectId = (req as TelemetryRequest).projectId;
+                  dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
+
+                  // Set timeUnixNano to current time if not provided
+                  if (log["timeUnixNano"]) {
+                    try {
+                      // Handle large timestamp values that might be strings to prevent precision loss
+                      let timeUnixNano: number;
+                      if (typeof log["timeUnixNano"] === "string") {
+                        // Use parseFloat for string conversion to handle very large numbers more safely
+                        timeUnixNano = parseFloat(log["timeUnixNano"]);
+                        if (isNaN(timeUnixNano)) {
+                          throw new Error(`Invalid timestamp string: ${log["timeUnixNano"]}`);
+                        }
+                      } else {
+                        timeUnixNano = log["timeUnixNano"] as number || OneUptimeDate.getCurrentDateAsUnixNano();
+                      }
+                      
+                      
+                        dbLog.timeUnixNano = timeUnixNano;
+                        dbLog.time = OneUptimeDate.fromUnixNano(timeUnixNano);
+                      
+                    } catch (timeError) {
+                      logger.warn(`Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`);
+                      const currentTime: Date = OneUptimeDate.getCurrentDate();
+                      dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+                      dbLog.time = currentTime;
+                    }
+                  } else {
+                    const currentTime: Date = OneUptimeDate.getCurrentDate();
+                    dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+                    dbLog.time = currentTime;
+                  }
+
+                  let logSeverityNumber: number =
+                    (log["severityNumber"] as number) || 0;
+
+                  if (typeof logSeverityNumber === "string") {
+                    logSeverityNumber = this.convertSeverityNumber(logSeverityNumber);
+                  }
+
+                  dbLog.severityNumber = logSeverityNumber;
+                  dbLog.severityText = this.getSeverityText(logSeverityNumber);
+
+                  // Handle log body safely
+                  try {
+                    const logBody: JSONObject = log["body"] as JSONObject;
+                    if (logBody && typeof logBody === "object" && logBody["stringValue"]) {
+                      dbLog.body = logBody["stringValue"] as string;
+                    } else if (typeof log["body"] === "string") {
+                      dbLog.body = log["body"] as string;
+                    } else {
+                      dbLog.body = JSON.stringify(log["body"] || "");
+                    }
+                  } catch (bodyError) {
+                    logger.warn(`Error processing log body: ${bodyError instanceof Error ? bodyError.message : String(bodyError)}`);
+                    dbLog.body = String(log["body"] || "");
+                  }
+
+                  // Handle trace and span IDs safely
+                  try {
+                    dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
+                  } catch (traceError) {
+                    dbLog.traceId = "";
+                  }
+                  
+                  try {
+                    dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
+                  } catch (spanError) {
+                    dbLog.spanId = "";
+                  }
+
+                  dbLogs.push(dbLog);
+                } catch (logError) {
+                  logger.error("Error processing individual log record:");
+                  logger.error(logError);
+                  logger.error(`Log record data: ${JSON.stringify(log)}`);
+                  // Continue processing other logs instead of failing the entire batch
+                }
+              }
+            } catch (scopeError) {
+              logger.error("Error processing scope log:");
+              logger.error(scopeError);
+              logger.error(`Scope log data: ${JSON.stringify(scopeLog)}`);
+              // Continue processing other scope logs
             }
           }
-
-          dbLog.attributes = attributesObject;
-          Object.keys(dbLog.attributes).forEach((key: string) => {
-            return attributeKeySet.add(key);
-          });
-
-          dbLog.projectId = (req as TelemetryRequest).projectId;
-          dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
-
-          // Set timeUnixNano to current time if not provided
-          if (log["timeUnixNano"]) {
-            dbLog.timeUnixNano = log["timeUnixNano"] as number;
-            dbLog.time = OneUptimeDate.fromUnixNano(
-              log["timeUnixNano"] as number,
-            );
-          } else {
-            const currentTime: Date = OneUptimeDate.getCurrentDate();
-            dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-            dbLog.time = currentTime;
-          }
-
-          let logSeverityNumber: number =
-            (log["severityNumber"] as number) || 0;
-
-          if (typeof logSeverityNumber === "string") {
-            logSeverityNumber = this.convertSeverityNumber(logSeverityNumber);
-          }
-
-          dbLog.severityNumber = logSeverityNumber;
-          dbLog.severityText = this.getSeverityText(logSeverityNumber);
-
-          const logBody: JSONObject = log["body"] as JSONObject;
-          dbLog.body = logBody["stringValue"] as string;
-
-          dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
-          dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
-
-          dbLogs.push(dbLog);
+        } catch (resourceError) {
+          logger.error("Error processing resource log:");
+          logger.error(resourceError);
+          logger.error(`Resource log data: ${JSON.stringify(resourceLog)}`);
+          // Continue processing other resource logs
         }
       }
-    }
 
-    await Promise.all([
-      LogService.createMany({
-        items: dbLogs,
-        props: {
-          isRoot: true,
-        },
-      }),
-      TelemetryUtil.indexAttributes({
-        attributes: Array.from(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Log,
-      }),
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Logs,
-      }),
-    ]);
-
-    // Memory cleanup: Clear large objects to help GC
-    try {
-      dbLogs.length = 0;
-      attributeKeySet.clear();
-
-      // Clear request body to free memory
-      if (req.body) {
-        req.body = null;
+      if (dbLogs.length === 0) {
+        logger.warn("No valid logs were processed from the request");
+        return;
       }
 
-      // Force garbage collection for large telemetry ingestion
-      this.forceGarbageCollection();
-    } catch (cleanupError) {
-      logger.error("Error during memory cleanup:");
-      logger.error(cleanupError);
+      await Promise.all([
+        LogService.createMany({
+          items: dbLogs,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Log,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Logs,
+        }),
+      ]);
+
+      logger.debug(`Successfully processed ${dbLogs.length} logs for project: ${(req as TelemetryRequest).projectId}`);
+
+      // Memory cleanup: Clear large objects to help GC
+      try {
+        dbLogs.length = 0;
+        attributeKeySet.clear();
+
+        // Clear request body to free memory
+        if (req.body) {
+          req.body = null;
+        }
+
+        // Force garbage collection for large telemetry ingestion
+        this.forceGarbageCollection();
+      } catch (cleanupError) {
+        logger.error("Error during memory cleanup:");
+        logger.error(cleanupError);
+      }
+    } catch (error) {
+      logger.error("Critical error in processLogsAsync:");
+      logger.error(error);
+      throw error; // Re-throw to ensure the job fails properly
     }
   }
 
