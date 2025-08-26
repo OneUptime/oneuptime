@@ -22,6 +22,7 @@ import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDu
 import UserService from "./UserService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { SMSMessage } from "../../Types/SMS/SMS";
+import { WhatsAppMessage } from "../../Types/WhatsApp/WhatsApp";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
@@ -247,6 +248,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             message: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
+          const whatsApp: WhatsAppMessage = {
+            message: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
           const callMessage: CallRequestMessage = {
             data: [
               {
@@ -268,6 +273,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             projectId: projectId,
             emailEnvelope: emailMessage,
             smsMessage: sms,
+            whatsAppMessage: whatsApp,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
             eventType:
@@ -367,6 +373,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             message: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
+          const whatsAppSecond: WhatsAppMessage = {
+            message: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
           const callMessage: CallRequestMessage = {
             data: [
               {
@@ -388,6 +398,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             projectId: projectId,
             emailEnvelope: emailMessage,
             smsMessage: sms,
+            whatsAppMessage: whatsAppSecond,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
             eventType:
@@ -507,6 +518,10 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             message: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
           };
 
+          const whatsAppThird: WhatsAppMessage = {
+            message: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+          };
+
           const callMessage: CallRequestMessage = {
             data: [
               {
@@ -528,6 +543,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             projectId: projectId,
             emailEnvelope: emailMessage,
             smsMessage: sms,
+            whatsAppMessage: whatsAppThird,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
             eventType:

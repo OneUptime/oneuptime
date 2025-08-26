@@ -155,6 +155,8 @@ billing:
   callDefaultValueInCentsPerMinute:
   smsHighRiskValueInCents:
   callHighRiskValueInCentsPerMinute:
+  whatsappTextDefaultValueInCents:
+  whatsappTextHighRiskValueInCents:
   allowedActiveMonitorCountInFreePlan: 10
 
 subscriptionPlan:

@@ -8,6 +8,7 @@ import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
 import { SMSMessage } from "../../Types/SMS/SMS";
+import { WhatsAppMessage } from "../../Types/WhatsApp/WhatsApp";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
@@ -121,6 +122,10 @@ export class Service extends DatabaseService<Model> {
         message: `This is a message from OneUptime. You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName} and escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
       };
 
+      const whatsApp: WhatsAppMessage = {
+        message: `This is a message from OneUptime. You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name} for team ${temaName} and escalation rule ${createdModel.onCallDutyPolicyEscalationRule?.name} with order ${createdModel.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      };
+
       const callMessage: CallRequestMessage = {
         data: [
           {
@@ -139,6 +144,7 @@ export class Service extends DatabaseService<Model> {
         projectId: createdModel!.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
+        whatsAppMessage: whatsApp,
         callRequestMessage: callMessage,
         pushNotificationMessage: pushMessage,
         eventType:
@@ -308,6 +314,10 @@ export class Service extends DatabaseService<Model> {
           message: `This is a message from OneUptime. You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName} and escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
         };
 
+        const whatsAppSecond: WhatsAppMessage = {
+          message: `This is a message from OneUptime. You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name} for team ${teamName} and escalation rule ${deletedItem.onCallDutyPolicyEscalationRule?.name} with order ${deletedItem.onCallDutyPolicyEscalationRule?.order}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        };
+
         const callMessage: CallRequestMessage = {
           data: [
             {
@@ -327,6 +337,7 @@ export class Service extends DatabaseService<Model> {
           projectId: deletedItem!.projectId!,
           emailEnvelope: emailMessage,
           smsMessage: sms,
+          whatsAppMessage: whatsAppSecond,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
           eventType:

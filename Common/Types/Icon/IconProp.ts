@@ -82,6 +82,7 @@ enum IconProp {
   Folder = "Folder",
   Integrations = "Integrations",
   SMS = "SMS",
+  WhatsApp = "WhatsApp",
   Info = "Info",
   Success = "Success",
   Trash = "Trash",

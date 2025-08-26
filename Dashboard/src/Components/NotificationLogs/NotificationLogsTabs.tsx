@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import EmailLogsTable from "./EmailLogsTable";
 import SmsLogsTable from "./SmsLogsTable";
+import WhatsAppLogsTable from "./WhatsAppLogsTable";
 import CallLogsTable from "./CallLogsTable";
 import PushLogsTable from "./PushLogsTable";
 import WorkspaceLogsTable from "./WorkspaceLogsTable";
@@ -35,6 +36,10 @@ const NotificationLogsTabs: FunctionComponent<NotificationLogsTabsProps> = (
           {
             name: "SMS",
             children: <SmsLogsTable {...commonProps} />,
+          },
+          {
+            name: "WhatsApp",
+            children: <WhatsAppLogsTable {...commonProps} />,
           },
           {
             name: "Call",

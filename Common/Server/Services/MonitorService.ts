@@ -45,6 +45,7 @@ import { EmailEnvelope } from "../../Types/Email/EmailMessage";
 import Markdown, { MarkdownContentType } from "../Types/Markdown";
 import Dictionary from "../../Types/Dictionary";
 import { SMSMessage } from "../../Types/SMS/SMS";
+import { WhatsAppMessage } from "../../Types/WhatsApp/WhatsApp";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
@@ -1145,6 +1146,10 @@ ${createdItem.description?.trim() || "No description provided."}
         message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${enabledStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
       };
 
+      const whatsApp: WhatsAppMessage = {
+        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${enabledStatus}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      };
+
       const callMessage: CallRequestMessage = {
         data: [
           {
@@ -1158,6 +1163,7 @@ ${createdItem.description?.trim() || "No description provided."}
         projectId: monitor.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
+        whatsAppMessage: whatsApp,
         callRequestMessage: callMessage,
         pushNotificationMessage:
           PushNotificationUtil.createMonitorProbeStatusNotification({
@@ -1252,6 +1258,10 @@ ${createdItem.description?.trim() || "No description provided."}
         message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
       };
 
+      const whatsAppSecond: WhatsAppMessage = {
+        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+      };
+
       const callMessage: CallRequestMessage = {
         data: [
           {
@@ -1265,6 +1275,7 @@ ${createdItem.description?.trim() || "No description provided."}
         projectId: monitor.projectId!,
         emailEnvelope: emailMessage,
         smsMessage: sms,
+        whatsAppMessage: whatsAppSecond,
         callRequestMessage: callMessage,
         pushNotificationMessage:
           PushNotificationUtil.createMonitorCreatedNotification({

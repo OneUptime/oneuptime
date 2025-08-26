@@ -5,10 +5,12 @@ import CallService from "./CallService";
 import DatabaseService from "./DatabaseService";
 import MailService from "./MailService";
 import SmsService from "./SmsService";
+import WhatsAppService from "./WhatsAppService";
 import TeamMemberService from "./TeamMemberService";
 import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserSmsService from "./UserSmsService";
+import UserWhatsAppService from "./UserWhatsAppService";
 import PushNotificationService from "./PushNotificationService";
 import { CallRequestMessage } from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -18,11 +20,13 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { SMSMessage } from "../../Types/SMS/SMS";
+import { WhatsAppMessage } from "../../Types/WhatsApp/WhatsApp";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationSetting from "../../Models/DatabaseModels/UserNotificationSetting";
 import UserSMS from "../../Models/DatabaseModels/UserSMS";
+import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<UserNotificationSetting> {
@@ -37,6 +41,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     eventType: NotificationSettingEventType;
     emailEnvelope: EmailEnvelope;
     smsMessage: SMSMessage;
+    whatsAppMessage: WhatsAppMessage;
     callRequestMessage: CallRequestMessage;
     pushNotificationMessage: PushNotificationMessage;
     incidentId?: ObjectID | undefined;
@@ -69,6 +74,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertBySMS: true,
           alertByCall: true,
           alertByPush: true,
+          alertByWhatsApp: true,
         },
         props: {
           isRoot: true,
@@ -144,6 +150,51 @@ export class Service extends DatabaseService<UserNotificationSetting> {
             {
               ...data.smsMessage,
               to: userSms.phone!,
+            },
+            {
+              projectId: data.projectId,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+              scheduledMaintenanceId: data.scheduledMaintenanceId,
+              statusPageId: data.statusPageId,
+              statusPageAnnouncementId: data.statusPageAnnouncementId,
+              userId: data.userId,
+              teamId: data.teamId,
+              // OnCall-related fields
+              onCallPolicyId: data.onCallPolicyId,
+              onCallPolicyEscalationRuleId: data.onCallPolicyEscalationRuleId,
+              onCallDutyPolicyExecutionLogTimelineId:
+                data.onCallDutyPolicyExecutionLogTimelineId,
+              onCallScheduleId: data.onCallScheduleId,
+            },
+          ).catch((err: Error) => {
+            logger.error(err);
+          });
+        }
+      }
+
+      if (notificationSettings.alertByWhatsApp) {
+        const userWhatsApps: Array<UserWhatsApp> = await UserWhatsAppService.findBy({
+          query: {
+            userId: data.userId,
+            projectId: data.projectId,
+            isVerified: true,
+          },
+          select: {
+            phone: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const userWhatsApp of userWhatsApps) {
+          WhatsAppService.sendWhatsApp(
+            {
+              ...data.whatsAppMessage,
+              to: userWhatsApp.phone!,
             },
             {
               projectId: data.projectId,

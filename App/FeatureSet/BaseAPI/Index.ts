@@ -29,6 +29,7 @@ import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import UserEmailAPI from "Common/Server/API/UserEmailAPI";
 import UserNotificationLogTimelineAPI from "Common/Server/API/UserOnCallLogTimelineAPI";
 import UserSMSAPI from "Common/Server/API/UserSmsAPI";
+import UserWhatsAppAPI from "Common/Server/API/UserWhatsAppAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
@@ -282,6 +283,9 @@ import ShortLinkService, {
 import SmsLogService, {
   Service as SmsLogServiceType,
 } from "Common/Server/Services/SmsLogService";
+import WhatsAppLogService, {
+  Service as WhatsAppLogServiceType,
+} from "Common/Server/Services/WhatsAppLogService";
 import PushNotificationLogService, {
   Service as PushNotificationLogServiceType,
 } from "Common/Server/Services/PushNotificationLogService";
@@ -453,6 +457,7 @@ import ServiceCatalogOwnerUser from "Common/Models/DatabaseModels/ServiceCatalog
 import ServiceCopilotCodeRepository from "Common/Models/DatabaseModels/ServiceCopilotCodeRepository";
 import ShortLink from "Common/Models/DatabaseModels/ShortLink";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
+import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 // Custom Fields API
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
@@ -1528,6 +1533,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WhatsAppLog, WhatsAppLogServiceType>(
+        WhatsAppLog,
+        WhatsAppLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<PushNotificationLog, PushNotificationLogServiceType>(
         PushNotificationLog,
         PushNotificationLogService,
@@ -1650,6 +1663,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserEmailAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserSMSAPI().getRouter());
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserWhatsAppAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());
 

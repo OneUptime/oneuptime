@@ -140,6 +140,7 @@ enum Permission {
   ReadMonitorProbe = "ReadMonitorProbe",
 
   ReadSmsLog = "ReadSmsLog",
+  ReadWhatsAppLog = "ReadWhatsAppLog",
   ReadEmailLog = "ReadEmailLog",
   ReadCallLog = "ReadCallLog",
   ReadPushLog = "ReadPushLog",
@@ -2993,6 +2994,14 @@ export class PermissionHelper {
         permission: Permission.ReadSmsLog,
         title: "Read SMS Log",
         description: "This permission can read SMS Log of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+      },
+
+      {
+        permission: Permission.ReadWhatsAppLog,
+        title: "Read WhatsApp Log",
+        description: "This permission can read WhatsApp Log of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
       },

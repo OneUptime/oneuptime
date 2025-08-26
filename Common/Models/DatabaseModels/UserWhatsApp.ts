@@ -14,9 +14,9 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
-import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import Phone from "../../Types/Phone";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TenantColumn("projectId")
@@ -27,19 +27,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [Permission.CurrentUser],
   update: [Permission.CurrentUser],
 })
-@CrudApiEndpoint(new Route("/user-notification-setting"))
+@CrudApiEndpoint(new Route("/user-whatsapp"))
 @Entity({
-  name: "UserNotificationSetting",
+  name: "UserWhatsApp",
 })
 @TableMetadata({
-  tableName: "UserNotificationSetting",
-  singularName: "Notification Setting",
-  pluralName: "Notification Settings",
-  icon: IconProp.Bell,
-  tableDescription: "Settings which will be used to send notifications.",
+  tableName: "UserWhatsApp",
+  singularName: "Phone Number for WhatsApp Notifications",
+  pluralName: "Phone Numbers for WhatsApp Notifications",
+  icon: IconProp.WhatsApp,
+  tableDescription: "Phone Number which will be used for WhatsApp notifications.",
 })
 @CurrentUserCanAccessRecordBy("userId")
-class UserNotificationSetting extends BaseModel {
+class UserWhatsApp extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
@@ -89,22 +89,23 @@ class UserNotificationSetting extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
-    title: "Rule Type",
     required: true,
-    unique: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.Phone,
+    title: "Phone Number",
+    description: "Phone Number for WhatsApp which will be used for notifications",
     canReadOnRelationQuery: true,
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.Phone,
+    length: ColumnLength.Phone,
     unique: false,
     nullable: false,
+    transformer: Phone.getDatabaseTransformer(),
   })
-  public eventType?: NotificationSettingEventType = undefined;
+  public phone?: Phone = undefined;
 
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -116,7 +117,7 @@ class UserNotificationSetting extends BaseModel {
     type: TableColumnType.Entity,
     modelType: User,
     title: "User",
-    description: "Relation to User who this email belongs to",
+    description: "Relation to User who this WhatsApp phone number belongs to",
   })
   @ManyToOne(
     () => {
@@ -137,10 +138,11 @@ class UserNotificationSetting extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "User ID",
-    description: "User ID who this email belongs to",
+    description: "User ID who this WhatsApp phone number belongs to",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -242,11 +244,13 @@ class UserNotificationSetting extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
+    title: "Is Verified",
+    description: "Is this WhatsApp number verified?",
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     defaultValue: false,
@@ -255,71 +259,25 @@ class UserNotificationSetting extends BaseModel {
     type: ColumnType.Boolean,
     default: false,
   })
-  public alertByEmail?: boolean = undefined;
+  public isVerified?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
+    title: "Verification Code",
+    description: "Verification code for this WhatsApp number",
+    isDefaultValueColumn: false,
+    type: TableColumnType.ShortText,
   })
   @Column({
-    type: ColumnType.Boolean,
-    default: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
   })
-  public alertBySMS?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByCall?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByWhatsApp?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [Permission.CurrentUser],
-    read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
-  })
-  @TableColumn({
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    defaultValue: false,
-  })
-  @Column({
-    type: ColumnType.Boolean,
-    default: false,
-  })
-  public alertByPush?: boolean = undefined;
+  public verificationCode?: string = undefined;
 }
 
-export default UserNotificationSetting;
+export default UserWhatsApp;
