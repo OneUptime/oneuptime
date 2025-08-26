@@ -33,7 +33,6 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
-import ProjectUserService from "./ProjectUserService";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import OneUptimeDate from "../../Types/Date";
 
@@ -198,11 +197,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       onCreate.createBy.data.projectId!,
     );
 
-    ProjectUserService.refreshProjectUsersByProject({
-      projectId: onCreate.createBy.data.projectId!,
-    }).catch((err: Error) => {
-      logger.error(err);
-    });
 
     return createdItem;
   }
@@ -248,11 +242,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         );
       }
 
-      ProjectUserService.refreshProjectUsersByProject({
-        projectId: item.projectId!,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
     }
 
     return { updateBy, carryForward: onUpdate.carryForward };
@@ -336,12 +325,6 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         item.projectId!,
       );
 
-      // refresh project users.
-      ProjectUserService.refreshProjectUsersByProject({
-        projectId: item.projectId!,
-      }).catch((err: Error) => {
-        logger.error(err);
-      });
     }
 
     return onDelete;
