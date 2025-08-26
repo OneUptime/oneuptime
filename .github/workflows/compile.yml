@@ -20,7 +20,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Accounts && npm install && npm run compile && npm run dep-check
+      - name: Compile Accounts
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Accounts && npm install && npm run compile && npm run dep-check
 
   compile-isolated-vm:
     runs-on: ubuntu-latest
@@ -32,7 +37,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd IsolatedVM && npm install && npm run compile && npm run dep-check
+      - name: Compile IsolatedVM
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd IsolatedVM && npm install && npm run compile && npm run dep-check
 
   compile-common:
     runs-on: ubuntu-latest
@@ -43,7 +53,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: latest
-      - run: cd Common && npm install && npm run compile && npm run dep-check
+      - name: Compile Common
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Common && npm install && npm run compile && npm run dep-check
 
   compile-app:
     runs-on: ubuntu-latest
@@ -55,7 +70,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd App && npm install && npm run compile && npm run dep-check
+      - name: Compile App
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd App && npm install && npm run compile && npm run dep-check
 
   compile-home:
     runs-on: ubuntu-latest
@@ -67,7 +87,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Home && npm install && npm run compile && npm run dep-check
+      - name: Compile Home
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Home && npm install && npm run compile && npm run dep-check
 
   compile-worker:
     runs-on: ubuntu-latest
@@ -79,7 +104,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Worker && npm install && npm run compile && npm run dep-check
+      - name: Compile Worker
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Worker && npm install && npm run compile && npm run dep-check
 
   compile-workflow:
     runs-on: ubuntu-latest
@@ -91,7 +121,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Workflow && npm install && npm run compile && npm run dep-check
+      - name: Compile Workflow
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Workflow && npm install && npm run compile && npm run dep-check
 
   compile-api-reference:
     runs-on: ubuntu-latest
@@ -103,7 +138,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd APIReference && npm install && npm run compile && npm run dep-check
+      - name: Compile API Reference
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd APIReference && npm install && npm run compile && npm run dep-check
 
   compile-docs-reference:
     runs-on: ubuntu-latest
@@ -115,7 +155,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Docs && npm install && npm run compile && npm run dep-check
+      - name: Compile Docs Reference
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Docs && npm install && npm run compile && npm run dep-check
 
   compile-copilot:
     runs-on: ubuntu-latest
@@ -127,7 +172,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Copilot && npm install && npm run compile && npm run dep-check
+      - name: Compile Copilot
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Copilot && npm install && npm run compile && npm run dep-check
 
   compile-nginx:
     runs-on: ubuntu-latest
@@ -140,7 +190,12 @@ jobs:
           node-version: latest
       - run: cd Common && npm install
       
-      - run: cd Nginx && npm install && npm run compile && npm run dep-check
+      - name: Compile Nginx
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Nginx && npm install && npm run compile && npm run dep-check
 
   compile-infrastructure-agent:
     runs-on: ubuntu-latest
@@ -150,7 +205,12 @@ jobs:
       - uses: actions/checkout@v4
       # Setup Go
       - uses: actions/setup-go@v5
-      - run: cd InfrastructureAgent && go build .
+      - name: Compile Infrastructure Agent
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd InfrastructureAgent && go build .
   
 
   compile-admin-dashboard:
@@ -164,7 +224,12 @@ jobs:
           node-version: latest
       - run: cd Common && npm install
       
-      - run: cd AdminDashboard && npm install && npm run compile && npm run dep-check
+      - name: Compile Admin Dashboard
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd AdminDashboard && npm install && npm run compile && npm run dep-check
 
   compile-dashboard:
     runs-on: ubuntu-latest
@@ -177,7 +242,12 @@ jobs:
           node-version: latest
       - run: cd Common && npm install
       
-      - run: cd Dashboard && npm install && npm run compile && npm run dep-check
+      - name: Compile Dashboard
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Dashboard && npm install && npm run compile && npm run dep-check
 
 
   compile-e2e:
@@ -191,7 +261,12 @@ jobs:
           node-version: latest
       - run: sudo apt-get update
       - run: cd Common && npm install
-      - run: cd E2E && npm install && npm run compile && npm run dep-check
+      - name: Compile E2E
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd E2E && npm install && npm run compile && npm run dep-check
 
   compile-probe:
     runs-on: ubuntu-latest
@@ -203,7 +278,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd Probe && npm install && npm run compile && npm run dep-check
+      - name: Compile Probe
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd Probe && npm install && npm run compile && npm run dep-check
 
   compile-probe-ingest:
     runs-on: ubuntu-latest
@@ -215,7 +295,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd ProbeIngest && npm install && npm run compile && npm run dep-check
+      - name: Compile Probe Ingest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd ProbeIngest && npm install && npm run compile && npm run dep-check
 
   compile-server-monitor-ingest:
     runs-on: ubuntu-latest
@@ -227,7 +312,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd ServerMonitorIngest && npm install && npm run compile && npm run dep-check
+      - name: Compile Server Monitor Ingest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd ServerMonitorIngest && npm install && npm run compile && npm run dep-check
 
   compile-open-telemetry-ingest:
     runs-on: ubuntu-latest
@@ -239,7 +329,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd OpenTelemetryIngest && npm install && npm run compile && npm run dep-check
+      - name: Compile Open Telemetry Ingest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd OpenTelemetryIngest && npm install && npm run compile && npm run dep-check
 
 
   compile-incoming-request-ingest: 
@@ -252,7 +347,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd IncomingRequestIngest && npm install && npm run compile && npm run dep-check
+      - name: Compile Incoming Request Ingest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd IncomingRequestIngest && npm install && npm run compile && npm run dep-check
 
   compile-fluent-ingest:
     runs-on: ubuntu-latest
@@ -264,7 +364,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd FluentIngest && npm install && npm run compile && npm run dep-check
+      - name: Compile Fluent Ingest
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd FluentIngest && npm install && npm run compile && npm run dep-check
   
 
   compile-status-page:
@@ -278,7 +383,12 @@ jobs:
           node-version: latest
       - run: cd Common && npm install
       
-      - run: cd StatusPage && npm install && npm run compile && npm run dep-check
+      - name: Compile Status Page
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd StatusPage && npm install && npm run compile && npm run dep-check
 
   compile-test-server:
     runs-on: ubuntu-latest
@@ -290,7 +400,12 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd TestServer && npm install && npm run compile && npm run dep-check
+      - name: Compile Test Server
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd TestServer && npm install && npm run compile && npm run dep-check
 
   compile-mcp:
     runs-on: ubuntu-latest
@@ -302,4 +417,9 @@ jobs:
         with:
           node-version: latest
       - run: cd Common && npm install
-      - run: cd MCP && npm install && npm run compile && npm run dep-check
+      - name: Compile MCP
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd MCP && npm install && npm run compile && npm run dep-check
