@@ -138,7 +138,9 @@ export default class OTelIngestService {
             startTimeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
           }
         } else {
-          startTimeUnixNano = (datapoint["startTimeUnixNano"] as number) || OneUptimeDate.getCurrentDateAsUnixNano();
+          startTimeUnixNano =
+            (datapoint["startTimeUnixNano"] as number) ||
+            OneUptimeDate.getCurrentDateAsUnixNano();
         }
         newDbMetric.startTimeUnixNano = startTimeUnixNano;
         newDbMetric.startTime = OneUptimeDate.fromUnixNano(startTimeUnixNano);
@@ -159,7 +161,9 @@ export default class OTelIngestService {
             timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
           }
         } else {
-          timeUnixNano = (datapoint["timeUnixNano"] as number) || OneUptimeDate.getCurrentDateAsUnixNano();
+          timeUnixNano =
+            (datapoint["timeUnixNano"] as number) ||
+            OneUptimeDate.getCurrentDateAsUnixNano();
         }
         newDbMetric.timeUnixNano = timeUnixNano;
         newDbMetric.time = OneUptimeDate.fromUnixNano(timeUnixNano);

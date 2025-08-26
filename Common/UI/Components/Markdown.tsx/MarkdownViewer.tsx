@@ -103,7 +103,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             const { children, className, ...rest } = props;
 
             const match: RegExpExecArray | null = new RegExp(
-              "language-(\\w+)"
+              "language-(\\w+)",
             ).exec(className || "");
 
             const content: string = String(children as string).replace(

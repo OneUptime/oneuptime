@@ -486,7 +486,9 @@ export default class OtelIngestService {
   @CaptureSpan()
   private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
     try {
-      const resourceMetrics: JSONArray = req.body["resourceMetrics"] as JSONArray;
+      const resourceMetrics: JSONArray = req.body[
+        "resourceMetrics"
+      ] as JSONArray;
 
       if (!resourceMetrics || !Array.isArray(resourceMetrics)) {
         logger.error("Invalid resourceMetrics format in request body");
@@ -543,7 +545,8 @@ export default class OtelIngestService {
             }),
           };
 
-          const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceMetric);
+          const sizeInGb: number =
+            JSONFunctions.getSizeOfJSONinGB(resourceMetric);
           serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
           const scopeMetrics: JSONArray = resourceMetric[
@@ -551,7 +554,9 @@ export default class OtelIngestService {
           ] as JSONArray;
 
           if (!scopeMetrics || !Array.isArray(scopeMetrics)) {
-            logger.warn("Invalid scopeMetrics format, skipping resource metric");
+            logger.warn(
+              "Invalid scopeMetrics format, skipping resource metric",
+            );
             continue;
           }
 
@@ -568,38 +573,54 @@ export default class OtelIngestService {
                 try {
                   const dbMetric: Metric = new Metric();
                   dbMetric.projectId = (req as TelemetryRequest).projectId;
-                  dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
+                  dbMetric.serviceId =
+                    serviceDictionary[serviceName]!.serviceId!;
                   dbMetric.serviceType = ServiceType.OpenTelemetry;
-                  dbMetric.name = (metric["name"] || "").toString().toLowerCase();
-                  const metricDescription: string = metric["description"] as string;
+                  dbMetric.name = (metric["name"] || "")
+                    .toString()
+                    .toLowerCase();
+                  const metricDescription: string = metric[
+                    "description"
+                  ] as string;
                   const metricUnit: string = metric["unit"] as string;
 
                   if (dbMetric.name) {
                     // add this to metricNameServiceNameMap
                     if (!metricNameServiceNameMap[dbMetric.name]) {
-                      metricNameServiceNameMap[dbMetric.name] = new MetricType();
-                      metricNameServiceNameMap[dbMetric.name]!.name = dbMetric.name;
+                      metricNameServiceNameMap[dbMetric.name] =
+                        new MetricType();
+                      metricNameServiceNameMap[dbMetric.name]!.name =
+                        dbMetric.name;
                       metricNameServiceNameMap[dbMetric.name]!.description =
                         metricDescription;
-                      metricNameServiceNameMap[dbMetric.name]!.unit = metricUnit;
-                      metricNameServiceNameMap[dbMetric.name]!.telemetryServices = [];
+                      metricNameServiceNameMap[dbMetric.name]!.unit =
+                        metricUnit;
+                      metricNameServiceNameMap[
+                        dbMetric.name
+                      ]!.telemetryServices = [];
                     }
 
                     if (
                       metricNameServiceNameMap[
                         dbMetric.name
-                      ]!.telemetryServices!.filter((service: TelemetryService) => {
-                        return (
-                          service.id?.toString() ===
-                          serviceDictionary[serviceName]!.serviceId!.toString()
-                        );
-                      }).length === 0
+                      ]!.telemetryServices!.filter(
+                        (service: TelemetryService) => {
+                          return (
+                            service.id?.toString() ===
+                            serviceDictionary[
+                              serviceName
+                            ]!.serviceId!.toString()
+                          );
+                        },
+                      ).length === 0
                     ) {
-                      const telemetryService: TelemetryService = new TelemetryService();
-                      telemetryService.id = serviceDictionary[serviceName]!.serviceId!;
-                      metricNameServiceNameMap[dbMetric.name]!.telemetryServices!.push(
-                        telemetryService,
-                      );
+                      const telemetryService: TelemetryService =
+                        new TelemetryService();
+                      telemetryService.id =
+                        serviceDictionary[serviceName]!.serviceId!;
+                      metricNameServiceNameMap[
+                        dbMetric.name
+                      ]!.telemetryServices!.push(telemetryService);
                     }
                   }
 
@@ -633,11 +654,13 @@ export default class OtelIngestService {
                     return attributeKeySet.add(key);
                   });
 
-                  const dataPoints: JSONArray = ((metric["sum"] as JSONObject)?.[
-                    "dataPoints"
-                  ] ||
+                  const dataPoints: JSONArray = ((
+                    metric["sum"] as JSONObject
+                  )?.["dataPoints"] ||
                     (metric["gauge"] as JSONObject)?.["dataPoints"] ||
-                    (metric["histogram"] as JSONObject)?.["dataPoints"]) as JSONArray;
+                    (metric["histogram"] as JSONObject)?.[
+                      "dataPoints"
+                    ]) as JSONArray;
 
                   if (dataPoints && Array.isArray(dataPoints)) {
                     for (const datapoint of dataPoints) {
@@ -664,7 +687,9 @@ export default class OtelIngestService {
                             isMonotonic: ((metric["sum"] as JSONObject)?.[
                               "isMonotonic"
                             ] ||
-                              (metric["gauge"] as JSONObject)?.["isMonotonic"] ||
+                              (metric["gauge"] as JSONObject)?.[
+                                "isMonotonic"
+                              ] ||
                               (metric["histogram"] as JSONObject)?.[
                                 "isMonotonic"
                               ]) as boolean,
@@ -676,7 +701,9 @@ export default class OtelIngestService {
                         dbMetricPoint.metricPointType = metricPointType;
                         dbMetrics.push(dbMetricPoint);
                       } catch (datapointError) {
-                        logger.warn(`Error processing metric datapoint: ${datapointError instanceof Error ? datapointError.message : String(datapointError)}`);
+                        logger.warn(
+                          `Error processing metric datapoint: ${datapointError instanceof Error ? datapointError.message : String(datapointError)}`,
+                        );
                       }
                     }
                   } else {
@@ -700,7 +727,9 @@ export default class OtelIngestService {
         } catch (resourceError) {
           logger.error("Error processing resource metric:");
           logger.error(resourceError);
-          logger.error(`Resource metric data: ${JSON.stringify(resourceMetric)}`);
+          logger.error(
+            `Resource metric data: ${JSON.stringify(resourceMetric)}`,
+          );
           // Continue processing other resource metrics
         }
       }
@@ -851,7 +880,8 @@ export default class OtelIngestService {
           };
 
           // size of req.body in bytes.
-          const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceSpan);
+          const sizeInGb: number =
+            JSONFunctions.getSizeOfJSONinGB(resourceSpan);
           serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
 
           const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
@@ -910,13 +940,17 @@ export default class OtelIngestService {
 
                   // Handle span and trace IDs safely
                   try {
-                    dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
+                    dbSpan.spanId = Text.convertBase64ToHex(
+                      span["spanId"] as string,
+                    );
                   } catch {
                     dbSpan.spanId = "";
                   }
 
                   try {
-                    dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
+                    dbSpan.traceId = Text.convertBase64ToHex(
+                      span["traceId"] as string,
+                    );
                   } catch {
                     dbSpan.traceId = "";
                   }
@@ -935,34 +969,46 @@ export default class OtelIngestService {
                     if (typeof span["startTimeUnixNano"] === "string") {
                       startTimeUnixNano = parseFloat(span["startTimeUnixNano"]);
                       if (isNaN(startTimeUnixNano)) {
-                        throw new Error(`Invalid start timestamp string: ${span["startTimeUnixNano"]}`);
+                        throw new Error(
+                          `Invalid start timestamp string: ${span["startTimeUnixNano"]}`,
+                        );
                       }
                     } else {
-                      startTimeUnixNano = (span["startTimeUnixNano"] as number) || OneUptimeDate.getCurrentDateAsUnixNano();
+                      startTimeUnixNano =
+                        (span["startTimeUnixNano"] as number) ||
+                        OneUptimeDate.getCurrentDateAsUnixNano();
                     }
 
                     let endTimeUnixNano: number;
                     if (typeof span["endTimeUnixNano"] === "string") {
                       endTimeUnixNano = parseFloat(span["endTimeUnixNano"]);
                       if (isNaN(endTimeUnixNano)) {
-                        throw new Error(`Invalid end timestamp string: ${span["endTimeUnixNano"]}`);
+                        throw new Error(
+                          `Invalid end timestamp string: ${span["endTimeUnixNano"]}`,
+                        );
                       }
                     } else {
-                      endTimeUnixNano = (span["endTimeUnixNano"] as number) || OneUptimeDate.getCurrentDateAsUnixNano();
+                      endTimeUnixNano =
+                        (span["endTimeUnixNano"] as number) ||
+                        OneUptimeDate.getCurrentDateAsUnixNano();
                     }
 
                     dbSpan.startTimeUnixNano = startTimeUnixNano;
                     dbSpan.endTimeUnixNano = endTimeUnixNano;
 
-                    dbSpan.startTime = OneUptimeDate.fromUnixNano(startTimeUnixNano);
-                    dbSpan.endTime = OneUptimeDate.fromUnixNano(endTimeUnixNano);
+                    dbSpan.startTime =
+                      OneUptimeDate.fromUnixNano(startTimeUnixNano);
+                    dbSpan.endTime =
+                      OneUptimeDate.fromUnixNano(endTimeUnixNano);
 
-                    dbSpan.durationUnixNano = endTimeUnixNano - startTimeUnixNano;
+                    dbSpan.durationUnixNano =
+                      endTimeUnixNano - startTimeUnixNano;
                   } catch (timeError) {
                     logger.warn(
                       `Error processing span timestamps: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
                     );
-                    const currentNano = OneUptimeDate.getCurrentDateAsUnixNano();
+                    const currentNano =
+                      OneUptimeDate.getCurrentDateAsUnixNano();
                     const currentTime = OneUptimeDate.getCurrentDate();
                     dbSpan.startTimeUnixNano = currentNano;
                     dbSpan.endTimeUnixNano = currentNano;
@@ -995,21 +1041,29 @@ export default class OtelIngestService {
                       dbExceptions,
                     );
                   } catch (eventsError) {
-                    logger.warn(`Error processing span events: ${eventsError instanceof Error ? eventsError.message : String(eventsError)}`);
+                    logger.warn(
+                      `Error processing span events: ${eventsError instanceof Error ? eventsError.message : String(eventsError)}`,
+                    );
                     dbSpan.events = [];
                   }
 
                   // add links safely
                   try {
-                    dbSpan.links = this.getSpanLinks(span["links"] as JSONArray);
+                    dbSpan.links = this.getSpanLinks(
+                      span["links"] as JSONArray,
+                    );
                   } catch (linksError) {
-                    logger.warn(`Error processing span links: ${linksError instanceof Error ? linksError.message : String(linksError)}`);
+                    logger.warn(
+                      `Error processing span links: ${linksError instanceof Error ? linksError.message : String(linksError)}`,
+                    );
                     dbSpan.links = [];
                   }
 
-                  Object.keys(dbSpan.attributes || {}).forEach((key: string) => {
-                    return attributeKeySet.add(key);
-                  });
+                  Object.keys(dbSpan.attributes || {}).forEach(
+                    (key: string) => {
+                      return attributeKeySet.add(key);
+                    },
+                  );
 
                   dbSpans.push(dbSpan);
                 } catch (spanError) {
@@ -1128,7 +1182,9 @@ export default class OtelIngestService {
               eventTimeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
             }
           } else {
-            eventTimeUnixNano = (event["timeUnixNano"] as number) || OneUptimeDate.getCurrentDateAsUnixNano();
+            eventTimeUnixNano =
+              (event["timeUnixNano"] as number) ||
+              OneUptimeDate.getCurrentDateAsUnixNano();
           }
 
           const eventTime: Date = OneUptimeDate.fromUnixNano(eventTimeUnixNano);
@@ -1189,11 +1245,15 @@ export default class OtelIngestService {
                 },
               );
             } catch (exceptionError) {
-              logger.warn(`Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`);
+              logger.warn(
+                `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
+              );
             }
           }
         } catch (eventError) {
-          logger.warn(`Error processing span event: ${eventError instanceof Error ? eventError.message : String(eventError)}`);
+          logger.warn(
+            `Error processing span event: ${eventError instanceof Error ? eventError.message : String(eventError)}`,
+          );
         }
       }
     }
