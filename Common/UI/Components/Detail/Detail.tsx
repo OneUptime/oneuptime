@@ -420,9 +420,8 @@ const Detail: DetailFunction = <T extends GenericObject>(
                 )}
             </div>
           )}
-          {(data === null || data === undefined || data === '') && field.placeholder && (
-            <PlaceholderText text={field.placeholder} />
-          )}
+          {(data === null || data === undefined || data === "") &&
+            field.placeholder && <PlaceholderText text={field.placeholder} />}
         </div>
       </div>
     );

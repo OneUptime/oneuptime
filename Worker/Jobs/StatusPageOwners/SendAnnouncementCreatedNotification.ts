@@ -117,7 +117,7 @@ RunCron(
               body: `New announcement posted on status page ${statusPage.name}: ${announcement.title}. Click to view details.`,
               clickAction: (
                 await StatusPageService.getStatusPageLinkInDashboard(
-                 announcement.projectId!,
+                  announcement.projectId!,
                   statusPage.id!,
                 )
               ).toString(),

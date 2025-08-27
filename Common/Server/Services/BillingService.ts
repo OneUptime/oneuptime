@@ -100,8 +100,12 @@ export class BillingService extends BaseService {
 
     const lines: Array<string> = businessDetails
       .split(/\r?\n/)
-      .map((l: string) => l.trim())
-      .filter((l: string) => l.length > 0);
+      .map((l: string) => {
+        return l.trim();
+      })
+      .filter((l: string) => {
+        return l.length > 0;
+      });
 
     let line1: string | undefined = undefined;
     let line2: string | undefined = undefined;
@@ -111,7 +115,7 @@ export class BillingService extends BaseService {
       line1 = first.substring(0, 200); // Stripe typical limit safeguard.
     }
     if (lines && lines.length > 1) {
-      const rest: string = lines.slice(1).join(', ');
+      const rest: string = lines.slice(1).join(", ");
       line2 = rest.substring(0, 200);
     }
 
@@ -119,10 +123,13 @@ export class BillingService extends BaseService {
       business_details_full: businessDetails.substring(0, 5000),
     };
     if (financeAccountingEmail) {
-      metadata['finance_accounting_email'] = financeAccountingEmail.substring(0, 200);
+      metadata["finance_accounting_email"] = financeAccountingEmail.substring(
+        0,
+        200,
+      );
     } else {
       // Remove if cleared
-      metadata['finance_accounting_email'] = '';
+      metadata["finance_accounting_email"] = "";
     }
 
     const updateParams: Stripe.CustomerUpdateParams = {
@@ -153,8 +160,8 @@ export class BillingService extends BaseService {
     if (!line1 && !line2 && !countryCode) {
       // Clear address if empty details submitted.
       updateParams.address = {
-        line1: '',
-        line2: '',
+        line1: "",
+        line2: "",
       } as any;
     }
 

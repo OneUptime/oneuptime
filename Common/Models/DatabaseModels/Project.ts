@@ -289,7 +289,8 @@ export default class Project extends TenantModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     title: "Business Country (ISO Alpha-2)",
-    description: "Two-letter ISO country code for billing address (e.g., US, GB, DE).",
+    description:
+      "Two-letter ISO country code for billing address (e.g., US, GB, DE).",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -313,9 +314,9 @@ export default class Project extends TenantModel {
   })
   @TableColumn({
     type: TableColumnType.Email,
-    title: 'Finance / Accounting Email',
+    title: "Finance / Accounting Email",
     description:
-      'Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.',
+      "Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.",
   })
   @Column({
     type: ColumnType.Email,

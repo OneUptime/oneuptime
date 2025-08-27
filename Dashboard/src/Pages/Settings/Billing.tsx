@@ -551,11 +551,10 @@ const Settings: FunctionComponent<ComponentProps> = (
                 field: {
                   businessDetailsCountry: true,
                 },
-                title: 'Country',
-                description:
-                  'Required by Stripe. Select your billing country.',
+                title: "Country",
+                description: "Required by Stripe. Select your billing country.",
                 required: false,
-                placeholder: 'Select Country',
+                placeholder: "Select Country",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: Countries,
               },
@@ -563,11 +562,11 @@ const Settings: FunctionComponent<ComponentProps> = (
                 field: {
                   financeAccountingEmail: true,
                 },
-                title: 'Finance / Accounting Email',
+                title: "Finance / Accounting Email",
                 description:
-                  'Invoices, receipts and billing notifications will be sent here (optional).',
+                  "Invoices, receipts and billing notifications will be sent here (optional).",
                 required: false,
-                placeholder: 'finance@yourcompany.com',
+                placeholder: "finance@yourcompany.com",
                 fieldType: FormFieldSchemaType.Email,
                 validation: {
                   minLength: 3,
@@ -591,7 +590,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                   field: {
                     businessDetailsCountry: true,
                   },
-                  title: 'Country',
+                  title: "Country",
                   placeholder: "No country details added yet.",
                   fieldType: FieldType.Text,
                 },
@@ -599,8 +598,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                   field: {
                     financeAccountingEmail: true,
                   },
-                  title: 'Finance / Accounting Email',
-                  placeholder: 'No finance / accounting email added yet.',
+                  title: "Finance / Accounting Email",
+                  placeholder: "No finance / accounting email added yet.",
                   fieldType: FieldType.Email,
                 },
               ],
