@@ -88,14 +88,55 @@ export class BillingService extends BaseService {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
     }
+    // Goal: Update Stripe Customer "Billing details" (address fields) rather than invoice footer.
+    // We only have a single free-form textarea. We'll map:
+    //   First non-empty line -> address.line1
+    //   Second non-empty line (if any) and remaining (joined, truncated) -> address.line2
+    // We also persist full text in metadata so we can reconstruct or improve parsing later.
+    // NOTE: Because Stripe requires structured address, any city/state/postal/country detection
+    // would be heuristic; we keep it simple unless we later add structured fields.
 
-    // Store in metadata; optionally also put a shortened version in description.
-    await this.stripe.customers.update(id, {
+    const lines: Array<string> = businessDetails
+      .split(/\r?\n/)
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0);
+
+    let line1: string | undefined = undefined;
+    let line2: string | undefined = undefined;
+
+    if (lines && lines.length > 0) {
+      const first: string = lines[0]!; // non-null
+      line1 = first.substring(0, 200); // Stripe typical limit safeguard.
+    }
+    if (lines && lines.length > 1) {
+      const rest: string = lines.slice(1).join(', ');
+      line2 = rest.substring(0, 200);
+    }
+
+    const updateParams: Stripe.CustomerUpdateParams = {
       metadata: {
-        business_details: businessDetails.substring(0, 5000),
+        business_details_full: businessDetails.substring(0, 5000),
       },
-      description: businessDetails.substring(0, 500),
-    });
+      address: {},
+    };
+
+    if (line1) {
+      updateParams.address = updateParams.address || {};
+      updateParams.address.line1 = line1;
+    }
+    if (line2) {
+      updateParams.address = updateParams.address || {};
+      updateParams.address.line2 = line2;
+    }
+    if (!line1 && !line2) {
+      // Clear address if empty details submitted.
+      updateParams.address = {
+        line1: '',
+        line2: '',
+      } as any;
+    }
+
+    await this.stripe.customers.update(id, updateParams);
   }
 
   @CaptureSpan()
