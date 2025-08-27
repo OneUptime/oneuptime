@@ -48,6 +48,7 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import Countries from "Common/UI/Utils/Countries";
 
 export type ComponentProps = PageComponentProps;
 
@@ -550,16 +551,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                 field: {
                   businessDetailsCountry: true,
                 },
-                title: 'Country (ISO 2-letter)',
+                title: 'Country',
                 description:
-                  'Required by Stripe. Provide two-letter country code (e.g., US, GB, DE).',
+                  'Required by Stripe. Select your billing country.',
                 required: false,
-                placeholder: 'US',
-                fieldType: FormFieldSchemaType.Text,
-                validation: {
-                  minLength: 2,
-                  maxLength: 2,
-                },
+                placeholder: 'Select Country',
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: Countries,
               },
             ]}
             modelDetailProps={{
