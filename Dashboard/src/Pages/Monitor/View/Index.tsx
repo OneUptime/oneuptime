@@ -47,6 +47,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
@@ -215,7 +216,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       );
 
       if (!item) {
-        setError(`Monitor not found`);
+        setError(ExceptionMessages.MonitorNotFound);
         return;
       }
 

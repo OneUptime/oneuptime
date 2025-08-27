@@ -17,6 +17,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 
 const MonitorDocumentation: FunctionComponent<
@@ -55,7 +56,7 @@ const MonitorDocumentation: FunctionComponent<
       setMonitor(item);
 
       if (!item) {
-        setError(`Monitor not found`);
+        setError(ExceptionMessages.MonitorNotFound);
 
         return;
       }

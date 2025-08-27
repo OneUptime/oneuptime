@@ -11,6 +11,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { Outlet, useParams } from "react-router-dom";
 import useAsyncEffect from "use-async-effect";
 
@@ -43,7 +44,7 @@ const MonitorViewLayout: FunctionComponent = (): ReactElement => {
       setMonitor(item);
 
       if (!item) {
-        setError(`Monitor not found`);
+        setError(ExceptionMessages.MonitorNotFound);
 
         return;
       }

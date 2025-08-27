@@ -1,4 +1,5 @@
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
@@ -50,7 +51,7 @@ router.get(
       });
 
       if (!monitor) {
-        throw new BadDataException("Monitor not found");
+        throw new BadDataException(ExceptionMessages.MonitorNotFound);
       }
 
       return Response.sendEmptySuccessResponse(req, res);

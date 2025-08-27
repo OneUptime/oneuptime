@@ -6,6 +6,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -85,7 +86,7 @@ async function processIncomingRequestFromQueue(
   });
 
   if (!monitor || !monitor._id) {
-    throw new BadDataException("Monitor not found");
+    throw new BadDataException(ExceptionMessages.MonitorNotFound);
   }
 
   if (!monitor.projectId) {

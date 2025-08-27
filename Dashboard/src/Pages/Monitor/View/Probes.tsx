@@ -33,6 +33,7 @@ import React, {
 import useAsyncEffect from "use-async-effect";
 import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
 const MonitorProbes: FunctionComponent<
   PageComponentProps
@@ -61,7 +62,7 @@ const MonitorProbes: FunctionComponent<
       });
 
       if (!item) {
-        setError(`Monitor not found`);
+        setError(ExceptionMessages.MonitorNotFound);
 
         return;
       }

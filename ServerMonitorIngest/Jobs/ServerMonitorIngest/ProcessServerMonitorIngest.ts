@@ -3,6 +3,7 @@ import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -66,7 +67,7 @@ async function processServerMonitorFromQueue(
   });
 
   if (!monitor) {
-    throw new BadDataException("Monitor not found");
+    throw new BadDataException(ExceptionMessages.MonitorNotFound);
   }
 
   const serverMonitorResponse: ServerMonitorResponse =
