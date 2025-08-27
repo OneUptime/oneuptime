@@ -29,8 +29,113 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
+  MicrosoftTeamsAppClientId,
+  MicrosoftTeamsAppClientSecret,
+  MicrosoftTenantId,
+} from "../../../EnvironmentConfig";
 
 export default class MicrosoftTeams extends WorkspaceBase {
+  // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
+  private static async getOrCreateApplicationAccessToken(params: {
+    projectAuth: WorkspaceProjectAuthToken | null;
+  }): Promise<string | null> {
+    try {
+      if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+        logger.debug(
+          "Microsoft Teams App credentials not set. Cannot obtain application access token.",
+        );
+        return null;
+      }
+
+      const projectAuth = params.projectAuth;
+      let miscData: MicrosoftTeamsMiscData | undefined = projectAuth?.miscData as MicrosoftTeamsMiscData;
+
+      // If we have a stored, not-expired app token, reuse it (2 min buffer)
+      if (miscData?.appAccessToken && miscData.appAccessTokenExpiresAt) {
+        const exp = Date.parse(miscData.appAccessTokenExpiresAt);
+        if (!isNaN(exp) && Date.now() < exp - 2 * 60 * 1000) {
+          return miscData.appAccessToken;
+        }
+      }
+
+      // Need to mint a new token. Prefer discovered tenant id (from delegated auth) if present and not 'common'.
+      const tenant: string = (miscData?.tenantId && miscData.tenantId !== 'common')
+        ? miscData.tenantId
+        : ((MicrosoftTenantId && MicrosoftTenantId !== 'common') ? MicrosoftTenantId : 'organizations');
+      if (miscData?.tenantId && miscData.tenantId === 'common') {
+        logger.debug('Stored tenantId is common; using fallback authority: ' + tenant);
+      }
+      logger.debug(`Requesting Microsoft Teams application access token using authority tenant: ${tenant}`);
+      const tokenResp = await API.post(
+        URL.fromString(
+          `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
+        ),
+        {
+          client_id: MicrosoftTeamsAppClientId,
+            client_secret: MicrosoftTeamsAppClientSecret,
+          grant_type: "client_credentials",
+          scope: "https://graph.microsoft.com/.default",
+        },
+        {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      );
+
+      if (tokenResp instanceof HTTPErrorResponse) {
+        logger.warn(
+          "Could not obtain Microsoft Teams application access token (client credentials). Falling back to user delegated token.",
+        );
+        logger.warn(tokenResp);
+        return null;
+      }
+
+      const json = tokenResp.jsonData as JSONObject;
+      const accessToken: string | undefined = json["access_token"] as string;
+      const expiresIn: number | undefined = json["expires_in"] as number; // seconds
+
+      if (!accessToken) {
+        logger.warn(
+          "Application token response missing access_token. Falling back to user delegated token.",
+        );
+        return null;
+      }
+
+  const now = Date.now();
+  const expiry = new Date(now + (expiresIn || 3600) * 1000).toISOString();
+
+      if (projectAuth) {
+        // Persist token to DB
+        miscData = (projectAuth.miscData as MicrosoftTeamsMiscData) || ({} as MicrosoftTeamsMiscData);
+        miscData.appAccessToken = accessToken;
+        miscData.appAccessTokenExpiresAt = expiry;
+        miscData.lastAppTokenIssuedAt = new Date(now).toISOString();
+        try {
+          await WorkspaceProjectAuthTokenService.updateOneById({
+            id: projectAuth.id!,
+            data: { miscData: miscData },
+            props: { isRoot: true },
+          });
+          logger.debug("Stored Microsoft Teams application access token in DB.");
+        } catch (updateErr) {
+          logger.error("Failed to persist app access token to DB (will continue using in-memory token for this request):");
+          logger.error(updateErr);
+        }
+      } else {
+        logger.warn(
+          "No project auth context found to persist app access token; consider re-authenticating project installation.",
+        );
+      }
+
+      return accessToken;
+    } catch (err) {
+      logger.error(
+        "Error fetching Microsoft Teams application access token (client credentials):",
+      );
+      logger.error(err);
+      return null;
+    }
+  }
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     // Teams MessageCard has limited markdown support. Headings like '##' are not supported
     // and single newlines can collapse. Convert common patterns to a structured card.
@@ -147,7 +252,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       logger.debug("No stored team ID found, fetching from Microsoft Graph API");
 
-      // Fallback: Get team ID from the user's joined teams
+      // Fallback: Get team ID from the user's joined teams (requires delegated user token)
       const response = await this.makeGraphApiCall(
         "/me/joinedTeams",
         authToken,
@@ -621,7 +726,22 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       const teamId: string = await this.getTeamId(data.authToken);
-      
+
+      // Fetch project auth token to pass context for per-project app token caching
+      const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.getByAuthToken({
+        authToken: data.authToken,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+      // Try to obtain application (bot) token to post as the app. If unavailable, fall back to user token.
+      let tokenToUse: string = data.authToken;
+      const appToken: string | null = await this.getOrCreateApplicationAccessToken({
+        projectAuth: projectAuth,
+      });
+      if (appToken) {
+        tokenToUse = appToken;
+      }
+
       // Convert blocks to Teams message format
       const messageBody = {
         body: {
@@ -632,15 +752,46 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
-        data.authToken,
+        tokenToUse,
         "POST",
         messageBody,
       );
 
       if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Microsoft Graph API:");
-        logger.error(response);
-        throw response;
+        // If we attempted with app token and failed with 403/401, automatically fall back to user token
+        const triedAppToken: boolean = !!appToken && tokenToUse === appToken;
+        const status = (response as HTTPErrorResponse).statusCode;
+        if (triedAppToken && (status === 401 || status === 403)) {
+          logger.warn(
+            `Posting with application token failed (status ${status}). Falling back to user delegated token for channel ${data.workspaceChannel.id}.`,
+          );
+          const fallbackResp = await this.makeGraphApiCall(
+            `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
+            data.authToken,
+            "POST",
+            messageBody,
+          );
+          if (fallbackResp instanceof HTTPErrorResponse) {
+            logger.error(
+              "Fallback (user token) send also failed when posting to Microsoft Teams channel:",
+            );
+            logger.error(fallbackResp);
+            throw fallbackResp;
+          }
+          const messageData = fallbackResp.jsonData as JSONObject;
+          const thread: WorkspaceThread = {
+            channel: data.workspaceChannel,
+            threadId: messageData["id"] as string,
+          };
+          logger.debug(
+            `Message sent to Microsoft Teams channel via fallback user token.`,
+          );
+          return thread;
+        } else {
+          logger.error("Error response from Microsoft Graph API (no successful fallback):");
+          logger.error(response);
+          throw response;
+        }
       }
 
       const messageData = response.jsonData as JSONObject;
@@ -738,7 +889,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
         });
 
         workspaceMessageResponse.threads.push(thread);
-        logger.debug(`Message sent to channel ID ${channel.id} successfully.`);
+        logger.debug(
+          `Message sent to channel ID ${channel.id} successfully (posted as ${'app/bot'}).`,
+        );
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channel.id}:`);
         logger.error(e);
@@ -1240,8 +1393,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       for (const channelId of data.channelIds) {
         // Microsoft Teams doesn't directly support archiving channels via API
         // This is a placeholder implementation - you may need to use different approach
-        logger.debug(`Attempting to archive channel ${channelId}`);
-        
+  logger.debug(`Attempting to archive channel ${channelId}`);
         // You could implement alternative behavior like:
         // - Removing the bot from the channel
         // - Renaming the channel to indicate it's archived

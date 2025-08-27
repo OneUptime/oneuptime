@@ -34,6 +34,10 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   // Below fields are optional and used for refreshing access tokens.
   refreshToken?: string; // Microsoft OAuth refresh token
   tokenExpiresAt?: string; // ISO date string of when current access token expires
+  // App-only (client credentials) token caching per project/tenant
+  appAccessToken?: string; // Microsoft Graph application access token
+  appAccessTokenExpiresAt?: string; // ISO expiry for app access token
+  lastAppTokenIssuedAt?: string; // ISO time when the current app token was minted
 }
 
 @TenantColumn("projectId")

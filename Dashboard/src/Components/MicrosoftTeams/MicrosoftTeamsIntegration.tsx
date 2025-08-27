@@ -329,13 +329,19 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       const redirectUri: string = `${APP_API_URL}/teams/auth`;
 
-      // Required scopes for Teams integration
+      // Delegated scopes for Teams integration (requested via user authorization).
+      // NOTE: Application (app-only) permissions like Channel.Create, Channel.Delete.All, etc.
+      // are granted via admin consent in Azure AD and are NOT added to this delegated scope list.
+      // Some advanced permissions may not have delegated equivalents; adding them here will cause
+      // Azure AD to reject the authorization request. Only include those that are valid delegated scopes.
       const scopes: Array<string> = [
-        "https://graph.microsoft.com/Team.ReadBasic.All",
-        "https://graph.microsoft.com/Channel.ReadBasic.All", 
-        "https://graph.microsoft.com/ChannelMessage.Send",
-        "https://graph.microsoft.com/User.Read",
-        "https://graph.microsoft.com/TeamMember.ReadWrite.All"
+        "https://graph.microsoft.com/User.Read",                // basic profile
+        "https://graph.microsoft.com/Team.ReadBasic.All",       // list teams
+        "https://graph.microsoft.com/Channel.ReadBasic.All",    // list channels
+        "https://graph.microsoft.com/ChannelMessage.Send",      // send messages
+        "https://graph.microsoft.com/TeamMember.ReadWrite.All", // (optional) manage membership
+        // Optional: read channel messages if product features need it
+        "https://graph.microsoft.com/ChannelMessage.Read.All"    // (optional) read messages
       ];
 
       const project_install_redirect_uri: string = redirectUri;

@@ -35,12 +35,24 @@ export default class MicrosoftTeamsAPI {
         const manifest: JSONObject = {
           name: "OneUptime Teams Integration",
           description: "OneUptime integration for Microsoft Teams (Multi-tenant)",
-          permissions: [
+          // Delegated permissions (user-consent scopes) used during interactive auth
+          delegatedPermissions: [
             "Team.ReadBasic.All",
-            "Channel.ReadBasic.All", 
+            "Channel.ReadBasic.All",
             "ChannelMessage.Send",
             "User.Read",
             "TeamMember.ReadWrite.All"
+          ],
+          // Application (client credentials) permissions required to post as the app/bot
+          applicationPermissions: [
+            "ChannelMessage.Send",
+            "Channel.Create",
+            "Channel.Delete.All",
+            "Channel.ReadBasic.All",
+            "ChannelMessage.Read.All",
+            "Team.ReadBasic.All",
+            "ChannelMember.Read.All",
+            "ChannelMember.ReadWrite.All"
           ],
           redirectUris: [
             `${AppApiClientUrl.toString()}/api/teams/auth`
@@ -55,9 +67,11 @@ export default class MicrosoftTeamsAPI {
               "1. Go to Azure Portal > App Registrations > New Registration",
               "2. Set 'Supported account types' to 'Accounts in any organizational directory (Any Azure AD directory - Multitenant)'",
               "3. Add redirect URI: " + AppApiClientUrl.toString() + "/api/teams/auth",
-              "4. In 'API permissions', add Microsoft Graph permissions listed above",
-              "5. Generate a client secret and copy the client ID and secret",
-              "6. Set MICROSOFT_TENANT_ID to 'common' for multi-tenant support"
+              "4. In 'API permissions' add Delegated: Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Send, User.Read, TeamMember.ReadWrite.All",
+              "5. In 'API permissions' add Application: ChannelMessage.Send, Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMessage.Read.All, Team.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All (then 'Grant admin consent')",
+              "6. Generate a client secret and copy the client ID and secret",
+              "7. Set MICROSOFT_TENANT_ID to your tenant ID or leave unset for multi-tenant ('common')",
+              "8. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
             ]
           }
         };
@@ -366,6 +380,83 @@ export default class MicrosoftTeamsAPI {
             req,
             res,
             new BadDataException("Failed to fetch teams"),
+          );
+        }
+      },
+    );
+
+    // Diagnostics / readiness endpoint
+    router.get(
+      "/teams/readiness/:projectId",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const projectIdParam: string | undefined = req.params["projectId"]?.toString();
+          if (!projectIdParam) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("projectId param required"),
+            );
+          }
+
+          const projectId: ObjectID = new ObjectID(projectIdParam);
+          const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: projectId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
+
+          if (!projectAuth) {
+            return Response.sendJsonObjectResponse(req, res, {
+              projectId: projectId.toString(),
+              hasProjectAuth: false,
+              message: "No Microsoft Teams project auth found",
+            });
+          }
+
+            const miscData = (projectAuth.miscData || {}) as JSONObject;
+          const tenantId: string | undefined = miscData["tenantId"] as string | undefined;
+          const teamId: string | undefined = miscData["teamId"] as string | undefined;
+          const teamName: string | undefined = miscData["teamName"] as string | undefined;
+          const appAccessTokenExpiresAt: string | undefined = miscData["appAccessTokenExpiresAt"] as string | undefined;
+          const lastAppTokenIssuedAt: string | undefined = miscData["lastAppTokenIssuedAt"] as string | undefined;
+          const delegatedTokenExpiresAt: string | undefined = miscData["tokenExpiresAt"] as string | undefined;
+
+          // Determine which authority would be chosen for app token requests
+          const preferredAuthority = (tenantId && tenantId !== 'common')
+            ? tenantId
+            : ((MicrosoftTenantId && MicrosoftTenantId !== 'common') ? MicrosoftTenantId : 'organizations');
+
+          const now = Date.now();
+          const issuedAgeSeconds = lastAppTokenIssuedAt ? Math.floor((now - Date.parse(lastAppTokenIssuedAt)) / 1000) : undefined;
+          const appExpiryInSeconds = appAccessTokenExpiresAt ? Math.floor((Date.parse(appAccessTokenExpiresAt) - now) / 1000) : undefined;
+          const delegatedExpiryInSeconds = delegatedTokenExpiresAt ? Math.floor((Date.parse(delegatedTokenExpiresAt) - now) / 1000) : undefined;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            projectId: projectId.toString(),
+            hasProjectAuth: true,
+            tenantId: tenantId || null,
+            teamId: teamId || null,
+            teamName: teamName || null,
+            preferredAuthority,
+            appToken: {
+              present: Boolean(miscData["appAccessToken"]),
+              expiresAt: appAccessTokenExpiresAt || null,
+              secondsUntilExpiry: appExpiryInSeconds,
+              lastIssuedAt: lastAppTokenIssuedAt || null,
+              ageSeconds: issuedAgeSeconds,
+            },
+            delegatedToken: {
+              expiresAt: delegatedTokenExpiresAt || null,
+              secondsUntilExpiry: delegatedExpiryInSeconds,
+            },
+          });
+        } catch (error) {
+          logger.error("Error in /teams/readiness endpoint:");
+          logger.error(error);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Failed to fetch readiness diagnostics"),
           );
         }
       },
