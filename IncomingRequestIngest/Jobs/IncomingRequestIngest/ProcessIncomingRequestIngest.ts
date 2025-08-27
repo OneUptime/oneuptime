@@ -31,9 +31,22 @@ QueueWorker.getWorker(
         `Successfully processed incoming request ingestion job: ${job.name}`,
       );
     } catch (error) {
+      // If monitor is disabled (maintenance / manual incident / explicitly disabled),
+      // we don't want to treat this as a failed job because the ingestion attempt
+      // has effectively "succeeded" (there's nothing actionable to do) and retrying
+      // only creates noise in the failed jobs list.
+      const message: string = (error as Error)?.message || "";
+      if (
+        error instanceof BadDataException && message &&
+        message.toString().toLowerCase().includes("monitor is disabled")
+      ) {
+        // Swallow error so BullMQ marks job as completed.
+        return;
+      }
+
       logger.error(`Error processing incoming request ingestion job:`);
       logger.error(error);
-      throw error;
+      throw error; // rethrow other errors so they are visible and retried if needed.
     }
   },
   { concurrency: INCOMING_REQUEST_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
