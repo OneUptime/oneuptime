@@ -559,6 +559,21 @@ const Settings: FunctionComponent<ComponentProps> = (
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownOptions: Countries,
               },
+              {
+                field: {
+                  financeAccountingEmail: true,
+                },
+                title: 'Finance / Accounting Email',
+                description:
+                  'Invoices, receipts and billing notifications will be sent here (optional).',
+                required: false,
+                placeholder: 'finance@yourcompany.com',
+                fieldType: FormFieldSchemaType.Email,
+                validation: {
+                  minLength: 3,
+                  maxLength: 200,
+                },
+              },
             ]}
             modelDetailProps={{
               modelType: Project,
@@ -579,6 +594,14 @@ const Settings: FunctionComponent<ComponentProps> = (
                   title: 'Country',
                   placeholder: "No country details added yet.",
                   fieldType: FieldType.Text,
+                },
+                {
+                  field: {
+                    financeAccountingEmail: true,
+                  },
+                  title: 'Finance / Accounting Email',
+                  placeholder: 'No finance / accounting email added yet.',
+                  fieldType: FieldType.Email,
                 },
               ],
               modelId: ProjectUtil.getCurrentProjectId()!,

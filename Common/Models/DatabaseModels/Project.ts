@@ -300,6 +300,32 @@ export default class Project extends TenantModel {
   public businessDetailsCountry?: string = undefined;
 
   @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: 'Finance / Accounting Email',
+    description:
+      'Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.',
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    unique: false,
+  })
+  public financeAccountingEmail?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
