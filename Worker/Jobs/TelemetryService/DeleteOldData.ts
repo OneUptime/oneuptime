@@ -14,6 +14,10 @@ RunCron(
   {
     schedule: IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
     runOnStartup: false,
+    // This job iterates over all telemetry services and issues ClickHouse DELETE mutations
+    // which can take longer than the default 5 minute job timeout when there is a lot of data.
+    // Increase timeout to 25 minutes (just under the hourly schedule) to prevent premature timeouts.
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },
   async () => {
     // get a list of all the telemetry services.
