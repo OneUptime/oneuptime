@@ -546,6 +546,21 @@ const Settings: FunctionComponent<ComponentProps> = (
                   maxLength: 10000,
                 },
               },
+              {
+                field: {
+                  businessDetailsCountry: true,
+                },
+                title: 'Country (ISO 2-letter)',
+                description:
+                  'Required by Stripe. Provide two-letter country code (e.g., US, GB, DE).',
+                required: false,
+                placeholder: 'US',
+                fieldType: FormFieldSchemaType.Text,
+                validation: {
+                  minLength: 2,
+                  maxLength: 2,
+                },
+              },
             ]}
             modelDetailProps={{
               modelType: Project,
@@ -569,6 +584,18 @@ const Settings: FunctionComponent<ComponentProps> = (
                         {item.businessDetails}
                       </pre>
                     );
+                  },
+                },
+                {
+                  field: {
+                    businessDetailsCountry: true,
+                  },
+                  title: 'Country',
+                  getElement: (item: Project): ReactElement => {
+                    if (!item.businessDetailsCountry) {
+                      return <span className='text-gray-500'>Not set</span>;
+                    }
+                    return <span>{item.businessDetailsCountry}</span>;
                   },
                 },
               ],

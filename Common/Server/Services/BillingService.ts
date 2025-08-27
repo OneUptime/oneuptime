@@ -84,6 +84,7 @@ export class BillingService extends BaseService {
   public async updateCustomerBusinessDetails(
     id: string,
     businessDetails: string,
+    countryCode?: string | null,
   ): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
@@ -128,7 +129,13 @@ export class BillingService extends BaseService {
       updateParams.address = updateParams.address || {};
       updateParams.address.line2 = line2;
     }
-    if (!line1 && !line2) {
+    if (countryCode) {
+      updateParams.address = updateParams.address || {};
+      // Stripe expects uppercase 2-letter ISO code
+      updateParams.address.country = countryCode.toUpperCase();
+    }
+
+    if (!line1 && !line2 && !countryCode) {
       // Clear address if empty details submitted.
       updateParams.address = {
         line1: '',

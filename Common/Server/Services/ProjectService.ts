@@ -273,7 +273,8 @@ export class ProjectService extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (IsBillingEnabled) {
-      if (updateBy.data.businessDetails) {
+
+      if (updateBy.data.businessDetails || updateBy.data.businessDetailsCountry) {
         // Sync to Stripe.
         const project: Model | null = await this.findOneById({
           id: new ObjectID(updateBy.query._id! as string),
@@ -287,7 +288,8 @@ export class ProjectService extends DatabaseService<Model> {
           try {
             await BillingService.updateCustomerBusinessDetails(
               project.paymentProviderCustomerId,
-              updateBy.data.businessDetails as string,
+              (updateBy.data.businessDetails as string) || '',
+              (updateBy.data.businessDetailsCountry as string) || null,
             );
           } catch (err) {
             logger.error(

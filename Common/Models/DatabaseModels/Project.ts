@@ -275,6 +275,31 @@ export default class Project extends TenantModel {
   public businessDetails?: string = undefined;
 
   @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Business Country (ISO Alpha-2)",
+    description: "Two-letter ISO country code for billing address (e.g., US, GB, DE).",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public businessDetailsCountry?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
