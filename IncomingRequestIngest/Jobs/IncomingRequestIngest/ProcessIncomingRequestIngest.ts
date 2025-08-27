@@ -31,17 +31,11 @@ QueueWorker.getWorker(
         `Successfully processed incoming request ingestion job: ${job.name}`,
       );
     } catch (error) {
-      // If monitor is disabled (maintenance / manual incident / explicitly disabled),
-      // we don't want to treat this as a failed job because the ingestion attempt
-      // has effectively "succeeded" (there's nothing actionable to do) and retrying
-      // only creates noise in the failed jobs list.
-      const message: string = (error as Error)?.message || "";
-      if (
-        error instanceof BadDataException && message &&
-        message.toString().toLowerCase().includes("monitor is disabled")
-      ) {
-        // Swallow error so BullMQ marks job as completed.
-        return;
+      // Certain BadDataException cases are expected / non-actionable and should not fail the job.
+      // These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
+      // (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
+      if (error instanceof BadDataException){
+
       }
 
       logger.error(`Error processing incoming request ingestion job:`);

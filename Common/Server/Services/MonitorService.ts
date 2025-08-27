@@ -67,6 +67,7 @@ import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import { FindWhere } from "../../Types/BaseDatabase/Query";
 import logger from "../Utils/Logger";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
+import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -162,11 +163,11 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (!monitor) {
-          throw new BadDataException("Monitor not found.");
+          throw new BadDataException(ExceptionMessages.MonitorNotFound);
         }
 
         if (!monitor.id) {
-          throw new BadDataException("Monitor id not found.");
+          throw new BadDataException(ExceptionMessages.MonitorNotFound);
         }
 
         projectId = monitor.projectId!;
@@ -1389,7 +1390,7 @@ ${createdItem.description?.trim() || "No description provided."}
     });
 
     if (!monitor) {
-      throw new BadDataException("Monitor not found.");
+      throw new BadDataException(ExceptionMessages.MonitorNotFound);
     }
 
     return (monitor.postUpdatesToWorkspaceChannels || []).filter(
@@ -1419,7 +1420,7 @@ ${createdItem.description?.trim() || "No description provided."}
     });
 
     if (!monitor) {
-      throw new BadDataException("Monitor not found.");
+      throw new BadDataException(ExceptionMessages.MonitorNotFound);
     }
 
     return monitor.name || "";

@@ -58,6 +58,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
 import MonitorLogService from "../../Services/MonitorLogService";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 
 export default class MonitorResourceUtil {
   @CaptureSpan()
@@ -109,7 +110,7 @@ export default class MonitorResourceUtil {
 
     if (!monitor) {
       logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
-      throw new BadDataException("Monitor not found");
+      throw new BadDataException(ExceptionMessages.MonitorNotFound);
     }
 
     if (!monitor.projectId) {
