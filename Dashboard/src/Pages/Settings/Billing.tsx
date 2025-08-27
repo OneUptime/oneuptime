@@ -529,7 +529,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             cardProps={{
               title: "Business Details / Billing Address",
               description:
-                "Enter your business legal name, address and optional tax info. This will be synced to Stripe and appear on future invoices.",
+                "Enter your business legal name, address and optional tax info. This will appear on your invoices.",
             }}
             isEditable={true}
             editButtonText={"Update"}
@@ -569,32 +569,16 @@ const Settings: FunctionComponent<ComponentProps> = (
                     businessDetails: true,
                   },
                   title: "Business Details / Billing Address",
-                  getElement: (item: Project): ReactElement => {
-                    if (!item.businessDetails) {
-                      return (
-                        <div className="text-gray-500 italic">
-                          No business details added yet.
-                        </div>
-                      );
-                    }
-                    return (
-                      <pre className="whitespace-pre-wrap break-words text-sm">
-                        {item.businessDetails}
-                      </pre>
-                    );
-                  },
+                  placeholder: "No business details added yet.",
+                  fieldType: FieldType.LongText,
                 },
                 {
                   field: {
                     businessDetailsCountry: true,
                   },
                   title: 'Country',
-                  getElement: (item: Project): ReactElement => {
-                    if (!item.businessDetailsCountry) {
-                      return <span className='text-gray-500'>Not set</span>;
-                    }
-                    return <span>{item.businessDetailsCountry}</span>;
-                  },
+                  placeholder: "No country details added yet.",
+                  fieldType: FieldType.Text,
                 },
               ],
               modelId: ProjectUtil.getCurrentProjectId()!,
