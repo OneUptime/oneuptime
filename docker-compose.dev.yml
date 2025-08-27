@@ -44,12 +44,12 @@ services:
             file: ./docker-compose.base.yml
             service: accounts
         volumes:
-            - ./Accounts:/usr/src/app
+            - ./Accounts:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -67,12 +67,12 @@ services:
             file: ./docker-compose.base.yml
             service: dashboard
         volumes:
-            - ./Dashboard:/usr/src/app
+            - ./Dashboard:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -91,12 +91,12 @@ services:
             file: ./docker-compose.base.yml
             service: admin-dashboard
         volumes:
-            - ./AdminDashboard:/usr/src/app
+            - ./AdminDashboard:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -114,12 +114,12 @@ services:
             file: ./docker-compose.base.yml
             service: status-page
         volumes:
-            - ./StatusPage:/usr/src/app
+            - ./StatusPage:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/dev-env
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -132,11 +132,11 @@ services:
     
     test-server:
         volumes:
-            - ./TestServer:/usr/src/app
+            - ./TestServer:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -155,11 +155,11 @@ services:
 
     home:
         volumes:
-            - ./Home:/usr/src/app
+            - ./Home:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
             file: ./docker-compose.base.yml
@@ -173,11 +173,11 @@ services:
 
     worker:
         volumes:
-            - ./Worker:/usr/src/app
+            - ./Worker:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
             file: ./docker-compose.base.yml
@@ -192,11 +192,11 @@ services:
 
     workflow:
         volumes:
-            - ./Workflow:/usr/src/app
+            - ./Workflow:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
             file: ./docker-compose.base.yml
@@ -210,11 +210,11 @@ services:
 
     api-reference:
         volumes:
-            - ./APIReference:/usr/src/app
+            - ./APIReference:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
             file: ./docker-compose.base.yml
@@ -228,11 +228,11 @@ services:
 
     docs:
         volumes:
-            - ./Docs:/usr/src/app
+            - ./Docs:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
             file: ./docker-compose.base.yml
@@ -246,11 +246,11 @@ services:
 
     app:
         volumes:
-            - ./App:/usr/src/app
+            - ./App:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         extends:
             file: ./docker-compose.base.yml
@@ -265,11 +265,11 @@ services:
 
     probe-1: 
         volumes:
-            - ./Probe:/usr/src/app
+            - ./Probe:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -284,11 +284,11 @@ services:
 
     probe-2: 
         volumes:
-            - ./Probe:/usr/src/app
+            - ./Probe:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -303,11 +303,11 @@ services:
 
     isolated-vm:
         volumes:
-            - ./IsolatedVM:/usr/src/app
+            - ./IsolatedVM:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
 
             - /usr/src/Common/node_modules/
 
@@ -324,11 +324,11 @@ services:
     
     probe-ingest:
         volumes:
-            - ./ProbeIngest:/usr/src/app
+            - ./ProbeIngest:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         ports:
           - '9932:9229' # Debugging port.
@@ -342,11 +342,11 @@ services:
 
     server-monitor-ingest:
         volumes:
-            - ./ServerMonitorIngest:/usr/src/app
+            - ./ServerMonitorIngest:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         ports:
           - '9941:9229' # Debugging port.
@@ -360,11 +360,11 @@ services:
 
     open-telemetry-ingest:
         volumes:
-            - ./OpenTelemetryIngest:/usr/src/app
+            - ./OpenTelemetryIngest:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         ports:
           - '9938:9229' # Debugging port.
@@ -378,11 +378,11 @@ services:
 
     incoming-request-ingest:
         volumes:
-            - ./IncomingRequestIngest:/usr/src/app
+            - ./IncomingRequestIngest:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         ports:
           - '9933:9229' # Debugging port.
@@ -396,11 +396,11 @@ services:
 
     fluent-ingest:
         volumes:
-            - ./FluentIngest:/usr/src/app
+            - ./FluentIngest:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         ports:
           - '9937:9229' # Debugging port.
@@ -472,11 +472,11 @@ services:
 
     copilot:
         volumes:
-            - ./Copilot:/usr/src/app
+            - ./Copilot:/usr/src/app:cached
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
-            - ./Common:/usr/src/Common
+            - ./Common:/usr/src/Common:cached
             - /usr/src/Common/node_modules/
         ports:
             - '9985:9229' # Debugging port.

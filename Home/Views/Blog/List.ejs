@@ -53,9 +53,9 @@
               </div>
 
               <!-- Posts Grid -->
-              <div id="blog-posts-grid" class="grid grid-cols-1 gap-10 sm:grid-cols-2 xl:grid-cols-3">
+              <div id="blog-posts-grid" class="grid grid-cols-1 gap-10 sm:grid-cols-2 xl:grid-cols-3 items-stretch">
                 <% for(var i=0; i<rest.length; i++) { const post = rest[i]; %>
-                  <div data-blog-card data-search="<%- (post.title + ' ' + post.description + ' ' + post.tags.join(' ')).toLowerCase() -%>">
+                  <div data-blog-card class="h-full" data-search="<%- (post.title + ' ' + post.description + ' ' + post.tags.join(' ')).toLowerCase() -%>">
                     <%- include('./Partials/ListItem', { blogPost: post }) -%>
                   </div>
                 <% } %>

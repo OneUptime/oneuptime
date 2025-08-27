@@ -273,6 +273,38 @@ export class ProjectService extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     if (IsBillingEnabled) {
+      if (
+        updateBy.data.businessDetails ||
+        updateBy.data.businessDetailsCountry ||
+        updateBy.data.financeAccountingEmail
+      ) {
+        // Sync to Stripe.
+        const project: Model | null = await this.findOneById({
+          id: new ObjectID(updateBy.query._id! as string),
+          select: {
+            paymentProviderCustomerId: true,
+            financeAccountingEmail: true,
+          },
+          props: { isRoot: true },
+        });
+
+        if (project?.paymentProviderCustomerId) {
+          try {
+            await BillingService.updateCustomerBusinessDetails(
+              project.paymentProviderCustomerId,
+              (updateBy.data.businessDetails as string) || "",
+              (updateBy.data.businessDetailsCountry as string) || null,
+              (updateBy.data.financeAccountingEmail as string) ||
+                (project as any).financeAccountingEmail ||
+                null,
+            );
+          } catch (err) {
+            logger.error(
+              "Failed to update Stripe customer business details: " + err,
+            );
+          }
+        }
+      }
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
         await NotificationService.rechargeIfBalanceIsLow(
           new ObjectID(updateBy.query._id! as string),

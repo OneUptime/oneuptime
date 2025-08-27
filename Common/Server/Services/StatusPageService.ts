@@ -340,10 +340,26 @@ export class Service extends DatabaseService<StatusPage> {
     projectId: ObjectID,
     statusPageId: ObjectID,
   ): Promise<URL> {
-    const dahboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+    if (!projectId) {
+      throw new BadDataException(
+        "projectId is required to build status page dashboard link",
+      );
+    }
 
-    return URL.fromString(dahboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/status-pages/${statusPageId.toString()}`,
+    if (!statusPageId) {
+      throw new BadDataException(
+        "statusPageId is required to build status page dashboard link",
+      );
+    }
+
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    // Defensive: ensure objects have toString
+    const projectIdStr: string = projectId.toString();
+    const statusPageIdStr: string = statusPageId.toString();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectIdStr}/status-pages/${statusPageIdStr}`,
     );
   }
 

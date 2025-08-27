@@ -81,6 +81,94 @@ export class BillingService extends BaseService {
   }
 
   @CaptureSpan()
+  public async updateCustomerBusinessDetails(
+    id: string,
+    businessDetails: string,
+    countryCode?: string | null,
+    financeAccountingEmail?: string | null,
+  ): Promise<void> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+    // Goal: Update Stripe Customer "Billing details" (address fields) rather than invoice footer.
+    // We only have a single free-form textarea. We'll map:
+    //   First non-empty line -> address.line1
+    //   Second non-empty line (if any) and remaining (joined, truncated) -> address.line2
+    // We also persist full text in metadata so we can reconstruct or improve parsing later.
+    // NOTE: Because Stripe requires structured address, any city/state/postal/country detection
+    // would be heuristic; we keep it simple unless we later add structured fields.
+
+    const lines: Array<string> = businessDetails
+      .split(/\r?\n/)
+      .map((l: string) => {
+        return l.trim();
+      })
+      .filter((l: string) => {
+        return l.length > 0;
+      });
+
+    let line1: string | undefined = undefined;
+    let line2: string | undefined = undefined;
+
+    if (lines && lines.length > 0) {
+      const first: string = lines[0]!; // non-null
+      line1 = first.substring(0, 200); // Stripe typical limit safeguard.
+    }
+    if (lines && lines.length > 1) {
+      const rest: string = lines.slice(1).join(", ");
+      line2 = rest.substring(0, 200);
+    }
+
+    const metadata: Record<string, string> = {
+      business_details_full: businessDetails.substring(0, 5000),
+    };
+    if (financeAccountingEmail) {
+      metadata["finance_accounting_email"] = financeAccountingEmail.substring(
+        0,
+        200,
+      );
+    } else {
+      // Remove if cleared
+      metadata["finance_accounting_email"] = "";
+    }
+
+    const updateParams: Stripe.CustomerUpdateParams = {
+      metadata,
+      address: {},
+    };
+
+    // If finance / accounting email provided, set it as the customer email so Stripe sends
+    // invoices / receipts there. (Stripe only supports a single email via API currently.)
+    if (financeAccountingEmail && financeAccountingEmail.trim().length > 0) {
+      updateParams.email = financeAccountingEmail.trim();
+    }
+
+    if (line1) {
+      updateParams.address = updateParams.address || {};
+      updateParams.address.line1 = line1;
+    }
+    if (line2) {
+      updateParams.address = updateParams.address || {};
+      updateParams.address.line2 = line2;
+    }
+    if (countryCode) {
+      updateParams.address = updateParams.address || {};
+      // Stripe expects uppercase 2-letter ISO code
+      updateParams.address.country = countryCode.toUpperCase();
+    }
+
+    if (!line1 && !line2 && !countryCode) {
+      // Clear address if empty details submitted.
+      updateParams.address = {
+        line1: "",
+        line2: "",
+      } as any;
+    }
+
+    await this.stripe.customers.update(id, updateParams);
+  }
+
+  @CaptureSpan()
   public async deleteCustomer(id: string): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);

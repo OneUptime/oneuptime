@@ -249,6 +249,84 @@ export default class Project extends TenantModel {
   public paymentProviderCustomerId?: string = undefined;
 
   @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Business Details / Billing Address",
+    description:
+      "Business legal name, address and any tax information to appear on invoices.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public businessDetails?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Business Country (ISO Alpha-2)",
+    description:
+      "Two-letter ISO country code for billing address (e.g., US, GB, DE).",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public businessDetailsCountry?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    type: TableColumnType.Email,
+    title: "Finance / Accounting Email",
+    description:
+      "Invoices, receipts and billing related notifications will be sent to this email in addition to project owner.",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    unique: false,
+  })
+  public financeAccountingEmail?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

@@ -337,30 +337,30 @@ export default class Markdown {
         return text as string;
       }
 
-      const isHash: boolean = href.startsWith('#');
-      const isMailTo: boolean = href.startsWith('mailto:');
-      const isTel: boolean = href.startsWith('tel:');
+      const isHash: boolean = href.startsWith("#");
+      const isMailTo: boolean = href.startsWith("mailto:");
+      const isTel: boolean = href.startsWith("tel:");
       const isInternal: boolean =
-        href.startsWith('/') ||
-        href.includes('oneuptime.com') ||
+        href.startsWith("/") ||
+        href.includes("oneuptime.com") ||
         isHash ||
         isMailTo ||
         isTel;
 
       const baseClasses: string = [
-        'font-semibold',
-        'text-indigo-600',
-        'underline',
-        'underline-offset-2',
-        'decoration-indigo-300',
-        'hover:decoration-indigo-500',
-        'hover:text-indigo-500',
-        'transition-colors',
-      ].join(' ');
+        "font-semibold",
+        "text-indigo-600",
+        "underline",
+        "underline-offset-2",
+        "decoration-indigo-300",
+        "hover:decoration-indigo-500",
+        "hover:text-indigo-500",
+        "transition-colors",
+      ].join(" ");
 
-      const titleAttr: string = title ? ` title="${title}"` : '';
+      const titleAttr: string = title ? ` title="${title}"` : "";
       const externalAttrs: string = isInternal
-        ? ''
+        ? ""
         : ' target="_blank" rel="noopener noreferrer"';
 
       return `<a href="${href}"${titleAttr} class="${baseClasses}"${externalAttrs}>${text}</a>`;

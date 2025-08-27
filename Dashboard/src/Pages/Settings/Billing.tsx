@@ -48,6 +48,7 @@ import React, {
   useState,
 } from "react";
 import useAsyncEffect from "use-async-effect";
+import Countries from "Common/UI/Utils/Countries";
 
 export type ComponentProps = PageComponentProps;
 
@@ -522,6 +523,89 @@ const Settings: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+
+          <CardModelDetail<Project>
+            name="Business Details"
+            cardProps={{
+              title: "Business Details / Billing Address",
+              description:
+                "Enter your business legal name, address and optional tax info. This will appear on your invoices.",
+            }}
+            isEditable={true}
+            editButtonText={"Update"}
+            formFields={[
+              {
+                field: {
+                  businessDetails: true,
+                },
+                title: "Business Details / Billing Address",
+                description:
+                  "This information will appear on invoices. Include company legal name, address, and tax / VAT ID if applicable.",
+                required: false,
+                fieldType: FormFieldSchemaType.LongText,
+                validation: {
+                  maxLength: 10000,
+                },
+              },
+              {
+                field: {
+                  businessDetailsCountry: true,
+                },
+                title: "Country",
+                description: "Required by Stripe. Select your billing country.",
+                required: false,
+                placeholder: "Select Country",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownOptions: Countries,
+              },
+              {
+                field: {
+                  financeAccountingEmail: true,
+                },
+                title: "Finance / Accounting Email",
+                description:
+                  "Invoices, receipts and billing notifications will be sent here (optional).",
+                required: false,
+                placeholder: "finance@yourcompany.com",
+                fieldType: FormFieldSchemaType.Email,
+                validation: {
+                  minLength: 3,
+                  maxLength: 200,
+                },
+              },
+            ]}
+            modelDetailProps={{
+              modelType: Project,
+              id: "model-detail-project-business-details",
+              fields: [
+                {
+                  field: {
+                    businessDetails: true,
+                  },
+                  title: "Business Details / Billing Address",
+                  placeholder: "No business details added yet.",
+                  fieldType: FieldType.LongText,
+                },
+                {
+                  field: {
+                    businessDetailsCountry: true,
+                  },
+                  title: "Country",
+                  placeholder: "No country details added yet.",
+                  fieldType: FieldType.Text,
+                },
+                {
+                  field: {
+                    financeAccountingEmail: true,
+                  },
+                  title: "Finance / Accounting Email",
+                  placeholder: "No finance / accounting email added yet.",
+                  fieldType: FieldType.Email,
+                },
+              ],
+              modelId: ProjectUtil.getCurrentProjectId()!,
+            }}
+          />
 
           {!reseller && (
             <Card
