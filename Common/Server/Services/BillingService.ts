@@ -85,6 +85,7 @@ export class BillingService extends BaseService {
     id: string,
     businessDetails: string,
     countryCode?: string | null,
+    financeAccountingEmail?: string | null,
   ): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
@@ -114,12 +115,26 @@ export class BillingService extends BaseService {
       line2 = rest.substring(0, 200);
     }
 
+    const metadata: Record<string, string> = {
+      business_details_full: businessDetails.substring(0, 5000),
+    };
+    if (financeAccountingEmail) {
+      metadata['finance_accounting_email'] = financeAccountingEmail.substring(0, 200);
+    } else {
+      // Remove if cleared
+      metadata['finance_accounting_email'] = '';
+    }
+
     const updateParams: Stripe.CustomerUpdateParams = {
-      metadata: {
-        business_details_full: businessDetails.substring(0, 5000),
-      },
+      metadata,
       address: {},
     };
+
+    // If finance / accounting email provided, set it as the customer email so Stripe sends
+    // invoices / receipts there. (Stripe only supports a single email via API currently.)
+    if (financeAccountingEmail && financeAccountingEmail.trim().length > 0) {
+      updateParams.email = financeAccountingEmail.trim();
+    }
 
     if (line1) {
       updateParams.address = updateParams.address || {};
