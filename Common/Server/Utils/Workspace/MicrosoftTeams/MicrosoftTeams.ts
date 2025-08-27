@@ -81,9 +81,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       // Parse facts of the form **Label:** value
-      const factMatch: RegExpExecArray | null = /\*\*(.*?)\:\*\*\s*(.*)/.exec(
-        lineWithoutLinks,
-      );
+      const factMatch: RegExpExecArray | null = new RegExp(
+        "\\*\\*(.*?):\\*\\*\\s*(.*)",
+      ).exec(lineWithoutLinks);
 
       if (factMatch) {
         const name: string = (factMatch[1] ?? "").trim();

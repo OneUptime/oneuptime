@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import MonitorStatusElement from "./MonitorStatusElement";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -45,7 +46,7 @@ const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
 
         if (!monitor) {
           setIsLoading(false);
-          setError("Monitor not found");
+          setError(ExceptionMessages.MonitorNotFound);
           return;
         }
 

@@ -28,24 +28,10 @@ import EmptyResponseData from "../../../Types/API/EmptyResponse";
 
 jest.setTimeout(60000); // Increase test timeout to 60 seconds becuase GitHub runners are slow
 
-jest.mock("../../../Server/Services/ProjectUserService", () => {
-  return {
-    refreshProjectUsersByProject: jest.fn().mockResolvedValue(undefined),
-  };
-});
-
-// Get the mocked module to access the mock functions
-import ProjectUserService from "../../../Server/Services/ProjectUserService";
-const mockProjectUserService: jest.Mocked<typeof ProjectUserService> =
-  ProjectUserService as jest.Mocked<typeof ProjectUserService>;
-
 describe("TeamMemberService", () => {
   beforeEach(async () => {
     jest.resetAllMocks();
     // Re-setup the mock after resetAllMocks
-    mockProjectUserService.refreshProjectUsersByProject.mockResolvedValue(
-      undefined,
-    );
     await TestDatabaseMock.connectDbMock();
   });
 

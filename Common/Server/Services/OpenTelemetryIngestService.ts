@@ -128,18 +128,50 @@ export default class OTelIngestService {
       Metric,
     ) as Metric;
 
+    // Handle start timestamp safely
     if (datapoint["startTimeUnixNano"]) {
-      newDbMetric.startTimeUnixNano = datapoint["startTimeUnixNano"] as number;
-      newDbMetric.startTime = OneUptimeDate.fromUnixNano(
-        datapoint["startTimeUnixNano"] as number,
-      );
+      try {
+        let startTimeUnixNano: number;
+        if (typeof datapoint["startTimeUnixNano"] === "string") {
+          startTimeUnixNano = parseFloat(datapoint["startTimeUnixNano"]);
+          if (isNaN(startTimeUnixNano)) {
+            startTimeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+          }
+        } else {
+          startTimeUnixNano =
+            (datapoint["startTimeUnixNano"] as number) ||
+            OneUptimeDate.getCurrentDateAsUnixNano();
+        }
+        newDbMetric.startTimeUnixNano = startTimeUnixNano;
+        newDbMetric.startTime = OneUptimeDate.fromUnixNano(startTimeUnixNano);
+      } catch {
+        const currentNano: number = OneUptimeDate.getCurrentDateAsUnixNano();
+        newDbMetric.startTimeUnixNano = currentNano;
+        newDbMetric.startTime = OneUptimeDate.getCurrentDate();
+      }
     }
 
+    // Handle end timestamp safely
     if (datapoint["timeUnixNano"]) {
-      newDbMetric.timeUnixNano = datapoint["timeUnixNano"] as number;
-      newDbMetric.time = OneUptimeDate.fromUnixNano(
-        datapoint["timeUnixNano"] as number,
-      );
+      try {
+        let timeUnixNano: number;
+        if (typeof datapoint["timeUnixNano"] === "string") {
+          timeUnixNano = parseFloat(datapoint["timeUnixNano"]);
+          if (isNaN(timeUnixNano)) {
+            timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
+          }
+        } else {
+          timeUnixNano =
+            (datapoint["timeUnixNano"] as number) ||
+            OneUptimeDate.getCurrentDateAsUnixNano();
+        }
+        newDbMetric.timeUnixNano = timeUnixNano;
+        newDbMetric.time = OneUptimeDate.fromUnixNano(timeUnixNano);
+      } catch {
+        const currentNano: number = OneUptimeDate.getCurrentDateAsUnixNano();
+        newDbMetric.timeUnixNano = currentNano;
+        newDbMetric.time = OneUptimeDate.getCurrentDate();
+      }
     }
 
     if (Object.keys(datapoint).includes("asInt")) {
@@ -174,7 +206,7 @@ export default class OTelIngestService {
           serviceName: data.telemetryServiceName,
         }),
         ...TelemetryUtil.getAttributes({
-          items: datapoint["attributes"] as JSONArray,
+          items: (datapoint["attributes"] as JSONArray) || [],
           prefixKeysWithString: "metricAttributes",
         }),
       };

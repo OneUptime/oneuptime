@@ -20,7 +20,6 @@ import NotFoundException from "Common/Types/Exception/NotFoundException";
 import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Query from "Common/Types/BaseDatabase/Query";
-import ProjectUser from "Common/Models/DatabaseModels/ProjectUser";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import User from "Common/Models/DatabaseModels/User";
 import {
@@ -89,6 +88,8 @@ const handleUserTeamOperations: (
             ignoreHooks: true,
           },
         });
+
+        logger.debug(`SCIM Team operations - user added to team: ${team.id}`);
       } else {
         logger.debug(
           `SCIM Team operations - user already member of team: ${team.id}`,
@@ -168,7 +169,7 @@ router.get(
       );
 
       // Build query for team members in this project
-      const query: Query<ProjectUser> = {
+      const query: Query<TeamMember> = {
         projectId: projectId,
       };
 

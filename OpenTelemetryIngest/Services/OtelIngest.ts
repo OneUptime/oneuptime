@@ -151,158 +151,292 @@ export default class OtelIngestService {
 
   @CaptureSpan()
   private static async processLogsAsync(req: ExpressRequest): Promise<void> {
-    const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
+    try {
+      const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
-    const dbLogs: Array<Log> = [];
-    const attributeKeySet: Set<string> = new Set<string>();
-    const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
-
-    for (const resourceLog of resourceLogs) {
-      const serviceName: string = this.getServiceNameFromAttributes(
-        req,
-        ((resourceLog["resource"] as JSONObject)?.[
-          "attributes"
-        ] as JSONArray) || [],
-      );
-
-      if (!serviceDictionary[serviceName]) {
-        const service: {
-          serviceId: ObjectID;
-          dataRententionInDays: number;
-        } = await OTelIngestService.telemetryServiceFromName({
-          serviceName: serviceName,
-          projectId: (req as TelemetryRequest).projectId,
-        });
-
-        serviceDictionary[serviceName] = {
-          serviceName: serviceName,
-          serviceId: service.serviceId,
-          dataRententionInDays: service.dataRententionInDays,
-          dataIngestedInGB: 0,
-        };
+      if (!resourceLogs || !Array.isArray(resourceLogs)) {
+        logger.error("Invalid resourceLogs format in request body");
+        throw new BadRequestException("Invalid resourceLogs format");
       }
 
-      const resourceAttributes: Dictionary<
-        AttributeType | Array<AttributeType>
-      > = {
-        ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        }),
-        ...TelemetryUtil.getAttributes({
-          items:
+      const dbLogs: Array<Log> = [];
+      const attributeKeySet: Set<string> = new Set<string>();
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+
+      let resourceLogCounter: number = 0;
+      for (const resourceLog of resourceLogs) {
+        try {
+          // Yield every 50 resource logs to avoid blocking event loop and triggering stall detection
+          if (resourceLogCounter % 50 === 0) {
+            // Allow I/O (like Redis lock extension) to be processed
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.resolve();
+          }
+          resourceLogCounter++;
+          const serviceName: string = this.getServiceNameFromAttributes(
+            req,
             ((resourceLog["resource"] as JSONObject)?.[
               "attributes"
             ] as JSONArray) || [],
-          prefixKeysWithString: "resource",
-        }),
-      };
+          );
 
-      const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
-      serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+          if (!serviceDictionary[serviceName]) {
+            const service: {
+              serviceId: ObjectID;
+              dataRententionInDays: number;
+            } = await OTelIngestService.telemetryServiceFromName({
+              serviceName: serviceName,
+              projectId: (req as TelemetryRequest).projectId,
+            });
 
-      const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
+            serviceDictionary[serviceName] = {
+              serviceName: serviceName,
+              serviceId: service.serviceId,
+              dataRententionInDays: service.dataRententionInDays,
+              dataIngestedInGB: 0,
+            };
+          }
 
-      for (const scopeLog of scopeLogs) {
-        const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
-
-        for (const log of logRecords) {
-          const dbLog: Log = new Log();
-
-          const attributesObject: Dictionary<
+          const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...resourceAttributes,
+            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceName: serviceName,
+            }),
             ...TelemetryUtil.getAttributes({
-              items: (log["attributes"] as JSONArray) || [],
-              prefixKeysWithString: "logAttributes",
+              items:
+                ((resourceLog["resource"] as JSONObject)?.[
+                  "attributes"
+                ] as JSONArray) || [],
+              prefixKeysWithString: "resource",
             }),
           };
 
-          if (scopeLog["scope"] && Object.keys(scopeLog["scope"]).length > 0) {
-            const scopeAttributes: JSONObject = scopeLog["scope"] as JSONObject;
-            for (const key of Object.keys(scopeAttributes)) {
-              attributesObject[`scope.${key}`] = scopeAttributes[
-                key
-              ] as AttributeType;
+          const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceLog);
+          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+
+          const scopeLogs: JSONArray = resourceLog["scopeLogs"] as JSONArray;
+
+          if (!scopeLogs || !Array.isArray(scopeLogs)) {
+            logger.warn("Invalid scopeLogs format, skipping resource log");
+            continue;
+          }
+
+          let scopeLogCounter: number = 0;
+          for (const scopeLog of scopeLogs) {
+            try {
+              if (scopeLogCounter % 100 === 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.resolve();
+              }
+              scopeLogCounter++;
+              const logRecords: JSONArray = scopeLog["logRecords"] as JSONArray;
+
+              if (!logRecords || !Array.isArray(logRecords)) {
+                logger.warn("Invalid logRecords format, skipping scope log");
+                continue;
+              }
+
+              let logRecordCounter: number = 0;
+              for (const log of logRecords) {
+                try {
+                  if (logRecordCounter % 500 === 0) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await Promise.resolve();
+                  }
+                  logRecordCounter++;
+                  const dbLog: Log = new Log();
+
+                  const attributesObject: Dictionary<
+                    AttributeType | Array<AttributeType>
+                  > = {
+                    ...resourceAttributes,
+                    ...TelemetryUtil.getAttributes({
+                      items: (log["attributes"] as JSONArray) || [],
+                      prefixKeysWithString: "logAttributes",
+                    }),
+                  };
+
+                  if (
+                    scopeLog["scope"] &&
+                    Object.keys(scopeLog["scope"]).length > 0
+                  ) {
+                    const scopeAttributes: JSONObject = scopeLog[
+                      "scope"
+                    ] as JSONObject;
+                    for (const key of Object.keys(scopeAttributes)) {
+                      attributesObject[`scope.${key}`] = scopeAttributes[
+                        key
+                      ] as AttributeType;
+                    }
+                  }
+
+                  dbLog.attributes = attributesObject;
+                  Object.keys(dbLog.attributes).forEach((key: string) => {
+                    return attributeKeySet.add(key);
+                  });
+
+                  dbLog.projectId = (req as TelemetryRequest).projectId;
+                  dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
+
+                  // Set timeUnixNano to current time if not provided
+                  if (log["timeUnixNano"]) {
+                    try {
+                      // Handle large timestamp values that might be strings to prevent precision loss
+                      let timeUnixNano: number;
+                      if (typeof log["timeUnixNano"] === "string") {
+                        // Use parseFloat for string conversion to handle very large numbers more safely
+                        timeUnixNano = parseFloat(log["timeUnixNano"]);
+                        if (isNaN(timeUnixNano)) {
+                          throw new Error(
+                            `Invalid timestamp string: ${log["timeUnixNano"]}`,
+                          );
+                        }
+                      } else {
+                        timeUnixNano =
+                          (log["timeUnixNano"] as number) ||
+                          OneUptimeDate.getCurrentDateAsUnixNano();
+                      }
+
+                      dbLog.timeUnixNano = timeUnixNano;
+                      dbLog.time = OneUptimeDate.fromUnixNano(timeUnixNano);
+                    } catch (timeError) {
+                      logger.warn(
+                        `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
+                      );
+                      const currentTime: Date = OneUptimeDate.getCurrentDate();
+                      dbLog.timeUnixNano =
+                        OneUptimeDate.getCurrentDateAsUnixNano();
+                      dbLog.time = currentTime;
+                    }
+                  } else {
+                    const currentTime: Date = OneUptimeDate.getCurrentDate();
+                    dbLog.timeUnixNano =
+                      OneUptimeDate.getCurrentDateAsUnixNano();
+                    dbLog.time = currentTime;
+                  }
+
+                  let logSeverityNumber: number =
+                    (log["severityNumber"] as number) || 0;
+
+                  if (typeof logSeverityNumber === "string") {
+                    logSeverityNumber =
+                      this.convertSeverityNumber(logSeverityNumber);
+                  }
+
+                  dbLog.severityNumber = logSeverityNumber;
+                  dbLog.severityText = this.getSeverityText(logSeverityNumber);
+
+                  // Handle log body safely
+                  try {
+                    const logBody: JSONObject = log["body"] as JSONObject;
+                    if (
+                      logBody &&
+                      typeof logBody === "object" &&
+                      logBody["stringValue"]
+                    ) {
+                      dbLog.body = logBody["stringValue"] as string;
+                    } else if (typeof log["body"] === "string") {
+                      dbLog.body = log["body"] as string;
+                    } else {
+                      dbLog.body = JSON.stringify(log["body"] || "");
+                    }
+                  } catch (bodyError) {
+                    logger.warn(
+                      `Error processing log body: ${bodyError instanceof Error ? bodyError.message : String(bodyError)}`,
+                    );
+                    dbLog.body = String(log["body"] || "");
+                  }
+
+                  // Handle trace and span IDs safely
+                  try {
+                    dbLog.traceId = Text.convertBase64ToHex(
+                      log["traceId"] as string,
+                    );
+                  } catch {
+                    dbLog.traceId = "";
+                  }
+
+                  try {
+                    dbLog.spanId = Text.convertBase64ToHex(
+                      log["spanId"] as string,
+                    );
+                  } catch {
+                    dbLog.spanId = "";
+                  }
+
+                  dbLogs.push(dbLog);
+                } catch (logError) {
+                  logger.error("Error processing individual log record:");
+                  logger.error(logError);
+                  logger.error(`Log record data: ${JSON.stringify(log)}`);
+                  // Continue processing other logs instead of failing the entire batch
+                }
+              }
+            } catch (scopeError) {
+              logger.error("Error processing scope log:");
+              logger.error(scopeError);
+              logger.error(`Scope log data: ${JSON.stringify(scopeLog)}`);
+              // Continue processing other scope logs
             }
           }
-
-          dbLog.attributes = attributesObject;
-          Object.keys(dbLog.attributes).forEach((key: string) => {
-            return attributeKeySet.add(key);
-          });
-
-          dbLog.projectId = (req as TelemetryRequest).projectId;
-          dbLog.serviceId = serviceDictionary[serviceName]!.serviceId!;
-
-          // Set timeUnixNano to current time if not provided
-          if (log["timeUnixNano"]) {
-            dbLog.timeUnixNano = log["timeUnixNano"] as number;
-            dbLog.time = OneUptimeDate.fromUnixNano(
-              log["timeUnixNano"] as number,
-            );
-          } else {
-            const currentTime: Date = OneUptimeDate.getCurrentDate();
-            dbLog.timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
-            dbLog.time = currentTime;
-          }
-
-          let logSeverityNumber: number =
-            (log["severityNumber"] as number) || 0;
-
-          if (typeof logSeverityNumber === "string") {
-            logSeverityNumber = this.convertSeverityNumber(logSeverityNumber);
-          }
-
-          dbLog.severityNumber = logSeverityNumber;
-          dbLog.severityText = this.getSeverityText(logSeverityNumber);
-
-          const logBody: JSONObject = log["body"] as JSONObject;
-          dbLog.body = logBody["stringValue"] as string;
-
-          dbLog.traceId = Text.convertBase64ToHex(log["traceId"] as string);
-          dbLog.spanId = Text.convertBase64ToHex(log["spanId"] as string);
-
-          dbLogs.push(dbLog);
+        } catch (resourceError) {
+          logger.error("Error processing resource log:");
+          logger.error(resourceError);
+          logger.error(`Resource log data: ${JSON.stringify(resourceLog)}`);
+          // Continue processing other resource logs
         }
       }
-    }
 
-    await Promise.all([
-      LogService.createMany({
-        items: dbLogs,
-        props: {
-          isRoot: true,
-        },
-      }),
-      TelemetryUtil.indexAttributes({
-        attributes: Array.from(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Log,
-      }),
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Logs,
-      }),
-    ]);
-
-    // Memory cleanup: Clear large objects to help GC
-    try {
-      dbLogs.length = 0;
-      attributeKeySet.clear();
-
-      // Clear request body to free memory
-      if (req.body) {
-        req.body = null;
+      if (dbLogs.length === 0) {
+        logger.warn("No valid logs were processed from the request");
+        return;
       }
 
-      // Force garbage collection for large telemetry ingestion
-      this.forceGarbageCollection();
-    } catch (cleanupError) {
-      logger.error("Error during memory cleanup:");
-      logger.error(cleanupError);
+      await Promise.all([
+        LogService.createMany({
+          items: dbLogs,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Log,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Logs,
+        }),
+      ]);
+
+      logger.debug(
+        `Successfully processed ${dbLogs.length} logs for project: ${(req as TelemetryRequest).projectId}`,
+      );
+
+      // Memory cleanup: Clear large objects to help GC
+      try {
+        dbLogs.length = 0;
+        attributeKeySet.clear();
+
+        // Clear request body to free memory
+        if (req.body) {
+          req.body = null;
+        }
+
+        // Force garbage collection for large telemetry ingestion
+        this.forceGarbageCollection();
+      } catch (cleanupError) {
+        logger.error("Error during memory cleanup:");
+        logger.error(cleanupError);
+      }
+    } catch (error) {
+      logger.error("Critical error in processLogsAsync:");
+      logger.error(error);
+      throw error; // Re-throw to ensure the job fails properly
     }
   }
 
@@ -371,228 +505,330 @@ export default class OtelIngestService {
 
   @CaptureSpan()
   private static async processMetricsAsync(req: ExpressRequest): Promise<void> {
-    const resourceMetrics: JSONArray = req.body["resourceMetrics"] as JSONArray;
+    try {
+      const resourceMetrics: JSONArray = req.body[
+        "resourceMetrics"
+      ] as JSONArray;
 
-    const dbMetrics: Array<Metric> = [];
-    const attributeKeySet: Set<string> = new Set<string>();
-    const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
-
-    // Metric name to serviceId map
-    // example: "cpu.usage" -> [serviceId1, serviceId2]
-    const metricNameServiceNameMap: Dictionary<MetricType> = {};
-
-    for (const resourceMetric of resourceMetrics) {
-      const serviceName: string = this.getServiceNameFromAttributes(
-        req,
-        ((resourceMetric["resource"] as JSONObject)?.[
-          "attributes"
-        ] as JSONArray) || [],
-      );
-
-      if (!serviceDictionary[serviceName]) {
-        const service: {
-          serviceId: ObjectID;
-          dataRententionInDays: number;
-        } = await OTelIngestService.telemetryServiceFromName({
-          serviceName: serviceName,
-          projectId: (req as TelemetryRequest).projectId,
-        });
-
-        serviceDictionary[serviceName] = {
-          serviceName: serviceName,
-          serviceId: service.serviceId,
-          dataRententionInDays: service.dataRententionInDays,
-          dataIngestedInGB: 0,
-        };
+      if (!resourceMetrics || !Array.isArray(resourceMetrics)) {
+        logger.error("Invalid resourceMetrics format in request body");
+        throw new BadRequestException("Invalid resourceMetrics format");
       }
 
-      const resourceAttributes: Dictionary<
-        AttributeType | Array<AttributeType>
-      > = {
-        ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        }),
-        ...TelemetryUtil.getAttributes({
-          items:
+      const dbMetrics: Array<Metric> = [];
+      const attributeKeySet: Set<string> = new Set<string>();
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+
+      // Metric name to serviceId map
+      // example: "cpu.usage" -> [serviceId1, serviceId2]
+      const metricNameServiceNameMap: Dictionary<MetricType> = {};
+
+      let resourceMetricCounter: number = 0;
+      for (const resourceMetric of resourceMetrics) {
+        try {
+          if (resourceMetricCounter % 25 === 0) {
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.resolve();
+          }
+          resourceMetricCounter++;
+          const serviceName: string = this.getServiceNameFromAttributes(
+            req,
             ((resourceMetric["resource"] as JSONObject)?.[
               "attributes"
             ] as JSONArray) || [],
-          prefixKeysWithString: "resource",
-        }),
-      };
+          );
 
-      const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceMetric);
-      serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+          if (!serviceDictionary[serviceName]) {
+            const service: {
+              serviceId: ObjectID;
+              dataRententionInDays: number;
+            } = await OTelIngestService.telemetryServiceFromName({
+              serviceName: serviceName,
+              projectId: (req as TelemetryRequest).projectId,
+            });
 
-      const scopeMetrics: JSONArray = resourceMetric[
-        "scopeMetrics"
-      ] as JSONArray;
-
-      for (const scopeMetric of scopeMetrics) {
-        const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
-
-        for (const metric of metrics) {
-          const dbMetric: Metric = new Metric();
-          dbMetric.projectId = (req as TelemetryRequest).projectId;
-          dbMetric.serviceId = serviceDictionary[serviceName]!.serviceId!;
-          dbMetric.serviceType = ServiceType.OpenTelemetry;
-          dbMetric.name = (metric["name"] || "").toString().toLowerCase();
-          const metricDescription: string = metric["description"] as string;
-          const metricUnit: string = metric["unit"] as string;
-
-          if (dbMetric.name) {
-            // add this to metricNameServiceNameMap
-            if (!metricNameServiceNameMap[dbMetric.name]) {
-              metricNameServiceNameMap[dbMetric.name] = new MetricType();
-              metricNameServiceNameMap[dbMetric.name]!.name = dbMetric.name;
-              metricNameServiceNameMap[dbMetric.name]!.description =
-                metricDescription;
-              metricNameServiceNameMap[dbMetric.name]!.unit = metricUnit;
-              metricNameServiceNameMap[dbMetric.name]!.telemetryServices = [];
-            }
-
-            if (
-              metricNameServiceNameMap[
-                dbMetric.name
-              ]!.telemetryServices!.filter((service: TelemetryService) => {
-                return (
-                  service.id?.toString() ===
-                  serviceDictionary[serviceName]!.serviceId!.toString()
-                );
-              }).length === 0
-            ) {
-              const telemetryService: TelemetryService = new TelemetryService();
-              telemetryService.id = serviceDictionary[serviceName]!.serviceId!;
-              metricNameServiceNameMap[dbMetric.name]!.telemetryServices!.push(
-                telemetryService,
-              );
-            }
+            serviceDictionary[serviceName] = {
+              serviceName: serviceName,
+              serviceId: service.serviceId,
+              dataRententionInDays: service.dataRententionInDays,
+              dataIngestedInGB: 0,
+            };
           }
 
-          const attributesObject: Dictionary<
+          const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...resourceAttributes,
+            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceName: serviceName,
+            }),
             ...TelemetryUtil.getAttributes({
-              items: (metric["attributes"] as JSONArray) || [],
-              prefixKeysWithString: "metricAttributes",
+              items:
+                ((resourceMetric["resource"] as JSONObject)?.[
+                  "attributes"
+                ] as JSONArray) || [],
+              prefixKeysWithString: "resource",
             }),
           };
 
-          if (
-            scopeMetric["scope"] &&
-            Object.keys(scopeMetric["scope"]).length > 0
-          ) {
-            const scopeAttributes: JSONObject = scopeMetric[
-              "scope"
-            ] as JSONObject;
-            for (const key of Object.keys(scopeAttributes)) {
-              attributesObject[`scope.${key}`] = scopeAttributes[
-                key
-              ] as AttributeType;
-            }
+          const sizeInGb: number =
+            JSONFunctions.getSizeOfJSONinGB(resourceMetric);
+          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+
+          const scopeMetrics: JSONArray = resourceMetric[
+            "scopeMetrics"
+          ] as JSONArray;
+
+          if (!scopeMetrics || !Array.isArray(scopeMetrics)) {
+            logger.warn(
+              "Invalid scopeMetrics format, skipping resource metric",
+            );
+            continue;
           }
 
-          dbMetric.attributes = attributesObject;
+          let scopeMetricCounter: number = 0;
+          for (const scopeMetric of scopeMetrics) {
+            try {
+              if (scopeMetricCounter % 50 === 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.resolve();
+              }
+              scopeMetricCounter++;
+              const metrics: JSONArray = scopeMetric["metrics"] as JSONArray;
 
-          Object.keys(dbMetric.attributes).forEach((key: string) => {
-            return attributeKeySet.add(key);
-          });
+              if (!metrics || !Array.isArray(metrics)) {
+                logger.warn("Invalid metrics format, skipping scope metric");
+                continue;
+              }
 
-          const dataPoints: JSONArray = ((metric["sum"] as JSONObject)?.[
-            "dataPoints"
-          ] ||
-            (metric["gauge"] as JSONObject)?.["dataPoints"] ||
-            (metric["histogram"] as JSONObject)?.["dataPoints"]) as JSONArray;
+              let metricCounter: number = 0;
+              for (const metric of metrics) {
+                try {
+                  if (metricCounter % 100 === 0) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await Promise.resolve();
+                  }
+                  metricCounter++;
+                  const dbMetric: Metric = new Metric();
+                  dbMetric.projectId = (req as TelemetryRequest).projectId;
+                  dbMetric.serviceId =
+                    serviceDictionary[serviceName]!.serviceId!;
+                  dbMetric.serviceType = ServiceType.OpenTelemetry;
+                  dbMetric.name = (metric["name"] || "")
+                    .toString()
+                    .toLowerCase();
+                  const metricDescription: string = metric[
+                    "description"
+                  ] as string;
+                  const metricUnit: string = metric["unit"] as string;
 
-          if (dataPoints) {
-            for (const datapoint of dataPoints) {
-              const metricPointType: MetricPointType = metric["sum"]
-                ? MetricPointType.Sum
-                : metric["gauge"]
-                  ? MetricPointType.Gauge
-                  : MetricPointType.Histogram;
-              const dbMetricPoint: Metric =
-                OTelIngestService.getMetricFromDatapoint({
-                  dbMetric: dbMetric,
-                  datapoint: datapoint,
-                  aggregationTemporality:
-                    ((metric["sum"] as JSONObject)?.[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality) ||
-                    ((metric["gauge"] as JSONObject)?.[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality) ||
-                    ((metric["histogram"] as JSONObject)?.[
-                      "aggregationTemporality"
-                    ] as OtelAggregationTemporality),
-                  isMonotonic: ((metric["sum"] as JSONObject)?.[
-                    "isMonotonic"
-                  ] ||
-                    (metric["gauge"] as JSONObject)?.["isMonotonic"] ||
+                  if (dbMetric.name) {
+                    // add this to metricNameServiceNameMap
+                    if (!metricNameServiceNameMap[dbMetric.name]) {
+                      metricNameServiceNameMap[dbMetric.name] =
+                        new MetricType();
+                      metricNameServiceNameMap[dbMetric.name]!.name =
+                        dbMetric.name;
+                      metricNameServiceNameMap[dbMetric.name]!.description =
+                        metricDescription;
+                      metricNameServiceNameMap[dbMetric.name]!.unit =
+                        metricUnit;
+                      metricNameServiceNameMap[
+                        dbMetric.name
+                      ]!.telemetryServices = [];
+                    }
+
+                    if (
+                      metricNameServiceNameMap[
+                        dbMetric.name
+                      ]!.telemetryServices!.filter(
+                        (service: TelemetryService) => {
+                          return (
+                            service.id?.toString() ===
+                            serviceDictionary[
+                              serviceName
+                            ]!.serviceId!.toString()
+                          );
+                        },
+                      ).length === 0
+                    ) {
+                      const telemetryService: TelemetryService =
+                        new TelemetryService();
+                      telemetryService.id =
+                        serviceDictionary[serviceName]!.serviceId!;
+                      metricNameServiceNameMap[
+                        dbMetric.name
+                      ]!.telemetryServices!.push(telemetryService);
+                    }
+                  }
+
+                  const attributesObject: Dictionary<
+                    AttributeType | Array<AttributeType>
+                  > = {
+                    ...resourceAttributes,
+                    ...TelemetryUtil.getAttributes({
+                      items: (metric["attributes"] as JSONArray) || [],
+                      prefixKeysWithString: "metricAttributes",
+                    }),
+                  };
+
+                  if (
+                    scopeMetric["scope"] &&
+                    Object.keys(scopeMetric["scope"]).length > 0
+                  ) {
+                    const scopeAttributes: JSONObject = scopeMetric[
+                      "scope"
+                    ] as JSONObject;
+                    for (const key of Object.keys(scopeAttributes)) {
+                      attributesObject[`scope.${key}`] = scopeAttributes[
+                        key
+                      ] as AttributeType;
+                    }
+                  }
+
+                  dbMetric.attributes = attributesObject;
+
+                  Object.keys(dbMetric.attributes).forEach((key: string) => {
+                    return attributeKeySet.add(key);
+                  });
+
+                  const dataPoints: JSONArray = ((
+                    metric["sum"] as JSONObject
+                  )?.["dataPoints"] ||
+                    (metric["gauge"] as JSONObject)?.["dataPoints"] ||
                     (metric["histogram"] as JSONObject)?.[
-                      "isMonotonic"
-                    ]) as boolean,
-                  telemetryServiceId:
-                    serviceDictionary[serviceName]!.serviceId!,
-                  telemetryServiceName: serviceName,
-                });
+                      "dataPoints"
+                    ]) as JSONArray;
 
-              dbMetricPoint.metricPointType = metricPointType;
-              dbMetrics.push(dbMetricPoint);
+                  if (dataPoints && Array.isArray(dataPoints)) {
+                    for (const datapoint of dataPoints) {
+                      try {
+                        const metricPointType: MetricPointType = metric["sum"]
+                          ? MetricPointType.Sum
+                          : metric["gauge"]
+                            ? MetricPointType.Gauge
+                            : MetricPointType.Histogram;
+                        const dbMetricPoint: Metric =
+                          OTelIngestService.getMetricFromDatapoint({
+                            dbMetric: dbMetric,
+                            datapoint: datapoint,
+                            aggregationTemporality:
+                              ((metric["sum"] as JSONObject)?.[
+                                "aggregationTemporality"
+                              ] as OtelAggregationTemporality) ||
+                              ((metric["gauge"] as JSONObject)?.[
+                                "aggregationTemporality"
+                              ] as OtelAggregationTemporality) ||
+                              ((metric["histogram"] as JSONObject)?.[
+                                "aggregationTemporality"
+                              ] as OtelAggregationTemporality),
+                            isMonotonic: ((metric["sum"] as JSONObject)?.[
+                              "isMonotonic"
+                            ] ||
+                              (metric["gauge"] as JSONObject)?.[
+                                "isMonotonic"
+                              ] ||
+                              (metric["histogram"] as JSONObject)?.[
+                                "isMonotonic"
+                              ]) as boolean,
+                            telemetryServiceId:
+                              serviceDictionary[serviceName]!.serviceId!,
+                            telemetryServiceName: serviceName,
+                          });
+
+                        dbMetricPoint.metricPointType = metricPointType;
+                        dbMetrics.push(dbMetricPoint);
+                      } catch (datapointError) {
+                        logger.warn(
+                          `Error processing metric datapoint: ${datapointError instanceof Error ? datapointError.message : String(datapointError)}`,
+                        );
+                      }
+                    }
+                  } else {
+                    logger.warn("Unknown metric type or missing dataPoints");
+                    logger.warn(`Metric data: ${JSON.stringify(metric)}`);
+                  }
+                } catch (metricError) {
+                  logger.error("Error processing individual metric:");
+                  logger.error(metricError);
+                  logger.error(`Metric data: ${JSON.stringify(metric)}`);
+                  // Continue processing other metrics instead of failing the entire batch
+                }
+              }
+            } catch (scopeError) {
+              logger.error("Error processing scope metric:");
+              logger.error(scopeError);
+              logger.error(`Scope metric data: ${JSON.stringify(scopeMetric)}`);
+              // Continue processing other scope metrics
             }
-          } else {
-            logger.warn("Unknown metric type");
-            logger.warn(metric);
           }
+        } catch (resourceError) {
+          logger.error("Error processing resource metric:");
+          logger.error(resourceError);
+          logger.error(
+            `Resource metric data: ${JSON.stringify(resourceMetric)}`,
+          );
+          // Continue processing other resource metrics
         }
       }
-    }
 
-    // Index metric name service name map asynchronously but ensure proper error handling
-    TelemetryUtil.indexMetricNameServiceNameMap({
-      metricNameServiceNameMap: metricNameServiceNameMap,
-      projectId: (req as TelemetryRequest).projectId,
-    }).catch((err: Error) => {
-      logger.error("Error indexing metric name service name map");
-      logger.error(err);
-    });
-
-    await Promise.all([
-      MetricService.createMany({
-        items: dbMetrics,
-        props: {
-          isRoot: true,
-        },
-      }),
-      TelemetryUtil.indexAttributes({
-        attributes: Array.from(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Metric,
-      }),
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Metrics,
-      }),
-    ]);
-
-    // Memory cleanup: Clear large objects to help GC
-    try {
-      dbMetrics.length = 0;
-      attributeKeySet.clear();
-
-      // Clear request body to free memory
-      if (req.body) {
-        req.body = null;
+      if (dbMetrics.length === 0) {
+        logger.warn("No valid metrics were processed from the request");
+        return;
       }
 
-      // Force garbage collection for large telemetry ingestion
-      this.forceGarbageCollection();
-    } catch (cleanupError) {
-      logger.error("Error during memory cleanup:");
-      logger.error(cleanupError);
+      // Index metric name service name map asynchronously but ensure proper error handling
+      TelemetryUtil.indexMetricNameServiceNameMap({
+        metricNameServiceNameMap: metricNameServiceNameMap,
+        projectId: (req as TelemetryRequest).projectId,
+      }).catch((err: Error) => {
+        logger.error("Error indexing metric name service name map");
+        logger.error(err);
+      });
+
+      await Promise.all([
+        MetricService.createMany({
+          items: dbMetrics,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Metric,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Metrics,
+        }),
+      ]);
+
+      logger.debug(
+        `Successfully processed ${dbMetrics.length} metrics for project: ${(req as TelemetryRequest).projectId}`,
+      );
+
+      // Memory cleanup: Clear large objects to help GC
+      try {
+        dbMetrics.length = 0;
+        attributeKeySet.clear();
+
+        // Clear request body to free memory
+        if (req.body) {
+          req.body = null;
+        }
+
+        // Force garbage collection for large telemetry ingestion
+        this.forceGarbageCollection();
+      } catch (cleanupError) {
+        logger.error("Error during memory cleanup:");
+        logger.error(cleanupError);
+      }
+    } catch (error) {
+      logger.error("Critical error in processMetricsAsync:");
+      logger.error(error);
+      throw error; // Re-throw to ensure the job fails properly
     }
   }
 
@@ -625,194 +861,344 @@ export default class OtelIngestService {
 
   @CaptureSpan()
   private static async processTracesAsync(req: ExpressRequest): Promise<void> {
-    const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
+    try {
+      const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
 
-    const dbSpans: Array<Span> = [];
-    const dbExceptions: Array<ExceptionInstance> = [];
-
-    const attributeKeySet: Set<string> = new Set<string>();
-
-    const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
-
-    for (const resourceSpan of resourceSpans) {
-      // get service name from resourceSpan attributes
-
-      const serviceName: string = this.getServiceNameFromAttributes(
-        req,
-        ((resourceSpan["resource"] as JSONObject)?.[
-          "attributes"
-        ] as JSONArray) || [],
-      );
-
-      if (!serviceDictionary[serviceName]) {
-        const service: {
-          serviceId: ObjectID;
-          dataRententionInDays: number;
-        } = await OTelIngestService.telemetryServiceFromName({
-          serviceName: serviceName,
-          projectId: (req as TelemetryRequest).projectId,
-        });
-
-        serviceDictionary[serviceName] = {
-          serviceName: serviceName,
-          serviceId: service.serviceId,
-          dataRententionInDays: service.dataRententionInDays,
-          dataIngestedInGB: 0,
-        };
+      if (!resourceSpans || !Array.isArray(resourceSpans)) {
+        logger.error("Invalid resourceSpans format in request body");
+        throw new BadRequestException("Invalid resourceSpans format");
       }
 
-      const resourceAttributes: Dictionary<
-        AttributeType | Array<AttributeType>
-      > = {
-        ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
-          serviceId: serviceDictionary[serviceName]!.serviceId!,
-          serviceName: serviceName,
-        }),
-        ...TelemetryUtil.getAttributes({
-          items:
+      const dbSpans: Array<Span> = [];
+      const dbExceptions: Array<ExceptionInstance> = [];
+      const attributeKeySet: Set<string> = new Set<string>();
+      const serviceDictionary: Dictionary<TelemetryServiceDataIngested> = {};
+
+      let resourceSpanCounter: number = 0;
+      for (const resourceSpan of resourceSpans) {
+        try {
+          if (resourceSpanCounter % 25 === 0) {
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.resolve();
+          }
+          resourceSpanCounter++;
+          // get service name from resourceSpan attributes
+          const serviceName: string = this.getServiceNameFromAttributes(
+            req,
             ((resourceSpan["resource"] as JSONObject)?.[
               "attributes"
             ] as JSONArray) || [],
-          prefixKeysWithString: "resource",
-        }),
-      };
+          );
 
-      // size of req.body in bytes.
-      const sizeInGb: number = JSONFunctions.getSizeOfJSONinGB(resourceSpan);
-      serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+          if (!serviceDictionary[serviceName]) {
+            const service: {
+              serviceId: ObjectID;
+              dataRententionInDays: number;
+            } = await OTelIngestService.telemetryServiceFromName({
+              serviceName: serviceName,
+              projectId: (req as TelemetryRequest).projectId,
+            });
 
-      const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
+            serviceDictionary[serviceName] = {
+              serviceName: serviceName,
+              serviceId: service.serviceId,
+              dataRententionInDays: service.dataRententionInDays,
+              dataIngestedInGB: 0,
+            };
+          }
 
-      for (const scopeSpan of scopeSpans) {
-        const spans: JSONArray = scopeSpan["spans"] as JSONArray;
-
-        for (const span of spans) {
-          const dbSpan: Span = new Span();
-
-          const attributesObject: Dictionary<
+          const resourceAttributes: Dictionary<
             AttributeType | Array<AttributeType>
           > = {
-            ...resourceAttributes,
+            ...TelemetryUtil.getAttributesForServiceIdAndServiceName({
+              serviceId: serviceDictionary[serviceName]!.serviceId!,
+              serviceName: serviceName,
+            }),
             ...TelemetryUtil.getAttributes({
-              items: span["attributes"] as JSONArray,
-              prefixKeysWithString: "spanAttributes",
+              items:
+                ((resourceSpan["resource"] as JSONObject)?.[
+                  "attributes"
+                ] as JSONArray) || [],
+              prefixKeysWithString: "resource",
             }),
           };
 
-          if (
-            scopeSpan["scope"] &&
-            Object.keys(scopeSpan["scope"]).length > 0
-          ) {
-            // flatten the scope attributes
-            const scopeAttributes: JSONObject = scopeSpan[
-              "scope"
-            ] as JSONObject;
-            for (const key of Object.keys(scopeAttributes)) {
-              attributesObject[`scope.${key}`] = scopeAttributes[
-                key
-              ] as AttributeType;
-            }
+          // size of req.body in bytes.
+          const sizeInGb: number =
+            JSONFunctions.getSizeOfJSONinGB(resourceSpan);
+          serviceDictionary[serviceName]!.dataIngestedInGB += sizeInGb;
+
+          const scopeSpans: JSONArray = resourceSpan["scopeSpans"] as JSONArray;
+
+          if (!scopeSpans || !Array.isArray(scopeSpans)) {
+            logger.warn("Invalid scopeSpans format, skipping resource span");
+            continue;
           }
 
-          dbSpan.attributes = attributesObject;
+          let scopeSpanCounter: number = 0;
+          for (const scopeSpan of scopeSpans) {
+            try {
+              if (scopeSpanCounter % 50 === 0) {
+                // eslint-disable-next-line no-await-in-loop
+                await Promise.resolve();
+              }
+              scopeSpanCounter++;
+              const spans: JSONArray = scopeSpan["spans"] as JSONArray;
 
-          Object.keys(dbSpan.attributes).forEach((key: string) => {
-            return attributeKeySet.add(key);
-          });
+              if (!spans || !Array.isArray(spans)) {
+                logger.warn("Invalid spans format, skipping scope span");
+                continue;
+              }
 
-          dbSpan.projectId = (req as TelemetryRequest).projectId;
-          dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
+              let spanCounter: number = 0;
+              for (const span of spans) {
+                try {
+                  if (spanCounter % 200 === 0) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await Promise.resolve();
+                  }
+                  spanCounter++;
+                  const dbSpan: Span = new Span();
 
-          dbSpan.spanId = Text.convertBase64ToHex(span["spanId"] as string);
-          dbSpan.traceId = Text.convertBase64ToHex(span["traceId"] as string);
-          dbSpan.parentSpanId = Text.convertBase64ToHex(
-            span["parentSpanId"] as string,
-          );
-          dbSpan.startTimeUnixNano = span["startTimeUnixNano"] as number;
-          dbSpan.endTimeUnixNano = span["endTimeUnixNano"] as number;
+                  const attributesObject: Dictionary<
+                    AttributeType | Array<AttributeType>
+                  > = {
+                    ...resourceAttributes,
+                    ...TelemetryUtil.getAttributes({
+                      items: (span["attributes"] as JSONArray) || [],
+                      prefixKeysWithString: "spanAttributes",
+                    }),
+                  };
 
-          dbSpan.statusCode = this.getSpanStatusCode(
-            span["status"] as JSONObject,
-          );
-          dbSpan.statusMessage = (span["status"] as JSONObject)?.[
-            "message"
-          ] as string;
+                  if (
+                    scopeSpan["scope"] &&
+                    Object.keys(scopeSpan["scope"]).length > 0
+                  ) {
+                    // flatten the scope attributes
+                    const scopeAttributes: JSONObject = scopeSpan[
+                      "scope"
+                    ] as JSONObject;
+                    for (const key of Object.keys(scopeAttributes)) {
+                      attributesObject[`scope.${key}`] = scopeAttributes[
+                        key
+                      ] as AttributeType;
+                    }
+                  }
 
-          dbSpan.startTime = OneUptimeDate.fromUnixNano(
-            span["startTimeUnixNano"] as number,
-          );
+                  dbSpan.attributes = attributesObject;
 
-          dbSpan.endTime = OneUptimeDate.fromUnixNano(
-            span["endTimeUnixNano"] as number,
-          );
+                  Object.keys(dbSpan.attributes).forEach((key: string) => {
+                    return attributeKeySet.add(key);
+                  });
 
-          dbSpan.durationUnixNano =
-            (span["endTimeUnixNano"] as number) -
-            (span["startTimeUnixNano"] as number);
+                  dbSpan.projectId = (req as TelemetryRequest).projectId;
+                  dbSpan.serviceId = serviceDictionary[serviceName]!.serviceId!;
 
-          dbSpan.name = span["name"] as string;
-          dbSpan.kind = (span["kind"] as SpanKind) || SpanKind.Internal;
+                  // Handle span and trace IDs safely
+                  try {
+                    dbSpan.spanId = Text.convertBase64ToHex(
+                      span["spanId"] as string,
+                    );
+                  } catch {
+                    dbSpan.spanId = "";
+                  }
 
-          // add events
-          dbSpan.events = this.getSpanEvents(
-            span["events"] as JSONArray,
-            dbSpan,
-            dbExceptions,
-          );
+                  try {
+                    dbSpan.traceId = Text.convertBase64ToHex(
+                      span["traceId"] as string,
+                    );
+                  } catch {
+                    dbSpan.traceId = "";
+                  }
 
-          // add links
-          dbSpan.links = this.getSpanLinks(span["links"] as JSONArray);
+                  try {
+                    dbSpan.parentSpanId = Text.convertBase64ToHex(
+                      span["parentSpanId"] as string,
+                    );
+                  } catch {
+                    dbSpan.parentSpanId = "";
+                  }
 
-          Object.keys(dbSpan.attributes || {}).forEach((key: string) => {
-            return attributeKeySet.add(key);
-          });
+                  // Handle timestamps with the same robust approach as logs
+                  try {
+                    let startTimeUnixNano: number;
+                    if (typeof span["startTimeUnixNano"] === "string") {
+                      startTimeUnixNano = parseFloat(span["startTimeUnixNano"]);
+                      if (isNaN(startTimeUnixNano)) {
+                        throw new Error(
+                          `Invalid start timestamp string: ${span["startTimeUnixNano"]}`,
+                        );
+                      }
+                    } else {
+                      startTimeUnixNano =
+                        (span["startTimeUnixNano"] as number) ||
+                        OneUptimeDate.getCurrentDateAsUnixNano();
+                    }
 
-          dbSpans.push(dbSpan);
+                    let endTimeUnixNano: number;
+                    if (typeof span["endTimeUnixNano"] === "string") {
+                      endTimeUnixNano = parseFloat(span["endTimeUnixNano"]);
+                      if (isNaN(endTimeUnixNano)) {
+                        throw new Error(
+                          `Invalid end timestamp string: ${span["endTimeUnixNano"]}`,
+                        );
+                      }
+                    } else {
+                      endTimeUnixNano =
+                        (span["endTimeUnixNano"] as number) ||
+                        OneUptimeDate.getCurrentDateAsUnixNano();
+                    }
+
+                    dbSpan.startTimeUnixNano = startTimeUnixNano;
+                    dbSpan.endTimeUnixNano = endTimeUnixNano;
+
+                    dbSpan.startTime =
+                      OneUptimeDate.fromUnixNano(startTimeUnixNano);
+                    dbSpan.endTime =
+                      OneUptimeDate.fromUnixNano(endTimeUnixNano);
+
+                    dbSpan.durationUnixNano =
+                      endTimeUnixNano - startTimeUnixNano;
+                  } catch (timeError) {
+                    logger.warn(
+                      `Error processing span timestamps: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
+                    );
+                    const currentNano: number =
+                      OneUptimeDate.getCurrentDateAsUnixNano();
+                    const currentTime: Date = OneUptimeDate.getCurrentDate();
+                    dbSpan.startTimeUnixNano = currentNano;
+                    dbSpan.endTimeUnixNano = currentNano;
+                    dbSpan.startTime = currentTime;
+                    dbSpan.endTime = currentTime;
+                    dbSpan.durationUnixNano = 0;
+                  }
+
+                  // Handle status safely
+                  try {
+                    dbSpan.statusCode = this.getSpanStatusCode(
+                      span["status"] as JSONObject,
+                    );
+                    dbSpan.statusMessage = (span["status"] as JSONObject)?.[
+                      "message"
+                    ] as string;
+                  } catch {
+                    dbSpan.statusCode = SpanStatus.Unset;
+                    dbSpan.statusMessage = "";
+                  }
+
+                  dbSpan.name = (span["name"] as string) || "";
+                  dbSpan.kind = (span["kind"] as SpanKind) || SpanKind.Internal;
+
+                  // add events safely
+                  try {
+                    dbSpan.events = this.getSpanEvents(
+                      span["events"] as JSONArray,
+                      dbSpan,
+                      dbExceptions,
+                    );
+                  } catch (eventsError) {
+                    logger.warn(
+                      `Error processing span events: ${eventsError instanceof Error ? eventsError.message : String(eventsError)}`,
+                    );
+                    dbSpan.events = [];
+                  }
+
+                  // add links safely
+                  try {
+                    dbSpan.links = this.getSpanLinks(
+                      span["links"] as JSONArray,
+                    );
+                  } catch (linksError) {
+                    logger.warn(
+                      `Error processing span links: ${linksError instanceof Error ? linksError.message : String(linksError)}`,
+                    );
+                    dbSpan.links = [];
+                  }
+
+                  Object.keys(dbSpan.attributes || {}).forEach(
+                    (key: string) => {
+                      return attributeKeySet.add(key);
+                    },
+                  );
+
+                  dbSpans.push(dbSpan);
+                } catch (spanError) {
+                  logger.error("Error processing individual span:");
+                  logger.error(spanError);
+                  logger.error(`Span data: ${JSON.stringify(span)}`);
+                  // Continue processing other spans instead of failing the entire batch
+                }
+              }
+            } catch (scopeError) {
+              logger.error("Error processing scope span:");
+              logger.error(scopeError);
+              logger.error(`Scope span data: ${JSON.stringify(scopeSpan)}`);
+              // Continue processing other scope spans
+            }
+          }
+        } catch (resourceError) {
+          logger.error("Error processing resource span:");
+          logger.error(resourceError);
+          logger.error(`Resource span data: ${JSON.stringify(resourceSpan)}`);
+          // Continue processing other resource spans
         }
       }
-    }
 
-    await Promise.all([
-      SpanService.createMany({
-        items: dbSpans,
-        props: {
-          isRoot: true,
-        },
-      }),
-      ExceptionInstanceService.createMany({
-        items: dbExceptions,
-        props: {
-          isRoot: true,
-        },
-      }),
-      TelemetryUtil.indexAttributes({
-        attributes: Array.from(attributeKeySet),
-        projectId: (req as TelemetryRequest).projectId,
-        telemetryType: TelemetryType.Trace,
-      }),
-      OTelIngestService.recordDataIngestedUsgaeBilling({
-        services: serviceDictionary,
-        projectId: (req as TelemetryRequest).projectId,
-        productType: ProductType.Traces,
-      }),
-    ]);
-
-    // Memory cleanup: Clear large objects to help GC
-    try {
-      dbSpans.length = 0;
-      dbExceptions.length = 0;
-      attributeKeySet.clear();
-
-      // Clear request body to free memory
-      if (req.body) {
-        req.body = null;
+      if (dbSpans.length === 0) {
+        logger.warn("No valid spans were processed from the request");
+        return;
       }
 
-      // Force garbage collection for large telemetry ingestion
-      this.forceGarbageCollection();
-    } catch (cleanupError) {
-      logger.error("Error during memory cleanup:");
-      logger.error(cleanupError);
+      await Promise.all([
+        SpanService.createMany({
+          items: dbSpans,
+          props: {
+            isRoot: true,
+          },
+        }),
+        ExceptionInstanceService.createMany({
+          items: dbExceptions,
+          props: {
+            isRoot: true,
+          },
+        }),
+        TelemetryUtil.indexAttributes({
+          attributes: Array.from(attributeKeySet),
+          projectId: (req as TelemetryRequest).projectId,
+          telemetryType: TelemetryType.Trace,
+        }),
+        OTelIngestService.recordDataIngestedUsgaeBilling({
+          services: serviceDictionary,
+          projectId: (req as TelemetryRequest).projectId,
+          productType: ProductType.Traces,
+        }),
+      ]);
+
+      logger.debug(
+        `Successfully processed ${dbSpans.length} spans for project: ${(req as TelemetryRequest).projectId}`,
+      );
+
+      // Memory cleanup: Clear large objects to help GC
+      try {
+        dbSpans.length = 0;
+        dbExceptions.length = 0;
+        attributeKeySet.clear();
+
+        // Clear request body to free memory
+        if (req.body) {
+          req.body = null;
+        }
+
+        // Force garbage collection for large telemetry ingestion
+        this.forceGarbageCollection();
+      } catch (cleanupError) {
+        logger.error("Error during memory cleanup:");
+        logger.error(cleanupError);
+      }
+    } catch (error) {
+      logger.error("Critical error in processTracesAsync:");
+      logger.error(error);
+      throw error; // Re-throw to ensure the job fails properly
     }
   }
 
@@ -843,62 +1229,86 @@ export default class OtelIngestService {
 
     if (events && events instanceof Array) {
       for (const event of events) {
-        const eventTimeUnixNano: number = event["timeUnixNano"] as number;
-        const eventTime: Date = OneUptimeDate.fromUnixNano(eventTimeUnixNano);
-
-        const eventAttributes: JSONObject = TelemetryUtil.getAttributes({
-          items: event["attributes"] as JSONArray,
-          prefixKeysWithString: "",
-        });
-
-        spanEvents.push({
-          time: eventTime,
-          timeUnixNano: eventTimeUnixNano,
-          name: event["name"] as string,
-          attributes: eventAttributes,
-        });
-
-        if (event["name"] === SpanEventType.Exception) {
-          // add exception object.
-          const exception: ExceptionInstance = new ExceptionInstance();
-          exception.projectId = dbSpan.projectId;
-          exception.serviceId = dbSpan.serviceId;
-          exception.spanId = dbSpan.spanId;
-          exception.traceId = dbSpan.traceId;
-          exception.time = eventTime;
-          exception.timeUnixNano = eventTimeUnixNano;
-          exception.spanStatusCode = dbSpan.statusCode;
-          exception.spanName = dbSpan.name;
-          exception.message =
-            (eventAttributes["exception.message"] as string) || "";
-          exception.stackTrace =
-            (eventAttributes["exception.stacktrace"] as string) || "";
-          exception.exceptionType =
-            (eventAttributes["exception.type"] as string) || "";
-          exception.escaped =
-            (eventAttributes["exception.escaped"] as boolean) || false;
-          const exceptionAttributes: JSONObject = { ...eventAttributes };
-
-          for (const keys of Object.keys(exceptionAttributes)) {
-            // delete all keys that start with exception to avoid duplicate keys because we already saved it.
-            if (keys.startsWith("exception.")) {
-              delete exceptionAttributes[keys];
+        try {
+          // Handle event timestamp safely
+          let eventTimeUnixNano: number;
+          if (typeof event["timeUnixNano"] === "string") {
+            eventTimeUnixNano = parseFloat(event["timeUnixNano"]);
+            if (isNaN(eventTimeUnixNano)) {
+              eventTimeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
             }
+          } else {
+            eventTimeUnixNano =
+              (event["timeUnixNano"] as number) ||
+              OneUptimeDate.getCurrentDateAsUnixNano();
           }
 
-          exception.attributes = exceptionAttributes;
-          exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+          const eventTime: Date = OneUptimeDate.fromUnixNano(eventTimeUnixNano);
 
-          // add exception to dbExceptions
-          dbExceptions.push(exception);
+          const eventAttributes: JSONObject = TelemetryUtil.getAttributes({
+            items: (event["attributes"] as JSONArray) || [],
+            prefixKeysWithString: "",
+          });
 
-          // save exception status
-          // Fix: Await the async operation to prevent memory leaks from unhandled promises
-          ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
-            (err: Error) => {
-              logger.error("Error saving/updating telemetry exception:");
-              logger.error(err);
-            },
+          spanEvents.push({
+            time: eventTime,
+            timeUnixNano: eventTimeUnixNano,
+            name: (event["name"] as string) || "",
+            attributes: eventAttributes,
+          });
+
+          if (event["name"] === SpanEventType.Exception) {
+            try {
+              // add exception object.
+              const exception: ExceptionInstance = new ExceptionInstance();
+              exception.projectId = dbSpan.projectId;
+              exception.serviceId = dbSpan.serviceId;
+              exception.spanId = dbSpan.spanId;
+              exception.traceId = dbSpan.traceId;
+              exception.time = eventTime;
+              exception.timeUnixNano = eventTimeUnixNano;
+              exception.spanStatusCode = dbSpan.statusCode;
+              exception.spanName = dbSpan.name;
+              exception.message =
+                (eventAttributes["exception.message"] as string) || "";
+              exception.stackTrace =
+                (eventAttributes["exception.stacktrace"] as string) || "";
+              exception.exceptionType =
+                (eventAttributes["exception.type"] as string) || "";
+              exception.escaped =
+                (eventAttributes["exception.escaped"] as boolean) || false;
+              const exceptionAttributes: JSONObject = { ...eventAttributes };
+
+              for (const keys of Object.keys(exceptionAttributes)) {
+                // delete all keys that start with exception to avoid duplicate keys because we already saved it.
+                if (keys.startsWith("exception.")) {
+                  delete exceptionAttributes[keys];
+                }
+              }
+
+              exception.attributes = exceptionAttributes;
+              exception.fingerprint = ExceptionUtil.getFingerprint(exception);
+
+              // add exception to dbExceptions
+              dbExceptions.push(exception);
+
+              // save exception status
+              // Fix: Await the async operation to prevent memory leaks from unhandled promises
+              ExceptionUtil.saveOrUpdateTelemetryException(exception).catch(
+                (err: Error) => {
+                  logger.error("Error saving/updating telemetry exception:");
+                  logger.error(err);
+                },
+              );
+            } catch (exceptionError) {
+              logger.warn(
+                `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
+              );
+            }
+          }
+        } catch (eventError) {
+          logger.warn(
+            `Error processing span event: ${eventError instanceof Error ? eventError.message : String(eventError)}`,
           );
         }
       }

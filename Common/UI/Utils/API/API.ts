@@ -91,6 +91,10 @@ class BaseAPI extends API {
     return defaultHeaders;
   }
 
+  protected static logoutUser(): void {
+    return User.logout();
+  }
+
   protected static override handleError(
     error: HTTPErrorResponse | APIException,
   ): HTTPErrorResponse | APIException {
@@ -103,7 +107,7 @@ class BaseAPI extends API {
     ) {
       const loginRoute: Route = this.getLoginRoute();
 
-      User.logout();
+      this.logoutUser();
 
       if (Navigation.getQueryStringByName("token")) {
         Navigation.navigate(loginRoute.addRouteParam("sso", "true"), {

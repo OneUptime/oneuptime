@@ -6,6 +6,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -31,9 +32,20 @@ QueueWorker.getWorker(
         `Successfully processed incoming request ingestion job: ${job.name}`,
       );
     } catch (error) {
+      // Certain BadDataException cases are expected / non-actionable and should not fail the job.
+      // These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
+      // (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
+      if (
+        error instanceof BadDataException &&
+        (error.message === ExceptionMessages.MonitorNotFound ||
+          error.message === ExceptionMessages.MonitorDisabled)
+      ) {
+        return;
+      }
+
       logger.error(`Error processing incoming request ingestion job:`);
       logger.error(error);
-      throw error;
+      throw error; // rethrow other errors so they are visible and retried if needed.
     }
   },
   { concurrency: INCOMING_REQUEST_INGEST_CONCURRENCY }, // Configurable via env, defaults to 100
@@ -78,7 +90,7 @@ async function processIncomingRequestFromQueue(
   });
 
   if (!monitor || !monitor._id) {
-    throw new BadDataException("Monitor not found");
+    throw new BadDataException(ExceptionMessages.MonitorNotFound);
   }
 
   if (!monitor.projectId) {

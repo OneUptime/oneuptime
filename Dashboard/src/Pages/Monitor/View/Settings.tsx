@@ -25,6 +25,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import OneUptimeDate from "Common/Types/Date";
 
@@ -61,7 +62,7 @@ const MonitorCriteria: FunctionComponent<
       });
 
       if (!monitor) {
-        setError(`Monitor not found`);
+        setError(ExceptionMessages.MonitorNotFound);
 
         return;
       }

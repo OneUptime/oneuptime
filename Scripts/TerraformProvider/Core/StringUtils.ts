@@ -44,8 +44,9 @@ export class StringUtils {
   public static sanitizeGoIdentifier(str: string): string {
     // Remove special characters including apostrophes and ensure it starts with a letter
     const sanitized: string = str.replace(/[^a-zA-Z0-9_]/g, "");
-    // prettier-ignore
-    return (/^[a-zA-Z]/).test(sanitized) ? sanitized : `_${sanitized}`;
+    return new RegExp("^[a-zA-Z]").test(sanitized)
+      ? sanitized
+      : `_${sanitized}`;
   }
 
   public static escapeGoString(str: string): string {

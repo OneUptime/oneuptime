@@ -49,6 +49,7 @@ import WorkspaceNotificationLog from "../../Models/DatabaseModels/WorkspaceNotif
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
+import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -1911,7 +1912,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       if (!monitor) {
         logger.debug("Monitor not found for ID:");
         logger.debug(data.notificationFor.monitorId);
-        throw new BadDataException("Monitor ID not found");
+        throw new BadDataException(ExceptionMessages.MonitorNotFound);
       }
 
       const monitorLabels: Array<Label> = monitor?.labels || [];

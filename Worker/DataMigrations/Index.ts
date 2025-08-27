@@ -44,7 +44,7 @@ import RenameRuleTypeInUserNotificationRule from "./RenameRuleTypeInUserNotifica
 import AddSubscriberFooterTextToStatusPage from "./AddSubscriberFooterTextToStatusPage";
 import AddAlertNumber from "./AddAlertNumber";
 import AddScheduledMaintenanceNumber from "./AddScheduledMaintenanceNumber";
-import RefreshProjectUsers from "./RefreshProjectUsers";
+
 import UpdateRemiderDateInScheduledEvents from "./UpdateRemiderDateInScheduledEvents";
 import AddAttributesColumnToTelemetryAttribute from "./AddAttributesColumnToTelemetryAttribute";
 import DeleteAllTelemetryAttributes from "./DeleteAllTelemetryAttributes";
@@ -102,7 +102,6 @@ const DataMigrations: Array<DataMigrationBase> = [
   new AddSubscriberFooterTextToStatusPage(),
   new AddAlertNumber(),
   new AddScheduledMaintenanceNumber(),
-  new RefreshProjectUsers(),
   new UpdateRemiderDateInScheduledEvents(),
   new AddAttributesColumnToTelemetryAttribute(),
   new DeleteAllTelemetryAttributes(),

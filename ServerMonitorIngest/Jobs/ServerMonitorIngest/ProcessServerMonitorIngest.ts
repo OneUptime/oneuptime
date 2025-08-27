@@ -3,6 +3,7 @@ import logger from "Common/Server/Utils/Logger";
 import { QueueJob, QueueName } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -31,6 +32,17 @@ QueueWorker.getWorker(
         `Successfully processed server monitor ingestion job: ${job.name}`,
       );
     } catch (error) {
+      // Certain BadDataException cases are expected / non-actionable and should not fail the job.
+      // These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
+      // (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
+      if (
+        error instanceof BadDataException &&
+        (error.message === ExceptionMessages.MonitorNotFound ||
+          error.message === ExceptionMessages.MonitorDisabled)
+      ) {
+        return;
+      }
+
       logger.error(`Error processing server monitor ingestion job:`);
       logger.error(error);
       throw error;
@@ -66,7 +78,7 @@ async function processServerMonitorFromQueue(
   });
 
   if (!monitor) {
-    throw new BadDataException("Monitor not found");
+    throw new BadDataException(ExceptionMessages.MonitorNotFound);
   }
 
   const serverMonitorResponse: ServerMonitorResponse =

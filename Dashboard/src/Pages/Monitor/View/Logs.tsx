@@ -23,6 +23,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
 import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
@@ -55,7 +56,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
 
       if (!item) {
-        setError(`Monitor not found`);
+        setError(ExceptionMessages.MonitorNotFound);
 
         return;
       }

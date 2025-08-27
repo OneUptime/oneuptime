@@ -11,6 +11,7 @@ import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { PROBE_INGEST_CONCURRENCY } from "../../Config";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
 // Set up the worker for processing probe ingest queue
 QueueWorker.getWorker(
@@ -25,6 +26,17 @@ QueueWorker.getWorker(
 
       logger.debug(`Successfully processed probe ingestion job: ${job.name}`);
     } catch (error) {
+      // Certain BadDataException cases are expected / non-actionable and should not fail the job.
+      // These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
+      // (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
+      if (
+        error instanceof BadDataException &&
+        (error.message === ExceptionMessages.MonitorNotFound ||
+          error.message === ExceptionMessages.MonitorDisabled)
+      ) {
+        return;
+      }
+
       logger.error(`Error processing probe ingestion job:`);
       logger.error(error);
       throw error;

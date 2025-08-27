@@ -77,17 +77,21 @@ jobs:
           ls -la "$PROVIDER_DIR" || true
 
       - name: Test Go build
-        run: |
-          PROVIDER_DIR="./Terraform"
-          if [ -d "$PROVIDER_DIR" ] && [ -f "$PROVIDER_DIR/go.mod" ]; then
-            cd "$PROVIDER_DIR"
-            echo "🔨 Testing Go build..."
-            go mod tidy
-            go build -v ./...
-            echo "✅ Go build successful"
-          else
-            echo "⚠️ Cannot test build - missing go.mod or provider directory"
-          fi
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: |
+            PROVIDER_DIR="./Terraform"
+            if [ -d "$PROVIDER_DIR" ] && [ -f "$PROVIDER_DIR/go.mod" ]; then
+              cd "$PROVIDER_DIR"
+              echo "🔨 Testing Go build..."
+              go mod tidy
+              go build -v ./...
+              echo "✅ Go build successful"
+            else
+              echo "⚠️ Cannot test build - missing go.mod or provider directory"
+            fi
 
       - name: Upload Terraform provider as artifact
         uses: actions/upload-artifact@v4

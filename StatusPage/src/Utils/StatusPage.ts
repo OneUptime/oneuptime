@@ -36,14 +36,13 @@ export default class StatusPageUtil {
   }
 
   public static navigateToLoginPage(): void {
-    Navigation.navigate(
-      new Route(
-        StatusPageUtil.isPreviewPage()
-          ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
-          : `/login?redirectUrl=${Navigation.getCurrentPath()}`,
-      ),
-      { forceNavigate: true },
+    const route: Route = new Route(
+      StatusPageUtil.isPreviewPage()
+        ? `/status-page/${StatusPageUtil.getStatusPageId()?.toString()}/login?redirectUrl=${Navigation.getCurrentPath()}`
+        : `/login?redirectUrl=${Navigation.getCurrentPath()}`,
     );
+
+    Navigation.navigate(route, { forceNavigate: true });
   }
 
   public static checkIfUserHasLoggedIn(): void {

@@ -102,10 +102,9 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           code: (props: any) => {
             const { children, className, ...rest } = props;
 
-            // eslint-disable-next-line wrap-regex
-            const match: RegExpExecArray | null = /language-(\w+)/.exec(
-              className || "",
-            );
+            const match: RegExpExecArray | null = new RegExp(
+              "language-(\\w+)",
+            ).exec(className || "");
 
             const content: string = String(children as string).replace(
               /\n$/,

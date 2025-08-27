@@ -25,6 +25,8 @@ RunCron(
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
     runOnStartup: false,
+    // Checking provisioning status may require multiple external API calls (DNS + CA) and can exceed default 5m.
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },
   async () => {
     await StatusPageDomainService.updateSslProvisioningStatusForAllDomains();
@@ -36,7 +38,8 @@ RunCron(
   {
     schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
     runOnStartup: false,
-    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
+    // Ordering SSL can involve domain validation challenges and upstream rate limits; allow more time.
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(30),
   },
   async () => {
     return await Telemetry.startActiveSpan<Promise<void>>({
@@ -45,7 +48,7 @@ RunCron(
         attributes: {
           schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,
           runOnStartup: false,
-          timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
+          timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(15),
         },
       },
       fn: async (span: Span): Promise<void> => {

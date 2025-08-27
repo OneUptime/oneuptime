@@ -58,6 +58,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MonitorLog from "../../../Models/AnalyticsModels/MonitorLog";
 import MonitorLogService from "../../Services/MonitorLogService";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 
 export default class MonitorResourceUtil {
   @CaptureSpan()
@@ -109,7 +110,7 @@ export default class MonitorResourceUtil {
 
     if (!monitor) {
       logger.debug(`${dataToProcess.monitorId.toString()} Monitor not found`);
-      throw new BadDataException("Monitor not found");
+      throw new BadDataException(ExceptionMessages.MonitorNotFound);
     }
 
     if (!monitor.projectId) {
@@ -126,9 +127,7 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
       );
 
-      throw new BadDataException(
-        "Monitor is disabled. Please enable it to start monitoring again.",
-      );
+      throw new BadDataException(ExceptionMessages.MonitorDisabled);
     }
 
     if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
