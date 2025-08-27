@@ -248,6 +248,42 @@ export default class MicrosoftTeamsAPI {
           }
         }
 
+        // Attempt to fetch user's joined teams to auto-select the first team (improves UX so we don't
+        // display 'Microsoft Teams on Microsoft Teams'). We only do this if we have not already
+        // identified a specific team (currently teamId defaults to tenantId) and we have a valid access token
+        // with the Team.ReadBasic.All scope.
+        try {
+          const teamsResponse = await API.get(
+            URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+            undefined,
+            {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            }
+          );
+
+          if (!(teamsResponse instanceof HTTPErrorResponse)) {
+            const teamsJson = teamsResponse.data as JSONObject;
+            const teamsArr: Array<JSONObject> = (teamsJson["value"] as Array<JSONObject>) || [];
+            if (teamsArr.length > 0) {
+              const firstTeam: JSONObject = teamsArr[0] as JSONObject;
+              const firstTeamId: string | undefined = firstTeam["id"] as string | undefined;
+              const firstTeamName: string | undefined = firstTeam["displayName"] as string | undefined;
+              // Only override if we have meaningful data.
+              if (firstTeamId) {
+                teamId = firstTeamId;
+              }
+              if (firstTeamName) {
+                tenantName = firstTeamName;
+              }
+            }
+          } else {
+            logger.debug("Could not auto-fetch Teams list to select default team. Proceeding with tenant defaults.");
+          }
+        } catch (autoSelectErr) {
+          logger.error("Error auto-selecting first Microsoft Team: " + (autoSelectErr as Error).message);
+        }
+
         // Handle different auth types based on state parameter
         const tokenExpiryDate: string | undefined = expiresIn
           ? new Date(Date.now() + (expiresIn - 60) * 1000).toISOString() // subtract 60s buffer

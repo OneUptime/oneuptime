@@ -83,6 +83,27 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   }, [isUserAccountConnected, userAuthTokenId]);
 
+  // If project is connected but no specific team chosen (generic placeholder) and teams are loaded, prompt user to pick.
+  useEffect(() => {
+    if (
+      isProjectAccountConnected &&
+      isUserAccountConnected &&
+      teamsTeamName === 'Microsoft Teams' &&
+      !currentTeamId &&
+      availableTeams.length > 0 &&
+      !showTeamPicker
+    ) {
+      setShowTeamPicker(true);
+    }
+  }, [
+    isProjectAccountConnected,
+    isUserAccountConnected,
+    teamsTeamName,
+    currentTeamId,
+    availableTeams,
+    showTeamPicker,
+  ]);
+
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setError(null);
