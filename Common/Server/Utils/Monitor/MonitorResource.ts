@@ -127,9 +127,7 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
       );
 
-      throw new BadDataException(
-        ExceptionMessages.MonitorDisabled 
-      );
+      throw new BadDataException(ExceptionMessages.MonitorDisabled);
     }
 
     if (monitor.disableActiveMonitoringBecauseOfManualIncident) {

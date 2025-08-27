@@ -32,14 +32,15 @@ QueueWorker.getWorker(
         `Successfully processed server monitor ingestion job: ${job.name}`,
       );
     } catch (error) {
-
       // Certain BadDataException cases are expected / non-actionable and should not fail the job.
       // These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
       // (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
-      if (error instanceof BadDataException && (error.message === ExceptionMessages.MonitorNotFound || error.message === ExceptionMessages.MonitorDisabled)){
-
+      if (
+        error instanceof BadDataException &&
+        (error.message === ExceptionMessages.MonitorNotFound ||
+          error.message === ExceptionMessages.MonitorDisabled)
+      ) {
         return;
-
       }
 
       logger.error(`Error processing server monitor ingestion job:`);
