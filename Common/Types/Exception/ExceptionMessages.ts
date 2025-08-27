@@ -1,7 +1,8 @@
 
 
 enum ExceptionMessages{
-  MonitorNotFound= "Monitor not found."
+  MonitorNotFound= "Monitor not found.",
+  MonitorDisabled = "Monitor is disabled. Please enable it to start monitoring again."
 };
 
 

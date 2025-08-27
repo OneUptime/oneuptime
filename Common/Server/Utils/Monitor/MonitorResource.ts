@@ -128,7 +128,7 @@ export default class MonitorResourceUtil {
       );
 
       throw new BadDataException(
-        "Monitor is disabled. Please enable it to start monitoring again.",
+        ExceptionMessages.MonitorDisabled 
       );
     }
 
