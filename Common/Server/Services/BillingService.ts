@@ -81,6 +81,24 @@ export class BillingService extends BaseService {
   }
 
   @CaptureSpan()
+  public async updateCustomerBusinessDetails(
+    id: string,
+    businessDetails: string,
+  ): Promise<void> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    // Store in metadata; optionally also put a shortened version in description.
+    await this.stripe.customers.update(id, {
+      metadata: {
+        business_details: businessDetails.substring(0, 5000),
+      },
+      description: businessDetails.substring(0, 500),
+    });
+  }
+
+  @CaptureSpan()
   public async deleteCustomer(id: string): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);

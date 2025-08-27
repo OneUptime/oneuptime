@@ -523,6 +523,59 @@ const Settings: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
+          <CardModelDetail<Project>
+            name="Business Details"
+            cardProps={{
+              title: "Business Details / Billing Address",
+              description:
+                "Enter your business legal name, address and optional tax info. This will be synced to Stripe and appear on future invoices.",
+            }}
+            isEditable={true}
+            editButtonText={"Update"}
+            formFields={[
+              {
+                field: {
+                  businessDetails: true,
+                },
+                title: "Business Details / Billing Address",
+                description:
+                  "This information will appear on invoices. Include company legal name, address, and tax / VAT ID if applicable.",
+                required: false,
+                fieldType: FormFieldSchemaType.LongText,
+                validation: {
+                  maxLength: 10000,
+                },
+              },
+            ]}
+            modelDetailProps={{
+              modelType: Project,
+              id: "model-detail-project-business-details",
+              fields: [
+                {
+                  field: {
+                    businessDetails: true,
+                  },
+                  title: "Business Details / Billing Address",
+                  getElement: (item: Project): ReactElement => {
+                    if (!item.businessDetails) {
+                      return (
+                        <div className="text-gray-500 italic">
+                          No business details added yet.
+                        </div>
+                      );
+                    }
+                    return (
+                      <pre className="whitespace-pre-wrap break-words text-sm">
+                        {item.businessDetails}
+                      </pre>
+                    );
+                  },
+                },
+              ],
+              modelId: ProjectUtil.getCurrentProjectId()!,
+            }}
+          />
+
           {!reseller && (
             <Card
               title={`Cancel Plan`}
