@@ -193,6 +193,45 @@ export default class Markdown {
       return `<figure class="my-8"><img src="${href}" alt="${text}" class="rounded-xl shadow-sm border border-gray-200" loading="lazy"/><figcaption class="mt-2 text-center text-sm text-gray-500">${text || ""}</figcaption></figure>`;
     };
 
+    // Links
+    // We explicitly add underline + color classes because Tailwind Typography (prose-*)
+    // styles may get overridden by surrounding utility classes or global resets.
+    // External links open in a new tab with proper rel attributes; internal links stay in-page.
+    renderer.link = function (href, title, text) {
+      // Guard: if no href, just return the text.
+      if (!href) {
+        return text as string;
+      }
+
+      const isHash: boolean = href.startsWith('#');
+      const isMailTo: boolean = href.startsWith('mailto:');
+      const isTel: boolean = href.startsWith('tel:');
+      const isInternal: boolean =
+        href.startsWith('/') ||
+        href.includes('oneuptime.com') ||
+        isHash ||
+        isMailTo ||
+        isTel;
+
+      const baseClasses: string = [
+        'font-semibold',
+        'text-indigo-600',
+        'underline',
+        'underline-offset-2',
+        'decoration-indigo-300',
+        'hover:decoration-indigo-500',
+        'hover:text-indigo-500',
+        'transition-colors',
+      ].join(' ');
+
+      const titleAttr: string = title ? ` title="${title}"` : '';
+      const externalAttrs: string = isInternal
+        ? ''
+        : ' target="_blank" rel="noopener noreferrer"';
+
+      return `<a href="${href}"${titleAttr} class="${baseClasses}"${externalAttrs}>${text}</a>`;
+    };
+
     this.blogRenderer = renderer;
 
     return renderer;
