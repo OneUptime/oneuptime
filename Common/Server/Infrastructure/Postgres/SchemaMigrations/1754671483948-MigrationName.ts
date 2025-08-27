@@ -68,6 +68,28 @@ export class MigrationName1754671483948 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "StatusPageAnnouncement" ADD "subscriberNotificationStatusMessage" text`,
     );
+    // Set all existing rows' subscriber notification statuses to 'Success' since they were previously considered notified
+    await queryRunner.query(
+      `UPDATE "Incident" SET "subscriberNotificationStatusOnIncidentCreated"='Success'`,
+    );
+    await queryRunner.query(
+      `UPDATE "IncidentPublicNote" SET "subscriberNotificationStatusOnNoteCreated"='Success'`,
+    );
+    await queryRunner.query(
+      `UPDATE "IncidentStateTimeline" SET "subscriberNotificationStatus"='Success'`,
+    );
+    await queryRunner.query(
+      `UPDATE "ScheduledMaintenance" SET "subscriberNotificationStatusOnEventScheduled"='Success'`,
+    );
+    await queryRunner.query(
+      `UPDATE "ScheduledMaintenancePublicNote" SET "subscriberNotificationStatusOnNoteCreated"='Success'`,
+    );
+    await queryRunner.query(
+      `UPDATE "ScheduledMaintenanceStateTimeline" SET "subscriberNotificationStatus"='Success'`,
+    );
+    await queryRunner.query(
+      `UPDATE "StatusPageAnnouncement" SET "subscriberNotificationStatus"='Success'`,
+    );
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "rotation" SET DEFAULT '{"_type":"Recurring","value":{"intervalType":"Day","intervalCount":{"_type":"PositiveNumber","value":1}}}'`,
     );
