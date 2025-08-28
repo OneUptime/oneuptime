@@ -67,6 +67,15 @@ export default class MicrosoftTeams extends WorkspaceBase {
         logger.debug('Stored tenantId is common; using fallback authority: ' + tenant);
       }
       logger.debug(`Requesting Microsoft Teams application access token using authority tenant: ${tenant}`);
+      logger.debug("Application token request details:");
+      logger.debug({
+        url: `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
+        client_id: MicrosoftTeamsAppClientId,
+        grant_type: "client_credentials",
+        scope: "https://graph.microsoft.com/.default",
+        client_secret_provided: !!MicrosoftTeamsAppClientSecret
+      });
+      
       const tokenResp = await API.post(
         URL.fromString(
           `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
@@ -93,6 +102,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const json = tokenResp.jsonData as JSONObject;
       const accessToken: string | undefined = json["access_token"] as string;
       const expiresIn: number | undefined = json["expires_in"] as number; // seconds
+
+      logger.debug("Application token response received:");
+      logger.debug({
+        hasAccessToken: !!accessToken,
+        expiresIn: expiresIn,
+        tokenType: json["token_type"],
+        scope: json["scope"]
+      });
 
       if (!accessToken) {
         logger.warn(
@@ -374,6 +391,19 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     const url: URL = URL.fromString(`https://graph.microsoft.com/v1.0${endpoint}`);
 
+    // Log the complete request details for debugging
+    logger.debug("Microsoft Graph API call details:");
+    logger.debug({
+      method: method,
+      url: url.toString(),
+      endpoint: endpoint,
+      headers: {
+        ...headers,
+        Authorization: `Bearer ${authToken.substring(0, 20)}...` // Only show first 20 chars of token for security
+      },
+      body: body
+    });
+
     let response: HTTPResponse<JSONObject> | HTTPErrorResponse;
 
     if (method === "GET") {
@@ -382,6 +412,17 @@ export default class MicrosoftTeams extends WorkspaceBase {
       response = await API.post(url, body || {}, headers, {});
     } else {
       throw new BadRequestException(`Unsupported HTTP method: ${method}`);
+    }
+
+    // Log response details if it's an error
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Microsoft Graph API call failed:");
+      logger.error({
+        statusCode: response.statusCode,
+        message: response.message,
+        data: response.data,
+        jsonData: response.jsonData
+      });
     }
 
     return response;
@@ -739,7 +780,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
         projectAuth: projectAuth,
       });
       if (appToken) {
+        logger.debug("Using application (bot) token for Microsoft Teams API call");
         tokenToUse = appToken;
+      } else {
+        logger.debug("Using user delegated token for Microsoft Teams API call (no app token available)");
       }
 
       // Convert blocks to Teams message format
@@ -749,6 +793,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
           content: this.convertBlocksToTeamsMessage(data.blocks),
         },
       };
+
+      logger.debug(`Attempting to send message to Microsoft Teams channel with token type: ${appToken ? "application" : "user delegated"}`);
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
@@ -765,6 +811,16 @@ export default class MicrosoftTeams extends WorkspaceBase {
           logger.warn(
             `Posting with application token failed (status ${status}). Falling back to user delegated token for channel ${data.workspaceChannel.id}.`,
           );
+          logger.debug("Failed application token request details:");
+          logger.debug({
+            endpoint: `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
+            teamId: teamId,
+            channelId: data.workspaceChannel.id,
+            statusCode: status,
+            errorMessage: response.message,
+            errorData: response.jsonData
+          });
+          
           const fallbackResp = await this.makeGraphApiCall(
             `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
             data.authToken,
