@@ -39,6 +39,9 @@ import {
   validateApplicationTokenPermissions
 } from "./MicrosoftTeamsPermissions";
 
+// Error message constants
+const ADMIN_CONSENT_REQUIRED_ERROR: string = "Microsoft Teams application access token unavailable. Please grant admin consent for application permissions in your Microsoft Teams integration settings.";
+
 export default class MicrosoftTeams extends WorkspaceBase {
   // Microsoft Teams API Permission Requirements:
   // 
@@ -83,6 +86,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       const projectAuth = params.projectAuth;
       let miscData: MicrosoftTeamsMiscData | undefined = projectAuth?.miscData as MicrosoftTeamsMiscData;
+
+      // Check if admin consent has been granted
+      if (!miscData?.adminConsentGranted) {
+        logger.debug(
+          "Admin consent not granted for Microsoft Teams application permissions. Cannot obtain application access token.",
+        );
+        return null;
+      }
 
       // If we have a stored, not-expired app token, reuse it (2 min buffer)
       if (miscData?.appAccessToken && miscData.appAccessTokenExpiresAt) {
@@ -582,7 +593,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       });
       
       if (!appToken) {
-        throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
       }
       
       const teamId: string = await this.getTeamId(data.authToken);
@@ -644,7 +655,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       });
       
       if (!appToken) {
-        throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
       }
       
       const teamId: string = await this.getTeamId(data.authToken);
@@ -740,8 +751,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
       logger.debug("DEBUG: Application token obtained: " + !!appToken);
       
       if (!appToken) {
-        logger.error("ERROR: Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
-        throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+        logger.error("ERROR: Microsoft Teams application access token unavailable. Please grant admin consent for application permissions in your Microsoft Teams integration settings.");
+        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
       }
       
       let channelName = data.channelName;
@@ -819,7 +830,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     });
     
     if (!appToken) {
-      throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+      throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
     }
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
@@ -888,7 +899,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       });
       
       if (!appToken) {
-        throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
       }
       
       const teamId: string = await this.getTeamId(data.authToken);
@@ -1026,7 +1037,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       });
       
       if (!appToken) {
-        throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
       }
 
       logger.debug("Using application (bot) token for Microsoft Teams API call");
@@ -1093,7 +1104,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     });
     
     if (!appToken) {
-      throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
+      throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
     }
 
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
@@ -1204,7 +1215,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       });
       
       if (!appToken) {
-        throw new BadRequestException("Unable to obtain Microsoft Teams application access token for direct messaging. Please ensure app credentials are configured and admin consent is granted.");
+        throw new BadRequestException("Microsoft Teams application access token unavailable for direct messaging. Please grant admin consent for application permissions in your Microsoft Teams integration settings.");
       }
 
       // First, create a chat with the user

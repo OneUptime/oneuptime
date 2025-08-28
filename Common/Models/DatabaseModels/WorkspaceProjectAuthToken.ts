@@ -18,7 +18,7 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import Permission from "../../Types/Permission";
 
 export interface MiscData {
-  [key: string]: string;
+  [key: string]: string | boolean | undefined;
 }
 
 export interface SlackMiscData extends MiscData {
@@ -38,6 +38,10 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   appAccessToken?: string; // Microsoft Graph application access token
   appAccessTokenExpiresAt?: string; // ISO expiry for app access token
   lastAppTokenIssuedAt?: string; // ISO time when the current app token was minted
+  // Admin consent status for application permissions
+  adminConsentGranted?: boolean; // Whether admin has granted consent for application permissions
+  adminConsentGrantedAt?: string; // ISO timestamp when admin consent was granted
+  adminConsentGrantedBy?: string; // User ID who granted admin consent
 }
 
 @TenantColumn("projectId")

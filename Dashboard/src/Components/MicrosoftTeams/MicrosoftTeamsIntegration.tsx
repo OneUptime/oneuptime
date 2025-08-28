@@ -65,6 +65,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [availableTeams, setAvailableTeams] = React.useState<TeamsTeam[]>([]);
   const [showTeamPicker, setShowTeamPicker] = React.useState<boolean>(false);
   const [isLoadingTeams, setIsLoadingTeams] = React.useState<boolean>(false);
+  const [adminConsentGranted, setAdminConsentGranted] = React.useState<boolean>(false);
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -133,9 +134,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         const miscData = projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData;
         const teamsTeamName: string | undefined = miscData.teamName;
         const teamId: string | undefined = miscData.teamId;
+        const adminConsent: boolean = miscData.adminConsentGranted || false;
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
         setTeamsTeamName(teamsTeamName || 'Microsoft Teams');
         setCurrentTeamId(teamId || null);
+        setAdminConsentGranted(adminConsent);
       }
 
       // fetch user auth token.
@@ -244,16 +247,88 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const initiateAdminConsent: VoidFunction = (): void => {
+    if (MicrosoftTeamsAppClientId) {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const userId: ObjectID | null = UserUtil.getUserId();
+
+      if (!projectId) {
+        setError(
+          <div>
+            Looks like you have not selected any project. Please select a
+            project to continue.
+          </div>,
+        );
+        return;
+      }
+
+      if (!userId) {
+        setError(
+          <div>
+            Looks like you are not logged in. Please login to continue.
+          </div>,
+        );
+        return;
+      }
+
+      const redirectUri: string = `${APP_API_URL}/teams/admin-consent`;
+
+      // Create state parameter for admin consent
+      const stateData = {
+        projectId: projectId.toString(),
+        userId: userId.toString(),
+      };
+      const stateParam = btoa(JSON.stringify(stateData));
+
+      // Use the admin consent endpoint
+      const adminConsentUrl = `https://login.microsoftonline.com/common/adminconsent?client_id=${MicrosoftTeamsAppClientId}&state=${encodeURIComponent(stateParam)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      
+      Navigation.navigate(URL.fromString(adminConsentUrl));
+    } else {
+      setError(
+        <div>
+          Looks like the Microsoft Teams App Client ID is not set in the environment
+          variables when you installed OneUptime. For more information, please
+          check this guide to set up Microsoft Teams App properly:{" "}
+          <Link
+            to={new Route("/docs/self-hosted/microsoft-teams-integration")}
+            openInNewTab={true}
+          >
+            Microsoft Teams Integration
+          </Link>
+        </div>,
+      );
+    }
+  };
+
   useEffect(() => {
     // if this page has a query param with error, then there was an error in authentication.
     const error: string | null = Navigation.getQueryStringByName("error");
+    const adminConsent: string | null = Navigation.getQueryStringByName("admin_consent");
 
     if (error) {
-      setError(
-        <div>
-          There was an error while connecting with Microsoft Teams. Please try again.
-        </div>,
-      );
+      if (error === "admin_consent_denied") {
+        setError(
+          <div>
+            Admin consent was denied. Microsoft Teams integration requires admin consent 
+            for application permissions to function properly. Please try again and grant consent.
+          </div>,
+        );
+      } else {
+        setError(
+          <div>
+            There was an error while connecting with Microsoft Teams. Please try again.
+          </div>,
+        );
+      }
+      return;
+    }
+
+    if (adminConsent === "granted") {
+      // Admin consent was granted, reload the items to update the UI
+      loadItems().catch((error: Exception) => {
+        setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      });
       return;
     }
 
@@ -276,8 +351,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // if user and project both connected with Teams
   if (isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are connected with ${teamsTeamName} on Microsoft Teams`;
-    cardDescription = `Your account is already connected with Microsoft Teams.`;
+    const adminConsentStatus = adminConsentGranted ? " (Admin Consent Granted)" : " (Limited Permissions)";
+    cardTitle = `You are connected with ${teamsTeamName} on Microsoft Teams${adminConsentStatus}`;
+    cardDescription = adminConsentGranted 
+      ? `Your account is fully connected with Microsoft Teams with all required permissions.`
+      : `Your account is connected but admin consent is needed for full functionality.`;
+    
     cardButtons = [
       {
         title: `Change Team`,
@@ -287,41 +366,54 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           setShowTeamPicker(true);
         },
         icon: IconProp.Settings,
-      },
-      {
-        title: `Disconnect`,
-        isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
-        onClick: async () => {
-          try {
-            setIsButtonLoading(true);
-            setError(null);
-            if (userAuthTokenId) {
-              await ModelAPI.deleteItem({
-                modelType: WorkspaceUserAuthToken,
-                id: userAuthTokenId!,
-              });
+      }
+    ];
 
-              setIsUserAccountConnected(false);
-              setWorkspaceUserAuthTokenId(null);
-            } else {
-              setError(
-                <div>
-                  Looks like the user auth token id is not set properly. Please
-                  try again.
-                </div>,
-              );
-            }
-          } catch (error) {
+    if (!adminConsentGranted) {
+      cardButtons.unshift({
+        title: `Grant Admin Consent`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.PRIMARY,
+        onClick: async () => {
+          return initiateAdminConsent();
+        },
+        icon: IconProp.Lock,
+      });
+    }
+
+    cardButtons.push({
+      title: `Disconnect`,
+      isLoading: isButtonLoading,
+      buttonStyle: ButtonStyleType.DANGER,
+      onClick: async () => {
+        try {
+          setIsButtonLoading(true);
+          setError(null);
+          if (userAuthTokenId) {
+            await ModelAPI.deleteItem({
+              modelType: WorkspaceUserAuthToken,
+              id: userAuthTokenId!,
+            });
+
+            setIsUserAccountConnected(false);
+            setWorkspaceUserAuthTokenId(null);
+          } else {
             setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+              <div>
+                Looks like the user auth token id is not set properly. Please
+                try again.
+              </div>,
             );
           }
-          setIsButtonLoading(false);
-        },
-        icon: IconProp.Close,
+        } catch (error) {
+          setError(
+            <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+          );
+        }
+        setIsButtonLoading(false);
       },
-    ];
+      icon: IconProp.Close,
+    });
   }
 
   const connectWithMicrosoftTeams: VoidFunction = (): void => {
@@ -358,11 +450,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         "https://graph.microsoft.com/User.Read",
         "https://graph.microsoft.com/Team.ReadBasic.All",
         "https://graph.microsoft.com/Channel.ReadBasic.All",
-        "https://graph.microsoft.com/Channel.Create",
-        "https://graph.microsoft.com/Channel.Delete.All",
-        "https://graph.microsoft.com/ChannelMessage.Edit",
-        "https://graph.microsoft.com/ChannelMessage.Read.All",
-        "https://graph.microsoft.com/ChannelMessage.ReadWrite",
         "https://graph.microsoft.com/ChannelMessage.Send",
         "https://graph.microsoft.com/TeamMember.ReadWrite.All",
         "https://graph.microsoft.com/Teamwork.Read.All"
@@ -395,7 +482,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           "openid",
           "profile",
           "offline_access",
-          "https://graph.microsoft.com/User.Read"
+          "https://graph.microsoft.com/User.Read",
+          "https://graph.microsoft.com/Team.ReadBasic.All"
         ];
         const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(userDelegatedScopes.join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(userAuthUrl));
@@ -434,9 +522,27 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // if user is not connected and the project is connected with Teams
   if (!isUserAccountConnected && isProjectAccountConnected) {
-    cardTitle = `You are disconnected from Microsoft Teams (but OneUptime is already installed in ${teamsTeamName})`;
-    cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime.`;
-    cardButtons = [
+    const adminConsentStatus = adminConsentGranted ? " (Admin Consent Granted)" : " (Admin Consent Needed)";
+    cardTitle = `You are disconnected from Microsoft Teams (but OneUptime is already installed in ${teamsTeamName})${adminConsentStatus}`;
+    cardDescription = adminConsentGranted 
+      ? `Connect your account with Microsoft Teams to make the most out of OneUptime.`
+      : `Connect your account and ensure admin consent is granted for full functionality.`;
+    
+    cardButtons = [];
+
+    if (!adminConsentGranted) {
+      cardButtons.push({
+        title: `Grant Admin Consent`,
+        isLoading: isButtonLoading,
+        buttonStyle: ButtonStyleType.PRIMARY,
+        onClick: async () => {
+          return initiateAdminConsent();
+        },
+        icon: IconProp.Lock,
+      });
+    }
+
+    cardButtons.push(
       getConnectWithTeamsButton(`Connect my account with Microsoft Teams`),
       {
         title: `Uninstall OneUptime from Microsoft Teams`,
@@ -470,14 +576,44 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           setIsButtonLoading(false);
         },
         icon: IconProp.Trash,
-      },
-    ];
+      }
+    );
   }
 
   if (!isProjectAccountConnected) {
     cardTitle = `Connect with Microsoft Teams`;
-    cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime.`;
-    cardButtons = [getConnectWithTeamsButton(`Connect with Microsoft Teams`)];
+    cardDescription = `Connect your account with Microsoft Teams to make the most out of OneUptime. This requires admin consent for application permissions.`;
+    cardButtons = [
+      {
+        title: `Grant Admin Consent`,
+        buttonStyle: ButtonStyleType.PRIMARY,
+        onClick: () => {
+          return initiateAdminConsent();
+        },
+        icon: IconProp.Lock,
+      }
+    ];
+  } else if (!adminConsentGranted) {
+    cardTitle = `Admin Consent Required`;
+    cardDescription = `Microsoft Teams integration is set up but requires admin consent for application permissions to function properly.`;
+    cardButtons = [
+      {
+        title: `Grant Admin Consent`,
+        buttonStyle: ButtonStyleType.PRIMARY,
+        onClick: () => {
+          return initiateAdminConsent();
+        },
+        icon: IconProp.Lock,
+      },
+      {
+        title: `Continue with User Authentication`,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          return connectWithMicrosoftTeams();
+        },
+        icon: IconProp.MicrosoftTeams,
+      }
+    ];
   }
 
   if (!MicrosoftTeamsAppClientId) {

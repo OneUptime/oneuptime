@@ -19,12 +19,156 @@ import {
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
+import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
 
 export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
+
+    // Admin consent endpoint for application permissions
+    router.get(
+      "/teams/admin-consent",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(
+              "Microsoft Teams App Client credentials are not set",
+            ),
+          );
+        }
+
+        // Extract project_id and user_id from state parameter
+        const stateParam: string | undefined = req.query["state"]?.toString();
+        if (!stateParam) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Missing state parameter"),
+          );
+        }
+
+        let projectIdStr: string;
+        let userIdStr: string;
+        
+        try {
+          const stateData = JSON.parse(Buffer.from(stateParam, 'base64').toString());
+          projectIdStr = stateData.projectId;
+          userIdStr = stateData.userId;
+          
+          if (!projectIdStr || !userIdStr) {
+            throw new Error("Invalid state data");
+          }
+        } catch (error) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid state parameter"),
+          );
+        }
+
+        const error: string | undefined = req.query["error"]?.toString();
+        const adminConsent: string | undefined = req.query["admin_consent"]?.toString();
+        const tenantId: string | undefined = req.query["tenant"]?.toString();
+
+        const settingsUrl: URL = URL.fromString(
+          `${DashboardClientUrl.toString()}/${projectIdStr.toString()}/settings/microsoft-teams-integration`,
+        );
+
+        if (error) {
+          return Response.redirect(
+            req,
+            res,
+            settingsUrl.addQueryParam("error", error),
+          );
+        }
+
+        if (adminConsent === "True" && tenantId) {
+          // Admin consent was granted successfully
+          logger.debug(`Admin consent granted for tenant ${tenantId} by user ${userIdStr}`);
+          
+          // Update or create the project auth token with admin consent status
+          try {
+            const existingAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+              query: {
+                projectId: new ObjectID(projectIdStr),
+                workspaceType: WorkspaceType.MicrosoftTeams,
+              },
+              select: {
+                _id: true,
+                miscData: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            const currentMiscData = (existingAuth?.miscData as any) || {};
+            const updatedMiscData = {
+              ...currentMiscData,
+              tenantId: tenantId,
+              adminConsentGranted: true,
+              adminConsentGrantedAt: new Date().toISOString(),
+              adminConsentGrantedBy: userIdStr,
+              teamName: currentMiscData.teamName || 'Microsoft Teams',
+              teamId: currentMiscData.teamId || tenantId,
+            };
+
+            if (existingAuth) {
+              // Update existing auth token
+              await WorkspaceProjectAuthTokenService.updateOneById({
+                id: existingAuth.id!,
+                data: {
+                  miscData: updatedMiscData,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+            } else {
+              // Create new project auth token with admin consent
+              const newAuthToken = new WorkspaceProjectAuthToken();
+              newAuthToken.projectId = new ObjectID(projectIdStr);
+              newAuthToken.workspaceType = WorkspaceType.MicrosoftTeams;
+              newAuthToken.authToken = `admin-consent-${tenantId}-${Date.now()}`; // Placeholder token
+              newAuthToken.workspaceProjectId = tenantId;
+              newAuthToken.miscData = updatedMiscData;
+
+              await WorkspaceProjectAuthTokenService.create({
+                data: newAuthToken,
+                props: {
+                  isRoot: true,
+                },
+              });
+            }
+
+            return Response.redirect(
+              req,
+              res,
+              settingsUrl.addQueryParam("admin_consent", "granted"),
+            );
+          } catch (updateError) {
+            logger.error("Error updating admin consent status:");
+            logger.error(updateError);
+            return Response.redirect(
+              req,
+              res,
+              settingsUrl.addQueryParam("error", "consent_update_failed"),
+            );
+          }
+        } else {
+          // Admin consent was denied or failed
+          return Response.redirect(
+            req,
+            res,
+            settingsUrl.addQueryParam("error", "admin_consent_denied"),
+          );
+        }
+      },
+    );
 
     // OAuth redirect for project install (admin installs app in a team)
     router.get(
