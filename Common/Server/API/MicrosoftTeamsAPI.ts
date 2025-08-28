@@ -40,7 +40,9 @@ export default class MicrosoftTeamsAPI {
             "Channel.ReadBasic.All",
             "ChannelMessage.Send",
             "User.Read",
-            "TeamMember.ReadWrite.All"
+            "TeamMember.ReadWrite.All",
+            // Added broader Teamwork read (optional but recommended for richer context)
+            "Teamwork.Read.All"
           ],
           // Application (client credentials) permissions required to post as the app/bot
           applicationPermissions: [
@@ -51,7 +53,13 @@ export default class MicrosoftTeamsAPI {
             "ChannelMessage.Read.All",
             "Team.ReadBasic.All",
             "ChannelMember.Read.All",
-            "ChannelMember.ReadWrite.All"
+            "ChannelMember.ReadWrite.All",
+            // Added Teamwork scopes for migration / broader operations
+            "Teamwork.Read.All",
+            "Teamwork.Migrate.All",
+            "TeamMember.Read.All",
+            "TeamMember.ReadWrite.All"
+
           ],
           redirectUris: [
             `${AppApiClientUrl.toString()}/api/teams/auth`
@@ -66,7 +74,7 @@ export default class MicrosoftTeamsAPI {
               "2. Set 'Supported account types' to 'Accounts in any organizational directory (Any Azure AD directory - Multitenant)'",
               "3. Add redirect URI: " + AppApiClientUrl.toString() + "/api/teams/auth",
               "4. In 'API permissions' add Delegated: Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Send, User.Read, TeamMember.ReadWrite.All",
-              "5. In 'API permissions' add Application: ChannelMessage.Send, Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMessage.Read.All, Team.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All (then 'Grant admin consent')",
+              "5. In 'API permissions' add Application: ChannelMessage.Send, Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMessage.Read.All, Team.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All, Teamwork.Read.All, Teamwork.Migrate.All (then 'Grant admin consent')",
               "6. Generate a client secret and copy the client ID and secret",
               "7. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
             ]
