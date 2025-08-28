@@ -955,6 +955,22 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return;
       }
 
+      // Get project auth token for app token access
+      const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+      const projectAuthForApp: WorkspaceProjectAuthToken | null = projectAuth || await WorkspaceProjectAuthTokenService.getByAuthToken({
+        authToken: data.authToken,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+      // Use application (bot) token
+      const appToken: string | null = await this.getOrCreateApplicationAccessToken({
+        projectAuth: projectAuthForApp,
+      });
+      
+      if (!appToken) {
+        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+      }
+
       const teamId: string = await this.getTeamId(data.authToken);
       const memberPayload = {
         "@odata.type": "#microsoft.graph.aadUserConversationMember",
@@ -964,9 +980,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.channelId}/members`,
-        data.authToken,
+        appToken,
         "POST",
         memberPayload,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
