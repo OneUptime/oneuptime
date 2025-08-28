@@ -38,6 +38,7 @@ We use two permission models:
   - \`Team.ReadBasic.All\`
   - \`Channel.ReadBasic.All\`
   - \`ChannelMessage.Send\`
+  - \`offline_access\` (required for token refresh)
   - \`TeamMember.ReadWrite.All\` (optional: only if you want OneUptime to add members to channels)
 4. Add **Application permissions** (minimal required for posting as app):
   - \`ChannelMessage.Send\`
