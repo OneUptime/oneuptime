@@ -34,11 +34,13 @@ We use two permission models:
 1. In your app registration, go to **API permissions**
 2. Click **Add a permission** → **Microsoft Graph**
 3. Add the following **Delegated permissions** (required):
+  - \`openid\` (returns an id_token so we can read tenant id)
+  - \`profile\` (basic user profile claims)
+  - \`offline_access\` (required for refresh tokens)
   - \`User.Read\` (basic profile / required by most sign-ins)
   - \`Team.ReadBasic.All\`
   - \`Channel.ReadBasic.All\`
   - \`ChannelMessage.Send\`
-  - \`offline_access\` (required for token refresh)
   - \`TeamMember.ReadWrite.All\` (optional: only if you want OneUptime to add members to channels)
 4. Add **Application permissions** (minimal required for posting as app):
   - \`ChannelMessage.Send\`
@@ -89,6 +91,7 @@ You need to restart your OneUptime server to apply these changes. Once you have 
 - The redirect URI in your Azure app must exactly match your OneUptime API URL
 - Users will need to have appropriate permissions in Teams to add the integration to channels
 - If application (bot) posting fails, the system automatically falls back to user delegated token (message will appear authored by the installing user)
+- We explicitly request \`openid profile offline_access\` so we can reliably capture tenant id and refresh tokens.
 
 ##### Posting as the App / Bot
 

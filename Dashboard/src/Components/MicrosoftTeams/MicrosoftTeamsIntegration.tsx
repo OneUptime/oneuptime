@@ -355,14 +355,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       // are granted via admin consent in Azure AD and are NOT added to this delegated scope list.
       // Some advanced permissions may not have delegated equivalents; adding them here will cause
       // Azure AD to reject the authorization request. Only include those that are valid delegated scopes.
+      // IMPORTANT: Include openid + profile + offline_access so that:
+      //  - We reliably receive an id_token (needed to extract tenant id)
+      //  - We can refresh tokens (offline_access)
+      //  - We have delegated Graph scopes for listing teams/channels and sending messages
+      // Keep only the scopes we actually require for install; remove overly broad delegated reads if not needed.
       const scopes: Array<string> = [
-        "https://graph.microsoft.com/User.Read",                // basic profile
-        "https://graph.microsoft.com/Team.ReadBasic.All",       // list teams
-        "https://graph.microsoft.com/Channel.ReadBasic.All",    // list channels
-        "https://graph.microsoft.com/ChannelMessage.Send",      // send messages
-        "https://graph.microsoft.com/TeamMember.ReadWrite.All",
-        "https://graph.microsoft.com/ChannelMessage.Read.All",
-        "offline_access"      // required for token refresh
+        "openid", // ensure id_token is returned
+        "profile", // basic profile claims
+        "offline_access", // refresh token capability
+        "https://graph.microsoft.com/User.Read", // basic user info
+        "https://graph.microsoft.com/Team.ReadBasic.All", // list teams
+        "https://graph.microsoft.com/Channel.ReadBasic.All", // list channels
+        "https://graph.microsoft.com/ChannelMessage.Send", // send messages
+        "https://graph.microsoft.com/TeamMember.ReadWrite.All" // manage membership (optional but requested)
       ];
 
       const project_install_redirect_uri: string = redirectUri;
@@ -388,8 +394,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(project_install_redirect_uri)}&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(stateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(authUrl));
       } else {
-        // User-level authentication only  
-        const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(["https://graph.microsoft.com/User.Read"].join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
+        // User-level authentication only: we still include openid/profile/offline_access so we can refresh and parse tenant.
+        const userDelegatedScopes: Array<string> = [
+          "openid",
+          "profile",
+          "offline_access",
+          "https://graph.microsoft.com/User.Read"
+        ];
+        const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(userDelegatedScopes.join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(userAuthUrl));
       }
     } else {
