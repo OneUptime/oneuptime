@@ -27,26 +27,57 @@ export default class MicrosoftTeamsTokenRefresher {
         const projectAuthToken: WorkspaceProjectAuthToken = data.projectAuthToken;
 
         try {
+            logger.debug(`Starting token refresh check for project auth token: ${projectAuthToken.id}`);
+            
             if (projectAuthToken.workspaceType !== WorkspaceType.MicrosoftTeams) {
+                logger.debug("Project auth token is not for Microsoft Teams, skipping refresh");
                 return projectAuthToken;
             }
 
             const miscData: MicrosoftTeamsMiscData | undefined = projectAuthToken.miscData as MicrosoftTeamsMiscData | undefined;
             if (!miscData) {
+                logger.debug("No misc data found in project auth token, cannot refresh");
                 return projectAuthToken;
             }
+
+            logger.debug("Misc data analysis:");
+            logger.debug({
+                hasTokenExpiresAt: !!miscData.tokenExpiresAt,
+                hasRefreshToken: !!miscData.refreshToken,
+                tokenExpiresAt: miscData.tokenExpiresAt,
+                refreshTokenLength: miscData.refreshToken?.length || 0,
+                tenantId: miscData.tenantId,
+                teamId: miscData.teamId
+            });
 
             const expiresAt: string | undefined = miscData.tokenExpiresAt;
             const refreshToken: string | undefined = miscData.refreshToken;
 
             if (!expiresAt || !refreshToken) {
+                logger.debug("Missing tokenExpiresAt or refreshToken, cannot refresh token");
+                logger.debug({
+                    hasExpiresAt: !!expiresAt,
+                    hasRefreshToken: !!refreshToken
+                });
                 return projectAuthToken;
             }
 
             const bufferMs: number = 2 * 60 * 1000; // 2 minutes buffer
             const expiresDate: Date = new Date(expiresAt);
             const now: Date = new Date();
+            
+            logger.debug("Token expiry check:");
+            logger.debug({
+                expiresAt: expiresAt,
+                expiresDateMs: expiresDate.getTime(),
+                nowMs: now.getTime(),
+                bufferMs: bufferMs,
+                timeUntilExpiry: expiresDate.getTime() - now.getTime(),
+                needsRefresh: expiresDate.getTime() - bufferMs <= now.getTime()
+            });
+            
             if (expiresDate.getTime() - bufferMs > now.getTime()) {
+                logger.debug("Token is still valid, no refresh needed");
                 return projectAuthToken; // Still valid
             }
 
@@ -56,6 +87,12 @@ export default class MicrosoftTeamsTokenRefresher {
             }
 
             logger.debug("Refreshing Microsoft Teams access token for project auth token " + projectAuthToken.id);
+            logger.debug("Refresh request details:");
+            logger.debug({
+                refreshTokenLength: refreshToken.length,
+                clientIdProvided: !!MicrosoftTeamsAppClientId,
+                clientSecretProvided: !!MicrosoftTeamsAppClientSecret
+            });
 
             const resp: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
                 URL.fromString("https://login.microsoftonline.com/common/oauth2/v2.0/token"),
@@ -72,7 +109,13 @@ export default class MicrosoftTeamsTokenRefresher {
 
             if (resp instanceof HTTPErrorResponse) {
                 logger.error("Microsoft Teams token refresh failed: " + resp.message);
-                logger.error(resp.jsonData);
+                logger.error("Refresh error details:");
+                logger.error({
+                    statusCode: resp.statusCode,
+                    message: resp.message,
+                    data: resp.data,
+                    jsonData: resp.jsonData
+                });
                 return projectAuthToken;
             }
 
@@ -80,6 +123,15 @@ export default class MicrosoftTeamsTokenRefresher {
             const newAccessToken: string | undefined = json["access_token"] as string;
             const newRefreshToken: string | undefined = (json["refresh_token"] as string) || refreshToken;
             const expiresIn: number | undefined = json["expires_in"] as number;
+
+            logger.debug("Token refresh response:");
+            logger.debug({
+                hasNewAccessToken: !!newAccessToken,
+                hasNewRefreshToken: !!newRefreshToken,
+                newAccessTokenLength: newAccessToken?.length || 0,
+                newRefreshTokenLength: newRefreshToken?.length || 0,
+                expiresIn: expiresIn
+            });
 
             if (!newAccessToken) {
                 logger.error("Microsoft Teams token refresh response missing access_token");
@@ -95,6 +147,8 @@ export default class MicrosoftTeamsTokenRefresher {
                 refreshToken: (newRefreshToken || miscData.refreshToken || ""),
                 tokenExpiresAt: (newExpiryIso || miscData.tokenExpiresAt || ""),
             };
+
+            logger.debug("Updating project auth token with new credentials");
 
             await WorkspaceProjectAuthTokenService.refreshAuthToken({
                 projectId: projectAuthToken.projectId as ObjectID,
@@ -112,6 +166,7 @@ export default class MicrosoftTeamsTokenRefresher {
             return projectAuthToken;
         } catch (err) {
             logger.error("Error refreshing Microsoft Teams token: " + (err as Error).message);
+            logger.error(err);
             return data.projectAuthToken;
         }
     }

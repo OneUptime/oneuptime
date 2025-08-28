@@ -34,6 +34,7 @@ import {
   MicrosoftTeamsAppClientSecret,
   MicrosoftTenantId,
 } from "../../../EnvironmentConfig";
+import MicrosoftTeamsTokenRefresher from "./MicrosoftTeamsTokenRefresher";
 
 export default class MicrosoftTeams extends WorkspaceBase {
   // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
@@ -153,6 +154,84 @@ export default class MicrosoftTeams extends WorkspaceBase {
       return null;
     }
   }
+
+  // Helper method to get and refresh project auth token if needed
+  private static async getRefreshedProjectAuthToken(authToken: string): Promise<WorkspaceProjectAuthToken | null> {
+    try {
+      logger.debug(`Looking up project auth token for Microsoft Teams with auth token length: ${authToken?.length}`);
+      
+      let projectAuth: WorkspaceProjectAuthToken | null = 
+        await WorkspaceProjectAuthTokenService.getByAuthToken({
+          authToken: authToken,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
+
+      if (!projectAuth) {
+        logger.debug("No project auth token found for the provided auth token");
+        // Fallback: try to find any Microsoft Teams project auth token for this project
+        // This can happen if the token has been updated but the lookup still uses the old token
+        logger.debug("Attempting fallback lookup for Microsoft Teams project auth tokens");
+        
+        const allProjectAuths = await WorkspaceProjectAuthTokenService.findBy({
+          query: {
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            authToken: true,
+            miscData: true,
+            workspaceType: true,
+            workspaceProjectId: true
+          },
+          limit: 10,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (allProjectAuths.length > 0) {
+          logger.debug(`Found ${allProjectAuths.length} Microsoft Teams project auth tokens, using the first one`);
+          projectAuth = allProjectAuths[0]!;
+        }
+        
+        if (!projectAuth) {
+          logger.debug("No Microsoft Teams project auth tokens found in fallback lookup");
+          return null;
+        }
+      }
+
+      logger.debug("Found project auth token details:");
+      logger.debug({
+        id: projectAuth.id,
+        projectId: projectAuth.projectId,
+        workspaceType: projectAuth.workspaceType,
+        hasMiscData: !!projectAuth.miscData,
+        hasRefreshToken: !!(projectAuth.miscData as any)?.refreshToken,
+        tokenExpiresAt: (projectAuth.miscData as any)?.tokenExpiresAt
+      });
+
+      // Try to refresh the token if it's expired or about to expire
+      logger.debug("Attempting to refresh Microsoft Teams token if needed...");
+      const refreshedProjectAuth = await MicrosoftTeamsTokenRefresher.refreshProjectAuthTokenIfExpired({
+        projectAuthToken: projectAuth,
+      });
+
+      if (refreshedProjectAuth.authToken !== projectAuth.authToken) {
+        logger.debug("Token was refreshed successfully");
+      } else {
+        logger.debug("Token was not refreshed (either still valid or refresh failed)");
+      }
+
+      return refreshedProjectAuth;
+    } catch (error) {
+      logger.error("Error getting or refreshing project auth token:");
+      logger.error(error);
+      return null;
+    }
+  }
+
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     // Teams MessageCard has limited markdown support. Headings like '##' are not supported
     // and single newlines can collapse. Convert common patterns to a structured card.
@@ -252,12 +331,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
   // Helper method to get team ID from auth token data
   private static async getTeamId(authToken: string): Promise<string> {
     try {
-      // First, try to get the team ID from stored project auth token configuration
-      const projectAuth: WorkspaceProjectAuthToken | null = 
-        await WorkspaceProjectAuthTokenService.getByAuthToken({
-          authToken: authToken,
-          workspaceType: WorkspaceType.MicrosoftTeams,
-        });
+      // Get and refresh the project auth token if needed
+      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(authToken);
 
       if (projectAuth && projectAuth.miscData) {
         const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
@@ -269,10 +344,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       logger.debug("No stored team ID found, fetching from Microsoft Graph API");
 
+      // Use the refreshed token from the project auth if available, otherwise use the original
+      const tokenToUse = projectAuth?.authToken || authToken;
+
       // Fallback: Get team ID from the user's joined teams (requires delegated user token)
       const response = await this.makeGraphApiCall(
         "/me/joinedTeams",
-        authToken,
+        tokenToUse,
         "GET",
       );
 
@@ -423,6 +501,71 @@ export default class MicrosoftTeams extends WorkspaceBase {
         data: response.data,
         jsonData: response.jsonData
       });
+
+      // If we get a 401 error (token expired), try to refresh the token and retry once
+      if (response.statusCode === 401) {
+        logger.debug("Received 401 error, attempting to refresh token and retry...");
+        
+        try {
+          logger.debug("Starting token refresh process...");
+          const refreshedProjectAuth = await this.getRefreshedProjectAuthToken(authToken);
+          
+          if (refreshedProjectAuth && refreshedProjectAuth.authToken && refreshedProjectAuth.authToken !== authToken) {
+            logger.debug("Token refreshed successfully, retrying API call");
+            logger.debug(`Original token length: ${authToken.length}, New token length: ${refreshedProjectAuth.authToken.length}`);
+            
+            // Update headers with new token
+            const newHeaders: Dictionary<string> = {
+              Authorization: `Bearer ${refreshedProjectAuth.authToken}`,
+              "Content-Type": "application/json",
+            };
+
+            logger.debug("Retrying Microsoft Graph API call with refreshed token:");
+            logger.debug({
+              method: method,
+              url: url.toString(),
+              endpoint: endpoint,
+              tokenRefreshed: true
+            });
+
+            let retryResponse: HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+            if (method === "GET") {
+              retryResponse = await API.get(url, undefined, newHeaders, {});
+            } else if (method === "POST") {
+              retryResponse = await API.post(url, body || {}, newHeaders, {});
+            } else {
+              throw new BadRequestException(`Unsupported HTTP method: ${method}`);
+            }
+
+            if (retryResponse instanceof HTTPErrorResponse) {
+              logger.error("Retry with refreshed token also failed:");
+              logger.error({
+                statusCode: retryResponse.statusCode,
+                message: retryResponse.message,
+                data: retryResponse.data,
+                jsonData: retryResponse.jsonData
+              });
+            } else {
+              logger.debug("Retry with refreshed token succeeded");
+            }
+
+            return retryResponse;
+          } else {
+            logger.debug("Token refresh did not provide a new token or failed");
+            logger.debug({
+              hasRefreshedAuth: !!refreshedProjectAuth,
+              hasNewToken: !!refreshedProjectAuth?.authToken,
+              tokenChanged: refreshedProjectAuth?.authToken !== authToken,
+              originalTokenLength: authToken.length,
+              newTokenLength: refreshedProjectAuth?.authToken?.length || 0
+            });
+          }
+        } catch (refreshError) {
+          logger.error("Error during token refresh attempt:");
+          logger.error(refreshError);
+        }
+      }
     }
 
     return response;
@@ -436,10 +579,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const teamId: string = await this.getTeamId(data.authToken);
+      // Get refreshed auth token if needed
+      const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+      const tokenToUse = projectAuth?.authToken || data.authToken;
+      
+      const teamId: string = await this.getTeamId(tokenToUse);
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels`,
-        data.authToken,
+        tokenToUse,
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -479,10 +626,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const teamId: string = await this.getTeamId(data.authToken);
+      // Get refreshed auth token if needed
+      const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+      const tokenToUse = projectAuth?.authToken || data.authToken;
+      
+      const teamId: string = await this.getTeamId(tokenToUse);
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.channelId}`,
-        data.authToken,
+        tokenToUse,
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -548,12 +699,16 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
+      // Get refreshed auth token if needed
+      const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+      const tokenToUse = projectAuth?.authToken || data.authToken;
+      
       let channelName = data.channelName;
       if (channelName.startsWith("#")) {
         channelName = channelName.substring(1);
       }
 
-      const teamId: string = await this.getTeamId(data.authToken);
+      const teamId: string = await this.getTeamId(tokenToUse);
       const channelPayload = {
         displayName: channelName,
         description: `Channel created by OneUptime`,
@@ -562,7 +717,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels`,
-        data.authToken,
+        tokenToUse,
         "POST",
         channelPayload,
       );
@@ -598,9 +753,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Creating Microsoft Teams channels if they do not exist with data:");
     logger.debug(data);
 
+    // Get refreshed auth token if needed
+    const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+    const tokenToUse = projectAuth?.authToken || data.authToken;
+
     const workspaceChannels: Array<WorkspaceChannel> = [];
     const existingWorkspaceChannels = await this.getAllWorkspaceChannels({
-      authToken: data.authToken,
+      authToken: tokenToUse,
     });
 
     logger.debug("Existing Microsoft Teams channels:");
@@ -621,7 +780,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       logger.debug(`Channel ${channelName} does not exist. Creating channel.`);
       try {
         const channel = await this.createChannel({
-          authToken: data.authToken,
+          authToken: tokenToUse,
           channelName: channelName,
         });
 
@@ -651,10 +810,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const teamId: string = await this.getTeamId(data.authToken);
+      // Get refreshed auth token if needed
+      const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+      const tokenToUse = projectAuth?.authToken || data.authToken;
+      
+      const teamId: string = await this.getTeamId(tokenToUse);
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.channelId}/members`,
-        data.authToken,
+        tokenToUse,
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -766,22 +929,26 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const teamId: string = await this.getTeamId(data.authToken);
+      // Get refreshed auth token if needed
+      const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+      const tokenToUse = projectAuth?.authToken || data.authToken;
+      
+      const teamId: string = await this.getTeamId(tokenToUse);
 
       // Fetch project auth token to pass context for per-project app token caching
-      const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.getByAuthToken({
+      const projectAuthForApp: WorkspaceProjectAuthToken | null = projectAuth || await WorkspaceProjectAuthTokenService.getByAuthToken({
         authToken: data.authToken,
         workspaceType: WorkspaceType.MicrosoftTeams,
       });
 
       // Try to obtain application (bot) token to post as the app. If unavailable, fall back to user token.
-      let tokenToUse: string = data.authToken;
+      let finalTokenToUse: string = tokenToUse;
       const appToken: string | null = await this.getOrCreateApplicationAccessToken({
-        projectAuth: projectAuth,
+        projectAuth: projectAuthForApp,
       });
       if (appToken) {
         logger.debug("Using application (bot) token for Microsoft Teams API call");
-        tokenToUse = appToken;
+        finalTokenToUse = appToken;
       } else {
         logger.debug("Using user delegated token for Microsoft Teams API call (no app token available)");
       }
@@ -798,14 +965,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
-        tokenToUse,
+        finalTokenToUse,
         "POST",
         messageBody,
       );
 
       if (response instanceof HTTPErrorResponse) {
         // If we attempted with app token and failed with 403/401, automatically fall back to user token
-        const triedAppToken: boolean = !!appToken && tokenToUse === appToken;
+        const triedAppToken: boolean = !!appToken && finalTokenToUse === appToken;
         const status = (response as HTTPErrorResponse).statusCode;
         if (triedAppToken && (status === 401 || status === 403)) {
           logger.warn(
@@ -823,7 +990,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
           
           const fallbackResp = await this.makeGraphApiCall(
             `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
-            data.authToken,
+            tokenToUse,
             "POST",
             messageBody,
           );
@@ -875,6 +1042,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
 
+    // Get refreshed auth token if needed
+    const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+    const tokenToUse = projectAuth?.authToken || data.authToken;
+
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       data.workspaceMessagePayload,
     );
@@ -883,7 +1054,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(blocks);
 
     const existingWorkspaceChannels = await this.getAllWorkspaceChannels({
-      authToken: data.authToken,
+      authToken: tokenToUse,
     });
 
     logger.debug("Existing Microsoft Teams channels:");
@@ -909,7 +1080,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     for (const channelId of data.workspaceMessagePayload.channelIds) {
       try {
         const channel = await this.getWorkspaceChannelFromChannelId({
-          authToken: data.authToken,
+          authToken: tokenToUse,
           channelId: channelId,
         });
         workspaceChannelsToPostTo.push(channel);
@@ -939,7 +1110,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     for (const channel of workspaceChannelsToPostTo) {
       try {
         const thread = await this.sendPayloadBlocksToChannel({
-          authToken: data.authToken,
+          authToken: tokenToUse,
           workspaceChannel: channel,
           blocks: blocks,
         });
