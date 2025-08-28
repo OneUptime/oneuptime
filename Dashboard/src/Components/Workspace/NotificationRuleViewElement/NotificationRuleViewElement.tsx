@@ -22,6 +22,7 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import TeamsElement from "../../Team/TeamsElement";
 import UsersElement from "../../User/Users";
+import WorkspaceUtil from "../../../Utils/Workspace/Workspace";
 
 export interface ComponentProps {
   value:
@@ -46,6 +47,8 @@ export interface ComponentProps {
 const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const workspaceDisplayName = WorkspaceUtil.getWorkspaceDisplayName(props.workspaceType);
+
   let detailFields: Array<
     Field<
       | IncidentNotificationRule
@@ -90,14 +93,14 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "shouldPostToExistingChannel",
-      title: `Post to Existing ${props.workspaceType} Channel`,
-      description: `When above conditions are met, post to an existing ${props.workspaceType} channel.`,
+      title: `Post to Existing ${workspaceDisplayName} Channel`,
+      description: `When above conditions are met, post to an existing ${workspaceDisplayName} channel.`,
       fieldType: FieldType.Boolean,
     },
     {
       key: "existingChannelNames",
-      title: `Existing ${props.workspaceType} Channel Name to Post To`,
-      description: `Please provide the name of the ${props.workspaceType} channel you want to post to.`,
+      title: `Existing ${workspaceDisplayName} Channel Name to Post To`,
+      description: `Please provide the name of the ${workspaceDisplayName} channel you want to post to.`,
       fieldType: FieldType.Text,
       showIf: (
         formValue:
@@ -111,29 +114,29 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
   ];
 
-  let archiveTitle: string = `Archive ${props.workspaceType} Channel`;
-  let archiveDescription: string = `When above conditions are met, archive the ${props.workspaceType} channel.`;
+  let archiveTitle: string = `Archive ${workspaceDisplayName} Channel`;
+  let archiveDescription: string = `When above conditions are met, archive the ${workspaceDisplayName} channel.`;
 
   if (props.eventType === NotificationRuleEventType.Monitor) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the monitor is deleted.`;
+    archiveTitle = `Archive ${workspaceDisplayName} Channel Automatically`;
+    archiveDescription = `Archive the ${workspaceDisplayName} channel automatically when the monitor is deleted.`;
   }
 
   if (props.eventType === NotificationRuleEventType.ScheduledMaintenance) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the scheduled maintenance is completed.`;
+    archiveTitle = `Archive ${workspaceDisplayName} Channel Automatically`;
+    archiveDescription = `Archive the ${workspaceDisplayName} channel automatically when the scheduled maintenance is completed.`;
   }
 
   // incident.
   if (props.eventType === NotificationRuleEventType.Incident) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the incident is resolved.`;
+    archiveTitle = `Archive ${workspaceDisplayName} Channel Automatically`;
+    archiveDescription = `Archive the ${workspaceDisplayName} channel automatically when the incident is resolved.`;
   }
 
   // alert
   if (props.eventType === NotificationRuleEventType.Alert) {
-    archiveTitle = `Archive ${props.workspaceType} Channel Automatically`;
-    archiveDescription = `Archive the ${props.workspaceType} channel automatically when the alert is resolved.`;
+    archiveTitle = `Archive ${workspaceDisplayName} Channel Automatically`;
+    archiveDescription = `Archive the ${workspaceDisplayName} channel automatically when the alert is resolved.`;
   }
 
   const incidentAlertMaintenanceFields: Array<
@@ -145,13 +148,13 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
   > = [
     {
       key: "shouldCreateNewChannel",
-      title: `Create ${props.workspaceType} Channel`,
-      description: `When above conditions are met, create a new ${props.workspaceType} channel.`,
+      title: `Create ${workspaceDisplayName} Channel`,
+      description: `When above conditions are met, create a new ${workspaceDisplayName} channel.`,
       fieldType: FieldType.Boolean,
     },
     {
       key: "newChannelTemplateName",
-      title: `${props.workspaceType} Channel Template Name`,
+      title: `${workspaceDisplayName} Channel Template Name`,
       description: `If your new channel name is "oneuptime-${props.eventType?.toLowerCase()}-", then we will append the ${props.eventType} in the end so, it'll look like "oneuptime-${props.eventType?.toLowerCase()}-X".`,
       fieldType: FieldType.Text,
       placeholder: `oneuptime-${props.eventType?.toLowerCase()}-`,
@@ -166,8 +169,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "shouldInviteOwnersToNewChannel",
-      title: `Invite ${props.eventType} owners to new ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite ${props.eventType} owners.`,
+      title: `Invite ${props.eventType} owners to new ${workspaceDisplayName} Channel`,
+      description: `When new ${workspaceDisplayName} channel is created, invite ${props.eventType} owners.`,
       fieldType: FieldType.Boolean,
       showIf: (
         formValue:
@@ -180,8 +183,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "inviteTeamsToNewChannel",
-      title: `Invite Teams to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these teams.`,
+      title: `Invite Teams to New ${workspaceDisplayName} Channel`,
+      description: `When new ${workspaceDisplayName} channel is created, invite these teams.`,
       fieldType: FieldType.Element,
       showIf: (
         formValue:
@@ -208,8 +211,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     },
     {
       key: "inviteUsersToNewChannel",
-      title: `Invite Users to New ${props.workspaceType} Channel`,
-      description: `When new ${props.workspaceType} channel is created, invite these users.`,
+      title: `Invite Users to New ${workspaceDisplayName} Channel`,
+      description: `When new ${workspaceDisplayName} channel is created, invite these users.`,
       fieldType: FieldType.Element,
       showIf: (
         formValue:
@@ -270,8 +273,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
     > = [
       {
         key: "shouldAutomaticallyInviteOnCallUsersToNewChannel",
-        title: `Automatically Invite On Call Users to New ${props.workspaceType} Channel`,
-        description: `If this is enabled then all on call users will be invited to the new ${props.workspaceType} channel as they are alerted.`,
+        title: `Automatically Invite On Call Users to New ${workspaceDisplayName} Channel`,
+        description: `If this is enabled then all on call users will be invited to the new ${workspaceDisplayName} channel as they are alerted.`,
         fieldType: FieldType.Boolean,
         showIf: (
           formValue: IncidentNotificationRule | AlertNotificationRule,

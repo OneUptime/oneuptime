@@ -6,6 +6,17 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 
 export default class WorkspaceUtil {
+  public static getWorkspaceDisplayName(workspaceType: WorkspaceType): string {
+    switch (workspaceType) {
+      case WorkspaceType.MicrosoftTeams:
+        return "Microsoft Teams";
+      case WorkspaceType.Slack:
+        return "Slack";
+      default:
+        return workspaceType;
+    }
+  }
+
   public static async isWorkspaceConnected(
     workspaceType: WorkspaceType,
   ): Promise<boolean> {
