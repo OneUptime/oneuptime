@@ -769,6 +769,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       "WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules called with data:",
     );
     logger.debug(data);
+    logger.debug(`DEBUG: Processing channel creation for event type: ${data.notificationRuleEventType}`);
 
     const channelsCreated: Array<NotificationRuleWorkspaceChannel> = [];
 
