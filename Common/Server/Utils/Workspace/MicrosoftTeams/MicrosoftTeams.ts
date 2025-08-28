@@ -1487,6 +1487,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
     } catch (error) {
       logger.error("Error checking if channel exists:");
       logger.error(error);
+      
+      // Re-throw configuration errors (like Teams provisioning issues) instead of returning false
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // For other errors (like network issues), return false
       return false;
     }
   }
