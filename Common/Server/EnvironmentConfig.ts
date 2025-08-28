@@ -342,9 +342,6 @@ export const MicrosoftTeamsAppClientId: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_ID"] || null;
 export const MicrosoftTeamsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
-// Tenant can be an actual tenant id, 'organizations', or 'common'
-export const MicrosoftTenantId: string =
-  process.env["MICROSOFT_TENANT_ID"] || "common";
 
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =

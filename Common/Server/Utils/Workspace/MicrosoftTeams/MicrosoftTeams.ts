@@ -32,7 +32,6 @@ import WorkspaceProjectAuthToken, { MicrosoftTeamsMiscData } from "../../../../M
 import {
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
-  MicrosoftTenantId,
 } from "../../../EnvironmentConfig";
 import MicrosoftTeamsTokenRefresher from "./MicrosoftTeamsTokenRefresher";
 
@@ -63,7 +62,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       // Need to mint a new token. Prefer discovered tenant id (from delegated auth) if present and not 'common'.
       const tenant: string = (miscData?.tenantId && miscData.tenantId !== 'common')
         ? miscData.tenantId
-        : ((MicrosoftTenantId && MicrosoftTenantId !== 'common') ? MicrosoftTenantId : 'organizations');
+        : 'organizations';
       if (miscData?.tenantId && miscData.tenantId === 'common') {
         logger.debug('Stored tenantId is common; using fallback authority: ' + tenant);
       }

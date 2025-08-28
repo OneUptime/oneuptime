@@ -15,7 +15,6 @@ import {
   DashboardClientUrl,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
-  MicrosoftTenantId,
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
@@ -59,8 +58,7 @@ export default class MicrosoftTeamsAPI {
           ],
           environment_variables: {
             MICROSOFT_TEAMS_APP_CLIENT_ID: "Required - Your Azure AD App Client ID",
-            MICROSOFT_TEAMS_APP_CLIENT_SECRET: "Required - Your Azure AD App Client Secret",
-            MICROSOFT_TENANT_ID: "Optional - Set to 'common' for multi-tenant (default) or specific tenant ID"
+            MICROSOFT_TEAMS_APP_CLIENT_SECRET: "Required - Your Azure AD App Client Secret"
           },
           setup_instructions: {
             azure_ad_app_registration: [
@@ -70,8 +68,7 @@ export default class MicrosoftTeamsAPI {
               "4. In 'API permissions' add Delegated: Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Send, User.Read, TeamMember.ReadWrite.All",
               "5. In 'API permissions' add Application: ChannelMessage.Send, Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMessage.Read.All, Team.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All (then 'Grant admin consent')",
               "6. Generate a client secret and copy the client ID and secret",
-              "7. Set MICROSOFT_TENANT_ID to your tenant ID or leave unset for multi-tenant ('common')",
-              "8. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
+              "7. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
             ]
           }
         };
@@ -210,7 +207,7 @@ export default class MicrosoftTeamsAPI {
         }
 
         // Extract tenant information from the ID token
-        let tenantId: string = MicrosoftTenantId || "common";
+        let tenantId: string = "common";
         let tenantName: string = "Microsoft Teams";
         let teamId: string = tenantId;
 

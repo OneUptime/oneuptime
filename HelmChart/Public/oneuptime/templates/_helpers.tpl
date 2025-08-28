@@ -176,9 +176,6 @@ Usage:
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
 
-- name: MICROSOFT_TENANT_ID
-  value: {{ $.Values.microsoftTeamsApp.tenantId }}
-
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
 

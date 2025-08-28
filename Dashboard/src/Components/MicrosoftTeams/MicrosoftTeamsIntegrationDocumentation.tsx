@@ -69,7 +69,6 @@ Add these environment variables to your OneUptime configuration:
 \`\`\`text
 MICROSOFT_TEAMS_APP_CLIENT_ID=YOUR_APPLICATION_CLIENT_ID
 MICROSOFT_TEAMS_APP_CLIENT_SECRET=YOUR_CLIENT_SECRET
-MICROSOFT_TENANT_ID=YOUR_TENANT_ID
 \`\`\`
 
 If you are using Kubernetes with Helm, add these to your \`values.yaml\` file:
@@ -78,7 +77,6 @@ If you are using Kubernetes with Helm, add these to your \`values.yaml\` file:
 microsoftTeamsApp: 
   clientId: YOUR_APPLICATION_CLIENT_ID
   clientSecret: YOUR_CLIENT_SECRET
-  tenantId: YOUR_TENANT_ID
 \`\`\`
 
 ##### Step 5: Restart your OneUptime server
