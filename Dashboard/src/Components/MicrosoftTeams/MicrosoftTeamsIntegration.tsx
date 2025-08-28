@@ -360,9 +360,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         "https://graph.microsoft.com/Team.ReadBasic.All",       // list teams
         "https://graph.microsoft.com/Channel.ReadBasic.All",    // list channels
         "https://graph.microsoft.com/ChannelMessage.Send",      // send messages
-        "https://graph.microsoft.com/TeamMember.ReadWrite.All", // (optional) manage membership
-        // Optional: read channel messages if product features need it
-        "https://graph.microsoft.com/ChannelMessage.Read.All"    // (optional) read messages
+        "https://graph.microsoft.com/TeamMember.ReadWrite.All",
+        "https://graph.microsoft.com/ChannelMessage.Read.All",
+        "offline_access"      // required for token refresh
       ];
 
       const project_install_redirect_uri: string = redirectUri;
