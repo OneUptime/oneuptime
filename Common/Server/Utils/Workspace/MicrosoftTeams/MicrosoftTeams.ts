@@ -365,7 +365,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
         ) {
           bodyTextParts.push(`**${name}:** ${value}`);
         } else {
-          facts.push({ name: name, value: value });
+          facts.push({ 
+            name: this.convertMarkdownToHtml(name), 
+            value: this.convertMarkdownToHtml(value) 
+          });
         }
       } else if (lineWithoutLinks) {
         bodyTextParts.push(lineWithoutLinks);
@@ -380,7 +383,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
     };
 
     if (bodyTextParts.length > 0) {
-      payload["text"] = bodyTextParts.join("\n\n");
+      // Convert markdown formatting to HTML for better Teams rendering
+      const htmlBodyText = bodyTextParts.map(part => this.convertMarkdownToHtml(part)).join("<br><br>");
+      payload["text"] = htmlBodyText;
     }
 
     if (facts.length > 0) {
@@ -1245,6 +1250,34 @@ export default class MicrosoftTeams extends WorkspaceBase {
     }
   }
 
+  // Helper method to convert basic markdown to HTML
+  private static convertMarkdownToHtml(text: string): string {
+    if (!text) {
+      return "";
+    }
+
+    let html = text;
+
+    // Convert bold first (**text** or __text__) - non-greedy match
+    html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
+
+    // Convert italic (*text* or _text_) - simple non-greedy match
+    html = html.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_([^_]+?)_/g, '<em>$1</em>');
+
+    // Convert inline code (`text`)
+    html = html.replace(/`([^`]+?)`/g, '<code>$1</code>');
+
+    // Convert line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    // Convert links [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+    return html;
+  }
+
   // Helper method to convert blocks to Teams message format
   private static convertBlocksToTeamsMessage(blocks: Array<JSONObject>): string {
     let html = "";
@@ -1254,11 +1287,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
       
       switch (type) {
         case "header":
-          html += `<h3>${block["text"]}</h3>`;
+          html += `<h3>${this.convertMarkdownToHtml(block["text"] as string)}</h3>`;
           break;
         case "section":
           if (block["text"]) {
-            html += `<p>${block["text"]}</p>`;
+            html += `<p>${this.convertMarkdownToHtml(block["text"] as string)}</p>`;
           }
           break;
         case "divider":
@@ -1270,7 +1303,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
           if (actions) {
             for (const action of actions) {
               if (action["url"]) {
-                html += `<a href="${action["url"]}">${action["text"] || "Click here"}</a><br>`;
+                const buttonText = this.convertMarkdownToHtml(action["text"] as string || "Click here");
+                html += `<a href="${action["url"]}">${buttonText}</a><br>`;
               }
             }
           }
@@ -1278,7 +1312,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         default:
           // For other block types, try to extract text content
           if (block["text"]) {
-            html += `<p>${block["text"]}</p>`;
+            html += `<p>${this.convertMarkdownToHtml(block["text"] as string)}</p>`;
           }
           break;
       }
