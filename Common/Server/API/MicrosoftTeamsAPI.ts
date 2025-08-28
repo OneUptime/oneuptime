@@ -26,69 +26,6 @@ export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
-    // App manifest endpoint similar to Slack
-    router.get(
-      "/teams/app-manifest",
-      (req: ExpressRequest, res: ExpressResponse) => {
-        // return basic manifest information for Teams app setup
-        const manifest: JSONObject = {
-          name: "OneUptime Teams Integration",
-          description: "OneUptime integration for Microsoft Teams (Multi-tenant)",
-          // Delegated permissions (user-consent scopes) used during interactive auth
-          delegatedPermissions: [
-            "openid",
-            "profile", 
-            "email",
-            "offline_access",
-            "User.Read",
-            "Team.ReadBasic.All",
-            "Channel.ReadBasic.All",
-            "ChannelMessage.Send",
-            "TeamMember.ReadWrite.All",
-            "Teamwork.Read.All"
-          ],
-          // Application (client credentials) permissions required to post as the app/bot
-          applicationPermissions: [
-            "Channel.Create",
-            "Channel.Delete.All",
-            "Channel.ReadBasic.All",
-            "ChannelMember.Read.All",
-            "ChannelMember.ReadWrite.All",
-            "ChannelMessage.Read.All",
-            "ChannelMessage.UpdatePolicyViolation.All",
-            "ChatMessage.Read.All",
-            "Team.ReadBasic.All",
-            "TeamMember.Read.All",
-            "TeamMember.ReadWrite.All",
-            "Teamwork.Migrate.All",
-            "Teamwork.Read.All"
-          ],
-          redirectUris: [
-            `${AppApiClientUrl.toString()}/api/teams/auth`
-          ],
-          environment_variables: {
-            MICROSOFT_TEAMS_APP_CLIENT_ID: "Required - Your Azure AD App Client ID",
-            MICROSOFT_TEAMS_APP_CLIENT_SECRET: "Required - Your Azure AD App Client Secret"
-          },
-          setup_instructions: {
-            azure_ad_app_registration: [
-              "1. Go to Azure Portal > App Registrations > New Registration",
-              "2. Set 'Supported account types' to 'Accounts in any organizational directory (Any Azure AD directory - Multitenant)'",
-              "3. Add redirect URI: " + AppApiClientUrl.toString() + "/api/teams/auth",
-              "4. In 'API permissions' add Delegated permissions: openid, profile, email, offline_access, User.Read, Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Send, TeamMember.ReadWrite.All, Teamwork.Read.All",
-              "5. In 'API permissions' add Application permissions: Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All, ChannelMessage.Read.All, ChannelMessage.UpdatePolicyViolation.All, ChatMessage.Read.All, Team.ReadBasic.All, TeamMember.Read.All, TeamMember.ReadWrite.All, Teamwork.Migrate.All, Teamwork.Read.All",
-              "6. Click 'Grant admin consent for your organization' - all permissions must show green checkmark",
-              "7. Generate a client secret and copy the client ID and secret (use the SECRET VALUE, not Secret ID)",
-              "8. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
-            ]
-          }
-        };
-
-        return Response.sendJsonObjectResponse(req, res, manifest);
-      },
-    );
-
-
     // OAuth redirect for project install (admin installs app in a team)
     router.get(
       "/teams/auth",
@@ -187,22 +124,6 @@ export default class MicrosoftTeamsAPI {
           );
 
           let errorMessage = "Error from Microsoft: " + tokenResp.message;
-          
-          // Handle specific client secret error
-          if (tokenResp.jsonData && 
-              typeof tokenResp.jsonData === 'object' && 
-              'error' in tokenResp.jsonData) {
-            const errorData = tokenResp.jsonData as JSONObject;
-            const errorType = errorData['error'] as string;
-            const errorDescription = errorData['error_description'] as string;
-            
-            if (errorType === 'invalid_client' && 
-                errorDescription?.includes('Invalid client secret provided')) {
-              errorMessage = "Invalid Microsoft Teams client secret. Please ensure you are using the SECRET VALUE (not Secret ID) from your Azure App Registration. " +
-                            "Go to Azure Portal > App Registrations > Your App > Certificates & secrets > Client secrets, " +
-                            "and copy the full SECRET VALUE (usually much longer than what you currently have).";
-            }
-          }
 
           return Response.sendErrorResponse(
             req,
