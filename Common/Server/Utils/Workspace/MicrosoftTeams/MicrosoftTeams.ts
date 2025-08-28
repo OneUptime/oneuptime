@@ -430,12 +430,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
     }
   }
 
-  // Helper method to make Microsoft Graph API calls
+  // Helper method to make Microsoft Graph API calls with automatic fallback
   private static async makeGraphApiCall(
     endpoint: string,
     authToken: string,
     method: string = "GET",
     body?: JSONObject,
+    fallbackToken?: string
   ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     const headers: Dictionary<string> = {
       Authorization: `Bearer ${authToken}`,
@@ -454,7 +455,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         ...headers,
         Authorization: `Bearer ${authToken.substring(0, 20)}...` // Only show first 20 chars of token for security
       },
-      body: body
+      body: body,
+      hasFallbackToken: !!fallbackToken
     });
 
     let response: HTTPResponse<JSONObject> | HTTPErrorResponse;
@@ -465,6 +467,62 @@ export default class MicrosoftTeams extends WorkspaceBase {
       response = await API.post(url, body || {}, headers, {});
     } else {
       throw new BadRequestException(`Unsupported HTTP method: ${method}`);
+    }
+
+    // Check if we should attempt fallback for permission-related errors
+    if (response instanceof HTTPErrorResponse && 
+        response.statusCode === 403 && 
+        fallbackToken && 
+        fallbackToken !== authToken) {
+      
+      logger.debug("Primary token failed with 403 Forbidden, attempting fallback token");
+      
+      try {
+        const fallbackHeaders: Dictionary<string> = {
+          Authorization: `Bearer ${fallbackToken}`,
+          "Content-Type": "application/json",
+        };
+
+        logger.debug("Microsoft Graph API fallback call details:");
+        logger.debug({
+          method: method,
+          url: url.toString(),
+          endpoint: endpoint,
+          headers: {
+            ...fallbackHeaders,
+            Authorization: `Bearer ${fallbackToken.substring(0, 20)}...`
+          },
+          body: body
+        });
+
+        let fallbackResponse: HTTPResponse<JSONObject> | HTTPErrorResponse;
+
+        if (method === "GET") {
+          fallbackResponse = await API.get(url, undefined, fallbackHeaders, {});
+        } else if (method === "POST") {
+          fallbackResponse = await API.post(url, body || {}, fallbackHeaders, {});
+        } else {
+          throw new BadRequestException(`Unsupported HTTP method: ${method}`);
+        }
+
+        if (!(fallbackResponse instanceof HTTPErrorResponse)) {
+          logger.debug("Fallback token succeeded where primary token failed");
+          return fallbackResponse;
+        } else {
+          logger.error("Fallback token also failed:");
+          logger.error({
+            statusCode: fallbackResponse.statusCode,
+            message: fallbackResponse.message,
+            data: fallbackResponse.data,
+            jsonData: fallbackResponse.jsonData
+          });
+          // Return the original error, not the fallback error
+        }
+      } catch (fallbackError) {
+        logger.error("Exception during fallback token attempt:");
+        logger.error(fallbackError);
+        // Continue to return the original response
+      }
     }
 
     // Log response details if it's an error
@@ -526,6 +584,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels`,
         appToken,
+        "GET",
+        undefined,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -585,6 +646,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.channelId}`,
         appToken,
+        "GET",
+        undefined,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -683,6 +747,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         appToken,
         "POST",
         channelPayload,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -805,6 +870,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.channelId}/members`,
         appToken,
+        "GET",
+        undefined,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -946,13 +1014,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
         },
       };
 
-      logger.debug(`Attempting to send message to Microsoft Teams channel with application token`);
+      logger.debug(`Attempting to send message to Microsoft Teams channel with application token (fallback to delegated token if needed)`);
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
         appToken,
         "POST",
         messageBody,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -1130,6 +1199,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         appToken,
         "POST",
         chatPayload,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (chatResponse instanceof HTTPErrorResponse) {
@@ -1158,6 +1228,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         appToken,
         "POST",
         messageBody,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (messageResponse instanceof HTTPErrorResponse) {
@@ -1641,6 +1712,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         `/users/${data.userId}`,
         appToken,
         "GET",
+        undefined,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
@@ -1687,6 +1760,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         `/chats/${data.directMessageChannelId}/members`,
         appToken,
         "GET",
+        undefined,
+        data.authToken // Pass delegated token as fallback
       );
 
       if (response instanceof HTTPErrorResponse) {
