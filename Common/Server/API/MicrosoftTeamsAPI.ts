@@ -21,6 +21,7 @@ import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTo
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
+import { generatePermissionChecklist } from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPermissions";
 
 export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
@@ -36,30 +37,32 @@ export default class MicrosoftTeamsAPI {
           description: "OneUptime integration for Microsoft Teams (Multi-tenant)",
           // Delegated permissions (user-consent scopes) used during interactive auth
           delegatedPermissions: [
+            "openid",
+            "profile", 
+            "email",
+            "offline_access",
+            "User.Read",
             "Team.ReadBasic.All",
             "Channel.ReadBasic.All",
             "ChannelMessage.Send",
-            "User.Read",
             "TeamMember.ReadWrite.All",
-            // Added broader Teamwork read (optional but recommended for richer context)
             "Teamwork.Read.All"
           ],
           // Application (client credentials) permissions required to post as the app/bot
           applicationPermissions: [
-            "ChannelMessage.Send",
             "Channel.Create",
             "Channel.Delete.All",
             "Channel.ReadBasic.All",
-            "ChannelMessage.Read.All",
-            "Team.ReadBasic.All",
             "ChannelMember.Read.All",
             "ChannelMember.ReadWrite.All",
-            // Added Teamwork scopes for migration / broader operations
-            "Teamwork.Read.All",
-            "Teamwork.Migrate.All",
+            "ChannelMessage.Read.All",
+            "ChannelMessage.UpdatePolicyViolation.All",
+            "ChatMessage.Read.All",
+            "Team.ReadBasic.All",
             "TeamMember.Read.All",
-            "TeamMember.ReadWrite.All"
-
+            "TeamMember.ReadWrite.All",
+            "Teamwork.Migrate.All",
+            "Teamwork.Read.All"
           ],
           redirectUris: [
             `${AppApiClientUrl.toString()}/api/teams/auth`
@@ -73,10 +76,11 @@ export default class MicrosoftTeamsAPI {
               "1. Go to Azure Portal > App Registrations > New Registration",
               "2. Set 'Supported account types' to 'Accounts in any organizational directory (Any Azure AD directory - Multitenant)'",
               "3. Add redirect URI: " + AppApiClientUrl.toString() + "/api/teams/auth",
-              "4. In 'API permissions' add Delegated: Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Send, User.Read, TeamMember.ReadWrite.All",
-              "5. In 'API permissions' add Application: ChannelMessage.Send, Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMessage.Read.All, Team.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All, Teamwork.Read.All, Teamwork.Migrate.All (then 'Grant admin consent')",
-              "6. Generate a client secret and copy the client ID and secret",
-              "7. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
+              "4. In 'API permissions' add Delegated permissions: openid, profile, email, offline_access, User.Read, Team.ReadBasic.All, Channel.ReadBasic.All, ChannelMessage.Send, TeamMember.ReadWrite.All, Teamwork.Read.All",
+              "5. In 'API permissions' add Application permissions: Channel.Create, Channel.Delete.All, Channel.ReadBasic.All, ChannelMember.Read.All, ChannelMember.ReadWrite.All, ChannelMessage.Read.All, ChannelMessage.UpdatePolicyViolation.All, ChatMessage.Read.All, Team.ReadBasic.All, TeamMember.Read.All, TeamMember.ReadWrite.All, Teamwork.Migrate.All, Teamwork.Read.All",
+              "6. Click 'Grant admin consent for your organization' - all permissions must show green checkmark",
+              "7. Generate a client secret and copy the client ID and secret (use the SECRET VALUE, not Secret ID)",
+              "8. (Optional) If app-only post fails with 403, ensure admin consent was granted and Teams resource-specific consent not required."
             ]
           }
         };
@@ -84,6 +88,7 @@ export default class MicrosoftTeamsAPI {
         return Response.sendJsonObjectResponse(req, res, manifest);
       },
     );
+
 
     // OAuth redirect for project install (admin installs app in a team)
     router.get(

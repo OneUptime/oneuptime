@@ -34,8 +34,41 @@ import {
   MicrosoftTeamsAppClientSecret,
 } from "../../../EnvironmentConfig";
 import MicrosoftTeamsTokenRefresher from "./MicrosoftTeamsTokenRefresher";
+import {
+  REQUIRED_APPLICATION_PERMISSIONS,
+  validateApplicationTokenPermissions
+} from "./MicrosoftTeamsPermissions";
 
 export default class MicrosoftTeams extends WorkspaceBase {
+  // Microsoft Teams API Permission Requirements:
+  // 
+  // DELEGATED PERMISSIONS (for user context operations):
+  // - openid: Required for user sign-in and ID token
+  // - profile: Basic user profile information  
+  // - email: User email address access
+  // - offline_access: Refresh token capability
+  // - User.Read: Basic user profile read access
+  // - Team.ReadBasic.All: Read team names and descriptions
+  // - Channel.ReadBasic.All: Read channel names and descriptions  
+  // - ChannelMessage.Send: Send messages to channels as user
+  // - TeamMember.ReadWrite.All: Manage team membership
+  // - Teamwork.Read.All: Read organizational teamwork settings
+  //
+  // APPLICATION PERMISSIONS (for bot/app context operations):
+  // - Channel.Create: Create new channels
+  // - Channel.Delete.All: Delete channels
+  // - Channel.ReadBasic.All: Read all channel information
+  // - ChannelMember.Read.All: Read channel membership
+  // - ChannelMember.ReadWrite.All: Manage channel membership
+  // - ChannelMessage.Read.All: Read all channel messages
+  // - ChannelMessage.UpdatePolicyViolation.All: Flag policy violations
+  // - ChatMessage.Read.All: Read all chat messages
+  // - Team.ReadBasic.All: Read all team information
+  // - TeamMember.Read.All: Read team membership
+  // - TeamMember.ReadWrite.All: Manage team membership
+  // - Teamwork.Migrate.All: Create messages with any identity/timestamp
+  // - Teamwork.Read.All: Read organizational teamwork settings
+
   // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
   private static async getOrCreateApplicationAccessToken(params: {
     projectAuth: WorkspaceProjectAuthToken | null;
@@ -134,6 +167,26 @@ export default class MicrosoftTeams extends WorkspaceBase {
           "Application token response missing access_token.",
         );
         return null;
+      }
+
+      // Validate token permissions for debugging
+      try {
+        const permissionValidation = validateApplicationTokenPermissions(accessToken);
+        logger.debug("Application token permission validation:");
+        logger.debug({
+          isValid: permissionValidation.isValid,
+          hasRoles: permissionValidation.hasRoles,
+          missingRoles: permissionValidation.missingRoles.length > 0 ? permissionValidation.missingRoles : "None",
+          requiredPermissions: REQUIRED_APPLICATION_PERMISSIONS
+        });
+        
+        if (!permissionValidation.isValid) {
+          logger.warn("Application token missing required permissions:");
+          logger.warn(permissionValidation.missingRoles);
+        }
+      } catch (validationError) {
+        logger.debug("Could not validate application token permissions:");
+        logger.debug(validationError);
       }
 
   const now = Date.now();

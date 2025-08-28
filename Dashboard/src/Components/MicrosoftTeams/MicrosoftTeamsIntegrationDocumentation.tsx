@@ -37,20 +37,27 @@ We use two permission models:
   - \`openid\` (returns an id_token so we can read tenant id)
   - \`profile\` (basic user profile claims)
   - \`offline_access\` (required for refresh tokens)
+  - \`email\` (view users' email address)
   - \`User.Read\` (basic profile / required by most sign-ins)
-  - \`Team.ReadBasic.All\`
-  - \`Channel.ReadBasic.All\`
-  - \`ChannelMessage.Send\`
-  - \`TeamMember.ReadWrite.All\` (optional: only if you want OneUptime to add members to channels)
-4. Add **Application permissions** (minimal required for posting as app):
-  - \`ChannelMessage.Send\`
-  - \`Channel.ReadBasic.All\`
-  - \`Team.ReadBasic.All\`
-  - \`Channel.Create\` (allow app to create channels)
-  - \`Channel.Delete.All\` (allow deleting channels)
+  - \`Team.ReadBasic.All\` (read the names and descriptions of teams)
+  - \`Channel.ReadBasic.All\` (read the names and descriptions of channels)
+  - \`ChannelMessage.Send\` (send channel messages)
+  - \`TeamMember.ReadWrite.All\` (add and remove members from teams)
+  - \`Teamwork.Read.All\` (read organizational teamwork settings)
+4. Add the following **Application permissions** (required for bot functionality):
+  - \`Channel.Create\` (create channels)
+  - \`Channel.Delete.All\` (delete channels)
+  - \`Channel.ReadBasic.All\` (read the names and descriptions of all channels)
+  - \`ChannelMember.Read.All\` (read the members of all channels)
+  - \`ChannelMember.ReadWrite.All\` (add and remove members from all channels)
   - \`ChannelMessage.Read.All\` (read all channel messages)
-  - \`ChannelMember.Read.All\` (read channel membership)
-  - \`ChannelMember.ReadWrite.All\` (manage channel membership)
+  - \`ChannelMessage.UpdatePolicyViolation.All\` (flag channel messages for violating policy)
+  - \`ChatMessage.Read.All\` (read all chat messages)
+  - \`Team.ReadBasic.All\` (get a list of all teams)
+  - \`TeamMember.Read.All\` (read the members of all teams)
+  - \`TeamMember.ReadWrite.All\` (add and remove members from all teams)
+  - \`Teamwork.Migrate.All\` (create chat and channel messages with anyone's identity and with any timestamp)
+  - \`Teamwork.Read.All\` (read organizational teamwork settings)
 6. Click **Add permissions**
 7. Click **Grant admin consent** for your organization (tenant admin required)
 8. Verify all granted Application permissions show a green check mark
