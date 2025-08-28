@@ -8,6 +8,7 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentService from "./IncidentService";
 import { NotificationRuleConditionCheckOn } from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import BadDataException from "../../Types/Exception/BadDataException";
+import BadRequestException from "../../Types/Exception/BadRequestException";
 import Label from "../../Models/DatabaseModels/Label";
 import MonitorService from "./MonitorService";
 import Alert from "../../Models/DatabaseModels/Alert";
@@ -222,6 +223,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             );
           }
         } catch (err) {
+          // If it's already a BadRequestException with specific Microsoft Teams provisioning error, re-throw it
+          if (err instanceof BadRequestException) {
+            throw err;
+          }
+          
+          // For other errors, wrap them in BadDataException
           throw new BadDataException((err as Error)?.message);
         }
       }
