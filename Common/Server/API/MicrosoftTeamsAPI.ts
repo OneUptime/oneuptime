@@ -21,7 +21,6 @@ import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTo
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
-import { generatePermissionChecklist } from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsPermissions";
 
 export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
