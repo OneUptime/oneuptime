@@ -62,7 +62,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       // Need to mint a new token. Prefer discovered tenant id (from delegated auth) if present and not 'common'.
       const tenant: string = (miscData?.tenantId && miscData.tenantId !== 'common')
         ? miscData.tenantId
-        : 'organizations';
+        : 'common';
       if (miscData?.tenantId && miscData.tenantId === 'common') {
         logger.debug('Stored tenantId is common; using fallback authority: ' + tenant);
       }
@@ -111,7 +111,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
             logger.error("Please ensure you are using the SECRET VALUE (not Secret ID) from your Azure App Registration.");
             logger.error("Go to Azure Portal > App Registrations > Your App > Certificates & secrets > Client secrets");
             logger.error("Copy the full SECRET VALUE (usually much longer than Secret ID) and update MICROSOFT_TEAMS_APP_CLIENT_SECRET");
-          }
+          } 
         }
         
         return null;
