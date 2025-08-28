@@ -780,6 +780,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     logger.debug("Found project auths:");
     logger.debug(projectAuths);
+    logger.debug(`DEBUG: Number of project auths found: ${projectAuths.length}`);
 
     if (!projectAuths || projectAuths.length === 0) {
       // do nothing.
@@ -788,15 +789,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const projectAuth of projectAuths) {
       if (!projectAuth.authToken) {
+        logger.debug(`Skipping project auth without authToken for ${projectAuth.workspaceType}`);
         continue;
       }
 
       if (!projectAuth.workspaceType) {
+        logger.debug("Skipping project auth without workspaceType");
         continue;
       }
 
       const authToken: string = projectAuth.authToken;
       const workspaceType: WorkspaceType = projectAuth.workspaceType;
+
+      logger.debug(`DEBUG: Processing workspace type: ${workspaceType}`);
 
       const notificationRules: Array<WorkspaceNotificationRule> =
         await this.getMatchingNotificationRules({
@@ -1312,6 +1317,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     logger.debug("createChannelsBasedOnRules called with data:");
     logger.debug(data);
+    logger.debug(`DEBUG: Creating channels for workspace type: ${data.workspaceType}`);
 
     const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
       [];
@@ -1328,6 +1334,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     logger.debug("New channel names to be created:");
     logger.debug(notificationChannels);
+    logger.debug(`DEBUG: Number of channels to create: ${notificationChannels.length}`);
 
     if (!notificationChannels || notificationChannels.length === 0) {
       logger.debug("No new channel names found. Returning empty array.");
@@ -1349,39 +1356,43 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(
         `Creating new channel with name: ${notificationChannel.channelName}`,
       );
-      const channel: WorkspaceChannel =
-        await WorkspaceUtil.getWorkspaceTypeUtil(
-          data.workspaceType,
-        ).createChannel({
-          authToken: data.projectOrUserAuthTokenForWorkspace,
-          channelName: notificationChannel.channelName,
-        });
-
-      const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
-        ...channel,
-        notificationRuleId: notificationChannel.notificationRuleId,
-      };
-
-      logger.debug("Channel created:");
-      logger.debug(channel);
-
-      // Log the channel creation
+      logger.debug(`DEBUG: Using workspace type util for: ${data.workspaceType}`);
+      
       try {
-        const logData: {
-          projectId: ObjectID;
-          workspaceType: WorkspaceType;
-          channelId: string;
-          channelName: string;
-          incidentId?: ObjectID;
-          alertId?: ObjectID;
-          scheduledMaintenanceId?: ObjectID;
-          onCallDutyPolicyId?: ObjectID;
-        } = {
-          projectId: data.projectId,
-          workspaceType: data.workspaceType,
-          channelId: channel.id,
-          channelName: channel.name,
+        const channel: WorkspaceChannel =
+          await WorkspaceUtil.getWorkspaceTypeUtil(
+            data.workspaceType,
+          ).createChannel({
+            authToken: data.projectOrUserAuthTokenForWorkspace,
+            channelName: notificationChannel.channelName,
+          });
+
+        const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
+          ...channel,
+          notificationRuleId: notificationChannel.notificationRuleId,
         };
+
+        logger.debug("Channel created:");
+        logger.debug(channel);
+        logger.debug(`DEBUG: Channel created successfully for ${data.workspaceType}: ${channel.name} (ID: ${channel.id})`);
+
+        // Log the channel creation
+        try {
+          const logData: {
+            projectId: ObjectID;
+            workspaceType: WorkspaceType;
+            channelId: string;
+            channelName: string;
+            incidentId?: ObjectID;
+            alertId?: ObjectID;
+            scheduledMaintenanceId?: ObjectID;
+            onCallDutyPolicyId?: ObjectID;
+          } = {
+            projectId: data.projectId,
+            workspaceType: data.workspaceType,
+            channelId: channel.id,
+            channelName: channel.name,
+          };
 
         // Add resource associations only if they exist
         if (data.notificationFor?.incidentId) {
@@ -1409,6 +1420,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       createdChannelNames.push(channel.name);
       createdWorkspaceChannels.push(notificationWorkspaceChannel);
+      } catch (error) {
+        logger.error(`ERROR: Failed to create channel ${notificationChannel.channelName} for ${data.workspaceType}:`);
+        logger.error(error);
+        // Continue with other channels even if one fails
+        continue;
+      }
     }
 
     logger.debug("Returning created workspace channels:");

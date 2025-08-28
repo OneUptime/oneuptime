@@ -717,21 +717,30 @@ export default class MicrosoftTeams extends WorkspaceBase {
   }): Promise<WorkspaceChannel> {
     logger.debug("Creating Microsoft Teams channel with data:");
     logger.debug(data);
+    logger.debug("DEBUG: Starting Microsoft Teams channel creation process");
 
     try {
       // Get project auth token for app token access
+      logger.debug("DEBUG: Getting project auth token for app token access");
       const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null = projectAuth || await WorkspaceProjectAuthTokenService.getByAuthToken({
         authToken: data.authToken,
         workspaceType: WorkspaceType.MicrosoftTeams,
       });
 
+      logger.debug("DEBUG: Project auth token obtained:");
+      logger.debug(projectAuthForApp ? { id: projectAuthForApp.id, workspaceType: projectAuthForApp.workspaceType } : null);
+
       // Use application (bot) token
+      logger.debug("DEBUG: Getting or creating application access token");
       const appToken: string | null = await this.getOrCreateApplicationAccessToken({
         projectAuth: projectAuthForApp,
       });
       
+      logger.debug("DEBUG: Application token obtained: " + !!appToken);
+      
       if (!appToken) {
+        logger.error("ERROR: Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
         throw new BadRequestException("Unable to obtain Microsoft Teams application access token. Please ensure app credentials are configured and admin consent is granted.");
       }
       
@@ -740,12 +749,19 @@ export default class MicrosoftTeams extends WorkspaceBase {
         channelName = channelName.substring(1);
       }
 
+      logger.debug("DEBUG: Getting team ID");
       const teamId: string = await this.getTeamId(data.authToken);
+      logger.debug("DEBUG: Team ID obtained: " + teamId);
+      
       const channelPayload = {
         displayName: channelName,
         description: `Channel created by OneUptime`,
         membershipType: "standard",
       };
+
+      logger.debug("DEBUG: Channel payload:");
+      logger.debug(channelPayload);
+      logger.debug("DEBUG: Making Graph API call to create channel");
 
       const response = await this.makeGraphApiCall(
         `/teams/${teamId}/channels`,
@@ -754,6 +770,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         channelPayload,
         data.authToken // Pass delegated token as fallback
       );
+
+      logger.debug("DEBUG: Graph API response received");
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Microsoft Graph API:");
@@ -770,10 +788,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       logger.debug("Microsoft Teams channel created successfully:");
       logger.debug(channel);
+      logger.debug("DEBUG: Microsoft Teams channel creation completed successfully");
       return channel;
     } catch (error) {
       logger.error("Error creating Microsoft Teams channel:");
       logger.error(error);
+      logger.error("DEBUG: Microsoft Teams channel creation failed");
       throw error;
     }
   }
