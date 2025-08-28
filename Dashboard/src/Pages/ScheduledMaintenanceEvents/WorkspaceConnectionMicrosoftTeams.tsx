@@ -64,7 +64,7 @@ const IncidentsPage: FunctionComponent<
           <EmptyState
             id="MicrosoftTeams-connection"
             icon={IconProp.MicrosoftTeams}
-            title="MicrosoftTeams is not connected yet!"
+            title="Microsoft Teams is not connected yet!"
             description="Connect your Microsoft Teams workspace to receive scheduled maintenance notifications. Please go to Project Settings > Workspace Connections > Microsoft Teams to connect your workspace."
           />
         </div>

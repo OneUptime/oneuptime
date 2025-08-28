@@ -64,8 +64,8 @@ const MonitorsPage: FunctionComponent<
           <EmptyState
             id="MicrosoftTeams-connection"
             icon={IconProp.MicrosoftTeams}
-            title="MicrosoftTeams is not connected yet!"
-            description="Connect your Microsoft Teams workspace to receive alert notifications. Please go to Project Settings > Workspace Connections > Microsoft Teams to connect your workspace."
+            title="Microsoft Teams is not connected yet!"
+            description="Connect your Microsoft Teams workspace to receive on call duty notifications. Please go to Project Settings > Workspace Connections > Microsoft Teams to connect your workspace."
           />
         </div>
       )}
