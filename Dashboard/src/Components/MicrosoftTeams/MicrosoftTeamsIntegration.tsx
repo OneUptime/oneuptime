@@ -350,28 +350,22 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       const redirectUri: string = `${APP_API_URL}/teams/auth`;
 
-      // Delegated scopes for Teams integration (requested via user authorization).
-      // NOTE: Application (app-only) permissions like Channel.Create, Channel.Delete.All, etc.
-      // are granted via admin consent in Azure AD and are NOT added to this delegated scope list.
-      // Some advanced permissions may not have delegated equivalents; adding them here will cause
-      // Azure AD to reject the authorization request. Only include those that are valid delegated scopes.
-      // IMPORTANT: Include openid + profile + offline_access so that:
-      //  - We reliably receive an id_token (needed to extract tenant id)
-      //  - We can refresh tokens (offline_access)
-      //  - We have delegated Graph scopes for listing teams/channels and sending messages
-      // 
-      // All required delegated permissions:
       const scopes: Array<string> = [
-        "openid", // returns an id_token so we can read tenant id
-        "profile", // basic user profile claims
-        "offline_access", // required for refresh tokens
-        "email", // view users' email address
-        "https://graph.microsoft.com/User.Read", // basic profile / required by most sign-ins
-        "https://graph.microsoft.com/Team.ReadBasic.All", // read the names and descriptions of teams
-        "https://graph.microsoft.com/Channel.ReadBasic.All", // read the names and descriptions of channels
-        "https://graph.microsoft.com/ChannelMessage.Send", // send channel messages
-        "https://graph.microsoft.com/TeamMember.ReadWrite.All", // add and remove members from teams
-        "https://graph.microsoft.com/Teamwork.Read.All" // read organizational teamwork settings
+        "openid",
+        "profile",
+        "offline_access",
+        "email",
+        "https://graph.microsoft.com/User.Read",
+        "https://graph.microsoft.com/Team.ReadBasic.All",
+        "https://graph.microsoft.com/Channel.ReadBasic.All",
+        "https://graph.microsoft.com/Channel.Create",
+        "https://graph.microsoft.com/Channel.Delete.All",
+        "https://graph.microsoft.com/ChannelMessage.Edit",
+        "https://graph.microsoft.com/ChannelMessage.Read.All",
+        "https://graph.microsoft.com/ChannelMessage.ReadWrite",
+        "https://graph.microsoft.com/ChannelMessage.Send",
+        "https://graph.microsoft.com/TeamMember.ReadWrite.All",
+        "https://graph.microsoft.com/Teamwork.Read.All"
       ];
 
       const project_install_redirect_uri: string = redirectUri;
