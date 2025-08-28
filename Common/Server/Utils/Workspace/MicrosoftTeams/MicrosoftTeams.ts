@@ -972,13 +972,16 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
+      
+      // First, try adding the user to the channel directly
       const memberPayload = {
         "@odata.type": "#microsoft.graph.aadUserConversationMember",
         "user@odata.bind": `https://graph.microsoft.com/v1.0/users/${data.workspaceUserId}`,
         roles: ["member"],
       };
 
-      const response = await this.makeGraphApiCall(
+      logger.debug("Attempting to add user directly to channel...");
+      const channelResponse = await this.makeGraphApiCall(
         `/teams/${teamId}/channels/${data.channelId}/members`,
         appToken,
         "POST",
@@ -986,10 +989,53 @@ export default class MicrosoftTeams extends WorkspaceBase {
         data.authToken // Pass delegated token as fallback
       );
 
-      if (response instanceof HTTPErrorResponse) {
+      if (channelResponse instanceof HTTPErrorResponse) {
+        // Check if this is the "Operation not supported for this Channel" error
+        const errorData = channelResponse.jsonData as JSONObject;
+        const errorMessage = (errorData?.["error"] as JSONObject)?.["message"] as string;
+        if (channelResponse.statusCode === 400 && 
+            errorMessage && 
+            errorMessage.includes("Operation not supported for this Channel")) {
+          
+          logger.debug("Channel doesn't support direct member addition. Attempting to add user to team instead...");
+          
+          // Try adding the user to the team instead
+          const teamMemberPayload = {
+            "@odata.type": "#microsoft.graph.aadUserConversationMember",
+            "user@odata.bind": `https://graph.microsoft.com/v1.0/users/${data.workspaceUserId}`,
+            roles: ["member"],
+          };
+
+          const teamResponse = await this.makeGraphApiCall(
+            `/teams/${teamId}/members`,
+            appToken,
+            "POST",
+            teamMemberPayload,
+            data.authToken // Pass delegated token as fallback
+          );
+
+          if (teamResponse instanceof HTTPErrorResponse) {
+            // Check if user is already a team member
+            if (teamResponse.statusCode === 409) {
+              logger.debug("User is already a team member, which means they should have access to public channels.");
+              return;
+            }
+            
+            logger.error("Error adding user to team:");
+            logger.error(teamResponse);
+            throw new BadRequestException(
+              `Cannot add user to this channel. The channel doesn't support direct member addition and the user could not be added to the team. Error: ${errorMessage}`
+            );
+          }
+
+          logger.debug("User successfully added to team. They should now have access to public channels including this one.");
+          return;
+        }
+        
+        // For other errors, log and throw
         logger.error("Error response from Microsoft Graph API:");
-        logger.error(response);
-        throw response;
+        logger.error(channelResponse);
+        throw channelResponse;
       }
 
       logger.debug("User invited to Microsoft Teams channel successfully.");
