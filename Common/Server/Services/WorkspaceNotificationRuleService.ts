@@ -766,7 +766,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     channelsCreated: Array<NotificationRuleWorkspaceChannel>;
   } | null> {
     logger.debug(
-      "WorkspaceNotificationRuleService.createInviteAndPostToChannelsBasedOnRules",
+      "WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules called with data:",
     );
     logger.debug(data);
 
@@ -777,7 +777,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         projectId: data.projectId,
       });
 
-    logger.debug("projectAuths");
+    logger.debug("Found project auths:");
     logger.debug(projectAuths);
 
     if (!projectAuths || projectAuths.length === 0) {
@@ -805,14 +805,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationFor: data.notificationFor,
         });
 
-      logger.debug("notificationRules");
+      logger.debug(`Found ${notificationRules.length} notification rules for ${workspaceType}:`);
       logger.debug(notificationRules);
 
       if (!notificationRules || notificationRules.length === 0) {
-        return null;
+        logger.debug(`No notification rules found for ${workspaceType}. Skipping channel creation.`);
+        continue;
       }
 
-      logger.debug("Creating channels based on rules");
+      logger.debug(`Creating channels based on rules for ${workspaceType}`);
       const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
         await this.createChannelsBasedOnRules({
           projectId: data.projectId,
@@ -824,7 +825,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationFor: data.notificationFor,
         });
 
-      logger.debug("createdWorkspaceChannels");
+      logger.debug(`Created ${createdWorkspaceChannels.length} channels for ${workspaceType}:`);
       logger.debug(createdWorkspaceChannels);
 
       logger.debug("Inviting users and teams to channels based on rules");
