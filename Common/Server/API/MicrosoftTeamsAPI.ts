@@ -376,6 +376,35 @@ export default class MicrosoftTeamsAPI {
           logger.error("Error auto-selecting first Microsoft Team: " + (autoSelectErr as Error).message);
         }
 
+        // Get the actual Microsoft Teams user ID from Microsoft Graph API
+        let microsoftTeamsUserId: string = userIdStr; // fallback to OneUptime user ID
+        try {
+          const userInfoResponse = await API.get(
+            URL.fromString("https://graph.microsoft.com/v1.0/me"),
+            undefined,
+            {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            }
+          );
+
+          if (!(userInfoResponse instanceof HTTPErrorResponse)) {
+            const userInfo = userInfoResponse.data as JSONObject;
+            const actualUserId = userInfo["id"] as string;
+            if (actualUserId) {
+              microsoftTeamsUserId = actualUserId;
+              logger.debug(`Retrieved Microsoft Teams user ID: ${microsoftTeamsUserId} for OneUptime user: ${userIdStr}`);
+            }
+          } else {
+            logger.warn(`Could not retrieve Microsoft Teams user info for user ${userIdStr}. Using OneUptime user ID as fallback.`);
+            logger.warn(userInfoResponse.message);
+          }
+        } catch (userInfoError) {
+          logger.error("Error fetching Microsoft Teams user info:");
+          logger.error(userInfoError);
+          logger.warn(`Using OneUptime user ID ${userIdStr} as fallback for Microsoft Teams user ID`);
+        }
+
         // Handle different auth types based on state parameter
         const tokenExpiryDate: string | undefined = expiresIn
           ? new Date(Date.now() + (expiresIn - 60) * 1000).toISOString() // subtract 60s buffer
@@ -403,9 +432,10 @@ export default class MicrosoftTeamsAPI {
             userId: new ObjectID(userIdStr),
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: accessToken,
-            workspaceUserId: userIdStr,
+            workspaceUserId: microsoftTeamsUserId,
             miscData: {
-              userId: userIdStr,
+              userId: microsoftTeamsUserId,
+              oneUptimeUserId: userIdStr,
               tenantId: tenantId,
         refreshToken: refreshToken || "",
         tokenExpiresAt: tokenExpiryDate || "",
@@ -418,9 +448,10 @@ export default class MicrosoftTeamsAPI {
             userId: new ObjectID(userIdStr),
             workspaceType: WorkspaceType.MicrosoftTeams,
             authToken: accessToken,
-            workspaceUserId: userIdStr,
+            workspaceUserId: microsoftTeamsUserId,
             miscData: {
-              userId: userIdStr,
+              userId: microsoftTeamsUserId,
+              oneUptimeUserId: userIdStr,
               tenantId: tenantId,
         refreshToken: refreshToken || "",
         tokenExpiresAt: tokenExpiryDate || "",
