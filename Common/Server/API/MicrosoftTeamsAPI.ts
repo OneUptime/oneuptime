@@ -174,10 +174,28 @@ export default class MicrosoftTeamsAPI {
             tokenResp.jsonData
           );
 
+          let errorMessage = "Error from Microsoft: " + tokenResp.message;
+          
+          // Handle specific client secret error
+          if (tokenResp.jsonData && 
+              typeof tokenResp.jsonData === 'object' && 
+              'error' in tokenResp.jsonData) {
+            const errorData = tokenResp.jsonData as JSONObject;
+            const errorType = errorData['error'] as string;
+            const errorDescription = errorData['error_description'] as string;
+            
+            if (errorType === 'invalid_client' && 
+                errorDescription?.includes('Invalid client secret provided')) {
+              errorMessage = "Invalid Microsoft Teams client secret. Please ensure you are using the SECRET VALUE (not Secret ID) from your Azure App Registration. " +
+                            "Go to Azure Portal > App Registrations > Your App > Certificates & secrets > Client secrets, " +
+                            "and copy the full SECRET VALUE (usually much longer than what you currently have).";
+            }
+          }
+
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Error from Microsoft: " + tokenResp.message),
+            new BadDataException(errorMessage),
           );
         }
 

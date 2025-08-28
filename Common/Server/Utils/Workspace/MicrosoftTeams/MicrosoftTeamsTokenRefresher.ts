@@ -116,6 +116,24 @@ export default class MicrosoftTeamsTokenRefresher {
                     data: resp.data,
                     jsonData: resp.jsonData
                 });
+                
+                // Handle specific client secret error during refresh
+                if (resp.jsonData && 
+                    typeof resp.jsonData === 'object' && 
+                    'error' in resp.jsonData) {
+                  const errorData = resp.jsonData as JSONObject;
+                  const errorType = errorData['error'] as string;
+                  const errorDescription = errorData['error_description'] as string;
+                  
+                  if (errorType === 'invalid_client' && 
+                      errorDescription?.includes('Invalid client secret provided')) {
+                    logger.error("ERROR: Invalid Microsoft Teams client secret detected during token refresh!");
+                    logger.error("Please ensure you are using the SECRET VALUE (not Secret ID) from your Azure App Registration.");
+                    logger.error("Go to Azure Portal > App Registrations > Your App > Certificates & secrets > Client secrets");
+                    logger.error("Copy the full SECRET VALUE and update MICROSOFT_TEAMS_APP_CLIENT_SECRET");
+                  }
+                }
+                
                 return projectAuthToken;
             }
 

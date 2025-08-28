@@ -96,6 +96,24 @@ export default class MicrosoftTeams extends WorkspaceBase {
           "Could not obtain Microsoft Teams application access token (client credentials).",
         );
         logger.error(tokenResp);
+        
+        // Handle specific client secret error
+        if (tokenResp.jsonData && 
+            typeof tokenResp.jsonData === 'object' && 
+            'error' in tokenResp.jsonData) {
+          const errorData = tokenResp.jsonData as JSONObject;
+          const errorType = errorData['error'] as string;
+          const errorDescription = errorData['error_description'] as string;
+          
+          if (errorType === 'invalid_client' && 
+              errorDescription?.includes('Invalid client secret provided')) {
+            logger.error("ERROR: Invalid Microsoft Teams client secret detected!");
+            logger.error("Please ensure you are using the SECRET VALUE (not Secret ID) from your Azure App Registration.");
+            logger.error("Go to Azure Portal > App Registrations > Your App > Certificates & secrets > Client secrets");
+            logger.error("Copy the full SECRET VALUE (usually much longer than Secret ID) and update MICROSOFT_TEAMS_APP_CLIENT_SECRET");
+          }
+        }
+        
         return null;
       }
 
