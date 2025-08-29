@@ -16,6 +16,18 @@ docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PRO
 
 If you are self hosting OneUptime, you can change `ONEUPTIME_URL` to your custom self hosted instance.
 
+#### Proxy Configuration
+
+If your network requires outgoing requests to go through a proxy, you can configure the probe to use a proxy server by setting the `PROXY_URL` environment variable. This is useful for monitoring resources that require proxy access.
+
+The `PROXY_URL` should be in the format: `http://proxy.example.com:8080` or `https://user:pass@proxy.example.com:8080` for authenticated proxies.
+
+Example with proxy:
+
+```
+docker run --name oneuptime-probe --network host -e PROBE_KEY=<probe-key> -e PROBE_ID=<probe-id> -e ONEUPTIME_URL=https://oneuptime.com -e PROXY_URL=http://proxy.example.com:8080 -d oneuptime/probe:release
+```
+
 #### Docker Compose
 
 You can also run the probe using docker-compose. Create a `docker-compose.yml` file with the following content:
@@ -31,6 +43,7 @@ services:
       - PROBE_KEY=<probe-key>
       - PROBE_ID=<probe-id>
       - ONEUPTIME_URL=https://oneuptime.com
+      - PROXY_URL=http://proxy.example.com:8080  # Optional: Proxy URL for monitoring requests
     network_mode: host
     restart: always
 ```
@@ -70,6 +83,8 @@ spec:
                 value: "<probe-id>"
               - name: ONEUPTIME_URL
                 value: "https://oneuptime.com"
+              - name: PROXY_URL
+                value: "http://proxy.example.com:8080"  # Optional: Proxy URL for monitoring requests
 ```
 
 Then run the following command:

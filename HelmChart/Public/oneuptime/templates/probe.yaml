@@ -99,6 +99,10 @@ spec:
               {{- end }}
             - name: PROBE_MONITOR_FETCH_LIMIT
               value: {{ $val.monitorFetchLimit | squote }}
+            {{- if $val.proxyUrl }}
+            - name: PROXY_URL
+              value: {{ $val.proxyUrl }}
+            {{- end }}
             {{- if $val.disableTelemetryCollection }}
             - name: DISABLE_TELEMETRY
               value: {{ $val.disableTelemetryCollection | quote }}
