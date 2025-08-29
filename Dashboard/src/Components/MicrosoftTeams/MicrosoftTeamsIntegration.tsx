@@ -34,6 +34,7 @@ import Modal from "Common/UI/Components/Modal/Modal";
 import Button from "Common/UI/Components/Button/Button";
 import { ButtonStyleType as SharedButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import GenericObject from "Common/Types/GenericObject";
@@ -77,6 +78,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [adminConsentGranted, setAdminConsentGranted] = React.useState<boolean>(false);
   const [currentStep, setCurrentStep] = React.useState<string>("admin-consent");
   const [isFinished, setIsFinished] = React.useState<boolean>(false);
+  const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
+  const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
 
   // Define the integration steps
   // NOTE: Order changed so that we connect user account before selecting team.
@@ -497,6 +500,57 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
+  // Management actions after finish
+  const handleLogoutUser: VoidFunction = async (): Promise<void> => {
+    if (!userAuthTokenId) { return; }
+    try {
+      setIsActionLoading(true);
+      await ModelAPI.deleteItem({
+        modelType: WorkspaceUserAuthToken,
+        id: userAuthTokenId,
+      });
+      setIsUserAccountConnected(false);
+      setWorkspaceUserAuthTokenId(null);
+      setAvailableTeams([]);
+      setCurrentTeamId(null); // team tied to user context for channel operations
+      setTeamsTeamName('Microsoft Teams');
+      setIsFinished(false); // Go back to wizard to reconnect user
+      setCurrentStep('user-account');
+    } catch (err) {
+      setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleUninstall: VoidFunction = async (): Promise<void> => {
+    try {
+      setIsActionLoading(true);
+      // Delete user token first (ignore errors individually)
+      if (userAuthTokenId) {
+        try { await ModelAPI.deleteItem({ modelType: WorkspaceUserAuthToken, id: userAuthTokenId }); } catch { /* ignore */ }
+      }
+      if (projectAuthTokenId) {
+        try { await ModelAPI.deleteItem({ modelType: WorkspaceProjectAuthToken, id: projectAuthTokenId }); } catch { /* ignore */ }
+      }
+      // Reset all state
+      setIsUserAccountConnected(false);
+      setIsProjectAccountConnected(false);
+      setWorkspaceUserAuthTokenId(null);
+      setWorkspaceProjectAuthTokenId(null);
+      setCurrentTeamId(null);
+      setTeamsTeamName(null);
+      setAdminConsentGranted(false);
+      setAvailableTeams([]);
+      setIsFinished(false);
+      setCurrentStep('admin-consent');
+    } catch (err) {
+      setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   const renderStepContent = (): ReactElement => {
     switch (currentStep) {
       case "admin-consent":
@@ -651,6 +705,68 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return <div>Unknown step</div>;
     }
   };
+
+  // If setup finished, show management card instead of wizard
+  if (isFinished && isProjectAccountConnected && isUserAccountConnected && currentTeamId) {
+    return (
+      <Fragment>
+        <div className="w-full">
+          <Card
+            title="Microsoft Teams Integration"
+            description={`Integration is active for team ${teamsTeamName}. You can manage or uninstall it below.`}
+          >
+            <div className="space-y-6">
+              <div className="border rounded-md p-4 bg-gray-50">
+                <h4 className="text-sm font-medium text-gray-800 mb-2">User Session</h4>
+                <p className="text-xs text-gray-600 mb-3">Log out your personal Microsoft Teams account. Project-level permissions remain until you uninstall.</p>
+                <Button
+                  title="Log Out of Teams"
+                  buttonStyle={SharedButtonStyleType.OUTLINE}
+                  icon={IconProp.Logout}
+                  onClick={() => { void handleLogoutUser(); }}
+                  isLoading={isActionLoading}
+                  disabled={isActionLoading}
+                />
+              </div>
+              <div className="border rounded-md p-4 bg-red-50">
+                <h4 className="text-sm font-medium text-red-800 mb-2">Uninstall OneUptime</h4>
+                <p className="text-xs text-red-700 mb-3">This revokes the integration by deleting stored tokens. (To fully revoke admin consent in Azure AD, remove the Enterprise App manually.)</p>
+                <Button
+                  title="Uninstall Integration"
+                  buttonStyle={SharedButtonStyleType.DANGER}
+                  icon={IconProp.Trash}
+                  onClick={() => setShowUninstallConfirm(true)}
+                  isLoading={isActionLoading}
+                  disabled={isActionLoading}
+                />
+              </div>
+            </div>
+          </Card>
+        </div>
+        {showUninstallConfirm && (
+          <ConfirmModal
+            title="Uninstall Microsoft Teams Integration"
+            description={
+              <div className="space-y-3 text-sm">
+                <p>This will remove both project-level and user-level tokens stored in OneUptime for Microsoft Teams.</p>
+                <p className="text-red-600 font-medium">This action cannot be undone inside OneUptime.</p>
+                <p className="text-xs text-gray-500">If you also want to fully revoke granted permissions in Azure AD, remove the Enterprise Application from your Azure portal after uninstalling.</p>
+              </div>
+            }
+            submitButtonText="Uninstall"
+            submitButtonType={SharedButtonStyleType.DANGER}
+            onSubmit={async () => {
+              await handleUninstall();
+              setShowUninstallConfirm(false);
+            }}
+            onClose={() => setShowUninstallConfirm(false)}
+            disableSubmitButton={isActionLoading}
+            isLoading={isActionLoading}
+          />
+        )}
+      </Fragment>
+    );
+  }
 
   return (
     <Fragment>
