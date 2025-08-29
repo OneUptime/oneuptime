@@ -3,6 +3,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -131,21 +132,24 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // If all integration prerequisites are met on initial load (e.g. page refresh),
   // automatically mark the setup as finished so the management card is shown.
+  // Track initial load to decide if we should auto-complete (only for previously finished setups on page refresh)
+  const initialLoadRef = useRef<boolean>(true);
   useEffect(() => {
-    if (
-      !isFinished &&
-      isProjectAccountConnected &&
-      adminConsentGranted &&
-      isUserAccountConnected &&
-      !!currentTeamId &&
-      teamsTeamName &&
-      teamsTeamName !== 'Microsoft Teams'
-    ) {
-      setIsFinished(true);
-      setCurrentStep('finish');
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      if (
+        isProjectAccountConnected &&
+        adminConsentGranted &&
+        isUserAccountConnected &&
+        !!currentTeamId &&
+        teamsTeamName &&
+        teamsTeamName !== 'Microsoft Teams'
+      ) {
+        setIsFinished(true);
+        setCurrentStep('finish');
+      }
     }
   }, [
-    isFinished,
     isProjectAccountConnected,
     adminConsentGranted,
     isUserAccountConnected,
@@ -170,27 +174,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   }, [isUserAccountConnected, userAuthTokenId, isProjectAccountConnected]);
 
-  // If project is connected but no specific team chosen (generic placeholder) and teams are loaded, prompt user to pick.
-  // Auto-select first team once teams are fetched if none selected yet.
-  useEffect(() => {
-    if (
-      isProjectAccountConnected &&
-      isUserAccountConnected &&
-      availableTeams.length > 0 &&
-      (!currentTeamId || teamsTeamName === 'Microsoft Teams')
-    ) {
-      // Select first team silently (no modal)
-      selectTeam(availableTeams[0]!).catch((err) => {
-        console.error('Failed to auto select first team', err);
-      });
-    }
-  }, [
-    isProjectAccountConnected,
-    isUserAccountConnected,
-    availableTeams,
-    currentTeamId,
-    teamsTeamName,
-  ]);
+  // Removed auto-select effect to ensure user can manually choose a team (Step 3 should not be skipped)
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
