@@ -129,6 +129,30 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     setCurrentStep(getCurrentStep());
   }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName, isFinished]);
 
+  // If all integration prerequisites are met on initial load (e.g. page refresh),
+  // automatically mark the setup as finished so the management card is shown.
+  useEffect(() => {
+    if (
+      !isFinished &&
+      isProjectAccountConnected &&
+      adminConsentGranted &&
+      isUserAccountConnected &&
+      !!currentTeamId &&
+      teamsTeamName &&
+      teamsTeamName !== 'Microsoft Teams'
+    ) {
+      setIsFinished(true);
+      setCurrentStep('finish');
+    }
+  }, [
+    isFinished,
+    isProjectAccountConnected,
+    adminConsentGranted,
+    isUserAccountConnected,
+    currentTeamId,
+    teamsTeamName,
+  ]);
+
   useEffect(() => {
     if (isProjectAccountConnected && currentTeamId && isUserAccountConnected) {
       props.onConnected();
