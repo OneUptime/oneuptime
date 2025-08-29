@@ -32,6 +32,8 @@ import { JSONObject } from "Common/Types/JSON";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Modal from "Common/UI/Components/Modal/Modal";
 import Button from "Common/UI/Components/Button/Button";
+import { ButtonStyleType as SharedButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import GenericObject from "Common/Types/GenericObject";
@@ -74,6 +76,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [isLoadingTeams, setIsLoadingTeams] = React.useState<boolean>(false);
   const [adminConsentGranted, setAdminConsentGranted] = React.useState<boolean>(false);
   const [currentStep, setCurrentStep] = React.useState<string>("admin-consent");
+  const [isFinished, setIsFinished] = React.useState<boolean>(false);
 
   // Define the integration steps
   // NOTE: Order changed so that we connect user account before selecting team.
@@ -95,6 +98,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       id: "select-team",
       title: "Step 3: Select Team",
     },
+    {
+      id: "finish",
+      title: "Step 4: Finish",
+    },
   ];
 
   // Determine current step based on connection status
@@ -102,20 +109,21 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     if (!isProjectAccountConnected || !adminConsentGranted) {
       return "admin-consent";
     }
-    // Need user account before we can list teams.
     if (!isUserAccountConnected) {
       return "user-account";
     }
     if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
       return "select-team";
     }
-    // All done – keep user-account step accessible for status (last completed step logically is select-team, but we show user account as completed earlier)
+    if (isFinished) {
+      return "finish";
+    }
     return "select-team";
   };
 
   useEffect(() => {
     setCurrentStep(getCurrentStep());
-  }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName]);
+  }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName, isFinished]);
 
   useEffect(() => {
     if (isProjectAccountConnected && currentTeamId && isUserAccountConnected) {
@@ -501,41 +509,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                  isProjectAccountConnected && adminConsentGranted 
-                    ? 'bg-green-600 hover:bg-green-700' 
-                    : 'bg-indigo-600 hover:bg-indigo-700'
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+              <Button
+                title={isProjectAccountConnected && adminConsentGranted ? 'Admin Consent Granted' : 'Grant Admin Consent'}
                 onClick={() => initiateAdminConsent()}
                 disabled={isProjectAccountConnected && adminConsentGranted}
-              >
-                {isProjectAccountConnected && adminConsentGranted ? (
-                  <>
-                    <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Admin Consent Granted
-                  </>
-                ) : (
-                  <>
-                    <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                    </svg>
-                    Grant Admin Consent
-                  </>
-                )}
-              </button>
+                icon={isProjectAccountConnected && adminConsentGranted ? IconProp.Check : IconProp.Lock}
+                buttonStyle={isProjectAccountConnected && adminConsentGranted ? SharedButtonStyleType.SUCCESS : SharedButtonStyleType.PRIMARY}
+              />
               {isProjectAccountConnected && !adminConsentGranted && (
-                <button
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                <Button
+                  title="Continue with Limited Permissions"
                   onClick={() => connectWithMicrosoftTeams()}
-                >
-                  <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                  </svg>
-                  Continue with Limited Permissions
-                </button>
+                  buttonStyle={SharedButtonStyleType.SECONDARY}
+                  icon={IconProp.Refresh}
+                />
               )}
             </div>
           </div>
@@ -551,39 +538,22 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                  isUserAccountConnected 
-                    ? 'bg-green-600 hover:bg-green-700' 
-                    : 'bg-indigo-600 hover:bg-indigo-700'
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+              <Button
+                title={isUserAccountConnected ? 'Account Connected' : 'Connect User Account'}
                 onClick={() => connectWithMicrosoftTeams()}
                 disabled={isUserAccountConnected}
-              >
-                {isUserAccountConnected ? (
-                  <>
-                    <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Account Connected
-                  </>
-                ) : (
-                  <>
-                    <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                    </svg>
-                    Connect User Account
-                  </>
-                )}
-              </button>
+                icon={isUserAccountConnected ? IconProp.Check : IconProp.User}
+                buttonStyle={isUserAccountConnected ? SharedButtonStyleType.SUCCESS : SharedButtonStyleType.PRIMARY}
+              />
               {isUserAccountConnected && (
-                <button
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                <Button
+                  title="Disconnect Account"
+                  buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
+                  icon={IconProp.Close}
                   onClick={async () => {
                     try {
                       setIsButtonLoading(true);
                       setError(null);
-                      
                       if (userAuthTokenId) {
                         await ModelAPI.deleteItem({
                           modelType: WorkspaceUserAuthToken,
@@ -591,7 +561,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                         });
                         setIsUserAccountConnected(false);
                         setWorkspaceUserAuthTokenId(null);
-                        // Also clear teams – they depend on user token
                         setAvailableTeams([]);
                         setCurrentTeamId(null);
                         setTeamsTeamName('Microsoft Teams');
@@ -602,12 +571,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     setIsButtonLoading(false);
                   }}
                   disabled={isButtonLoading}
-                >
-                  <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                  Disconnect Account
-                </button>
+                />
               )}
             </div>
           </div>
@@ -629,8 +593,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              <Button
+                title={currentTeamId ? 'Change Team' : 'Select Team'}
+                buttonStyle={SharedButtonStyleType.PRIMARY}
+                icon={IconProp.Settings}
                 onClick={() => {
                   if (!isUserAccountConnected) { return; }
                   if (availableTeams.length === 0) {
@@ -642,12 +608,41 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   }
                 }}
                 disabled={isLoadingTeams || !isUserAccountConnected}
-              >
-                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                </svg>
-                {currentTeamId ? "Change Team" : "Select Team"}
-              </button>
+              />
+              {currentTeamId && (
+                <Button
+                  title="Finish"
+                  buttonStyle={SharedButtonStyleType.SUCCESS}
+                  icon={IconProp.Check}
+                  onClick={() => {
+                    setIsFinished(true);
+                    setCurrentStep('finish');
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        );
+
+      case "finish":
+        return (
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Setup Complete</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Microsoft Teams integration is fully configured for team <strong>{teamsTeamName}</strong>. You can now receive notifications and manage settings.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                title="Change Team"
+                buttonStyle={SharedButtonStyleType.OUTLINE}
+                icon={IconProp.Settings}
+                onClick={() => {
+                  setIsFinished(false);
+                  setCurrentStep('select-team');
+                }}
+              />
             </div>
           </div>
         );
