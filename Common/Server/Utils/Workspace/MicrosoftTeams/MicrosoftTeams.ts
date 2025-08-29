@@ -931,9 +931,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -952,11 +951,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
-      const response = await this.makeGraphApiCall(
-        `/teams/${teamId}/channels/${data.channelId}/members`,
-        appToken,
-        "GET",
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/teams/${teamId}/channels/${data.channelId}/members`,
+          appToken,
+          "GET",
+        );
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Microsoft Graph API:");
@@ -964,11 +964,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return false;
       }
 
-      const members = (response.jsonData as JSONObject)[
+      const members: Array<JSONObject> = (response.jsonData as JSONObject)[
         "value"
       ] as Array<JSONObject>;
-      const isUserInChannel = members.some((member) => {
-        const userId =
+      const isUserInChannel: boolean = members.some((member: JSONObject) => {
+        const userId: string =
           (member["userId"] as string) ||
           ((member["user"] as JSONObject)?.["id"] as string);
         return userId === data.userId;
@@ -996,7 +996,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // Check if user is already in channel
-      const isUserInChannel = await this.isUserInChannel({
+      const isUserInChannel: boolean = await this.isUserInChannel({
         authToken: data.authToken,
         channelId: data.channelId,
         userId: data.workspaceUserId,
@@ -1008,9 +1008,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -1031,24 +1030,25 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const teamId: string = await this.getTeamId(data.authToken);
 
       // First, try adding the user to the channel directly
-      const memberPayload = {
+      const memberPayload: JSONObject = {
         "@odata.type": "#microsoft.graph.aadUserConversationMember",
         "user@odata.bind": `https://graph.microsoft.com/v1.0/users/${data.workspaceUserId}`,
         roles: ["member"],
       };
 
       logger.debug("Attempting to add user directly to channel...");
-      const channelResponse = await this.makeGraphApiCall(
-        `/teams/${teamId}/channels/${data.channelId}/members`,
-        appToken,
-        "POST",
-        memberPayload,
-      );
+      const channelResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/teams/${teamId}/channels/${data.channelId}/members`,
+          appToken,
+          "POST",
+          memberPayload,
+        );
 
       if (channelResponse instanceof HTTPErrorResponse) {
         // Check if this is the "Operation not supported for this Channel" error
-        const errorData = channelResponse.jsonData as JSONObject;
-        const errorMessage = (errorData?.["error"] as JSONObject)?.[
+        const errorData: JSONObject = channelResponse.jsonData as JSONObject;
+        const errorMessage: string = (errorData?.["error"] as JSONObject)?.[
           "message"
         ] as string;
         if (
@@ -1061,18 +1061,19 @@ export default class MicrosoftTeams extends WorkspaceBase {
           );
 
           // Try adding the user to the team instead
-          const teamMemberPayload = {
+          const teamMemberPayload: JSONObject = {
             "@odata.type": "#microsoft.graph.aadUserConversationMember",
             "user@odata.bind": `https://graph.microsoft.com/v1.0/users/${data.workspaceUserId}`,
             roles: ["member"],
           };
 
-          const teamResponse = await this.makeGraphApiCall(
-            `/teams/${teamId}/members`,
-            appToken,
-            "POST",
-            teamMemberPayload,
-          );
+          const teamResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await this.makeGraphApiCall(
+              `/teams/${teamId}/members`,
+              appToken,
+              "POST",
+              teamMemberPayload,
+            );
 
           if (teamResponse instanceof HTTPErrorResponse) {
             // Check if user is already a team member
@@ -1120,10 +1121,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const channel = await this.getWorkspaceChannelFromChannelName({
-        authToken: data.authToken,
-        channelName: data.channelName,
-      });
+      const channel: WorkspaceChannel =
+        await this.getWorkspaceChannelFromChannelName({
+          authToken: data.authToken,
+          channelName: data.channelName,
+        });
 
       await this.inviteUserToChannelByChannelId({
         authToken: data.authToken,
@@ -1148,9 +1150,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
 
       const teamId: string = await this.getTeamId(data.authToken);
 
@@ -1177,7 +1178,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       );
 
       // Convert blocks to Teams message format
-      const messageBody = {
+      const messageBody: JSONObject = {
         body: {
           contentType: "html",
           content: this.convertBlocksToTeamsMessage(data.blocks),
@@ -1188,12 +1189,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
         `Attempting to send message to Microsoft Teams channel with application token`,
       );
 
-      const response = await this.makeGraphApiCall(
-        `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
-        appToken,
-        "POST",
-        messageBody,
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
+          appToken,
+          "POST",
+          messageBody,
+        );
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Microsoft Graph API:");
@@ -1201,7 +1203,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         throw response;
       }
 
-      const messageData = response.jsonData as JSONObject;
+      const messageData: JSONObject = response.jsonData as JSONObject;
       const thread: WorkspaceThread = {
         channel: data.workspaceChannel,
         threadId: messageData["id"] as string,
@@ -1227,7 +1229,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     // Get project auth token for app token access
-    const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await this.getRefreshedProjectAuthToken(data.authToken);
     const projectAuthForApp: WorkspaceProjectAuthToken | null =
       projectAuth ||
       (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -1252,9 +1255,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Blocks generated from workspace message payload:");
     logger.debug(blocks);
 
-    const existingWorkspaceChannels = await this.getAllWorkspaceChannels({
-      authToken: data.authToken,
-    });
+    const existingWorkspaceChannels: Dictionary<WorkspaceChannel> =
+      await this.getAllWorkspaceChannels({
+        authToken: data.authToken,
+      });
 
     logger.debug("Existing Microsoft Teams channels:");
     logger.debug(existingWorkspaceChannels);
@@ -1267,7 +1271,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         channelName = channelName.substring(1);
       }
 
-      const channel = existingWorkspaceChannels[channelName];
+      const channel: WorkspaceChannel | undefined =
+        existingWorkspaceChannels[channelName];
       if (channel) {
         workspaceChannelsToPostTo.push(channel);
       } else {
@@ -1278,10 +1283,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
     // Process channel IDs
     for (const channelId of data.workspaceMessagePayload.channelIds) {
       try {
-        const channel = await this.getWorkspaceChannelFromChannelId({
-          authToken: data.authToken,
-          channelId: channelId,
-        });
+        const channel: WorkspaceChannel =
+          await this.getWorkspaceChannelFromChannelId({
+            authToken: data.authToken,
+            channelId: channelId,
+          });
         workspaceChannelsToPostTo.push(channel);
       } catch (err) {
         logger.error(`Error getting channel info for channel ID ${channelId}:`);
@@ -1308,7 +1314,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     // Send messages to all channels
     for (const channel of workspaceChannelsToPostTo) {
       try {
-        const thread = await this.sendPayloadBlocksToChannel({
+        const thread: WorkspaceThread = await this.sendPayloadBlocksToChannel({
           authToken: data.authToken,
           workspaceChannel: channel,
           blocks: blocks,
@@ -1341,9 +1347,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -1364,7 +1369,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       // First, create a chat with the user
-      const chatPayload = {
+      const chatPayload: JSONObject = {
         chatType: "oneOnOne",
         members: [
           {
@@ -1375,12 +1380,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         ],
       };
 
-      const chatResponse = await this.makeGraphApiCall(
-        "/chats",
-        appToken,
-        "POST",
-        chatPayload,
-      );
+      const chatResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall("/chats", appToken, "POST", chatPayload);
 
       if (chatResponse instanceof HTTPErrorResponse) {
         logger.error("Error creating chat with user:");
@@ -1388,27 +1389,29 @@ export default class MicrosoftTeams extends WorkspaceBase {
         throw chatResponse;
       }
 
-      const chatData = chatResponse.jsonData as JSONObject;
-      const chatId = chatData["id"] as string;
+      const chatData: JSONObject = chatResponse.jsonData as JSONObject;
+      const chatId: string = chatData["id"] as string;
 
       // Convert message blocks to Teams format
-      const blocks = this.getBlocksFromWorkspaceMessagePayload({
-        messageBlocks: data.messageBlocks,
-      });
+      const blocks: Array<JSONObject> =
+        this.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: data.messageBlocks,
+        });
 
-      const messageBody = {
+      const messageBody: JSONObject = {
         body: {
           contentType: "html",
           content: this.convertBlocksToTeamsMessage(blocks),
         },
       };
 
-      const messageResponse = await this.makeGraphApiCall(
-        `/chats/${chatId}/messages`,
-        appToken,
-        "POST",
-        messageBody,
-      );
+      const messageResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/chats/${chatId}/messages`,
+          appToken,
+          "POST",
+          messageBody,
+        );
 
       if (messageResponse instanceof HTTPErrorResponse) {
         logger.error("Error sending direct message:");
@@ -1430,7 +1433,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       return "";
     }
 
-    let html = text;
+    let html: string = text;
 
     // Convert bold first (**text** or __text__) - non-greedy match
     html = html.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>");
@@ -1456,10 +1459,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
   private static convertBlocksToTeamsMessage(
     blocks: Array<JSONObject>,
   ): string {
-    let html = "";
+    let html: string = "";
 
     for (const block of blocks) {
-      const type = block["type"] as string;
+      const type: string = block["type"] as string;
 
       switch (type) {
         case "header":
@@ -1473,13 +1476,15 @@ export default class MicrosoftTeams extends WorkspaceBase {
         case "divider":
           html += "<hr>";
           break;
-        case "actions":
+        case "actions": {
           // Handle action buttons - convert to simple links for now
-          const actions = block["elements"] as Array<JSONObject>;
+          const actions: Array<JSONObject> = block[
+            "elements"
+          ] as Array<JSONObject>;
           if (actions) {
             for (const action of actions) {
               if (action["url"]) {
-                const buttonText = this.convertMarkdownToHtml(
+                const buttonText: string = this.convertMarkdownToHtml(
                   (action["text"] as string) || "Click here",
                 );
                 html += `<a href="${action["url"]}">${buttonText}</a><br>`;
@@ -1487,6 +1492,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
             }
           }
           break;
+        }
         default:
           // For other block types, try to extract text content
           if (block["text"]) {
@@ -1581,14 +1587,16 @@ export default class MicrosoftTeams extends WorkspaceBase {
   public static override getButtonsBlock(data: {
     payloadButtonsBlock: WorkspacePayloadButtons;
   }): JSONObject {
-    const elements = data.payloadButtonsBlock.buttons.map((button) => {
-      return {
-        type: "button",
-        text: button.title,
-        url: button.url?.toString(),
-        actionId: button.actionId,
-      };
-    });
+    const elements: Array<JSONObject> = data.payloadButtonsBlock.buttons.map(
+      (button: WorkspaceMessagePayloadButton): JSONObject => {
+        return {
+          type: "button",
+          text: button.title,
+          url: button.url?.toString(),
+          actionId: button.actionId,
+        };
+      },
+    );
 
     return {
       type: "actions",
@@ -1668,15 +1676,17 @@ export default class MicrosoftTeams extends WorkspaceBase {
   public static override getDropdownBlock(data: {
     payloadDropdownBlock: WorkspaceDropdownBlock;
   }): JSONObject {
-    const options = data.payloadDropdownBlock.options.map((option) => {
-      return {
-        text: {
-          type: "plain_text",
-          text: option.label,
-        },
-        value: option.value,
-      };
-    });
+    const options: Array<JSONObject> = data.payloadDropdownBlock.options.map(
+      (option: any): JSONObject => {
+        return {
+          text: {
+            type: "plain_text",
+            text: option.label,
+          },
+          value: option.value,
+        };
+      },
+    );
 
     return {
       type: "input",
@@ -1751,7 +1761,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     if (data.payloadDateTimePickerBlock.initialValue) {
       // If initialValue is a string, try to parse it as a date
-      const dateValue = new Date(data.payloadDateTimePickerBlock.initialValue);
+      const dateValue: Date = new Date(
+        data.payloadDateTimePickerBlock.initialValue,
+      );
       if (!isNaN(dateValue.getTime())) {
         initialDateTime = Math.floor(dateValue.getTime() / 1000);
       }
@@ -1775,11 +1787,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
   public static override getModalBlock(data: {
     payloadModalBlock: WorkspaceModalBlock;
   }): JSONObject {
-    const blocks = data.payloadModalBlock.blocks.map((block) => {
-      return this.getBlocksFromWorkspaceMessagePayload({
-        messageBlocks: [block],
-      })[0];
-    });
+    const blocks: Array<JSONObject> = data.payloadModalBlock.blocks.map(
+      (block: WorkspaceMessageBlock): JSONObject => {
+        return this.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: [block],
+        })[0] as JSONObject;
+      },
+    );
 
     return {
       type: "modal",
@@ -1835,11 +1849,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
     channelName: string;
   }): Promise<boolean> {
     try {
-      const channels = await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
+      const channels: Dictionary<WorkspaceChannel> =
+        await this.getAllWorkspaceChannels({
+          authToken: data.authToken,
+        });
 
-      let channelName = data.channelName;
+      let channelName: string = data.channelName;
       if (channelName.startsWith("#")) {
         channelName = channelName.substring(1);
       }
@@ -1914,9 +1929,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
   }): Promise<string | null> {
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -1937,11 +1951,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return null;
       }
 
-      const response = await this.makeGraphApiCall(
-        `/users/${data.userId}`,
-        appToken,
-        "GET",
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(`/users/${data.userId}`, appToken, "GET");
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error getting user info from Microsoft Graph:");
@@ -1949,7 +1960,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return null;
       }
 
-      const userData = response.jsonData as JSONObject;
+      const userData: JSONObject = response.jsonData as JSONObject;
       return (
         (userData["displayName"] as string) ||
         (userData["userPrincipalName"] as string) ||
@@ -1971,9 +1982,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
     // In Microsoft Teams, check if user is in a chat/direct message
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -1994,11 +2004,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return false;
       }
 
-      const response = await this.makeGraphApiCall(
-        `/chats/${data.directMessageChannelId}/members`,
-        appToken,
-        "GET",
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/chats/${data.directMessageChannelId}/members`,
+          appToken,
+          "GET",
+        );
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error getting chat members:");
@@ -2006,10 +2017,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return false;
       }
 
-      const membersData = response.jsonData as JSONObject;
-      const members = membersData["value"] as Array<JSONObject>;
+      const membersData: JSONObject = response.jsonData as JSONObject;
+      const members: Array<JSONObject> = membersData[
+        "value"
+      ] as Array<JSONObject>;
 
-      return members.some((member) => {
+      return members.some((member: JSONObject): boolean => {
         return (
           (member["userId"] as string) === data.userId ||
           (member["user"] as JSONObject)?.["id"] === data.userId

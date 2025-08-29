@@ -14,6 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import API from "Common/Utils/API";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Exception from "Common/Types/Exception/Exception";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import WorkspaceProjectAuthToken, {
@@ -201,8 +202,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       userAuthTokenId &&
       isProjectAccountConnected
     ) {
-      fetchAvailableTeams().catch((err) => {
-        console.error("Failed to fetch teams:", err);
+      fetchAvailableTeams().catch((_err: unknown) => {
+        // Error logged for debugging - Failed to fetch teams
+        setError(<div>Failed to fetch teams</div>);
       });
     }
   }, [isUserAccountConnected, userAuthTokenId, isProjectAccountConnected]);
@@ -233,7 +235,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
-        const miscData = projectAuth.data[0]!
+        const miscData: MicrosoftTeamsMiscData = projectAuth.data[0]!
           .miscData! as MicrosoftTeamsMiscData;
         const teamsTeamName: string | undefined = miscData.teamName;
         const teamId: string | undefined = miscData.teamId;
@@ -282,7 +284,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setIsLoadingTeams(true);
       setError(null);
 
-      const response = await API.post<JSONObject>(
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
         URL.fromString(APP_API_URL.toString()).addRoute("/teams/get-teams"),
         {
           userAuthTokenId: userAuthTokenId.toString(),
@@ -297,7 +299,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         (response.data as JSONObject)["teams"] &&
         Array.isArray((response.data as JSONObject)["teams"])
       ) {
-        const teamsList = (response.data as JSONObject)[
+        const teamsList: TeamsTeam[] = (response.data as JSONObject)[
           "teams"
         ] as unknown as TeamsTeam[];
         setAvailableTeams(teamsList);
@@ -326,7 +328,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const selectTeam = async (team: TeamsTeam): Promise<void> => {
+  const selectTeam: (team: TeamsTeam) => Promise<void> = async (
+    team: TeamsTeam,
+  ): Promise<void> => {
     if (!projectAuthTokenId) {
       return;
     }
@@ -336,11 +340,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setError(null);
 
       // Get current misc data to preserve existing values
-      const currentAuth = await ModelAPI.getItem({
-        modelType: WorkspaceProjectAuthToken,
-        id: projectAuthTokenId,
-        select: { miscData: true },
-      });
+      const currentAuth: WorkspaceProjectAuthToken | null =
+        await ModelAPI.getItem({
+          modelType: WorkspaceProjectAuthToken,
+          id: projectAuthTokenId,
+          select: { miscData: true },
+        });
 
       if (!currentAuth) {
         throw new BadDataException(
@@ -348,7 +353,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         );
       }
 
-      const currentMiscData =
+      const currentMiscData: MicrosoftTeamsMiscData =
         (currentAuth.miscData as MicrosoftTeamsMiscData) || {};
 
       // Update the project auth token with the selected team
@@ -409,14 +414,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       const redirectUri: string = `${APP_API_URL}/teams/admin-consent`;
 
       // Create state parameter for admin consent
-      const stateData = {
+      const stateData: { projectId: string; userId: string } = {
         projectId: projectId.toString(),
         userId: userId.toString(),
       };
-      const stateParam = btoa(JSON.stringify(stateData));
+      const stateParam: string = btoa(JSON.stringify(stateData));
 
       // Use the admin consent endpoint
-      const adminConsentUrl = `https://login.microsoftonline.com/common/adminconsent?client_id=${MicrosoftTeamsAppClientId}&state=${encodeURIComponent(stateParam)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const adminConsentUrl: string = `https://login.microsoftonline.com/common/adminconsent?client_id=${MicrosoftTeamsAppClientId}&state=${encodeURIComponent(stateParam)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       Navigation.navigate(URL.fromString(adminConsentUrl));
     } else {
@@ -480,23 +485,28 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       const user_signin_redirect_uri: string = redirectUri;
 
       // Create state parameter to pass project_id and user_id
-      const stateData = {
-        projectId: projectId.toString(),
-        userId: userId.toString(),
-        authType: "project",
-      };
-      const stateParam = btoa(JSON.stringify(stateData));
+      const stateData: { projectId: string; userId: string; authType: string } =
+        {
+          projectId: projectId.toString(),
+          userId: userId.toString(),
+          authType: "project",
+        };
+      const stateParam: string = btoa(JSON.stringify(stateData));
 
-      const userStateData = {
+      const userStateData: {
+        projectId: string;
+        userId: string;
+        authType: string;
+      } = {
         projectId: projectId.toString(),
         userId: userId.toString(),
         authType: "user",
       };
-      const userStateParam = btoa(JSON.stringify(userStateData));
+      const userStateParam: string = btoa(JSON.stringify(userStateData));
 
       if (!isProjectAccountConnected) {
         // Project-level installation
-        const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(project_install_redirect_uri)}&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(stateParam)}&response_mode=query`;
+        const authUrl: string = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(project_install_redirect_uri)}&scope=${encodeURIComponent(scopes.join(" "))}&state=${encodeURIComponent(stateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(authUrl));
       } else {
         const userDelegatedScopes: Array<string> = [
@@ -506,7 +516,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           "https://graph.microsoft.com/User.Read",
           "https://graph.microsoft.com/Team.ReadBasic.All",
         ];
-        const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(userDelegatedScopes.join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
+        const userAuthUrl: string = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(userDelegatedScopes.join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(userAuthUrl));
       }
     } else {
@@ -604,7 +614,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const handleUninstall: VoidFunction = async (): Promise<void> => {
+  const handleUninstall: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsActionLoading(true);
       // Delete user token first (ignore errors individually)
@@ -647,7 +657,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const revokeAdminConsent: VoidFunction = async (): Promise<void> => {
+  const revokeAdminConsent: () => Promise<void> = async (): Promise<void> => {
     if (!projectAuthTokenId) {
       return;
     }
@@ -688,7 +698,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const renderStepContent = (): ReactElement => {
+  const renderStepContent: () => ReactElement = (): ReactElement => {
     switch (currentStep) {
       case "admin-consent":
         return (
@@ -699,7 +709,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               </h3>
               <p className="mt-2 text-sm text-gray-600">
                 Grant administrative consent (recommended) to enable full
-                functionality. If you don't have admin rights you can still
+                functionality. If you don&apos;t have admin rights you can still
                 proceed with limited delegated permissions by connecting your
                 user account after installing the app.
               </p>
@@ -841,8 +851,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               <p className="mt-2 text-sm text-gray-600">
                 {isRealTeamSelected ? (
                   <span>
-                    You've selected: <strong>{teamsTeamName}</strong>. You can
-                    change your team selection if you like.
+                    You&apos;ve selected: <strong>{teamsTeamName}</strong>. You
+                    can change your team selection if you like.
                   </span>
                 ) : (
                   <span className="text-gray-600">
@@ -867,7 +877,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                       .then(() => {
                         return setShowTeamPicker(true);
                       })
-                      .catch((err) => {
+                      .catch((err: Exception) => {
                         setError(
                           <div>
                             Failed to fetch teams:{" "}
@@ -968,7 +978,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     }
                     setShowTeamPicker(true);
                     if (availableTeams.length === 0 && !isLoadingTeams) {
-                      fetchAvailableTeams().catch((err) => {
+                      fetchAvailableTeams().catch((err: Exception) => {
                         setError(
                           <div>
                             Failed to fetch teams:{" "}
@@ -1042,12 +1052,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               {isLoadingTeams && <PageLoader isVisible={true} />}
               {!isLoadingTeams && availableTeams.length === 0 && (
                 <div className="text-center py-4 text-gray-500">
-                  No teams found. Please ensure you're a member of at least one
-                  Microsoft Teams team.
+                  No teams found. Please ensure you&apos;re a member of at least
+                  one Microsoft Teams team.
                 </div>
               )}
               {!isLoadingTeams &&
-                availableTeams.map((team) => {
+                availableTeams.map((team: TeamsTeam) => {
                   return (
                     <div
                       key={team.id}
@@ -1155,12 +1165,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   currentFormStepId={currentStep}
                   onClick={(step: FormStep<IntegrationFormData>) => {
                     // Allow navigation to completed steps
-                    const stepIndex = integrationSteps.findIndex((s) => {
-                      return s.id === step.id;
-                    });
-                    const currentIndex = integrationSteps.findIndex((s) => {
-                      return s.id === currentStep;
-                    });
+                    const stepIndex: number = integrationSteps.findIndex(
+                      (s: FormStep<IntegrationFormData>) => {
+                        return s.id === step.id;
+                      },
+                    );
+                    const currentIndex: number = integrationSteps.findIndex(
+                      (s: FormStep<IntegrationFormData>) => {
+                        return s.id === currentStep;
+                      },
+                    );
                     if (stepIndex <= currentIndex) {
                       setCurrentStep(step.id);
                     }
@@ -1193,12 +1207,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             {isLoadingTeams && <PageLoader isVisible={true} />}
             {!isLoadingTeams && availableTeams.length === 0 && (
               <div className="text-center py-4 text-gray-500">
-                No teams found. Please ensure you're a member of at least one
-                Microsoft Teams team.
+                No teams found. Please ensure you&apos;re a member of at least
+                one Microsoft Teams team.
               </div>
             )}
             {!isLoadingTeams &&
-              availableTeams.map((team) => {
+              availableTeams.map((team: TeamsTeam) => {
                 return (
                   <div
                     key={team.id}
