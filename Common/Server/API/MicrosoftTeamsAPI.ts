@@ -62,13 +62,15 @@ export default class MicrosoftTeamsAPI {
           projectIdStr = stateData["projectId"] as string;
           userIdStr = stateData["userId"] as string;
 
-          if (!stateData?.projectId) {
-            throw new Error("Invalid state data");
+          if (!stateData?.['projectId']) {
+            throw new BadDataException("Invalid state data");
           }
+
         } catch {
           // Error is intentionally ignored
           return Response.sendErrorResponse(
             req,
+            res,
             new BadRequestException("Please try again."),
           );
         }
