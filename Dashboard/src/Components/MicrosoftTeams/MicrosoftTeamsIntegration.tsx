@@ -601,6 +601,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+              className="-ml-3"
                 title={isProjectAccountConnected && adminConsentGranted ? 'Admin Consent Granted' : 'Grant Admin Consent'}
                 onClick={() => initiateAdminConsent()}
                 disabled={isProjectAccountConnected && adminConsentGranted}
@@ -609,6 +610,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               />
               {isProjectAccountConnected && !adminConsentGranted && (
                 <Button
+
                   title="Continue with Limited Permissions"
                   onClick={() => connectWithMicrosoftTeams()}
                   buttonStyle={SharedButtonStyleType.SECONDARY}
@@ -617,6 +619,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               )}
               {isProjectAccountConnected && adminConsentGranted && (
                 <Button
+                
                   title="Revoke Admin Consent"
                   onClick={() => setShowRevokeConsentConfirm(true)}
                   buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
@@ -640,6 +643,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+               className="-ml-3"
                 title={isUserAccountConnected ? 'Account Connected' : 'Connect User Account'}
                 onClick={() => connectWithMicrosoftTeams()}
                 disabled={isUserAccountConnected}
@@ -648,8 +652,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               />
               {isUserAccountConnected && (
                 <Button
-                  title="Log Out of Teams"
-                  buttonStyle={SharedButtonStyleType.OUTLINE}
+                  title="Revoke User Connection"
+                  buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
                   icon={IconProp.Logout}
                   onClick={async () => {
                     try {
@@ -700,6 +704,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+               className="-ml-3"
                 title={currentTeamId ? 'Change Team' : 'Select Team'}
                 buttonStyle={SharedButtonStyleType.PRIMARY}
                 icon={IconProp.Settings}
@@ -741,6 +746,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+               className="-ml-3"
                 title="Change Team"
                 buttonStyle={SharedButtonStyleType.OUTLINE}
                 icon={IconProp.Settings}
@@ -772,6 +778,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 <h4 className="text-sm font-medium text-gray-800 mb-2">User Session</h4>
                 <p className="text-xs text-gray-600 mb-3">Log out your personal Microsoft Teams account. Project-level permissions remain until you uninstall.</p>
                 <Button
+                 className="-ml-3"
                   title="Log Out of Teams"
                   buttonStyle={SharedButtonStyleType.OUTLINE}
                   icon={IconProp.Logout}
