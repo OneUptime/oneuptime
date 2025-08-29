@@ -76,18 +76,24 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [currentStep, setCurrentStep] = React.useState<string>("admin-consent");
 
   // Define the integration steps
+  // NOTE: Order changed so that we connect user account before selecting team.
+  // We need a user delegated token to list teams; previously this caused the
+  // team picker to show an empty state. New order:
+  // 1. Admin Consent (project / application permissions)
+  // 2. Connect User Account (delegated permissions to enumerate teams)
+  // 3. Select Team (auto-select first team by default when fetched)
   const integrationSteps: Array<FormStep<IntegrationFormData>> = [
     {
       id: "admin-consent",
-      title: "Connect to MS Teams",
-    },
-    {
-      id: "select-team",
-      title: "Select Team",
+      title: "Step 1: Connect to MS Teams",
     },
     {
       id: "user-account",
-      title: "Connect User Account",
+      title: "Step 2: Connect User Account",
+    },
+    {
+      id: "select-team",
+      title: "Step 3: Select Team",
     },
   ];
 
@@ -95,13 +101,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const getCurrentStep = (): string => {
     if (!isProjectAccountConnected || !adminConsentGranted) {
       return "admin-consent";
-    } else if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
-      return "select-team";
-    } else if (!isUserAccountConnected) {
-      return "user-account";
-    } else {
-      return "user-account"; // All steps completed, show user account as final step
     }
+    // Need user account before we can list teams.
+    if (!isUserAccountConnected) {
+      return "user-account";
+    }
+    if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
+      return "select-team";
+    }
+    // All done – keep user-account step accessible for status (last completed step logically is select-team, but we show user account as completed earlier)
+    return "select-team";
   };
 
   useEffect(() => {
@@ -117,33 +126,34 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }, [isProjectAccountConnected, currentTeamId, isUserAccountConnected, props]);
 
   useEffect(() => {
-    // Fetch available teams when user is connected
-    if (isUserAccountConnected && userAuthTokenId) {
+    // Fetch available teams when user account just connected (and project auth present)
+    if (isUserAccountConnected && userAuthTokenId && isProjectAccountConnected) {
       fetchAvailableTeams().catch((err) => {
         console.error("Failed to fetch teams:", err);
       });
     }
-  }, [isUserAccountConnected, userAuthTokenId]);
+  }, [isUserAccountConnected, userAuthTokenId, isProjectAccountConnected]);
 
   // If project is connected but no specific team chosen (generic placeholder) and teams are loaded, prompt user to pick.
+  // Auto-select first team once teams are fetched if none selected yet.
   useEffect(() => {
     if (
       isProjectAccountConnected &&
       isUserAccountConnected &&
-      teamsTeamName === 'Microsoft Teams' &&
-      !currentTeamId &&
       availableTeams.length > 0 &&
-      !showTeamPicker
+      (!currentTeamId || teamsTeamName === 'Microsoft Teams')
     ) {
-      setShowTeamPicker(true);
+      // Select first team silently (no modal)
+      selectTeam(availableTeams[0]!).catch((err) => {
+        console.error('Failed to auto select first team', err);
+      });
     }
   }, [
     isProjectAccountConnected,
     isUserAccountConnected,
-    teamsTeamName,
-    currentTeamId,
     availableTeams,
-    showTeamPicker,
+    currentTeamId,
+    teamsTeamName,
   ]);
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
@@ -531,94 +541,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           </div>
         );
       
-      case "select-team":
-        return (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 2: Select Your Team</h3>
-              <p className="mt-2 text-sm text-gray-600">
-                {currentTeamId ? 
-                  `You've selected: ${teamsTeamName}. You can change your team selection or proceed to connect your user account.` : 
-                  "Choose which Microsoft Teams team you want to connect to OneUptime for receiving notifications."
-                }
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                onClick={() => {
-                  if (availableTeams.length === 0) {
-                    fetchAvailableTeams().then(() => setShowTeamPicker(true)).catch((err) => {
-                      setError(<div>Failed to fetch teams: {API.getFriendlyErrorMessage(err)}</div>);
-                    });
-                  } else {
-                    setShowTeamPicker(true);
-                  }
-                }}
-                disabled={isLoadingTeams}
-              >
-                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                </svg>
-                {currentTeamId ? "Change Team" : "Select Team"}
-              </button>
-              {isProjectAccountConnected && (
-                <button
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                  onClick={async () => {
-                    try {
-                      setIsButtonLoading(true);
-                      setError(null);
-                      
-                      // Disconnect both user and project tokens
-                      if (userAuthTokenId) {
-                        await ModelAPI.deleteItem({
-                          modelType: WorkspaceUserAuthToken,
-                          id: userAuthTokenId,
-                        });
-                      }
-                      
-                      if (projectAuthTokenId) {
-                        await ModelAPI.deleteItem({
-                          modelType: WorkspaceProjectAuthToken,
-                          id: projectAuthTokenId,
-                        });
-                      }
-                      
-                      // Reset all state
-                      setIsUserAccountConnected(false);
-                      setIsProjectAccountConnected(false);
-                      setWorkspaceUserAuthTokenId(null);
-                      setWorkspaceProjectAuthTokenId(null);
-                      setCurrentTeamId(null);
-                      setTeamsTeamName(null);
-                      setAdminConsentGranted(false);
-                      setAvailableTeams([]);
-                    } catch (error) {
-                      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
-                    }
-                    setIsButtonLoading(false);
-                  }}
-                  disabled={isButtonLoading}
-                >
-                  <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 2a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
-                  </svg>
-                  Disconnect Integration
-                </button>
-              )}
-            </div>
-          </div>
-        );
-
       case "user-account":
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 3: Connect Your User Account</h3>
+              <h3 className="text-lg font-medium text-gray-900">Step 2: Connect Your User Account</h3>
               <p className="mt-2 text-sm text-gray-600">
-                Connect your personal Microsoft Teams account to allow OneUptime to access your teams and channels.
+                Connect your personal Microsoft Teams account to allow OneUptime to list teams and channels for selection in the next step.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -649,11 +578,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               </button>
               {isUserAccountConnected && (
                 <button
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                   onClick={async () => {
                     try {
                       setIsButtonLoading(true);
                       setError(null);
+                      
                       if (userAuthTokenId) {
                         await ModelAPI.deleteItem({
                           modelType: WorkspaceUserAuthToken,
@@ -661,6 +591,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                         });
                         setIsUserAccountConnected(false);
                         setWorkspaceUserAuthTokenId(null);
+                        // Also clear teams – they depend on user token
+                        setAvailableTeams([]);
+                        setCurrentTeamId(null);
+                        setTeamsTeamName('Microsoft Teams');
                       }
                     } catch (error) {
                       setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
@@ -675,6 +609,45 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   Disconnect Account
                 </button>
               )}
+            </div>
+          </div>
+        );
+
+      case "select-team":
+        return (
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Step 3: Select Your Team</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                {currentTeamId ? (
+                  <span>
+                    You've selected: <strong>{teamsTeamName}</strong>. You can change your team selection if you like.
+                  </span>
+                ) : (
+                  "Choose which Microsoft Teams team you want to connect to OneUptime for receiving notifications."
+                )}
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                onClick={() => {
+                  if (!isUserAccountConnected) { return; }
+                  if (availableTeams.length === 0) {
+                    fetchAvailableTeams().then(() => setShowTeamPicker(true)).catch((err) => {
+                      setError(<div>Failed to fetch teams: {API.getFriendlyErrorMessage(err)}</div>);
+                    });
+                  } else {
+                    setShowTeamPicker(true);
+                  }
+                }}
+                disabled={isLoadingTeams || !isUserAccountConnected}
+              >
+                <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                </svg>
+                {currentTeamId ? "Change Team" : "Select Team"}
+              </button>
             </div>
           </div>
         );
