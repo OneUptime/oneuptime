@@ -3,7 +3,6 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
-  useRef,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -132,26 +131,22 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     setCurrentStep(getCurrentStep());
   }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName, isFinished, isSetupFinished]);
 
-  // If all integration prerequisites are met on initial load (e.g. page refresh),
-  // automatically mark the setup as finished so the management card is shown.
-  // Track initial load to decide if we should auto-complete (only for previously finished setups on page refresh)
-  const initialLoadRef = useRef<boolean>(true);
+  // Derive setup completion whenever all prerequisites are satisfied.
+  // This ensures that on page reload we immediately show the management card.
   useEffect(() => {
-    if (initialLoadRef.current) {
-      initialLoadRef.current = false;
-      if (
-        MicrosoftTeamsAppClientId && // env var present
-        isProjectAccountConnected &&
-        adminConsentGranted &&
-        isUserAccountConnected &&
-        !!currentTeamId &&
-        teamsTeamName &&
-        teamsTeamName !== 'Microsoft Teams'
-      ) {
-        setIsFinished(true);
-        setIsSetupFinished(true);
-        setCurrentStep('finish');
-      }
+    const ready: boolean = !!(
+      MicrosoftTeamsAppClientId &&
+      isProjectAccountConnected &&
+      adminConsentGranted &&
+      isUserAccountConnected &&
+      currentTeamId &&
+      teamsTeamName &&
+      teamsTeamName !== 'Microsoft Teams'
+    );
+    if (ready) {
+      if (!isSetupFinished) { setIsSetupFinished(true); }
+      if (!isFinished) { setIsFinished(true); }
+      if (currentStep !== 'finish') { setCurrentStep('finish'); }
     }
   }, [
     isProjectAccountConnected,
@@ -159,6 +154,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     isUserAccountConnected,
     currentTeamId,
     teamsTeamName,
+    currentStep,
+    isFinished,
+    isSetupFinished,
   ]);
 
   useEffect(() => {
