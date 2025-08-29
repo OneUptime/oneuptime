@@ -139,8 +139,8 @@ export default class SyntheticMonitor {
             }
 
             scriptResult.screenshots[screenshotName] = (
-              result.returnValue.screenshots[screenshotName] as any
-            ).toString("base64"); // convert screennshots to base 64
+              result.returnValue.screenshots[screenshotName] as Buffer
+            ).toString("base64"); // convert screenshots to base 64
           }
         }
 
