@@ -800,12 +800,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Settings}
                   onClick={() => {
                     if (!isUserAccountConnected) { return; }
-                    if (availableTeams.length === 0) {
-                      fetchAvailableTeams().then(() => setShowTeamPicker(true)).catch((err) => {
+                    // Open modal immediately for better UX
+                    setShowTeamPicker(true);
+                    if (availableTeams.length === 0 && !isLoadingTeams) {
+                      fetchAvailableTeams().catch((err) => {
                         setError(<div>Failed to fetch teams: {API.getFriendlyErrorMessage(err as Exception)}</div>);
                       });
-                    } else {
-                      setShowTeamPicker(true);
                     }
                   }}
                   isLoading={isLoadingTeams}
@@ -840,6 +840,57 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
           </Card>
         </div>
+        {showTeamPicker && (
+          <Modal
+            title="Select Microsoft Teams Team"
+            description="Choose which Microsoft Teams team to connect to OneUptime"
+            isLoading={isLoadingTeams}
+            onClose={() => setShowTeamPicker(false)}
+            submitButtonText="Close"
+            onSubmit={() => setShowTeamPicker(false)}
+          >
+            <div className="space-y-3">
+              {isLoadingTeams && <PageLoader isVisible={true} />}
+              {!isLoadingTeams && availableTeams.length === 0 && (
+                <div className="text-center py-4 text-gray-500">
+                  No teams found. Please ensure you're a member of at least one Microsoft Teams team.
+                </div>
+              )}
+              {!isLoadingTeams && availableTeams.map((team) => (
+                <div
+                  key={team.id}
+                  className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    currentTeamId === team.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                  }`}
+                  onClick={() => selectTeam(team)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">{team.displayName}</h3>
+                      {team.description && (
+                        <p className="text-sm text-gray-500 mt-1">{team.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {currentTeamId === team.id && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Current
+                        </span>
+                      )}
+                      <Button
+                        title={currentTeamId === team.id ? "Selected" : "Select"}
+                        buttonStyle={currentTeamId === team.id ? ButtonStyleType.SUCCESS : ButtonStyleType.PRIMARY}
+                        onClick={() => selectTeam(team)}
+                        isLoading={isButtonLoading}
+                        disabled={currentTeamId === team.id}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Modal>
+        )}
         {showUninstallConfirm && (
           <ConfirmModal
             title="Uninstall Microsoft Teams Integration"
