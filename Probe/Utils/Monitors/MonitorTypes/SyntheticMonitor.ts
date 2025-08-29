@@ -1,4 +1,4 @@
-import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
+import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS, PROXY_URL } from "../../../Config";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
@@ -15,6 +15,13 @@ export interface SyntheticMonitorOptions {
   screenSizeTypes?: Array<ScreenSizeType> | undefined;
   browserTypes?: Array<BrowserType> | undefined;
   script: string;
+}
+
+interface BrowserLaunchOptions {
+  executablePath: string;
+  proxy?: {
+    server: string;
+  };
 }
 
 export default class SyntheticMonitor {
@@ -272,16 +279,32 @@ export default class SyntheticMonitor {
     let browser: Browser | null = null;
 
     if (data.browserType === BrowserType.Chromium) {
-      browser = await chromium.launch({
+      const launchOptions: BrowserLaunchOptions = {
         executablePath: await this.getChromeExecutablePath(),
-      });
+      };
+
+      if (PROXY_URL) {
+        launchOptions.proxy = {
+          server: PROXY_URL.toString(),
+        };
+      }
+
+      browser = await chromium.launch(launchOptions);
       page = await browser.newPage();
     }
 
     if (data.browserType === BrowserType.Firefox) {
-      browser = await firefox.launch({
+      const launchOptions: BrowserLaunchOptions = {
         executablePath: await this.getFirefoxExecutablePath(),
-      });
+      };
+
+      if (PROXY_URL) {
+        launchOptions.proxy = {
+          server: PROXY_URL.toString(),
+        };
+      }
+
+      browser = await firefox.launch(launchOptions);
       page = await browser.newPage();
     }
 
