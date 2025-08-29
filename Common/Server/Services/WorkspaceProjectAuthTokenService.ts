@@ -2,7 +2,7 @@ import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
-  SlackMiscData,
+  MiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -65,12 +65,35 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  public async getByAuthToken(data: {
+    authToken: string;
+    workspaceType: WorkspaceType;
+  }): Promise<Model | null> {
+    return await this.findOneBy({
+      query: {
+        authToken: data.authToken,
+        workspaceType: data.workspaceType,
+      },
+      select: {
+        authToken: true,
+        workspaceProjectId: true,
+        miscData: true,
+        projectId: true,
+        workspaceType: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  @CaptureSpan()
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     authToken: string;
     workspaceProjectId: string;
-    miscData: SlackMiscData;
+    miscData: MiscData;
   }): Promise<void> {
     let projectAuth: Model | null = await this.findOneBy({
       query: {
