@@ -804,7 +804,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 <Button
                  className="-ml-3"
                   title="Log Out of Teams"
-                  buttonStyle={SharedButtonStyleType.OUTLINE}
+                  buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Logout}
                   onClick={() => { void handleLogoutUser(); }}
                   isLoading={isActionLoading}
