@@ -302,7 +302,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     { id: "finish", title: "Step 3: Finish" },
   ];
 
-  const getCurrentStep = (): string => {
+  const getCurrentStep: () => string = (): string => {
     if (!isProjectAccountConnected) {
       return "install-app";
     }
@@ -327,7 +327,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     }
   }, [isFinished, isProjectAccountConnected, isUserAccountConnected]);
 
-  const logoutUser = async (): Promise<void> => {
+  const logoutUser: () => Promise<void> = async (): Promise<void> => {
     if (!userAuthTokenId) {
       return;
     }
@@ -348,7 +348,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const uninstallIntegration = async (): Promise<void> => {
+  const uninstallIntegration: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsActionLoading(true);
       // Delete user token first (ignore errors)
@@ -484,7 +484,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const renderStepContent = (): ReactElement => {
+  const renderStepContent: () => ReactElement = (): ReactElement => {
     switch (currentStep) {
       case "install-app":
         return (
@@ -634,12 +634,16 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
                   steps={integrationSteps}
                   currentFormStepId={currentStep}
                   onClick={(step: FormStep<FormValues<unknown>>) => {
-                    const targetIndex = integrationSteps.findIndex((s) => {
-                      return s.id === step.id;
-                    });
-                    const currentIndex = integrationSteps.findIndex((s) => {
-                      return s.id === currentStep;
-                    });
+                    const targetIndex: number = integrationSteps.findIndex(
+                      (s: FormStep<FormValues<unknown>>) => {
+                        return s.id === step.id;
+                      },
+                    );
+                    const currentIndex: number = integrationSteps.findIndex(
+                      (s: FormStep<FormValues<unknown>>) => {
+                        return s.id === currentStep;
+                      },
+                    );
                     if (targetIndex <= currentIndex) {
                       setCurrentStep(step.id);
                     }

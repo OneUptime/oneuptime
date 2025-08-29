@@ -5,6 +5,7 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
+import BadRequestException from "../../Types/Exception/BadRequestException";
 import URL from "../../Types/API/URL";
 import { JSONObject } from "../../Types/JSON";
 import API from "../../Utils/API";
@@ -55,20 +56,20 @@ export default class MicrosoftTeamsAPI {
         let userIdStr: string;
 
         try {
-          const stateData = JSON.parse(
+          const stateData: JSONObject = JSON.parse(
             Buffer.from(stateParam, "base64").toString(),
           );
-          projectIdStr = stateData.projectId;
-          userIdStr = stateData.userId;
+          projectIdStr = stateData["projectId"] as string;
+          userIdStr = stateData["userId"] as string;
 
-          if (!projectIdStr || !userIdStr) {
+          if (!stateData?.projectId) {
             throw new Error("Invalid state data");
           }
-        } catch (error) {
+        } catch (_: unknown) {
+          // Error is intentionally ignored
           return Response.sendErrorResponse(
             req,
-            res,
-            new BadDataException("Invalid state parameter"),
+            new BadRequestException("Please try again."),
           );
         }
 
@@ -97,7 +98,7 @@ export default class MicrosoftTeamsAPI {
 
           // Update or create the project auth token with admin consent status
           try {
-            const existingAuth =
+            const existingAuth: WorkspaceProjectAuthToken | null =
               await WorkspaceProjectAuthTokenService.findOneBy({
                 query: {
                   projectId: new ObjectID(projectIdStr),
@@ -112,15 +113,16 @@ export default class MicrosoftTeamsAPI {
                 },
               });
 
-            const currentMiscData = (existingAuth?.miscData as any) || {};
-            const updatedMiscData = {
+            const currentMiscData: JSONObject =
+              (existingAuth?.miscData as JSONObject) || {};
+            const updatedMiscData: JSONObject = {
               ...currentMiscData,
               tenantId: tenantId,
               adminConsentGranted: true,
               adminConsentGrantedAt: new Date().toISOString(),
               adminConsentGrantedBy: userIdStr,
-              teamName: currentMiscData.teamName || "Microsoft Teams",
-              teamId: currentMiscData.teamId || tenantId,
+              teamName: currentMiscData["teamName"] || "Microsoft Teams",
+              teamId: currentMiscData["teamId"] || tenantId,
             };
 
             if (existingAuth) {
@@ -128,7 +130,7 @@ export default class MicrosoftTeamsAPI {
               await WorkspaceProjectAuthTokenService.updateOneById({
                 id: existingAuth.id!,
                 data: {
-                  miscData: updatedMiscData,
+                  miscData: updatedMiscData as any,
                 },
                 props: {
                   isRoot: true,
@@ -136,12 +138,13 @@ export default class MicrosoftTeamsAPI {
               });
             } else {
               // Create new project auth token with admin consent
-              const newAuthToken = new WorkspaceProjectAuthToken();
+              const newAuthToken: WorkspaceProjectAuthToken =
+                new WorkspaceProjectAuthToken();
               newAuthToken.projectId = new ObjectID(projectIdStr);
               newAuthToken.workspaceType = WorkspaceType.MicrosoftTeams;
               newAuthToken.authToken = `admin-consent-${tenantId}-${Date.now()}`; // Placeholder token
               newAuthToken.workspaceProjectId = tenantId;
-              newAuthToken.miscData = updatedMiscData;
+              newAuthToken.miscData = updatedMiscData as any;
 
               await WorkspaceProjectAuthTokenService.create({
                 data: newAuthToken,
@@ -205,17 +208,18 @@ export default class MicrosoftTeamsAPI {
         let authType: string;
 
         try {
-          const stateData = JSON.parse(
+          const stateData: JSONObject = JSON.parse(
             Buffer.from(stateParam, "base64").toString(),
           );
-          projectIdStr = stateData.projectId;
-          userIdStr = stateData.userId;
-          authType = stateData.authType;
+          projectIdStr = stateData["projectId"] as string;
+          userIdStr = stateData["userId"] as string;
+          authType = stateData["authType"] as string;
 
           if (!projectIdStr || !userIdStr || !authType) {
             throw new Error("Invalid state data");
           }
-        } catch (error) {
+        } catch (_: unknown) {
+          // Error is intentionally ignored
           return Response.sendErrorResponse(
             req,
             res,
@@ -271,7 +275,8 @@ export default class MicrosoftTeamsAPI {
         if (tokenResp instanceof HTTPErrorResponse) {
           logger.error(tokenResp.jsonData);
 
-          const errorMessage = "Error from Microsoft: " + tokenResp.message;
+          const errorMessage: string =
+            "Error from Microsoft: " + tokenResp.message;
 
           return Response.sendErrorResponse(
             req,
@@ -313,27 +318,35 @@ export default class MicrosoftTeamsAPI {
         if (idToken) {
           try {
             // Decode JWT payload (second part after splitting by '.')
-            const tokenParts = idToken.split(".");
+            const tokenParts: string[] = idToken.split(".");
             if (tokenParts.length >= 2 && tokenParts[1]) {
-              const payload = JSON.parse(
+              const payload: JSONObject = JSON.parse(
                 Buffer.from(tokenParts[1], "base64").toString(),
               );
 
               // Extract tenant information from token claims
-              if (payload.tid) {
-                tenantId = payload.tid;
-                teamId = payload.tid;
+              if (payload["tid"]) {
+                tenantId = payload["tid"] as string;
+                teamId = payload["tid"] as string;
               }
 
               // Try to get tenant name from various claims
-              if (payload.tenant_name) {
-                tenantName = payload.tenant_name;
-              } else if (payload.tenant_display_name) {
-                tenantName = payload.tenant_display_name;
-              } else if (payload.iss && payload.iss.includes("/")) {
+              if (payload["tenant_name"]) {
+                tenantName = payload["tenant_name"] as string;
+              } else if (payload["tenant_display_name"]) {
+                tenantName = payload["tenant_display_name"] as string;
+              } else if (
+                payload["iss"] &&
+                typeof payload["iss"] === "string" &&
+                payload["iss"].includes("/")
+              ) {
                 // Extract tenant ID from issuer if available
-                const issuerParts = payload.iss.split("/");
-                const issuerTenantId = issuerParts[issuerParts.length - 2];
+                const issuerParts: string[] = (payload["iss"] as string).split(
+                  "/",
+                );
+                const issuerTenantId: string = issuerParts[
+                  issuerParts.length - 2
+                ] as string;
                 if (issuerTenantId && issuerTenantId !== "common") {
                   tenantId = issuerTenantId;
                   teamId = issuerTenantId;
@@ -353,17 +366,18 @@ export default class MicrosoftTeamsAPI {
         // identified a specific team (currently teamId defaults to tenantId) and we have a valid access token
         // with the Team.ReadBasic.All scope.
         try {
-          const teamsResponse = await API.get(
-            URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
-            undefined,
-            {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-          );
+          const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get(
+              URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+              undefined,
+              {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+            );
 
           if (!(teamsResponse instanceof HTTPErrorResponse)) {
-            const teamsJson = teamsResponse.data as JSONObject;
+            const teamsJson: JSONObject = teamsResponse.data as JSONObject;
             const teamsArr: Array<JSONObject> =
               (teamsJson["value"] as Array<JSONObject>) || [];
             if (teamsArr.length > 0) {
@@ -397,18 +411,19 @@ export default class MicrosoftTeamsAPI {
         // Get the actual Microsoft Teams user ID from Microsoft Graph API
         let microsoftTeamsUserId: string = userIdStr; // fallback to OneUptime user ID
         try {
-          const userInfoResponse = await API.get(
-            URL.fromString("https://graph.microsoft.com/v1.0/me"),
-            undefined,
-            {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-          );
+          const userInfoResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get(
+              URL.fromString("https://graph.microsoft.com/v1.0/me"),
+              undefined,
+              {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+            );
 
           if (!(userInfoResponse instanceof HTTPErrorResponse)) {
-            const userInfo = userInfoResponse.data as JSONObject;
-            const actualUserId = userInfo["id"] as string;
+            const userInfo: JSONObject = userInfoResponse.data as JSONObject;
+            const actualUserId: string = userInfo["id"] as string;
             if (actualUserId) {
               microsoftTeamsUserId = actualUserId;
               logger.debug(
@@ -503,8 +518,8 @@ export default class MicrosoftTeamsAPI {
           }
 
           // Get the user auth token
-          const userAuthToken = await WorkspaceUserAuthTokenService.findOneById(
-            {
+          const userAuthToken: any =
+            await WorkspaceUserAuthTokenService.findOneById({
               id: new ObjectID(userAuthTokenId),
               select: {
                 authToken: true,
@@ -514,8 +529,7 @@ export default class MicrosoftTeamsAPI {
               props: {
                 isRoot: true,
               },
-            },
-          );
+            });
 
           if (!userAuthToken) {
             return Response.sendErrorResponse(
@@ -526,14 +540,15 @@ export default class MicrosoftTeamsAPI {
           }
 
           // Make API call to Microsoft Graph to get user's joined teams
-          const response = await API.get(
-            URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
-            undefined,
-            {
-              Authorization: `Bearer ${userAuthToken.authToken}`,
-              "Content-Type": "application/json",
-            },
-          );
+          const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get(
+              URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+              undefined,
+              {
+                Authorization: `Bearer ${userAuthToken.authToken}`,
+                "Content-Type": "application/json",
+              },
+            );
 
           if (response instanceof HTTPErrorResponse) {
             logger.error("Error getting teams from Microsoft Graph:");
@@ -547,22 +562,30 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
-          const teamsData = response.data as JSONObject;
-          const teams = (teamsData["value"] as Array<JSONObject>) || [];
+          const teamsData: JSONObject = response.data as JSONObject;
+          const teams: Array<JSONObject> =
+            (teamsData["value"] as Array<JSONObject>) || [];
 
           // Transform the teams data to match our interface
-          const transformedTeams = teams.map((team) => {
+          const transformedTeams: Array<{
+            id: string;
+            displayName: string;
+            description?: string | undefined;
+          }> = teams.map((team: JSONObject) => {
+            const description: string | undefined = team["description"] as
+              | string
+              | undefined;
             return {
               id: team["id"] as string,
               displayName: team["displayName"] as string,
-              description: (team["description"] as string) || undefined,
+              ...(description && { description }),
             };
           });
           // Auto-select the first team if the project auth token has no team set yet.
           try {
             if (transformedTeams.length > 0) {
               // Find corresponding project-level auth token to update miscData
-              const projectAuth =
+              const projectAuth: WorkspaceProjectAuthToken | null =
                 await WorkspaceProjectAuthTokenService.findOneBy({
                   query: {
                     projectId: userAuthToken.projectId!,
@@ -576,10 +599,17 @@ export default class MicrosoftTeamsAPI {
                 });
 
               if (projectAuth) {
-                const miscData = (projectAuth.miscData || {}) as JSONObject;
-                const existingTeamId = miscData["teamId"] as string | undefined;
+                const miscData: JSONObject = (projectAuth.miscData ||
+                  {}) as JSONObject;
+                const existingTeamId: string | undefined = miscData[
+                  "teamId"
+                ] as string | undefined;
                 if (!existingTeamId) {
-                  const first = transformedTeams[0]!;
+                  const first: {
+                    id: string;
+                    displayName: string;
+                    description?: string | undefined;
+                  } = transformedTeams[0]!;
                   await WorkspaceProjectAuthTokenService.updateOneById({
                     id: projectAuth.id!,
                     data: {

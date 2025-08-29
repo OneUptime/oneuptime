@@ -85,7 +85,13 @@ export const PERMISSION_DESCRIPTIONS: { [key: string]: string } = {
 };
 
 // Categories for permission organization
-export const PERMISSION_CATEGORIES = {
+export const PERMISSION_CATEGORIES: {
+  AUTHENTICATION: string[];
+  TEAM_ACCESS: string[];
+  CHANNEL_ACCESS: string[];
+  MESSAGING: string[];
+  ADVANCED: string[];
+} = {
   AUTHENTICATION: ["openid", "profile", "email", "offline_access", "User.Read"],
   TEAM_ACCESS: [
     "Team.ReadBasic.All",
@@ -115,17 +121,19 @@ export const PERMISSION_CATEGORIES = {
  */
 export function decodeJWTToken(token: string): any {
   try {
-    const parts = token.split(".");
+    const parts: string[] = token.split(".");
     if (parts.length !== 3) {
       throw new Error("Invalid JWT format");
     }
 
-    const payloadPart = parts[1];
+    const payloadPart: string | undefined = parts[1];
     if (!payloadPart) {
       throw new Error("Missing token payload");
     }
 
-    const payload = JSON.parse(Buffer.from(payloadPart, "base64").toString());
+    const payload: Record<string, unknown> = JSON.parse(
+      Buffer.from(payloadPart, "base64").toString(),
+    );
     return payload;
   } catch (error) {
     throw new Error(`Failed to decode JWT: ${(error as Error).message}`);
@@ -144,17 +152,17 @@ export function validateApplicationTokenPermissions(token: string): {
   extraRoles: Array<string>;
 } {
   try {
-    const payload = decodeJWTToken(token);
-    const tokenRoles: Array<string> = payload.roles || [];
+    const payload: Record<string, unknown> = decodeJWTToken(token);
+    const tokenRoles: Array<string> = (payload["roles"] as Array<string>) || [];
 
-    const missingRoles = REQUIRED_APPLICATION_PERMISSIONS.filter(
-      (permission) => {
+    const missingRoles: Array<string> = REQUIRED_APPLICATION_PERMISSIONS.filter(
+      (permission: string) => {
         return !tokenRoles.includes(permission);
       },
     );
 
-    const extraRoles = tokenRoles.filter(
-      (role) => {
+    const extraRoles: Array<string> = tokenRoles.filter(
+      (role: string) => {
         return (
           !REQUIRED_APPLICATION_PERMISSIONS.includes(role) &&
           !role.startsWith("Directory.") && // Exclude common directory roles
@@ -169,7 +177,7 @@ export function validateApplicationTokenPermissions(token: string): {
       missingRoles,
       extraRoles,
     };
-  } catch (error) {
+  } catch (_: unknown) {
     return {
       isValid: false,
       hasRoles: [],
@@ -190,13 +198,17 @@ export function validateDelegatedTokenPermissions(token: string): {
   missingScopes: Array<string>;
 } {
   try {
-    const payload = decodeJWTToken(token);
-    const tokenScopes: Array<string> = (payload.scp || payload.scope || "")
+    const payload: Record<string, unknown> = decodeJWTToken(token);
+    const tokenScopes: Array<string> = (
+      (payload["scp"] as string) ||
+      (payload["scope"] as string) ||
+      ""
+    )
       .split(" ")
       .filter(Boolean);
 
-    const missingScopes = REQUIRED_DELEGATED_PERMISSIONS.filter(
-      (permission) => {
+    const missingScopes: Array<string> = REQUIRED_DELEGATED_PERMISSIONS.filter(
+      (permission: string) => {
         return !tokenScopes.includes(permission);
       },
     );
@@ -206,7 +218,7 @@ export function validateDelegatedTokenPermissions(token: string): {
       hasScopes: tokenScopes,
       missingScopes,
     };
-  } catch (error) {
+  } catch (_: unknown) {
     return {
       isValid: false,
       hasScopes: [],
@@ -220,21 +232,21 @@ export function validateDelegatedTokenPermissions(token: string): {
  * @returns Formatted checklist string
  */
 export function generatePermissionChecklist(): string {
-  let checklist =
+  let checklist: string =
     "Microsoft Teams Integration - Azure AD Permission Checklist\n";
   checklist += "=".repeat(60) + "\n\n";
 
   checklist +=
     "DELEGATED PERMISSIONS (add these to 'API permissions' → 'Microsoft Graph' → 'Delegated permissions'):\n";
   checklist += "-".repeat(40) + "\n";
-  REQUIRED_DELEGATED_PERMISSIONS.forEach((permission) => {
+  REQUIRED_DELEGATED_PERMISSIONS.forEach((permission: string) => {
     checklist += `☐ ${permission}\n    ${PERMISSION_DESCRIPTIONS[permission] || "No description available"}\n\n`;
   });
 
   checklist +=
     "\nAPPLICATION PERMISSIONS (add these to 'API permissions' → 'Microsoft Graph' → 'Application permissions'):\n";
   checklist += "-".repeat(40) + "\n";
-  REQUIRED_APPLICATION_PERMISSIONS.forEach((permission) => {
+  REQUIRED_APPLICATION_PERMISSIONS.forEach((permission: string) => {
     checklist += `☐ ${permission}\n    ${PERMISSION_DESCRIPTIONS[permission] || "No description available"}\n\n`;
   });
 
@@ -257,7 +269,13 @@ export function generatePermissionChecklist(): string {
 /**
  * Common permission troubleshooting scenarios
  */
-export const TROUBLESHOOTING_GUIDE = {
+export const TROUBLESHOOTING_GUIDE: {
+  [key: string]: {
+    title: string;
+    causes: string[];
+    solutions: string[];
+  };
+} = {
   "403_FORBIDDEN": {
     title: "403 Forbidden Error",
     causes: [

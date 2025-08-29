@@ -36,7 +36,7 @@ export default class Exception extends Error {
     }
     try {
       return JSON.stringify(message);
-    } catch (_) {
+    } catch (_: unknown) {
       return Object.prototype.toString.call(message);
     }
   }

@@ -31,8 +31,9 @@ import Link from "Common/UI/Components/Link/Link";
 import { JSONObject } from "Common/Types/JSON";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Modal from "Common/UI/Components/Modal/Modal";
-import Button from "Common/UI/Components/Button/Button";
-import { ButtonStyleType as SharedButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonStyleType as SharedButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Steps from "Common/UI/Components/Forms/Steps/Steps";
@@ -53,6 +54,7 @@ export interface TeamsTeam {
 
 interface IntegrationFormData extends GenericObject {
   // This is just for the steps component, we don't actually use form data
+  placeholder?: string; // Adding a placeholder to satisfy the empty interface rule
 }
 
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
@@ -120,7 +122,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   ];
 
   // Determine current step based on connection status
-  const getCurrentStep = (): string => {
+  const getCurrentStep: () => string = (): string => {
     // Require project-level install first
     if (!isProjectAccountConnected) {
       setIsFinished(false);

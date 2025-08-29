@@ -46,7 +46,7 @@ export interface ComponentProps {
 const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const workspaceDisplayName = WorkspaceUtil.getWorkspaceDisplayName(
+  const workspaceDisplayName: string = WorkspaceUtil.getWorkspaceDisplayName(
     props.workspaceType,
   );
 

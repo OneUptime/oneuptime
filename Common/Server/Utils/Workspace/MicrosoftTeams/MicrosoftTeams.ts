@@ -87,7 +87,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return null;
       }
 
-      const projectAuth = params.projectAuth;
+      const projectAuth: WorkspaceProjectAuthToken | undefined | null =
+        params.projectAuth;
       let miscData: MicrosoftTeamsMiscData | undefined =
         projectAuth?.miscData as MicrosoftTeamsMiscData;
 
@@ -101,7 +102,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       // If we have a stored, not-expired app token, reuse it (2 min buffer)
       if (miscData?.appAccessToken && miscData.appAccessTokenExpiresAt) {
-        const exp = Date.parse(miscData.appAccessTokenExpiresAt);
+        const exp: number = Date.parse(miscData.appAccessTokenExpiresAt);
         if (!isNaN(exp) && Date.now() < exp - 2 * 60 * 1000) {
           return miscData.appAccessToken;
         }
@@ -129,7 +130,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         client_secret_provided: Boolean(MicrosoftTeamsAppClientSecret),
       });
 
-      const tokenResp = await API.post(
+      const tokenResp: HTTPResponse<JSONObject> = await API.post(
         URL.fromString(
           `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`,
         ),
@@ -156,9 +157,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
           typeof tokenResp.jsonData === "object" &&
           "error" in tokenResp.jsonData
         ) {
-          const errorData = tokenResp.jsonData as JSONObject;
-          const errorType = errorData["error"] as string;
-          const errorDescription = errorData["error_description"] as string;
+          const errorData: JSONObject = tokenResp.jsonData as JSONObject;
+          const errorType: string = errorData["error"] as string;
+          const errorDescription: string = errorData[
+            "error_description"
+          ] as string;
 
           if (
             errorType === "invalid_client" &&
@@ -182,7 +185,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return null;
       }
 
-      const json = tokenResp.jsonData as JSONObject;
+      const json: JSONObject = tokenResp.jsonData as JSONObject;
       const accessToken: string | undefined = json["access_token"] as string;
       const expiresIn: number | undefined = json["expires_in"] as number; // seconds
 
@@ -201,8 +204,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       // Validate token permissions for debugging
       try {
-        const permissionValidation =
-          validateApplicationTokenPermissions(accessToken);
+        const permissionValidation: {
+          isValid: boolean;
+          hasRoles: string[];
+          missingRoles: string[];
+          extraRoles: string[];
+        } = validateApplicationTokenPermissions(accessToken);
         logger.debug("Application token permission validation:");
         logger.debug({
           isValid: permissionValidation.isValid,
@@ -223,8 +230,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
         logger.debug(validationError);
       }
 
-      const now = Date.now();
-      const expiry = new Date(now + (expiresIn || 3600) * 1000).toISOString();
+      const now: number = Date.now();
+      const expiry: string = new Date(
+        now + (expiresIn || 3600) * 1000,
+      ).toISOString();
 
       if (projectAuth) {
         // Persist token to DB
@@ -288,24 +297,25 @@ export default class MicrosoftTeams extends WorkspaceBase {
           "Attempting fallback lookup for Microsoft Teams project auth tokens",
         );
 
-        const allProjectAuths = await WorkspaceProjectAuthTokenService.findBy({
-          query: {
-            workspaceType: WorkspaceType.MicrosoftTeams,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            authToken: true,
-            miscData: true,
-            workspaceType: true,
-            workspaceProjectId: true,
-          },
-          limit: 10,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+        const allProjectAuths: Array<WorkspaceProjectAuthToken> =
+          await WorkspaceProjectAuthTokenService.findBy({
+            query: {
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            },
+            select: {
+              _id: true,
+              projectId: true,
+              authToken: true,
+              miscData: true,
+              workspaceType: true,
+              workspaceProjectId: true,
+            },
+            limit: 10,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
 
         if (allProjectAuths.length > 0) {
           logger.debug(
@@ -334,7 +344,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       // Try to refresh the token if it's expired or about to expire
       logger.debug("Attempting to refresh Microsoft Teams token if needed...");
-      const refreshedProjectAuth =
+      const refreshedProjectAuth: WorkspaceProjectAuthToken =
         await MicrosoftTeamsTokenRefresher.refreshProjectAuthTokenIfExpired({
           projectAuthToken: projectAuth,
         });
@@ -437,8 +447,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     if (bodyTextParts.length > 0) {
       // Convert markdown formatting to HTML for better Teams rendering
-      const htmlBodyText = bodyTextParts
-        .map((part) => {
+      const htmlBodyText: string = bodyTextParts
+        .map((part: string) => {
           return this.convertMarkdownToHtml(part);
         })
         .join("<br><br>");
@@ -468,7 +478,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         await this.getRefreshedProjectAuthToken(authToken);
 
       if (projectAuth && projectAuth.miscData) {
-        const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        const miscData: MicrosoftTeamsMiscData =
+          projectAuth.miscData as MicrosoftTeamsMiscData;
         if (miscData.teamId) {
           logger.debug(`Using stored team ID: ${miscData.teamId}`);
           return miscData.teamId;
@@ -551,8 +562,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
         typeof response.jsonData === "object" &&
         "error" in response.jsonData
       ) {
-        const errorObj = response.jsonData["error"] as JSONObject;
-        const errorMessage = errorObj["message"] as string;
+        const errorObj: JSONObject = response.jsonData["error"] as JSONObject;
+        const errorMessage: string = errorObj["message"] as string;
 
         if (
           errorMessage &&
@@ -602,11 +613,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
-      const response = await this.makeGraphApiCall(
-        `/teams/${teamId}/channels`,
-        appToken,
-        "GET",
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/teams/${teamId}/channels`,
+          appToken,
+          "GET",
+        );
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Microsoft Graph API:");
@@ -615,7 +627,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       const channels: Dictionary<WorkspaceChannel> = {};
-      const channelsData = (response.jsonData as JSONObject)[
+      const channelsData: Array<JSONObject> = (response.jsonData as JSONObject)[
         "value"
       ] as Array<JSONObject>;
 
@@ -648,9 +660,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | undefined | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -669,11 +680,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
-      const response = await this.makeGraphApiCall(
-        `/teams/${teamId}/channels/${data.channelId}`,
-        appToken,
-        "GET",
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/teams/${teamId}/channels/${data.channelId}`,
+          appToken,
+          "GET",
+        );
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error response from Microsoft Graph API:");

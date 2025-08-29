@@ -144,9 +144,11 @@ export default class MicrosoftTeamsTokenRefresher {
           typeof resp.jsonData === "object" &&
           "error" in resp.jsonData
         ) {
-          const errorData = resp.jsonData as JSONObject;
-          const errorType = errorData["error"] as string;
-          const errorDescription = errorData["error_description"] as string;
+          const errorData: JSONObject = resp.jsonData as JSONObject;
+          const errorType: string = errorData["error"] as string;
+          const errorDescription: string = errorData[
+            "error_description"
+          ] as string;
 
           if (
             errorType === "invalid_client" &&

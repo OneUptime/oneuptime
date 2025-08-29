@@ -98,7 +98,7 @@ export default class Markdown {
     // --- Enhanced overrides for Docs Renderer (improved styling & missing elements) ---
     // Slugify helper for generating unique heading IDs
     const __docsUsedSlugs: Set<string> = new Set();
-    const __slugify = (value: string): string => {
+    const __slugify: (value: string) => string = (value: string): string => {
       let slug: string = value
         .toLowerCase()
         .replace(/<[^>]+>/g, "")
@@ -128,12 +128,12 @@ export default class Markdown {
     // Images -> figure w/ caption
     renderer.image = function (href, _title, text) {
       const alt: string = text || "";
-      return `<figure class="my-8 flex flex-col items-center"><img src="${href}" alt="${alt}" loading="lazy" class="max-w-full rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700" />${alt ? `<figcaption class=\"mt-2 text-sm text-gray-500 dark:text-gray-400\">${alt}</figcaption>` : ""}</figure>`;
+      return `<figure class="my-8 flex flex-col items-center"><img src="${href}" alt="${alt}" loading="lazy" class="max-w-full rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700" />${alt ? `<figcaption class="mt-2 text-sm text-gray-500 dark:text-gray-400">${alt}</figcaption>` : ""}</figure>`;
     };
 
     // Code block (override)
     renderer.code = function (code, language) {
-      const langClass = language ? `language-${language}` : "";
+      const langClass: string = language ? `language-${language}` : "";
       return `<div class="my-6 group relative"><pre class="${langClass}"><code class="${langClass}">${code}</code></pre></div>`;
     };
 
@@ -169,10 +169,10 @@ export default class Markdown {
 
     // Lists
     renderer.list = function (body, ordered, start) {
-      const listTag = ordered ? "ol" : "ul";
-      const startAttr =
+      const listTag: string = ordered ? "ol" : "ul";
+      const startAttr: string =
         ordered && start && start > 1 ? ` start="${start}"` : "";
-      const classes = ordered ? "list-decimal" : "list-disc";
+      const classes: string = ordered ? "list-decimal" : "list-disc";
       return `<${listTag}${startAttr} class="${classes} ms-6 my-4 space-y-1 text-gray-700 dark:text-gray-300">${body}</${listTag}>`;
     };
     renderer.listitem = function (text) {
@@ -190,10 +190,10 @@ export default class Markdown {
       return `<tr class="border-b border-gray-200 dark:border-gray-700">${content}</tr>`;
     };
     renderer.tablecell = function (content, flags) {
-      const Tag = flags.header ? "th" : "td";
-      const align = flags.align ? ` text-${flags.align}` : "";
-      const base = "px-4 py-2 align-top";
-      const headerCls = flags.header
+      const Tag: string = flags.header ? "th" : "td";
+      const align: string = flags.align ? ` text-${flags.align}` : "";
+      const base: string = "px-4 py-2 align-top";
+      const headerCls: string = flags.header
         ? " font-semibold text-gray-900 dark:text-gray-100"
         : " text-gray-700 dark:text-gray-300";
       return `<${Tag} class="${base}${align}${headerCls}">${content}</${Tag}>`;
@@ -201,9 +201,9 @@ export default class Markdown {
 
     // Heading override with anchors
     renderer.heading = function (text, level) {
-      const id = __slugify(text);
-      const base = "group scroll-mt-24";
-      const anchor = `<a href=\"#${id}\" class=\"absolute -ms-6 ps-2 inset-y-0 start-0 flex items-center opacity-0 group-hover:opacity-100 transition\" aria-label=\"Anchor\">#</a>`;
+      const id: string = __slugify(text);
+      const base: string = "group scroll-mt-24";
+      const anchor: string = `<a href="#${id}" class="absolute -ms-6 ps-2 inset-y-0 start-0 flex items-center opacity-0 group-hover:opacity-100 transition" aria-label="Anchor">#</a>`;
       if (level === 1) {
         return `<h1 id="${id}" class="${base} relative mt-12 mb-6 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50">${anchor}${text}</h1>`;
       } else if (level === 2) {
