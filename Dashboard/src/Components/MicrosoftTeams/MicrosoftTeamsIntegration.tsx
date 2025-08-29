@@ -176,7 +176,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   }, [isUserAccountConnected, userAuthTokenId, isProjectAccountConnected]);
 
-  // Removed auto-select effect to ensure user can manually choose a team (Step 3 should not be skipped)
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -261,7 +260,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       );
 
       if (response.data && (response.data as JSONObject)["teams"] && Array.isArray((response.data as JSONObject)["teams"])) {
-        setAvailableTeams(((response.data as JSONObject)["teams"] as unknown) as TeamsTeam[]);
+        const teamsList = ((response.data as JSONObject)["teams"] as unknown) as TeamsTeam[];
+        setAvailableTeams(teamsList);
+        // Immediate client-side auto-select if none chosen yet
+        if (
+          teamsList.length > 0 &&
+          !currentTeamId &&
+          (teamsTeamName === 'Microsoft Teams' || !teamsTeamName) &&
+          projectAuthTokenId &&
+          isUserAccountConnected &&
+          isProjectAccountConnected
+        ) {
+          // Fire and forget
+          void selectTeam(teamsList[0]!);
+        }
       }
     } catch (error) {
       setError(

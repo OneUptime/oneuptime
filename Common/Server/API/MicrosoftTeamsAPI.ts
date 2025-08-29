@@ -528,10 +528,47 @@ export default class MicrosoftTeamsAPI {
             displayName: team["displayName"] as string,
             description: team["description"] as string || undefined,
           }));
+          // Auto-select the first team if the project auth token has no team set yet.
+          try {
+            if (transformedTeams.length > 0) {
+              // Find corresponding project-level auth token to update miscData
+              const projectAuth = await WorkspaceProjectAuthTokenService.findOneBy({
+                query: {
+                  projectId: userAuthToken.projectId!,
+                  workspaceType: WorkspaceType.MicrosoftTeams,
+                },
+                select: {
+                  _id: true,
+                  miscData: true,
+                },
+                props: { isRoot: true },
+              });
 
-          return Response.sendJsonObjectResponse(req, res, {
-            teams: transformedTeams,
-          });
+              if (projectAuth) {
+                const miscData = (projectAuth.miscData || {}) as JSONObject;
+                const existingTeamId = miscData["teamId"] as string | undefined;
+                if (!existingTeamId) {
+                  const first = transformedTeams[0]!;
+                  await WorkspaceProjectAuthTokenService.updateOneById({
+                    id: projectAuth.id!,
+                    data: {
+                      miscData: {
+                        ...miscData,
+                        teamId: first.id,
+                        teamName: first.displayName,
+                      },
+                    },
+                    props: { isRoot: true },
+                  });
+                }
+              }
+            }
+          } catch (autoSelectErr) {
+            logger.error("Failed to auto-select first Microsoft Teams team:");
+            logger.error(autoSelectErr);
+          }
+
+          return Response.sendJsonObjectResponse(req, res, { teams: transformedTeams });
         } catch (error) {
           logger.error("Error in /teams/get-teams endpoint:");
           logger.error(error);
