@@ -379,7 +379,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
                 <p className="text-xs text-gray-600 mb-3">Log out your personal Slack user. Workspace installation remains until you uninstall.</p>
                 <Button
                   title="Log Out of Slack"
-                  buttonStyle={SharedButtonStyleType.OUTLINE}
+                  className="-ml-3"
+                  buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Logout}
                   onClick={() => { void logoutUser(); }}
                   isLoading={isActionLoading}
@@ -390,6 +391,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
                 <h4 className="text-sm font-medium text-red-800 mb-2">Uninstall Slack App</h4>
                 <p className="text-xs text-red-700 mb-3">Removes stored tokens in OneUptime. (Remove the app in Slack admin to fully revoke.)</p>
                 <Button
+                 className="-ml-3"
                   title="Uninstall Integration"
                   buttonStyle={SharedButtonStyleType.DANGER}
                   icon={IconProp.Trash}
@@ -428,6 +430,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+               className="-ml-3"
                 title={isProjectAccountConnected ? 'Workspace Connected' : 'Install Slack App'}
                 icon={IconProp.Slack}
                 onClick={() => connectWithSlack()}
@@ -446,6 +449,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+               className="-ml-3"
                 title={isUserAccountConnected ? 'User Connected' : 'Connect User'}
                 icon={isUserAccountConnected ? IconProp.Check : IconProp.User}
                 onClick={() => connectWithSlack()}
@@ -482,6 +486,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
+               className="-ml-3"
                 title="Manage Integration"
                 icon={IconProp.Settings}
                 buttonStyle={SharedButtonStyleType.OUTLINE}
