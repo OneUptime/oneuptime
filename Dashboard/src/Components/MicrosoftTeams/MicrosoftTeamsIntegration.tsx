@@ -81,7 +81,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   // New persistent finished state that survives reload (derived on load)
   // This indicates the user has explicitly clicked "Finish".
   // Should default to false so we don't skip the Select Team step on first load.
-  const [isSetupFinished, setIsSetupFinished] = React.useState<boolean>(false);
+  const [isSetupFinished, setIsSetupFinished] = React.useState<boolean>(true);
   const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
   const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
   const [showRevokeConsentConfirm, setShowRevokeConsentConfirm] = React.useState<boolean>(false);
@@ -116,16 +116,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const getCurrentStep = (): string => {
     // Require project-level install first
     if (!isProjectAccountConnected) {
+      setIsFinished(false);
       return "admin-consent";
     }
     // Admin consent is optional: if not granted, we still allow proceeding but keep step 1 accessible
     if (!isUserAccountConnected) {
+      setIsFinished(false);
       return "user-account";
     }
     if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
+      setIsFinished(false);
       return "select-team";
     }
     if (isFinished) {
+      setIsFinished(true);
       return "finish";
     }
     return "select-team";
@@ -753,7 +757,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 }}
                 disabled={isLoadingTeams || !isUserAccountConnected}
               />
-              {currentTeamId && (
+              {currentTeamId && teamsTeamName && teamsTeamName !== 'Microsoft Teams' && (
                 <Button
                   title="Finish"
                   buttonStyle={SharedButtonStyleType.SUCCESS}
