@@ -835,7 +835,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 <p className="text-xs text-gray-600 mb-3">Currently connected to: <strong>{teamsTeamName}</strong>. Change the team to direct notifications elsewhere.</p>
                 <Button
                  className="-ml-3"
-                  title="Select Team"
+                  title="Change Team"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Settings}
                   onClick={() => {
