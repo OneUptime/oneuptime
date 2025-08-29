@@ -80,6 +80,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [isFinished, setIsFinished] = React.useState<boolean>(false);
   const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
   const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
+  const [showRevokeConsentConfirm, setShowRevokeConsentConfirm] = React.useState<boolean>(false);
 
   // Define the integration steps
   // NOTE: Order changed so that we connect user account before selecting team.
@@ -617,7 +618,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               {isProjectAccountConnected && adminConsentGranted && (
                 <Button
                   title="Revoke Admin Consent"
-                  onClick={() => revokeAdminConsent()}
+                  onClick={() => setShowRevokeConsentConfirm(true)}
                   buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
                   icon={IconProp.Close}
                   isLoading={isButtonLoading}
@@ -905,6 +906,28 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             ))}
           </div>
         </Modal>
+      )}
+
+      {showRevokeConsentConfirm && (
+        <ConfirmModal
+          title="Revoke Admin Consent"
+          description={
+            <div className="space-y-3 text-sm">
+              <p>This will remove the project-level Microsoft Teams authorization (admin consent) from OneUptime.</p>
+              <p className="text-red-600 font-medium">User tokens and selected team will also be cleared.</p>
+              <p className="text-xs text-gray-500">To fully revoke permissions in Azure AD, you may still need to remove the Enterprise Application manually.</p>
+            </div>
+          }
+          submitButtonText="Revoke"
+          submitButtonType={SharedButtonStyleType.DANGER}
+          onSubmit={async () => {
+            await revokeAdminConsent();
+            setShowRevokeConsentConfirm(false);
+          }}
+            onClose={() => setShowRevokeConsentConfirm(false)}
+          disableSubmitButton={isButtonLoading}
+          isLoading={isButtonLoading}
+        />
       )}
     </Fragment>
   );
