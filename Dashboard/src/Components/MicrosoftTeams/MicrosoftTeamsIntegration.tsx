@@ -730,7 +730,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               <Button
                className="-ml-3"
                 title={currentTeamId ? 'Change Team' : 'Select Team'}
-                buttonStyle={SharedButtonStyleType.PRIMARY}
+                buttonStyle={SharedButtonStyleType.NORMAL}
                 icon={IconProp.Settings}
                 onClick={() => {
                   if (!isUserAccountConnected) { return; }
