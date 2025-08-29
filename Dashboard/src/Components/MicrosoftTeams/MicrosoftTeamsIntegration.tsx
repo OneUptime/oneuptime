@@ -551,6 +551,42 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const revokeAdminConsent: VoidFunction = async (): Promise<void> => {
+    if (!projectAuthTokenId) { return; }
+    try {
+      setIsButtonLoading(true);
+      setError(null);
+      // Delete project token (admin consent / app install)
+      await ModelAPI.deleteItem({
+        modelType: WorkspaceProjectAuthToken,
+        id: projectAuthTokenId,
+      });
+      // Optionally also clear user token to avoid stale state
+      if (userAuthTokenId) {
+        try {
+          await ModelAPI.deleteItem({
+            modelType: WorkspaceUserAuthToken,
+            id: userAuthTokenId,
+          });
+        } catch { /* ignore */ }
+        setIsUserAccountConnected(false);
+        setWorkspaceUserAuthTokenId(null);
+      }
+      setIsProjectAccountConnected(false);
+      setWorkspaceProjectAuthTokenId(null);
+      setAdminConsentGranted(false);
+      setCurrentTeamId(null);
+      setTeamsTeamName(null);
+      setAvailableTeams([]);
+      setIsFinished(false);
+      setCurrentStep('admin-consent');
+    } catch (err) {
+      setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
+    } finally {
+      setIsButtonLoading(false);
+    }
+  };
+
   const renderStepContent = (): ReactElement => {
     switch (currentStep) {
       case "admin-consent":
@@ -578,6 +614,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Refresh}
                 />
               )}
+              {isProjectAccountConnected && adminConsentGranted && (
+                <Button
+                  title="Revoke Admin Consent"
+                  onClick={() => revokeAdminConsent()}
+                  buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
+                  icon={IconProp.Close}
+                  isLoading={isButtonLoading}
+                  disabled={isButtonLoading}
+                />
+              )}
             </div>
           </div>
         );
@@ -601,9 +647,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               />
               {isUserAccountConnected && (
                 <Button
-                  title="Disconnect Account"
-                  buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
-                  icon={IconProp.Close}
+                  title="Log Out of Teams"
+                  buttonStyle={SharedButtonStyleType.OUTLINE}
+                  icon={IconProp.Logout}
                   onClick={async () => {
                     try {
                       setIsButtonLoading(true);
@@ -618,6 +664,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                         setAvailableTeams([]);
                         setCurrentTeamId(null);
                         setTeamsTeamName('Microsoft Teams');
+                        // If finished earlier, ensure we go back a step
+                        if (isFinished) {
+                          setIsFinished(false);
+                          setCurrentStep('user-account');
+                        }
                       }
                     } catch (error) {
                       setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
