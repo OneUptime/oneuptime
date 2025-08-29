@@ -79,6 +79,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [adminConsentGranted, setAdminConsentGranted] = React.useState<boolean>(false);
   const [currentStep, setCurrentStep] = React.useState<string>("admin-consent");
   const [isFinished, setIsFinished] = React.useState<boolean>(false);
+  // New persistent finished state that survives reload (derived on load)
+  const [isSetupFinished, setIsSetupFinished] = React.useState<boolean>(false);
   const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
   const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
   const [showRevokeConsentConfirm, setShowRevokeConsentConfirm] = React.useState<boolean>(false);
@@ -120,7 +122,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
       return "select-team";
     }
-    if (isFinished) {
+    if (isFinished || isSetupFinished) {
       return "finish";
     }
     return "select-team";
@@ -128,7 +130,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     setCurrentStep(getCurrentStep());
-  }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName, isFinished]);
+  }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName, isFinished, isSetupFinished]);
 
   // If all integration prerequisites are met on initial load (e.g. page refresh),
   // automatically mark the setup as finished so the management card is shown.
@@ -138,6 +140,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
       if (
+        MicrosoftTeamsAppClientId && // env var present
         isProjectAccountConnected &&
         adminConsentGranted &&
         isUserAccountConnected &&
@@ -146,6 +149,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         teamsTeamName !== 'Microsoft Teams'
       ) {
         setIsFinished(true);
+        setIsSetupFinished(true);
         setCurrentStep('finish');
       }
     }
@@ -524,6 +528,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setCurrentTeamId(null); // team tied to user context for channel operations
       setTeamsTeamName('Microsoft Teams');
       setIsFinished(false); // Go back to wizard to reconnect user
+      setIsSetupFinished(false);
       setCurrentStep('user-account');
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
@@ -552,6 +557,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setAdminConsentGranted(false);
       setAvailableTeams([]);
       setIsFinished(false);
+      setIsSetupFinished(false);
       setCurrentStep('admin-consent');
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
@@ -588,6 +594,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setTeamsTeamName(null);
       setAvailableTeams([]);
       setIsFinished(false);
+      setIsSetupFinished(false);
       setCurrentStep('admin-consent');
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
@@ -735,6 +742,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Check}
                   onClick={() => {
                     setIsFinished(true);
+                    setIsSetupFinished(true);
                     setCurrentStep('finish');
                   }}
                 />
@@ -760,6 +768,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Settings}
                 onClick={() => {
                   setIsFinished(false);
+                   setIsSetupFinished(false);
                   setCurrentStep('select-team');
                 }}
               />
@@ -773,7 +782,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   // If setup finished, show management card instead of wizard
-  if (isFinished && isProjectAccountConnected && isUserAccountConnected && currentTeamId) {
+  if (isSetupFinished && isProjectAccountConnected && isUserAccountConnected && currentTeamId) {
     return (
       <Fragment>
         <div className="w-full">
@@ -782,6 +791,29 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             description={`Integration is active for team ${teamsTeamName}. You can manage or uninstall it below.`}
           >
             <div className="space-y-6">
+              {/* Edit / Change Team Card */}
+              <div className="border rounded-md p-4 bg-blue-50">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">Team Selection</h4>
+                <p className="text-xs text-blue-700 mb-3">Currently connected to: <strong>{teamsTeamName}</strong>. Change the team to direct notifications elsewhere.</p>
+                <Button
+                 className="-ml-3"
+                  title="Change Team"
+                  buttonStyle={SharedButtonStyleType.PRIMARY}
+                  icon={IconProp.Settings}
+                  onClick={() => {
+                    if (!isUserAccountConnected) { return; }
+                    if (availableTeams.length === 0) {
+                      fetchAvailableTeams().then(() => setShowTeamPicker(true)).catch((err) => {
+                        setError(<div>Failed to fetch teams: {API.getFriendlyErrorMessage(err as Exception)}</div>);
+                      });
+                    } else {
+                      setShowTeamPicker(true);
+                    }
+                  }}
+                  isLoading={isLoadingTeams}
+                  disabled={isLoadingTeams || !isUserAccountConnected}
+                />
+              </div>
               <div className="border rounded-md p-4 bg-gray-50">
                 <h4 className="text-sm font-medium text-gray-800 mb-2">User Session</h4>
                 <p className="text-xs text-gray-600 mb-3">Log out your personal Microsoft Teams account. Project-level permissions remain until you uninstall.</p>
