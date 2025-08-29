@@ -821,17 +821,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           >
             <div className="space-y-6">
               {/* Edit / Change Team Card */}
-              <div className="border rounded-md p-4 bg-blue-50">
-                <h4 className="text-sm font-medium text-blue-800 mb-2">Team Selection</h4>
-                <p className="text-xs text-blue-700 mb-3">Currently connected to: <strong>{teamsTeamName}</strong>. Change the team to direct notifications elsewhere.</p>
+              <div className="border rounded-md p-4 bg-gray-50">
+                <h4 className="text-sm font-medium text-gray-800 mb-2">Team Selection</h4>
+                <p className="text-xs text-gray-600 mb-3">Currently connected to: <strong>{teamsTeamName}</strong>. Change the team to direct notifications elsewhere.</p>
                 <Button
                  className="-ml-3"
                   title="Change Team"
-                  buttonStyle={SharedButtonStyleType.PRIMARY}
+                  buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Settings}
                   onClick={() => {
                     if (!isUserAccountConnected) { return; }
-                    // Open modal immediately for better UX
                     setShowTeamPicker(true);
                     if (availableTeams.length === 0 && !isLoadingTeams) {
                       fetchAvailableTeams().catch((err) => {
