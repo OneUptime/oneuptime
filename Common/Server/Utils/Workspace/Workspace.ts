@@ -9,7 +9,9 @@ import WorkspaceMessagePayload, {
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import logger from "../Logger";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceProjectAuthToken, { SlackMiscData } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  SlackMiscData,
+} from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import MicrosoftTeamsTokenRefresher from "./MicrosoftTeams/MicrosoftTeamsTokenRefresher";
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -164,13 +166,15 @@ export default class WorkspaceUtil {
         continue;
       }
 
-      const workspaceType: WorkspaceType = messagePayloadByWorkspace.workspaceType;
+      const workspaceType: WorkspaceType =
+        messagePayloadByWorkspace.workspaceType;
 
       if (projectAuthToken && workspaceType === WorkspaceType.MicrosoftTeams) {
         // Refresh token if expired (Teams specific)
-        projectAuthToken = await MicrosoftTeamsTokenRefresher.refreshProjectAuthTokenIfExpired({
-          projectAuthToken,
-        });
+        projectAuthToken =
+          await MicrosoftTeamsTokenRefresher.refreshProjectAuthTokenIfExpired({
+            projectAuthToken,
+          });
       }
 
       let botUserId: string | undefined = undefined;
@@ -194,11 +198,12 @@ export default class WorkspaceUtil {
         continue;
       }
 
-      const result: WorkspaceSendMessageResponse = await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
-        userId: botUserId || projectAuthToken.workspaceProjectId || "",
-        authToken: projectAuthToken.authToken,
-        workspaceMessagePayload: messagePayloadByWorkspace,
-      });
+      const result: WorkspaceSendMessageResponse =
+        await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
+          userId: botUserId || projectAuthToken.workspaceProjectId || "",
+          authToken: projectAuthToken.authToken,
+          workspaceMessagePayload: messagePayloadByWorkspace,
+        });
 
       responses.push(result);
     }

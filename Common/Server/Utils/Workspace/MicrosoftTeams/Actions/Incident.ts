@@ -70,10 +70,10 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Acknowledge the incident 
+      // Acknowledge the incident
       await IncidentService.acknowledgeIncident(
         incidentId,
-        data.teamsRequest.userId!
+        data.teamsRequest.userId!,
       );
 
       logger.debug("Incident acknowledged successfully via Microsoft Teams");
@@ -122,7 +122,7 @@ export default class MicrosoftTeamsIncidentActions {
 
       await IncidentService.resolveIncident(
         incidentId,
-        data.teamsRequest.userId!
+        data.teamsRequest.userId!,
       );
 
       logger.debug("Incident resolved successfully via Microsoft Teams");
@@ -140,7 +140,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would show note addition modal
-    logger.debug("Microsoft Teams view add incident note not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams view add incident note not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -152,7 +154,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would submit note to incident
-    logger.debug("Microsoft Teams submit incident note not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams submit incident note not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -164,7 +168,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would show state change modal
-    logger.debug("Microsoft Teams view change incident state not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams view change incident state not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -176,7 +182,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would submit state change
-    logger.debug("Microsoft Teams submit change incident state not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams submit change incident state not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -188,7 +196,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would show on-call policy execution modal
-    logger.debug("Microsoft Teams view execute on-call policy not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams view execute on-call policy not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -200,7 +210,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would execute on-call policy
-    logger.debug("Microsoft Teams execute on-call policy not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams execute on-call policy not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -224,7 +236,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would show new incident creation modal
-    logger.debug("Microsoft Teams view new incident modal not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams view new incident modal not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -236,7 +250,9 @@ export default class MicrosoftTeamsIncidentActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Placeholder implementation - would create new incident
-    logger.debug("Microsoft Teams submit new incident not yet fully implemented");
+    logger.debug(
+      "Microsoft Teams submit new incident not yet fully implemented",
+    );
     Response.sendEmptySuccessResponse(data.req, data.res);
   }
 
@@ -266,7 +282,9 @@ export default class MicrosoftTeamsIncidentActions {
       );
     }
 
-    if (data.action.actionType === MicrosoftTeamsActionType.AcknowledgeIncident) {
+    if (
+      data.action.actionType === MicrosoftTeamsActionType.AcknowledgeIncident
+    ) {
       await this.acknowledgeIncident({
         teamsRequest,
         action: data.action,
@@ -301,7 +319,8 @@ export default class MicrosoftTeamsIncidentActions {
         res,
       });
     } else if (
-      data.action.actionType === MicrosoftTeamsActionType.ViewChangeIncidentState
+      data.action.actionType ===
+      MicrosoftTeamsActionType.ViewChangeIncidentState
     ) {
       await this.viewChangeIncidentState({
         teamsRequest,
@@ -310,7 +329,8 @@ export default class MicrosoftTeamsIncidentActions {
         res,
       });
     } else if (
-      data.action.actionType === MicrosoftTeamsActionType.SubmitChangeIncidentState
+      data.action.actionType ===
+      MicrosoftTeamsActionType.SubmitChangeIncidentState
     ) {
       await this.submitChangeIncidentState({
         teamsRequest,
@@ -319,7 +339,8 @@ export default class MicrosoftTeamsIncidentActions {
         res,
       });
     } else if (
-      data.action.actionType === MicrosoftTeamsActionType.ViewExecuteIncidentOnCallPolicy
+      data.action.actionType ===
+      MicrosoftTeamsActionType.ViewExecuteIncidentOnCallPolicy
     ) {
       await this.viewExecuteOnCallPolicy({
         teamsRequest,
@@ -328,7 +349,8 @@ export default class MicrosoftTeamsIncidentActions {
         res,
       });
     } else if (
-      data.action.actionType === MicrosoftTeamsActionType.SubmitExecuteIncidentOnCallPolicy
+      data.action.actionType ===
+      MicrosoftTeamsActionType.SubmitExecuteIncidentOnCallPolicy
     ) {
       await this.executeOnCallPolicy({
         teamsRequest,

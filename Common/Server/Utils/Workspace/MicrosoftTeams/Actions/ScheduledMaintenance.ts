@@ -75,14 +75,17 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     }
 
     if (
-      data.action.actionType === MicrosoftTeamsActionType.SubmitNewScheduledMaintenance
+      data.action.actionType ===
+      MicrosoftTeamsActionType.SubmitNewScheduledMaintenance
     ) {
       // We send this early let Teams know we're ok. We'll do the rest in the background.
       Response.sendEmptySuccessResponse(req, res);
 
       try {
         // Implementation for creating new scheduled maintenance
-        logger.debug("Microsoft Teams scheduled maintenance submission implementation");
+        logger.debug(
+          "Microsoft Teams scheduled maintenance submission implementation",
+        );
       } catch (error) {
         logger.error(error);
       }
@@ -113,7 +116,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
     const scheduledMaintenanceDescription: WorkspaceTextAreaBlock = {
       _type: "WorkspaceTextAreaBlock",
-      label: "Event Description", 
+      label: "Event Description",
       blockId: "scheduledMaintenanceDescription",
       placeholder: "Scheduled Maintenance Description",
     };
@@ -548,7 +551,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
     const scheduledMaintenanceId: ObjectID = new ObjectID(actionValue);
     const note: string = data.teamsRequest.viewValues["note"].toString();
-    const noteType: string = data.teamsRequest.viewValues["noteType"].toString();
+    const noteType: string =
+      data.teamsRequest.viewValues["noteType"].toString();
 
     if (noteType !== "public" && noteType !== "private") {
       return Response.sendErrorResponse(
@@ -610,7 +614,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         value: "public",
       },
       {
-        label: "Private Note", 
+        label: "Private Note",
         value: "private",
       },
     ];
@@ -691,7 +695,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         break;
 
       default:
-        logger.debug(`Unhandled Microsoft Teams scheduled maintenance action: ${action.actionType}`);
+        logger.debug(
+          `Unhandled Microsoft Teams scheduled maintenance action: ${action.actionType}`,
+        );
         Response.sendEmptySuccessResponse(data.req, data.res);
     }
   }

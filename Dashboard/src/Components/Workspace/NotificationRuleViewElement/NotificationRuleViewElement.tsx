@@ -47,7 +47,9 @@ export interface ComponentProps {
 const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const workspaceDisplayName = WorkspaceUtil.getWorkspaceDisplayName(props.workspaceType);
+  const workspaceDisplayName = WorkspaceUtil.getWorkspaceDisplayName(
+    props.workspaceType,
+  );
 
   let detailFields: Array<
     Field<

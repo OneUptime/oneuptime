@@ -75,7 +75,9 @@ export default class MicrosoftTeamsAuthAction {
 
       // Parse channel information
       if (teamsPayload["channelData"]) {
-        const channelData: JSONObject = teamsPayload["channelData"] as JSONObject;
+        const channelData: JSONObject = teamsPayload[
+          "channelData"
+        ] as JSONObject;
         teamsRequest.teamsChannelId = channelData["teamsChannelId"] as string;
       }
 
@@ -93,7 +95,9 @@ export default class MicrosoftTeamsAuthAction {
 
       return teamsRequest;
     } catch (error) {
-      logger.error(`Error parsing Microsoft Teams request: ${(error as Error).message}`);
+      logger.error(
+        `Error parsing Microsoft Teams request: ${(error as Error).message}`,
+      );
       return teamsRequest;
     }
   }
@@ -107,7 +111,9 @@ export default class MicrosoftTeamsAuthAction {
       return;
     }
 
-    logger.debug(`Authorizing Teams request for user ${teamsRequest.teamsUserId}`);
+    logger.debug(
+      `Authorizing Teams request for user ${teamsRequest.teamsUserId}`,
+    );
 
     try {
       // Find user auth token by Teams user ID
@@ -156,11 +162,12 @@ export default class MicrosoftTeamsAuthAction {
             });
 
           if (projectAuthTokens.length > 0) {
-            const projectAuthToken: WorkspaceProjectAuthToken = projectAuthTokens[0]!;
+            const projectAuthToken: WorkspaceProjectAuthToken =
+              projectAuthTokens[0]!;
             teamsRequest.projectId = projectAuthToken.projectId;
             teamsRequest.projectAuthToken = projectAuthToken.authToken;
             teamsRequest.isAuthorized = true;
-            
+
             logger.debug(
               `Authorized Teams request using project auth token for project ${teamsRequest.projectId}`,
             );
@@ -215,7 +222,9 @@ export default class MicrosoftTeamsAuthAction {
         `Authorized Teams request for user ${teamsRequest.userId} in project ${teamsRequest.projectId}`,
       );
     } catch (error) {
-      logger.error(`Error authorizing Teams request: ${(error as Error).message}`);
+      logger.error(
+        `Error authorizing Teams request: ${(error as Error).message}`,
+      );
     }
   }
 }

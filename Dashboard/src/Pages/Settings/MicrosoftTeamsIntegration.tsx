@@ -7,7 +7,10 @@ const MicrosoftTeamsIntegrationPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <div>
-      <MicrosoftTeamsIntegration onConnected={() => {}} onDisconnected={() => {}} />
+      <MicrosoftTeamsIntegration
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+      />
     </div>
   );
 };

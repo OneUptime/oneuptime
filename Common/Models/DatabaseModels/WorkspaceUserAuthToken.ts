@@ -172,7 +172,6 @@ class WorkspaceUserAuthToken extends BaseModel {
   })
   public miscData?: MiscData = undefined;
 
-
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],

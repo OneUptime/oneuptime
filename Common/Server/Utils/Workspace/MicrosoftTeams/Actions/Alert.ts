@@ -119,10 +119,9 @@ export default class MicrosoftTeamsAlertActions {
     const alertId: ObjectID = new ObjectID(actionValue);
 
     // Check if already resolved
-    const isAlreadyResolved: boolean =
-      await AlertService.isAlertResolved({
-        alertId: alertId,
-      });
+    const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
+      alertId: alertId,
+    });
 
     if (isAlreadyResolved) {
       const markdownPayload: WorkspacePayloadMarkdown = {
@@ -254,7 +253,8 @@ export default class MicrosoftTeamsAlertActions {
       );
     }
 
-    const alertStateId: string | undefined = data.teamsRequest.viewValues["alertState"]?.toString();
+    const alertStateId: string | undefined =
+      data.teamsRequest.viewValues["alertState"]?.toString();
 
     if (!alertStateId) {
       return Response.sendErrorResponse(
@@ -322,7 +322,8 @@ export default class MicrosoftTeamsAlertActions {
       );
     }
 
-    const noteContent: string | undefined = data.teamsRequest.viewValues["alertNote"]?.toString();
+    const noteContent: string | undefined =
+      data.teamsRequest.viewValues["alertNote"]?.toString();
 
     if (!noteContent) {
       return Response.sendErrorResponse(
@@ -449,7 +450,9 @@ export default class MicrosoftTeamsAlertActions {
         break;
 
       default:
-        logger.debug(`Unhandled Microsoft Teams alert action: ${action.actionType}`);
+        logger.debug(
+          `Unhandled Microsoft Teams alert action: ${action.actionType}`,
+        );
         Response.sendEmptySuccessResponse(data.req, data.res);
     }
   }

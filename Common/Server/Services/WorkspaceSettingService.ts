@@ -1,9 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
-import Model, {
-  Settings,
-} from "../../Models/DatabaseModels/WorkspaceSetting";
+import Model, { Settings } from "../../Models/DatabaseModels/WorkspaceSetting";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {

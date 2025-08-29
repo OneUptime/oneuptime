@@ -5,7 +5,9 @@ import React, {
   useEffect,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import Button, { ButtonStyleType as SharedButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonStyleType as SharedButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
@@ -61,7 +63,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
   const [currentStep, setCurrentStep] = React.useState<string>("install-app");
   const [isFinished, setIsFinished] = React.useState<boolean>(false);
-  const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
+  const [showUninstallConfirm, setShowUninstallConfirm] =
+    React.useState<boolean>(false);
   const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
 
   useEffect(() => {
@@ -129,7 +132,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
       }
 
-  if (!isUserAccountConnected || !isProjectAccountConnected) {
+      if (!isUserAccountConnected || !isProjectAccountConnected) {
         // if any of this is not connected then fetch the app manifest, so we can connect with slack.
 
         // fetch app manifest.
@@ -294,16 +297,22 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   // Steps definition (no team selection step for Slack)
   const integrationSteps: Array<FormStep<FormValues<unknown>>> = [
-    { id: 'install-app', title: 'Step 1: Install & Authorize Workspace' },
-    { id: 'user-account', title: 'Step 2: Connect User Account' },
-    { id: 'finish', title: 'Step 3: Finish' },
+    { id: "install-app", title: "Step 1: Install & Authorize Workspace" },
+    { id: "user-account", title: "Step 2: Connect User Account" },
+    { id: "finish", title: "Step 3: Finish" },
   ];
 
   const getCurrentStep = (): string => {
-    if (!isProjectAccountConnected) { return 'install-app'; }
-    if (!isUserAccountConnected) { return 'user-account'; }
-    if (isFinished) { return 'finish'; }
-    return 'user-account';
+    if (!isProjectAccountConnected) {
+      return "install-app";
+    }
+    if (!isUserAccountConnected) {
+      return "user-account";
+    }
+    if (isFinished) {
+      return "finish";
+    }
+    return "user-account";
   };
 
   useEffect(() => {
@@ -314,19 +323,24 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (!isFinished && isProjectAccountConnected && isUserAccountConnected) {
       setIsFinished(true);
-      setCurrentStep('finish');
+      setCurrentStep("finish");
     }
   }, [isFinished, isProjectAccountConnected, isUserAccountConnected]);
 
   const logoutUser = async (): Promise<void> => {
-    if (!userAuthTokenId) { return; }
+    if (!userAuthTokenId) {
+      return;
+    }
     try {
       setIsActionLoading(true);
-      await ModelAPI.deleteItem({ modelType: WorkspaceUserAuthToken, id: userAuthTokenId });
+      await ModelAPI.deleteItem({
+        modelType: WorkspaceUserAuthToken,
+        id: userAuthTokenId,
+      });
       setIsUserAccountConnected(false);
       setWorkspaceUserAuthTokenId(null);
       setIsFinished(false);
-      setCurrentStep('user-account');
+      setCurrentStep("user-account");
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
     } finally {
@@ -339,17 +353,31 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       setIsActionLoading(true);
       // Delete user token first (ignore errors)
       if (userAuthTokenId) {
-        try { await ModelAPI.deleteItem({ modelType: WorkspaceUserAuthToken, id: userAuthTokenId }); } catch { /* ignore */ }
+        try {
+          await ModelAPI.deleteItem({
+            modelType: WorkspaceUserAuthToken,
+            id: userAuthTokenId,
+          });
+        } catch {
+          /* ignore */
+        }
         setWorkspaceUserAuthTokenId(null);
         setIsUserAccountConnected(false);
       }
       if (projectAuthTokenId) {
-        try { await ModelAPI.deleteItem({ modelType: WorkspaceProjectAuthToken, id: projectAuthTokenId }); } catch { /* ignore */ }
+        try {
+          await ModelAPI.deleteItem({
+            modelType: WorkspaceProjectAuthToken,
+            id: projectAuthTokenId,
+          });
+        } catch {
+          /* ignore */
+        }
         setWorkspaceProjectAuthTokenId(null);
         setIsProjectAccountConnected(false);
       }
       setIsFinished(false);
-      setCurrentStep('install-app');
+      setCurrentStep("install-app");
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
     } finally {
@@ -361,8 +389,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     return <SlackIntegrationDocumentation manifest={manifest as JSONObject} />;
   }
 
-  if (isLoading) { return <PageLoader isVisible={true} />; }
-  if (error) { return <ErrorMessage message={error} />; }
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   // Finished management card
   if (isFinished && isProjectAccountConnected && isUserAccountConnected) {
@@ -370,32 +402,46 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       <Fragment>
         <div className="w-full">
           <Card
-            title={`Slack Integration Active (${slackTeamName || 'Workspace'})`}
+            title={`Slack Integration Active (${slackTeamName || "Workspace"})`}
             description="Manage or uninstall your Slack integration."
           >
             <div className="space-y-6">
               <div className="border rounded-md p-4 bg-gray-50">
-                <h4 className="text-sm font-medium text-gray-800 mb-2">User Session</h4>
-                <p className="text-xs text-gray-600 mb-3">Log out your personal Slack user. Workspace installation remains until you uninstall.</p>
+                <h4 className="text-sm font-medium text-gray-800 mb-2">
+                  User Session
+                </h4>
+                <p className="text-xs text-gray-600 mb-3">
+                  Log out your personal Slack user. Workspace installation
+                  remains until you uninstall.
+                </p>
                 <Button
                   title="Log Out of Slack"
                   className="-ml-3"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Logout}
-                  onClick={() => { void logoutUser(); }}
+                  onClick={() => {
+                    void logoutUser();
+                  }}
                   isLoading={isActionLoading}
                   disabled={isActionLoading}
                 />
               </div>
               <div className="border rounded-md p-4 bg-red-50">
-                <h4 className="text-sm font-medium text-red-800 mb-2">Uninstall Slack App</h4>
-                <p className="text-xs text-red-700 mb-3">Removes stored tokens in OneUptime. (Remove the app in Slack admin to fully revoke.)</p>
+                <h4 className="text-sm font-medium text-red-800 mb-2">
+                  Uninstall Slack App
+                </h4>
+                <p className="text-xs text-red-700 mb-3">
+                  Removes stored tokens in OneUptime. (Remove the app in Slack
+                  admin to fully revoke.)
+                </p>
                 <Button
-                 className="-ml-3"
+                  className="-ml-3"
                   title="Uninstall Integration"
                   buttonStyle={SharedButtonStyleType.DANGER}
                   icon={IconProp.Trash}
-                  onClick={() => setShowUninstallConfirm(true)}
+                  onClick={() => {
+                    return setShowUninstallConfirm(true);
+                  }}
                   isLoading={isActionLoading}
                   disabled={isActionLoading}
                 />
@@ -406,11 +452,30 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         {showUninstallConfirm && (
           <ConfirmModal
             title="Uninstall Slack Integration"
-            description={<div className="space-y-3 text-sm"><p>This will delete both workspace-level and user-level Slack tokens stored in OneUptime.</p><p className="text-red-600 font-medium">This action cannot be undone here.</p><p className="text-xs text-gray-500">To fully revoke in Slack, remove the installed app from your Slack admin dashboard after uninstalling.</p></div>}
+            description={
+              <div className="space-y-3 text-sm">
+                <p>
+                  This will delete both workspace-level and user-level Slack
+                  tokens stored in OneUptime.
+                </p>
+                <p className="text-red-600 font-medium">
+                  This action cannot be undone here.
+                </p>
+                <p className="text-xs text-gray-500">
+                  To fully revoke in Slack, remove the installed app from your
+                  Slack admin dashboard after uninstalling.
+                </p>
+              </div>
+            }
             submitButtonText="Uninstall"
             submitButtonType={SharedButtonStyleType.DANGER}
-            onSubmit={async () => { await uninstallIntegration(); setShowUninstallConfirm(false); }}
-            onClose={() => setShowUninstallConfirm(false)}
+            onSubmit={async () => {
+              await uninstallIntegration();
+              setShowUninstallConfirm(false);
+            }}
+            onClose={() => {
+              return setShowUninstallConfirm(false);
+            }}
             disableSubmitButton={isActionLoading}
             isLoading={isActionLoading}
           />
@@ -421,82 +486,128 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
   const renderStepContent = (): ReactElement => {
     switch (currentStep) {
-      case 'install-app':
+      case "install-app":
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 1: Install & Authorize Slack App</h3>
-              <p className="mt-2 text-sm text-gray-600">Install OneUptime in your Slack workspace to enable incident notifications and commands.</p>
+              <h3 className="text-lg font-medium text-gray-900">
+                Step 1: Install & Authorize Slack App
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Install OneUptime in your Slack workspace to enable incident
+                notifications and commands.
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-               className="-ml-3"
-                title={isProjectAccountConnected ? 'Workspace Connected' : 'Install Slack App'}
+                className="-ml-3"
+                title={
+                  isProjectAccountConnected
+                    ? "Workspace Connected"
+                    : "Install Slack App"
+                }
                 icon={IconProp.Slack}
-                onClick={() => connectWithSlack()}
+                onClick={() => {
+                  return connectWithSlack();
+                }}
                 disabled={isProjectAccountConnected}
-                buttonStyle={isProjectAccountConnected ? SharedButtonStyleType.SUCCESS : SharedButtonStyleType.PRIMARY}
+                buttonStyle={
+                  isProjectAccountConnected
+                    ? SharedButtonStyleType.SUCCESS
+                    : SharedButtonStyleType.PRIMARY
+                }
               />
             </div>
           </div>
         );
-      case 'user-account':
+      case "user-account":
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 2: Connect Your Slack User</h3>
-              <p className="mt-2 text-sm text-gray-600">Authorize your personal user so OneUptime can attribute actions and send you direct messages where applicable.</p>
+              <h3 className="text-lg font-medium text-gray-900">
+                Step 2: Connect Your Slack User
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Authorize your personal user so OneUptime can attribute actions
+                and send you direct messages where applicable.
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-               className="-ml-3"
-                title={isUserAccountConnected ? 'User Connected' : 'Connect User'}
+                className="-ml-3"
+                title={
+                  isUserAccountConnected ? "User Connected" : "Connect User"
+                }
                 icon={isUserAccountConnected ? IconProp.Check : IconProp.User}
-                onClick={() => connectWithSlack()}
+                onClick={() => {
+                  return connectWithSlack();
+                }}
                 disabled={isUserAccountConnected || !isProjectAccountConnected}
-                buttonStyle={isUserAccountConnected ? SharedButtonStyleType.SUCCESS : SharedButtonStyleType.PRIMARY}
+                buttonStyle={
+                  isUserAccountConnected
+                    ? SharedButtonStyleType.SUCCESS
+                    : SharedButtonStyleType.PRIMARY
+                }
               />
               {isUserAccountConnected && (
                 <Button
                   title="Log Out User"
                   icon={IconProp.Logout}
                   buttonStyle={SharedButtonStyleType.OUTLINE}
-                  onClick={() => { void logoutUser(); }}
+                  onClick={() => {
+                    void logoutUser();
+                  }}
                   disabled={isActionLoading}
                   isLoading={isActionLoading}
                 />
               )}
-              {isProjectAccountConnected && isUserAccountConnected && !isFinished && (
-                <Button
-                  title="Finish"
-                  icon={IconProp.Check}
-                  buttonStyle={SharedButtonStyleType.SUCCESS}
-                  onClick={() => { setIsFinished(true); setCurrentStep('finish'); }}
-                />
-              )}
+              {isProjectAccountConnected &&
+                isUserAccountConnected &&
+                !isFinished && (
+                  <Button
+                    title="Finish"
+                    icon={IconProp.Check}
+                    buttonStyle={SharedButtonStyleType.SUCCESS}
+                    onClick={() => {
+                      setIsFinished(true);
+                      setCurrentStep("finish");
+                    }}
+                  />
+                )}
             </div>
           </div>
         );
-      case 'finish':
+      case "finish":
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Setup Complete</h3>
-              <p className="mt-2 text-sm text-gray-600">Slack integration is fully configured for workspace <strong>{slackTeamName || 'your Slack Workspace'}</strong>. You can now receive notifications and use Slack commands.</p>
+              <h3 className="text-lg font-medium text-gray-900">
+                Setup Complete
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Slack integration is fully configured for workspace{" "}
+                <strong>{slackTeamName || "your Slack Workspace"}</strong>. You
+                can now receive notifications and use Slack commands.
+              </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-               className="-ml-3"
+                className="-ml-3"
                 title="Manage Integration"
                 icon={IconProp.Settings}
                 buttonStyle={SharedButtonStyleType.OUTLINE}
-                onClick={() => { setCurrentStep('user-account'); setIsFinished(false); }}
+                onClick={() => {
+                  setCurrentStep("user-account");
+                  setIsFinished(false);
+                }}
               />
               <Button
                 title="Uninstall"
                 icon={IconProp.Trash}
                 buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
-                onClick={() => setShowUninstallConfirm(true)}
+                onClick={() => {
+                  return setShowUninstallConfirm(true);
+                }}
               />
             </div>
           </div>
@@ -516,37 +627,62 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           <div className="lg:grid lg:grid-cols-12 lg:gap-x-8">
             <aside className="lg:col-span-4 mb-8 lg:mb-0">
               <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Setup Progress</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Setup Progress
+                </h3>
                 <Steps
                   steps={integrationSteps}
                   currentFormStepId={currentStep}
                   onClick={(step: FormStep<FormValues<unknown>>) => {
-                    const targetIndex = integrationSteps.findIndex(s => s.id === step.id);
-                    const currentIndex = integrationSteps.findIndex(s => s.id === currentStep);
-                    if (targetIndex <= currentIndex) { setCurrentStep(step.id); }
+                    const targetIndex = integrationSteps.findIndex((s) => {
+                      return s.id === step.id;
+                    });
+                    const currentIndex = integrationSteps.findIndex((s) => {
+                      return s.id === currentStep;
+                    });
+                    if (targetIndex <= currentIndex) {
+                      setCurrentStep(step.id);
+                    }
                   }}
                   formValues={{} as FormValues<unknown>}
                 />
               </div>
             </aside>
-            <div className="lg:col-span-8">
-              {renderStepContent()}
-            </div>
+            <div className="lg:col-span-8">{renderStepContent()}</div>
           </div>
         </Card>
       </div>
-        {showUninstallConfirm && (
-          <ConfirmModal
-            title="Uninstall Slack Integration"
-            description={<div className="space-y-3 text-sm"><p>This will delete both workspace-level and user-level Slack tokens stored in OneUptime.</p><p className="text-red-600 font-medium">This action cannot be undone here.</p><p className="text-xs text-gray-500">To fully revoke in Slack, remove the installed app from your Slack admin dashboard after uninstalling.</p></div>}
-            submitButtonText="Uninstall"
-            submitButtonType={SharedButtonStyleType.DANGER}
-            onSubmit={async () => { await uninstallIntegration(); setShowUninstallConfirm(false); }}
-            onClose={() => setShowUninstallConfirm(false)}
-            disableSubmitButton={isActionLoading}
-            isLoading={isActionLoading}
-          />
-        )}
+      {showUninstallConfirm && (
+        <ConfirmModal
+          title="Uninstall Slack Integration"
+          description={
+            <div className="space-y-3 text-sm">
+              <p>
+                This will delete both workspace-level and user-level Slack
+                tokens stored in OneUptime.
+              </p>
+              <p className="text-red-600 font-medium">
+                This action cannot be undone here.
+              </p>
+              <p className="text-xs text-gray-500">
+                To fully revoke in Slack, remove the installed app from your
+                Slack admin dashboard after uninstalling.
+              </p>
+            </div>
+          }
+          submitButtonText="Uninstall"
+          submitButtonType={SharedButtonStyleType.DANGER}
+          onSubmit={async () => {
+            await uninstallIntegration();
+            setShowUninstallConfirm(false);
+          }}
+          onClose={() => {
+            return setShowUninstallConfirm(false);
+          }}
+          disableSubmitButton={isActionLoading}
+          isLoading={isActionLoading}
+        />
+      )}
     </Fragment>
   );
 };

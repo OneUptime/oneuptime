@@ -28,7 +28,8 @@ export default class MicrosoftTeamsMonitorActions {
     res: ExpressResponse;
   }): Promise<void> {
     // Project is authorized and user is authorized. Perform actions based on action type.
-    const actionType: MicrosoftTeamsActionType | undefined = data.action.actionType;
+    const actionType: MicrosoftTeamsActionType | undefined =
+      data.action.actionType;
 
     if (actionType === MicrosoftTeamsActionType.ViewMonitor) {
       // Do nothing. This is just a view Monitor action.

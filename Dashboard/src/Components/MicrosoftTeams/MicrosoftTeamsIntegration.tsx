@@ -58,7 +58,6 @@ interface IntegrationFormData extends GenericObject {
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  
   const [error, setError] = React.useState<ReactElement | null>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isUserAccountConnected, setIsUserAccountConnected] =
@@ -75,7 +74,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [availableTeams, setAvailableTeams] = React.useState<TeamsTeam[]>([]);
   const [showTeamPicker, setShowTeamPicker] = React.useState<boolean>(false);
   const [isLoadingTeams, setIsLoadingTeams] = React.useState<boolean>(false);
-  const [adminConsentGranted, setAdminConsentGranted] = React.useState<boolean>(false);
+  const [adminConsentGranted, setAdminConsentGranted] =
+    React.useState<boolean>(false);
   const [currentStep, setCurrentStep] = React.useState<string>("admin-consent");
   const [isFinished, setIsFinished] = React.useState<boolean>(false);
   // New persistent finished state that survives reload (derived on load)
@@ -83,14 +83,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   // Should default to false so we don't skip the Select Team step on first load.
   const [isSetupFinished, setIsSetupFinished] = React.useState<boolean>(true);
   const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
-  const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
-  const [showRevokeConsentConfirm, setShowRevokeConsentConfirm] = React.useState<boolean>(false);
+  const [showUninstallConfirm, setShowUninstallConfirm] =
+    React.useState<boolean>(false);
+  const [showRevokeConsentConfirm, setShowRevokeConsentConfirm] =
+    React.useState<boolean>(false);
 
   // Helper: has the user actually selected a concrete team (not placeholder)?
-  const isRealTeamSelected: boolean = !!(
-    currentTeamId &&
-    teamsTeamName &&
-    teamsTeamName !== 'Microsoft Teams'
+  const isRealTeamSelected: boolean = Boolean(
+    currentTeamId && teamsTeamName && teamsTeamName !== "Microsoft Teams",
   );
 
   // Define the integration steps
@@ -144,23 +144,35 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     setCurrentStep(getCurrentStep());
-  }, [isProjectAccountConnected, isUserAccountConnected, adminConsentGranted, currentTeamId, teamsTeamName, isFinished, isSetupFinished]);
+  }, [
+    isProjectAccountConnected,
+    isUserAccountConnected,
+    adminConsentGranted,
+    currentTeamId,
+    teamsTeamName,
+    isFinished,
+    isSetupFinished,
+  ]);
 
   // Derive setup completion whenever all prerequisites are satisfied.
   // This ensures that on page reload we immediately show the management card.
   useEffect(() => {
-    const ready: boolean = !!(
+    const ready: boolean = Boolean(
       MicrosoftTeamsAppClientId &&
-      isProjectAccountConnected &&
-      adminConsentGranted &&
-      isUserAccountConnected &&
-      currentTeamId &&
-      teamsTeamName &&
-      teamsTeamName !== 'Microsoft Teams'
+        isProjectAccountConnected &&
+        adminConsentGranted &&
+        isUserAccountConnected &&
+        currentTeamId &&
+        teamsTeamName &&
+        teamsTeamName !== "Microsoft Teams",
     );
     if (!ready) {
-      if (!isSetupFinished) { setIsSetupFinished(false); }
-      if (!isFinished) { setIsFinished(false); }
+      if (!isSetupFinished) {
+        setIsSetupFinished(false);
+      }
+      if (!isFinished) {
+        setIsFinished(false);
+      }
     }
   }, [
     isProjectAccountConnected,
@@ -183,13 +195,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     // Fetch available teams when user account just connected (and project auth present)
-    if (isUserAccountConnected && userAuthTokenId && isProjectAccountConnected) {
+    if (
+      isUserAccountConnected &&
+      userAuthTokenId &&
+      isProjectAccountConnected
+    ) {
       fetchAvailableTeams().catch((err) => {
         console.error("Failed to fetch teams:", err);
       });
     }
   }, [isUserAccountConnected, userAuthTokenId, isProjectAccountConnected]);
-
 
   const loadItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -217,12 +232,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
-        const miscData = projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData;
+        const miscData = projectAuth.data[0]!
+          .miscData! as MicrosoftTeamsMiscData;
         const teamsTeamName: string | undefined = miscData.teamName;
         const teamId: string | undefined = miscData.teamId;
         const adminConsent: boolean = miscData.adminConsentGranted || false;
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
-        setTeamsTeamName(teamsTeamName || 'Microsoft Teams');
+        setTeamsTeamName(teamsTeamName || "Microsoft Teams");
         setCurrentTeamId(teamId || null);
         setAdminConsentGranted(adminConsent);
       }
@@ -257,12 +273,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   const fetchAvailableTeams: PromiseVoidFunction = async (): Promise<void> => {
-    if (!userAuthTokenId) return;
-    
+    if (!userAuthTokenId) {
+      return;
+    }
+
     try {
       setIsLoadingTeams(true);
       setError(null);
-      
+
       const response = await API.post<JSONObject>(
         URL.fromString(APP_API_URL.toString()).addRoute("/teams/get-teams"),
         {
@@ -270,17 +288,23 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         },
         {
           ...API.getDefaultHeaders(),
-        }
+        },
       );
 
-      if (response.data && (response.data as JSONObject)["teams"] && Array.isArray((response.data as JSONObject)["teams"])) {
-        const teamsList = ((response.data as JSONObject)["teams"] as unknown) as TeamsTeam[];
+      if (
+        response.data &&
+        (response.data as JSONObject)["teams"] &&
+        Array.isArray((response.data as JSONObject)["teams"])
+      ) {
+        const teamsList = (response.data as JSONObject)[
+          "teams"
+        ] as unknown as TeamsTeam[];
         setAvailableTeams(teamsList);
         // Immediate client-side auto-select if none chosen yet
         if (
           teamsList.length > 0 &&
           !currentTeamId &&
-          (teamsTeamName === 'Microsoft Teams' || !teamsTeamName) &&
+          (teamsTeamName === "Microsoft Teams" || !teamsTeamName) &&
           projectAuthTokenId &&
           isUserAccountConnected &&
           isProjectAccountConnected
@@ -291,7 +315,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       }
     } catch (error) {
       setError(
-        <div>Failed to fetch teams: {API.getFriendlyErrorMessage(error as Exception)}</div>
+        <div>
+          Failed to fetch teams:{" "}
+          {API.getFriendlyErrorMessage(error as Exception)}
+        </div>,
       );
     } finally {
       setIsLoadingTeams(false);
@@ -299,8 +326,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   const selectTeam = async (team: TeamsTeam): Promise<void> => {
-    if (!projectAuthTokenId) return;
-    
+    if (!projectAuthTokenId) {
+      return;
+    }
+
     try {
       setIsButtonLoading(true);
       setError(null);
@@ -313,11 +342,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       });
 
       if (!currentAuth) {
-        throw new BadDataException("Could not find project authentication token");
+        throw new BadDataException(
+          "Could not find project authentication token",
+        );
       }
 
-      const currentMiscData = (currentAuth.miscData as MicrosoftTeamsMiscData) || {};
-      
+      const currentMiscData =
+        (currentAuth.miscData as MicrosoftTeamsMiscData) || {};
+
       // Update the project auth token with the selected team
       const updatedMiscData: MicrosoftTeamsMiscData = {
         ...currentMiscData,
@@ -339,7 +371,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setShowTeamPicker(false);
     } catch (error) {
       setError(
-        <div>Failed to select team: {API.getFriendlyErrorMessage(error as Exception)}</div>
+        <div>
+          Failed to select team:{" "}
+          {API.getFriendlyErrorMessage(error as Exception)}
+        </div>,
       );
     } finally {
       setIsButtonLoading(false);
@@ -381,14 +416,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       // Use the admin consent endpoint
       const adminConsentUrl = `https://login.microsoftonline.com/common/adminconsent?client_id=${MicrosoftTeamsAppClientId}&state=${encodeURIComponent(stateParam)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-      
+
       Navigation.navigate(URL.fromString(adminConsentUrl));
     } else {
       setError(
         <div>
-          Looks like the Microsoft Teams App Client ID is not set in the environment
-          variables when you installed OneUptime. For more information, please
-          check this guide to set up Microsoft Teams App properly:{" "}
+          Looks like the Microsoft Teams App Client ID is not set in the
+          environment variables when you installed OneUptime. For more
+          information, please check this guide to set up Microsoft Teams App
+          properly:{" "}
           <Link
             to={new Route("/docs/self-hosted/microsoft-teams-integration")}
             openInNewTab={true}
@@ -436,7 +472,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         "https://graph.microsoft.com/Channel.ReadBasic.All",
         "https://graph.microsoft.com/ChannelMessage.Send",
         "https://graph.microsoft.com/TeamMember.ReadWrite.All",
-        "https://graph.microsoft.com/Teamwork.Read.All"
+        "https://graph.microsoft.com/Teamwork.Read.All",
       ];
 
       const project_install_redirect_uri: string = redirectUri;
@@ -446,14 +482,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       const stateData = {
         projectId: projectId.toString(),
         userId: userId.toString(),
-        authType: 'project'
+        authType: "project",
       };
       const stateParam = btoa(JSON.stringify(stateData));
 
       const userStateData = {
         projectId: projectId.toString(),
         userId: userId.toString(),
-        authType: 'user'
+        authType: "user",
       };
       const userStateParam = btoa(JSON.stringify(userStateData));
 
@@ -467,7 +503,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           "profile",
           "offline_access",
           "https://graph.microsoft.com/User.Read",
-          "https://graph.microsoft.com/Team.ReadBasic.All"
+          "https://graph.microsoft.com/Team.ReadBasic.All",
         ];
         const userAuthUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(user_signin_redirect_uri)}&scope=${encodeURIComponent(userDelegatedScopes.join(" "))}&state=${encodeURIComponent(userStateParam)}&response_mode=query`;
         Navigation.navigate(URL.fromString(userAuthUrl));
@@ -475,9 +511,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     } else {
       setError(
         <div>
-          Looks like the Microsoft Teams App Client ID is not set in the environment
-          variables when you installed OneUptime. For more information, please
-          check this guide to set up Microsoft Teams App properly:{" "}
+          Looks like the Microsoft Teams App Client ID is not set in the
+          environment variables when you installed OneUptime. For more
+          information, please check this guide to set up Microsoft Teams App
+          properly:{" "}
           <Link
             to={new Route("/docs/self-hosted/microsoft-teams-integration")}
             openInNewTab={true}
@@ -492,20 +529,23 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     // if this page has a query param with error, then there was an error in authentication.
     const error: string | null = Navigation.getQueryStringByName("error");
-    const adminConsent: string | null = Navigation.getQueryStringByName("admin_consent");
+    const adminConsent: string | null =
+      Navigation.getQueryStringByName("admin_consent");
 
     if (error) {
       if (error === "admin_consent_denied") {
         setError(
           <div>
-            Admin consent was denied. Microsoft Teams integration requires admin consent 
-            for application permissions to function properly. Please try again and grant consent.
+            Admin consent was denied. Microsoft Teams integration requires admin
+            consent for application permissions to function properly. Please try
+            again and grant consent.
           </div>,
         );
       } else {
         setError(
           <div>
-            There was an error while connecting with Microsoft Teams. Please try again.
+            There was an error while connecting with Microsoft Teams. Please try
+            again.
           </div>,
         );
       }
@@ -539,7 +579,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // Management actions after finish
   const handleLogoutUser: VoidFunction = async (): Promise<void> => {
-    if (!userAuthTokenId) { return; }
+    if (!userAuthTokenId) {
+      return;
+    }
     try {
       setIsActionLoading(true);
       await ModelAPI.deleteItem({
@@ -550,10 +592,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setWorkspaceUserAuthTokenId(null);
       setAvailableTeams([]);
       setCurrentTeamId(null); // team tied to user context for channel operations
-      setTeamsTeamName('Microsoft Teams');
+      setTeamsTeamName("Microsoft Teams");
       setIsFinished(false); // Go back to wizard to reconnect user
       setIsSetupFinished(false);
-      setCurrentStep('user-account');
+      setCurrentStep("user-account");
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
     } finally {
@@ -566,10 +608,24 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setIsActionLoading(true);
       // Delete user token first (ignore errors individually)
       if (userAuthTokenId) {
-        try { await ModelAPI.deleteItem({ modelType: WorkspaceUserAuthToken, id: userAuthTokenId }); } catch { /* ignore */ }
+        try {
+          await ModelAPI.deleteItem({
+            modelType: WorkspaceUserAuthToken,
+            id: userAuthTokenId,
+          });
+        } catch {
+          /* ignore */
+        }
       }
       if (projectAuthTokenId) {
-        try { await ModelAPI.deleteItem({ modelType: WorkspaceProjectAuthToken, id: projectAuthTokenId }); } catch { /* ignore */ }
+        try {
+          await ModelAPI.deleteItem({
+            modelType: WorkspaceProjectAuthToken,
+            id: projectAuthTokenId,
+          });
+        } catch {
+          /* ignore */
+        }
       }
       // Reset all state
       setIsUserAccountConnected(false);
@@ -582,7 +638,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setAvailableTeams([]);
       setIsFinished(false);
       setIsSetupFinished(false);
-      setCurrentStep('admin-consent');
+      setCurrentStep("admin-consent");
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
     } finally {
@@ -591,7 +647,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   const revokeAdminConsent: VoidFunction = async (): Promise<void> => {
-    if (!projectAuthTokenId) { return; }
+    if (!projectAuthTokenId) {
+      return;
+    }
     try {
       setIsButtonLoading(true);
       setError(null);
@@ -607,7 +665,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             modelType: WorkspaceUserAuthToken,
             id: userAuthTokenId,
           });
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         setIsUserAccountConnected(false);
         setWorkspaceUserAuthTokenId(null);
       }
@@ -619,7 +679,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setAvailableTeams([]);
       setIsFinished(false);
       setIsSetupFinished(false);
-      setCurrentStep('admin-consent');
+      setCurrentStep("admin-consent");
     } catch (err) {
       setError(<div>{API.getFriendlyErrorMessage(err as Exception)}</div>);
     } finally {
@@ -633,39 +693,61 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 1: Connect to Microsoft Teams</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Step 1: Connect to Microsoft Teams
+              </h3>
               <p className="mt-2 text-sm text-gray-600">
-                Grant administrative consent (recommended) to enable full functionality. If you don't have admin rights you can still proceed with limited delegated permissions by connecting your user account after installing the app.
+                Grant administrative consent (recommended) to enable full
+                functionality. If you don't have admin rights you can still
+                proceed with limited delegated permissions by connecting your
+                user account after installing the app.
               </p>
               {!adminConsentGranted && isProjectAccountConnected && (
                 <p className="mt-2 text-xs text-amber-600">
-                  Admin consent not granted. Operating in limited mode – some features may be unavailable until consent is granted.
+                  Admin consent not granted. Operating in limited mode – some
+                  features may be unavailable until consent is granted.
                 </p>
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-              className="-ml-3"
-                title={isProjectAccountConnected && adminConsentGranted ? 'Admin Consent Granted' : 'Grant Admin Consent'}
-                onClick={() => initiateAdminConsent()}
+                className="-ml-3"
+                title={
+                  isProjectAccountConnected && adminConsentGranted
+                    ? "Admin Consent Granted"
+                    : "Grant Admin Consent"
+                }
+                onClick={() => {
+                  return initiateAdminConsent();
+                }}
                 disabled={isProjectAccountConnected && adminConsentGranted}
-                icon={isProjectAccountConnected && adminConsentGranted ? IconProp.Check : IconProp.Lock}
-                buttonStyle={isProjectAccountConnected && adminConsentGranted ? SharedButtonStyleType.SUCCESS : SharedButtonStyleType.PRIMARY}
+                icon={
+                  isProjectAccountConnected && adminConsentGranted
+                    ? IconProp.Check
+                    : IconProp.Lock
+                }
+                buttonStyle={
+                  isProjectAccountConnected && adminConsentGranted
+                    ? SharedButtonStyleType.SUCCESS
+                    : SharedButtonStyleType.PRIMARY
+                }
               />
               {isProjectAccountConnected && !adminConsentGranted && (
                 <Button
-
                   title="Continue with Limited Permissions"
-                  onClick={() => connectWithMicrosoftTeams()}
+                  onClick={() => {
+                    return connectWithMicrosoftTeams();
+                  }}
                   buttonStyle={SharedButtonStyleType.SECONDARY}
                   icon={IconProp.Refresh}
                 />
               )}
               {isProjectAccountConnected && adminConsentGranted && (
                 <Button
-                
                   title="Revoke Admin Consent"
-                  onClick={() => setShowRevokeConsentConfirm(true)}
+                  onClick={() => {
+                    return setShowRevokeConsentConfirm(true);
+                  }}
                   buttonStyle={SharedButtonStyleType.DANGER_OUTLINE}
                   icon={IconProp.Close}
                   isLoading={isButtonLoading}
@@ -675,24 +757,37 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
           </div>
         );
-      
+
       case "user-account":
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 2: Connect Your User Account</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Step 2: Connect Your User Account
+              </h3>
               <p className="mt-2 text-sm text-gray-600">
-                Connect your personal Microsoft Teams account to allow OneUptime to list teams and channels for selection in the next step.
+                Connect your personal Microsoft Teams account to allow OneUptime
+                to list teams and channels for selection in the next step.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-               className="-ml-3"
-                title={isUserAccountConnected ? 'Account Connected' : 'Connect User Account'}
-                onClick={() => connectWithMicrosoftTeams()}
+                className="-ml-3"
+                title={
+                  isUserAccountConnected
+                    ? "Account Connected"
+                    : "Connect User Account"
+                }
+                onClick={() => {
+                  return connectWithMicrosoftTeams();
+                }}
                 disabled={isUserAccountConnected}
                 icon={isUserAccountConnected ? IconProp.Check : IconProp.User}
-                buttonStyle={isUserAccountConnected ? SharedButtonStyleType.SUCCESS : SharedButtonStyleType.PRIMARY}
+                buttonStyle={
+                  isUserAccountConnected
+                    ? SharedButtonStyleType.SUCCESS
+                    : SharedButtonStyleType.PRIMARY
+                }
               />
               {isUserAccountConnected && (
                 <Button
@@ -712,15 +807,19 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                         setWorkspaceUserAuthTokenId(null);
                         setAvailableTeams([]);
                         setCurrentTeamId(null);
-                        setTeamsTeamName('Microsoft Teams');
+                        setTeamsTeamName("Microsoft Teams");
                         // If finished earlier, ensure we go back a step
                         if (isFinished) {
                           setIsFinished(false);
-                          setCurrentStep('user-account');
+                          setCurrentStep("user-account");
                         }
                       }
                     } catch (error) {
-                      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+                      setError(
+                        <div>
+                          {API.getFriendlyErrorMessage(error as Exception)}
+                        </div>,
+                      );
                     }
                     setIsButtonLoading(false);
                   }}
@@ -735,31 +834,46 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Step 3: Select Your Team</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Step 3: Select Your Team
+              </h3>
               <p className="mt-2 text-sm text-gray-600">
                 {isRealTeamSelected ? (
                   <span>
-                    You've selected: <strong>{teamsTeamName}</strong>. You can change your team selection if you like.
+                    You've selected: <strong>{teamsTeamName}</strong>. You can
+                    change your team selection if you like.
                   </span>
                 ) : (
                   <span className="text-gray-600">
-                    No team selected yet. Please select a Microsoft Teams team below so OneUptime knows where to send notifications.
+                    No team selected yet. Please select a Microsoft Teams team
+                    below so OneUptime knows where to send notifications.
                   </span>
                 )}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-               className="-ml-3"
-                title={currentTeamId ? 'Change Team' : 'Select Team'}
+                className="-ml-3"
+                title={currentTeamId ? "Change Team" : "Select Team"}
                 buttonStyle={SharedButtonStyleType.NORMAL}
                 icon={IconProp.Settings}
                 onClick={() => {
-                  if (!isUserAccountConnected) { return; }
+                  if (!isUserAccountConnected) {
+                    return;
+                  }
                   if (availableTeams.length === 0) {
-                    fetchAvailableTeams().then(() => setShowTeamPicker(true)).catch((err) => {
-                      setError(<div>Failed to fetch teams: {API.getFriendlyErrorMessage(err)}</div>);
-                    });
+                    fetchAvailableTeams()
+                      .then(() => {
+                        return setShowTeamPicker(true);
+                      })
+                      .catch((err) => {
+                        setError(
+                          <div>
+                            Failed to fetch teams:{" "}
+                            {API.getFriendlyErrorMessage(err)}
+                          </div>,
+                        );
+                      });
                   } else {
                     setShowTeamPicker(true);
                   }
@@ -774,7 +888,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   onClick={() => {
                     setIsFinished(true);
                     setIsSetupFinished(true);
-                    setCurrentStep('finish');
+                    setCurrentStep("finish");
                   }}
                 />
               )}
@@ -786,27 +900,31 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Setup Complete</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Setup Complete
+              </h3>
               <p className="mt-2 text-sm text-gray-600">
-                Microsoft Teams integration is fully configured for team <strong>{teamsTeamName}</strong>. You can now receive notifications and manage settings.
+                Microsoft Teams integration is fully configured for team{" "}
+                <strong>{teamsTeamName}</strong>. You can now receive
+                notifications and manage settings.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-               className="-ml-3"
+                className="-ml-3"
                 title="Change Team"
                 buttonStyle={SharedButtonStyleType.OUTLINE}
                 icon={IconProp.Settings}
                 onClick={() => {
                   setIsFinished(false);
-                   setIsSetupFinished(false);
-                  setCurrentStep('select-team');
+                  setIsSetupFinished(false);
+                  setCurrentStep("select-team");
                 }}
               />
             </div>
           </div>
         );
-      
+
       default:
         return <div>Unknown step</div>;
     }
@@ -819,7 +937,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     isUserAccountConnected &&
     currentTeamId &&
     teamsTeamName &&
-    teamsTeamName !== 'Microsoft Teams'
+    teamsTeamName !== "Microsoft Teams"
   ) {
     return (
       <Fragment>
@@ -831,19 +949,31 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             <div className="space-y-6">
               {/* Edit / Change Team Card */}
               <div className="border rounded-md p-4 bg-gray-50">
-                <h4 className="text-sm font-medium text-gray-800 mb-2">Team Selection</h4>
-                <p className="text-xs text-gray-600 mb-3">Currently connected to: <strong>{teamsTeamName}</strong>. Change the team to direct notifications elsewhere.</p>
+                <h4 className="text-sm font-medium text-gray-800 mb-2">
+                  Team Selection
+                </h4>
+                <p className="text-xs text-gray-600 mb-3">
+                  Currently connected to: <strong>{teamsTeamName}</strong>.
+                  Change the team to direct notifications elsewhere.
+                </p>
                 <Button
-                 className="-ml-3"
+                  className="-ml-3"
                   title="Change Team"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Settings}
                   onClick={() => {
-                    if (!isUserAccountConnected) { return; }
+                    if (!isUserAccountConnected) {
+                      return;
+                    }
                     setShowTeamPicker(true);
                     if (availableTeams.length === 0 && !isLoadingTeams) {
                       fetchAvailableTeams().catch((err) => {
-                        setError(<div>Failed to fetch teams: {API.getFriendlyErrorMessage(err as Exception)}</div>);
+                        setError(
+                          <div>
+                            Failed to fetch teams:{" "}
+                            {API.getFriendlyErrorMessage(err as Exception)}
+                          </div>,
+                        );
                       });
                     }
                   }}
@@ -852,26 +982,41 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <div className="border rounded-md p-4 bg-gray-50">
-                <h4 className="text-sm font-medium text-gray-800 mb-2">User Session</h4>
-                <p className="text-xs text-gray-600 mb-3">Log out your personal Microsoft Teams account. Project-level permissions remain until you uninstall.</p>
+                <h4 className="text-sm font-medium text-gray-800 mb-2">
+                  User Session
+                </h4>
+                <p className="text-xs text-gray-600 mb-3">
+                  Log out your personal Microsoft Teams account. Project-level
+                  permissions remain until you uninstall.
+                </p>
                 <Button
-                 className="-ml-3"
+                  className="-ml-3"
                   title="Log Out of Teams"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Logout}
-                  onClick={() => { void handleLogoutUser(); }}
+                  onClick={() => {
+                    void handleLogoutUser();
+                  }}
                   isLoading={isActionLoading}
                   disabled={isActionLoading}
                 />
               </div>
               <div className="border rounded-md p-4 bg-red-50">
-                <h4 className="text-sm font-medium text-red-800 mb-2">Uninstall OneUptime</h4>
-                <p className="text-xs text-red-700 mb-3">This revokes the integration by deleting stored tokens. (To fully revoke admin consent in Azure AD, remove the Enterprise App manually.)</p>
+                <h4 className="text-sm font-medium text-red-800 mb-2">
+                  Uninstall OneUptime
+                </h4>
+                <p className="text-xs text-red-700 mb-3">
+                  This revokes the integration by deleting stored tokens. (To
+                  fully revoke admin consent in Azure AD, remove the Enterprise
+                  App manually.)
+                </p>
                 <Button
                   title="Uninstall Integration"
                   buttonStyle={SharedButtonStyleType.DANGER}
                   icon={IconProp.Trash}
-                  onClick={() => setShowUninstallConfirm(true)}
+                  onClick={() => {
+                    return setShowUninstallConfirm(true);
+                  }}
                   isLoading={isActionLoading}
                   disabled={isActionLoading}
                 />
@@ -884,49 +1029,73 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             title="Select Microsoft Teams Team"
             description="Choose which Microsoft Teams team to connect to OneUptime"
             isLoading={isLoadingTeams}
-            onClose={() => setShowTeamPicker(false)}
+            onClose={() => {
+              return setShowTeamPicker(false);
+            }}
             submitButtonText="Close"
-            onSubmit={() => setShowTeamPicker(false)}
+            onSubmit={() => {
+              return setShowTeamPicker(false);
+            }}
           >
             <div className="space-y-3">
               {isLoadingTeams && <PageLoader isVisible={true} />}
               {!isLoadingTeams && availableTeams.length === 0 && (
                 <div className="text-center py-4 text-gray-500">
-                  No teams found. Please ensure you're a member of at least one Microsoft Teams team.
+                  No teams found. Please ensure you're a member of at least one
+                  Microsoft Teams team.
                 </div>
               )}
-              {!isLoadingTeams && availableTeams.map((team) => (
-                <div
-                  key={team.id}
-                  className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    currentTeamId === team.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                  }`}
-                  onClick={() => selectTeam(team)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">{team.displayName}</h3>
-                      {team.description && (
-                        <p className="text-sm text-gray-500 mt-1">{team.description}</p>
-                      )}
+              {!isLoadingTeams &&
+                availableTeams.map((team) => {
+                  return (
+                    <div
+                      key={team.id}
+                      className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                        currentTeamId === team.id
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200"
+                      }`}
+                      onClick={() => {
+                        return selectTeam(team);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {team.displayName}
+                          </h3>
+                          {team.description && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              {team.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {currentTeamId === team.id && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Current
+                            </span>
+                          )}
+                          <Button
+                            title={
+                              currentTeamId === team.id ? "Selected" : "Select"
+                            }
+                            buttonStyle={
+                              currentTeamId === team.id
+                                ? ButtonStyleType.SUCCESS
+                                : ButtonStyleType.PRIMARY
+                            }
+                            onClick={() => {
+                              return selectTeam(team);
+                            }}
+                            isLoading={isButtonLoading}
+                            disabled={currentTeamId === team.id}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {currentTeamId === team.id && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Current
-                        </span>
-                      )}
-                      <Button
-                        title={currentTeamId === team.id ? "Selected" : "Select"}
-                        buttonStyle={currentTeamId === team.id ? ButtonStyleType.SUCCESS : ButtonStyleType.PRIMARY}
-                        onClick={() => selectTeam(team)}
-                        isLoading={isButtonLoading}
-                        disabled={currentTeamId === team.id}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
             </div>
           </Modal>
         )}
@@ -935,9 +1104,18 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             title="Uninstall Microsoft Teams Integration"
             description={
               <div className="space-y-3 text-sm">
-                <p>This will remove both project-level and user-level tokens stored in OneUptime for Microsoft Teams.</p>
-                <p className="text-red-600 font-medium">This action cannot be undone inside OneUptime.</p>
-                <p className="text-xs text-gray-500">If you also want to fully revoke granted permissions in Azure AD, remove the Enterprise Application from your Azure portal after uninstalling.</p>
+                <p>
+                  This will remove both project-level and user-level tokens
+                  stored in OneUptime for Microsoft Teams.
+                </p>
+                <p className="text-red-600 font-medium">
+                  This action cannot be undone inside OneUptime.
+                </p>
+                <p className="text-xs text-gray-500">
+                  If you also want to fully revoke granted permissions in Azure
+                  AD, remove the Enterprise Application from your Azure portal
+                  after uninstalling.
+                </p>
               </div>
             }
             submitButtonText="Uninstall"
@@ -946,7 +1124,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               await handleUninstall();
               setShowUninstallConfirm(false);
             }}
-            onClose={() => setShowUninstallConfirm(false)}
+            onClose={() => {
+              return setShowUninstallConfirm(false);
+            }}
             disableSubmitButton={isActionLoading}
             isLoading={isActionLoading}
           />
@@ -966,14 +1146,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             {/* Steps sidebar */}
             <aside className="lg:col-span-4 mb-8 lg:mb-0">
               <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Setup Progress</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Setup Progress
+                </h3>
                 <Steps<IntegrationFormData>
                   steps={integrationSteps}
                   currentFormStepId={currentStep}
                   onClick={(step: FormStep<IntegrationFormData>) => {
                     // Allow navigation to completed steps
-                    const stepIndex = integrationSteps.findIndex(s => s.id === step.id);
-                    const currentIndex = integrationSteps.findIndex(s => s.id === currentStep);
+                    const stepIndex = integrationSteps.findIndex((s) => {
+                      return s.id === step.id;
+                    });
+                    const currentIndex = integrationSteps.findIndex((s) => {
+                      return s.id === currentStep;
+                    });
                     if (stepIndex <= currentIndex) {
                       setCurrentStep(step.id);
                     }
@@ -984,61 +1170,83 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </aside>
 
             {/* Main content */}
-            <div className="lg:col-span-8">
-              {renderStepContent()}
-            </div>
+            <div className="lg:col-span-8">{renderStepContent()}</div>
           </div>
         </Card>
       </div>
-      
+
       {showTeamPicker && (
         <Modal
           title="Select Microsoft Teams Team"
           description="Choose which Microsoft Teams team to connect to OneUptime"
           isLoading={isLoadingTeams}
-          onClose={() => setShowTeamPicker(false)}
+          onClose={() => {
+            return setShowTeamPicker(false);
+          }}
           submitButtonText="Close"
-          onSubmit={() => setShowTeamPicker(false)}
+          onSubmit={() => {
+            return setShowTeamPicker(false);
+          }}
         >
           <div className="space-y-3">
             {isLoadingTeams && <PageLoader isVisible={true} />}
             {!isLoadingTeams && availableTeams.length === 0 && (
               <div className="text-center py-4 text-gray-500">
-                No teams found. Please ensure you're a member of at least one Microsoft Teams team.
+                No teams found. Please ensure you're a member of at least one
+                Microsoft Teams team.
               </div>
             )}
-            {!isLoadingTeams && availableTeams.map((team) => (
-              <div
-                key={team.id}
-                className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  currentTeamId === team.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                }`}
-                onClick={() => selectTeam(team)}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{team.displayName}</h3>
-                    {team.description && (
-                      <p className="text-sm text-gray-500 mt-1">{team.description}</p>
-                    )}
+            {!isLoadingTeams &&
+              availableTeams.map((team) => {
+                return (
+                  <div
+                    key={team.id}
+                    className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      currentTeamId === team.id
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200"
+                    }`}
+                    onClick={() => {
+                      return selectTeam(team);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {team.displayName}
+                        </h3>
+                        {team.description && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            {team.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {currentTeamId === team.id && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Current
+                          </span>
+                        )}
+                        <Button
+                          title={
+                            currentTeamId === team.id ? "Selected" : "Select"
+                          }
+                          buttonStyle={
+                            currentTeamId === team.id
+                              ? ButtonStyleType.SUCCESS
+                              : ButtonStyleType.PRIMARY
+                          }
+                          onClick={() => {
+                            return selectTeam(team);
+                          }}
+                          isLoading={isButtonLoading}
+                          disabled={currentTeamId === team.id}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {currentTeamId === team.id && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Current
-                      </span>
-                    )}
-                    <Button
-                      title={currentTeamId === team.id ? "Selected" : "Select"}
-                      buttonStyle={currentTeamId === team.id ? ButtonStyleType.SUCCESS : ButtonStyleType.PRIMARY}
-                      onClick={() => selectTeam(team)}
-                      isLoading={isButtonLoading}
-                      disabled={currentTeamId === team.id}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
         </Modal>
       )}
@@ -1048,9 +1256,17 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           title="Revoke Admin Consent"
           description={
             <div className="space-y-3 text-sm">
-              <p>This will remove the project-level Microsoft Teams authorization (admin consent) from OneUptime.</p>
-              <p className="text-red-600 font-medium">User tokens and selected team will also be cleared.</p>
-              <p className="text-xs text-gray-500">To fully revoke permissions in Azure AD, you may still need to remove the Enterprise Application manually.</p>
+              <p>
+                This will remove the project-level Microsoft Teams authorization
+                (admin consent) from OneUptime.
+              </p>
+              <p className="text-red-600 font-medium">
+                User tokens and selected team will also be cleared.
+              </p>
+              <p className="text-xs text-gray-500">
+                To fully revoke permissions in Azure AD, you may still need to
+                remove the Enterprise Application manually.
+              </p>
             </div>
           }
           submitButtonText="Revoke"
@@ -1059,7 +1275,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             await revokeAdminConsent();
             setShowRevokeConsentConfirm(false);
           }}
-            onClose={() => setShowRevokeConsentConfirm(false)}
+          onClose={() => {
+            return setShowRevokeConsentConfirm(false);
+          }}
           disableSubmitButton={isButtonLoading}
           isLoading={isButtonLoading}
         />

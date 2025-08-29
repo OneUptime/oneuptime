@@ -227,7 +227,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           if (err instanceof BadRequestException) {
             throw err;
           }
-          
+
           // For other errors, wrap them in BadDataException
           throw new BadDataException((err as Error)?.message);
         }
@@ -769,7 +769,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       "WorkspaceNotificationRuleService.createChannelsAndInviteUsersToChannelsBasedOnRules called with data:",
     );
     logger.debug(data);
-    logger.debug(`DEBUG: Processing channel creation for event type: ${data.notificationRuleEventType}`);
+    logger.debug(
+      `DEBUG: Processing channel creation for event type: ${data.notificationRuleEventType}`,
+    );
 
     const channelsCreated: Array<NotificationRuleWorkspaceChannel> = [];
 
@@ -780,7 +782,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     logger.debug("Found project auths:");
     logger.debug(projectAuths);
-    logger.debug(`DEBUG: Number of project auths found: ${projectAuths.length}`);
+    logger.debug(
+      `DEBUG: Number of project auths found: ${projectAuths.length}`,
+    );
 
     if (!projectAuths || projectAuths.length === 0) {
       // do nothing.
@@ -789,7 +793,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const projectAuth of projectAuths) {
       if (!projectAuth.authToken) {
-        logger.debug(`Skipping project auth without authToken for ${projectAuth.workspaceType}`);
+        logger.debug(
+          `Skipping project auth without authToken for ${projectAuth.workspaceType}`,
+        );
         continue;
       }
 
@@ -811,11 +817,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationFor: data.notificationFor,
         });
 
-      logger.debug(`Found ${notificationRules.length} notification rules for ${workspaceType}:`);
+      logger.debug(
+        `Found ${notificationRules.length} notification rules for ${workspaceType}:`,
+      );
       logger.debug(notificationRules);
 
       if (!notificationRules || notificationRules.length === 0) {
-        logger.debug(`No notification rules found for ${workspaceType}. Skipping channel creation.`);
+        logger.debug(
+          `No notification rules found for ${workspaceType}. Skipping channel creation.`,
+        );
         continue;
       }
 
@@ -831,7 +841,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notificationFor: data.notificationFor,
         });
 
-      logger.debug(`Created ${createdWorkspaceChannels.length} channels for ${workspaceType}:`);
+      logger.debug(
+        `Created ${createdWorkspaceChannels.length} channels for ${workspaceType}:`,
+      );
       logger.debug(createdWorkspaceChannels);
 
       logger.debug("Inviting users and teams to channels based on rules");
@@ -1317,7 +1329,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): Promise<Array<NotificationRuleWorkspaceChannel>> {
     logger.debug("createChannelsBasedOnRules called with data:");
     logger.debug(data);
-    logger.debug(`DEBUG: Creating channels for workspace type: ${data.workspaceType}`);
+    logger.debug(
+      `DEBUG: Creating channels for workspace type: ${data.workspaceType}`,
+    );
 
     const createdWorkspaceChannels: Array<NotificationRuleWorkspaceChannel> =
       [];
@@ -1334,7 +1348,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     logger.debug("New channel names to be created:");
     logger.debug(notificationChannels);
-    logger.debug(`DEBUG: Number of channels to create: ${notificationChannels.length}`);
+    logger.debug(
+      `DEBUG: Number of channels to create: ${notificationChannels.length}`,
+    );
 
     if (!notificationChannels || notificationChannels.length === 0) {
       logger.debug("No new channel names found. Returning empty array.");
@@ -1356,8 +1372,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       logger.debug(
         `Creating new channel with name: ${notificationChannel.channelName}`,
       );
-      logger.debug(`DEBUG: Using workspace type util for: ${data.workspaceType}`);
-      
+      logger.debug(
+        `DEBUG: Using workspace type util for: ${data.workspaceType}`,
+      );
+
       try {
         const channel: WorkspaceChannel =
           await WorkspaceUtil.getWorkspaceTypeUtil(
@@ -1374,7 +1392,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         logger.debug("Channel created:");
         logger.debug(channel);
-        logger.debug(`DEBUG: Channel created successfully for ${data.workspaceType}: ${channel.name} (ID: ${channel.id})`);
+        logger.debug(
+          `DEBUG: Channel created successfully for ${data.workspaceType}: ${channel.name} (ID: ${channel.id})`,
+        );
 
         // Log the channel creation
         try {
@@ -1394,34 +1414,37 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             channelName: channel.name,
           };
 
-        // Add resource associations only if they exist
-        if (data.notificationFor?.incidentId) {
-          logData.incidentId = data.notificationFor.incidentId;
-        }
-        if (data.notificationFor?.alertId) {
-          logData.alertId = data.notificationFor.alertId;
-        }
-        if (data.notificationFor?.scheduledMaintenanceId) {
-          logData.scheduledMaintenanceId =
-            data.notificationFor.scheduledMaintenanceId;
-        }
-        if (data.notificationFor?.onCallDutyPolicyId) {
-          logData.onCallDutyPolicyId = data.notificationFor.onCallDutyPolicyId;
+          // Add resource associations only if they exist
+          if (data.notificationFor?.incidentId) {
+            logData.incidentId = data.notificationFor.incidentId;
+          }
+          if (data.notificationFor?.alertId) {
+            logData.alertId = data.notificationFor.alertId;
+          }
+          if (data.notificationFor?.scheduledMaintenanceId) {
+            logData.scheduledMaintenanceId =
+              data.notificationFor.scheduledMaintenanceId;
+          }
+          if (data.notificationFor?.onCallDutyPolicyId) {
+            logData.onCallDutyPolicyId =
+              data.notificationFor.onCallDutyPolicyId;
+          }
+
+          await WorkspaceNotificationLogService.logCreateChannel(logData, {
+            isRoot: true,
+          });
+        } catch (err) {
+          logger.error("Error logging channel creation:");
+          logger.error(err);
+          // Don't throw the error, just log it so the main flow continues
         }
 
-        await WorkspaceNotificationLogService.logCreateChannel(logData, {
-          isRoot: true,
-        });
-      } catch (err) {
-        logger.error("Error logging channel creation:");
-        logger.error(err);
-        // Don't throw the error, just log it so the main flow continues
-      }
-
-      createdChannelNames.push(channel.name);
-      createdWorkspaceChannels.push(notificationWorkspaceChannel);
+        createdChannelNames.push(channel.name);
+        createdWorkspaceChannels.push(notificationWorkspaceChannel);
       } catch (error) {
-        logger.error(`ERROR: Failed to create channel ${notificationChannel.channelName} for ${data.workspaceType}:`);
+        logger.error(
+          `ERROR: Failed to create channel ${notificationChannel.channelName} for ${data.workspaceType}:`,
+        );
         logger.error(error);
         // Continue with other channels even if one fails
         continue;
