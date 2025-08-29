@@ -86,6 +86,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
   const [showRevokeConsentConfirm, setShowRevokeConsentConfirm] = React.useState<boolean>(false);
 
+  // Helper: has the user actually selected a concrete team (not placeholder)?
+  const isRealTeamSelected: boolean = !!(
+    currentTeamId &&
+    teamsTeamName &&
+    teamsTeamName !== 'Microsoft Teams'
+  );
+
   // Define the integration steps
   // NOTE: Order changed so that we connect user account before selecting team.
   // We need a user delegated token to list teams; previously this caused the
@@ -124,7 +131,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setIsFinished(false);
       return "user-account";
     }
-    if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
+    if (!isRealTeamSelected) {
       setIsFinished(false);
       return "select-team";
     }
@@ -730,12 +737,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900">Step 3: Select Your Team</h3>
               <p className="mt-2 text-sm text-gray-600">
-                {currentTeamId ? (
+                {isRealTeamSelected ? (
                   <span>
                     You've selected: <strong>{teamsTeamName}</strong>. You can change your team selection if you like.
                   </span>
                 ) : (
-                  "Choose which Microsoft Teams team you want to connect to OneUptime for receiving notifications."
+                  <span className="text-gray-600">
+                    No team selected yet. Please select a Microsoft Teams team below so OneUptime knows where to send notifications.
+                  </span>
                 )}
               </p>
             </div>
@@ -757,7 +766,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 }}
                 disabled={isLoadingTeams || !isUserAccountConnected}
               />
-              {currentTeamId && teamsTeamName && teamsTeamName !== 'Microsoft Teams' && (
+              {isRealTeamSelected && (
                 <Button
                   title="Finish"
                   buttonStyle={SharedButtonStyleType.SUCCESS}
@@ -826,7 +835,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 <p className="text-xs text-gray-600 mb-3">Currently connected to: <strong>{teamsTeamName}</strong>. Change the team to direct notifications elsewhere.</p>
                 <Button
                  className="-ml-3"
-                  title="Change Team"
+                  title="Select Team"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Settings}
                   onClick={() => {
