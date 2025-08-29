@@ -65,7 +65,7 @@ export default class MicrosoftTeamsAPI {
           if (!stateData?.projectId) {
             throw new Error("Invalid state data");
           }
-        } catch (_: unknown) {
+        } catch (_error: unknown) {
           // Error is intentionally ignored
           return Response.sendErrorResponse(
             req,
@@ -218,7 +218,7 @@ export default class MicrosoftTeamsAPI {
           if (!projectIdStr || !userIdStr || !authType) {
             throw new Error("Invalid state data");
           }
-        } catch (_: unknown) {
+        } catch (_error: unknown) {
           // Error is intentionally ignored
           return Response.sendErrorResponse(
             req,

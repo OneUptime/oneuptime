@@ -177,7 +177,7 @@ export function validateApplicationTokenPermissions(token: string): {
       missingRoles,
       extraRoles,
     };
-  } catch (_: unknown) {
+  } catch (_error: unknown) {
     return {
       isValid: false,
       hasRoles: [],
@@ -218,7 +218,7 @@ export function validateDelegatedTokenPermissions(token: string): {
       hasScopes: tokenScopes,
       missingScopes,
     };
-  } catch (_: unknown) {
+  } catch (_error: unknown) {
     return {
       isValid: false,
       hasScopes: [],

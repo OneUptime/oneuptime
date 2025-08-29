@@ -5,7 +5,6 @@ import React, {
   useEffect,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL, MicrosoftTeamsAppClientId } from "Common/UI/Config";
@@ -1084,8 +1083,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                             }
                             buttonStyle={
                               currentTeamId === team.id
-                                ? ButtonStyleType.SUCCESS
-                                : ButtonStyleType.PRIMARY
+                                ? SharedButtonStyleType.SUCCESS
+                                : SharedButtonStyleType.PRIMARY
                             }
                             onClick={() => {
                               return selectTeam(team);
@@ -1235,8 +1234,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                           }
                           buttonStyle={
                             currentTeamId === team.id
-                              ? ButtonStyleType.SUCCESS
-                              : ButtonStyleType.PRIMARY
+                              ? SharedButtonStyleType.SUCCESS
+                              : SharedButtonStyleType.PRIMARY
                           }
                           onClick={() => {
                             return selectTeam(team);

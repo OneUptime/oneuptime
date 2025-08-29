@@ -592,9 +592,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // Get project auth token for app token access
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -693,7 +692,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         throw response;
       }
 
-      const channelData = response.jsonData as JSONObject;
+      const channelData: JSONObject = response.jsonData as JSONObject;
       const channel: WorkspaceChannel = {
         id: channelData["id"] as string,
         name: channelData["displayName"] as string,
@@ -721,16 +720,17 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const allChannels = await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
+      const allChannels: Dictionary<WorkspaceChannel> =
+        await this.getAllWorkspaceChannels({
+          authToken: data.authToken,
+        });
 
-      let channelName = data.channelName;
+      let channelName: string = data.channelName;
       if (channelName.startsWith("#")) {
         channelName = channelName.substring(1);
       }
 
-      const channel = allChannels[channelName];
+      const channel: WorkspaceChannel | undefined = allChannels[channelName];
       if (!channel) {
         throw new BadRequestException(`Channel '${channelName}' not found`);
       }
@@ -755,9 +755,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
     try {
       // Get project auth token for app token access
       logger.debug("DEBUG: Getting project auth token for app token access");
-      const projectAuth = await this.getRefreshedProjectAuthToken(
-        data.authToken,
-      );
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -791,7 +790,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
       }
 
-      let channelName = data.channelName;
+      let channelName: string = data.channelName;
       if (channelName.startsWith("#")) {
         channelName = channelName.substring(1);
       }
@@ -800,7 +799,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const teamId: string = await this.getTeamId(data.authToken);
       logger.debug("DEBUG: Team ID obtained: " + teamId);
 
-      const channelPayload = {
+      const channelPayload: JSONObject = {
         displayName: channelName,
         description: `Channel created by OneUptime`,
         membershipType: "standard",
@@ -810,12 +809,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
       logger.debug(channelPayload);
       logger.debug("DEBUG: Making Graph API call to create channel");
 
-      const response = await this.makeGraphApiCall(
-        `/teams/${teamId}/channels`,
-        appToken,
-        "POST",
-        channelPayload,
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await this.makeGraphApiCall(
+          `/teams/${teamId}/channels`,
+          appToken,
+          "POST",
+          channelPayload,
+        );
 
       logger.debug("DEBUG: Graph API response received");
 
@@ -825,7 +825,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         throw response;
       }
 
-      const channelData = response.jsonData as JSONObject;
+      const channelData: JSONObject = response.jsonData as JSONObject;
       const channel: WorkspaceChannel = {
         id: channelData["id"] as string,
         name: channelData["displayName"] as string,
@@ -857,7 +857,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     // Get project auth token for app token access
-    const projectAuth = await this.getRefreshedProjectAuthToken(data.authToken);
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await this.getRefreshedProjectAuthToken(data.authToken);
     const projectAuthForApp: WorkspaceProjectAuthToken | null =
       projectAuth ||
       (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -876,9 +877,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
     }
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
-    const existingWorkspaceChannels = await this.getAllWorkspaceChannels({
-      authToken: data.authToken,
-    });
+    const existingWorkspaceChannels: Dictionary<WorkspaceChannel> =
+      await this.getAllWorkspaceChannels({
+        authToken: data.authToken,
+      });
 
     logger.debug("Existing Microsoft Teams channels:");
     logger.debug(existingWorkspaceChannels);
@@ -897,7 +899,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
       logger.debug(`Channel ${channelName} does not exist. Creating channel.`);
       try {
-        const channel = await this.createChannel({
+        const channel: WorkspaceChannel = await this.createChannel({
           authToken: data.authToken,
           channelName: channelName,
         });
