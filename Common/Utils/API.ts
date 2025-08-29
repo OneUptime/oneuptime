@@ -19,6 +19,23 @@ export interface RequestOptions {
   exponentialBackoff?: boolean | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
+  proxyUrl?: URL | undefined;
+}
+
+// Declare AggregateError interface for environments where it's not available
+interface AggregateError extends Error {
+  errors: Error[];
+}
+
+// Type guard for AggregateError
+function isAggregateError(error: unknown): error is AggregateError {
+  return (
+    error instanceof Error &&
+    'name' in error &&
+    (error as any).name === 'AggregateError' &&
+    'errors' in error &&
+    Array.isArray((error as any).errors)
+  );
 }
 
 export default class API {
@@ -169,7 +186,7 @@ export default class API {
     return Promise.resolve(headers);
   }
 
-  public static getDefaultHeaders(_props?: any): Headers {
+  public static getDefaultHeaders(_props?: unknown): Headers {
     const defaultHeaders: Headers = {
       "Access-Control-Allow-Origin": "*",
       Accept: "application/json",
@@ -400,6 +417,24 @@ export default class API {
             axiosOptions.maxRedirects = 0;
           }
 
+          if (options?.proxyUrl) {
+            axiosOptions.proxy = {
+              host: options.proxyUrl.hostname.hostname,
+              port: options.proxyUrl.hostname.port?.toNumber() || 80,
+              protocol: options.proxyUrl.protocol === Protocol.HTTPS ? 'https' : 'http',
+            };
+
+            // Handle auth if present in URL
+            const username = options.proxyUrl.getUsername();
+            const password = options.proxyUrl.getPassword();
+            if (username && password) {
+              axiosOptions.proxy.auth = {
+                username: decodeURIComponent(username),
+                password: decodeURIComponent(password),
+              };
+            }
+          }
+
           result = await axios(axiosOptions);
 
           break;
@@ -471,12 +506,8 @@ export default class API {
     }
 
     // Handle AggregateError by extracting the underlying error messages
-    if (
-      error &&
-      (error as any).name === "AggregateError" &&
-      (error as any).errors
-    ) {
-      const aggregateErrors: Error[] = (error as any).errors as Error[];
+    if (isAggregateError(error)) {
+      const aggregateErrors: Error[] = (error as AggregateError).errors as Error[];
       const errorMessages: string[] = aggregateErrors
         .map((err: Error) => {
           return err.message || err.toString();

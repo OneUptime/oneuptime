@@ -50,11 +50,29 @@ export default class URL extends DatabaseProperty {
     this._protocol = v;
   }
 
+  private _username: string | null = null;
+  public get username(): string | null {
+    return this._username;
+  }
+  public set username(v: string | null) {
+    this._username = v;
+  }
+
+  private _password: string | null = null;
+  public get password(): string | null {
+    return this._password;
+  }
+  public set password(v: string | null) {
+    this._password = v;
+  }
+
   public constructor(
     protocol: Protocol,
     hostname: Hostname | string | Email,
     route?: Route,
     queryString?: string,
+    username?: string | null,
+    password?: string | null,
   ) {
     super();
 
@@ -89,14 +107,33 @@ export default class URL extends DatabaseProperty {
         }
       }
     }
+
+    this.username = username || null;
+    this.password = password || null;
   }
 
-  public isHttps(): boolean {
-    return this.protocol === Protocol.HTTPS;
+  public getUsername(): string | null {
+    return this.username;
+  }
+
+  public getPassword(): string | null {
+    return this.password;
   }
 
   public override toString(): string {
-    let urlString: string = `${this.protocol}${this.hostname || this.email}`;
+    let urlString: string = `${this.protocol}`;
+
+    // Add auth if present
+    if (this.username) {
+      urlString += `${this.username}`;
+      if (this.password) {
+        urlString += `:${this.password}`;
+      }
+      urlString += `@`;
+    }
+
+    urlString += `${this.hostname || this.email}`;
+
     if (!this.email && !urlString.startsWith("mailto:")) {
       if (this.route && this.route.toString().startsWith("/")) {
         if (urlString.endsWith("/")) {
@@ -130,35 +167,45 @@ export default class URL extends DatabaseProperty {
 
   public static fromString(url: string): URL {
     let protocol: Protocol = Protocol.HTTPS;
+    let username: string | null = null;
+    let password: string | null = null;
 
     if (url.startsWith("https://")) {
       protocol = Protocol.HTTPS;
       url = url.replace("https://", "");
-    }
-
-    if (url.startsWith("http://")) {
+    } else if (url.startsWith("http://")) {
       protocol = Protocol.HTTP;
       url = url.replace("http://", "");
-    }
-
-    if (url.startsWith("wss://")) {
+    } else if (url.startsWith("wss://")) {
       protocol = Protocol.WSS;
       url = url.replace("wss://", "");
-    }
-
-    if (url.startsWith("ws://")) {
+    } else if (url.startsWith("ws://")) {
       protocol = Protocol.WS;
       url = url.replace("ws://", "");
-    }
-
-    if (url.startsWith("mongodb://")) {
+    } else if (url.startsWith("mongodb://")) {
       protocol = Protocol.MONGO_DB;
       url = url.replace("mongodb://", "");
-    }
-
-    if (url.startsWith("mailto:")) {
+    } else if (url.startsWith("mailto:")) {
       protocol = Protocol.MAIL;
       url = url.replace("mailto:", "");
+    }
+
+    // Parse auth if present (username:password@)
+    if (url.includes('@')) {
+      const parts = url.split('@');
+      if (parts.length > 1 && parts[0] && parts[1]) {
+        const authPart = parts[0];
+        if (authPart.includes(':')) {
+          const authSplit = authPart.split(':');
+          if (authSplit.length >= 2 && authSplit[0] && authSplit[1]) {
+            username = decodeURIComponent(authSplit[0]);
+            password = decodeURIComponent(authSplit[1]);
+          }
+        } else {
+          username = decodeURIComponent(authPart);
+        }
+        url = parts[1]; // Remove auth part from URL
+      }
     }
 
     const hostname: Hostname = new Hostname(url.split("/")[0] || "");
@@ -173,7 +220,7 @@ export default class URL extends DatabaseProperty {
 
     const queryString: string | undefined = url.split("?")[1] || "";
 
-    return new URL(protocol, hostname, route, queryString);
+    return new URL(protocol, hostname, route, queryString, username, password);
   }
 
   public removeQueryString(): URL {
