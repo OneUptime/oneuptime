@@ -845,7 +845,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           <div className="lg:grid lg:grid-cols-12 lg:gap-x-8">
             {/* Steps sidebar */}
             <aside className="lg:col-span-4 mb-8 lg:mb-0">
-              <div className="bg-gray-50 rounded-lg p-6 ring ring-1 ring-gray-200">
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Setup Progress</h3>
                 <Steps<IntegrationFormData>
                   steps={integrationSteps}
