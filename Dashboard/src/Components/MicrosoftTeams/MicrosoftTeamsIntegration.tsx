@@ -79,6 +79,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [currentStep, setCurrentStep] = React.useState<string>("admin-consent");
   const [isFinished, setIsFinished] = React.useState<boolean>(false);
   // New persistent finished state that survives reload (derived on load)
+  // This indicates the user has explicitly clicked "Finish".
+  // Should default to false so we don't skip the Select Team step on first load.
   const [isSetupFinished, setIsSetupFinished] = React.useState<boolean>(false);
   const [isActionLoading, setIsActionLoading] = React.useState<boolean>(false);
   const [showUninstallConfirm, setShowUninstallConfirm] = React.useState<boolean>(false);
@@ -112,16 +114,18 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // Determine current step based on connection status
   const getCurrentStep = (): string => {
-    if (!isProjectAccountConnected || !adminConsentGranted) {
+    // Require project-level install first
+    if (!isProjectAccountConnected) {
       return "admin-consent";
     }
+    // Admin consent is optional: if not granted, we still allow proceeding but keep step 1 accessible
     if (!isUserAccountConnected) {
       return "user-account";
     }
     if (!currentTeamId || teamsTeamName === 'Microsoft Teams') {
       return "select-team";
     }
-    if (isFinished || isSetupFinished) {
+    if (isFinished) {
       return "finish";
     }
     return "select-team";
@@ -143,10 +147,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       teamsTeamName &&
       teamsTeamName !== 'Microsoft Teams'
     );
-    if (ready) {
-      if (!isSetupFinished) { setIsSetupFinished(true); }
-      if (!isFinished) { setIsFinished(true); }
-      if (currentStep !== 'finish') { setCurrentStep('finish'); }
+    if (!ready) {
+      if (!isSetupFinished) { setIsSetupFinished(false); }
+      if (!isFinished) { setIsFinished(false); }
     }
   }, [
     isProjectAccountConnected,
@@ -621,8 +624,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             <div className="mb-4">
               <h3 className="text-lg font-medium text-gray-900">Step 1: Connect to Microsoft Teams</h3>
               <p className="mt-2 text-sm text-gray-600">
-                First, grant administrative consent to allow OneUptime to integrate with your Microsoft Teams workspace. This step requires admin privileges.
+                Grant administrative consent (recommended) to enable full functionality. If you don't have admin rights you can still proceed with limited delegated permissions by connecting your user account after installing the app.
               </p>
+              {!adminConsentGranted && isProjectAccountConnected && (
+                <p className="mt-2 text-xs text-amber-600">
+                  Admin consent not granted. Operating in limited mode – some features may be unavailable until consent is granted.
+                </p>
+              )}
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
@@ -792,7 +800,14 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   // If setup finished, show management card instead of wizard
-  if (isSetupFinished && isProjectAccountConnected && isUserAccountConnected && currentTeamId) {
+  if (
+    isSetupFinished &&
+    isProjectAccountConnected &&
+    isUserAccountConnected &&
+    currentTeamId &&
+    teamsTeamName &&
+    teamsTeamName !== 'Microsoft Teams'
+  ) {
     return (
       <Fragment>
         <div className="w-full">
