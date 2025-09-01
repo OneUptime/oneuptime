@@ -27,6 +27,33 @@ const CustomProbeDocumentation: FunctionComponent<ComponentProps> = (
 docker run --name oneuptime-probe --network host -e PROBE_KEY=${props.probeKey.toString()} -e PROBE_ID=${props.probeId.toString()} -e ONEUPTIME_URL=${host.toString()} -d oneuptime/probe:release
 `}
             />
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                With Proxy Configuration (Optional)
+              </h4>
+              <CodeBlock
+                language="bash"
+                code={`
+# With HTTP/HTTPS proxy
+docker run --name oneuptime-probe --network host \\
+  -e PROBE_KEY=${props.probeKey.toString()} \\
+  -e PROBE_ID=${props.probeId.toString()} \\
+  -e ONEUPTIME_URL=${host.toString()} \\
+  -e HTTP_PROXY_URL=http://proxy.example.com:8080 \\
+  -e HTTPS_PROXY_URL=http://proxy.example.com:8080 \\
+  -d oneuptime/probe:release
+
+# With proxy authentication
+docker run --name oneuptime-probe --network host \\
+  -e PROBE_KEY=${props.probeKey.toString()} \\
+  -e PROBE_ID=${props.probeId.toString()} \\
+  -e ONEUPTIME_URL=${host.toString()} \\
+  -e HTTP_PROXY_URL=http://username:password@proxy.example.com:8080 \\
+  -e HTTPS_PROXY_URL=http://username:password@proxy.example.com:8080 \\
+  -d oneuptime/probe:release
+`}
+              />
+            </div>
           </div>
         }
       />

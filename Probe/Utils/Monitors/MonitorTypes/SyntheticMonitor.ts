@@ -1,4 +1,5 @@
 import { PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
+import ProxyConfig from "../../ProxyConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
@@ -15,6 +16,20 @@ export interface SyntheticMonitorOptions {
   screenSizeTypes?: Array<ScreenSizeType> | undefined;
   browserTypes?: Array<BrowserType> | undefined;
   script: string;
+}
+
+interface BrowserLaunchOptions {
+  executablePath?: string;
+  proxy?: {
+    server: string;
+    username?: string;
+    password?: string;
+    bypass?: string;
+  };
+  args?: string[];
+  headless?: boolean;
+  devtools?: boolean;
+  timeout?: number;
 }
 
 export default class SyntheticMonitor {
@@ -131,9 +146,11 @@ export default class SyntheticMonitor {
               continue;
             }
 
-            scriptResult.screenshots[screenshotName] = (
-              result.returnValue.screenshots[screenshotName] as any
-            ).toString("base64"); // convert screennshots to base 64
+            const screenshotBuffer: Buffer = result.returnValue.screenshots[
+              screenshotName
+            ] as Buffer;
+            scriptResult.screenshots[screenshotName] =
+              screenshotBuffer.toString("base64"); // convert screenshots to base 64
           }
         }
 
@@ -268,12 +285,46 @@ export default class SyntheticMonitor {
       screenSizeType: data.screenSizeType,
     });
 
+    // Prepare browser launch options with proxy support
+    const baseOptions: BrowserLaunchOptions = {};
+
+    // Configure proxy if available
+    if (ProxyConfig.isProxyConfigured()) {
+      const httpsProxyUrl: string | null = ProxyConfig.getHttpsProxyUrl();
+      const httpProxyUrl: string | null = ProxyConfig.getHttpProxyUrl();
+
+      // Prefer HTTPS proxy, fall back to HTTP proxy
+      const proxyUrl: string | null = httpsProxyUrl || httpProxyUrl;
+
+      if (proxyUrl) {
+        baseOptions.proxy = {
+          server: proxyUrl,
+        };
+
+        // Extract username and password if present in proxy URL
+        try {
+          const parsedUrl: globalThis.URL = new URL(proxyUrl);
+          if (parsedUrl.username && parsedUrl.password) {
+            baseOptions.proxy.username = parsedUrl.username;
+            baseOptions.proxy.password = parsedUrl.password;
+          }
+        } catch (error) {
+          logger.warn(`Failed to parse proxy URL for authentication: ${error}`);
+        }
+
+        logger.debug(
+          `Synthetic Monitor using proxy: ${proxyUrl} (HTTPS: ${Boolean(httpsProxyUrl)}, HTTP: ${Boolean(httpProxyUrl)})`,
+        );
+      }
+    }
+
     let page: Page | null = null;
     let browser: Browser | null = null;
 
     if (data.browserType === BrowserType.Chromium) {
       browser = await chromium.launch({
         executablePath: await this.getChromeExecutablePath(),
+        ...baseOptions,
       });
       page = await browser.newPage();
     }
@@ -281,6 +332,7 @@ export default class SyntheticMonitor {
     if (data.browserType === BrowserType.Firefox) {
       browser = await firefox.launch({
         executablePath: await this.getFirefoxExecutablePath(),
+        ...baseOptions,
       });
       page = await browser.newPage();
     }

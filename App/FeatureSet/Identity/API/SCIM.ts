@@ -28,7 +28,6 @@ import {
   generateServiceProviderConfig,
   generateUsersListResponse,
   parseSCIMQueryParams,
-  logSCIMOperation,
 } from "../Utils/SCIMUtils";
 import { DocsClientUrl } from "Common/Server/EnvironmentConfig";
 
@@ -120,10 +119,8 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      logSCIMOperation(
-        "ServiceProviderConfig",
-        "project",
-        req.params["projectScimId"]!,
+      logger.debug(
+        `Project SCIM ServiceProviderConfig - scimId: ${req.params["projectScimId"]!}`,
       );
 
       const serviceProviderConfig: JSONObject = generateServiceProviderConfig(
@@ -150,7 +147,9 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      logSCIMOperation("Users list", "project", req.params["projectScimId"]!);
+      logger.debug(
+        `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}`,
+      );
 
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
       const bearerData: JSONObject =
@@ -161,11 +160,8 @@ router.get(
       const { startIndex, count } = parseSCIMQueryParams(req);
       const filter: string = req.query["filter"] as string;
 
-      logSCIMOperation(
-        "Users list",
-        "project",
-        req.params["projectScimId"]!,
-        `startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
+      logger.debug(
+        `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
       );
 
       // Build query for team members in this project
@@ -180,33 +176,35 @@ router.get(
         );
         if (emailMatch) {
           const email: string = emailMatch[1]!;
-          logSCIMOperation(
-            "Users list",
-            "project",
-            req.params["projectScimId"]!,
-            `filter by email: ${email}`,
+          logger.debug(
+            `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, filter by email: ${email}`,
           );
 
           if (email) {
-            const user: User | null = await UserService.findOneBy({
-              query: { email: new Email(email) },
-              select: { _id: true },
-              props: { isRoot: true },
-            });
-            if (user && user.id) {
-              query.userId = user.id;
-              logSCIMOperation(
-                "Users list",
-                "project",
-                req.params["projectScimId"]!,
-                `found user with id: ${user.id}`,
-              );
+            if (Email.isValid(email)) {
+              const user: User | null = await UserService.findOneBy({
+                query: { email: new Email(email) },
+                select: { _id: true },
+                props: { isRoot: true },
+              });
+              if (user && user.id) {
+                query.userId = user.id;
+                logger.debug(
+                  `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, found user with id: ${user.id}`,
+                );
+              } else {
+                logger.debug(
+                  `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, user not found for email: ${email}`,
+                );
+                return Response.sendJsonObjectResponse(
+                  req,
+                  res,
+                  generateUsersListResponse([], startIndex, 0),
+                );
+              }
             } else {
-              logSCIMOperation(
-                "Users list",
-                "project",
-                req.params["projectScimId"]!,
-                `user not found for email: ${email}`,
+              logger.debug(
+                `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, invalid email format in filter: ${email}`,
               );
               return Response.sendJsonObjectResponse(
                 req,
@@ -218,11 +216,8 @@ router.get(
         }
       }
 
-      logSCIMOperation(
-        "Users list",
-        "project",
-        req.params["projectScimId"]!,
-        `query built for projectId: ${projectId}`,
+      logger.debug(
+        `Project SCIM Users list - scimId: ${req.params["projectScimId"]!}, query built for projectId: ${projectId}`,
       );
 
       // Get team members

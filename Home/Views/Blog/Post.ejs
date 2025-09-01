@@ -63,6 +63,31 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
 
+        <style>
+            /* Custom styles for code blocks in blog posts */
+            .blog-body pre {
+                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+                font-weight: 400 !important;
+            }
+            
+            .blog-body pre code {
+                font-family: inherit !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+                font-weight: inherit !important;
+            }
+            
+            /* Ensure highlight.js doesn't override our font settings */
+            .blog-body .hljs {
+                font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace !important;
+                font-size: 14px !important;
+                line-height: 1.5 !important;
+                font-weight: 400 !important;
+            }
+        </style>
+
 </head>
 
 

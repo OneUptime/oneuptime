@@ -1,6 +1,9 @@
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
+  # Tempory fix to allow insecure images from bitnami while we migrate to new images and charts.
+  security:
+    allowInsecureImages: true
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
@@ -55,7 +58,11 @@ nginx:
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
 
+
+
 postgresql:
+  image:
+    repository: bitnamilegacy/postgresql
   enabled: true # Set this to false if you're using an external postgresql database.
   clusterDomain: *global-cluster-domain
   auth:
@@ -75,6 +82,8 @@ postgresql:
       size: 25Gi
 
 clickhouse:
+  image:
+    repository: bitnamilegacy/clickhouse
   enabled: true
   clusterDomain: *global-cluster-domain
   keeper:
@@ -115,6 +124,8 @@ redis:
   ipFamily: 4
   auth:
     enabled: true
+  image:
+    repository: bitnamilegacy/redis
   master:
     service:
       ports:
@@ -208,6 +219,18 @@ probes:
     disableAutoscaler: false
     ports:
       http: 3874
+    # Proxy configuration for probe connections
+    proxy:
+      # HTTP proxy URL for HTTP requests (optional)
+      # Format: http://[username:password@]proxy.server.com:port
+      # Example: http://proxy.example.com:8080
+      # Example with auth: http://username:password@proxy.example.com:8080
+      httpProxyUrl:
+      # HTTPS proxy URL for HTTPS requests (optional)
+      # Format: http://[username:password@]proxy.server.com:port
+      # Example: http://proxy.example.com:8080
+      # Example with auth: http://username:password@proxy.example.com:8080
+      httpsProxyUrl:
     # KEDA autoscaling configuration based on monitor queue metrics
     keda:
       enabled: false
@@ -234,6 +257,12 @@ probes:
 #   customCodeMonitorScriptTimeoutInMs: 60000
 #   disableTelemetryCollection: false
 #   disableAutoscaler: false
+#   # Proxy configuration for probe connections
+#   proxy:
+#     # HTTP proxy URL for HTTP requests (optional)
+#     httpProxyUrl:
+#     # HTTPS proxy URL for HTTPS requests (optional) 
+#     httpsProxyUrl:
 #   resources:
 #   additionalContainers:
     # KEDA autoscaling configuration based on monitor queue metrics

@@ -103,6 +103,14 @@ spec:
             - name: DISABLE_TELEMETRY
               value: {{ $val.disableTelemetryCollection | quote }}
             {{- end }}
+            {{- if and $val.proxy $val.proxy.httpProxyUrl }}
+            - name: HTTP_PROXY_URL
+              value: {{ $val.proxy.httpProxyUrl | squote }}
+            {{- end }}
+            {{- if and $val.proxy $val.proxy.httpsProxyUrl }}
+            - name: HTTPS_PROXY_URL
+              value: {{ $val.proxy.httpsProxyUrl | squote }}
+            {{- end }}
             {{- include "oneuptime.env.oneuptimeSecret" $ | nindent 12 }}
           ports:
             - containerPort: {{ if and $val.ports $val.ports.http }}{{ $val.ports.http }}{{ else }}3874{{ end }}

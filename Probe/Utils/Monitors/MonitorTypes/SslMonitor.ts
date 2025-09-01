@@ -1,5 +1,8 @@
 import OnlineCheck from "../../OnlineCheck";
+import ProxyConfig from "../../ProxyConfig";
 import URL from "Common/Types/API/URL";
+import type { HttpsProxyAgent } from "https-proxy-agent";
+import type { HttpProxyAgent } from "http-proxy-agent";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import SslMonitorResponse from "Common/Types/Monitor/SSLMonitor/SslMonitorResponse";
@@ -264,7 +267,7 @@ export default class SSLMonitor {
     port: number,
     rejectUnauthorized: boolean,
   ): RequestOptions {
-    return {
+    const options: RequestOptions = {
       hostname: url,
       agent: false,
       rejectUnauthorized: rejectUnauthorized,
@@ -272,5 +275,32 @@ export default class SSLMonitor {
       port,
       protocol: "https:",
     };
+
+    // Use proxy agent if proxy is configured
+    if (ProxyConfig.isProxyConfigured()) {
+      const httpsProxyAgent: HttpsProxyAgent<string> | null =
+        ProxyConfig.getHttpsProxyAgent();
+      const httpProxyAgent: HttpProxyAgent<string> | null =
+        ProxyConfig.getHttpProxyAgent();
+
+      // Prefer HTTPS proxy agent, fall back to HTTP proxy agent
+      const proxyAgent:
+        | (HttpsProxyAgent<string> | HttpProxyAgent<string>)
+        | null = httpsProxyAgent || httpProxyAgent;
+
+      if (proxyAgent) {
+        options.agent = proxyAgent;
+
+        const httpsProxyUrl: string | null = ProxyConfig.getHttpsProxyUrl();
+        const httpProxyUrl: string | null = ProxyConfig.getHttpProxyUrl();
+        const proxyUrl: string | null = httpsProxyUrl || httpProxyUrl;
+
+        logger.debug(
+          `SSL Monitor using proxy: ${proxyUrl} (HTTPS: ${Boolean(httpsProxyUrl)}, HTTP: ${Boolean(httpProxyUrl)})`,
+        );
+      }
+    }
+
+    return options;
   }
 }

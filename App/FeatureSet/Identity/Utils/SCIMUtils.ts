@@ -242,23 +242,3 @@ export const parseSCIMQueryParams: (req: ExpressRequest) => {
 
   return { startIndex, count };
 };
-
-/**
- * Log SCIM operation with consistent format
- */
-export const logSCIMOperation: (
-  operation: string,
-  scimType: "project" | "status-page",
-  scimId: string,
-  details?: string,
-) => void = (
-  operation: string,
-  scimType: "project" | "status-page",
-  scimId: string,
-  details?: string,
-): void => {
-  const logPrefix: string =
-    scimType === "project" ? "Project SCIM" : "Status Page SCIM";
-  const message: string = `${logPrefix} ${operation} - scimId: ${scimId}${details ? `, ${details}` : ""}`;
-  logger.debug(message);
-};

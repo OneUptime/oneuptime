@@ -77,7 +77,7 @@ export default class Markdown {
     };
 
     renderer.code = function (code, language) {
-      return `<pre class="language-${language}"><code class="language-${language}">${code}</code></pre>`;
+      return `<pre><code class="language-${language}">${code}</code></pre>`;
     };
 
     renderer.heading = function (text, level) {
@@ -95,25 +95,6 @@ export default class Markdown {
       return `<h6 class="my-5 tracking-tight font-bold text-gray-800">${text}</h6>`;
     };
 
-    // --- Enhanced overrides for Docs Renderer (improved styling & missing elements) ---
-    // Slugify helper for generating unique heading IDs
-    const __docsUsedSlugs: Set<string> = new Set();
-    const __slugify: (value: string) => string = (value: string): string => {
-      let slug: string = value
-        .toLowerCase()
-        .replace(/<[^>]+>/g, "")
-        .replace(/[`*_~]/g, "")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-");
-      const base: string = slug;
-      let i: number = 1;
-      while (__docsUsedSlugs.has(slug)) {
-        slug = `${base}-${i++}`;
-      }
-      __docsUsedSlugs.add(slug);
-      return slug;
-    };
 
     // Paragraph (override)
     renderer.paragraph = function (text) {
@@ -201,21 +182,19 @@ export default class Markdown {
 
     // Heading override with anchors
     renderer.heading = function (text, level) {
-      const id: string = __slugify(text);
-      const base: string = "group scroll-mt-24";
-      const anchor: string = `<a href="#${id}" class="absolute -ms-6 ps-2 inset-y-0 start-0 flex items-center opacity-0 group-hover:opacity-100 transition" aria-label="Anchor">#</a>`;
+     
       if (level === 1) {
-        return `<h1 id="${id}" class="${base} relative mt-12 mb-6 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50">${anchor}${text}</h1>`;
+        return `<h1  relative mt-12 mb-6 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50">${text}</h1>`;
       } else if (level === 2) {
-        return `<h2 id="${id}" class="${base} relative mt-12 mb-4 text-3xl font-bold tracking-tight text-gray-800 dark:text-gray-100">${anchor}${text}</h2>`;
+        return `<h2  relative mt-12 mb-4 text-3xl font-bold tracking-tight text-gray-800 dark:text-gray-100">${text}</h2>`;
       } else if (level === 3) {
-        return `<h3 id="${id}" class="${base} relative mt-10 mb-3 text-2xl font-bold tracking-tight text-gray-800 dark:text-gray-100">${anchor}${text}</h3>`;
+        return `<h3  relative mt-10 mb-3 text-2xl font-bold tracking-tight text-gray-800 dark:text-gray-100">${text}</h3>`;
       } else if (level === 4) {
-        return `<h4 id="${id}" class="${base} relative mt-8 mb-2 text-xl font-semibold tracking-tight text-gray-800 dark:text-gray-100">${anchor}${text}</h4>`;
+        return `<h4  relative mt-8 mb-2 text-xl font-semibold tracking-tight text-gray-800 dark:text-gray-100">${text}</h4>`;
       } else if (level === 5) {
-        return `<h5 id="${id}" class="${base} relative mt-6 mb-2 text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">${anchor}${text}</h5>`;
+        return `<h5  relative mt-6 mb-2 text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">${text}</h5>`;
       }
-      return `<h6 id="${id}" class="${base} relative mt-6 mb-2 text-base font-semibold tracking-tight text-gray-800 dark:text-gray-100">${anchor}${text}</h6>`;
+      return `<h6  relative mt-6 mb-2 text-base font-semibold tracking-tight text-gray-800 dark:text-gray-100">${text}</h6>`;
     };
 
     // Line break

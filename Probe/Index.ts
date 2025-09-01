@@ -11,6 +11,7 @@ import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
 import MetricsAPI from "./API/Metrics";
+import ProxyConfig from "./Utils/ProxyConfig";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
@@ -22,6 +23,27 @@ const APP_NAME: string = "probe";
 
 const init: PromiseVoidFunction = async (): Promise<void> => {
   try {
+    // Initialize proxy configuration first, before any HTTP requests
+    ProxyConfig.configure();
+
+    // Log proxy status
+    if (ProxyConfig.isProxyConfigured()) {
+      logger.info("Proxy configuration:");
+
+      const httpProxy: string | null = ProxyConfig.getHttpProxyUrl();
+      const httpsProxy: string | null = ProxyConfig.getHttpsProxyUrl();
+
+      if (httpProxy) {
+        logger.info(`  HTTP proxy: ${httpProxy}`);
+      }
+
+      if (httpsProxy) {
+        logger.info(`  HTTPS proxy: ${httpsProxy}`);
+      }
+
+      logger.info("Proxy will be used for all HTTP/HTTPS requests");
+    }
+
     // Initialize telemetry
     Telemetry.init({
       serviceName: APP_NAME,

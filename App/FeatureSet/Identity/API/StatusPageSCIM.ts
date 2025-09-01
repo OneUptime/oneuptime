@@ -19,7 +19,6 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   formatUserForSCIM,
   generateServiceProviderConfig,
-  logSCIMOperation,
 } from "../Utils/SCIMUtils";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
@@ -32,10 +31,8 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      logSCIMOperation(
-        "ServiceProviderConfig",
-        "status-page",
-        req.params["statusPageScimId"]!,
+      logger.debug(
+        `Status Page SCIM ServiceProviderConfig - scimId: ${req.params["statusPageScimId"]!}`,
       );
 
       const serviceProviderConfig: JSONObject = generateServiceProviderConfig(
@@ -73,17 +70,54 @@ router.get(
         parseInt(req.query["count"] as string) || 100,
         LIMIT_PER_PROJECT,
       );
+      const filter: string = req.query["filter"] as string;
 
       logger.debug(
-        `Status Page SCIM Users - statusPageId: ${statusPageId}, startIndex: ${startIndex}, count: ${count}`,
+        `Status Page SCIM Users - statusPageId: ${statusPageId}, startIndex: ${startIndex}, count: ${count}, filter: ${filter || "none"}`,
       );
+
+      // Build query for status page users
+      const query: any = {
+        statusPageId: statusPageId,
+      };
+
+      // Handle SCIM filter for userName
+      if (filter) {
+        const emailMatch: RegExpMatchArray | null = filter.match(
+          /userName eq "([^"]+)"/i,
+        );
+        if (emailMatch) {
+          const email: string = emailMatch[1]!;
+          logger.debug(
+            `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filter by email: ${email}`,
+          );
+
+          if (email) {
+            if (Email.isValid(email)) {
+              query.email = new Email(email);
+              logger.debug(
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filtering by email: ${email}`,
+              );
+            } else {
+              logger.debug(
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, invalid email format in filter: ${email}`,
+              );
+              return Response.sendJsonObjectResponse(req, res, {
+                schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+                totalResults: 0,
+                startIndex: startIndex,
+                itemsPerPage: 0,
+                Resources: [],
+              });
+            }
+          }
+        }
+      }
 
       // Get all private users for this status page
       const statusPageUsers: Array<StatusPagePrivateUser> =
         await StatusPagePrivateUserService.findBy({
-          query: {
-            statusPageId: statusPageId,
-          },
+          query: query,
           select: {
             _id: true,
             email: true,

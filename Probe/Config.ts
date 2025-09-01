@@ -84,3 +84,18 @@ export const PROBE_MONITOR_RETRY_LIMIT: number = process.env[
 export const PORT: Port = new Port(
   process.env["PORT"] ? parseInt(process.env["PORT"]) : 3874,
 );
+
+// Proxy configuration for all HTTP/HTTPS requests made by the probe
+// HTTP_PROXY_URL: Proxy for HTTP requests
+// Format: http://[username:password@]proxy.example.com:port
+// Example: http://proxy.example.com:8080
+// Example with auth: http://user:pass@proxy.example.com:8080
+export const HTTP_PROXY_URL: string | null =
+  process.env["HTTP_PROXY_URL"] || process.env["http_proxy"] || null;
+
+// HTTPS_PROXY_URL: Proxy for HTTPS requests
+// Format: http://[username:password@]proxy.example.com:port
+// Example: http://proxy.example.com:8080
+// Example with auth: http://user:pass@proxy.example.com:8080
+export const HTTPS_PROXY_URL: string | null =
+  process.env["HTTPS_PROXY_URL"] || process.env["https_proxy"] || null;

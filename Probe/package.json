@@ -21,6 +21,8 @@
     "axios": "^1.7.2",
     "Common": "file:../Common",
     "ejs": "^3.1.10",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.5",
     "ping": "^0.4.4",
     "playwright": "^1.50.0",
     "ts-node": "^10.9.1"
