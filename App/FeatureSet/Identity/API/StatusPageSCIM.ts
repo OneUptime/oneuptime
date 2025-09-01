@@ -19,7 +19,6 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   formatUserForSCIM,
   generateServiceProviderConfig,
-  logSCIMOperation,
 } from "../Utils/SCIMUtils";
 import Text from "Common/Types/Text";
 import HashedString from "Common/Types/HashedString";
@@ -32,10 +31,8 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
-      logSCIMOperation(
-        "ServiceProviderConfig",
-        "status-page",
-        req.params["statusPageScimId"]!,
+      logger.debug(
+        `Status Page SCIM ServiceProviderConfig - scimId: ${req.params["statusPageScimId"]!}`,
       );
 
       const serviceProviderConfig: JSONObject = generateServiceProviderConfig(
