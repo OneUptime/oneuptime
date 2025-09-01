@@ -287,15 +287,17 @@ export default class SyntheticMonitor {
     
     // Configure proxy if available
     if (ProxyConfig.isProxyConfigured()) {
-      const proxyUrl = ProxyConfig.getProxyUrl();
-      if (proxyUrl) {
+      // For HTTPS requests, use HTTPS proxy; for HTTP requests, use HTTP proxy
+      const httpsProxyUrl = ProxyConfig.getHttpsProxyUrl();
+      
+      if (httpsProxyUrl) {
         baseOptions.proxy = {
-          server: proxyUrl,
+          server: httpsProxyUrl,
         };
         
         // Extract username and password if present in proxy URL
         try {
-          const parsedUrl = new URL(proxyUrl);
+          const parsedUrl = new URL(httpsProxyUrl);
           if (parsedUrl.username && parsedUrl.password) {
             baseOptions.proxy.username = parsedUrl.username;
             baseOptions.proxy.password = parsedUrl.password;
@@ -305,7 +307,7 @@ export default class SyntheticMonitor {
         }
         
         logger.debug(
-          `Synthetic Monitor using proxy: ${proxyUrl}`,
+          `Synthetic Monitor using HTTPS proxy: ${httpsProxyUrl}`,
         );
       }
     }

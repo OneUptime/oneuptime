@@ -280,7 +280,7 @@ export default class SSLMonitor {
       if (proxyAgent) {
         options.agent = proxyAgent;
         logger.debug(
-          `SSL Monitor using proxy: ${ProxyConfig.getProxyUrl()}`,
+          `SSL Monitor using HTTPS proxy: ${ProxyConfig.getHttpsProxyUrl()}`,
         );
       }
     }
