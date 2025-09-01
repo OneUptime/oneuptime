@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import ProxyConfig from "../../ProxyConfig";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -264,7 +265,7 @@ export default class SSLMonitor {
     port: number,
     rejectUnauthorized: boolean,
   ): RequestOptions {
-    return {
+    const options: RequestOptions = {
       hostname: url,
       agent: false,
       rejectUnauthorized: rejectUnauthorized,
@@ -272,5 +273,18 @@ export default class SSLMonitor {
       port,
       protocol: "https:",
     };
+
+    // Use proxy agent if proxy is configured
+    if (ProxyConfig.isProxyConfigured()) {
+      const proxyAgent = ProxyConfig.getHttpsProxyAgent();
+      if (proxyAgent) {
+        options.agent = proxyAgent;
+        logger.debug(
+          `SSL Monitor using proxy: ${ProxyConfig.getProxyUrl()}`,
+        );
+      }
+    }
+
+    return options;
   }
 }

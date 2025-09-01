@@ -85,4 +85,9 @@ export const PORT: Port = new Port(
   process.env["PORT"] ? parseInt(process.env["PORT"]) : 3874,
 );
 
+// Proxy configuration for all HTTP requests made by the probe
+// When set, all HTTP/HTTPS requests will be routed through this proxy
+// Format: http://[username:password@]proxy.example.com:port
+// Example: http://proxy.example.com:8080
+// Example with auth: http://user:pass@proxy.example.com:8080
 export const PROXY_URL: string | null = process.env["PROXY_URL"] || null;
