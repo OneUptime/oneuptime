@@ -84,3 +84,5 @@ export const PROBE_MONITOR_RETRY_LIMIT: number = process.env[
 export const PORT: Port = new Port(
   process.env["PORT"] ? parseInt(process.env["PORT"]) : 3874,
 );
+
+export const PROXY_URL: string | null = process.env["PROXY_URL"] || null;
