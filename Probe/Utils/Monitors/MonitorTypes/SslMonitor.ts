@@ -276,11 +276,21 @@ export default class SSLMonitor {
 
     // Use proxy agent if proxy is configured
     if (ProxyConfig.isProxyConfigured()) {
-      const proxyAgent = ProxyConfig.getHttpsProxyAgent();
+      const httpsProxyAgent = ProxyConfig.getHttpsProxyAgent();
+      const httpProxyAgent = ProxyConfig.getHttpProxyAgent();
+      
+      // Prefer HTTPS proxy agent, fall back to HTTP proxy agent
+      const proxyAgent = httpsProxyAgent || httpProxyAgent;
+      
       if (proxyAgent) {
         options.agent = proxyAgent;
+        
+        const httpsProxyUrl = ProxyConfig.getHttpsProxyUrl();
+        const httpProxyUrl = ProxyConfig.getHttpProxyUrl();
+        const proxyUrl = httpsProxyUrl || httpProxyUrl;
+        
         logger.debug(
-          `SSL Monitor using HTTPS proxy: ${ProxyConfig.getHttpsProxyUrl()}`,
+          `SSL Monitor using proxy: ${proxyUrl} (HTTPS: ${!!httpsProxyUrl}, HTTP: ${!!httpProxyUrl})`,
         );
       }
     }
