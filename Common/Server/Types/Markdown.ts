@@ -95,6 +95,11 @@ export default class Markdown {
       return `<h6 class="my-5 tracking-tight font-bold text-gray-800">${text}</h6>`;
     };
 
+    // Inline code
+    renderer.codespan = function (code) {
+      return `<code class="rounded-md bg-slate-100 px-1.5 py-0.5 text-sm text-slate-700 font-mono">${code}</code>`;
+    };
+
     this.docsRenderer = renderer;
 
     return renderer;
