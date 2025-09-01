@@ -351,6 +351,10 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 PROJECT SCIM API HIT: GET ServiceProviderConfig - projectScimId: ${req.params["projectScimId"]}`,
+      );
+
       logSCIMOperation(
         "ServiceProviderConfig",
         "project",
@@ -381,6 +385,10 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 PROJECT SCIM API HIT: GET Users List - projectScimId: ${req.params["projectScimId"]}, query: ${JSON.stringify(req.query)}`,
+      );
+
       logSCIMOperation("Users list", "project", req.params["projectScimId"]!);
 
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -538,6 +546,10 @@ router.get(
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       logger.debug(
+        `🔗 PROJECT SCIM API HIT: GET Individual User - projectScimId: ${req.params["projectScimId"]}, userId: ${req.params["userId"]}`,
+      );
+
+      logger.debug(
         `SCIM Get individual user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -630,6 +642,10 @@ router.put(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 PROJECT SCIM API HIT: PUT Update User - projectScimId: ${req.params["projectScimId"]}, userId: ${req.params["userId"]}`,
+      );
+
       logger.debug(
         `SCIM Update user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );
@@ -897,6 +913,10 @@ router.get(
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       logger.debug(
+        `🔗 PROJECT SCIM API HIT: GET Groups - projectScimId: ${req.params["projectScimId"]}`,
+      );
+
+      logger.debug(
         `SCIM Groups list request for projectScimId: ${req.params["projectScimId"]}`,
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -942,6 +962,10 @@ router.post(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 PROJECT SCIM API HIT: POST Create User - projectScimId: ${req.params["projectScimId"]}`,
+      );
+
       logger.debug(
         `SCIM Create user request for projectScimId: ${req.params["projectScimId"]}`,
       );
@@ -1081,6 +1105,10 @@ router.delete(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 PROJECT SCIM API HIT: DELETE User - projectScimId: ${req.params["projectScimId"]}, userId: ${req.params["userId"]}`,
+      );
+
       logger.debug(
         `SCIM Delete user request for userId: ${req.params["userId"]}, projectScimId: ${req.params["projectScimId"]}`,
       );

@@ -280,6 +280,10 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 STATUS PAGE SCIM API HIT: GET ServiceProviderConfig - statusPageScimId: ${req.params["statusPageScimId"]}`,
+      );
+
       logSCIMOperation(
         "ServiceProviderConfig",
         "status-page",
@@ -306,6 +310,10 @@ router.get(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 STATUS PAGE SCIM API HIT: GET Users List - statusPageScimId: ${req.params["statusPageScimId"]}, query: ${JSON.stringify(req.query)}`,
+      );
+
       logger.debug(
         `Status Page SCIM Users list request for statusPageScimId: ${req.params["statusPageScimId"]}`,
       );
@@ -444,6 +452,10 @@ router.get(
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
       logger.debug(
+        `🔗 STATUS PAGE SCIM API HIT: GET Individual User - statusPageScimId: ${req.params["statusPageScimId"]}, userId: ${req.params["userId"]}`,
+      );
+
+      logger.debug(
         `Status Page SCIM Get individual user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
       );
       const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -538,6 +550,10 @@ router.post(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 STATUS PAGE SCIM API HIT: POST Create User - statusPageScimId: ${req.params["statusPageScimId"]}`,
+      );
+
       logger.debug(
         `Status Page SCIM Create user request for statusPageScimId: ${req.params["statusPageScimId"]}`,
       );
@@ -689,6 +705,10 @@ router.put(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 STATUS PAGE SCIM API HIT: PUT Update User - statusPageScimId: ${req.params["statusPageScimId"]}, userId: ${req.params["userId"]}`,
+      );
+
       logger.debug(
         `Status Page SCIM Update user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
       );
@@ -888,6 +908,10 @@ router.delete(
   SCIMMiddleware.isAuthorizedSCIMRequest,
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     try {
+      logger.debug(
+        `🔗 STATUS PAGE SCIM API HIT: DELETE User - statusPageScimId: ${req.params["statusPageScimId"]}, userId: ${req.params["userId"]}`,
+      );
+
       logger.debug(
         `Status Page SCIM Delete user request for userId: ${req.params["userId"]}, statusPageScimId: ${req.params["statusPageScimId"]}`,
       );
