@@ -76,16 +76,19 @@ export const formatUserForSCIM: (
   req: ExpressRequest,
   scimId: string,
   scimType: "project" | "status-page",
+  externalId?: string | null,
 ) => JSONObject = (
   user: SCIMUser,
   req: ExpressRequest,
   scimId: string,
   scimType: "project" | "status-page",
+  externalId?: string | null,
 ): JSONObject => {
   const baseUrl: string = `${req.protocol}://${req.get("host")}`;
-  const userName: string = user.email?.toString() || "";
+  const userName: string = externalId || user.email?.toString() || "";
+  const email: string = user.email?.toString() || "";
   const fullName: string =
-    user.name?.toString() || userName.split("@")[0] || "Unknown User";
+    user.name?.toString() || email.split("@")[0] || "Unknown User";
 
   const nameData: { givenName: string; familyName: string; formatted: string } =
     parseNameToSCIMFormat(fullName);
@@ -108,7 +111,7 @@ export const formatUserForSCIM: (
     },
     emails: [
       {
-        value: userName,
+        value: email,
         type: "work",
         primary: true,
       },
@@ -134,6 +137,40 @@ export const extractEmailFromSCIM: (scimUser: JSONObject) => string = (
     ((scimUser["emails"] as JSONObject[])?.[0]?.["value"] as string) ||
     ""
   );
+};
+
+/**
+ * Extract external ID from SCIM user payload (for non-email userNames)
+ */
+export const extractExternalIdFromSCIM: (scimUser: JSONObject) => string | null = (
+  scimUser: JSONObject,
+): string | null => {
+  const userName: string = scimUser["userName"] as string;
+  if (!userName) {
+    return null;
+  }
+  
+  // Check if userName is not an email - if it's not a valid email format, treat it as external ID
+  const emailRegex: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(userName)) {
+    return userName;
+  }
+  
+  return null;
+};
+
+/**
+ * Check if a userName field contains an email or external ID
+ */
+export const isUserNameEmail: (userName: string) => boolean = (
+  userName: string,
+): boolean => {
+  if (!userName) {
+    return false;
+  }
+  
+  const emailRegex: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(userName);
 };
 
 /**
