@@ -653,51 +653,7 @@ router.put(
         throw new BadRequestException("User ID is required");
       }
 
-      // Resolve user ID (could be internal ID or external ID)
-      const userId: ObjectID | null = await resolveUserId(
-        userIdParam,
-        projectId,
-        scimConfig.id!,
-      );
-
-      if (!userId) {
-        logger.debug(
-          `SCIM Update user - could not resolve user ID for param: ${userIdParam}`,
-        );
-        throw new NotFoundException(
-          "User not found or not part of this project",
-        );
-      }
-
-      // Check if user exists and is part of the project
-      const projectUser: TeamMember | null = await TeamMemberService.findOneBy({
-        query: {
-          projectId: projectId,
-          userId: userId,
-        },
-        select: {
-          userId: true,
-          user: {
-            _id: true,
-            email: true,
-            name: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        props: { isRoot: true },
-      });
-
-      if (!projectUser || !projectUser.user) {
-        logger.debug(
-          `SCIM Update user - user not found or not part of project for resolved userId: ${userId}`,
-        );
-        throw new NotFoundException(
-          "User not found or not part of this project",
-        );
-      }
-
-      // Update user information
+      // Extract user data from SCIM request
       const userName: string = extractEmailFromSCIM(scimUser);
       const externalId: string | null = extractExternalIdFromSCIM(scimUser);
       const name: string = parseNameFromSCIM(scimUser);
@@ -719,10 +675,114 @@ router.put(
         }
       }
 
+      // Resolve user ID (could be internal ID or external ID)
+      const userId: ObjectID | null = await resolveUserId(
+        userIdParam,
+        projectId,
+        scimConfig.id!,
+      );
+
+      let projectUser: TeamMember | null = null;
+      let user: User | null = null;
+      let isNewUser: boolean = false;
+
+      if (userId) {
+        // Check if user exists and is part of the project
+        projectUser = await TeamMemberService.findOneBy({
+          query: {
+            projectId: projectId,
+            userId: userId,
+          },
+          select: {
+            userId: true,
+            user: {
+              _id: true,
+              email: true,
+              name: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          props: { isRoot: true },
+        });
+
+        if (projectUser && projectUser.user) {
+          user = projectUser.user;
+        }
+      }
+
+      // If user not found, create a new user (SCIM PUT should create if not exists)
+      if (!user) {
+        logger.debug(
+          `SCIM Update user - user not found for param: ${userIdParam}, creating new user`,
+        );
+
+        if (!scimConfig.autoProvisionUsers) {
+          throw new BadRequestException(
+            "Auto-provisioning is disabled for this project and user not found",
+          );
+        }
+
+        if (!email && !externalId) {
+          throw new BadRequestException(
+            "Either a valid email address or external ID is required to create user",
+          );
+        }
+
+        // Try to find existing user by email if we have one
+        if (email) {
+          try {
+            user = await UserService.findOneBy({
+              query: { email: new Email(email) },
+              select: {
+                _id: true,
+                email: true,
+                name: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+              props: { isRoot: true },
+            });
+          } catch (error) {
+            // Email validation failed, continue without email lookup
+            logger.debug(`SCIM Update user - email validation failed for: ${email}`);
+          }
+        }
+
+        // Create new user if still not found
+        if (!user) {
+          if (!email) {
+            throw new BadRequestException(
+              "A valid email address is required to create a new user",
+            );
+          }
+          
+          logger.debug(
+            `SCIM Update user - creating new user for email: ${email}`,
+          );
+          user = await UserService.createByEmail({
+            email: new Email(email),
+            name: name ? new Name(name) : new Name("Unknown"),
+            isEmailVerified: true,
+            generateRandomPassword: true,
+            props: { isRoot: true },
+          });
+          isNewUser = true;
+        }
+
+        // Add user to default teams if configured
+        if (scimConfig.teams && scimConfig.teams.length > 0) {
+          logger.debug(
+            `SCIM Update user - adding new user to ${scimConfig.teams.length} configured teams`,
+          );
+          await handleUserTeamOperations("add", projectId, user.id!, scimConfig);
+        }
+      }
+
       // Create or update SCIM user mapping if we have an external ID
-      if (externalId) {
+      if (externalId && user && user.id) {
         await createOrUpdateSCIMUserMapping(
-          projectUser.user,
+          user,
           externalId,
           projectId,
           scimConfig.id!,
@@ -730,14 +790,14 @@ router.put(
       }
 
       // Handle user deactivation by removing from teams
-      if (active === false) {
+      if (active === false && user && user.id) {
         logger.debug(
           `SCIM Update user - user marked as inactive, removing from teams`,
         );
         await handleUserTeamOperations(
           "remove",
           projectId,
-          userId,
+          user.id,
           scimConfig,
         );
         logger.debug(
@@ -746,14 +806,14 @@ router.put(
       }
 
       // Handle user activation by adding to teams
-      if (active === true) {
+      if (active === true && user && user.id) {
         logger.debug(
           `SCIM Update user - user marked as active, adding to teams`,
         );
         await handleUserTeamOperations(
           "add",
           projectId,
-          userId,
+          user.id,
           scimConfig,
         );
         logger.debug(
@@ -761,7 +821,8 @@ router.put(
         );
       }
 
-      if (email || name) {
+      // Update user information if needed and not a new user
+      if (!isNewUser && user && user.id && (email || name)) {
         const updateData: any = {};
         if (email) {
           updateData.email = new Email(email);
@@ -771,11 +832,11 @@ router.put(
         }
 
         logger.debug(
-          `SCIM Update user - updating user with data: ${JSON.stringify(updateData)}`,
+          `SCIM Update user - updating existing user with data: ${JSON.stringify(updateData)}`,
         );
 
         await UserService.updateOneById({
-          id: userId,
+          id: user.id,
           data: updateData,
           props: { isRoot: true },
         });
@@ -784,7 +845,7 @@ router.put(
 
         // Fetch updated user
         const updatedUser: User | null = await UserService.findOneById({
-          id: userId,
+          id: user.id,
           select: {
             _id: true,
             email: true,
@@ -796,43 +857,32 @@ router.put(
         });
 
         if (updatedUser) {
-          const userExternalId: string | null = await getExternalIdForUser(
-            updatedUser.id!,
-            projectId,
-            scimConfig.id!,
-          );
-          
-          const user: JSONObject = formatUserForSCIM(
-            updatedUser,
-            req,
-            req.params["projectScimId"]!,
-            "project",
-            userExternalId,
-          );
-          return Response.sendJsonObjectResponse(req, res, user);
+          user = updatedUser;
         }
       }
 
-      logger.debug(
-        `SCIM Update user - no updates made, returning existing user`,
-      );
-
-      // If no updates were made, return the existing user
-      const userExternalId: string | null = await getExternalIdForUser(
-        projectUser.user.id!,
-        projectId,
-        scimConfig.id!,
-      );
+      // Get external ID for response
+      const userExternalId: string | null = user && user.id ? 
+        await getExternalIdForUser(user.id, projectId, scimConfig.id!) : 
+        externalId;
       
-      const user: JSONObject = formatUserForSCIM(
-        projectUser.user,
+      const responseUser: JSONObject = formatUserForSCIM(
+        user!,
         req,
         req.params["projectScimId"]!,
         "project",
         userExternalId,
       );
 
-      return Response.sendJsonObjectResponse(req, res, user);
+      // Set status code based on whether user was created or updated
+      if (isNewUser) {
+        res.status(201);
+        logger.debug(`SCIM Update user - returning newly created user with id: ${user!.id}`);
+      } else {
+        logger.debug(`SCIM Update user - returning updated user with id: ${user!.id}`);
+      }
+
+      return Response.sendJsonObjectResponse(req, res, responseUser);
     } catch (err) {
       logger.error(err);
       return Response.sendErrorResponse(req, res, err as BadRequestException);
