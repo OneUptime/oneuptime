@@ -18,6 +18,20 @@ export interface SyntheticMonitorOptions {
   script: string;
 }
 
+interface BrowserLaunchOptions {
+  executablePath?: string;
+  proxy?: {
+    server: string;
+    username?: string;
+    password?: string;
+    bypass?: string;
+  };
+  args?: string[];
+  headless?: boolean;
+  devtools?: boolean;
+  timeout?: number;
+}
+
 export default class SyntheticMonitor {
   public static async execute(
     options: SyntheticMonitorOptions,
@@ -132,9 +146,8 @@ export default class SyntheticMonitor {
               continue;
             }
 
-            scriptResult.screenshots[screenshotName] = (
-              result.returnValue.screenshots[screenshotName] as any
-            ).toString("base64"); // convert screennshots to base 64
+            const screenshotBuffer = result.returnValue.screenshots[screenshotName] as Buffer;
+            scriptResult.screenshots[screenshotName] = screenshotBuffer.toString("base64"); // convert screenshots to base 64
           }
         }
 
@@ -270,7 +283,7 @@ export default class SyntheticMonitor {
     });
 
     // Prepare browser launch options with proxy support
-    const baseOptions: any = {};
+    const baseOptions: BrowserLaunchOptions = {};
     
     // Configure proxy if available
     if (ProxyConfig.isProxyConfigured()) {
