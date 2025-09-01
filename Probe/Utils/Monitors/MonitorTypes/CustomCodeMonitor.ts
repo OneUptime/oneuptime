@@ -1,4 +1,5 @@
 import { PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "../../../Config";
+import ProxyConfig from "../../ProxyConfig";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import CustomCodeMonitorResponse from "Common/Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
@@ -34,6 +35,13 @@ export default class CustomCodeMonitor {
 
       try {
         const startTime: [number, number] = process.hrtime();
+
+        // Log proxy status for custom code monitoring
+        if (ProxyConfig.isProxyConfigured()) {
+          logger.debug(
+            `Custom Code Monitor using proxy: ${ProxyConfig.getProxyUrl()}`,
+          );
+        }
 
         result = await VMRunner.runCodeInSandbox({
           code: options.script,
