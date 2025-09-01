@@ -97,9 +97,8 @@ export default class Markdown {
 
     // Inline code
     renderer.codespan = function (code) {
-      // Remove backticks only from the beginning and end of the code content
-      const cleanCode = code.replace(/^`+|`+$/g, '');
-      return `<code class="rounded-md bg-slate-100 px-1.5 py-0.5 text-sm text-slate-700 font-mono">${cleanCode}</code>`;
+
+      return `<code class="rounded-md bg-slate-100 px-1.5 py-0.5 text-sm text-slate-700 font-mono">${code}</code>`;
     };
 
     this.docsRenderer = renderer;
