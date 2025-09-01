@@ -95,113 +95,11 @@ export default class Markdown {
       return `<h6 class="my-5 tracking-tight font-bold text-gray-800">${text}</h6>`;
     };
 
-
-    // Paragraph (override)
-    renderer.paragraph = function (text) {
-      return `<p class="my-4 leading-7 text-gray-700 dark:text-gray-300">${text}</p>`;
-    };
-
-    // Blockquote (override)
-    renderer.blockquote = function (quote) {
-      return `<blockquote class="relative my-6 border-s-4 border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/30 dark:border-indigo-400 p-4 ps-5 rounded-md"><div class="text-gray-700 dark:text-gray-300 leading-7">${quote}</div></blockquote>`;
-    };
-
-    // Images -> figure w/ caption
-    renderer.image = function (href, _title, text) {
-      const alt: string = text || "";
-      return `<figure class="my-8 flex flex-col items-center"><img src="${href}" alt="${alt}" loading="lazy" class="max-w-full rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700" />${alt ? `<figcaption class="mt-2 text-sm text-gray-500 dark:text-gray-400">${alt}</figcaption>` : ""}</figure>`;
-    };
-
-    // Code block (override)
-    renderer.code = function (code, language) {
-      const langClass: string = language ? `language-${language}` : "";
-      return `<div class="my-6 group relative"><pre class="${langClass}"><code class="${langClass}">${code}</code></pre></div>`;
-    };
-
     // Inline code
     renderer.codespan = function (code) {
-      return `<code class="mx-0.5 rounded-md bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-[0.85em] font-medium text-pink-600 dark:text-pink-400">${code}</code>`;
-    };
 
-    // Strong / Emphasis / Del
-    renderer.strong = function (text) {
-      return `<strong class="font-semibold text-gray-800 dark:text-gray-100">${text}</strong>`;
+      return `<code class="rounded-md bg-slate-100 px-1.5 py-0.5 text-sm text-slate-700 font-mono">${code}</code>`;
     };
-    renderer.em = function (text) {
-      return `<em class="italic text-gray-700 dark:text-gray-200">${text}</em>`;
-    };
-    renderer.del = function (text) {
-      return `<del class="line-through text-gray-400 dark:text-gray-500">${text}</del>`;
-    };
-
-    // Horizontal rule
-    renderer.hr = function () {
-      return '<hr class="my-12 border-t border-gray-200 dark:border-gray-700" />';
-    };
-
-    // Links
-    renderer.link = function (href, _title, text) {
-      const isAnchor: boolean = Boolean(href) && href.startsWith("#");
-      const target: string = isAnchor
-        ? ""
-        : ' target="_blank" rel="noopener noreferrer"';
-      return `<a href="${href}"${target} class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">${text}</a>`;
-    };
-
-    // Lists
-    renderer.list = function (body, ordered, start) {
-      const listTag: string = ordered ? "ol" : "ul";
-      const startAttr: string =
-        ordered && start && start > 1 ? ` start="${start}"` : "";
-      const classes: string = ordered ? "list-decimal" : "list-disc";
-      return `<${listTag}${startAttr} class="${classes} ms-6 my-4 space-y-1 text-gray-700 dark:text-gray-300">${body}</${listTag}>`;
-    };
-    renderer.listitem = function (text) {
-      return `<li class="marker:text-gray-400 leading-6">${text}</li>`;
-    };
-    renderer.checkbox = function (checked) {
-      return `<input type="checkbox" disabled class="me-2 align-middle h-4 w-4 rounded border-gray-300 text-indigo-600" ${checked ? "checked" : ""}/>`;
-    };
-
-    // Tables
-    renderer.table = function (header, body) {
-      return `<div class="my-8 overflow-x-auto"><table class="w-full border-collapse text-sm"><thead class="bg-gray-50 dark:bg-gray-800/60">${header}</thead><tbody class="divide-y divide-gray-200 dark:divide-gray-700">${body}</tbody></table></div>`;
-    };
-    renderer.tablerow = function (content) {
-      return `<tr class="border-b border-gray-200 dark:border-gray-700">${content}</tr>`;
-    };
-    renderer.tablecell = function (content, flags) {
-      const Tag: string = flags.header ? "th" : "td";
-      const align: string = flags.align ? ` text-${flags.align}` : "";
-      const base: string = "px-4 py-2 align-top";
-      const headerCls: string = flags.header
-        ? " font-semibold text-gray-900 dark:text-gray-100"
-        : " text-gray-700 dark:text-gray-300";
-      return `<${Tag} class="${base}${align}${headerCls}">${content}</${Tag}>`;
-    };
-
-    // Heading override with anchors
-    renderer.heading = function (text, level) {
-     
-      if (level === 1) {
-        return `<h1  relative mt-12 mb-6 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50">${text}</h1>`;
-      } else if (level === 2) {
-        return `<h2  relative mt-12 mb-4 text-3xl font-bold tracking-tight text-gray-800 dark:text-gray-100">${text}</h2>`;
-      } else if (level === 3) {
-        return `<h3  relative mt-10 mb-3 text-2xl font-bold tracking-tight text-gray-800 dark:text-gray-100">${text}</h3>`;
-      } else if (level === 4) {
-        return `<h4  relative mt-8 mb-2 text-xl font-semibold tracking-tight text-gray-800 dark:text-gray-100">${text}</h4>`;
-      } else if (level === 5) {
-        return `<h5  relative mt-6 mb-2 text-lg font-semibold tracking-tight text-gray-800 dark:text-gray-100">${text}</h5>`;
-      }
-      return `<h6  relative mt-6 mb-2 text-base font-semibold tracking-tight text-gray-800 dark:text-gray-100">${text}</h6>`;
-    };
-
-    // Line break
-    renderer.br = function () {
-      return "<br />";
-    };
-    // --- End enhanced overrides ---
 
     this.docsRenderer = renderer;
 
@@ -277,16 +175,7 @@ export default class Markdown {
 
     // Inline code
     renderer.codespan = function (code) {
-      let cleaned: string = code.replace(/&#96;|&grave;/g, "`").trim();
-      while (
-        cleaned.length > 1 &&
-        cleaned.startsWith("`") &&
-        cleaned.endsWith("`") &&
-        !cleaned.slice(1, -1).includes("`")
-      ) {
-        cleaned = cleaned.slice(1, -1).trim();
-      }
-      return `<code class="rounded-md bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600">${cleaned}</code>`;
+      return `<code class="rounded-md bg-gray-100 px-1.5 py-0.5 text-sm text-pink-600">${code}</code>`;
     };
 
     // Horizontal rule
