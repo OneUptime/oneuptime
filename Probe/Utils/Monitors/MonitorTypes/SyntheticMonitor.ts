@@ -146,7 +146,7 @@ export default class SyntheticMonitor {
               continue;
             }
 
-            const screenshotBuffer = result.returnValue.screenshots[
+            const screenshotBuffer: Buffer = result.returnValue.screenshots[
               screenshotName
             ] as Buffer;
             scriptResult.screenshots[screenshotName] =
@@ -290,11 +290,11 @@ export default class SyntheticMonitor {
 
     // Configure proxy if available
     if (ProxyConfig.isProxyConfigured()) {
-      const httpsProxyUrl = ProxyConfig.getHttpsProxyUrl();
-      const httpProxyUrl = ProxyConfig.getHttpProxyUrl();
+      const httpsProxyUrl: string | null = ProxyConfig.getHttpsProxyUrl();
+      const httpProxyUrl: string | null = ProxyConfig.getHttpProxyUrl();
 
       // Prefer HTTPS proxy, fall back to HTTP proxy
-      const proxyUrl = httpsProxyUrl || httpProxyUrl;
+      const proxyUrl: string | null = httpsProxyUrl || httpProxyUrl;
 
       if (proxyUrl) {
         baseOptions.proxy = {
@@ -303,7 +303,7 @@ export default class SyntheticMonitor {
 
         // Extract username and password if present in proxy URL
         try {
-          const parsedUrl = new URL(proxyUrl);
+          const parsedUrl: globalThis.URL = new URL(proxyUrl);
           if (parsedUrl.username && parsedUrl.password) {
             baseOptions.proxy.username = parsedUrl.username;
             baseOptions.proxy.password = parsedUrl.password;

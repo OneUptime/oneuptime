@@ -30,8 +30,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     if (ProxyConfig.isProxyConfigured()) {
       logger.info("Proxy configuration:");
 
-      const httpProxy = ProxyConfig.getHttpProxyUrl();
-      const httpsProxy = ProxyConfig.getHttpsProxyUrl();
+      const httpProxy: string | null = ProxyConfig.getHttpProxyUrl();
+      const httpsProxy: string | null = ProxyConfig.getHttpsProxyUrl();
 
       if (httpProxy) {
         logger.info(`  HTTP proxy: ${httpProxy}`);

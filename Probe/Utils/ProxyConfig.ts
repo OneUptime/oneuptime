@@ -97,12 +97,16 @@ export default class ProxyConfig {
 
     try {
       if (HTTP_PROXY_URL) {
-        const httpProxyAgent = new HttpProxyAgent(HTTP_PROXY_URL);
+        const httpProxyAgent: HttpProxyAgent<string> = new HttpProxyAgent(
+          HTTP_PROXY_URL,
+        );
         instance.defaults.httpAgent = httpProxyAgent;
       }
 
       if (HTTPS_PROXY_URL) {
-        const httpsProxyAgent = new HttpsProxyAgent(HTTPS_PROXY_URL);
+        const httpsProxyAgent: HttpsProxyAgent<string> = new HttpsProxyAgent(
+          HTTPS_PROXY_URL,
+        );
         instance.defaults.httpsAgent = httpsProxyAgent;
       }
 
