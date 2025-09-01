@@ -32,7 +32,7 @@ export default class ProxyConfig {
       if (HTTP_PROXY_URL) {
         this.httpProxyAgent = new HttpProxyAgent(HTTP_PROXY_URL);
       }
-      
+
       if (HTTPS_PROXY_URL) {
         this.httpsProxyAgent = new HttpsProxyAgent(HTTPS_PROXY_URL);
       }
@@ -41,7 +41,7 @@ export default class ProxyConfig {
       if (this.httpProxyAgent) {
         axios.defaults.httpAgent = this.httpProxyAgent;
       }
-      
+
       if (this.httpsProxyAgent) {
         axios.defaults.httpsAgent = this.httpsProxyAgent;
       }
@@ -59,7 +59,9 @@ export default class ProxyConfig {
   }
 
   public static isProxyConfigured(): boolean {
-    return this.isConfigured && (!!HTTP_PROXY_URL || !!HTTPS_PROXY_URL);
+    return (
+      this.isConfigured && (Boolean(HTTP_PROXY_URL) || Boolean(HTTPS_PROXY_URL))
+    );
   }
 
   public static getHttpProxyUrl(): string | null {

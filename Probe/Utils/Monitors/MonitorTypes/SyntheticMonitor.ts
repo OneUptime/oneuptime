@@ -146,8 +146,11 @@ export default class SyntheticMonitor {
               continue;
             }
 
-            const screenshotBuffer = result.returnValue.screenshots[screenshotName] as Buffer;
-            scriptResult.screenshots[screenshotName] = screenshotBuffer.toString("base64"); // convert screenshots to base 64
+            const screenshotBuffer = result.returnValue.screenshots[
+              screenshotName
+            ] as Buffer;
+            scriptResult.screenshots[screenshotName] =
+              screenshotBuffer.toString("base64"); // convert screenshots to base 64
           }
         }
 
@@ -284,20 +287,20 @@ export default class SyntheticMonitor {
 
     // Prepare browser launch options with proxy support
     const baseOptions: BrowserLaunchOptions = {};
-    
+
     // Configure proxy if available
     if (ProxyConfig.isProxyConfigured()) {
       const httpsProxyUrl = ProxyConfig.getHttpsProxyUrl();
       const httpProxyUrl = ProxyConfig.getHttpProxyUrl();
-      
+
       // Prefer HTTPS proxy, fall back to HTTP proxy
       const proxyUrl = httpsProxyUrl || httpProxyUrl;
-      
+
       if (proxyUrl) {
         baseOptions.proxy = {
           server: proxyUrl,
         };
-        
+
         // Extract username and password if present in proxy URL
         try {
           const parsedUrl = new URL(proxyUrl);
@@ -308,9 +311,9 @@ export default class SyntheticMonitor {
         } catch (error) {
           logger.warn(`Failed to parse proxy URL for authentication: ${error}`);
         }
-        
+
         logger.debug(
-          `Synthetic Monitor using proxy: ${proxyUrl} (HTTPS: ${!!httpsProxyUrl}, HTTP: ${!!httpProxyUrl})`,
+          `Synthetic Monitor using proxy: ${proxyUrl} (HTTPS: ${Boolean(httpsProxyUrl)}, HTTP: ${Boolean(httpProxyUrl)})`,
         );
       }
     }

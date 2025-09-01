@@ -29,20 +29,20 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     // Log proxy status
     if (ProxyConfig.isProxyConfigured()) {
       logger.info("Proxy configuration:");
-      
+
       const httpProxy = ProxyConfig.getHttpProxyUrl();
       const httpsProxy = ProxyConfig.getHttpsProxyUrl();
 
       if (httpProxy) {
         logger.info(`  HTTP proxy: ${httpProxy}`);
       }
-      
+
       if (httpsProxy) {
         logger.info(`  HTTPS proxy: ${httpsProxy}`);
       }
 
       logger.info("Proxy will be used for all HTTP/HTTPS requests");
-    } 
+    }
 
     // Initialize telemetry
     Telemetry.init({
