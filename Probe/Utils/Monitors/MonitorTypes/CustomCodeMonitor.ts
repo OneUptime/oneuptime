@@ -39,7 +39,7 @@ export default class CustomCodeMonitor {
         // Log proxy status for custom code monitoring
         if (ProxyConfig.isProxyConfigured()) {
           logger.debug(
-            `Custom Code Monitor using proxy: ${ProxyConfig.getProxyUrl()}`,
+            `Custom Code Monitor - HTTP proxy: ${ProxyConfig.getHttpProxyUrl()}, HTTPS proxy: ${ProxyConfig.getHttpsProxyUrl()}`,
           );
         }
 
