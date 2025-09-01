@@ -77,7 +77,7 @@ export default class Markdown {
     };
 
     renderer.code = function (code, language) {
-      return `<pre class="language-${language} rounded-xl bg-slate-900/95 text-slate-100 p-5 overflow-x-auto text-sm shadow-md ring-1 ring-slate-900/10"><code class="language-${language}">${code}</code></pre>`;
+      return `<pre><code class="language-${language}">${code}</code></pre>`;
     };
 
     renderer.heading = function (text, level) {
