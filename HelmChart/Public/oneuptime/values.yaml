@@ -1,6 +1,9 @@
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
+  # Tempory fix to allow insecure images from bitnami while we migrate to new images and charts.
+  security:
+    allowInsecureImages: true
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
@@ -55,7 +58,11 @@ nginx:
     externalIPs:
       # - 51.158.55.153 # Please make sure this is the same as the one in metalLb.ipAdddressPool.addresses
 
+
+
 postgresql:
+  image:
+    repository: bitnamilegacy/postgresql
   enabled: true # Set this to false if you're using an external postgresql database.
   clusterDomain: *global-cluster-domain
   auth:
@@ -75,6 +82,8 @@ postgresql:
       size: 25Gi
 
 clickhouse:
+  image:
+    repository: bitnamilegacy/clickhouse
   enabled: true
   clusterDomain: *global-cluster-domain
   keeper:
@@ -115,6 +124,8 @@ redis:
   ipFamily: 4
   auth:
     enabled: true
+  image:
+    repository: bitnamilegacy/redis
   master:
     service:
       ports:
