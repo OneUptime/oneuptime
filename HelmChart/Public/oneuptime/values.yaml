@@ -208,6 +208,18 @@ probes:
     disableAutoscaler: false
     ports:
       http: 3874
+    # Proxy configuration for probe connections
+    proxy:
+      # HTTP proxy URL for HTTP requests (optional)
+      # Format: http://[username:password@]proxy.server.com:port
+      # Example: http://proxy.example.com:8080
+      # Example with auth: http://username:password@proxy.example.com:8080
+      httpProxyUrl:
+      # HTTPS proxy URL for HTTPS requests (optional)
+      # Format: http://[username:password@]proxy.server.com:port
+      # Example: http://proxy.example.com:8080
+      # Example with auth: http://username:password@proxy.example.com:8080
+      httpsProxyUrl:
     # KEDA autoscaling configuration based on monitor queue metrics
     keda:
       enabled: false
@@ -234,6 +246,12 @@ probes:
 #   customCodeMonitorScriptTimeoutInMs: 60000
 #   disableTelemetryCollection: false
 #   disableAutoscaler: false
+#   # Proxy configuration for probe connections
+#   proxy:
+#     # HTTP proxy URL for HTTP requests (optional)
+#     httpProxyUrl:
+#     # HTTPS proxy URL for HTTPS requests (optional) 
+#     httpsProxyUrl:
 #   resources:
 #   additionalContainers:
     # KEDA autoscaling configuration based on monitor queue metrics
