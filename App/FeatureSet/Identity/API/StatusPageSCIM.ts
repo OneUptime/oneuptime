@@ -84,23 +84,23 @@ router.get(
       // Handle SCIM filter for userName
       if (filter) {
         const emailMatch: RegExpMatchArray | null = filter.match(
-          /userName eq "([^"]+)"/i
+          /userName eq "([^"]+)"/i,
         );
         if (emailMatch) {
           const email: string = emailMatch[1]!;
           logger.debug(
-            `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filter by email: ${email}`
+            `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filter by email: ${email}`,
           );
 
           if (email) {
             if (Email.isValid(email)) {
               query.email = new Email(email);
               logger.debug(
-                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filtering by email: ${email}`
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, filtering by email: ${email}`,
               );
             } else {
               logger.debug(
-                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, invalid email format in filter: ${email}`
+                `Status Page SCIM Users list - statusPageScimId: ${req.params["statusPageScimId"]!}, invalid email format in filter: ${email}`,
               );
               return Response.sendJsonObjectResponse(req, res, {
                 schemas: ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
