@@ -14,7 +14,7 @@ import ReactFlow, {
   Position,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import type { ElkExtendedEdge, ElkNode } from "elkjs";
+import type { ElkExtendedEdge, ElkNode, LayoutOptions } from "elkjs";
 import ELK from "elkjs/lib/elk.bundled.js";
 
 export interface ServiceNodeData {
@@ -96,7 +96,7 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
   const [rfEdges, setRfEdges] = useState<Edge[]>([]);
 
   useEffect((): void => {
-    const elk: any = new ELK();
+  const elk = new ELK();
     // fixed node dimensions for layout (px)
     const NODE_WIDTH: number = 220;
     const NODE_HEIGHT: number = 56;
@@ -123,7 +123,7 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
         "elk.layered.spacing.nodeNodeBetweenLayers": "120",
         "elk.spacing.nodeNode": "60",
         "elk.edgeRouting": "POLYLINE",
-      },
+  } as LayoutOptions,
       children: sortedServices.map((svc: ServiceNodeData): ElkNode => {
         return {
           id: svc.id,
@@ -142,13 +142,11 @@ const ServiceDependencyGraph: FunctionComponent<ServiceDependencyGraphProps> = (
 
     const layout: () => Promise<void> = async (): Promise<void> => {
       try {
-        const res: any = await elk.layout(elkGraph as any);
+        const res = (await elk.layout(elkGraph)) as ElkNode; // casting to bundled ElkNode shape
         const placedNodes: Node[] = (res.children || []).map(
-          (child: any): Node => {
+          (child: ElkNode): Node => {
             const svc: ServiceNodeData | undefined = sortedServices.find(
-              (s: ServiceNodeData): boolean => {
-                return s.id === child.id;
-              },
+              (s: ServiceNodeData): boolean => s.id === child.id,
             );
             const background: string = svc?.color || "#ffffff";
             const textColor: string = getContrastText(background);
