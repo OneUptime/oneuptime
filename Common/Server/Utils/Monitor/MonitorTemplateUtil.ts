@@ -69,6 +69,8 @@ export default class MonitorTemplateUtil {
       logger.error(err);
     }
 
+    logger.debug(`Storage Map: ${JSON.stringify(storageMap, null, 2)}`);
+
     return storageMap;
   }
 
@@ -93,6 +95,10 @@ export default class MonitorTemplateUtil {
       );
       replaced =
         replaced !== undefined && replaced !== null ? `${replaced}` : "";
+
+        logger.debug(`Original Value: ${data.value}`);
+        logger.debug(`Replaced Value: ${replaced}`);
+
       return replaced;
     } catch (err) {
       logger.error(err);
