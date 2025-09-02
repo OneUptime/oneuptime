@@ -40,7 +40,6 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       if (httpsProxy) {
         logger.info(`  HTTPS proxy: ${httpsProxy}`);
       }
-
     }
 
     // Initialize telemetry
