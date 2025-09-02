@@ -1,4 +1,4 @@
-enum SlackActionType {
+enum MicrosoftTeamsActionType {
   // Incident actions
   AcknowledgeIncident = "AcknowledgeIncident",
   ResolveIncident = "ResolveIncident",
@@ -9,10 +9,10 @@ enum SlackActionType {
   ViewExecuteIncidentOnCallPolicy = "ViewExecuteIncidentOnCallPolicy",
   SubmitExecuteIncidentOnCallPolicy = "SubmitExecuteIncidentOnCallPolicy",
   ViewIncident = "ViewIncident",
-  NewIncident = "/incident", // new incident slash command
+  NewIncident = "/incident", // new incident command
   SubmitNewIncident = "SubmitNewIncident",
 
-  // Alert Actions just like Incident Actions
+  // Alert Actions
   AcknowledgeAlert = "AcknowledgeAlert",
   ResolveAlert = "ResolveAlert",
   ViewAddAlertNote = "ViewAddAlertNote",
@@ -23,7 +23,7 @@ enum SlackActionType {
   SubmitExecuteAlertOnCallPolicy = "SubmitExecuteAlertOnCallPolicy",
   ViewAlert = "ViewAlert",
 
-  // Scheduled Maintenance Actions just like Incident Actions.
+  // Scheduled Maintenance Actions
   MarkScheduledMaintenanceAsComplete = "MarkScheduledMaintenanceAsComplete",
   MarkScheduledMaintenanceAsOngoing = "MarkScheduledMaintenanceAsOngoing",
   ViewAddScheduledMaintenanceNote = "ViewAddScheduledMaintenanceNote",
@@ -31,8 +31,14 @@ enum SlackActionType {
   ViewChangeScheduledMaintenanceState = "ViewChangeScheduledMaintenanceState",
   SubmitChangeScheduledMaintenanceState = "SubmitChangeScheduledMaintenanceState",
   ViewScheduledMaintenance = "ViewScheduledMaintenance",
-  NewScheduledMaintenance = "/maintenance", // new scheduled maintenance slash command
+  NewScheduledMaintenance = "/maintenance", // new scheduled maintenance command
   SubmitNewScheduledMaintenance = "SubmitNewScheduledMaintenance",
+
+  // Monitor Actions
+  ViewMonitor = "ViewMonitor",
+
+  // On-call policy Actions
+  ViewOnCallPolicy = "ViewOnCallPolicy",
 }
 
-export default SlackActionType;
+export default MicrosoftTeamsActionType;

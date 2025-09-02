@@ -12,6 +12,7 @@ import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAut
 import WorkspaceProjectAuthToken, {
   SlackMiscData,
 } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import MicrosoftTeamsTokenRefresher from "./MicrosoftTeams/MicrosoftTeamsTokenRefresher";
 import { MessageBlocksByWorkspaceType } from "../../Services/WorkspaceNotificationRuleService";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
@@ -150,7 +151,7 @@ export default class WorkspaceUtil {
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
     for (const messagePayloadByWorkspace of data.messagePayloadsByWorkspace) {
-      const projectAuthToken: WorkspaceProjectAuthToken | null =
+      let projectAuthToken: WorkspaceProjectAuthToken | null =
         await WorkspaceProjectAuthTokenService.getProjectAuth({
           projectId: data.projectId,
           workspaceType: messagePayloadByWorkspace.workspaceType,
@@ -168,18 +169,25 @@ export default class WorkspaceUtil {
       const workspaceType: WorkspaceType =
         messagePayloadByWorkspace.workspaceType;
 
+      if (projectAuthToken && workspaceType === WorkspaceType.MicrosoftTeams) {
+        // Refresh token if expired (Teams specific)
+        projectAuthToken =
+          await MicrosoftTeamsTokenRefresher.refreshProjectAuthTokenIfExpired({
+            projectAuthToken,
+          });
+      }
+
       let botUserId: string | undefined = undefined;
 
       if (workspaceType === WorkspaceType.Slack) {
         botUserId = (projectAuthToken.miscData as SlackMiscData).botUserId;
-      }
-
-      if (!botUserId) {
-        responses.push({
-          workspaceType: workspaceType,
-          threads: [],
-        });
-        continue;
+        if (!botUserId) {
+          responses.push({
+            workspaceType: workspaceType,
+            threads: [],
+          });
+          continue;
+        }
       }
 
       if (!projectAuthToken.authToken) {
@@ -192,7 +200,7 @@ export default class WorkspaceUtil {
 
       const result: WorkspaceSendMessageResponse =
         await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
-          userId: botUserId,
+          userId: botUserId || projectAuthToken.workspaceProjectId || "",
           authToken: projectAuthToken.authToken,
           workspaceMessagePayload: messagePayloadByWorkspace,
         });

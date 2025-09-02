@@ -246,3 +246,7 @@ export const DisableTelemetry: boolean = env("DISABLE_TELEMETRY") === "true";
 
 export const SlackAppClientId: string | null =
   env("SLACK_APP_CLIENT_ID") || null;
+
+// Microsoft Teams (Azure AD App) UI config
+export const MicrosoftTeamsAppClientId: string | null =
+  env("MICROSOFT_TEAMS_APP_CLIENT_ID") || null;

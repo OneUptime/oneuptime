@@ -4,7 +4,7 @@
     "private": false,
     "scripts": {
         "generate-sw": "node scripts/generate-sw.js",
-        "dev-build": "npm run generate-sw && NODE_ENV=development node esbuild.config.js",
+    "dev-build": "npm run generate-sw",
         "dev": "npx nodemon",
         "build": "npm run generate-sw && NODE_ENV=production node esbuild.config.js",        
         "analyze": "npm run generate-sw && analyze=true NODE_ENV=production node esbuild.config.js",
@@ -32,7 +32,7 @@
     "dependencies": {
         "@stripe/react-stripe-js": "^1.15.0",
         "@stripe/stripe-js": "^1.44.1",
-        "Common": "file:../Common",
+    "Common": "link:../Common",
         
         "ejs": "^3.1.10",
         "react": "^18.3.1",

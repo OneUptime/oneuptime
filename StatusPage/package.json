@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": false,
   "scripts": {
-    "dev": "npx nodemon",
-    "build": "NODE_ENV=production node esbuild.config.js",
-    "dev-build": "NODE_ENV=development node esbuild.config.js",
+  "dev": "npx nodemon",
+  "build": "NODE_ENV=production node esbuild.config.js",
+  "dev-build": "echo 'Preparing StatusPage dev build (pre-step placeholder)'",
     "analyze": "analyze=true NODE_ENV=production node esbuild.config.js",
     "test": "",
     "compile": "tsc",
@@ -28,7 +28,7 @@
     ]
   },
   "dependencies": {
-    "Common": "file:../Common",
+  "Common": "link:../Common",
     
     "ejs": "^3.1.10",
     "react": "^18.3.1",
