@@ -20,6 +20,7 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import { JSONObject } from "../../../Types/JSON";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -137,10 +138,11 @@ export default class MonitorIncident {
         logger.debug(`${input.monitor.id?.toString()} - Create incident.`);
 
         const incident: Incident = new Incident();
-        const storageMap = MonitorTemplateUtil.buildTemplateStorageMap({
-          monitorType: input.monitor.monitorType!,
-          dataToProcess: input.dataToProcess,
-        });
+        const storageMap: JSONObject =
+          MonitorTemplateUtil.buildTemplateStorageMap({
+            monitorType: input.monitor.monitorType!,
+            dataToProcess: input.dataToProcess,
+          });
 
         incident.title = MonitorTemplateUtil.processTemplateString({
           value: criteriaIncident.title,
@@ -219,7 +221,7 @@ export default class MonitorIncident {
             {
               value: criteriaIncident.remediationNotes,
               storageMap,
-            } 
+            },
           );
         }
 

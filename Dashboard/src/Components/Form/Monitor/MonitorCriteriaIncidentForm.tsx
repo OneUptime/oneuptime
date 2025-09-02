@@ -6,6 +6,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
@@ -50,10 +52,19 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             validation: {
               minLength: 2,
             },
-             description:
-             (<p>
-                You can use dynamic templates here. Please refer to the documentation <a href="/docs/monitor/incident-alert-templating" target="_blank" rel="noreferrer">here</a> for more information.
-             </p>)
+            description: (
+              <p>
+                You can use dynamic templates here. Please refer to the
+                documentation{" "}
+                <Link
+                  to={new Route("/docs/monitor/incident-alert-templating")}
+                  openInNewTab={true}
+                >
+                  here
+                </Link>{" "}
+                for more information.
+              </p>
+            ),
           },
           {
             field: {
@@ -64,10 +75,19 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             placeholder: "Description",
-            description:
-            (<p>
-               You can use dynamic templates here. Please refer to the documentation <a href="/docs/monitor/incident-alert-templating" target="_blank" rel="noreferrer">here</a> for more information.
-            </p>)
+            description: (
+              <p>
+                You can use dynamic templates here. Please refer to the
+                documentation{" "}
+                <Link
+                  to={new Route("/docs/monitor/incident-alert-templating")}
+                  openInNewTab={true}
+                >
+                  here
+                </Link>{" "}
+                for more information.
+              </p>
+            ),
           },
           {
             field: {
@@ -112,12 +132,20 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             },
             title: "Remediation Notes",
             stepId: "incident-details",
-            description:
-             (
-                <p>
-                    Notes for on-call engineer to resolve this incident. You can use dynamic templates here. Please refer to the documentation <a href="/docs/monitor/incident-alert-templating" target="_blank" rel="noreferrer">here</a> for more information.
-                </p>
-             ),
+            description: (
+              <p>
+                Notes for on-call engineer to resolve this incident. You can use
+                dynamic templates here. Please refer to the documentation{" "}
+                <a
+                  href="/docs/monitor/incident-alert-templating"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  here
+                </a>{" "}
+                for more information.
+              </p>
+            ),
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             showIf: () => {
