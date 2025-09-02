@@ -27,7 +27,7 @@ export interface ComponentProps {
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const formRef: any = useRef<FormProps<FormValues<JSONObject>>>(null);
+  const formRef = useRef<FormProps<FormValues<JSONObject>> | null>(null);
   const [component, setComponent] = useState<NodeDataProp>(props.component);
   const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
   const [showComponentPickerModal, setShowComponentPickerModal] =
@@ -143,7 +143,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           }}
           onSave={(variableId: string) => {
             setShowVariableModal(false);
-            formRef.current.setFieldValue(
+            formRef.current?.setFieldValue(
               selectedArgId,
               (component.arguments && component.arguments[selectedArgId]
                 ? component.arguments[selectedArgId]
@@ -161,7 +161,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           }}
           onSave={(returnValuePath: string) => {
             setShowComponentPickerModal(false);
-            formRef.current.setFieldValue(
+            formRef.current?.setFieldValue(
               selectedArgId,
               (component.arguments && component.arguments[selectedArgId]
                 ? component.arguments[selectedArgId]
