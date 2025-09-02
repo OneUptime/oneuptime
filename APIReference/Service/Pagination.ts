@@ -23,7 +23,7 @@ export default class ServiceHandler {
     pageDescription = "Learn how to paginate requests with OneUptime API";
 
     // Get response and request code from LocalCache or LocalFile
-    pageData.responseCode = await LocalCache.getOrSetString(
+    pageData['responseCode'] = await LocalCache.getOrSetString(
       "pagination",
       "response",
       async () => {
@@ -34,7 +34,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.requestCode = await LocalCache.getOrSetString(
+    pageData['requestCode'] = await LocalCache.getOrSetString(
       "pagination",
       "request",
       async () => {

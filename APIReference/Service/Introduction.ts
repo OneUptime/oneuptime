@@ -24,7 +24,7 @@ export default class ServiceHandler {
     const pageData: Dictionary<unknown> = {};
 
     // Set featured resources for the page
-    pageData.featuredResources = FeaturedResources;
+    pageData['featuredResources'] = FeaturedResources;
 
     // Set page title and description
     pageTitle = "Introduction";
