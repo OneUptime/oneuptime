@@ -1382,7 +1382,10 @@ const HomeFeatureSet: FeatureSet = {
       const host: string = (req.headers["host"] || "").toString().toLowerCase();
 
       // Allowed production domains. Adjust if more canonical domains are added.
-      const allowedDomains: Array<string> = ["oneuptime.com", "www.oneuptime.com"]; // include www just in case
+      const allowedDomains: Array<string> = [
+        "oneuptime.com",
+        "www.oneuptime.com",
+      ]; // include www just in case
 
       let body: string = "";
 
@@ -1396,7 +1399,9 @@ const HomeFeatureSet: FeatureSet = {
       } else {
         // Allow all and point to sitemap
         // res.locals.homeUrl is set earlier middleware; fallback to canonical domain.
-        const homeUrl: string = (res.locals["homeUrl"] || "https://oneuptime.com").replace(/\/$/, "");
+        const homeUrl: string = (
+          res.locals["homeUrl"] || "https://oneuptime.com"
+        ).replace(/\/$/, "");
         body = [
           "User-agent: *",
           "Allow: /",
