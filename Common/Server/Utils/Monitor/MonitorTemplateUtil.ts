@@ -2,6 +2,7 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import { JSONObject } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -63,7 +64,120 @@ export default class MonitorTemplateUtil {
             .requestBody,
           requestHeaders: (data.dataToProcess as IncomingMonitorRequest)
             .requestHeaders,
+          requestMethod: (data.dataToProcess as IncomingMonitorRequest)
+            .requestMethod,
+          incomingRequestReceivedAt: (data.dataToProcess as IncomingMonitorRequest)
+            .incomingRequestReceivedAt,
         } as JSONObject;
+      }
+
+      if (
+        data.monitorType === MonitorType.Ping ||
+        data.monitorType === MonitorType.IP ||
+        data.monitorType === MonitorType.Port
+      ) {
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          responseTimeInMs: (data.dataToProcess as ProbeMonitorResponse)
+            .responseTimeInMs,
+          failureCause: (data.dataToProcess as ProbeMonitorResponse)
+            .failureCause,
+          isTimeout: (data.dataToProcess as ProbeMonitorResponse).isTimeout,
+        } as JSONObject;
+      }
+
+      if (data.monitorType === MonitorType.SSLCertificate) {
+        const sslResponse = (data.dataToProcess as ProbeMonitorResponse)
+          .sslResponse;
+        storageMap = {
+          isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
+          isSelfSigned: sslResponse?.isSelfSigned,
+          createdAt: sslResponse?.createdAt,
+          expiresAt: sslResponse?.expiresAt,
+          commonName: sslResponse?.commonName,
+          organizationalUnit: sslResponse?.organizationalUnit,
+          organization: sslResponse?.organization,
+          locality: sslResponse?.locality,
+          state: sslResponse?.state,
+          country: sslResponse?.country,
+          serialNumber: sslResponse?.serialNumber,
+          fingerprint: sslResponse?.fingerprint,
+          fingerprint256: sslResponse?.fingerprint256,
+          failureCause: (data.dataToProcess as ProbeMonitorResponse)
+            .failureCause,
+        } as JSONObject;
+      }
+
+      if (data.monitorType === MonitorType.Server) {
+        const serverResponse = data.dataToProcess as ServerMonitorResponse;
+        const infraMetrics = serverResponse.basicInfrastructureMetrics;
+        
+        storageMap = {
+          hostname: serverResponse.hostname,
+          requestReceivedAt: serverResponse.requestReceivedAt,
+          failureCause: serverResponse.failureCause,
+        } as JSONObject;
+
+        // Add CPU metrics if available
+        if (infraMetrics?.cpuMetrics) {
+          storageMap["cpuUsagePercent"] = infraMetrics.cpuMetrics.percentUsed;
+          storageMap["cpuCores"] = infraMetrics.cpuMetrics.cores;
+        }
+
+        // Add memory metrics if available
+        if (infraMetrics?.memoryMetrics) {
+          storageMap["memoryUsagePercent"] = infraMetrics.memoryMetrics.percentUsed;
+          storageMap["memoryFreePercent"] = infraMetrics.memoryMetrics.percentFree;
+          storageMap["memoryTotalBytes"] = infraMetrics.memoryMetrics.total;
+        }
+
+        // Add disk metrics if available
+        if (infraMetrics?.diskMetrics) {
+          storageMap["diskMetrics"] = infraMetrics.diskMetrics.map((disk) => ({
+            diskPath: disk.diskPath,
+            usagePercent: disk.percentUsed,
+            freePercent: disk.percentFree,
+            totalBytes: disk.total,
+          }));
+        }
+
+        // Add processes if available
+        if (serverResponse.processes) {
+          storageMap["processes"] = serverResponse.processes.map((process) => ({
+            pid: process.pid,
+            name: process.name,
+            command: process.command,
+          }));
+        }
+      }
+
+      if (
+        data.monitorType === MonitorType.SyntheticMonitor ||
+        data.monitorType === MonitorType.CustomJavaScriptCode
+      ) {
+        const customCodeResponse = (data.dataToProcess as ProbeMonitorResponse)
+          .customCodeMonitorResponse;
+        const syntheticResponse = (data.dataToProcess as ProbeMonitorResponse)
+          .syntheticMonitorResponse;
+
+        storageMap = {
+          executionTimeInMs: customCodeResponse?.executionTimeInMS,
+          result: customCodeResponse?.result,
+          scriptError: customCodeResponse?.scriptError,
+          logMessages: customCodeResponse?.logMessages || [],
+          failureCause: (data.dataToProcess as ProbeMonitorResponse)
+            .failureCause,
+        } as JSONObject;
+
+        // Add synthetic monitor specific fields if available
+        if (syntheticResponse && syntheticResponse.length > 0) {
+          const firstResponse = syntheticResponse[0];
+          if (firstResponse) {
+            storageMap["screenshots"] = firstResponse.screenshots;
+            storageMap["browserType"] = firstResponse.browserType;
+            storageMap["screenSizeType"] = firstResponse.screenSizeType;
+          }
+        }
       }
     } catch (err) {
       logger.error(err);
