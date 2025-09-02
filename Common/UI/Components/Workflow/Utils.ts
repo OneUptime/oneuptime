@@ -1,7 +1,6 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import IconProp from "../../../Types/Icon/IconProp";
-import Typeof from "../../../Types/Typeof";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentInputType,
@@ -44,7 +43,7 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
 
 type ComponentInputTypeToFormFieldTypeFunction = (
   componentInputType: ComponentInputType,
-  argValue: any,
+  argValue: unknown,
 ) => {
   fieldType: FormFieldSchemaType;
   dropdownOptions?: Array<DropdownOption> | undefined;
@@ -53,7 +52,7 @@ type ComponentInputTypeToFormFieldTypeFunction = (
 export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTypeFunction =
   (
     componentInputType: ComponentInputType,
-    argValue: any,
+    argValue: unknown,
   ): {
     fieldType: FormFieldSchemaType;
     dropdownOptions?: Array<DropdownOption> | undefined;
@@ -123,9 +122,8 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
     // Second priority.
 
     if (
-      argValue &&
-      typeof argValue === Typeof.String &&
-      argValue.toString().includes("{{")
+  typeof argValue === "string" &&
+  argValue.includes("{{")
     ) {
       return {
         fieldType: FormFieldSchemaType.Text,
