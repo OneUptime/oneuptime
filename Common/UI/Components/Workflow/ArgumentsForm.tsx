@@ -27,7 +27,9 @@ export interface ComponentProps {
 const ArgumentsForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const formRef = useRef<FormProps<FormValues<JSONObject>> | null>(null);
+  const formRef: React.MutableRefObject<FormProps<
+    FormValues<JSONObject>
+  > | null> = useRef<FormProps<FormValues<JSONObject>> | null>(null);
   const [component, setComponent] = useState<NodeDataProp>(props.component);
   const [showVariableModal, setShowVariableModal] = useState<boolean>(false);
   const [showComponentPickerModal, setShowComponentPickerModal] =

@@ -64,7 +64,8 @@ const Input: FunctionComponent<ComponentProps> = (
 
   const [value, setValue] = useState<string | Date>("");
   const [displayValue, setDisplayValue] = useState<string>("");
-  const ref = useRef<HTMLInputElement | null>(null);
+  const ref: React.MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (
@@ -120,7 +121,7 @@ const Input: FunctionComponent<ComponentProps> = (
   }, [value]);
 
   useEffect(() => {
-    const input = ref.current;
+    const input: HTMLInputElement | null = ref.current;
     if (input) {
       input.value = displayValue;
     }

@@ -121,10 +121,7 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
 
     // Second priority.
 
-    if (
-  typeof argValue === "string" &&
-  argValue.includes("{{")
-    ) {
+    if (typeof argValue === "string" && argValue.includes("{{")) {
       return {
         fieldType: FormFieldSchemaType.Text,
         dropdownOptions: [],
