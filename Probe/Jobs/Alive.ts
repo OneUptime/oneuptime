@@ -9,6 +9,7 @@ import BasicCron from "Common/Server/Utils/BasicCron";
 import logger from "Common/Server/Utils/Logger";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
+import ProxyConfig from "../Utils/ProxyConfig";
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -38,6 +39,11 @@ const InitJob: VoidFunction = (): void => {
       const result: HTTPResponse<JSONObject> = await API.post(
         URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
         ProbeAPIRequest.getDefaultRequestBody(),
+        undefined,
+        {
+          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+        },
       );
 
       if (result.isSuccess()) {

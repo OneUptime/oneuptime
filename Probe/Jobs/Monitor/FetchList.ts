@@ -20,6 +20,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import NumberUtil from "Common/Utils/Number";
 import Sleep from "Common/Types/Sleep";
+import ProxyConfig from "../../Utils/ProxyConfig";
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -101,6 +102,10 @@ class FetchListAndProbe {
           },
           {},
           {},
+          {
+            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+          },
         );
 
       logger.debug("Fetched monitor list");

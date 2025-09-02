@@ -14,6 +14,7 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import { EVERY_TEN_SECONDS } from "Common/Utils/CronTime";
+import ProxyConfig from "../../Utils/ProxyConfig";
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -65,6 +66,10 @@ class FetchMonitorTestAndProbe {
           },
           {},
           {},
+          {
+            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+          },
         );
 
       logger.debug("MONITOR TEST: Fetched monitor test list");
