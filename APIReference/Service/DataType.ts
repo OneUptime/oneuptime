@@ -4,6 +4,7 @@ import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
+import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
@@ -12,7 +13,7 @@ export default class ServiceHandler {
     _req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
     pageData.selectCode = await LocalCache.getOrSetString(
       "data-type",

@@ -42,7 +42,7 @@ const InitJob: VoidFunction = (): void => {
 
           new FetchListAndProbe("Worker " + currentWorker)
             .run()
-            .catch((err: any) => {
+            .catch((err: unknown) => {
               logger.error(`Worker ${currentWorker} failed: `);
               logger.error(err);
             });
@@ -150,7 +150,7 @@ class FetchListAndProbe {
 
       if (err instanceof APIException) {
         logger.error("API Exception Error");
-        logger.error(JSON.stringify(err.error, null, 2));
+        logger.error(JSON.stringify((err as APIException).error, null, 2));
       }
     }
   }

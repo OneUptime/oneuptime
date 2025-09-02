@@ -34,7 +34,7 @@ export default class MonitorIncident {
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
-        monitors: [input.monitorId] as any,
+        monitors: [input.monitorId],
         currentIncidentState: {
           isResolvedState: false,
         },

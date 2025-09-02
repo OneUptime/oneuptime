@@ -10,6 +10,7 @@ import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware"
 import OtelIngestService from "../Services/OtelIngest";
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import { JSONObject } from "Common/Types/JSON";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -118,7 +119,7 @@ router.get(
       const failedJobs: Array<{
         id: string;
         name: string;
-        data: any;
+        data: JSONObject;
         failedReason: string;
         stackTrace?: string;
         processedOn: Date | null;

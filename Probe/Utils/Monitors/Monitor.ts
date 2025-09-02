@@ -71,7 +71,7 @@ export default class MonitorUtil {
           ),
           {
             ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
+            probeMonitorResponse: result as JSONObject,
           },
           {},
           {},
@@ -121,7 +121,7 @@ export default class MonitorUtil {
           ),
           {
             ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
+            probeMonitorResponse: result as JSONObject,
           },
           {},
           {},

@@ -80,7 +80,7 @@ export default class Register {
         ),
         {
           ...ProbeAPIRequest.getDefaultRequestBody(),
-          statusReport: stausReport as any,
+          statusReport: stausReport as JSONObject,
         },
         {},
         {},

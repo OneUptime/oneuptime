@@ -3,7 +3,7 @@ import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import PageNotFoundServiceHandler from "./PageNotFound";
 import { AppApiRoute } from "Common/ServiceRoute";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
-import { getTableColumns } from "Common/Types/Database/TableColumn";
+import { getTableColumns, TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import Permission, {
@@ -33,7 +33,7 @@ export default class ServiceHandler {
     let pageTitle: string = "";
     let pageDescription: string = "";
     let page: string | undefined = req.params["page"];
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
     // Check if page is provided
     if (!page) {
@@ -56,7 +56,7 @@ export default class ServiceHandler {
     page = "model";
 
     // Get table columns for current resource
-    const tableColumns: any = getTableColumns(currentResource.model);
+    const tableColumns: Dictionary<TableColumnMetadata> = getTableColumns(currentResource.model);
 
     // Filter out columns with no access
     for (const key in tableColumns) {
