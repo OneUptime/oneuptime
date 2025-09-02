@@ -79,7 +79,7 @@ export const PERMISSION_DESCRIPTIONS: { [key: string]: string } = {
   "TeamMember.ReadWrite.All.App":
     "Add and remove members from all teams - enables automated team management",
   "Teamwork.Migrate.All":
-    "Create chat and channel messages with anyone's identity and with any timestamp - advanced messaging features",
+    "Create chat and channel messages with anyone's identity and with any timestamp - REQUIRED for Import API operations",
   "Teamwork.Read.All.App":
     "Read organizational teamwork settings - provides organizational context",
 };
