@@ -11,6 +11,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+import ProxyConfig from "../../ProxyConfig";
 
 export interface APIResponse {
   url: URL;
@@ -69,6 +70,8 @@ export default class ApiMonitor {
           {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
+            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
           },
         );
 
@@ -87,6 +90,8 @@ export default class ApiMonitor {
           {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
+            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
           },
         );
       }

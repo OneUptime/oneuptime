@@ -19,6 +19,7 @@ import { HasClusterKey } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import ProxyConfig from "../Utils/ProxyConfig";
 
 export default class Register {
   public static async isPingMonitoringEnabled(): Promise<boolean> {
@@ -83,6 +84,10 @@ export default class Register {
         },
         {},
         {},
+        {
+          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+        },
       );
     }
   }
@@ -130,6 +135,11 @@ export default class Register {
           probeDescription: PROBE_DESCRIPTION,
           clusterKey: ClusterKeyAuthorization.getClusterKey(),
         },
+        undefined,
+        {
+          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+        },
       );
 
       if (result.isSuccess()) {
@@ -152,6 +162,11 @@ export default class Register {
         {
           probeKey: PROBE_KEY.toString(),
           probeId: PROBE_ID.toString(),
+        },
+        undefined,
+        {
+          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
+          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
         },
       );
 

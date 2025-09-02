@@ -22,6 +22,8 @@ export default class WebsiteRequest {
       timeout?: number | undefined;
       isHeadRequest?: boolean | undefined;
       doNotFollowRedirects?: boolean | undefined;
+      httpAgent?: any | undefined; // per-request HTTP proxy agent
+      httpsAgent?: any | undefined; // per-request HTTPS proxy agent
     },
   ): Promise<WebsiteResponse> {
     const axiosOptions: AxiosRequestConfig = {
@@ -39,6 +41,13 @@ export default class WebsiteRequest {
 
     if (options.doNotFollowRedirects) {
       axiosOptions.maxRedirects = 0;
+    }
+
+    if (options.httpAgent) {
+      (axiosOptions as any).httpAgent = options.httpAgent;
+    }
+    if (options.httpsAgent) {
+      (axiosOptions as any).httpsAgent = options.httpsAgent;
     }
 
     // use axios to fetch an HTML page
