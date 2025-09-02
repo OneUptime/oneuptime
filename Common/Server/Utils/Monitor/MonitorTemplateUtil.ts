@@ -30,7 +30,7 @@ export default class MonitorTemplateUtil {
         try {
           responseBody = JSON.parse(
             ((data.dataToProcess as ProbeMonitorResponse)
-              .responseBody as string) || "{}"
+              .responseBody as string) || "{}",
           );
         } catch (err) {
           logger.error(err);
@@ -89,7 +89,7 @@ export default class MonitorTemplateUtil {
       let replaced: string = VMUtil.replaceValueInPlace(
         storageMap,
         value,
-        false
+        false,
       );
       replaced =
         replaced !== undefined && replaced !== null ? `${replaced}` : "";

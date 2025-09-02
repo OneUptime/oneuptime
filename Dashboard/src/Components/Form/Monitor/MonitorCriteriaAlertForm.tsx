@@ -57,7 +57,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
               <p>
                 You can use dynamic templates here. Please refer to the
                 documentation{" "}
-                <Link 
+                <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
                   openInNewTab={true}
                 >
@@ -82,7 +82,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
                 documentation{" "}
                 <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
-                  openInNewTab={true} 
+                  openInNewTab={true}
                 >
                   here
                 </Link>{" "}
@@ -135,8 +135,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             },
             title: "Remediation Notes",
             stepId: "alert-details",
-            description:
-             (
+            description: (
               <p>
                 You can use dynamic templates here. Please refer to the
                 documentation{" "}
