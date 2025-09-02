@@ -370,9 +370,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               field: {
                 doNotAddGlobalProbesByDefaultOnNewMonitors: true,
               },
-              title: "Disable Auto-Addition of Global Probes to New Monitors",
+              title: "Disable Global Probes on New Monitors",
               description:
-                "Enable this ONLY if you rely exclusively on custom probes. When enabled, new monitors will not automatically include global probes by default.",
+                "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
             },
@@ -386,9 +386,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   doNotAddGlobalProbesByDefaultOnNewMonitors: true,
                 },
                 fieldType: FieldType.Boolean,
-                title: "Do NOT auto-add Global Probes",
+                title: "Global Probes on New Monitors",
                 description:
-                  "If enabled, global probes will NOT be automatically added to new monitors. Use this if you are using ONLY custom probes.",
+                  "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
                 placeholder: "New Monitors will have Global Probes by default",
                 getElement: (item: Project): ReactElement => {
                   return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
