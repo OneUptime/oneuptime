@@ -96,8 +96,8 @@ export default class MonitorTemplateUtil {
       replaced =
         replaced !== undefined && replaced !== null ? `${replaced}` : "";
 
-        logger.debug(`Original Value: ${data.value}`);
-        logger.debug(`Replaced Value: ${replaced}`);
+      logger.debug(`Original Value: ${data.value}`);
+      logger.debug(`Replaced Value: ${replaced}`);
 
       return replaced;
     } catch (err) {

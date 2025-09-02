@@ -55,13 +55,13 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             },
             description: (
               <p>
-                You can use dynamic templates here. <Link
+                You can use dynamic templates here.{" "}
+                <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
                   openInNewTab={true}
                   className="underline text-blue-600"
                 >
-                  Please refer to the
-                documentation for more information.
+                  Please refer to the documentation for more information.
                 </Link>
                 for more information.
               </p>
@@ -78,16 +78,14 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             placeholder: "Description",
             description: (
               <p>
-                You can use dynamic templates here. 
+                You can use dynamic templates here.
                 <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
                   openInNewTab={true}
                   className="underline text-blue-600"
                 >
-                  Please refer to the
-                documentation for more information.
+                  Please refer to the documentation for more information.
                 </Link>
-                
               </p>
             ),
           },
@@ -138,13 +136,13 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             stepId: "alert-details",
             description: (
               <p>
-                You can use dynamic templates here.<Link
+                You can use dynamic templates here.
+                <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
                   openInNewTab={true}
                   className="underline text-blue-600"
                 >
-                  Please refer to the
-                documentation for more information.
+                  Please refer to the documentation for more information.
                 </Link>
               </p>
             ),

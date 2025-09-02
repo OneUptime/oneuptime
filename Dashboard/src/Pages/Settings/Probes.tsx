@@ -110,8 +110,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           hideOnMobile={true}
         />
 
-        
-
         <ModelTable<Probe>
           modelType={Probe}
           query={{
@@ -357,51 +355,57 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       </>
 
       <CardModelDetail
-          name="Global Probe Settings"
-          cardProps={{
-            title: "Global Probe Settings",
+        name="Global Probe Settings"
+        cardProps={{
+          title: "Global Probe Settings",
+          description:
+            "Configure settings related to the automatic addition of Global Probes to new monitors.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Settings"
+        formFields={[
+          {
+            field: {
+              doNotAddGlobalProbesByDefaultOnNewMonitors: true,
+            },
+            title: "Disable Global Probes on New Monitors",
             description:
-              "Configure settings related to the automatic addition of Global Probes to new monitors.",
-          }}
-          isEditable={true}
-          editButtonText="Edit Settings"
-          formFields={[
+              "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+        ]}
+        modelDetailProps={{
+          modelType: Project,
+          id: "global-probe-auto-add",
+          fields: [
             {
               field: {
                 doNotAddGlobalProbesByDefaultOnNewMonitors: true,
               },
-              title: "Disable Global Probes on New Monitors",
+              fieldType: FieldType.Boolean,
+              title: "Global Probes on New Monitors",
               description:
                 "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
-              fieldType: FormFieldSchemaType.Toggle,
-              required: false,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: Project,
-            id: "global-probe-auto-add",
-            fields: [
-              {
-                field: {
-                  doNotAddGlobalProbesByDefaultOnNewMonitors: true,
-                },
-                fieldType: FieldType.Boolean,
-                title: "Global Probes on New Monitors",
-                description:
-                  "Toggle to enable or disable the automatic addition of Global Probes to new monitors.",
-                placeholder: "New Monitors will have Global Probes by default",
-                getElement: (item: Project): ReactElement => {
-                  return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
-                    <span>Global probes disabled for new monitors. New monitors will not have Global Probes assigned by default.</span>
-                  ) : (
-                    <span>Global probes enabled for new monitors. New monitors will have Global Probes assigned by default.</span>
-                  );
-                }
+              placeholder: "New Monitors will have Global Probes by default",
+              getElement: (item: Project): ReactElement => {
+                return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
+                  <span>
+                    Global probes disabled for new monitors. New monitors will
+                    not have Global Probes assigned by default.
+                  </span>
+                ) : (
+                  <span>
+                    Global probes enabled for new monitors. New monitors will
+                    have Global Probes assigned by default.
+                  </span>
+                );
               },
-            ],
-            modelId: ProjectUtil.getCurrentProjectId()!,
-          }}
-        />
+            },
+          ],
+          modelId: ProjectUtil.getCurrentProjectId()!,
+        }}
+      />
     </Fragment>
   );
 };

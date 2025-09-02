@@ -88,7 +88,7 @@ export default class VMUtil {
         );
 
         let valueToReplaceInPlace: string;
-        
+
         // Properly serialize objects to JSON strings
         if (typeof foundValue === "object" && foundValue !== null) {
           valueToReplaceInPlace = JSON.stringify(foundValue, null, 2);
