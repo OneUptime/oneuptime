@@ -440,7 +440,7 @@ export class Service extends DatabaseService<Model> {
      
 ${createdItem.description || "No description provided."}
      
-     `;
+`;
 
       if (alert.currentAlertState?.name) {
         feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;

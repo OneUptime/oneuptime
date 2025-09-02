@@ -135,6 +135,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/javascript-expression",
       },
       {
+        title: "Incident & Alert Templating",
+        url: "/docs/monitor/incident-alert-templating",
+      },
+      {
         title: "Monitor Secrets",
         url: "/docs/monitor/monitor-secrets",
       },
