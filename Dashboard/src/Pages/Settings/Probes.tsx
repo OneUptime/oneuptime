@@ -392,9 +392,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder: "New Monitors will have Global Probes by default",
                 getElement: (item: Project): ReactElement => {
                   return item.doNotAddGlobalProbesByDefaultOnNewMonitors ? (
-                    <span>Global probes disabled for new monitors. New monitors will not have Global Probes by default.</span>
+                    <span>Global probes disabled for new monitors. New monitors will not have Global Probes assigned by default.</span>
                   ) : (
-                    <span>Global probes enabled for new monitors. New monitors will have Global Probes by default.</span>
+                    <span>Global probes enabled for new monitors. New monitors will have Global Probes assigned by default.</span>
                   );
                 }
               },
