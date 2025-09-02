@@ -1377,6 +1377,39 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
+    app.get("/robots.txt", (req: ExpressRequest, res: ExpressResponse) => {
+      const host: string = (req.headers["host"] || "").toString().toLowerCase();
+
+      // Allowed production domains. Adjust if more canonical domains are added.
+      const allowedDomains: Array<string> = ["oneuptime.com", "www.oneuptime.com"]; // include www just in case
+
+      let body: string = "";
+
+      if (!allowedDomains.includes(host)) {
+        // Disallow everything on non-production / preview / on-prem domains so they are not indexed.
+        body = [
+          "User-agent: *",
+          "Disallow: /",
+          "# Disallowed because host is not oneuptime.com",
+        ].join("\n");
+      } else {
+        // Allow all and point to sitemap
+        // res.locals.homeUrl is set earlier middleware; fallback to canonical domain.
+        const homeUrl: string = (res.locals["homeUrl"] || "https://oneuptime.com").replace(/\/$/, "");
+        body = [
+          "User-agent: *",
+          "Allow: /",
+          `Sitemap: ${homeUrl}/sitemap.xml`,
+        ].join("\n");
+      }
+
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      // Encourage caches to revalidate often in case environment changes.
+      res.setHeader("Cache-Control", "public, max-age=300"); // 5 minutes
+      return res.status(200).send(body + "\n");
+    });
+
     /*
      * Cache policy for static contents
      * Loads up the site faster
