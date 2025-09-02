@@ -54,15 +54,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             },
             description: (
               <p>
-                You can use dynamic templates here. Please refer to the
-                documentation{" "}
-                <Link
+                You can use dynamic templates here. <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
                   openInNewTab={true}
+                  className="underline text-blue-600"
                 >
-                  here
-                </Link>{" "}
-                for more information.
+                  Please refer to the
+                documentation for more information.
+                </Link>
               </p>
             ),
           },
@@ -77,15 +76,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             placeholder: "Description",
             description: (
               <p>
-                You can use dynamic templates here. Please refer to the
-                documentation{" "}
-                <Link
+                You can use dynamic templates here. <Link
                   to={new Route("/docs/monitor/incident-alert-templating")}
                   openInNewTab={true}
+                  className="underline text-blue-600"
                 >
-                  here
-                </Link>{" "}
-                for more information.
+                  Please refer to the
+                documentation for more information.
+                </Link>
               </p>
             ),
           },
@@ -135,15 +133,14 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             description: (
               <p>
                 Notes for on-call engineer to resolve this incident. You can use
-                dynamic templates here. Please refer to the documentation{" "}
-                <a
-                  href="/docs/monitor/incident-alert-templating"
-                  target="_blank"
-                  rel="noreferrer"
+                dynamic templates here. <Link
+                  to={new Route("/docs/monitor/incident-alert-templating")}
+                  openInNewTab={true}
+                  className="underline text-blue-600"
                 >
-                  here
-                </a>{" "}
-                for more information.
+                  Please refer to the
+                documentation for more information.
+                </Link>
               </p>
             ),
             fieldType: FormFieldSchemaType.Markdown,
