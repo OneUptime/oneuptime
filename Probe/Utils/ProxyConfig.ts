@@ -3,6 +3,12 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import logger from "Common/Server/Utils/Logger";
 
+// Exported interface for proxy agents
+export interface ProxyAgents {
+  httpAgent?: HttpProxyAgent<string>;
+  httpsAgent?: HttpsProxyAgent<string>;
+}
+
 export default class ProxyConfig {
   private static isConfigured: boolean = false;
   private static httpProxyAgent: HttpProxyAgent<string> | null = null;
@@ -37,7 +43,6 @@ export default class ProxyConfig {
       }
 
       this.isConfigured = true;
-      
     } catch (error) {
       logger.error("Failed to configure proxy:");
       logger.error(error);
@@ -59,39 +64,21 @@ export default class ProxyConfig {
     return HTTPS_PROXY_URL;
   }
 
-  /**
-   * Get the HTTP proxy agent for HTTP requests
-   */
   public static getHttpProxyAgent(): HttpProxyAgent<string> | null {
     return this.httpProxyAgent;
   }
 
-  /**
-   * Get the HTTPS proxy agent for HTTPS requests
-   */
   public static getHttpsProxyAgent(): HttpsProxyAgent<string> | null {
     return this.httpsProxyAgent;
   }
 
-  /**
-   * Returns an object containing httpAgent / httpsAgent suitable to spread into RequestOptions
-   * or as part of WebsiteRequest.fetch options. If no proxy configured returns empty object.
-   */
-  public static getRequestProxyAgents(): {
-    httpAgent?: HttpProxyAgent<string>;
-    httpsAgent?: HttpsProxyAgent<string>;
-  } {
+  public static getRequestProxyAgents(): Readonly<ProxyAgents> {
     if (!this.isProxyConfigured()) {
       return {};
     }
-    const agents: { httpAgent?: any; httpsAgent?: any } = {};
-    if (this.httpProxyAgent) {
-      agents.httpAgent = this.httpProxyAgent;
-    }
-    if (this.httpsProxyAgent) {
-      agents.httpsAgent = this.httpsProxyAgent;
-    }
-    return agents;
+    return {
+      ...(this.httpProxyAgent ? { httpAgent: this.httpProxyAgent } : {}),
+      ...(this.httpsProxyAgent ? { httpsAgent: this.httpsProxyAgent } : {}),
+    } as const;
   }
-
 }

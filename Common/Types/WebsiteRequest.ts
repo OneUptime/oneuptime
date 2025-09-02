@@ -4,6 +4,8 @@ import URL from "./API/URL";
 import Dictionary from "./Dictionary";
 import HTML from "./Html";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import type { Agent as HttpAgent } from "http";
+import type { Agent as HttpsAgent } from "https";
 
 export interface WebsiteResponse {
   url: URL;
@@ -22,8 +24,8 @@ export default class WebsiteRequest {
       timeout?: number | undefined;
       isHeadRequest?: boolean | undefined;
       doNotFollowRedirects?: boolean | undefined;
-      httpAgent?: any | undefined; // per-request HTTP proxy agent
-      httpsAgent?: any | undefined; // per-request HTTPS proxy agent
+      httpAgent?: HttpAgent | undefined; // per-request HTTP proxy agent
+      httpsAgent?: HttpsAgent | undefined; // per-request HTTPS proxy agent
     },
   ): Promise<WebsiteResponse> {
     const axiosOptions: AxiosRequestConfig = {
@@ -44,10 +46,10 @@ export default class WebsiteRequest {
     }
 
     if (options.httpAgent) {
-      (axiosOptions as any).httpAgent = options.httpAgent;
+      (axiosOptions as AxiosRequestConfig).httpAgent = options.httpAgent;
     }
     if (options.httpsAgent) {
-      (axiosOptions as any).httpsAgent = options.httpsAgent;
+      (axiosOptions as AxiosRequestConfig).httpsAgent = options.httpsAgent;
     }
 
     // use axios to fetch an HTML page
