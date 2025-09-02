@@ -48,35 +48,10 @@ Array indexing is supported:
 
 ```
 First User: {{responseBody.users[0].name}}
-Last User: {{responseBody.users[last].name}}
 ```
 
 If a path does not exist it resolves to an empty string by default.
 
-## Fallback Syntax
-
-You can supply a fallback with `||` inside the placeholder:
-
-```
-Status: {{responseStatusCode||unknown}}
-Latency: {{responseTimeInMs||0}}ms
-Primary Region: {{responseBody.metadata.region||"us-east-1"}}
-Online: {{isOnline||false}}
-```
-
-Parsing rules for fallback:
-- `true`, `false`, `null` become their boolean/null equivalents.
-- Numeric strings become numbers (e.g. `0`, `404`).
-- Quoted JSON or objects/arrays will attempt `JSON.parse` (e.g. `{"key":"value"}` or `[1,2]`).
-- Otherwise the raw text is used (quotes around a string fallback can be omitted unless you need commas / special chars).
-
-If the variable is found, fallback is ignored.
-
-## Tips
-
-- To avoid accidental empty string when something is sometimes missing, always provide a fallback: `{{responseHeaders.content-type||"n/a"}}`
-- Entire placeholder as value: If the field ONLY contains `{{responseStatusCode}}` and the value is a number, the resulting value will be the number coerced to string for storage.
-- Mixed inline usage always stringifies: `Code: {{responseStatusCode}}`.
 
 ## Examples
 
@@ -88,18 +63,14 @@ High latency: {{responseTimeInMs||0}}ms (> threshold)
 ### Incident Description (Markdown)
 ```
 ### API Error
-Status: **{{responseStatusCode||unknown}}**  
-Latency: **{{responseTimeInMs||0}}ms**  
-Body Snippet: `{{responseBody.error.message||"(no message)"}}`
+Status: **{{responseStatusCode}}**  
+Latency: **{{responseTimeInMs}}ms**  
+Body Snippet: `{{responseBody.error.message}}`
 ```
 
 ### Incoming Request Alert Title
 ```
-Bad inbound request: header auth = {{requestHeaders.authorization||"missing"}}
+Bad inbound request: header auth = {{requestHeaders.authorization}}
 ```
 
-## Edge Cases & Behavior
-- Undefined path + no fallback -> replaced with empty string.
-- Large JSON values (objects/arrays) inline will be stringified.
-- `last` index works for arrays: `{{responseBody.items[last].id}}`.
 
