@@ -64,7 +64,7 @@ const Input: FunctionComponent<ComponentProps> = (
 
   const [value, setValue] = useState<string | Date>("");
   const [displayValue, setDisplayValue] = useState<string>("");
-  const ref: any = useRef<any>(null);
+  const ref = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (
@@ -120,9 +120,9 @@ const Input: FunctionComponent<ComponentProps> = (
   }, [value]);
 
   useEffect(() => {
-    const input: any = ref.current;
+    const input = ref.current;
     if (input) {
-      (input as any).value = displayValue;
+      input.value = displayValue;
     }
   }, [ref, displayValue]);
 
@@ -195,7 +195,7 @@ const Input: FunctionComponent<ComponentProps> = (
           tabIndex={props.tabIndex}
           onKeyDown={
             props.onEnterPress
-              ? (event: any) => {
+              ? (event: React.KeyboardEvent<HTMLInputElement>) => {
                   if (event.key === "Enter") {
                     props.onEnterPress?.();
                   }
