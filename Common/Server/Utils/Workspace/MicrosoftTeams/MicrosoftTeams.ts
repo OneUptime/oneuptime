@@ -36,10 +36,6 @@ import {
   MicrosoftTeamsAppClientSecret,
 } from "../../../EnvironmentConfig";
 import MicrosoftTeamsTokenRefresher from "./MicrosoftTeamsTokenRefresher";
-import {
-  REQUIRED_APPLICATION_PERMISSIONS,
-  validateApplicationTokenPermissions,
-} from "./MicrosoftTeamsPermissions";
 
 // Error message constants
 const ADMIN_CONSENT_REQUIRED_ERROR: string =
@@ -204,35 +200,6 @@ export default class MicrosoftTeams extends WorkspaceBase {
         logger.error("Application token response missing access_token.");
         return null;
       }
-
-      // Validate token permissions for debugging
-      try {
-        const permissionValidation: {
-          isValid: boolean;
-          hasRoles: string[];
-          missingRoles: string[];
-          extraRoles: string[];
-        } = validateApplicationTokenPermissions(accessToken);
-        logger.debug("Application token permission validation:");
-        logger.debug({
-          isValid: permissionValidation.isValid,
-          hasRoles: permissionValidation.hasRoles,
-          missingRoles:
-            permissionValidation.missingRoles.length > 0
-              ? permissionValidation.missingRoles
-              : "None",
-          requiredPermissions: REQUIRED_APPLICATION_PERMISSIONS,
-        });
-
-        if (!permissionValidation.isValid) {
-          logger.warn("Application token missing required permissions:");
-          logger.warn(permissionValidation.missingRoles);
-        }
-      } catch (validationError) {
-        logger.debug("Could not validate application token permissions:");
-        logger.debug(validationError);
-      }
-
       const now: number = Date.now();
       const expiry: string = new Date(
         now + (expiresIn || 3600) * 1000,
