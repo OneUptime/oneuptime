@@ -51,6 +51,10 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             validation: {
               minLength: 2,
             },
+            description:
+             (<p>
+                You can use dynamic templates here. Please refer to the documentation <a href="/docs/monitor/incident-alert-templating" target="_blank" rel="noreferrer">here</a> for more information.
+             </p>)
           },
           {
             field: {
@@ -61,6 +65,10 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             placeholder: "Description",
+             description:
+             (<p>
+                You can use dynamic templates here. Please refer to the documentation <a href="/docs/monitor/incident-alert-templating" target="_blank" rel="noreferrer">here</a> for more information.
+             </p>)
           },
           {
             field: {
@@ -108,7 +116,7 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             title: "Remediation Notes",
             stepId: "alert-details",
             description:
-              "Notes to help the on-call engineer resolve this alert.",
+              "Notes to help the on-call engineer. Placeholders like {{responseStatusCode}}, {{responseTimeInMs}}, {{requestBody.field}} are supported.",
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             showIf: () => {
