@@ -29,8 +29,8 @@ export default class MonitorTemplateUtil {
         let responseBody: JSONObject | null = null;
         try {
           responseBody = JSON.parse(
-            ((data.dataToProcess as ProbeMonitorResponse).responseBody as string) ||
-              "{}",
+            ((data.dataToProcess as ProbeMonitorResponse)
+              .responseBody as string) || "{}"
           );
         } catch (err) {
           logger.error(err);
@@ -38,7 +38,10 @@ export default class MonitorTemplateUtil {
             .responseBody as JSONObject;
         }
 
-        if (typeof responseBody === Typeof.String && responseBody?.toString() === "") {
+        if (
+          typeof responseBody === Typeof.String &&
+          responseBody?.toString() === ""
+        ) {
           responseBody = {};
         }
 
@@ -56,7 +59,8 @@ export default class MonitorTemplateUtil {
 
       if (data.monitorType === MonitorType.IncomingRequest) {
         storageMap = {
-          requestBody: (data.dataToProcess as IncomingMonitorRequest).requestBody,
+          requestBody: (data.dataToProcess as IncomingMonitorRequest)
+            .requestBody,
           requestHeaders: (data.dataToProcess as IncomingMonitorRequest)
             .requestHeaders,
         } as JSONObject;
@@ -72,18 +76,27 @@ export default class MonitorTemplateUtil {
    * Replace {{var}} placeholders in the given string with values from the storage map.
    */
   public static processTemplateString(data: {
-    value: string | undefined,
-    storageMap: JSONObject,
+    value: string | undefined;
+    storageMap: JSONObject;
   }): string {
+    try {
+      const { value, storageMap } = data;
 
-    const { value, storageMap } = data;
+      if (!value) {
+        return "";
+      }
 
-    if (!value) {
-      return "";
+      let replaced: string = VMUtil.replaceValueInPlace(
+        storageMap,
+        value,
+        false
+      );
+      replaced =
+        replaced !== undefined && replaced !== null ? `${replaced}` : "";
+      return replaced;
+    } catch (err) {
+      logger.error(err);
+      return data.value || "";
     }
-
-    let replaced: string = VMUtil.replaceValueInPlace(storageMap, value, false);
-    replaced = replaced !== undefined && replaced !== null ? `${replaced}` : "";
-    return replaced;
   }
 }
