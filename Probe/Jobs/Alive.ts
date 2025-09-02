@@ -40,10 +40,7 @@ const InitJob: VoidFunction = (): void => {
         URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
         ProbeAPIRequest.getDefaultRequestBody(),
         undefined,
-        {
-          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-        },
+        { ...ProxyConfig.getRequestProxyAgents() },
       );
 
       if (result.isSuccess()) {

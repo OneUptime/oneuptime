@@ -102,10 +102,7 @@ class FetchListAndProbe {
           },
           {},
           {},
-          {
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-          },
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
 
       logger.debug("Fetched monitor list");

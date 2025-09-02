@@ -73,4 +73,25 @@ export default class ProxyConfig {
     return this.httpsProxyAgent;
   }
 
+  /**
+   * Returns an object containing httpAgent / httpsAgent suitable to spread into RequestOptions
+   * or as part of WebsiteRequest.fetch options. If no proxy configured returns empty object.
+   */
+  public static getRequestProxyAgents(): {
+    httpAgent?: HttpProxyAgent<string>;
+    httpsAgent?: HttpsProxyAgent<string>;
+  } {
+    if (!this.isProxyConfigured()) {
+      return {};
+    }
+    const agents: { httpAgent?: any; httpsAgent?: any } = {};
+    if (this.httpProxyAgent) {
+      agents.httpAgent = this.httpProxyAgent;
+    }
+    if (this.httpsProxyAgent) {
+      agents.httpsAgent = this.httpsProxyAgent;
+    }
+    return agents;
+  }
+
 }

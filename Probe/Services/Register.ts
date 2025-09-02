@@ -84,10 +84,7 @@ export default class Register {
         },
         {},
         {},
-        {
-          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-        },
+        { ...ProxyConfig.getRequestProxyAgents() },
       );
     }
   }
@@ -136,10 +133,7 @@ export default class Register {
           clusterKey: ClusterKeyAuthorization.getClusterKey(),
         },
         undefined,
-        {
-          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-        },
+        { ...ProxyConfig.getRequestProxyAgents() },
       );
 
       if (result.isSuccess()) {
@@ -164,10 +158,7 @@ export default class Register {
           probeId: PROBE_ID.toString(),
         },
         undefined,
-        {
-          httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-          httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-        },
+        { ...ProxyConfig.getRequestProxyAgents() },
       );
 
       LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID.toString() as string);

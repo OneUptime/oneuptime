@@ -75,10 +75,7 @@ export default class MonitorUtil {
           },
           {},
           {},
-          {
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-          },
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
       }
 
@@ -128,10 +125,7 @@ export default class MonitorUtil {
           },
           {},
           {},
-          {
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-          },
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
       }
 

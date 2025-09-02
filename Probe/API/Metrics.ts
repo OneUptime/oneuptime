@@ -44,10 +44,7 @@ router.get(
           requestBody,
           {},
           undefined,
-          {
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-          },
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
 
       if (result instanceof HTTPErrorResponse) {

@@ -66,10 +66,7 @@ class FetchMonitorTestAndProbe {
           },
           {},
           {},
-          {
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
-          },
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
 
       logger.debug("MONITOR TEST: Fetched monitor test list");

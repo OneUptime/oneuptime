@@ -70,8 +70,7 @@ export default class ApiMonitor {
           {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+            ...ProxyConfig.getRequestProxyAgents(),
           },
         );
 
@@ -90,8 +89,7 @@ export default class ApiMonitor {
           {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
-            httpAgent: ProxyConfig.getHttpProxyAgent() || undefined,
-            httpsAgent: ProxyConfig.getHttpsProxyAgent() || undefined,
+            ...ProxyConfig.getRequestProxyAgents(),
           },
         );
       }
