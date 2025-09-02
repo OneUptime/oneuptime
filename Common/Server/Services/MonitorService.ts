@@ -68,6 +68,7 @@ import { FindWhere } from "../../Types/BaseDatabase/Query";
 import logger from "../Utils/Logger";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
+import Project from "../../Models/DatabaseModels/Project";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -792,7 +793,7 @@ ${createdItem.description?.trim() || "No description provided."}
     monitorId: ObjectID,
   ): Promise<void> {
     // Fetch project to see if global probes should be added automatically.
-    const project = await ProjectService.findOneById({
+    const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
         _id: true,
@@ -841,7 +842,7 @@ ${createdItem.description?.trim() || "No description provided."}
       },
     });
 
-  const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
+    const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
 
     if (totalProbes.length === 0) {
       return;

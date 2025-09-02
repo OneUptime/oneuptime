@@ -33,7 +33,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-  <ModelTable<Probe>
+        <ModelTable<Probe>
           modelType={Probe}
           id="probes-table"
           name="Settings > Global Probes"
