@@ -2,7 +2,15 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import { JSONObject } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ServerMonitorResponse, {
+  ServerProcess,
+} from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import BasicInfrastructureMetrics, {
+  BasicDiskMetrics,
+} from "../../../Types/Infrastructure/BasicMetrics";
+import SslMonitorResponse from "../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
+import CustomCodeMonitorResponse from "../../../Types/Monitor/CustomCodeMonitor/CustomCodeMonitorResponse";
+import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import Typeof from "../../../Types/Typeof";
 import VMUtil from "../VM/VMAPI";
 import DataToProcess from "./DataToProcess";
@@ -66,8 +74,9 @@ export default class MonitorTemplateUtil {
             .requestHeaders,
           requestMethod: (data.dataToProcess as IncomingMonitorRequest)
             .requestMethod,
-          incomingRequestReceivedAt: (data.dataToProcess as IncomingMonitorRequest)
-            .incomingRequestReceivedAt,
+          incomingRequestReceivedAt: (
+            data.dataToProcess as IncomingMonitorRequest
+          ).incomingRequestReceivedAt,
         } as JSONObject;
       }
 
@@ -87,8 +96,9 @@ export default class MonitorTemplateUtil {
       }
 
       if (data.monitorType === MonitorType.SSLCertificate) {
-        const sslResponse = (data.dataToProcess as ProbeMonitorResponse)
-          .sslResponse;
+        const sslResponse: SslMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).sslResponse;
         storageMap = {
           isOnline: (data.dataToProcess as ProbeMonitorResponse).isOnline,
           isSelfSigned: sslResponse?.isSelfSigned,
@@ -109,9 +119,11 @@ export default class MonitorTemplateUtil {
       }
 
       if (data.monitorType === MonitorType.Server) {
-        const serverResponse = data.dataToProcess as ServerMonitorResponse;
-        const infraMetrics = serverResponse.basicInfrastructureMetrics;
-        
+        const serverResponse: ServerMonitorResponse =
+          data.dataToProcess as ServerMonitorResponse;
+        const infraMetrics: BasicInfrastructureMetrics | undefined =
+          serverResponse.basicInfrastructureMetrics;
+
         storageMap = {
           hostname: serverResponse.hostname,
           requestReceivedAt: serverResponse.requestReceivedAt,
@@ -126,28 +138,38 @@ export default class MonitorTemplateUtil {
 
         // Add memory metrics if available
         if (infraMetrics?.memoryMetrics) {
-          storageMap["memoryUsagePercent"] = infraMetrics.memoryMetrics.percentUsed;
-          storageMap["memoryFreePercent"] = infraMetrics.memoryMetrics.percentFree;
+          storageMap["memoryUsagePercent"] =
+            infraMetrics.memoryMetrics.percentUsed;
+          storageMap["memoryFreePercent"] =
+            infraMetrics.memoryMetrics.percentFree;
           storageMap["memoryTotalBytes"] = infraMetrics.memoryMetrics.total;
         }
 
         // Add disk metrics if available
         if (infraMetrics?.diskMetrics) {
-          storageMap["diskMetrics"] = infraMetrics.diskMetrics.map((disk) => ({
-            diskPath: disk.diskPath,
-            usagePercent: disk.percentUsed,
-            freePercent: disk.percentFree,
-            totalBytes: disk.total,
-          }));
+          storageMap["diskMetrics"] = infraMetrics.diskMetrics.map(
+            (disk: BasicDiskMetrics) => {
+              return {
+                diskPath: disk.diskPath,
+                usagePercent: disk.percentUsed,
+                freePercent: disk.percentFree,
+                totalBytes: disk.total,
+              };
+            },
+          );
         }
 
         // Add processes if available
         if (serverResponse.processes) {
-          storageMap["processes"] = serverResponse.processes.map((process) => ({
-            pid: process.pid,
-            name: process.name,
-            command: process.command,
-          }));
+          storageMap["processes"] = serverResponse.processes.map(
+            (process: ServerProcess) => {
+              return {
+                pid: process.pid,
+                name: process.name,
+                command: process.command,
+              };
+            },
+          );
         }
       }
 
@@ -155,10 +177,12 @@ export default class MonitorTemplateUtil {
         data.monitorType === MonitorType.SyntheticMonitor ||
         data.monitorType === MonitorType.CustomJavaScriptCode
       ) {
-        const customCodeResponse = (data.dataToProcess as ProbeMonitorResponse)
-          .customCodeMonitorResponse;
-        const syntheticResponse = (data.dataToProcess as ProbeMonitorResponse)
-          .syntheticMonitorResponse;
+        const customCodeResponse: CustomCodeMonitorResponse | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).customCodeMonitorResponse;
+        const syntheticResponse: SyntheticMonitorResponse[] | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).syntheticMonitorResponse;
 
         storageMap = {
           executionTimeInMs: customCodeResponse?.executionTimeInMS,
@@ -171,7 +195,7 @@ export default class MonitorTemplateUtil {
 
         // Add synthetic monitor specific fields if available
         if (syntheticResponse && syntheticResponse.length > 0) {
-          const firstResponse = syntheticResponse[0];
+          const firstResponse: SyntheticMonitorResponse = syntheticResponse[0]!;
           if (firstResponse) {
             storageMap["screenshots"] = firstResponse.screenshots;
             storageMap["browserType"] = firstResponse.browserType;
