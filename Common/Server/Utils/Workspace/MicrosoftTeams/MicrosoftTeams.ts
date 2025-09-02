@@ -43,7 +43,7 @@ import {
 
 // Error message constants
 const ADMIN_CONSENT_REQUIRED_ERROR: string =
-  "Microsoft Teams application access token unavailable. Please grant admin consent for application permissions (including Teamwork.Migrate.All for Import API) in your Microsoft Teams integration settings.";
+  "Microsoft Teams application access token unavailable. Please grant admin consent for application permissions (including ChannelMessage.Send for sending messages) in your Microsoft Teams integration settings.";
 
 export default class MicrosoftTeams extends WorkspaceBase {
   // Microsoft Teams API Permission Requirements:
@@ -72,16 +72,13 @@ export default class MicrosoftTeams extends WorkspaceBase {
   // - Team.ReadBasic.All: Read all team information
   // - TeamMember.Read.All: Read team membership
   // - TeamMember.ReadWrite.All: Manage team membership
-  // - Teamwork.Migrate.All: Create messages with any identity/timestamp (REQUIRED for Import API)
+  // - Teamwork.Migrate.All: Create messages with any identity/timestamp (for Import API, not currently used)
   // - Teamwork.Read.All: Read organizational teamwork settings
   //
-  // IMPORTANT: This integration uses APPLICATION TOKENS (not delegated tokens) 
-  // for sending messages via the Microsoft Teams Import API. This provides better 
-  // reliability and allows messages to be sent with custom identity and timestamps.
-  // The Import API endpoint /teams/{teamId}/channels/{channelId}/messages/import
-  // requires the Teamwork.Migrate.All permission.
-
-  // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
+// IMPORTANT: This integration uses APPLICATION TOKENS (not delegated tokens) 
+// for sending messages via the Microsoft Teams Graph API. This provides better 
+// reliability and allows messages to be sent with the bot's identity.
+// The regular /messages endpoint is used for sending messages.  // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
   private static async getOrCreateApplicationAccessToken(params: {
     projectAuth: WorkspaceProjectAuthToken | null;
   }): Promise<string | null> {
@@ -1180,36 +1177,28 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
 
       logger.debug(
-        "Using application (bot) token for Microsoft Teams API call with Import API",
+        "Using application (bot) token for Microsoft Teams API call",
       );
 
-      // Convert blocks to Teams message format using Import API
-      // The Import API allows messages to appear with custom identity and timestamp
+      // Convert blocks to Teams message format
       const messageBody: JSONObject = {
         body: {
           contentType: "html",
           content: this.convertBlocksToTeamsMessage(data.blocks),
-        },
-        createdDateTime: new Date().toISOString(),
-        from: {
-          user: {
-            displayName: "OneUptime",
-            userIdentityType: "aadUser",
-          },
         },
         importance: "normal",
         messageType: "message",
       };
 
       logger.debug(
-        `Attempting to send message to Microsoft Teams channel with application token using Import API`,
+        `Attempting to send message to Microsoft Teams channel with application token`,
       );
-      logger.debug(`Import API endpoint: /teams/${teamId}/channels/${data.workspaceChannel.id}/messages/import`);
+      logger.debug(`Messages endpoint: /teams/${teamId}/channels/${data.workspaceChannel.id}/messages`);
 
-      // Use the Import API endpoint instead of regular messages endpoint
+      // Use the regular messages endpoint
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await this.makeGraphApiCall(
-          `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages/import`,
+          `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
           appToken,
           "POST",
           messageBody,
@@ -1340,7 +1329,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
         workspaceMessageResponse.threads.push(thread);
         logger.debug(
-          `Message sent to channel ID ${channel.id} successfully using Import API (posted as ${"app/bot"}).`,
+          `Message sent to channel ID ${channel.id} successfully (posted as bot).`,
         );
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channel.id}:`);
@@ -1348,7 +1337,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
       }
     }
 
-    logger.debug("Message sent successfully.");
+    logger.debug("Message sending process completed.");
     logger.debug(workspaceMessageResponse);
 
     return workspaceMessageResponse;
@@ -1410,30 +1399,23 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const chatData: JSONObject = chatResponse.jsonData as JSONObject;
       const chatId: string = chatData["id"] as string;
 
-      // Convert message blocks to Teams format for Import API
+      // Convert message blocks to Teams format
       const blocks: Array<JSONObject> =
         this.getBlocksFromWorkspaceMessagePayload({
           messageBlocks: data.messageBlocks,
         });
 
-      // Use Import API format for consistent message handling
+      // Use regular message format
       const messageBody: JSONObject = {
         body: {
           contentType: "html",
           content: this.convertBlocksToTeamsMessage(blocks),
         },
-        createdDateTime: new Date().toISOString(),
-        from: {
-          user: {
-            displayName: "OneUptime",
-            userIdentityType: "aadUser",
-          },
-        },
         importance: "normal",
         messageType: "message",
       };
 
-      // Note: For chats, we use the regular messages endpoint as Import API is primarily for channels
+      // Note: For chats, we use the regular messages endpoint
       const messageResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await this.makeGraphApiCall(
           `/chats/${chatId}/messages`,
