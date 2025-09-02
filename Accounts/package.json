@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": false,
     "scripts": {
-    "dev-build": "npm run generate-sw",
+        "dev-build": "NODE_ENV=development node esbuild.config.js",
         "dev": "npx nodemon",
         "build": "NODE_ENV=production node esbuild.config.js",
         "analyze": "analyze=true NODE_ENV=production node esbuild.config.js",
