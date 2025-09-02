@@ -109,17 +109,17 @@ export default class MonitorAlert {
               alert.createdCriteriaId ===
               input.criteriaInstance.data?.id.toString()
             );
-          },
+          }
         );
 
         const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);
 
         logger.debug(
-          `${input.monitor.id?.toString()} - Open Alert ${alreadyOpenAlert?.id?.toString()}`,
+          `${input.monitor.id?.toString()} - Open Alert ${alreadyOpenAlert?.id?.toString()}`
         );
 
         logger.debug(
-          `${input.monitor.id?.toString()} - Has open alert ${hasAlreadyOpenAlert}`,
+          `${input.monitor.id?.toString()} - Has open alert ${hasAlreadyOpenAlert}`
         );
 
         if (hasAlreadyOpenAlert) {
@@ -139,7 +139,7 @@ export default class MonitorAlert {
         alert.title = MonitorTemplateUtil.processTemplateString({
           value: criteriaAlert.title,
           storageMap,
-      });
+        });
         alert.description = MonitorTemplateUtil.processTemplateString({
           value: criteriaAlert.description,
           storageMap,
@@ -177,7 +177,7 @@ export default class MonitorAlert {
         alert.projectId = input.monitor.projectId!;
         alert.rootCause = input.rootCause;
         alert.createdStateLog = JSON.parse(
-          JSON.stringify(input.dataToProcess, null, 2),
+          JSON.stringify(input.dataToProcess, null, 2)
         );
 
         alert.createdCriteriaId = input.criteriaInstance.data.id.toString();
@@ -208,8 +208,7 @@ export default class MonitorAlert {
           alert.remediationNotes = MonitorTemplateUtil.processTemplateString({
             value: criteriaAlert.remediationNotes,
             storageMap,
-          }
-          );
+          });
         }
 
         if (DisableAutomaticAlertCreation) {
@@ -236,7 +235,7 @@ export default class MonitorAlert {
   }): Promise<void> {
     const resolvedStateId: ObjectID =
       await AlertStateTimelineService.getResolvedStateIdForProject(
-        input.openAlert.projectId!,
+        input.openAlert.projectId!
       );
 
     const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
@@ -252,7 +251,7 @@ export default class MonitorAlert {
 
     if (input.dataToProcess) {
       alertStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
+        JSON.stringify(input.dataToProcess)
       );
     }
 
