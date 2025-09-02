@@ -791,20 +791,39 @@ ${createdItem.description?.trim() || "No description provided."}
     projectId: ObjectID,
     monitorId: ObjectID,
   ): Promise<void> {
-    const globalProbes: Array<Probe> = await ProbeService.findBy({
-      query: {
-        isGlobalProbe: true,
-        shouldAutoEnableProbeOnNewMonitors: true,
-      },
+    // Fetch project to see if global probes should be added automatically.
+    const project = await ProjectService.findOneById({
+      id: projectId,
       select: {
         _id: true,
+        doNotAddGlobalProbesByDefaultOnNewMonitors: true,
       },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
       props: {
         isRoot: true,
       },
     });
+
+    const shouldSkipGlobalProbes: boolean =
+      project?.doNotAddGlobalProbesByDefaultOnNewMonitors === true;
+
+    let globalProbes: Array<Probe> = [];
+
+    if (!shouldSkipGlobalProbes) {
+      globalProbes = await ProbeService.findBy({
+        query: {
+          isGlobalProbe: true,
+          shouldAutoEnableProbeOnNewMonitors: true,
+        },
+        select: {
+          _id: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     const projectProbes: Array<Probe> = await ProbeService.findBy({
       query: {
@@ -822,7 +841,7 @@ ${createdItem.description?.trim() || "No description provided."}
       },
     });
 
-    const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
+  const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
 
     if (totalProbes.length === 0) {
       return;

@@ -22,6 +22,8 @@ import React, {
   useState,
 } from "react";
 import LabelsElement from "../../Components/Label/Labels";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import Project from "Common/Models/DatabaseModels/Project";
 
 const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
@@ -31,7 +33,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
-        <ModelTable<Probe>
+  <ModelTable<Probe>
           modelType={Probe}
           id="probes-table"
           name="Settings > Global Probes"
@@ -106,6 +108,46 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description="Here is a guide which will help you get set up"
           link={Route.fromString("/docs/probe/custom-probe")}
           hideOnMobile={true}
+        />
+
+        <CardModelDetail
+          name="Global Probe Auto-Add"
+          cardProps={{
+            title: "Global Probe Auto-Add",
+            description:
+              "Control if global probes should be automatically added to newly created monitors. Disable auto-add if you only want to use custom probes for monitoring.",
+          }}
+          isEditable={true}
+          editButtonText="Edit Setting"
+          formFields={[
+            {
+              field: {
+                doNotAddGlobalProbesByDefaultOnNewMonitors: true,
+              },
+              title: "Do NOT auto-add Global Probes to new monitors",
+              description:
+                "Enable this ONLY if you rely exclusively on custom probes. When enabled, new monitors will not automatically include global probes by default.",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "global-probe-auto-add",
+            fields: [
+              {
+                field: {
+                  doNotAddGlobalProbesByDefaultOnNewMonitors: true,
+                },
+                fieldType: FieldType.Boolean,
+                title: "Do NOT auto-add Global Probes",
+                description:
+                  "If enabled, global probes will NOT be automatically added to new monitors. Use this if you are using ONLY custom probes.",
+                placeholder: "Disabled",
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
         />
 
         <ModelTable<Probe>

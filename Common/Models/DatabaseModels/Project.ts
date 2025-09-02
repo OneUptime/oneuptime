@@ -1291,4 +1291,37 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public letCustomerSupportAccessProject?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: false,
+    title: "Do NOT auto-add Global Probes to new monitors",
+    description:
+      "If enabled, global probes will NOT be automatically added to new monitors. Enable this only if you are using ONLY custom probes to monitor your resources.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
 }
