@@ -124,17 +124,28 @@ redis:
   ipFamily: 4
   auth:
     enabled: true
+    # Will be auto-generated if not provided
+    password: 
   image:
-    repository: bitnamilegacy/redis
+    repository: redis
+    tag: 7-alpine
+    pullPolicy: IfNotPresent
   master:
     service:
+      type: ClusterIP
       ports:
         redis: "6379"
     persistence:
-      enabled: false # We dont need redis persistence, because we dont do anything with it.
+      enabled: false 
+      size: 8Gi
+      storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    resources: {}
   replica:
     persistence:
-      enabled: false # We dont need redis persistence, because we dont do anything with it.
+      enabled: false 
   commonConfiguration: |-
    appendonly no
    save ""

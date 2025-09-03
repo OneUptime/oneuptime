@@ -38,10 +38,6 @@ dependencies:
   version: "14.0.0"
   repository: "https://charts.bitnami.com/bitnami"
   condition: postgresql.enabled
-- name: redis
-  version: "18.19.1"
-  repository: "https://charts.bitnami.com/bitnami"
-  condition: redis.enabled
 - name: clickhouse
   version: "9.0.0"
   repository: "https://charts.bitnami.com/bitnami"
