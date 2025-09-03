@@ -610,6 +610,12 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         labels: {
           name: true,
         },
+        createdByUserId: true,
+        createdByUser: {
+          id: true,
+          name: true,
+          email: true,
+        },
       },
       props: {
         isRoot: true,
@@ -627,7 +633,6 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     coreOperations.push(
       this.createScheduledMaintenanceFeedAsync(
         scheduledMaintenance,
-        createdItem,
       ),
     );
 
@@ -738,17 +743,16 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   @CaptureSpan()
   private async createScheduledMaintenanceFeedAsync(
     scheduledMaintenance: Model,
-    createdItem: Model,
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
+        scheduledMaintenance.createdByUserId || scheduledMaintenance.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${createdItem.scheduledMaintenanceNumber?.toString()} Created: 
+      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created: 
             
-**${createdItem.title || "No title provided."}**:
+**${scheduledMaintenance.title || "No title provided."}**:
       
-${createdItem.description || "No description provided."}
+${scheduledMaintenance.description || "No description provided."}
       
 `;
 
@@ -772,7 +776,7 @@ ${createdItem.description || "No description provided."}
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
         for (const monitor of scheduledMaintenance.monitors) {
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(scheduledMaintenance.projectId!, monitor.id!)).toString()})\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -781,14 +785,14 @@ ${createdItem.description || "No description provided."}
       const scheduledMaintenanceCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
         await ScheduledMaintenanceWorkspaceMessages.getScheduledMaintenanceCreateMessageBlocks(
           {
-            scheduledMaintenanceId: createdItem.id!,
-            projectId: createdItem.projectId!,
+            scheduledMaintenanceId: scheduledMaintenance.id!,
+            projectId: scheduledMaintenance.projectId!,
           },
         );
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-        scheduledMaintenanceId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        scheduledMaintenanceId: scheduledMaintenance.id!,
+        projectId: scheduledMaintenance.projectId!,
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
         displayColor: Red500,

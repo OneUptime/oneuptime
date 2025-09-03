@@ -285,6 +285,12 @@ export class Service extends DatabaseService<Model> {
           name: true,
         },
         rootCause: true,
+        createdByUserId: true,
+        createdByUser: {
+          id: true,
+          name: true,
+          email: true,
+        },
         remediationNotes: true,
         currentAlertState: {
           name: true,
@@ -310,7 +316,7 @@ export class Service extends DatabaseService<Model> {
     const coreOperations: Array<Promise<any>> = [];
 
     // Create feed item asynchronously
-    coreOperations.push(this.createAlertFeedAsync(alert, createdItem));
+    coreOperations.push(this.createAlertFeedAsync(alert));
 
     // Handle state change asynchronously
     coreOperations.push(this.handleAlertStateChangeAsync(createdItem));
@@ -427,18 +433,17 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   private async createAlertFeedAsync(
-    alert: Model,
-    createdItem: Model,
+    alert: Model
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
+        alert.createdByUserId || alert.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🚨 Alert ${createdItem.alertNumber?.toString()} Created: 
+      let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumber?.toString()} Created: 
            
-**${createdItem.title || "No title provided."}**:
+**${alert.title || "No title provided."}**:
      
-${createdItem.description || "No description provided."}
+${alert.description || "No description provided."}
      
 `;
 
@@ -459,20 +464,20 @@ ${createdItem.description || "No description provided."}
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (createdItem.rootCause) {
+      if (alert.rootCause) {
         feedInfoInMarkdown += `\n
 📄 **Root Cause**:
      
-${createdItem.rootCause || "No root cause provided."}
+${alert.rootCause || "No root cause provided."}
      
 `;
       }
 
-      if (createdItem.remediationNotes) {
+      if (alert.remediationNotes) {
         feedInfoInMarkdown += `\n 
 🎯 **Remediation Notes**:
      
-${createdItem.remediationNotes || "No remediation notes provided."}
+${alert.remediationNotes || "No remediation notes provided."}
      
      
      `;
@@ -480,13 +485,13 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 
       const alertCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
         await AlertWorkspaceMessages.getAlertCreateMessageBlocks({
-          alertId: createdItem.id!,
-          projectId: createdItem.projectId!,
+          alertId: alert.id!,
+          projectId: alert.projectId!,
         });
 
       await AlertFeedService.createAlertFeedItem({
-        alertId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        alertId: alert.id!,
+        projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.AlertCreated,
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,

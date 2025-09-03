@@ -597,6 +597,12 @@ export class Service extends DatabaseService<Model> {
           name: true,
         },
         rootCause: true,
+        createdByUserId: true,
+        createdByUser: {
+          id: true,
+          name: true,
+          email: true,
+        },
         remediationNotes: true,
         currentIncidentState: {
           name: true,
@@ -622,7 +628,7 @@ export class Service extends DatabaseService<Model> {
     const coreOperations: Array<Promise<any>> = [];
 
     // Create feed item asynchronously
-    coreOperations.push(this.createIncidentFeedAsync(incident, createdItem));
+    coreOperations.push(this.createIncidentFeedAsync(incident));
 
     // Handle state change asynchronously
     coreOperations.push(this.handleIncidentStateChangeAsync(createdItem));
@@ -750,18 +756,17 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   private async createIncidentFeedAsync(
-    incident: Model,
-    createdItem: Model,
+    incident: Model
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
+        incident.createdByUserId || incident.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🚨 Incident ${createdItem.incidentNumber?.toString()} Created: 
+      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incident.incidentNumber?.toString()} Created: 
         
-**${createdItem.title || "No title provided."}**:
+**${incident.title || "No title provided."}**:
 
-${createdItem.description || "No description provided."}
+${incident.description || "No description provided."}
 
 `;
 
@@ -777,26 +782,26 @@ ${createdItem.description || "No description provided."}
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
         for (const monitor of incident.monitors) {
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (createdItem.rootCause) {
+      if (incident.rootCause) {
         feedInfoInMarkdown += `\n
 📄 **Root Cause**:
 
-${createdItem.rootCause || "No root cause provided."}
+${incident.rootCause || "No root cause provided."}
 
 `;
       }
 
-      if (createdItem.remediationNotes) {
+      if (incident.remediationNotes) {
         feedInfoInMarkdown += `\n 
 🎯 **Remediation Notes**:
 
-${createdItem.remediationNotes || "No remediation notes provided."}
+${incident.remediationNotes || "No remediation notes provided."}
 
 
 `;
@@ -804,13 +809,13 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 
       const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
         await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
-          incidentId: createdItem.id!,
-          projectId: createdItem.projectId!,
+          incidentId: incident.id!,
+          projectId: incident.projectId!,
         });
 
       await IncidentFeedService.createIncidentFeedItem({
-        incidentId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,
