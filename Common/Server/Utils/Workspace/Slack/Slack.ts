@@ -386,8 +386,6 @@ export default class SlackUtil extends WorkspaceBase {
         authToken: data.authToken,
       });
 
-    logger.debug("Existing workspace channels:");
-    logger.debug(existingWorkspaceChannels);
 
     for (let channelName of data.channelNames) {
       // if channel name starts with #, remove it
@@ -438,7 +436,6 @@ export default class SlackUtil extends WorkspaceBase {
       });
 
     logger.debug("All workspace channels:");
-    logger.debug(channels);
 
     if (!channels[data.channelName]) {
       logger.error("Channel not found.");
@@ -585,7 +582,6 @@ export default class SlackUtil extends WorkspaceBase {
     } while (cursor);
 
     logger.debug("All workspace channels obtained:");
-    logger.debug(channels);
     return channels;
   }
 
@@ -700,8 +696,6 @@ export default class SlackUtil extends WorkspaceBase {
         authToken: data.authToken,
       });
 
-    logger.debug("Existing workspace channels:");
-    logger.debug(existingWorkspaceChannels);
 
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
