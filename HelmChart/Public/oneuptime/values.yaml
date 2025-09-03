@@ -123,12 +123,11 @@ redis:
   architecture: standalone
   ipFamily: 4
   auth:
-    enabled: true
     # Will be auto-generated if not provided
     password: 
   image:
     repository: redis
-    tag: 7-alpine
+    tag: latest
     pullPolicy: IfNotPresent
   master:
     service:
