@@ -504,105 +504,121 @@ ${createdItem.description?.trim() || "No description provided."}
       feedInfoInMarkdown += `\n\n`;
     }
 
-    // Parallelize operations that don't depend on each other
-    const parallelOperations: Array<Promise<any>> = [];
+    // Execute operations sequentially with error handling (workspace first)
+    let promiseChain: Promise<any> = Promise.resolve();
 
-    // 1. Essential monitor status operation (must complete first)
-    await this.changeMonitorStatus(
-      createdItem.projectId,
-      [createdItem.id],
-      createdItem.currentMonitorStatusId,
-      false, // notifyOwners = false
-      "This status was created when the monitor was created.",
-      undefined,
-      onCreate.createBy.props,
-    );
-
-    // 2. Start core operations in parallel that can run asynchronously (excluding workspace operations)
-
-    // Add default probes if needed (can be slow with many probes)
-    if (
-      createdItem.monitorType &&
-      MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
-    ) {
-      parallelOperations.push(
-        this.addDefaultProbesToMonitor(
-          createdItem.projectId,
-          createdItem.id,
-        ).catch((error: Error) => {
-          logger.error("Error in adding default probes");
-          logger.error(error);
-          // Don't fail monitor creation due to probe creation issues
-        }),
-      );
-    }
-
-    // Billing operations
-    if (IsBillingEnabled) {
-      parallelOperations.push(
-        ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-          createdItem.projectId,
-        ).catch((error: Error) => {
-          logger.error("Error in billing operations");
-          logger.error(error);
-          // Don't fail monitor creation due to billing issues
-        }),
-      );
-    }
-
-    // Owner operations
-    if (
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      parallelOperations.push(
-        this.addOwners(
-          createdItem.projectId,
-          createdItem.id,
-          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-            [],
-          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-            [],
-          false,
-          onCreate.createBy.props,
-        ).catch((error: Error) => {
-          logger.error("Error in adding owners");
-          logger.error(error);
-          // Don't fail monitor creation due to owner issues
-        }),
-      );
-    }
-
-    // Probe status refresh (can be expensive with many probes)
-    parallelOperations.push(
-      this.refreshMonitorProbeStatus(createdItem.id).catch((error: Error) => {
-        logger.error("Error in refreshing probe status");
-        logger.error(error);
-        // Don't fail monitor creation due to probe status issues
-      }),
-    );
-
-    // Wait for core operations to complete, then handle workspace operations
-    Promise.allSettled(parallelOperations)
-      .then(() => {
-        // Handle workspace operations after core operations complete
-        // Run workspace operations in background without blocking response
-        this.handleWorkspaceOperationsAsync({
+    // Workspace operations first
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.handleWorkspaceOperationsAsync({
           projectId: createdItem.projectId!,
           monitorId: createdItem.id!,
           monitorName: createdItem.name!,
           feedInfoInMarkdown,
           createdByUserId,
-        }).catch((error: Error) => {
-          logger.error("Error in workspace operations");
-          logger.error(error);
-          // Don't fail monitor creation due to workspace issues
         });
+      } catch (error) {
+        logger.error("Workspace operations failed in MonitorService.onCreateSuccess");
+        logger.error(error as Error);
+        return Promise.resolve();
+      }
+    });
+
+    // Change monitor status
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.changeMonitorStatus(
+          createdItem.projectId!,
+          [createdItem.id!],
+          createdItem.currentMonitorStatusId!,
+          false, // notifyOwners = false
+          "This status was created when the monitor was created.",
+          undefined,
+          onCreate.createBy.props,
+        );
+      } catch (error) {
+        logger.error("Change monitor status failed in MonitorService.onCreateSuccess");
+        logger.error(error as Error);
+        return Promise.resolve();
+      }
+    });
+
+    // Add default probes if needed
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (
+          createdItem.monitorType &&
+          MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
+        ) {
+          return await this.addDefaultProbesToMonitor(
+            createdItem.projectId!,
+            createdItem.id!,
+          );
+        }
+        return Promise.resolve();
+      } catch (error) {
+        logger.error("Add default probes failed in MonitorService.onCreateSuccess");
+        logger.error(error as Error);
+        return Promise.resolve();
+      }
+    });
+
+    // Billing operations
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (IsBillingEnabled) {
+          return await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
+            createdItem.projectId!,
+          );
+        }
+        return Promise.resolve();
+      } catch (error) {
+        logger.error("Billing operations failed in MonitorService.onCreateSuccess");
+        logger.error(error as Error);
+        return Promise.resolve();
+      }
+    });
+
+    // Owner operations
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (
+          onCreate.createBy.miscDataProps &&
+          (onCreate.createBy.miscDataProps["ownerTeams"] ||
+            onCreate.createBy.miscDataProps["ownerUsers"]) 
+        ) {
+          return await this.addOwners(
+            createdItem.projectId!,
+            createdItem.id!,
+            (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+              [],
+            (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+              [],
+            false,
+            onCreate.createBy.props,
+          );
+        }
+        return Promise.resolve();
+      } catch (error) {
+        logger.error("Add owners failed in MonitorService.onCreateSuccess");
+        logger.error(error as Error);
+        return Promise.resolve();
+      }
+    });
+
+    // Probe status refresh
+    promiseChain = promiseChain
+      .then(async () => {
+        try {
+          return await this.refreshMonitorProbeStatus(createdItem.id!);
+        } catch (error) {
+          logger.error("Refresh probe status failed in MonitorService.onCreateSuccess");
+          logger.error(error as Error);
+          return Promise.resolve();
+        }
       })
       .catch((error: Error) => {
-        logger.error("Error in parallel monitor creation operations");
-        logger.error(error);
+        logger.error(`Critical error in MonitorService sequential operations: ${error}`);
       });
 
     return createdItem;
