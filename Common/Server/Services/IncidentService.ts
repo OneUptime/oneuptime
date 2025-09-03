@@ -624,90 +624,134 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Incident not found");
     }
 
-    // Execute core operations in parallel first
-    const coreOperations: Array<Promise<any>> = [];
-
-    // Create feed item asynchronously
-    coreOperations.push(this.createIncidentFeedAsync(incident));
-
-    // Handle state change asynchronously
-    coreOperations.push(this.handleIncidentStateChangeAsync(createdItem));
-
-    // Handle owner assignment asynchronously
-    if (
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      coreOperations.push(
-        this.addOwners(
-          createdItem.projectId,
-          createdItem.id,
-          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-            [],
-          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-            [],
-          false,
-          onCreate.createBy.props,
-        ),
-      );
-    }
-
-    // Handle monitor status change and active monitoring asynchronously
-    if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
-      coreOperations.push(
-        this.handleMonitorStatusChangeAsync(createdItem, onCreate),
-      );
-    }
-
-    coreOperations.push(
-      this.disableActiveMonitoringIfManualIncident(createdItem.id!),
-    );
-
     // Release mutex immediately
     this.releaseMutexAsync(onCreate, createdItem.projectId!);
 
-    // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations)
-      .then((coreResults: any[]) => {
-        // Log any errors from core operations
-        coreResults.forEach((result: any, index: number) => {
-          if (result.status === "rejected") {
-            logger.error(
-              `Core operation ${index} failed in IncidentService.onCreateSuccess: ${result.reason}`,
+    // Execute operations sequentially with error handling
+    let promiseChain: Promise<any> = Promise.resolve();
+
+    // Workspace operations
+    promiseChain = promiseChain
+      .then(async () => {
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            return await this.handleIncidentWorkspaceOperationsAsync(
+              createdItem,
             );
           }
-        });
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      });
 
-        // Handle on-call duty policies asynchronously
+    // Create feed item
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.createIncidentFeedAsync(incident);
+      } catch (error) {
+        logger.error(
+          `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
+
+    // Handle state change
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.handleIncidentStateChangeAsync(createdItem);
+      } catch (error) {
+        logger.error(
+          `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
+
+    // Handle owner assignment
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (
+          onCreate.createBy.miscDataProps &&
+          (onCreate.createBy.miscDataProps["ownerTeams"] ||
+            onCreate.createBy.miscDataProps["ownerUsers"]) 
+        ) {
+          return await this.addOwners(
+            createdItem.projectId!,
+            createdItem.id!,
+            (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+              [],
+            (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+              [],
+            false,
+            onCreate.createBy.props,
+          );
+        }
+        return Promise.resolve();
+      } catch (error) {
+        logger.error(
+          `Add owners failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
+
+    // Handle monitor status change
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+          return await this.handleMonitorStatusChangeAsync(
+            createdItem,
+            onCreate,
+          );
+        }
+        return Promise.resolve();
+      } catch (error) {
+        logger.error(
+          `Monitor status change failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
+
+    // Disable active monitoring if manual incident
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.disableActiveMonitoringIfManualIncident(
+          createdItem.id!,
+        );
+      } catch (error) {
+        logger.error(
+          `Disable active monitoring failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
+
+    // Execute on-call duty policies
+    promiseChain = promiseChain.then(async () => {
+      try {
         if (
           createdItem.onCallDutyPolicies?.length &&
           createdItem.onCallDutyPolicies?.length > 0
         ) {
-          this.executeOnCallDutyPoliciesAsync(createdItem).catch(
-            (error: Error) => {
-              logger.error(
-                `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
-              );
-            },
-          );
+          return await this.executeOnCallDutyPoliciesAsync(createdItem);
         }
-
-        // Handle workspace operations after core operations complete
-        if (createdItem.projectId && createdItem.id) {
-          // Run workspace operations in background without blocking response
-          this.handleIncidentWorkspaceOperationsAsync(createdItem).catch(
-            (error: Error) => {
-              logger.error(
-                `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
-              );
-            },
-          );
-        }
-      })
+        return Promise.resolve();
+      } catch (error) {
+        logger.error(
+          `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    })
       .catch((error: Error) => {
         logger.error(
-          `Critical error in IncidentService core operations: ${error}`,
+          `Critical error in IncidentService sequential operations: ${error}`,
         );
       });
 
