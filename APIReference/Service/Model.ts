@@ -99,11 +99,11 @@ export default class ServiceHandler {
     delete tableColumns["version"];
 
     // Set page data
-    pageData['title'] = currentResource.model.singularName;
-    pageData['description'] = currentResource.model.tableDescription;
-    pageData['columns'] = tableColumns;
+    pageData["title"] = currentResource.model.singularName;
+    pageData["description"] = currentResource.model.tableDescription;
+    pageData["columns"] = tableColumns;
 
-    pageData['tablePermissions'] = {
+    pageData["tablePermissions"] = {
       read: currentResource.model.readRecordPermissions.map(
         (permission: Permission) => {
           return PermissionDictionary[permission];
@@ -127,7 +127,7 @@ export default class ServiceHandler {
     };
 
     // Cache the list request data
-    pageData['listRequest'] = await LocalCache.getOrSetString(
+    pageData["listRequest"] = await LocalCache.getOrSetString(
       "model",
       "list-request",
       async () => {
@@ -137,7 +137,7 @@ export default class ServiceHandler {
     );
 
     // Cache the item request data
-    pageData['itemRequest'] = await LocalCache.getOrSetString(
+    pageData["itemRequest"] = await LocalCache.getOrSetString(
       "model",
       "item-request",
       async () => {
@@ -147,7 +147,7 @@ export default class ServiceHandler {
     );
 
     // Cache the item response data
-    pageData['itemResponse'] = await LocalCache.getOrSetString(
+    pageData["itemResponse"] = await LocalCache.getOrSetString(
       "model",
       "item-response",
       async () => {
@@ -159,7 +159,7 @@ export default class ServiceHandler {
     );
 
     // Cache the count request data
-    pageData['countRequest'] = await LocalCache.getOrSetString(
+    pageData["countRequest"] = await LocalCache.getOrSetString(
       "model",
       "count-request",
       async () => {
@@ -171,7 +171,7 @@ export default class ServiceHandler {
     );
 
     // Cache the count response data
-    pageData['countResponse'] = await LocalCache.getOrSetString(
+    pageData["countResponse"] = await LocalCache.getOrSetString(
       "model",
       "count-response",
       async () => {
@@ -182,7 +182,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData['updateRequest'] = await LocalCache.getOrSetString(
+    pageData["updateRequest"] = await LocalCache.getOrSetString(
       "model",
       "update-request",
       async () => {
@@ -193,7 +193,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData['updateResponse'] = await LocalCache.getOrSetString(
+    pageData["updateResponse"] = await LocalCache.getOrSetString(
       "model",
       "update-response",
       async () => {
@@ -204,7 +204,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData['createRequest'] = await LocalCache.getOrSetString(
+    pageData["createRequest"] = await LocalCache.getOrSetString(
       "model",
       "create-request",
       async () => {
@@ -215,7 +215,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData['createResponse'] = await LocalCache.getOrSetString(
+    pageData["createResponse"] = await LocalCache.getOrSetString(
       "model",
       "create-response",
       async () => {
@@ -226,7 +226,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData['deleteRequest'] = await LocalCache.getOrSetString(
+    pageData["deleteRequest"] = await LocalCache.getOrSetString(
       "model",
       "delete-request",
       async () => {
@@ -237,7 +237,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData['deleteResponse'] = await LocalCache.getOrSetString(
+    pageData["deleteResponse"] = await LocalCache.getOrSetString(
       "model",
       "delete-response",
       async () => {
@@ -249,7 +249,7 @@ export default class ServiceHandler {
     );
 
     // Get list response from cache or set it if it's not available
-    pageData['listResponse'] = await LocalCache.getOrSetString(
+    pageData["listResponse"] = await LocalCache.getOrSetString(
       "model",
       "list-response",
       async () => {
@@ -261,14 +261,15 @@ export default class ServiceHandler {
     );
 
     // Generate a unique ID for the example object
-    pageData['exampleObjectID'] = ObjectID.generate();
+    pageData["exampleObjectID"] = ObjectID.generate();
 
     // Construct the API path for the current resource
-    pageData['apiPath'] =
+    pageData["apiPath"] =
       AppApiRoute.toString() + currentResource.model.crudApiPath?.toString();
 
     // Check if the current resource is a master admin API
-    pageData['isMasterAdminApiDocs'] = currentResource.model.isMasterAdminApiDocs;
+    pageData["isMasterAdminApiDocs"] =
+      currentResource.model.isMasterAdminApiDocs;
 
     // Render the index page with the required data
     return res.render(`${ViewsPath}/pages/index`, {

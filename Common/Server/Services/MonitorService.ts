@@ -518,7 +518,9 @@ ${createdItem.description?.trim() || "No description provided."}
           createdByUserId,
         });
       } catch (error) {
-        logger.error("Workspace operations failed in MonitorService.onCreateSuccess");
+        logger.error(
+          "Workspace operations failed in MonitorService.onCreateSuccess",
+        );
         logger.error(error as Error);
         return Promise.resolve();
       }
@@ -537,7 +539,9 @@ ${createdItem.description?.trim() || "No description provided."}
           onCreate.createBy.props,
         );
       } catch (error) {
-        logger.error("Change monitor status failed in MonitorService.onCreateSuccess");
+        logger.error(
+          "Change monitor status failed in MonitorService.onCreateSuccess",
+        );
         logger.error(error as Error);
         return Promise.resolve();
       }
@@ -557,7 +561,9 @@ ${createdItem.description?.trim() || "No description provided."}
         }
         return Promise.resolve();
       } catch (error) {
-        logger.error("Add default probes failed in MonitorService.onCreateSuccess");
+        logger.error(
+          "Add default probes failed in MonitorService.onCreateSuccess",
+        );
         logger.error(error as Error);
         return Promise.resolve();
       }
@@ -573,7 +579,9 @@ ${createdItem.description?.trim() || "No description provided."}
         }
         return Promise.resolve();
       } catch (error) {
-        logger.error("Billing operations failed in MonitorService.onCreateSuccess");
+        logger.error(
+          "Billing operations failed in MonitorService.onCreateSuccess",
+        );
         logger.error(error as Error);
         return Promise.resolve();
       }
@@ -585,15 +593,17 @@ ${createdItem.description?.trim() || "No description provided."}
         if (
           onCreate.createBy.miscDataProps &&
           (onCreate.createBy.miscDataProps["ownerTeams"] ||
-            onCreate.createBy.miscDataProps["ownerUsers"]) 
+            onCreate.createBy.miscDataProps["ownerUsers"])
         ) {
           return await this.addOwners(
             createdItem.projectId!,
             createdItem.id!,
-            (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-              [],
-            (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-              [],
+            (onCreate.createBy.miscDataProps[
+              "ownerUsers"
+            ] as Array<ObjectID>) || [],
+            (onCreate.createBy.miscDataProps[
+              "ownerTeams"
+            ] as Array<ObjectID>) || [],
             false,
             onCreate.createBy.props,
           );
@@ -612,13 +622,17 @@ ${createdItem.description?.trim() || "No description provided."}
         try {
           return await this.refreshMonitorProbeStatus(createdItem.id!);
         } catch (error) {
-          logger.error("Refresh probe status failed in MonitorService.onCreateSuccess");
+          logger.error(
+            "Refresh probe status failed in MonitorService.onCreateSuccess",
+          );
           logger.error(error as Error);
           return Promise.resolve();
         }
       })
       .catch((error: Error) => {
-        logger.error(`Critical error in MonitorService sequential operations: ${error}`);
+        logger.error(
+          `Critical error in MonitorService sequential operations: ${error}`,
+        );
       });
 
     return createdItem;

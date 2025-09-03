@@ -631,22 +631,19 @@ export class Service extends DatabaseService<Model> {
     let promiseChain: Promise<any> = Promise.resolve();
 
     // Workspace operations
-    promiseChain = promiseChain
-      .then(async () => {
-        try {
-          if (createdItem.projectId && createdItem.id) {
-            return await this.handleIncidentWorkspaceOperationsAsync(
-              createdItem,
-            );
-          }
-          return Promise.resolve();
-        } catch (error) {
-          logger.error(
-            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
-          );
-          return Promise.resolve();
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (createdItem.projectId && createdItem.id) {
+          return await this.handleIncidentWorkspaceOperationsAsync(createdItem);
         }
-      });
+        return Promise.resolve();
+      } catch (error) {
+        logger.error(
+          `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
 
     // Create feed item
     promiseChain = promiseChain.then(async () => {
@@ -678,15 +675,17 @@ export class Service extends DatabaseService<Model> {
         if (
           onCreate.createBy.miscDataProps &&
           (onCreate.createBy.miscDataProps["ownerTeams"] ||
-            onCreate.createBy.miscDataProps["ownerUsers"]) 
+            onCreate.createBy.miscDataProps["ownerUsers"])
         ) {
           return await this.addOwners(
             createdItem.projectId!,
             createdItem.id!,
-            (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-              [],
-            (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-              [],
+            (onCreate.createBy.miscDataProps[
+              "ownerUsers"
+            ] as Array<ObjectID>) || [],
+            (onCreate.createBy.miscDataProps[
+              "ownerTeams"
+            ] as Array<ObjectID>) || [],
             false,
             onCreate.createBy.props,
           );
@@ -733,22 +732,23 @@ export class Service extends DatabaseService<Model> {
     });
 
     // Execute on-call duty policies
-    promiseChain = promiseChain.then(async () => {
-      try {
-        if (
-          createdItem.onCallDutyPolicies?.length &&
-          createdItem.onCallDutyPolicies?.length > 0
-        ) {
-          return await this.executeOnCallDutyPoliciesAsync(createdItem);
+    promiseChain = promiseChain
+      .then(async () => {
+        try {
+          if (
+            createdItem.onCallDutyPolicies?.length &&
+            createdItem.onCallDutyPolicies?.length > 0
+          ) {
+            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
         }
-        return Promise.resolve();
-      } catch (error) {
-        logger.error(
-          `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
-        );
-        return Promise.resolve();
-      }
-    })
+      })
       .catch((error: Error) => {
         logger.error(
           `Critical error in IncidentService sequential operations: ${error}`,
@@ -799,9 +799,7 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  private async createIncidentFeedAsync(
-    incident: Model
-  ): Promise<void> {
+  private async createIncidentFeedAsync(incident: Model): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
         incident.createdByUserId || incident.createdByUser?.id;

@@ -25,7 +25,7 @@ export default class ServiceHandler {
     pageDescription = "Learn how permissions work with OneUptime";
 
     // Filter permissions to only include those assignable to tenants
-    pageData['permissions'] = PermissionHelper.getAllPermissionProps().filter(
+    pageData["permissions"] = PermissionHelper.getAllPermissionProps().filter(
       (i: PermissionProps) => {
         return i.isAssignableToTenant;
       },

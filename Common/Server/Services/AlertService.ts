@@ -139,7 +139,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async acknowledgeAlert(
     alertId: ObjectID,
-    acknowledgedByUserId: ObjectID
+    acknowledgedByUserId: ObjectID,
   ): Promise<void> {
     const alert: Model | null = await this.findOneById({
       id: alertId,
@@ -170,7 +170,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
       );
     }
 
@@ -190,7 +190,7 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   protected override async onBeforeCreate(
-    createBy: CreateBy<Model>
+    createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create alert.");
@@ -214,7 +214,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings."
+        "Created alert state not found for this project. Please add created alert state from settings.",
       );
     }
 
@@ -248,7 +248,7 @@ export class Service extends DatabaseService<Model> {
           {
             userId: userId!,
             projectId: projectId,
-          }
+          },
         )}`;
       }
     }
@@ -259,7 +259,7 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
-    createdItem: Model
+    createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
       throw new BadDataException("projectId is required");
@@ -283,7 +283,7 @@ export class Service extends DatabaseService<Model> {
             return await this.handleAlertWorkspaceOperationsAsync(createdItem);
           } catch (error) {
             logger.error(
-              `Workspace operations failed in AlertService.onCreateSuccess: ${error}`
+              `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
             );
             return Promise.resolve();
           }
@@ -295,7 +295,7 @@ export class Service extends DatabaseService<Model> {
           return await this.createAlertFeedAsync(createdItem.id!);
         } catch (error) {
           logger.error(
-            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`
+            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
           );
           return Promise.resolve(); // Continue chain even on error
         }
@@ -305,7 +305,7 @@ export class Service extends DatabaseService<Model> {
           return await this.handleAlertStateChangeAsync(createdItem);
         } catch (error) {
           logger.error(
-            `Handle alert state change failed in AlertService.onCreateSuccess: ${error}`
+            `Handle alert state change failed in AlertService.onCreateSuccess: ${error}`,
           );
           return Promise.resolve(); // Continue chain even on error
         }
@@ -327,14 +327,13 @@ export class Service extends DatabaseService<Model> {
                 "ownerTeams"
               ] as Array<ObjectID>) || [],
               false,
-              onCreate.createBy.props
+              onCreate.createBy.props,
             );
-          } else {
-            return Promise.resolve();
           }
+          return Promise.resolve();
         } catch (error) {
           logger.error(
-            `Add owners failed in AlertService.onCreateSuccess: ${error}`
+            `Add owners failed in AlertService.onCreateSuccess: ${error}`,
           );
           return Promise.resolve(); // Continue chain even on error
         }
@@ -348,15 +347,16 @@ export class Service extends DatabaseService<Model> {
             return await this.executeAlertOnCallDutyPoliciesAsync(createdItem);
           } catch (error) {
             logger.error(
-              `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`
+              `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
             );
             return Promise.resolve();
           }
         }
         return Promise.resolve();
-      }).catch((error: Error) => {
+      })
+      .catch((error: Error) => {
         logger.error(
-          `Critical error in AlertService sequential operations: ${error}`
+          `Critical error in AlertService sequential operations: ${error}`,
         );
       });
 
@@ -365,12 +365,12 @@ export class Service extends DatabaseService<Model> {
 
   @CaptureSpan()
   private async handleAlertWorkspaceOperationsAsync(
-    createdItem: Model
+    createdItem: Model,
   ): Promise<void> {
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
-          "projectId and id are required for workspace operations"
+          "projectId and id are required for workspace operations",
         );
       }
 
@@ -524,7 +524,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
     try {
       if (!createdItem.projectId || !createdItem.id) {
         throw new BadDataException(
-          "projectId and id are required for state change"
+          "projectId and id are required for state change",
         );
       }
 
@@ -547,7 +547,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
 
   @CaptureSpan()
   private async executeAlertOnCallDutyPoliciesAsync(
-    createdItem: Model
+    createdItem: Model,
   ): Promise<void> {
     try {
       if (
@@ -563,7 +563,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
                 triggeredByAlertId: createdItem.id!,
                 userNotificationEventType:
                   UserNotificationEventType.AlertCreated,
-              }
+              },
             );
           });
 
@@ -601,7 +601,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         }
 
         return channel.workspaceType === data.workspaceType;
-      }
+      },
     );
   }
 
@@ -692,7 +692,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         const isUserAlreadyAdded: User | undefined = users.find(
           (user: User) => {
             return user.id!.toString() === teamUser.id!.toString();
-          }
+          },
         );
 
         if (!isUserAlreadyAdded) {
@@ -711,7 +711,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
     userIds: Array<ObjectID>,
     teamIds: Array<ObjectID>,
     notifyOwners: boolean,
-    props: DatabaseCommonInteractionProps
+    props: DatabaseCommonInteractionProps,
   ): Promise<void> {
     for (let teamId of teamIds) {
       if (typeof teamId === Typeof.String) {
@@ -749,19 +749,19 @@ ${alert.remediationNotes || "No remediation notes provided."}
   @CaptureSpan()
   public async getAlertLinkInDashboard(
     projectId: ObjectID,
-    alertId: ObjectID
+    alertId: ObjectID,
   ): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/alerts/${alertId.toString()}`
+      `/${projectId.toString()}/alerts/${alertId.toString()}`,
     );
   }
 
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    updatedItemIds: ObjectID[]
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     if (
       onUpdate.updateBy.data.currentAlertStateId &&
@@ -898,7 +898,7 @@ ${labels
             await AlertSeverityService.findOneBy({
               query: {
                 _id: new ObjectID(
-                  (onUpdate.updateBy.data.alertSeverity as any)?._id.toString()
+                  (onUpdate.updateBy.data.alertSeverity as any)?._id.toString(),
                 ),
               },
               select: {
@@ -940,7 +940,7 @@ ${alertSeverity.name}
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualAlerts(
     monitorId: ObjectID,
-    proojectId: ObjectID
+    proojectId: ObjectID,
   ): Promise<boolean> {
     const resolvedState: AlertState | null = await AlertStateService.findOneBy({
       query: {
@@ -974,7 +974,7 @@ ${alertSeverity.name}
 
   @CaptureSpan()
   protected override async onBeforeDelete(
-    deleteBy: DeleteBy<Model>
+    deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const alerts: Array<Model> = await this.findBy({
       query: deleteBy.query,
@@ -1161,7 +1161,7 @@ ${alertSeverity.name}
 
     alertCountMetric.time = alertStartsAt;
     alertCountMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-      alertCountMetric.time
+      alertCountMetric.time,
     );
     alertCountMetric.metricPointType = MetricPointType.Sum;
 
@@ -1178,7 +1178,7 @@ ${alertSeverity.name}
     const isAlertAcknowledged: boolean = alertStateTimelines.some(
       (timeline: AlertStateTimeline) => {
         return timeline.alertState?.isAcknowledgedState;
-      }
+      },
     );
 
     if (isAlertAcknowledged) {
@@ -1196,7 +1196,7 @@ ${alertSeverity.name}
         timeToAcknowledgeMetric.name = AlertMetricType.TimeToAcknowledge;
         timeToAcknowledgeMetric.value = OneUptimeDate.getDifferenceInSeconds(
           ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
-          alertStartsAt
+          alertStartsAt,
         );
         timeToAcknowledgeMetric.attributes = {
           alertId: data.alertId.toString(),
@@ -1212,7 +1212,7 @@ ${alertSeverity.name}
           alert.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToAcknowledgeMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToAcknowledgeMetric.time
+          timeToAcknowledgeMetric.time,
         );
         timeToAcknowledgeMetric.metricPointType = MetricPointType.Sum;
 
@@ -1230,7 +1230,7 @@ ${alertSeverity.name}
     const isAlertResolved: boolean = alertStateTimelines.some(
       (timeline: AlertStateTimeline) => {
         return timeline.alertState?.isResolvedState;
-      }
+      },
     );
 
     if (isAlertResolved) {
@@ -1249,7 +1249,7 @@ ${alertSeverity.name}
         timeToResolveMetric.value = OneUptimeDate.getDifferenceInSeconds(
           resolvedAlertStateTimeline?.startsAt ||
             OneUptimeDate.getCurrentDate(),
-          alertStartsAt
+          alertStartsAt,
         );
         timeToResolveMetric.attributes = {
           alertId: data.alertId.toString(),
@@ -1265,7 +1265,7 @@ ${alertSeverity.name}
           alert.createdAt ||
           OneUptimeDate.getCurrentDate();
         timeToResolveMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-          timeToResolveMetric.time
+          timeToResolveMetric.time,
         );
         timeToResolveMetric.metricPointType = MetricPointType.Sum;
 
@@ -1295,7 +1295,7 @@ ${alertSeverity.name}
       alertDurationMetric.name = AlertMetricType.AlertDuration;
       alertDurationMetric.value = OneUptimeDate.getDifferenceInSeconds(
         alertEndsAt,
-        alertStartsAt
+        alertStartsAt,
       );
       alertDurationMetric.attributes = {
         alertId: data.alertId.toString(),
@@ -1311,7 +1311,7 @@ ${alertSeverity.name}
         alert.createdAt ||
         OneUptimeDate.getCurrentDate();
       alertDurationMetric.timeUnixNano = OneUptimeDate.toUnixNano(
-        alertDurationMetric.time
+        alertDurationMetric.time,
       );
       alertDurationMetric.metricPointType = MetricPointType.Sum;
 
@@ -1415,7 +1415,7 @@ ${alertSeverity.name}
   @CaptureSpan()
   public async resolveAlert(
     alertId: ObjectID,
-    resolvedByUserId: ObjectID
+    resolvedByUserId: ObjectID,
   ): Promise<Model> {
     const alert: Model | null = await this.findOneById({
       id: alertId,
@@ -1447,7 +1447,7 @@ ${alertSeverity.name}
 
     if (!alertState || !alertState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings."
+        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
       );
     }
 
@@ -1515,7 +1515,7 @@ ${alertSeverity.name}
         props: { isRoot: true },
       });
       logger.info(
-        `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`
+        `Updated Alert ${alert.id} current state to ${latestTimeline.alertStateId}`,
       );
     }
   }

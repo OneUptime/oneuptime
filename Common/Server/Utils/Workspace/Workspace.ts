@@ -145,7 +145,7 @@ export default class WorkspaceUtil {
     messagePayloadsByWorkspace: Array<WorkspaceMessagePayload>;
   }): Promise<Array<WorkspaceSendMessageResponse>> {
     logger.debug("postToWorkspaceChannels called with data:");
-    logger.debug(JSON.stringify(data, null ,2));
+    logger.debug(JSON.stringify(data, null, 2));
 
     const responses: Array<WorkspaceSendMessageResponse> = [];
 

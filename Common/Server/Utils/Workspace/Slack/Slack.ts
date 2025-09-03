@@ -386,7 +386,6 @@ export default class SlackUtil extends WorkspaceBase {
         authToken: data.authToken,
       });
 
-
     for (let channelName of data.channelNames) {
       // if channel name starts with #, remove it
       if (channelName && channelName.startsWith("#")) {
@@ -695,7 +694,6 @@ export default class SlackUtil extends WorkspaceBase {
       await this.getAllWorkspaceChannels({
         authToken: data.authToken,
       });
-
 
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 

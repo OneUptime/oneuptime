@@ -683,15 +683,17 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             createdItem.id &&
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps["ownerTeams"] ||
-              onCreate.createBy.miscDataProps["ownerUsers"]) 
+              onCreate.createBy.miscDataProps["ownerUsers"])
           ) {
             return await this.addOwners(
               createdItem.projectId!,
               createdItem.id!,
-              (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-                [],
-              (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-                [],
+              (onCreate.createBy.miscDataProps[
+                "ownerUsers"
+              ] as Array<ObjectID>) || [],
+              (onCreate.createBy.miscDataProps[
+                "ownerTeams"
+              ] as Array<ObjectID>) || [],
               false,
               onCreate.createBy.props,
             );
@@ -763,7 +765,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
-        scheduledMaintenance.createdByUserId || scheduledMaintenance.createdByUser?.id;
+        scheduledMaintenance.createdByUserId ||
+        scheduledMaintenance.createdByUser?.id;
 
       let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created: 
             

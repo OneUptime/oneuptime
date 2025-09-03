@@ -41,7 +41,7 @@ const HomeFeatureSet: FeatureSet = {
             // Try to get cached home URL first.
             let homeUrl: string | undefined = LocalCache.getString(
               "home",
-              "url"
+              "url",
             );
 
             if (!homeUrl) {
@@ -58,7 +58,7 @@ const HomeFeatureSet: FeatureSet = {
           }
         }
         next();
-      }
+      },
     );
 
     app.get("/", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -82,9 +82,9 @@ const HomeFeatureSet: FeatureSet = {
       (_req: ExpressRequest, res: ExpressResponse) => {
         // fetch the file from https://raw.githubusercontent.com/oneuptime/infrastructure-agent/release/Scripts/Install/Linux.sh  and send it as response
         res.redirect(
-          "https://raw.githubusercontent.com/OneUptime/oneuptime/release/InfrastructureAgent/Scripts/Install/Linux.sh"
+          "https://raw.githubusercontent.com/OneUptime/oneuptime/release/InfrastructureAgent/Scripts/Install/Linux.sh",
         );
-      }
+      },
     );
 
     app.get("/support", async (_req: ExpressRequest, res: ExpressResponse) => {
@@ -105,7 +105,7 @@ const HomeFeatureSet: FeatureSet = {
           }),
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get("/pricing", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -892,7 +892,7 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: true,
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get(
@@ -901,7 +901,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/status-page`, {
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get(
@@ -910,7 +910,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/logs-management`, {
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get("/product/apm", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -927,7 +927,7 @@ const HomeFeatureSet: FeatureSet = {
       "/logs-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/logs-management");
-      }
+      },
     );
 
     let gitHubContributors: Array<JSONObject> = [];
@@ -947,8 +947,8 @@ const HomeFeatureSet: FeatureSet = {
             await API.get<Array<JSONObject>>(
               URL.fromString(
                 "https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" +
-                  pageNumber
-              )
+                  pageNumber,
+              ),
             );
           pageNumber++;
           if ((response.data as Array<JSONObject>).length < 30) {
@@ -956,7 +956,7 @@ const HomeFeatureSet: FeatureSet = {
           }
 
           contributors = contributors.concat(
-            response.data as Array<JSONObject>
+            response.data as Array<JSONObject>,
           );
         }
 
@@ -966,8 +966,8 @@ const HomeFeatureSet: FeatureSet = {
 
       const response: HTTPResponse<JSONObject> = await API.get(
         URL.fromString(
-          "https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1"
-        )
+          "https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1",
+        ),
       );
 
       if (gitHubCommits === "-") {
@@ -981,12 +981,12 @@ const HomeFeatureSet: FeatureSet = {
           .trim();
         const url: URL = URL.fromString(urlString!);
         const commits: string = Number.parseInt(
-          url.getQueryParam("page") as string
+          url.getQueryParam("page") as string,
         ).toLocaleString();
 
         if (!gitHubBasicInfo) {
           const basicInfo: HTTPResponse<JSONObject> = await API.get(
-            URL.fromString("https://api.github.com/repos/oneuptime/oneuptime")
+            URL.fromString("https://api.github.com/repos/oneuptime/oneuptime"),
           );
 
           gitHubBasicInfo = basicInfo.data as JSONObject;
@@ -1016,7 +1016,7 @@ const HomeFeatureSet: FeatureSet = {
           footerCtaText:
             "Start with Status Pages, expand into everything else. Sign up today.",
         });
-      }
+      },
     );
 
     app.get("/status-page", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1037,7 +1037,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/monitoring`, {
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get(
@@ -1046,7 +1046,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/on-call`, {
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get(
@@ -1055,7 +1055,7 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/workflows`, {
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get(
@@ -1064,14 +1064,14 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/incident-management`, {
           enableGoogleTagManager: IsBillingEnabled,
         });
-      }
+      },
     );
 
     app.get(
       "/incident-management",
       (_req: ExpressRequest, res: ExpressResponse) => {
         res.redirect("/product/incident-management");
-      }
+      },
     );
 
     app.get(
@@ -1085,7 +1085,7 @@ const HomeFeatureSet: FeatureSet = {
           blackLogo: false,
           requestDemoCta: true,
         });
-      }
+      },
     );
 
     app.get("/legal", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1148,7 +1148,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "subprocessors",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get("/legal/ccpa", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1211,7 +1211,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "iso-27001",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get(
@@ -1226,7 +1226,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "iso-27017",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get(
@@ -1241,7 +1241,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "iso-27018",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get(
@@ -1256,7 +1256,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "iso-27017",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get(
@@ -1271,7 +1271,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "iso-27018",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get("/legal/soc-2", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1310,7 +1310,7 @@ const HomeFeatureSet: FeatureSet = {
           section: "data-residency",
           requestDemoCta: false,
         });
-      }
+      },
     );
 
     app.get("/legal/gdpr", (_req: ExpressRequest, res: ExpressResponse) => {
@@ -1341,7 +1341,7 @@ const HomeFeatureSet: FeatureSet = {
       "/compare/:product",
       (req: ExpressRequest, res: ExpressResponse) => {
         const productConfig: Product = ProductCompare(
-          req.params["product"] as string
+          req.params["product"] as string,
         );
 
         if (!productConfig) {
@@ -1357,7 +1357,7 @@ const HomeFeatureSet: FeatureSet = {
           productConfig,
           onlyShowCompareTable: false,
         });
-      }
+      },
     );
 
     // Dynamic Sitemap
@@ -1374,7 +1374,7 @@ const HomeFeatureSet: FeatureSet = {
           res.setHeader("Content-Type", "text/xml");
           res.status(200).send(fallback);
         }
-      }
+      },
     );
 
     // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
@@ -1416,7 +1416,7 @@ const HomeFeatureSet: FeatureSet = {
         setHeaders(res: ExpressResponse) {
           res.setHeader("Cache-Control", "public,max-age=31536000,immutable");
         },
-      })
+      }),
     );
 
     app.get("/*", (_req: ExpressRequest, res: ExpressResponse) => {
