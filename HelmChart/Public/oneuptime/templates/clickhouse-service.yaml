@@ -1,0 +1,97 @@
+{{- if .Values.clickhouse.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-clickhouse
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: {{ .Values.clickhouse.service.type }}
+  ports:
+  - port: {{ .Values.clickhouse.service.ports.http | int }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: {{ .Values.clickhouse.service.ports.tcp | int }}
+    targetPort: tcp
+    protocol: TCP
+    name: tcp
+  - port: {{ .Values.clickhouse.service.ports.mysql | int }}
+    targetPort: mysql
+    protocol: TCP
+    name: mysql
+  - port: {{ .Values.clickhouse.service.ports.postgresql | int }}
+    targetPort: postgresql
+    protocol: TCP
+    name: postgresql
+  - port: {{ .Values.clickhouse.service.ports.interserver | int }}
+    targetPort: interserver
+    protocol: TCP
+    name: interserver
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-clickhouse-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: {{ .Values.clickhouse.service.ports.http | int }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: {{ .Values.clickhouse.service.ports.tcp | int }}
+    targetPort: tcp
+    protocol: TCP
+    name: tcp
+  - port: {{ .Values.clickhouse.service.ports.mysql | int }}
+    targetPort: mysql
+    protocol: TCP
+    name: mysql
+  - port: {{ .Values.clickhouse.service.ports.postgresql | int }}
+    targetPort: postgresql
+    protocol: TCP
+    name: postgresql
+  - port: {{ .Values.clickhouse.service.ports.interserver | int }}
+    targetPort: interserver
+    protocol: TCP
+    name: interserver
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-clickhouse
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
