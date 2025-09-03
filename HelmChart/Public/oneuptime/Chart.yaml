@@ -38,10 +38,6 @@ dependencies:
   version: "14.0.0"
   repository: "https://charts.bitnami.com/bitnami"
   condition: postgresql.enabled
-- name: clickhouse
-  version: "9.0.0"
-  repository: "https://charts.bitnami.com/bitnami"
-  condition: clickhouse.enabled
 - name: keda
   version: "2.17.2"
   repository: "https://kedacore.github.io/charts"

@@ -2,11 +2,8 @@ dependencies:
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
   version: 14.0.0
-- name: clickhouse
-  repository: https://charts.bitnami.com/bitnami
-  version: 9.0.0
 - name: keda
   repository: https://kedacore.github.io/charts
   version: 2.17.2
-digest: sha256:1dcccf13357b00e7823ab418aa0166ae55a6c0dfccc33f14184413ab761e4b83
-generated: "2025-09-03T19:30:42.792339+01:00"
+digest: sha256:34f00b81a7b81860cc76ee73a2a8f9a2c1fb67e33e0536f9f3593b501ffb0b41
+generated: "2025-09-03T20:17:46.11322+01:00"
