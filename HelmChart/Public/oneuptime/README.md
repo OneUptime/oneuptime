@@ -175,14 +175,48 @@ externalPostgres:
 
 ### Redis
 
-If you would like to use an external redis database, please add these env vars to your values.yaml file. 
+OneUptime includes a built-in Redis deployment using the official Redis Docker image. Redis is used for caching and session management.
+
+#### Built-in Redis Configuration
+
+The default configuration provides a standalone Redis instance with authentication enabled:
 
 ```yaml
-
 redis:
-  # Set Internal Redis enabled to false, so we dont install the redis database in your cluster
-  enabled: false
+  enabled: true
+  auth:
+    # Will be auto-generated if not provided
+    password: "your-redis-password"
+  image:
+    repository: redis
+    tag: latest
+    pullPolicy: IfNotPresent
+  master:
+    service:
+      type: ClusterIP
+      ports:
+        redis: "6379"
+    persistence:
+      enabled: false 
+      size: 8Gi
+      storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    resources: {}
+  commonConfiguration: |-
+   appendonly no
+   save ""
+```
 
+#### External Redis Configuration
+
+If you would like to use an external Redis database, please add these env vars to your values.yaml file:
+
+```yaml
+redis:
+  # Set Internal Redis enabled to false, so we dont install Redis in your cluster
+  enabled: false
 
 externalRedis: 
   host: 
@@ -285,7 +319,7 @@ image:
   tag: <specific-version>
 ```
 
-- [ ] Please pin Postgresql, Redis and Clickhouse versions to a specific version. This will prevent any breaking changes from affecting your installation.
+- [ ] Please pin OneUptime, PostgreSQL, Redis, and ClickHouse versions to a specific version. This will prevent any breaking changes from affecting your installation.
 
 When you install, you can check the version installed by describing the pods. 
 
@@ -307,10 +341,11 @@ postgresql:
     tag: <specific-version>
 ```
 
-Please do the same for Redis and Clickhouse.
+Please do the same for Redis and ClickHouse.
+```
 
 - [ ] Please make sure you have backups enabled for your PVCs. This is outside the scope of this chart. Please refer to your cloud provider's documentation on how to enable backups for PVCs.
-- [ ] Please make sure you have static passwords for your database passwords (for redis, clickhouse and postgres). You can refer to Bitnami documentation on how to set static passwords for these databases. 
+- [ ] Please make sure you have static passwords for your database passwords (for Redis, ClickHouse and PostgreSQL).
 - [ ] Please set `oneuptimeSecret` and `encryptionSecret` (or setup in `externalSecrets` section) to a long random string. You can use a password generator to generate these strings.
 - [ ] Please set `probes.<key>.key` to a long random string. This is used to secure your probes.
 - [ ] Please regularly update OneUptime. We release updates every day. We recommend you to update the software at least once a week if you're running OneUptime production. 
@@ -321,13 +356,14 @@ We release frequently, sometimes multiple times a day. It's usually safe to upgr
 
 ## Chart Dependencies
 
-We use these charts as dependencies. You dont need to install them separately. Please read the readme for these individual charts to understand the configuration options.
+We use these charts as dependencies for some components. You dont need to install them separately. Please read the readme for these individual charts to understand the configuration options.
 
 | Chart | Description | Repository | 
 | ----- | ----------- | ---------- | 
 | `postgresql` | PostgreSQL database | https://charts.bitnami.com/bitnami |
-| `redis` | Redis database | https://charts.bitnami.com/bitnami |
-| `clickhouse` | Clickhouse database | https://charts.bitnami.com/bitnami |
+| `clickhouse` | ClickHouse database | https://charts.bitnami.com/bitnami |
+| `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
+
 
 ## Uninstalling OneUptime
 

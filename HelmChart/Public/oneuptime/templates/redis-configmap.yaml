@@ -1,0 +1,36 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-redis-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-redis
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+    appname: oneuptime
+data:
+  redis.conf.template: |
+    # Network
+    bind 0.0.0.0
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    
+    # General
+    daemonize no
+    pidfile /var/run/redis.pid
+    loglevel notice
+    databases 16
+    
+    # Security
+    requirepass ${REDIS_PASSWORD}
+    
+    # Memory management
+    maxmemory-policy allkeys-lru
+    
+    # Custom configuration from values
+{{ .Values.redis.commonConfiguration | indent 4 }}
+{{- end }}

@@ -311,7 +311,7 @@ Usage:
   {{- if $.Values.redis.enabled }}
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "redis"  }}
+        name: {{ $.Release.Name }}-redis
         key: redis-password
   {{- else }}
   {{- if $.Values.externalRedis.password }}
