@@ -362,6 +362,7 @@ We use these charts as dependencies for some components. You dont need to instal
 | ----- | ----------- | ---------- | 
 | `postgresql` | PostgreSQL database | https://charts.bitnami.com/bitnami |
 | `clickhouse` | ClickHouse database | https://charts.bitnami.com/bitnami |
+| `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
 
 
 ## Uninstalling OneUptime
