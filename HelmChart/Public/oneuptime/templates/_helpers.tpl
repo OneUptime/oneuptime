@@ -309,14 +309,10 @@ Usage:
   {{- end }}
 - name: REDIS_PASSWORD
   {{- if $.Values.redis.enabled }}
-  {{- if $.Values.redis.auth.enabled }}
   valueFrom:
     secretKeyRef:
         name: {{ $.Release.Name }}-redis
         key: redis-password
-  {{- else }}
-  value: ""
-  {{- end }}
   {{- else }}
   {{- if $.Values.externalRedis.password }}
   valueFrom:
