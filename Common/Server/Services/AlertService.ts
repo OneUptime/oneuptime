@@ -274,9 +274,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     // Execute operations sequentially with error handling
-    let promiseChain: Promise<any> = Promise.resolve();
-
-    promiseChain = promiseChain
+    Promise.resolve()
       .then(async () => {
         if (createdItem.projectId && createdItem.id) {
           try {

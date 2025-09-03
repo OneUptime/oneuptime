@@ -627,55 +627,46 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     }
 
     // Execute operations sequentially with error handling
-    let promiseChain: Promise<any> = Promise.resolve();
-
-    // Workspace operations first
-    promiseChain = promiseChain.then(async () => {
-      try {
-        if (createdItem.projectId && createdItem.id) {
-          return await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+    Promise.resolve()
+      .then(async () => {
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            return await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+              createdItem,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createScheduledMaintenanceFeedAsync(
+            scheduledMaintenance,
+          );
+        } catch (error) {
+          logger.error(
+            `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createScheduledMaintenanceStateTimelineAsync(
             createdItem,
           );
+        } catch (error) {
+          logger.error(
+            `Create scheduled maintenance state timeline failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
         }
-        return Promise.resolve();
-      } catch (error) {
-        logger.error(
-          `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-        );
-        return Promise.resolve();
-      }
-    });
-
-    // Create feed item
-    promiseChain = promiseChain.then(async () => {
-      try {
-        return await this.createScheduledMaintenanceFeedAsync(
-          scheduledMaintenance,
-        );
-      } catch (error) {
-        logger.error(
-          `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-        );
-        return Promise.resolve();
-      }
-    });
-
-    // Create state timeline
-    promiseChain = promiseChain.then(async () => {
-      try {
-        return await this.createScheduledMaintenanceStateTimelineAsync(
-          createdItem,
-        );
-      } catch (error) {
-        logger.error(
-          `Create scheduled maintenance state timeline failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-        );
-        return Promise.resolve();
-      }
-    });
-
-    // Handle owner assignment
-    promiseChain = promiseChain
+      })
       .then(async () => {
         try {
           if (
