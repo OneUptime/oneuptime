@@ -599,7 +599,7 @@ export class Service extends DatabaseService<Model> {
         rootCause: true,
         createdByUserId: true,
         createdByUser: {
-          id: true,
+          _id: true,
           name: true,
           email: true,
         },

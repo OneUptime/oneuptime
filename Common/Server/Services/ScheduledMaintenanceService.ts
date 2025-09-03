@@ -612,7 +612,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         },
         createdByUserId: true,
         createdByUser: {
-          id: true,
+          _id: true,
           name: true,
           email: true,
         },
