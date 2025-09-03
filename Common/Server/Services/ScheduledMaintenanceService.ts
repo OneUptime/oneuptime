@@ -626,70 +626,87 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       throw new BadDataException("Scheduled Maintenance not found");
     }
 
-    // Execute core operations in parallel first
-    const coreOperations: Array<Promise<any>> = [];
+    // Execute operations sequentially with error handling
+    let promiseChain: Promise<any> = Promise.resolve();
 
-    // Create feed item asynchronously
-    coreOperations.push(
-      this.createScheduledMaintenanceFeedAsync(
-        scheduledMaintenance,
-      ),
-    );
+    // Workspace operations first
+    promiseChain = promiseChain.then(async () => {
+      try {
+        if (createdItem.projectId && createdItem.id) {
+          return await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+            createdItem,
+          );
+        }
+        return Promise.resolve();
+      } catch (error) {
+        logger.error(
+          `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
 
-    // Create state timeline asynchronously
-    coreOperations.push(
-      this.createScheduledMaintenanceStateTimelineAsync(createdItem),
-    );
+    // Create feed item
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.createScheduledMaintenanceFeedAsync(
+          scheduledMaintenance,
+        );
+      } catch (error) {
+        logger.error(
+          `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
 
-    // Handle owner assignment asynchronously
-    if (
-      createdItem.projectId &&
-      createdItem.id &&
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      coreOperations.push(
-        this.addOwners(
-          createdItem.projectId!,
-          createdItem.id!,
-          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-            [],
-          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-            [],
-          false,
-          onCreate.createBy.props,
-        ),
-      );
-    }
+    // Create state timeline
+    promiseChain = promiseChain.then(async () => {
+      try {
+        return await this.createScheduledMaintenanceStateTimelineAsync(
+          createdItem,
+        );
+      } catch (error) {
+        logger.error(
+          `Create scheduled maintenance state timeline failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+        );
+        return Promise.resolve();
+      }
+    });
 
-    // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations)
-      .then((coreResults: any[]) => {
-        // Log any errors from core operations
-        coreResults.forEach((result: any, index: number) => {
-          if (result.status === "rejected") {
-            logger.error(
-              `Core operation ${index} failed in ScheduledMaintenanceService.onCreateSuccess: ${result.reason}`,
+    // Handle owner assignment
+    promiseChain = promiseChain
+      .then(async () => {
+        try {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps["ownerTeams"] ||
+              onCreate.createBy.miscDataProps["ownerUsers"]) 
+          ) {
+            return await this.addOwners(
+              createdItem.projectId!,
+              createdItem.id!,
+              (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
+                [],
+              (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
+                [],
+              false,
+              onCreate.createBy.props,
             );
           }
-        });
-
-        // Handle workspace operations after core operations complete
-        if (createdItem.projectId && createdItem.id) {
-          // Run workspace operations in background without blocking response
-          this.handleScheduledMaintenanceWorkspaceOperationsAsync(
-            createdItem,
-          ).catch((error: Error) => {
-            logger.error(
-              `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
-            );
-          });
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Add owners failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
         }
       })
       .catch((error: Error) => {
         logger.error(
-          `Critical error in ScheduledMaintenanceService core operations: ${error}`,
+          `Critical error in ScheduledMaintenanceService sequential operations: ${error}`,
         );
       });
 
