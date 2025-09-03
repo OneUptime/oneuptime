@@ -119,9 +119,6 @@ clickhouse:
 
 redis:
   enabled: true
-  clusterDomain: *global-cluster-domain
-  architecture: standalone
-  ipFamily: 4
   auth:
     # Will be auto-generated if not provided
     password: 
