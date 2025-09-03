@@ -1,0 +1,50 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-redis-master
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-redis
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+    appname: oneuptime
+spec:
+  type: {{ .Values.redis.master.service.type | default "ClusterIP" }}
+  {{- if and (eq .Values.redis.master.service.type "LoadBalancer") .Values.redis.master.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.redis.master.service.loadBalancerIP }}
+  {{- end }}
+  ports:
+  - name: redis
+    port: {{ .Values.redis.master.service.ports.redis }}
+    targetPort: redis
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-redis
+    app.kubernetes.io/component: redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-redis-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-redis
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: redis
+    appname: oneuptime
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: redis
+    port: {{ .Values.redis.master.service.ports.redis }}
+    targetPort: redis
+    protocol: TCP
+  selector:
+    app: {{ .Release.Name }}-redis
+    app.kubernetes.io/component: redis
+{{- end }}
