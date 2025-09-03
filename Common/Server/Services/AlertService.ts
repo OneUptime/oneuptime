@@ -459,7 +459,7 @@ ${alert.description || "No description provided."}
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
         const monitor: Monitor = alert.monitor;
-        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(alert.projectId!, monitor.id!)).toString()})\n`;
 
         feedInfoInMarkdown += `\n\n`;
       }
