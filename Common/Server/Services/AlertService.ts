@@ -277,10 +277,10 @@ export class Service extends DatabaseService<Model> {
     let promiseChain: Promise<any> = Promise.resolve();
 
     promiseChain = promiseChain
-      .then(() => {
+      .then(async () => {
         if (createdItem.projectId && createdItem.id) {
           try {
-            return this.handleAlertWorkspaceOperationsAsync(createdItem);
+            return await this.handleAlertWorkspaceOperationsAsync(createdItem);
           } catch (error) {
             logger.error(
               `Workspace operations failed in AlertService.onCreateSuccess: ${error}`
@@ -290,9 +290,9 @@ export class Service extends DatabaseService<Model> {
         }
         return Promise.resolve();
       })
-      .then(() => {
+      .then(async () => {
         try {
-          return this.createAlertFeedAsync(createdItem.id!);
+          return await this.createAlertFeedAsync(createdItem.id!);
         } catch (error) {
           logger.error(
             `Create alert feed failed in AlertService.onCreateSuccess: ${error}`
@@ -300,9 +300,9 @@ export class Service extends DatabaseService<Model> {
           return Promise.resolve(); // Continue chain even on error
         }
       })
-      .then(() => {
+      .then(async () => {
         try {
-          return this.handleAlertStateChangeAsync(createdItem);
+          return await this.handleAlertStateChangeAsync(createdItem);
         } catch (error) {
           logger.error(
             `Handle alert state change failed in AlertService.onCreateSuccess: ${error}`
@@ -310,14 +310,14 @@ export class Service extends DatabaseService<Model> {
           return Promise.resolve(); // Continue chain even on error
         }
       })
-      .then(() => {
+      .then(async () => {
         try {
           if (
             onCreate.createBy.miscDataProps &&
             (onCreate.createBy.miscDataProps["ownerTeams"] ||
               onCreate.createBy.miscDataProps["ownerUsers"])
           ) {
-            return this.addOwners(
+            return await this.addOwners(
               createdItem.projectId!,
               createdItem.id!,
               (onCreate.createBy.miscDataProps![
@@ -339,13 +339,13 @@ export class Service extends DatabaseService<Model> {
           return Promise.resolve(); // Continue chain even on error
         }
       })
-      .then(() => {
+      .then(async () => {
         if (
           createdItem.onCallDutyPolicies?.length &&
           createdItem.onCallDutyPolicies?.length > 0
         ) {
           try {
-            return this.executeAlertOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeAlertOnCallDutyPoliciesAsync(createdItem);
           } catch (error) {
             logger.error(
               `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`

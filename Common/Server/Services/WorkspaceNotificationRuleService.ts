@@ -611,6 +611,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationFor: NotificationFor;
     workspaceType: WorkspaceType;
   }): Promise<Array<WorkspaceChannel>> {
+
+    logger.debug(
+      "getWorkspaceChannelsByNotificationFor called with data:",
+    );
+    logger.debug(JSON.stringify(data, null, 2));
+
     let monitorChannels: Array<WorkspaceChannel> = [];
 
     if (data.notificationFor.monitorId) {
@@ -654,6 +660,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           },
         );
     }
+
+    logger.debug("Workspace channels found:");
+    logger.debug(monitorChannels);
+
     return monitorChannels;
   }
 
