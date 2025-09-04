@@ -42,17 +42,18 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: postgresql
         image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
         imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+        {{- with .Values.containerSecurityContext }}
         securityContext:
-          runAsUser: 999
-          runAsGroup: 999
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         - name: postgresql
           containerPort: 5432

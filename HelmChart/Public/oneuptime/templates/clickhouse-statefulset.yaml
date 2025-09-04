@@ -44,15 +44,18 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: clickhouse
         image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
         imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
+        {{- with .Values.containerSecurityContext }}
         securityContext:
-          runAsUser: 101
-          runAsGroup: 101
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         ports:
         - name: http
           containerPort: 8123
