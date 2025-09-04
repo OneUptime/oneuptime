@@ -60,7 +60,7 @@ spec:
           protocol: TCP
         env:
         - name: POSTGRES_USER
-          value: {{ .Values.postgresql.auth.username | quote }}
+          value: "postgres"
         - name: POSTGRES_DB
           value: {{ .Values.postgresql.auth.database | quote }}
         - name: POSTGRES_PASSWORD
@@ -69,13 +69,13 @@ spec:
               name: {{ .Release.Name }}-postgresql
               key: postgres-password
         - name: PGDATA
-          value: "/var/lib/postgresql/data/pgdata"
+          value: "/var/lib/postgresql/data"
         livenessProbe:
           exec:
             command:
             - sh
             - -c
-            - exec pg_isready -U {{ .Values.postgresql.auth.username | quote }} -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
+            - exec pg_isready -U "postgres" -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -86,7 +86,7 @@ spec:
             command:
             - sh
             - -c
-            - exec pg_isready -U {{ .Values.postgresql.auth.username | quote }} -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
+            - exec pg_isready -U "postgres" -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 5
@@ -102,7 +102,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
-          subPath: postgresql
+          subPath: data
         {{- if .Values.postgresql.configuration }}
         - name: postgresql-config
           mountPath: /etc/postgresql/postgresql.conf
