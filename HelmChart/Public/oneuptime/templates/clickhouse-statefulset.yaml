@@ -102,6 +102,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /var/lib/clickhouse
+          subPath: data
         - name: clickhouse-config
           mountPath: /etc/clickhouse-server/config.d/custom.xml
           subPath: config.xml
