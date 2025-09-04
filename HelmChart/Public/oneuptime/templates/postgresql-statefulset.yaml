@@ -70,6 +70,8 @@ spec:
               key: postgres-password
         - name: PGDATA
           value: "/var/lib/postgresql/data"
+        - name: POSTGRES_INITDB_ARGS
+          value: "--auth-host=md5"
         livenessProbe:
           exec:
             command:
