@@ -1,9 +1,7 @@
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
-  # Tempory fix to allow insecure images from bitnami while we migrate to new images and charts.
-  security:
-    allowInsecureImages: true
+
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
@@ -61,25 +59,42 @@ nginx:
 
 
 postgresql:
-  image:
-    repository: bitnamilegacy/postgresql
   enabled: true # Set this to false if you're using an external postgresql database.
-  clusterDomain: *global-cluster-domain
+  image:
+    repository: postgres
+    tag: latest
+    pullPolicy: IfNotPresent
   auth:
     username: oneuptime
     database: oneuptimedb
+    # Will be auto-generated if not provided
+    password: 
   architecture: standalone
   primary:
     service:
+      type: ClusterIP
       ports:
-         postgresql: "5432"
+        postgresql: "5432"
     terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
     persistence:
+      enabled: true
       size: 25Gi
-  readReplicas:
-    terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
-    persistence:
-      size: 25Gi
+      storageClass: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  # Optional PostgreSQL configuration
+  # configuration: |-
+  #   max_connections = 100
+  #   shared_buffers = 128MB
+  #   effective_cache_size = 4GB
+  #   maintenance_work_mem = 64MB
+  #   checkpoint_completion_target = 0.9
+  #   wal_buffers = 16MB
+  #   default_statistics_target = 100
+  #   random_page_cost = 1.1
+  #   effective_io_concurrency = 200
 
 clickhouse:
   enabled: true
@@ -92,7 +107,7 @@ clickhouse:
     tag: latest
     pullPolicy: IfNotPresent
   service:
-    type: LoadBalancer
+    type: ClusterIP
     ports:
       http: "8123"
       tcp: "9000"
@@ -164,7 +179,7 @@ redis:
     pullPolicy: IfNotPresent
   master:
     service:
-      type: LoadBalancer
+      type: ClusterIP
       ports:
         redis: "6379"
     persistence:
