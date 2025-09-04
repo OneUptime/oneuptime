@@ -46,38 +46,6 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      initContainers:
-      - name: init-config
-        image: busybox:1.36
-        command:
-        - sh
-        - -c
-        - |
-          # Replace environment variables in the config template
-          export CLICKHOUSE_USER="{{ .Values.clickhouse.auth.username }}"
-          export CLICKHOUSE_PASSWORD="$(cat /etc/clickhouse-secrets/admin-password)"
-          envsubst < /etc/clickhouse-config-template/config.xml > /etc/clickhouse-server/config.xml
-          
-          # Create init SQL for database creation
-          mkdir -p /docker-entrypoint-initdb.d
-          echo "CREATE DATABASE IF NOT EXISTS oneuptime;" > /docker-entrypoint-initdb.d/init.sql
-          
-          # Ensure data directory has correct permissions
-          chown -R 101:101 /var/lib/clickhouse
-        env:
-        - name: CLICKHOUSE_USER
-          value: {{ .Values.clickhouse.auth.username | quote }}
-        volumeMounts:
-        - name: clickhouse-config-template
-          mountPath: /etc/clickhouse-config-template
-        - name: clickhouse-config
-          mountPath: /etc/clickhouse-server
-        - name: clickhouse-secrets
-          mountPath: /etc/clickhouse-secrets
-        - name: clickhouse-initdb
-          mountPath: /docker-entrypoint-initdb.d
-        - name: data
-          mountPath: /var/lib/clickhouse
       containers:
       - name: clickhouse
         image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
