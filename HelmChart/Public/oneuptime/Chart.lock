@@ -1,9 +1,6 @@
 dependencies:
-- name: postgresql
-  repository: https://charts.bitnami.com/bitnami
-  version: 14.0.0
 - name: keda
   repository: https://kedacore.github.io/charts
   version: 2.17.2
-digest: sha256:34f00b81a7b81860cc76ee73a2a8f9a2c1fb67e33e0536f9f3593b501ffb0b41
-generated: "2025-09-03T20:17:46.11322+01:00"
+digest: sha256:0487fc2994d58e6a2958a38de76740b0a2a0d6f2a644e89f03097e7f2645f976
+generated: "2025-09-04T17:55:10.534534+01:00"
