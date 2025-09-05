@@ -65,11 +65,10 @@ postgresql:
     tag: latest
     pullPolicy: IfNotPresent
   auth:
-    username: oneuptime
     database: oneuptimedb
+    # Username is fixed to "postgres"
     # Will be auto-generated if not provided
     password: 
-  architecture: standalone
   primary:
     service:
       type: ClusterIP
