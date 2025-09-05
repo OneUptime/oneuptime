@@ -103,6 +103,8 @@ clickhouse:
     size: 25Gi
   auth:
     username: oneuptime
+    # Will be auto-generated if not provided
+    password: 
   # For some reason bitnami clickhouse choose to have resourcesPreset: "small" as default. We dont want that.
   resourcesPreset: "none" 
   configdFiles:
