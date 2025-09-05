@@ -68,7 +68,7 @@ postgresql:
     database: oneuptimedb
     # Username is fixed to "postgres"
     # Will be auto-generated if not provided
-    password: 
+    postgresPassword: 
   primary:
     service:
       type: ClusterIP
