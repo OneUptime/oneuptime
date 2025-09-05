@@ -42,9 +42,11 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.podSecurityContext }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- end }}
       initContainers:
       - name: setup-config
@@ -72,12 +74,12 @@ spec:
       - name: postgresql
         image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
         imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+        {{- if .Values.postgresql.primary.containerSecurityContext }}
         securityContext:
-          runAsUser: 1001
-          runAsGroup: 1000
-          {{- with .Values.containerSecurityContext }}
+          {{- with .Values.postgresql.primary.containerSecurityContext }}
           {{- toYaml . | nindent 10 }}
           {{- end }}
+        {{- end }}
         ports:
         - name: postgresql
           containerPort: 5432
