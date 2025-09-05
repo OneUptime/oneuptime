@@ -46,14 +46,38 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+      - name: setup-config
+        image: busybox:latest
+        command:
+        - sh
+        - -c
+        - |
+          # Create the postgresql.conf symlink if it doesn't exist and the bitnami config exists
+          if [ -f "/var/lib/postgresql/data/postgresql/pgdata/postgresql.conf" ] && [ ! -f "/var/lib/postgresql/data/data/postgresql.conf" ]; then
+            ln -sf ../postgresql/pgdata/postgresql.conf /var/lib/postgresql/data/data/postgresql.conf
+          fi
+          # Also link pg_hba.conf if it exists
+          if [ -f "/var/lib/postgresql/data/postgresql/pgdata/pg_hba.conf" ] && [ ! -f "/var/lib/postgresql/data/data/pg_hba.conf" ]; then
+            ln -sf ../postgresql/pgdata/pg_hba.conf /var/lib/postgresql/data/data/pg_hba.conf
+          fi
+          # Also link pg_ident.conf if it exists  
+          if [ -f "/var/lib/postgresql/data/postgresql/pgdata/pg_ident.conf" ] && [ ! -f "/var/lib/postgresql/data/data/pg_ident.conf" ]; then
+            ln -sf ../postgresql/pgdata/pg_ident.conf /var/lib/postgresql/data/data/pg_ident.conf
+          fi
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
       containers:
       - name: postgresql
         image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
         imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
-        {{- with .Values.containerSecurityContext }}
         securityContext:
+          runAsUser: 1001
+          runAsGroup: 1000
+          {{- with .Values.containerSecurityContext }}
           {{- toYaml . | nindent 10 }}
-        {{- end }}
+          {{- end }}
         ports:
         - name: postgresql
           containerPort: 5432
@@ -69,7 +93,7 @@ spec:
               name: {{ .Release.Name }}-postgresql
               key: postgres-password
         - name: PGDATA
-          value: "/var/lib/postgresql/data"
+          value: "/var/lib/postgresql/data/data"
         - name: POSTGRES_INITDB_ARGS
           value: "--auth-host=md5"
         livenessProbe:
@@ -104,7 +128,6 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
-          subPath: data
         {{- if .Values.postgresql.configuration }}
         - name: postgresql-config
           mountPath: /etc/postgresql/postgresql.conf
