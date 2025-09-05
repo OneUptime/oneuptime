@@ -52,9 +52,16 @@ spec:
       - name: clickhouse
         image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
         imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
-        {{- with .Values.containerSecurityContext }}
+        {{- if .Values.clickhouse.containerSecurityContext }}
         securityContext:
+          {{- with .Values.clickhouse.containerSecurityContext }}
           {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
         {{- end }}
         ports:
         - name: http

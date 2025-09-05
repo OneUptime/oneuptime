@@ -46,9 +46,16 @@ spec:
       - name: redis
         image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
         imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
-        {{- with .Values.containerSecurityContext }}
+        {{- if .Values.redis.master.containerSecurityContext }}
         securityContext:
+          {{- with .Values.redis.master.containerSecurityContext }}
           {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
         {{- end }}
         command:
           - sh

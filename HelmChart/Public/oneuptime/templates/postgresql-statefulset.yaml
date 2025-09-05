@@ -79,6 +79,11 @@ spec:
           {{- with .Values.postgresql.primary.containerSecurityContext }}
           {{- toYaml . | nindent 10 }}
           {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
         {{- end }}
         ports:
         - name: postgresql
