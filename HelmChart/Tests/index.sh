@@ -27,12 +27,13 @@ sudo microk8s helm install oneuptime ../../HelmChart/Public/oneuptime -f ../../H
 echo "Waiting for all pods to be ready..."
 attempt=1
 max_attempts=50
+sleep_seconds=30
 while [ $attempt -le $max_attempts ]; do
     # Get pod list; treat kubectl errors/refusals as not-ready and retry
     if ! pods_output=$(sudo microk8s kubectl get pods --no-headers 2>/dev/null); then
         echo "Attempt $attempt/$max_attempts: kubectl not ready yet (connection error)."
-        echo "Waiting for 5 seconds before rechecking..."
-        sleep 5
+    echo "Waiting for $sleep_seconds seconds before rechecking..."
+    sleep "$sleep_seconds"
         attempt=$((attempt + 1))
         continue
     fi
@@ -40,8 +41,8 @@ while [ $attempt -le $max_attempts ]; do
     # If there are no pods yet, keep waiting
     if [ -z "$pods_output" ]; then
         echo "Attempt $attempt/$max_attempts: No pods found yet."
-        echo "Waiting for 5 seconds before rechecking..."
-        sleep 5
+    echo "Waiting for $sleep_seconds seconds before rechecking..."
+    sleep "$sleep_seconds"
         attempt=$((attempt + 1))
         continue
     fi
@@ -67,8 +68,8 @@ while [ $attempt -le $max_attempts ]; do
     echo "Attempt $attempt/$max_attempts: Not all pods are ready yet."
     echo "Current pod status:"
     sudo microk8s kubectl get pods -o wide || true
-    echo "Waiting for 5 seconds before rechecking..."
-    sleep 5
+    echo "Waiting for $sleep_seconds seconds before rechecking..."
+    sleep "$sleep_seconds"
     attempt=$((attempt + 1))
 done
 
