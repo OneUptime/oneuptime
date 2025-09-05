@@ -1,213 +1,161 @@
 <!DOCTYPE html>
 <html lang="en" id="legal">
 
-
 <head>
   <title>OneUptime | Legal Center</title>
   <meta name="description" content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
 }) -%>
-  <link rel="stylesheet" href="/css/common.css">
-  <link rel="stylesheet" href="/css/legal.css">
-  <script src="https://code.jquery.com/jquery-3.6.4.slim.min.js" integrity="sha256-a2yjHM4jnF9f54xUQakjZGaqYs/V1CYvWpoqZzC2/Bw=" crossorigin="anonymous"></script>
-
 </head>
 
-<body>
-  <div id="docs">
-    <div class="fixed-top nav-display">
-      <nav class="navbar navbar-light bg-light">
-        <button class="navbar-toggler toggleMenu" type="button" id="toggleMenu">
-          <span class="navbar-toggler-icon toggleMenu"></span>
-        </button>
-        <nav class="nav">
-          <a class="nav-link" href="/">Home</a>
-          <a class="nav-link" href="/pricing">Pricing</a>
-          <a class="nav-link" href="/enterprise/overview">Enterprise</a>
-          <a class="nav-link" href="/support">Support</a>
-        </nav>
-      </nav>
+<body class="bg-white antialiased text-gray-900">
+  <%- include('nav') -%>
+
+  <!-- Hero -->
+  <header class="bg-indigo-700">
+    <div class="mx-auto max-w-7xl px-6 py-14 sm:py-20 lg:px-8">
+      <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Legal Center</h1>
+      <p class="mt-4 max-w-3xl text-base leading-7 text-gray-300">All of our policies, certifications, and compliance documentation in one place.</p>
     </div>
-    <div id="sidebar" class="navSection mobile">
-      <div class="logo">
-        <a class="site" href="/" title="oneuptime"></a>
-      </div>
-      <nav>
-        <h1 class="legal" style="font-size:20px">Legal Center</h1>
-        <ul data-collapsable="false">
-          <li>
-            <a href="/legal/terms">Terms of Service</a>
-          </li>
-          <li>
-            <a href="/legal/privacy">Privacy Policy</a>
-          </li>
-          <li>
-            <a href="/legal/sla">Service Level Agreement</a>
-          </li>
-          <li>
-            <a href="/legal/gdpr">GDPR Policy</a>
-          </li>
-          <li>
-            <a href="/legal/ccpa">CCPA</a>
-          </li>
-          <li>
-            <a href="/legal/hipaa">HIPAA Compliance</a>
-          </li>
-          <li>
-            <a href="/legal/iso-27001">ISO/IEC 27001</a>
-          </li>
-          <li>
-            <a href="/legal/iso-27017">ISO/IEC 27017</a>
-          </li>
-          <li>
-            <a href="/legal/iso-27018">ISO/IEC 27018</a>
-          </li>
-          <li>
-            <a href="/legal/soc-2">SOC 2</a>
-          </li>
-          <li>
-            <a href="/legal/soc-3">SOC 3</a>
-          </li>
-          <li>
-            <a href="/legal/data-residency">Data Residency</a>
-          </li>
-          <li>
-            <a href="/legal/pci">PCI</a>
-          </li>
-          <li>
-            <a href="/legal/dmca">DMCA Policy</a>
-          </li>
-          <li>
-            <a href="/legal/subprocessors">Subprocessors</a>
-          </li>
-          <li>
-            <a href="/legal/contact">Contact</a>
-          </li>
+  </header>
 
-        </ul>
-      </nav>
+  <!-- Content -->
+  <main class="mx-auto max-w-7xl px-6 py-10 lg:py-16 lg:px-8">
+    <div class="grid grid-cols-1 gap-10 lg:grid-cols-12">
+      <!-- Sidebar -->
+      <aside class="lg:col-span-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+          <h2 class="px-2 text-sm font-semibold uppercase tracking-wide text-gray-500">Policies &amp; Docs</h2>
+          <nav class="mt-2">
+            <ul class="space-y-1">
+              <li>
+                <a href="/legal/terms" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'terms' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'terms' ? 'page' : 'false' %>">Terms of Service</a>
+              </li>
+              <li>
+                <a href="/legal/privacy" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'privacy' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'privacy' ? 'page' : 'false' %>">Privacy Policy</a>
+              </li>
+              <li>
+                <a href="/legal/sla" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'sla' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'sla' ? 'page' : 'false' %>">Service Level Agreement</a>
+              </li>
+              <li>
+                <a href="/legal/gdpr" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'gdpr' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'gdpr' ? 'page' : 'false' %>">GDPR</a>
+              </li>
+              <li>
+                <a href="/legal/ccpa" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'ccpa' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'ccpa' ? 'page' : 'false' %>">CCPA</a>
+              </li>
+              <li>
+                <a href="/legal/hipaa" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'hipaa' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'hipaa' ? 'page' : 'false' %>">HIPAA</a>
+              </li>
+              <li>
+                <a href="/legal/iso-27001" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'iso-27001' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'iso-27001' ? 'page' : 'false' %>">ISO/IEC 27001</a>
+              </li>
+              <li>
+                <a href="/legal/iso-27017" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'iso-27017' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'iso-27017' ? 'page' : 'false' %>">ISO/IEC 27017</a>
+              </li>
+              <li>
+                <a href="/legal/iso-27018" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'iso-27018' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'iso-27018' ? 'page' : 'false' %>">ISO/IEC 27018</a>
+              </li>
+              <li>
+                <a href="/legal/soc-2" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'soc-2' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'soc-2' ? 'page' : 'false' %>">SOC 2</a>
+              </li>
+              <li>
+                <a href="/legal/soc-3" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'soc-3' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'soc-3' ? 'page' : 'false' %>">SOC 3</a>
+              </li>
+              <li>
+                <a href="/legal/data-residency" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'data-residency' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'data-residency' ? 'page' : 'false' %>">Data Residency</a>
+              </li>
+              <li>
+                <a href="/legal/pci" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'pci' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'pci' ? 'page' : 'false' %>">PCI</a>
+              </li>
+              <li>
+                <a href="/legal/dmca" class="block rounded-md px-3 py-2 text-sm font-medium <%= section && section.includes('dmca') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section && section.includes('dmca') ? 'page' : 'false' %>">DMCA</a>
+              </li>
+              <li>
+                <a href="/legal/subprocessors" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'subprocessors' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'subprocessors' ? 'page' : 'false' %>">Subprocessors</a>
+              </li>
+              <li>
+                <a href="/legal/contact" class="block rounded-md px-3 py-2 text-sm font-medium <%= section === 'contact' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' %>" aria-current="<%= section === 'contact' ? 'page' : 'false' %>">Contact</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main article -->
+      <section class="lg:col-span-8">
+        <article id="content" class="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 [&_h1]:mb-4 [&_h1]:text-3xl [&_h1]:font-bold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-xl [&_h3]:font-semibold [&_p]:my-4 [&_p]:leading-7 [&_p]:text-gray-700 [&_a]:text-indigo-700 [&_a:hover]:text-indigo-600 [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6">
+
+          <% if(section === "terms") { %>
+          <%- include('terms') -%>
+          <% } %>
+
+          <% if(section === "privacy") { %>
+          <%- include('privacy') -%>
+          <% } %>
+
+          <% if(section === "gdpr") { %>
+          <%- include('privacy') -%>
+          <% } %>
+
+          <% if(section === "sla") { %>
+          <%- include('sla') -%>
+          <% } %>
+
+          <% if(section === "pci") { %>
+          <%- include('pci') -%>
+          <% } %>
+
+          <% if(section === "ccpa") { %>
+          <%- include('ccpa') -%>
+          <% } %>
+
+          <% if(section === "data-residency") { %>
+          <%- include('data-residency') -%>
+          <% } %>
+
+          <% if(section === "contact") { %>
+          <%- include('contact') -%>
+          <% } %>
+
+          <% if(section === "hipaa") { %>
+          <%- include('hipaa') -%>
+          <% } %>
+
+          <% if(section === ("soc-3")) { %>
+          <%- include('soc-3') -%>
+          <% } %>
+
+          <% if(section === ("soc-2")) { %>
+          <%- include('soc-2') -%>
+          <% } %>
+
+          <% if(section === "iso-27001") { %>
+          <%- include('iso-27001') -%>
+          <% } %>
+
+          <% if(section === "iso-27018") { %>
+          <%- include('iso-27018') -%>
+          <% } %>
+
+          <% if(section === "iso-27017") { %>
+          <%- include('iso-27017') -%>
+          <% } %>
+
+          <% if(section && section.includes("dmca")) { %>
+          <%- include('dmca') -%>
+          <% } %>
+
+          <% if(section === "subprocessors") { %>
+          <%- include('subprocessors') -%>
+          <% } %>
+
+        </article>
+      </section>
     </div>
-    <div id="content-wrapper" tabindex="0">
-      <header id="main-header">
-        <nav>
-          <ul class="external">
-            <li>
-              <a href="/">Home</a>
-            </li>
-            <li>
-              <a href="/pricing">Pricing</a>
-            </li>
-            <li>
-              <a href="/enterprise/overview">Enterprise</a>
-            </li>
-            <li>
-              <a href="/support">Support</a>
-            </li>
+  </main>
 
-          </ul>
-        </nav>
-      </header>
-      <article id="content" style="margin-top:20px">
-
-
-        <% if(section === "terms") {%>
-        <%- include('terms') -%>
-        <% }%>
-
-
-        <% if(section === "privacy") {%>
-        <%- include('privacy') -%>
-        <% }%>
-
-        <% if(section === "gdpr") {%>
-        <%- include('privacy') -%>
-        <% }%>
-
-
-        <% if(section === "sla") {%>
-        <%- include('sla') -%>
-        <% }%>
-
-        <% if(section === "pci") {%>
-        <%- include('pci') -%>
-        <% }%>
-
-        <% if(section === "ccpa") {%>
-        <%- include('ccpa') -%>
-        <% }%>
-
-        <% if(section === "data-residency") {%>
-        <%- include('data-residency') -%>
-        <% }%>
-
-        <% if(section === "contact") {%>
-        <%- include('contact') -%>
-        <% }%>
-
-        <% if(section === "hipaa") {%>
-        <%- include('hipaa') -%>
-        <% }%>
-
-        <% if(section === ("soc-3")) {%>
-        <%- include('soc-3') -%>
-        <% }%>
-
-        <% if(section === ("soc-2")) {%>
-        <%- include('soc-2') -%>
-        <% }%>
-
-
-        <% if(section === "iso-27001") {%>
-        <%- include('iso-27001') -%>
-        <% }%>
-
-        <% if(section === "iso-27018") {%>
-        <%- include('iso-27018') -%>
-        <% }%>
-
-        <% if(section === "iso-27017") {%>
-        <%- include('iso-27017') -%>
-        <% }%>
-
-        <% if(section.includes("dmca")) {%>
-        <%- include('dmca') -%>
-        <% }%>
-
-        <% if(section === "subprocessors") {%>
-        <%- include('subprocessors') -%>
-        <% }%>
-
-      </article>
-    </div>
-  </div>
-
-  <script>
-    $(document).ready(function () {
-      if ($(window).width() >= 768) {
-        $('#sidebar').show(1000, function () {
-          $('.nav-display').css({ zIndex: 1 });
-        });
-      }
-      $(document).click(function (e) {
-        var button = $(e.target).attr('class');
-        if (button) {
-          button = button.split(' ')[1];
-        }
-        if ($(window).width() < 768 && $('#sidebar').css('display') === 'none' && button === 'toggleMenu') {
-          $('#sidebar').show(1000, function () {
-            $('.nav-display').css({ zIndex: 1 });
-          });
-        }
-
-        if ($(window).width() < 768 && $('#sidebar').css('display') === 'block' && button === undefined) {
-          $('#sidebar').hide(1000);
-        }
-      });
-
-    });
-  </script>
+  <%- include('footer') -%>
 </body>
 
 </html>
