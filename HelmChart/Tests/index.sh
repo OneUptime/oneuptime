@@ -1,39 +1,70 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Install MicroK8s
-sudo snap install microk8s --classic
-sudo microk8s status --wait-ready
+# This script sets up a lightweight Kubernetes cluster (KinD) on GitHub Actions,
+# installs a default storage class, deploys the OneUptime Helm chart, and waits
+# for all pods to become Ready.
 
-# Add kubectl and helm aliases
-sudo echo "alias kubectl='microk8s kubectl'" >> ~/.bash_aliases
-sudo echo "alias helm='microk8s helm3'" >> ~/.bash_aliases
+echo "Setting up Kubernetes (KinD) cluster for Helm chart tests..."
 
-source ~/.bash_aliases
+# Install kubectl
+if ! command -v kubectl >/dev/null 2>&1; then
+    echo "Installing kubectl..."
+    curl -sSL -o kubectl "https://storage.googleapis.com/kubernetes-release/release/$(curl -sSL https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+    sudo install -m 0755 kubectl /usr/local/bin/kubectl
+    rm -f kubectl
+fi
 
-# Enable MicroK8s addons
-sudo microk8s enable dashboard
-sudo microk8s enable dns
-sudo microk8s enable hostpath-storage
+# Install kind
+if ! command -v kind >/dev/null 2>&1; then
+    echo "Installing kind..."
+    curl -sSL -o kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+    sudo install -m 0755 kind /usr/local/bin/kind
+    rm -f kind
+fi
 
-echo "MicroK8s is ready. Installing OneUptime"
-# Get pods 
-sudo microk8s kubectl get pods
+# Install Helm
+if ! command -v helm >/dev/null 2>&1; then
+    echo "Installing Helm..."
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+fi
 
-# Install OneUptime 
-sudo microk8s helm install oneuptime ../../HelmChart/Public/oneuptime -f ../../HelmChart/Public/oneuptime/values.yaml -f ./ci-values.yaml
+# Create cluster
+CLUSTER_NAME="oneuptime-ci"
+if ! kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
+    echo "Creating KinD cluster: ${CLUSTER_NAME}"
+    kind create cluster --name "${CLUSTER_NAME}" --wait 180s
+fi
+
+echo "KinD cluster is ready. Installing default StorageClass (local-path)."
+# Install Rancher local-path-provisioner and set it as default SC
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+kubectl wait --for=condition=Available --timeout=120s -n kube-system deploy/local-path-provisioner || true
+kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class="true" --overwrite || true
+
+echo "Cluster Nodes:"
+kubectl get nodes -o wide
+
+echo "Installing OneUptime via Helm"
+kubectl get pods -A || true
+
+# Install OneUptime. Override storageClass to local-path for KinD
+helm install oneuptime ../../HelmChart/Public/oneuptime \
+    -f ../../HelmChart/Public/oneuptime/values.yaml \
+    -f ./ci-values.yaml 
 
 
-# Wait for all pods in the default namespace to be ready (max 30 attempts)
+# Wait for all pods in the default namespace to be ready (max attempts)
 echo "Waiting for all pods to be ready..."
 attempt=1
 max_attempts=50
 sleep_seconds=30
 while [ $attempt -le $max_attempts ]; do
     # Get pod list; treat kubectl errors/refusals as not-ready and retry
-    if ! pods_output=$(sudo microk8s kubectl get pods --no-headers 2>/dev/null); then
+    if ! pods_output=$(kubectl get pods --no-headers 2>/dev/null); then
         echo "Attempt $attempt/$max_attempts: kubectl not ready yet (connection error)."
-    echo "Waiting for $sleep_seconds seconds before rechecking..."
-    sleep "$sleep_seconds"
+        echo "Waiting for $sleep_seconds seconds before rechecking..."
+        sleep "$sleep_seconds"
         attempt=$((attempt + 1))
         continue
     fi
@@ -41,8 +72,8 @@ while [ $attempt -le $max_attempts ]; do
     # If there are no pods yet, keep waiting
     if [ -z "$pods_output" ]; then
         echo "Attempt $attempt/$max_attempts: No pods found yet."
-    echo "Waiting for $sleep_seconds seconds before rechecking..."
-    sleep "$sleep_seconds"
+        echo "Waiting for $sleep_seconds seconds before rechecking..."
+        sleep "$sleep_seconds"
         attempt=$((attempt + 1))
         continue
     fi
@@ -61,13 +92,13 @@ while [ $attempt -le $max_attempts ]; do
 
     if [ -z "$not_ready_pods" ]; then
         echo "All pods are ready."
-        sudo microk8s kubectl get pods -o wide || true
+        kubectl get pods -o wide || true
         break
     fi
 
     echo "Attempt $attempt/$max_attempts: Not all pods are ready yet."
     echo "Current pod status:"
-    sudo microk8s kubectl get pods -o wide || true
+    kubectl get pods -o wide || true
     echo "Waiting for $sleep_seconds seconds before rechecking..."
     sleep "$sleep_seconds"
     attempt=$((attempt + 1))
@@ -76,10 +107,13 @@ done
 if [ $attempt -gt $max_attempts ]; then
     echo "Pods are not ready after $max_attempts attempts."
     echo "Current pod status:"
-    sudo microk8s kubectl get pods -o wide || true
+    kubectl get pods -o wide || true
+
+    echo "\nCluster events (last 200):"
+    kubectl get events --sort-by=.metadata.creationTimestamp | tail -n 200 || true
 
     # Recompute not-ready pods for diagnostics
-    pods_snapshot=$(sudo microk8s kubectl get pods --no-headers 2>/dev/null || true)
+    pods_snapshot=$(kubectl get pods --no-headers 2>/dev/null || true)
     if [ -n "$pods_snapshot" ]; then
         not_ready_snapshot=$(echo "$pods_snapshot" | awk '{
             name=$1; ready=$2; status=$3;
@@ -89,10 +123,10 @@ if [ $attempt -gt $max_attempts ]; then
             print name;
         }')
         for pod in $not_ready_snapshot; do
-            echo "Describing pod: $pod"
-            sudo microk8s kubectl describe pod "$pod" || true
+            echo "\nDescribing pod: $pod"
+            kubectl describe pod "$pod" || true
             echo "Logs (last 200 lines) for pod: $pod"
-            sudo microk8s kubectl logs "$pod" --all-containers=true --tail=200 || true
+            kubectl logs "$pod" --all-containers=true --tail=200 || true
         done
     fi
     exit 1
