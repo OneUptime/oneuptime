@@ -82,41 +82,75 @@ postgresql:
       size: 25Gi
 
 clickhouse:
-  image:
-    repository: bitnamilegacy/clickhouse
   enabled: true
-  clusterDomain: *global-cluster-domain
-  keeper:
-    enabled: false
+  auth:
+    username: oneuptime
+    # Will be auto-generated if not provided  
+    password:
+  image:
+    repository: clickhouse/clickhouse-server
+    tag: latest
+    pullPolicy: IfNotPresent
   service:
+    type: LoadBalancer
     ports:
       http: "8123"
       tcp: "9000"
       mysql: "9004"
       postgresql: "9005"
-  shards: 1
-  replicaCount: 1
-  terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
-  zookeeper:
-    enabled: false
+      interserver: "9009"
   persistence:
+    enabled: true
     size: 25Gi
-  auth:
-    username: oneuptime
-    # Will be auto-generated if not provided
-    password: 
-  # For some reason bitnami clickhouse choose to have resourcesPreset: "small" as default. We dont want that.
-  resourcesPreset: "none" 
-  configdFiles:
-    99-disable-db-interface.xml: |-
-      <clickhouse>
-        <mysql_port remove='1'></mysql_port>
-        <postgresql_port remove='1'></postgresql_port>
-        <tcp_port remove='1'></tcp_port>
-      </clickhouse>
-  initdbScripts:
-    db-init.sql: |
-      CREATE DATABASE oneuptime;
+    storageClass: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  # Custom ClickHouse configuration
+  configuration: |-
+    <clickhouse>
+        <logger>
+            <level>warning</level>
+            <console>true</console>
+        </logger>
+        <http_port>8123</http_port>
+        <tcp_port>9000</tcp_port>
+        <mysql_port>9004</mysql_port>
+        <postgresql_port>9005</postgresql_port>
+        <interserver_http_port>9009</interserver_http_port>
+        <listen_host>::</listen_host>
+        <users>
+            <${CLICKHOUSE_USER}>
+                <password>${CLICKHOUSE_PASSWORD}</password>
+                <networks>
+                    <ip>::/0</ip>
+                </networks>
+                <profile>default</profile>
+                <quota>default</quota>
+                <access_management>1</access_management>
+            </${CLICKHOUSE_USER}>
+        </users>
+        <profiles>
+            <default>
+                <max_memory_usage>10000000000</max_memory_usage>
+                <use_uncompressed_cache>0</use_uncompressed_cache>
+                <load_balancing>random</load_balancing>
+            </default>
+        </profiles>
+        <quotas>
+            <default>
+                <interval>
+                    <duration>3600</duration>
+                    <queries>0</queries>
+                    <errors>0</errors>
+                    <result_rows>0</result_rows>
+                    <read_rows>0</read_rows>
+                    <execution_time>0</execution_time>
+                </interval>
+            </default>
+        </quotas>
+    </clickhouse>
 
 
 redis:
@@ -130,7 +164,7 @@ redis:
     pullPolicy: IfNotPresent
   master:
     service:
-      type: ClusterIP
+      type: LoadBalancer
       ports:
         redis: "6379"
     persistence:

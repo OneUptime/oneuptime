@@ -89,7 +89,7 @@ spec:
         - name: redis-config
           mountPath: /etc/redis
         {{- if .Values.redis.master.persistence.enabled }}
-        - name: redis-data
+        - name: data
           mountPath: /data
         {{- end }}
       volumes:
@@ -97,13 +97,13 @@ spec:
         configMap:
           name: {{ .Release.Name }}-redis-config
       {{- if not .Values.redis.master.persistence.enabled }}
-      - name: redis-data
+      - name: data
         emptyDir: {}
       {{- end }}
   {{- if .Values.redis.master.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
-      name: redis-data
+      name: data
       labels:
         app: {{ .Release.Name }}-redis
         app.kubernetes.io/part-of: oneuptime

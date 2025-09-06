@@ -241,6 +241,43 @@ externalRedis:
 
 ### Clickhouse 
 
+OneUptime includes a built-in ClickHouse deployment using the official ClickHouse Docker image. ClickHouse is used for analytics, logs, and time-series data storage.
+
+#### Built-in ClickHouse Configuration
+
+The default configuration provides a standalone ClickHouse instance with authentication enabled:
+
+```yaml
+clickhouse:
+  enabled: true
+  auth:
+    username: oneuptime
+    # Will be auto-generated if not provided  
+    password:
+  image:
+    repository: clickhouse/clickhouse-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: LoadBalancer
+    ports:
+      http: "8123"
+      tcp: "9000"
+      mysql: "9004"
+      postgresql: "9005"
+      interserver: "9009"
+  persistence:
+    enabled: true
+    size: 25Gi
+    storageClass: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+```
+
+#### External ClickHouse Configuration
+
 If you would like to use an external clickhouse database, please add these env vars to your values.yaml file. 
 
 ```yaml
@@ -319,7 +356,7 @@ image:
   tag: <specific-version>
 ```
 
-- [ ] Please pin OneUptime, PostgreSQL, Redis, and ClickHouse versions to a specific version. This will prevent any breaking changes from affecting your installation.
+- [ ] Please pin OneUptime, PostgreSQL,Redis, and ClickHouse versions to a specific version. This will prevent any breaking changes from affecting your installation.
 
 When you install, you can check the version installed by describing the pods. 
 
@@ -339,9 +376,14 @@ Once you have the version, you can pin the version in your values.yaml file.
 postgresql:
   image:
     tag: <specific-version>
-```
+redis:
+  master:
+    image:
+      tag: <specific-version>
 
-Please do the same for Redis and ClickHouse.
+clickhouse:
+  image:
+    tag: <specific-version>
 ```
 
 - [ ] Please make sure you have backups enabled for your PVCs. This is outside the scope of this chart. Please refer to your cloud provider's documentation on how to enable backups for PVCs.
@@ -361,7 +403,6 @@ We use these charts as dependencies for some components. You dont need to instal
 | Chart | Description | Repository | 
 | ----- | ----------- | ---------- | 
 | `postgresql` | PostgreSQL database | https://charts.bitnami.com/bitnami |
-| `clickhouse` | ClickHouse database | https://charts.bitnami.com/bitnami |
 | `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
 
 
