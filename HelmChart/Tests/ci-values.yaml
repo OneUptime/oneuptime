@@ -6,3 +6,5 @@ httpProtocol: http
 
 image:
   tag: test
+  registry: ghcr.io
+  repository: oneuptime

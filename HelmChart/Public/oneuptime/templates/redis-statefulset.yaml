@@ -38,10 +38,25 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
       - name: redis
         image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
         imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+        {{- if .Values.redis.master.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.redis.master.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- end }}
         command:
           - sh
           - -c
