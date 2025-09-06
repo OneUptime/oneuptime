@@ -71,3 +71,14 @@ ALTER SYSTEM SET max_connections = 200;
 
 Then you need to restart the postgres pod. 
 
+
+### Check used and free space in Postgres
+
+```sql
+SELECT
+    datname AS database_name,
+    pg_size_pretty(pg_database_size(datname)) AS used_space
+FROM pg_database
+ORDER BY pg_database_size(datname) DESC;
+```
+
