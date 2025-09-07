@@ -30,8 +30,8 @@ spec:
         app.kubernetes.io/component: postgresql
         appname: oneuptime
       annotations:
-  checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-configmap.yaml") . | sha256sum }}
-  checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-hba-configmap.yaml") . | sha256sum }}
+        checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-primary-configmap.yaml") . | sha256sum }}
+        checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-primary-hba-configmap.yaml") . | sha256sum }}
     spec:
       {{- with .Values.postgresql.nodeSelector }}
       nodeSelector:
