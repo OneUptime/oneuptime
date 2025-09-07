@@ -5,6 +5,51 @@ set -euo pipefail
 # installs a default storage class, deploys the OneUptime Helm chart, and waits
 # for all pods to become Ready.
 
+# Always collect diagnostics (pod descriptions and logs for all containers)
+# at the end of the run, regardless of success or failure.
+dump_pod_info() {
+    echo "\n================= Cluster diagnostics (all namespaces) ================="
+    # Pod summary across namespaces
+    kubectl get pods -A -o wide || true
+
+    # Describe and fetch logs for each pod and container (including init containers)
+    # Extract "namespace name" pairs using jsonpath
+    local pods_list
+    pods_list=$(kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)
+    while read -r ns pod; do
+        if [ -z "${ns:-}" ] || [ -z "${pod:-}" ]; then continue; fi
+        echo "\n----- Describe: $ns/$pod -----"
+        kubectl describe pod "$pod" -n "$ns" || true
+
+        # Init containers
+        local init_containers
+        init_containers=$(kubectl get pod "$pod" -n "$ns" -o jsonpath='{.spec.initContainers[*].name}' 2>/dev/null || true)
+        for c in $init_containers; do
+            echo "\n>>> Logs for init container $ns/$pod/$c (current, last 200 lines)"
+            kubectl logs "$pod" -n "$ns" -c "$c" --tail=200 || true
+            echo ">>> Logs for init container $ns/$pod/$c (previous, last 200 lines)"
+            kubectl logs "$pod" -n "$ns" -c "$c" -p --tail=200 || true
+        done
+
+        # App containers
+        local app_containers
+        app_containers=$(kubectl get pod "$pod" -n "$ns" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null || true)
+        for c in $app_containers; do
+            echo "\n>>> Logs for container $ns/$pod/$c (current, last 200 lines)"
+            kubectl logs "$pod" -n "$ns" -c "$c" --tail=200 || true
+            echo ">>> Logs for container $ns/$pod/$c (previous, last 200 lines)"
+            kubectl logs "$pod" -n "$ns" -c "$c" -p --tail=200 || true
+        done
+    done <<< "$pods_list"
+
+    echo "\n=== Recent cluster events (last 200) ==="
+    kubectl get events -A --sort-by=.metadata.creationTimestamp | tail -n 200 || true
+    echo "=======================================================================\n"
+}
+
+# Register trap to always run diagnostics
+trap 'dump_pod_info' EXIT
+
 echo "Setting up Kubernetes (KinD) cluster for Helm chart tests..."
 
 # Install kubectl
