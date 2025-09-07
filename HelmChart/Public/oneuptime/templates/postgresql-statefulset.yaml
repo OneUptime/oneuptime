@@ -45,7 +45,12 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.podSecurityContext }}
+      {{- if .Values.postgresql.primary.podSecurityContext }}
+      {{- with .Values.postgresql.primary.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else if .Values.podSecurityContext }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}

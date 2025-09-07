@@ -82,6 +82,16 @@ postgresql:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+  # Optional: override global security contexts just for the PostgreSQL pod/container
+  # podSecurityContext:
+  #   runAsUser: 999
+  #   runAsGroup: 999
+  #   fsGroup: 999
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false
+  #   readOnlyRootFilesystem: true
+  #   capabilities:
+  #     drop: ["ALL"]
     resources: {}
     configuration: |-
       # Network and connection settings
