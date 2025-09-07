@@ -1,9 +1,7 @@
 global:
   storageClass:
   clusterDomain: &global-cluster-domain cluster.local
-  # Tempory fix to allow insecure images from bitnami while we migrate to new images and charts.
-  security:
-    allowInsecureImages: true
+
 
 # Please change this to the domain name / IP where OneUptime server is hosted on.
 host: localhost
@@ -61,25 +59,55 @@ nginx:
 
 
 postgresql:
-  image:
-    repository: bitnamilegacy/postgresql
   enabled: true # Set this to false if you're using an external postgresql database.
-  clusterDomain: *global-cluster-domain
+  image:
+    repository: postgres
+    tag: latest
+    pullPolicy: IfNotPresent
   auth:
-    username: oneuptime
     database: oneuptimedb
-  architecture: standalone
+    # Username is fixed to "postgres"
+    # Will be auto-generated if not provided
+    postgresPassword: 
   primary:
     service:
+      type: ClusterIP
       ports:
-         postgresql: "5432"
+        postgresql: "5432"
     terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
     persistence:
+      enabled: true
       size: 25Gi
-  readReplicas:
-    terminationGracePeriodSeconds: 0 # We do this because we do not want to wait for the pod to terminate in case of node failure. https://medium.com/tailwinds-navigator/kubernetes-tip-how-statefulsets-behave-differently-than-deployments-when-node-fails-d29e36bca7d5
-    persistence:
-      size: 25Gi
+      storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  # Optional: override global security contexts just for the PostgreSQL pod/container
+  # podSecurityContext:
+  #   runAsUser: 999
+  #   runAsGroup: 999
+  #   fsGroup: 999
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false
+  #   readOnlyRootFilesystem: true
+  #   capabilities:
+  #     drop: ["ALL"]
+    resources: {}
+    configuration: |-
+      # Network and connection settings
+      listen_addresses = '*'
+      port = 5432
+      # Core tuning (adjust as needed)
+      max_connections = 100
+      shared_buffers = 128MB
+    # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
+    # Tighten these for production to your pod/service/network CIDRs.
+    hbaConfiguration: |-
+      # Allow all IPv4 and IPv6 clients with md5 password auth
+      host    all             all             0.0.0.0/0               md5
+      host    all             all             ::/0                    md5
+
+  
 
 clickhouse:
   enabled: true
@@ -92,7 +120,7 @@ clickhouse:
     tag: latest
     pullPolicy: IfNotPresent
   service:
-    type: LoadBalancer
+    type: ClusterIP
     ports:
       http: "8123"
       tcp: "9000"
@@ -106,6 +134,16 @@ clickhouse:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Optional: override global security contexts just for the ClickHouse pod/container
+  # podSecurityContext:
+  #   runAsUser: 101
+  #   runAsGroup: 101
+  #   fsGroup: 101
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false
+  #   readOnlyRootFilesystem: true
+  #   capabilities:
+  #     drop: ["ALL"]
   resources: {}
   # Custom ClickHouse configuration
   configuration: |-
@@ -157,7 +195,7 @@ redis:
     pullPolicy: IfNotPresent
   master:
     service:
-      type: LoadBalancer
+      type: ClusterIP
       ports:
         redis: "6379"
     persistence:
@@ -167,6 +205,16 @@ redis:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+  # Optional: override global security contexts just for the Redis pod/container
+  # podSecurityContext:
+  #   runAsUser: 999
+  #   runAsGroup: 999
+  #   fsGroup: 999
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false
+  #   readOnlyRootFilesystem: true
+  #   capabilities:
+  #     drop: ["ALL"]
     resources: {}
   commonConfiguration: |-
    appendonly no

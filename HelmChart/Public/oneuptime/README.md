@@ -140,18 +140,59 @@ If you need to use SSL/TLS certificates, follow these steps:
 
 ## Using External Databases
 
-### Postgres
+### PostgreSQL
 
-If you would like to use an external postgres database, please add these env vars to your values.yaml file. 
+OneUptime includes a built-in PostgreSQL deployment using the official PostgreSQL Docker image. PostgreSQL is used for storing application data, user data, and configuration.
+
+#### Built-in PostgreSQL Configuration
+
+The default configuration provides a standalone PostgreSQL instance with authentication enabled:
 
 ```yaml
-
 postgresql:
-  # Set Internal Postgres enabled to false, so we dont install the postgres database in your cluster
+  enabled: true
+  image:
+    repository: postgres
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  auth:
+    username: oneuptime
+    database: oneuptimedb
+    # Will be auto-generated if not provided
+    password: 
+  architecture: standalone
+  primary:
+    service:
+      type: ClusterIP
+      ports:
+        postgresql: "5432"
+    terminationGracePeriodSeconds: 0
+    persistence:
+      enabled: true
+      size: 25Gi
+      storageClass: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  # Optional PostgreSQL configuration
+  # configuration: |-
+  #   max_connections = 100
+  #   shared_buffers = 128MB
+  #   effective_cache_size = 4GB
+```
+
+#### External PostgreSQL Configuration
+
+If you would like to use an external PostgreSQL database, please add these env vars to your values.yaml file:
+
+```yaml
+postgresql:
+  # Set Internal PostgreSQL enabled to false, so we dont install PostgreSQL in your cluster
   enabled: false 
 
-# External Postgres Configuration
-# You need to set postgresql.enabled to false if you're using an external postgres database.
+# External PostgreSQL Configuration
+# You need to set postgresql.enabled to false if you're using an external postgresql database.
 externalPostgres: 
   host: 
   port: 
@@ -377,10 +418,8 @@ postgresql:
   image:
     tag: <specific-version>
 redis:
-  master:
-    image:
-      tag: <specific-version>
-
+  image:
+    tag: <specific-version>
 clickhouse:
   image:
     tag: <specific-version>
@@ -402,7 +441,6 @@ We use these charts as dependencies for some components. You dont need to instal
 
 | Chart | Description | Repository | 
 | ----- | ----------- | ---------- | 
-| `postgresql` | PostgreSQL database | https://charts.bitnami.com/bitnami |
 | `keda` | Kubernetes Event-driven Autoscaling | https://kedacore.github.io/charts |
 
 
