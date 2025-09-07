@@ -22,13 +22,26 @@ jobs:
       with:
         token: ${{secrets.github_token}}
     - run: echo "Build number is ${{ steps.buildnumber.outputs.build_number }}"
+  read-version:
+    runs-on: ubuntu-latest
+    outputs:
+      major_minor: ${{ steps.read.outputs.major_minor }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - id: read
+        name: Read VERSION_PREFIX
+        run: |
+          MAJOR_MINOR=$(cat VERSION_PREFIX | tr -d '\n' | tr -d '\r')
+          echo "major_minor=$MAJOR_MINOR" >> $GITHUB_OUTPUT
+          echo "Using version prefix: $MAJOR_MINOR"
 
 
   publish-terraform-provider:
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
-    needs: [generate-build-number]
-    env: 
-      CI_PIPELINE_ID: ${{github.run_number}}
+    env:
+      CI_PIPELINE_ID: ${{ github.run_number }}
       GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
       GPG_PRIVATE_KEY: ${{ secrets.TERRAFORM_GPG_PRIVATE_KEY }}
       TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY: ${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}
@@ -62,7 +75,7 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}"
+          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing Terraform provider version: $VERSION"
 
@@ -85,8 +98,8 @@ jobs:
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}" --test-release
 
   publish-mcp-server:
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
-    needs: [generate-build-number]
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
     permissions:
@@ -117,7 +130,7 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          VERSION="7.0.${{needs.generate-build-number.outputs.build_number}}-test"
+          VERSION="${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing MCP server version: $VERSION"
 
@@ -203,7 +216,7 @@ jobs:
   
 
   llm-docker-image-deploy: 
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
 
@@ -230,7 +243,7 @@ jobs:
             ghcr.io/oneuptime/llm
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -283,16 +296,16 @@ jobs:
               --platform linux/amd64 \
               --push \
               --tag oneuptime/llm:test \
-              --tag oneuptime/llm:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/llm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/llm:test \
-              --tag ghcr.io/oneuptime/llm:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/llm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               ./LLM
 
 
   nginx-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -304,7 +317,7 @@ jobs:
             ghcr.io/oneuptime/nginx
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -350,16 +363,16 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/nginx:test \
-              --tag oneuptime/nginx:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/nginx:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/nginx:test \
-              --tag ghcr.io/oneuptime/nginx:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/nginx:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
               .
 
 
   e2e-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -371,7 +384,7 @@ jobs:
             ghcr.io/oneuptime/e2e
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -417,15 +430,14 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/e2e:test \
-              --tag oneuptime/e2e:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/e2e:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/e2e:test \
-              --tag ghcr.io/oneuptime/e2e:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
-              --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --tag ghcr.io/oneuptime/e2e:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   test-server-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -437,7 +449,7 @@ jobs:
             ghcr.io/oneuptime/test-server
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -483,15 +495,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/test-server:test \
-              --tag oneuptime/test-server:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/test-server:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/test-server:test \
-              --tag ghcr.io/oneuptime/test-server:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/test-server:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   otel-collector-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -503,7 +515,7 @@ jobs:
             ghcr.io/oneuptime/otel-collector
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -549,15 +561,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/otel-collector:test \
-              --tag oneuptime/otel-collector:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/otel-collector:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/otel-collector:test \
-              --tag ghcr.io/oneuptime/otel-collector:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/otel-collector:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   isolated-vm-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -569,7 +581,7 @@ jobs:
             ghcr.io/oneuptime/isolated-vm
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -615,15 +627,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/isolated-vm:test \
-              --tag oneuptime/isolated-vm:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/isolated-vm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/isolated-vm:test \
-              --tag ghcr.io/oneuptime/isolated-vm:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/isolated-vm:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   home-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -635,7 +647,7 @@ jobs:
             ghcr.io/oneuptime/home
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -681,17 +693,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/home:test \
-              --tag oneuptime/home:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/home:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/home:test \
-              --tag ghcr.io/oneuptime/home:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/home:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   
   
   status-page-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -703,7 +715,7 @@ jobs:
             ghcr.io/oneuptime/status-page
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -749,17 +761,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/status-page:test \
-              --tag oneuptime/status-page:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/status-page:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/status-page:test \
-              --tag ghcr.io/oneuptime/status-page:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/status-page:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
 
 
   test-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -771,7 +783,7 @@ jobs:
             ghcr.io/oneuptime/test
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -817,15 +829,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/test:test \
-              --tag oneuptime/test:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/test:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/test:test \
-              --tag ghcr.io/oneuptime/test:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/test:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   probe-ingest-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -837,7 +849,7 @@ jobs:
             ghcr.io/oneuptime/probe-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -883,17 +895,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/probe-ingest:test \
-              --tag oneuptime/probe-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/probe-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/probe-ingest:test \
-              --tag ghcr.io/oneuptime/probe-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/probe-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
 
 
   server-monitor-ingest-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -905,7 +917,7 @@ jobs:
             ghcr.io/oneuptime/server-monitor-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -951,18 +963,18 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/server-monitor-ingest:test \
-              --tag oneuptime/server-monitor-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/server-monitor-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/server-monitor-ingest:test \
-              --tag ghcr.io/oneuptime/server-monitor-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/server-monitor-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
           
             
 
 
   incoming-request-ingest-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -974,7 +986,7 @@ jobs:
             ghcr.io/oneuptime/incoming-request-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1020,15 +1032,18 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/incoming-request-ingest:test \
-              --tag oneuptime/incoming-request-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/incoming-request-ingest:test \
-              --tag ghcr.io/oneuptime/incoming-request-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   open-telemetry-ingest-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1040,7 +1055,7 @@ jobs:
             ghcr.io/oneuptime/open-telemetry-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1086,15 +1101,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/open-telemetry-ingest:test \
-              --tag oneuptime/open-telemetry-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/open-telemetry-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/open-telemetry-ingest:test \
-              --tag ghcr.io/oneuptime/open-telemetry-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/open-telemetry-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   fluent-ingest-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1106,7 +1121,7 @@ jobs:
             ghcr.io/oneuptime/fluent-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1152,15 +1167,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/fluent-ingest:test \
-              --tag oneuptime/fluent-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/fluent-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/fluent-ingest:test \
-              --tag ghcr.io/oneuptime/fluent-ingest:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/fluent-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   probe-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1172,7 +1187,7 @@ jobs:
             ghcr.io/oneuptime/probe
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1218,15 +1233,15 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/probe:test \
-              --tag oneuptime/probe:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/probe:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/probe:test \
-              --tag ghcr.io/oneuptime/probe:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/probe:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   dashboard-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1238,7 +1253,7 @@ jobs:
             ghcr.io/oneuptime/dashboard
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1284,15 +1299,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/dashboard:test \
-              --tag oneuptime/dashboard:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/dashboard:test \
-              --tag ghcr.io/oneuptime/dashboard:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   admin-dashboard-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1304,7 +1321,7 @@ jobs:
             ghcr.io/oneuptime/admin-dashboard
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1350,15 +1367,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/admin-dashboard:test \
-              --tag oneuptime/admin-dashboard:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/admin-dashboard:test \
-              --tag ghcr.io/oneuptime/admin-dashboard:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   app-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1370,7 +1389,7 @@ jobs:
             ghcr.io/oneuptime/app
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1416,18 +1435,18 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/app:test \
-              --tag oneuptime/app:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/app:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/app:test \
-              --tag ghcr.io/oneuptime/app:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/app:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   
   
   
   api-reference-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1439,7 +1458,7 @@ jobs:
             ghcr.io/oneuptime/api-reference
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1485,17 +1504,20 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/api-reference:test \
-              --tag oneuptime/api-reference:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/api-reference:test \
-              --tag ghcr.io/oneuptime/api-reference:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   
 
   accounts-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1507,7 +1529,7 @@ jobs:
             ghcr.io/oneuptime/accounts
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1553,15 +1575,18 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/accounts:test \
-              --tag oneuptime/accounts:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/accounts:test \
-              --tag ghcr.io/oneuptime/accounts:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   worker-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1573,7 +1598,7 @@ jobs:
             ghcr.io/oneuptime/worker
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1619,15 +1644,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/worker:test \
-              --tag oneuptime/worker:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/worker:test \
-              --tag ghcr.io/oneuptime/worker:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   copilot-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1639,7 +1666,7 @@ jobs:
             ghcr.io/oneuptime/copilot
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1685,16 +1712,18 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/copilot:test \
-              --tag oneuptime/copilot:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/copilot:test \
-              --tag ghcr.io/oneuptime/copilot:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
   
   workflow-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1706,7 +1735,7 @@ jobs:
             ghcr.io/oneuptime/workflow
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1752,16 +1781,17 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/workflow:test \
-              --tag oneuptime/workflow:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/workflow:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/workflow:test \
-              --tag ghcr.io/oneuptime/workflow:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/workflow:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
 
     
   docs-docker-image-deploy:
-    needs: generate-build-number
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - name: Docker Meta
@@ -1773,7 +1803,7 @@ jobs:
             ghcr.io/oneuptime/docs
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=7.0.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
             
 
       - uses: actions/checkout@v4
@@ -1819,11 +1849,11 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --push \
               --tag oneuptime/docs:test \
-              --tag oneuptime/docs:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag oneuptime/docs:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --tag ghcr.io/oneuptime/docs:test \
-              --tag ghcr.io/oneuptime/docs:7.0.${{needs.generate-build-number.outputs.build_number}}-test \
+              --tag ghcr.io/oneuptime/docs:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg GIT_SHA=${{ github.sha }} \
-              --build-arg APP_VERSION=7.0.${{needs.generate-build-number.outputs.build_number}} \
+              --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
           
               
@@ -1946,7 +1976,7 @@ jobs:
           retention-days: 7
 
   infrastructure-agent-deploy:
-    needs: [generate-build-number]
+    needs: [read-version, generate-build-number]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -1972,10 +2002,10 @@ jobs:
         run: goreleaser -v
 
       - name: Run GoReleaser
-        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=7.0.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
+        run: cd InfrastructureAgent && export GORELEASER_CURRENT_TAG=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} && goreleaser release --clean --snapshot
 
       - name: Release MSI Images
-        run: cd InfrastructureAgent && bash build-msi.sh 7.0.${{needs.generate-build-number.outputs.build_number}}
+        run: cd InfrastructureAgent && bash build-msi.sh ${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}
       
 
       - name: Upload Release Binaries
