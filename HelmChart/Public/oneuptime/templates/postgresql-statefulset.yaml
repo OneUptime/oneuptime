@@ -31,6 +31,7 @@ spec:
         appname: oneuptime
       annotations:
         checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-configmap.yaml") . | sha256sum }}
+        checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-hba-configmap.yaml") . | sha256sum }}
     spec:
       {{- with .Values.postgresql.nodeSelector }}
       nodeSelector:
@@ -57,6 +58,8 @@ spec:
         args:
           - "-c"
           - "config_file=/etc/postgresql/postgresql.conf"
+          - "-c"
+          - "hba_file=/etc/postgresql/pg_hba.conf"
         {{- if .Values.postgresql.primary.containerSecurityContext }}
         securityContext:
           {{- with .Values.postgresql.primary.containerSecurityContext }}
@@ -121,10 +124,16 @@ spec:
         - name: postgresql-config
           mountPath: /etc/postgresql/postgresql.conf
           subPath: postgresql.conf
+        - name: postgresql-hba
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
       volumes:
       - name: postgresql-config
         configMap:
           name: {{ .Release.Name }}-postgresql-config
+      - name: postgresql-hba
+        configMap:
+          name: {{ .Release.Name }}-postgresql-hba
   volumeClaimTemplates:
   - metadata:
       name: data
