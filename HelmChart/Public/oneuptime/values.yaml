@@ -134,6 +134,16 @@ clickhouse:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Optional: override global security contexts just for the ClickHouse pod/container
+  # podSecurityContext:
+  #   runAsUser: 101
+  #   runAsGroup: 101
+  #   fsGroup: 101
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false
+  #   readOnlyRootFilesystem: true
+  #   capabilities:
+  #     drop: ["ALL"]
   resources: {}
   # Custom ClickHouse configuration
   configuration: |-
@@ -195,6 +205,16 @@ redis:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+  # Optional: override global security contexts just for the Redis pod/container
+  # podSecurityContext:
+  #   runAsUser: 999
+  #   runAsGroup: 999
+  #   fsGroup: 999
+  # containerSecurityContext:
+  #   allowPrivilegeEscalation: false
+  #   readOnlyRootFilesystem: true
+  #   capabilities:
+  #     drop: ["ALL"]
     resources: {}
   commonConfiguration: |-
    appendonly no
