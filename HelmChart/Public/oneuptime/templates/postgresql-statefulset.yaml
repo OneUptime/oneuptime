@@ -29,6 +29,8 @@ spec:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/component: postgresql
         appname: oneuptime
+      annotations:
+        checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-configmap.yaml") . | sha256sum }}
     spec:
       {{- with .Values.postgresql.nodeSelector }}
       nodeSelector:
@@ -52,6 +54,9 @@ spec:
       - name: postgresql
         image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
         imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+        args:
+          - "-c"
+          - "config_file=/etc/postgresql/postgresql.conf"
         {{- if .Values.postgresql.primary.containerSecurityContext }}
         securityContext:
           {{- with .Values.postgresql.primary.containerSecurityContext }}
@@ -113,17 +118,13 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
-        {{- if .Values.postgresql.configuration }}
         - name: postgresql-config
           mountPath: /etc/postgresql/postgresql.conf
           subPath: postgresql.conf
-        {{- end }}
       volumes:
-      {{- if .Values.postgresql.configuration }}
       - name: postgresql-config
         configMap:
           name: {{ .Release.Name }}-postgresql-config
-      {{- end }}
   volumeClaimTemplates:
   - metadata:
       name: data
