@@ -12,5 +12,5 @@ metadata:
     appname: oneuptime
 data:
   pg_hba.conf: |
-{{ .Values.postgresql.hbaConfiguration | indent 4 }}
+{{ .Values.postgresql.primary.hbaConfiguration | indent 4 }}
 {{- end }}

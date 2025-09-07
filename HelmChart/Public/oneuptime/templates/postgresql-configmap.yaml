@@ -1,4 +1,4 @@
-{{- if and .Values.postgresql.enabled .Values.postgresql.configuration }}
+{{- if .Values.postgresql.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,5 +12,5 @@ metadata:
     appname: oneuptime
 data:
   postgresql.conf: |
-{{ .Values.postgresql.configuration | indent 4 }}
+{{ .Values.postgresql.primary.configuration | indent 4 }}
 {{- end }}

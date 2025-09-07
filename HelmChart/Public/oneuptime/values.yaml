@@ -79,23 +79,24 @@ postgresql:
       enabled: true
       size: 25Gi
       storageClass: ""
+    configuration: |-
+      # Network and connection settings
+      listen_addresses = '*'
+      port = 5432
+      # Core tuning (adjust as needed)
+      max_connections = 100
+      shared_buffers = 128MB
+    # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
+    # Tighten these for production to your pod/service/network CIDRs.
+    hbaConfiguration: |-
+      # Allow all IPv4 and IPv6 clients with md5 password auth
+      host    all             all             0.0.0.0/0               md5
+      host    all             all             ::/0                    md5
   nodeSelector: {}
   tolerations: []
   affinity: {}
   resources: {}
-  configuration: |-
-    # Network and connection settings
-    listen_addresses = '*'
-    port = 5432
-    # Core tuning (adjust as needed)
-    max_connections = 100
-    shared_buffers = 128MB
-  # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
-  # Tighten these for production to your pod/service/network CIDRs.
-  hbaConfiguration: |-
-    # Allow all IPv4 and IPv6 clients with md5 password auth
-    host    all             all             0.0.0.0/0               md5
-    host    all             all             ::/0                    md5
+  
 
 clickhouse:
   enabled: true
