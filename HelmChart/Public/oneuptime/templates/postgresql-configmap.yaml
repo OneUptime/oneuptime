@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-postgresql-config
+  name: {{ .Release.Name }}-postgresql-primary-config
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Release.Name }}-postgresql

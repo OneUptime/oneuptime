@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-postgresql-hba
+  name: {{ .Release.Name }}-postgresql-primary-hba
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Release.Name }}-postgresql

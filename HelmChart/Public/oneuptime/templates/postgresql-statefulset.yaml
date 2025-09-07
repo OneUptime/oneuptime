@@ -30,8 +30,8 @@ spec:
         app.kubernetes.io/component: postgresql
         appname: oneuptime
       annotations:
-        checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-configmap.yaml") . | sha256sum }}
-        checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-hba-configmap.yaml") . | sha256sum }}
+  checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-configmap.yaml") . | sha256sum }}
+  checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-hba-configmap.yaml") . | sha256sum }}
     spec:
       {{- with .Values.postgresql.nodeSelector }}
       nodeSelector:
@@ -130,10 +130,10 @@ spec:
       volumes:
       - name: postgresql-config
         configMap:
-          name: {{ .Release.Name }}-postgresql-config
+          name: {{ .Release.Name }}-postgresql-primary-config
       - name: postgresql-hba
         configMap:
-          name: {{ .Release.Name }}-postgresql-hba
+          name: {{ .Release.Name }}-postgresql-primary-hba
   volumeClaimTemplates:
   - metadata:
       name: data
