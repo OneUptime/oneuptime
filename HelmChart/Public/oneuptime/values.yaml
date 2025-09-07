@@ -79,6 +79,10 @@ postgresql:
       enabled: true
       size: 25Gi
       storageClass: ""
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    resources: {}
     configuration: |-
       # Network and connection settings
       listen_addresses = '*'
@@ -92,10 +96,7 @@ postgresql:
       # Allow all IPv4 and IPv6 clients with md5 password auth
       host    all             all             0.0.0.0/0               md5
       host    all             all             ::/0                    md5
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-  resources: {}
+
   
 
 clickhouse:

@@ -33,15 +33,15 @@ spec:
         checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-primary-configmap.yaml") . | sha256sum }}
         checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-primary-hba-configmap.yaml") . | sha256sum }}
     spec:
-      {{- with .Values.postgresql.nodeSelector }}
+      {{- with .Values.postgresql.primary.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.postgresql.affinity }}
+      {{- with .Values.postgresql.primary.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.postgresql.tolerations }}
+      {{- with .Values.postgresql.primary.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
