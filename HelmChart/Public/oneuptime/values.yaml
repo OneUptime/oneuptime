@@ -83,10 +83,9 @@ postgresql:
   tolerations: []
   affinity: {}
   resources: {}
-  # Optional PostgreSQL configuration
-  # configuration: |-
-  #   max_connections = 100
-  #   shared_buffers = 128MB
+  configuration: |-
+    max_connections = 100
+    shared_buffers = 128MB
   #   effective_cache_size = 4GB
   #   maintenance_work_mem = 64MB
   #   checkpoint_completion_target = 0.9

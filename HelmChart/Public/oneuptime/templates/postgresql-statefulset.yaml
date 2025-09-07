@@ -48,28 +48,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- end }}
-      initContainers:
-      - name: setup-config
-        image: busybox:latest
-        command:
-        - sh
-        - -c
-        - |
-          # Create the postgresql.conf symlink if it doesn't exist and the bitnami config exists
-          if [ -f "/var/lib/postgresql/data/postgresql/pgdata/postgresql.conf" ] && [ ! -f "/var/lib/postgresql/data/data/postgresql.conf" ]; then
-            ln -sf ../postgresql/pgdata/postgresql.conf /var/lib/postgresql/data/data/postgresql.conf
-          fi
-          # Also link pg_hba.conf if it exists
-          if [ -f "/var/lib/postgresql/data/postgresql/pgdata/pg_hba.conf" ] && [ ! -f "/var/lib/postgresql/data/data/pg_hba.conf" ]; then
-            ln -sf ../postgresql/pgdata/pg_hba.conf /var/lib/postgresql/data/data/pg_hba.conf
-          fi
-          # Also link pg_ident.conf if it exists  
-          if [ -f "/var/lib/postgresql/data/postgresql/pgdata/pg_ident.conf" ] && [ ! -f "/var/lib/postgresql/data/data/pg_ident.conf" ]; then
-            ln -sf ../postgresql/pgdata/pg_ident.conf /var/lib/postgresql/data/data/pg_ident.conf
-          fi
-        volumeMounts:
-        - name: data
-          mountPath: /var/lib/postgresql/data
       containers:
       - name: postgresql
         image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
