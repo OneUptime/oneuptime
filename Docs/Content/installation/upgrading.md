@@ -1,4 +1,3 @@
-````markdown
 # Upgrading OneUptime
 
 This guide covers how to safely upgrade your self-hosted OneUptime installation.
@@ -19,4 +18,3 @@ If you're running on Kubernetes, there are important breaking changes:
 
 
 > Tip: Test the upgrade in a staging environment first. Confirm your workloads are healthy and data is intact before upgrading production.
-````
