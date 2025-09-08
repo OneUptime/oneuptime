@@ -243,7 +243,7 @@ jobs:
             ghcr.io/oneuptime/llm
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -317,7 +317,7 @@ jobs:
             ghcr.io/oneuptime/nginx
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -384,7 +384,7 @@ jobs:
             ghcr.io/oneuptime/e2e
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -449,7 +449,7 @@ jobs:
             ghcr.io/oneuptime/test-server
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -515,7 +515,7 @@ jobs:
             ghcr.io/oneuptime/otel-collector
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -581,7 +581,7 @@ jobs:
             ghcr.io/oneuptime/isolated-vm
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -647,7 +647,7 @@ jobs:
             ghcr.io/oneuptime/home
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -715,7 +715,7 @@ jobs:
             ghcr.io/oneuptime/status-page
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -783,7 +783,7 @@ jobs:
             ghcr.io/oneuptime/test
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -849,7 +849,7 @@ jobs:
             ghcr.io/oneuptime/probe-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -917,7 +917,7 @@ jobs:
             ghcr.io/oneuptime/server-monitor-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -986,7 +986,7 @@ jobs:
             ghcr.io/oneuptime/incoming-request-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1037,7 +1037,7 @@ jobs:
               --tag ghcr.io/oneuptime/incoming-request-ingest:test \
               --tag ghcr.io/oneuptime/incoming-request-ingest:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1055,7 +1055,7 @@ jobs:
             ghcr.io/oneuptime/open-telemetry-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1121,7 +1121,7 @@ jobs:
             ghcr.io/oneuptime/fluent-ingest
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1187,7 +1187,7 @@ jobs:
             ghcr.io/oneuptime/probe
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1253,7 +1253,7 @@ jobs:
             ghcr.io/oneuptime/dashboard
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1303,7 +1303,7 @@ jobs:
               --tag ghcr.io/oneuptime/dashboard:test \
               --tag ghcr.io/oneuptime/dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1321,7 +1321,7 @@ jobs:
             ghcr.io/oneuptime/admin-dashboard
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1371,7 +1371,7 @@ jobs:
               --tag ghcr.io/oneuptime/admin-dashboard:test \
               --tag ghcr.io/oneuptime/admin-dashboard:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1389,7 +1389,7 @@ jobs:
             ghcr.io/oneuptime/app
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1458,7 +1458,7 @@ jobs:
             ghcr.io/oneuptime/api-reference
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1509,7 +1509,7 @@ jobs:
               --tag ghcr.io/oneuptime/api-reference:test \
               --tag ghcr.io/oneuptime/api-reference:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1529,7 +1529,7 @@ jobs:
             ghcr.io/oneuptime/accounts
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1580,7 +1580,7 @@ jobs:
               --tag ghcr.io/oneuptime/accounts:test \
               --tag ghcr.io/oneuptime/accounts:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1598,7 +1598,7 @@ jobs:
             ghcr.io/oneuptime/worker
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1648,7 +1648,7 @@ jobs:
               --tag ghcr.io/oneuptime/worker:test \
               --tag ghcr.io/oneuptime/worker:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1666,7 +1666,7 @@ jobs:
             ghcr.io/oneuptime/copilot
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1716,7 +1716,7 @@ jobs:
               --tag ghcr.io/oneuptime/copilot:test \
               --tag ghcr.io/oneuptime/copilot:${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
               --build-arg GIT_SHA=${{ github.sha }} \
               --build-arg APP_VERSION=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}} \
               .
@@ -1735,7 +1735,7 @@ jobs:
             ghcr.io/oneuptime/workflow
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
@@ -1803,7 +1803,7 @@ jobs:
             ghcr.io/oneuptime/docs
           tags: |
             type=raw,value=test,enable=true
-            type=semver,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,pattern={{version}},enable=true
+            type=raw,value=${{needs.read-version.outputs.major_minor}}.${{needs.generate-build-number.outputs.build_number}}-test,enable=true
             
 
       - uses: actions/checkout@v4
