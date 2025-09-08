@@ -467,7 +467,7 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
               ) : (
                 <span>
                   Next event will be scheduled at{" "}
-                  {OneUptimeDate.getDateAsLocalFormattedString(
+                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     item.scheduleNextEventAt,
                   )}
                 </span>

@@ -43,7 +43,7 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
           title="Last Request Received At"
           value={
             props.incomingMonitorRequest?.incomingRequestReceivedAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.incomingMonitorRequest.incomingRequestReceivedAt,
                 )
               : "-"
@@ -60,7 +60,7 @@ const IncomingRequestMonitorView: FunctionComponent<ComponentProps> = (
             title="Monitor Status Check At"
             value={
               props.incomingRequestMonitorHeartbeatCheckedAt
-                ? OneUptimeDate.getDateAsLocalFormattedString(
+                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     props.incomingRequestMonitorHeartbeatCheckedAt,
                   )
                 : "-"

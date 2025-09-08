@@ -1065,7 +1065,7 @@ ${onUpdate.updateBy.data.title || "No title provided."}
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Starts At**: 
-${OneUptimeDate.getDateAsLocalFormattedString(onUpdate.updateBy.data.startsAt as Date) || "No title provided."}
+${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(onUpdate.updateBy.data.startsAt as Date) || "No title provided."}
 `;
           shouldAddScheduledMaintenanceFeed = true;
         }
@@ -1074,7 +1074,7 @@ ${OneUptimeDate.getDateAsLocalFormattedString(onUpdate.updateBy.data.startsAt as
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Ends At**:
-${OneUptimeDate.getDateAsLocalFormattedString(onUpdate.updateBy.data.endsAt as Date) || "No title provided."}
+${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(onUpdate.updateBy.data.endsAt as Date) || "No title provided."}
 `;
           shouldAddScheduledMaintenanceFeed = true;
         }

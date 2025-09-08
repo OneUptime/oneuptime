@@ -117,7 +117,7 @@ const FeedItem: FunctionComponent<ComponentProps> = (
                 )}
                 <div className="mt-0.5 text-sm text-gray-500 w-fit">
                   <Tooltip
-                    text={OneUptimeDate.getDateAsLocalFormattedString(
+                    text={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                       props.itemDateTime,
                     )}
                   >

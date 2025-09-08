@@ -55,7 +55,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       dayNumber,
     );
 
-    let toolTipText: string = `${OneUptimeDate.getDateAsLocalFormattedString(
+    let toolTipText: string = `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
       todaysDay,
       true,
     )}`;
@@ -189,7 +189,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
     if (todaysEvents.length === 1) {
       hasEvents = true;
-      toolTipText = `${OneUptimeDate.getDateAsLocalFormattedString(
+      toolTipText = `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
         todaysDay,
         true,
       )} - 100% ${todaysEvents[0]?.label || "Operational"}.`;
