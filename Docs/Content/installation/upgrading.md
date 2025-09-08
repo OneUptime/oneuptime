@@ -13,7 +13,7 @@ This guide covers how to safely upgrade your self-hosted OneUptime installation.
 
 If you're running on Kubernetes, there are important breaking changes:
 
-- We no longer use Bitnami charts for Postgres, Redis, and ClickHouse.
+- We no longer use Bitnami charts for Postgres, Redis, and ClickHouse because of [Bitnami License Changes](https://github.com/bitnami/charts/issues/35164)
 - These changes are not backward compatible. You must follow the new structure in the Helm chart `values.yaml`.
 - Backup your data (Postgres, ClickHouse, and any persistent volumes) before upgrading.
 
