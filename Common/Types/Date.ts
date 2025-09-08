@@ -209,7 +209,7 @@ export default class OneUptimeDate {
       date = this.fromString(date);
     }
 
-    const format =
+    const format: "hh:mm A" | "HH:mm" =
       use12HourFormat || this.getUserPrefers12HourFormat()
         ? "hh:mm A"
         : "HH:mm";
@@ -898,8 +898,8 @@ export default class OneUptimeDate {
     }
 
     // Client-side: detect user's preferred time format from browser locale
-    const testDate = new Date();
-    const timeString = testDate.toLocaleTimeString();
+    const testDate: Date = new Date();
+    const timeString: string = testDate.toLocaleTimeString();
     return (
       timeString.toLowerCase().includes("am") ||
       timeString.toLowerCase().includes("pm")
