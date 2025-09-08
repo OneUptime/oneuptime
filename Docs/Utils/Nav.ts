@@ -34,6 +34,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/installation/docker-compose",
       },
       {
+        title: "Upgrading",
+        url: "/docs/installation/upgrading",
+      },
+      {
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
