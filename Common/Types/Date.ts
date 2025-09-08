@@ -879,8 +879,45 @@ export default class OneUptimeDate {
   public static getCurrentDateAsFormattedString(options?: {
     onlyShowDate?: boolean;
     showSeconds?: boolean;
+    use12HourFormat?: boolean;
   }): string {
     return this.getDateAsFormattedString(new Date(), options);
+  }
+
+  public static getUserPrefers12HourFormat(): boolean {
+    if (typeof window === "undefined") {
+      // Server-side: default to 12-hour format for user-friendly display
+      return true;
+    }
+    
+    // Client-side: detect user's preferred time format from browser locale
+    const testDate = new Date();
+    const timeString = testDate.toLocaleTimeString();
+    return timeString.toLowerCase().includes('am') || timeString.toLowerCase().includes('pm');
+  }
+
+  public static getDateAsUserFriendlyFormattedString(
+    date: string | Date,
+    options?: {
+      onlyShowDate?: boolean;
+      showSeconds?: boolean;
+    },
+  ): string {
+    return this.getDateAsFormattedString(date, {
+      ...options,
+      use12HourFormat: this.getUserPrefers12HourFormat(),
+    });
+  }
+
+  public static getDateAsUserFriendlyLocalFormattedString(
+    date: string | Date,
+    onlyShowDate?: boolean,
+  ): string {
+    return this.getDateAsLocalFormattedString(
+      date,
+      onlyShowDate,
+      this.getUserPrefers12HourFormat(),
+    );
   }
 
   public static getDateAsFormattedString(
@@ -888,14 +925,23 @@ export default class OneUptimeDate {
     options?: {
       onlyShowDate?: boolean;
       showSeconds?: boolean;
+      use12HourFormat?: boolean;
     },
   ): string {
     date = this.fromString(date);
 
     let formatstring: string = "MMM DD YYYY, HH:mm";
 
+    if (options?.use12HourFormat) {
+      formatstring = "MMM DD YYYY, hh:mm A";
+    }
+
     if (options?.showSeconds) {
-      formatstring = "MMM DD YYYY, HH:mm:ss";
+      if (options?.use12HourFormat) {
+        formatstring = "MMM DD YYYY, hh:mm:ss A";
+      } else {
+        formatstring = "MMM DD YYYY, HH:mm:ss";
+      }
     }
 
     if (options?.onlyShowDate) {
@@ -1061,14 +1107,20 @@ export default class OneUptimeDate {
     date: string | Date;
     onlyShowDate?: boolean | undefined;
     timezones?: Array<Timezone> | undefined;
+    use12HourFormat?: boolean | undefined;
   }): Array<string> {
     let date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     let timezones: Array<Timezone> | undefined = data.timezones;
+    const use12HourFormat: boolean = data.use12HourFormat ?? this.getUserPrefers12HourFormat();
 
     date = this.fromString(date);
 
     let formatstring: string = "MMM DD YYYY, HH:mm";
+
+    if (use12HourFormat) {
+      formatstring = "MMM DD YYYY, hh:mm A";
+    }
 
     if (onlyShowDate) {
       formatstring = "MMM DD, YYYY";
@@ -1106,15 +1158,18 @@ export default class OneUptimeDate {
     date: string | Date;
     onlyShowDate?: boolean;
     timezones?: Array<Timezone> | undefined; // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+    use12HourFormat?: boolean | undefined;
   }): string {
     const date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     const timezones: Array<Timezone> | undefined = data.timezones;
+    const use12HourFormat: boolean | undefined = data.use12HourFormat;
 
     return this.getDateAsFormattedArrayInMultipleTimezones({
       date,
       onlyShowDate,
       timezones,
+      use12HourFormat,
     }).join("<br/>");
   }
 
@@ -1122,25 +1177,33 @@ export default class OneUptimeDate {
     date: string | Date;
     onlyShowDate?: boolean | undefined;
     timezones?: Array<Timezone> | undefined; // if this is skipped, then it will show the default timezones in the order of UTC, EST, PST, IST, ACT
+    use12HourFormat?: boolean | undefined;
   }): string {
     const date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     const timezones: Array<Timezone> | undefined = data.timezones;
+    const use12HourFormat: boolean | undefined = data.use12HourFormat;
 
     return this.getDateAsFormattedArrayInMultipleTimezones({
       date,
       onlyShowDate,
       timezones,
+      use12HourFormat,
     }).join("\n");
   }
 
   public static getDateAsLocalFormattedString(
     date: string | Date,
     onlyShowDate?: boolean,
+    use12HourFormat?: boolean,
   ): string {
     date = this.fromString(date);
 
     let formatstring: string = "MMM DD YYYY, HH:mm";
+
+    if (use12HourFormat) {
+      formatstring = "MMM DD YYYY, hh:mm A";
+    }
 
     if (onlyShowDate) {
       formatstring = "MMM DD, YYYY";

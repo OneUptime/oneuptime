@@ -261,7 +261,7 @@ export class Service extends DatabaseService<Model> {
           if (subscriber.slackIncomingWebhookUrl) {
             const slackMessage: string = `## 🔧 Scheduled Maintenance - ${event.title || ""}
 
-**Scheduled Date:** ${OneUptimeDate.getDateAsFormattedString(event.startsAt!)}
+**Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
 
 ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
@@ -305,6 +305,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                       date: event.startsAt!,
                       timezones: statuspage.subscriberTimezones || [],
+                      use12HourFormat: true,
                     }),
                   eventTitle: event.title || "",
                   eventDescription: await Markdown.convertToHTML(
@@ -769,11 +770,11 @@ ${scheduledMaintenance.description || "No description provided."}
 
       // add starts at and ends at.
       if (scheduledMaintenance.startsAt) {
-        feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
+        feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
       }
 
       if (scheduledMaintenance.endsAt) {
-        feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
+        feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
       }
 
       if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {

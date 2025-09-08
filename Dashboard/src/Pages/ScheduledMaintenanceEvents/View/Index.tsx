@@ -413,7 +413,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         <span className="font-semibold">
                           Next reminder will be sent at:
                         </span>{" "}
-                        {OneUptimeDate.getDateAsLocalFormattedString(
+                        {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                           item.nextSubscriberNotificationBeforeTheEventAt,
                         )}
                       </div>
