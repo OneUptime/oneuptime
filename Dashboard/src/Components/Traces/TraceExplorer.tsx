@@ -175,7 +175,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           </div>
           <div className="">
             <div className="font-semibold">Seen at:</div>{" "}
-            <div>{OneUptimeDate.getDateAsFormattedString(span.startTime!)}</div>
+            <div>{OneUptimeDate.getDateAsUserFriendlyFormattedString(span.startTime!)}</div>
           </div>
           <div className="">
             <div className="font-semibold">Start:</div>{" "}

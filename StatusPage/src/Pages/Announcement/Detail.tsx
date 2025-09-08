@@ -65,7 +65,7 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
     eventTypeColor: Blue500,
     eventSecondDescription: announcement.showAnnouncementAt!
       ? "Announced at " +
-        OneUptimeDate.getDateAsLocalFormattedString(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           announcement.showAnnouncementAt!,
         )
       : "",

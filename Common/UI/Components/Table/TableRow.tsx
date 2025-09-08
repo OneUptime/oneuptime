@@ -192,7 +192,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   column.key && !column.getElement ? (
                     column.type === FieldType.Date ? (
                       props.item[column.key] ? (
-                        OneUptimeDate.getDateAsLocalFormattedString(
+                        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                           props.item[column.key] as string,
                           true,
                         )
@@ -367,7 +367,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     {column.key && !column.getElement ? (
                       column.type === FieldType.Date ? (
                         props.item[column.key] ? (
-                          OneUptimeDate.getDateAsLocalFormattedString(
+                          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                             props.item[column.key] as string,
                             true,
                           )

@@ -55,7 +55,7 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
           width: isMobile ? "100%" : "15%",
         }}
       >
-        {OneUptimeDate.getDateAsLocalFormattedString(props.date, true)}
+        {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.date, true)}
       </div>
       <div
         style={{

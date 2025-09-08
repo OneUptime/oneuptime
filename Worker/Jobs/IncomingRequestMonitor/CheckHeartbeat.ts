@@ -19,7 +19,7 @@ RunCron(
   async () => {
     logger.debug(
       "Checking IncomingRequestMonitor:CheckHeartbeat at " +
-        OneUptimeDate.getDateAsLocalFormattedString(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           OneUptimeDate.getCurrentDate(),
         ),
     );

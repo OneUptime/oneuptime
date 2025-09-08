@@ -419,7 +419,7 @@ RunCron(
                         })
                         .join(", ") || "",
 
-                    scheduledAt: OneUptimeDate.getDateAsFormattedString(
+                    scheduledAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
                       event.startsAt!,
                     ),
                     eventTitle: event.title || "",

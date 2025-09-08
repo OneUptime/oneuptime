@@ -381,7 +381,7 @@ RunCron(
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name || "",
 
-                    scheduledAt: OneUptimeDate.getDateAsFormattedString(
+                    scheduledAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
                       event.startsAt!,
                     ),
                     eventTitle: event.title || "",

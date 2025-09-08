@@ -201,12 +201,13 @@ export default class OneUptimeDate {
     return this.secondsToFormattedFriendlyTimeString(seconds);
   }
 
-  public static toTimeString(date: Date | string): string {
+  public static toTimeString(date: Date | string, use12HourFormat?: boolean): string {
     if (typeof date === "string") {
       date = this.fromString(date);
     }
 
-    return moment(date).format("HH:mm");
+    const format = use12HourFormat || this.getUserPrefers12HourFormat() ? "hh:mm A" : "HH:mm";
+    return moment(date).format(format);
   }
 
   public static isSame(date1: Date, date2: Date): boolean {

@@ -48,7 +48,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
             title="Issued At"
             value={
               sslResponse.createdAt
-                ? OneUptimeDate.getDateAsLocalFormattedString(
+                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     sslResponse.createdAt,
                   )
                 : "-"
@@ -60,7 +60,7 @@ const SSLCertificateMonitorView: FunctionComponent<ComponentProps> = (
             title="Expires At"
             value={
               sslResponse.expiresAt
-                ? OneUptimeDate.getDateAsLocalFormattedString(
+                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     sslResponse.expiresAt,
                   )
                 : "-"

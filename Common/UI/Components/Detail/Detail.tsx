@@ -178,7 +178,7 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (field.fieldType === FieldType.Date) {
       if (data) {
-        data = OneUptimeDate.getDateAsLocalFormattedString(
+        data = OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           data as string,
           true,
         );

@@ -169,7 +169,7 @@ const ServerMonitorSummaryView: FunctionComponent<ComponentProps> = (
           title="Last Ping At"
           value={
             props.serverMonitorResponse?.requestReceivedAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.serverMonitorResponse.requestReceivedAt,
                 )
               : "-"

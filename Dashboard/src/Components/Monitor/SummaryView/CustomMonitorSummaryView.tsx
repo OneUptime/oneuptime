@@ -88,7 +88,7 @@ const CustomMonitorSummaryView: FunctionComponent<ComponentProps> = (
             title="Monitored At"
             value={
               props.monitoredAt
-                ? OneUptimeDate.getDateAsLocalFormattedString(props.monitoredAt)
+                ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.monitoredAt)
                 : "-"
             }
           />
