@@ -381,9 +381,10 @@ RunCron(
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name || "",
 
-                    scheduledAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                      event.startsAt!,
-                    ),
+                    scheduledAt:
+                      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                        event.startsAt!,
+                      ),
                     eventTitle: event.title || "",
                     unsubscribeUrl: unsubscribeUrl,
                     subscriberEmailNotificationFooterText:

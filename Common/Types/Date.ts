@@ -201,12 +201,18 @@ export default class OneUptimeDate {
     return this.secondsToFormattedFriendlyTimeString(seconds);
   }
 
-  public static toTimeString(date: Date | string, use12HourFormat?: boolean): string {
+  public static toTimeString(
+    date: Date | string,
+    use12HourFormat?: boolean,
+  ): string {
     if (typeof date === "string") {
       date = this.fromString(date);
     }
 
-    const format = use12HourFormat || this.getUserPrefers12HourFormat() ? "hh:mm A" : "HH:mm";
+    const format =
+      use12HourFormat || this.getUserPrefers12HourFormat()
+        ? "hh:mm A"
+        : "HH:mm";
     return moment(date).format(format);
   }
 
@@ -890,11 +896,14 @@ export default class OneUptimeDate {
       // Server-side: default to 12-hour format for user-friendly display
       return true;
     }
-    
+
     // Client-side: detect user's preferred time format from browser locale
     const testDate = new Date();
     const timeString = testDate.toLocaleTimeString();
-    return timeString.toLowerCase().includes('am') || timeString.toLowerCase().includes('pm');
+    return (
+      timeString.toLowerCase().includes("am") ||
+      timeString.toLowerCase().includes("pm")
+    );
   }
 
   public static getDateAsUserFriendlyFormattedString(
@@ -1113,7 +1122,8 @@ export default class OneUptimeDate {
     let date: string | Date = data.date;
     const onlyShowDate: boolean | undefined = data.onlyShowDate;
     let timezones: Array<Timezone> | undefined = data.timezones;
-    const use12HourFormat: boolean = data.use12HourFormat ?? this.getUserPrefers12HourFormat();
+    const use12HourFormat: boolean =
+      data.use12HourFormat ?? this.getUserPrefers12HourFormat();
 
     date = this.fromString(date);
 

@@ -419,9 +419,10 @@ RunCron(
                         })
                         .join(", ") || "",
 
-                    scheduledAt: OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                      event.startsAt!,
-                    ),
+                    scheduledAt:
+                      OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                        event.startsAt!,
+                      ),
                     eventTitle: event.title || "",
                     eventDescription: event.description || "",
                     unsubscribeUrl: unsubscribeUrl,
