@@ -134,7 +134,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           {
             field: {
-              currentIncidentState: true,
+              initialIncidentState: true,
             },
             title: "Initial Incident State",
             stepId: "incident-details",
@@ -275,7 +275,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
-                currentIncidentState: {
+                initialIncidentState: {
                   color: true,
                   name: true,
                 },
@@ -283,14 +283,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Initial Incident State",
               fieldType: FieldType.Entity,
               getElement: (item: IncidentTemplate): ReactElement => {
-                if (!item["currentIncidentState"]) {
+                if (!item["initialIncidentState"]) {
                   return <p>Uses default 'Created' state</p>;
                 }
 
                 return (
                   <Pill
-                    color={item.currentIncidentState.color || Black}
-                    text={item.currentIncidentState.name || "Unknown"}
+                    color={item.initialIncidentState.color || Black}
+                    text={item.initialIncidentState.name || "Unknown"}
                   />
                 );
               },

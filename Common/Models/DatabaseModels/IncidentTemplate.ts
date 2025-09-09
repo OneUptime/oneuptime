@@ -732,7 +732,7 @@ export default class IncidentTemplate extends BaseModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "currentIncidentStateId",
+    manyToOneRelationColumn: "initialIncidentStateId",
     type: TableColumnType.Entity,
     modelType: IncidentState,
     title: "Initial Incident State",
@@ -749,8 +749,8 @@ export default class IncidentTemplate extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "currentIncidentStateId" })
-  public currentIncidentState?: IncidentState = undefined;
+  @JoinColumn({ name: "initialIncidentStateId" })
+  public initialIncidentState?: IncidentState = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -785,7 +785,7 @@ export default class IncidentTemplate extends BaseModel {
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public currentIncidentStateId?: ObjectID = undefined;
+  public initialIncidentStateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
