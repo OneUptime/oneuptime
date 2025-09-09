@@ -69,41 +69,45 @@ const IncidentCreate: FunctionComponent<
     }
   }, []);
 
-  const fetchFirstIncidentState: () => Promise<void> = async (): Promise<void> => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return;
-    }
-
-    try {
-      const incidentStates: ListResult<IncidentState> = await ModelAPI.getList<IncidentState>({
-        modelType: IncidentState,
-        query: {
-          projectId: projectId,
-        },
-        limit: 1,
-        skip: 0,
-        select: {
-          _id: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-      });
-
-      if (incidentStates.data.length > 0) {
-        const firstStateId = incidentStates.data[0]!._id?.toString();
-        if (firstStateId) {
-          setInitialValuesForIncident((prev) => ({
-            ...prev,
-            currentIncidentState: firstStateId,
-          }));
-        }
+  const fetchFirstIncidentState: () => Promise<void> =
+    async (): Promise<void> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!projectId) {
+        return;
       }
-    } catch (err) {
-      // Silently fail to avoid breaking the form
-    }
-  };
+
+      try {
+        const incidentStates: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: {
+              projectId: projectId,
+            },
+            limit: 1,
+            skip: 0,
+            select: {
+              _id: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+          });
+
+        if (incidentStates.data.length > 0) {
+          const firstStateId = incidentStates.data[0]!._id?.toString();
+          if (firstStateId) {
+            setInitialValuesForIncident((prev) => {
+              return {
+                ...prev,
+                currentIncidentState: firstStateId,
+              };
+            });
+          }
+        }
+      } catch (err) {
+        // Silently fail to avoid breaking the form
+      }
+    };
 
   const fetchIncidentTemplate: (id: ObjectID) => Promise<void> = async (
     id: ObjectID,
@@ -164,7 +168,8 @@ const IncidentCreate: FunctionComponent<
         const initialValue: JSONObject = {
           ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
           incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
-          currentIncidentState: incidentTemplate.initialIncidentStateId?.toString(),
+          currentIncidentState:
+            incidentTemplate.initialIncidentStateId?.toString(),
           monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
             return monitor.id!.toString();
           }),
@@ -278,7 +283,8 @@ const IncidentCreate: FunctionComponent<
                   },
                   title: "Incident State",
                   stepId: "incident-details",
-                  description: "Select the initial state for this incident to be in.",
+                  description:
+                    "Select the initial state for this incident to be in.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
@@ -288,27 +294,29 @@ const IncidentCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select Initial State",
                   fetchDropdownOptions: async () => {
-                    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+                    const projectId: ObjectID | null =
+                      ProjectUtil.getCurrentProjectId();
                     if (!projectId) {
                       return [];
                     }
 
                     try {
-                      const incidentStates: ListResult<IncidentState> = await ModelAPI.getList<IncidentState>({
-                        modelType: IncidentState,
-                        query: {
-                          projectId: projectId,
-                        },
-                        limit: LIMIT_PER_PROJECT,
-                        skip: 0,
-                        select: {
-                          _id: true,
-                          name: true,
-                        },
-                        sort: {
-                          order: SortOrder.Ascending,
-                        },
-                      });
+                      const incidentStates: ListResult<IncidentState> =
+                        await ModelAPI.getList<IncidentState>({
+                          modelType: IncidentState,
+                          query: {
+                            projectId: projectId,
+                          },
+                          limit: LIMIT_PER_PROJECT,
+                          skip: 0,
+                          select: {
+                            _id: true,
+                            name: true,
+                          },
+                          sort: {
+                            order: SortOrder.Ascending,
+                          },
+                        });
 
                       return incidentStates.data.map((state: IncidentState) => {
                         return {

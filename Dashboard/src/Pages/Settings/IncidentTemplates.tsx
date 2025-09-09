@@ -13,7 +13,13 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
-import React, { Fragment, FunctionComponent, ReactElement, useEffect, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -34,20 +40,21 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
         return;
       }
 
-      const incidentStates: ListResult<IncidentState> = await ModelAPI.getList<IncidentState>({
-        modelType: IncidentState,
-        query: {
-          projectId: projectId,
-        },
-        limit: 1,
-        skip: 0,
-        select: {
-          _id: true,
-        },
-        sort: {
-          order: SortOrder.Ascending,
-        },
-      });
+      const incidentStates: ListResult<IncidentState> =
+        await ModelAPI.getList<IncidentState>({
+          modelType: IncidentState,
+          query: {
+            projectId: projectId,
+          },
+          limit: 1,
+          skip: 0,
+          select: {
+            _id: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
 
       if (incidentStates.data.length > 0) {
         setCreateInitialValues({
@@ -182,7 +189,8 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Initial Incident State",
             stepId: "incident-details",
-            description: "Select the initial state for incidents created from this template",
+            description:
+              "Select the initial state for incidents created from this template",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: IncidentState,
@@ -192,27 +200,29 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             required: false,
             placeholder: "Initial State",
             fetchDropdownOptions: async () => {
-              const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+              const projectId: ObjectID | null =
+                ProjectUtil.getCurrentProjectId();
               if (!projectId) {
                 return [];
               }
 
               try {
-                const incidentStates: ListResult<IncidentState> = await ModelAPI.getList<IncidentState>({
-                  modelType: IncidentState,
-                  query: {
-                    projectId: projectId,
-                  },
-                  limit: LIMIT_PER_PROJECT,
-                  skip: 0,
-                  select: {
-                    _id: true,
-                    name: true,
-                  },
-                  sort: {
-                    order: SortOrder.Ascending,
-                  },
-                });
+                const incidentStates: ListResult<IncidentState> =
+                  await ModelAPI.getList<IncidentState>({
+                    modelType: IncidentState,
+                    query: {
+                      projectId: projectId,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    select: {
+                      _id: true,
+                      name: true,
+                    },
+                    sort: {
+                      order: SortOrder.Ascending,
+                    },
+                  });
 
                 return incidentStates.data.map((state: IncidentState) => {
                   return {

@@ -473,7 +473,7 @@ export class Service extends DatabaseService<Model> {
     // If currentIncidentStateId is already provided (manual selection), use it
     if (createBy.data.currentIncidentStateId) {
       initialIncidentStateId = createBy.data.currentIncidentStateId;
-      
+
       // Validate that the provided state exists and belongs to the project
       const providedState: IncidentState | null =
         await IncidentStateService.findOneBy({
@@ -511,7 +511,7 @@ export class Service extends DatabaseService<Model> {
 
       if (incidentTemplate?.initialIncidentStateId) {
         initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-        
+
         // Validate that the template's state exists and belongs to the project
         const templateState: IncidentState | null =
           await IncidentStateService.findOneBy({

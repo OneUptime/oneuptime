@@ -138,7 +138,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Initial Incident State",
             stepId: "incident-details",
-            description: "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
+            description:
+              "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: IncidentState,
