@@ -17,6 +17,7 @@ export interface ComponentProps {
   onBlur?: (() => void) | undefined;
   tabIndex?: number | undefined;
   error?: string | undefined;
+  // Default: false (spell check enabled). Set to true to disable spell check.
   disableSpellCheck?: boolean | undefined;
   dataTestId?: string | undefined;
 }
@@ -462,7 +463,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               placeholder={props.placeholder || "Type your markdown here..."}
               className={`${className} rounded-t-none min-h-32`}
               value={text}
-              spellCheck={!props.disableSpellCheck}
+              spellCheck={props.disableSpellCheck === true ? false : true}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                 handleChange(e.target.value);
               }}

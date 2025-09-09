@@ -64,6 +64,21 @@ describe("MarkdownEditor", () => {
     expect(textarea.spellcheck).toBe(true);
   });
 
+  test("should enable spell check when disableSpellCheck is undefined", () => {
+    render(
+      <MarkdownEditor
+        initialValue="This is a test with spelling errors"
+        placeholder="Enter markdown here..."
+        disableSpellCheck={undefined}
+      />,
+    );
+
+    const textarea: HTMLTextAreaElement = screen.getByRole(
+      "textbox",
+    ) as HTMLTextAreaElement;
+    expect(textarea.spellcheck).toBe(true);
+  });
+
   test("should disable spell check when disableSpellCheck is true", () => {
     render(
       <MarkdownEditor

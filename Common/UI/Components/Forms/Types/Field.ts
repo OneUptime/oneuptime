@@ -115,6 +115,7 @@ export default interface Field<TEntity> {
   hideOptionalLabel?: boolean | undefined;
 
   // Spell check configuration (primarily for Markdown and text fields)
+  // Default: false (spell check enabled). Set to true to disable spell check.
   disableSpellCheck?: boolean | undefined;
 
   getSummaryElement?: (item: FormValues<TEntity>) => ReactElement | undefined;
