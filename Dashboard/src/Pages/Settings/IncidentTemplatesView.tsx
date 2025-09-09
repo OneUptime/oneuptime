@@ -20,6 +20,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
@@ -30,6 +31,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -43,6 +45,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Incident Template Details",
           description: "Here are more details for this incident template.",
         }}
+        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         formSteps={[
           {
@@ -130,6 +133,23 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             required: false,
             placeholder: "Incident Severity",
+          },
+          {
+            field: {
+              initialIncidentState: true,
+            },
+            title: "Initial Incident State",
+            stepId: "incident-details",
+            description:
+              "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: IncidentState,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Initial State",
           },
           {
             field: {
@@ -252,6 +272,28 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <Pill
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                initialIncidentState: {
+                  color: true,
+                  name: true,
+                },
+              },
+              title: "Initial Incident State",
+              fieldType: FieldType.Entity,
+              getElement: (item: IncidentTemplate): ReactElement => {
+                if (!item["initialIncidentState"]) {
+                  return <p>Uses default &apos;Created&apos; state</p>;
+                }
+
+                return (
+                  <Pill
+                    color={item.initialIncidentState.color || Black}
+                    text={item.initialIncidentState.name || "Unknown"}
                   />
                 );
               },
