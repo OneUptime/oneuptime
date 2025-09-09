@@ -292,9 +292,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   return (
     <div className="relative" data-testid={props.dataTestId}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between p-2 bg-gray-50 border border-gray-300 rounded-t-md border-b-0">
-        <div className="flex items-center space-x-1">
-          <div className="flex items-center space-x-1 mr-2">
+      <div className="p-2 bg-gray-50 border border-gray-300 rounded-t-md border-b-0">
+        <div className="flex flex-wrap items-center gap-1">
+          {/* Text Formatting */}
+          <div className="flex items-center gap-1">
             <ToolbarButton
               icon={IconProp.Bold}
               title="Bold (Ctrl+B)"
@@ -317,9 +318,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             />
           </div>
           
-          <div className="w-px h-6 bg-gray-300 mr-2" />
+          <div className="w-px h-6 bg-gray-300" />
           
-          <div className="flex items-center space-x-1 mr-2">
+          {/* Headings */}
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={formatActions.heading1}
@@ -346,9 +348,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             </button>
           </div>
           
-          <div className="w-px h-6 bg-gray-300 mr-2" />
+          <div className="w-px h-6 bg-gray-300" />
           
-          <div className="flex items-center space-x-1 mr-2">
+          {/* Lists */}
+          <div className="flex items-center gap-1">
             <ToolbarButton
               icon={IconProp.ListBullet}
               title="Bullet List"
@@ -366,9 +369,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             />
           </div>
           
-          <div className="w-px h-6 bg-gray-300 mr-2" />
+          <div className="w-px h-6 bg-gray-300" />
           
-          <div className="flex items-center space-x-1 mr-2">
+          {/* Links and Media */}
+          <div className="flex items-center gap-1">
             <ToolbarButton
               icon={IconProp.Link}
               title="Link"
@@ -386,9 +390,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             />
           </div>
           
-          <div className="w-px h-6 bg-gray-300 mr-2" />
+          <div className="w-px h-6 bg-gray-300" />
           
-          <div className="flex items-center space-x-1 mr-2">
+          {/* Advanced */}
+          <div className="flex items-center gap-1">
             <ToolbarButton
               icon={IconProp.TableCells}
               title="Table"
@@ -402,11 +407,6 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             >
               <span className="font-bold text-sm">—</span>
             </button>
-          </div>
-          
-          <div className="w-px h-6 bg-gray-300 mr-2" />
-          
-          <div className="flex items-center space-x-1">
             <button
               type="button"
               onClick={formatActions.quote}
@@ -424,20 +424,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               <span className="font-mono text-xs font-bold">{"{}"}</span>
             </button>
           </div>
-        </div>
-        
-        <div className="flex items-center space-x-1">
-          <button
-            type="button"
-            onClick={() => setShowPreview(!showPreview)}
-            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
-              showPreview
-                ? "bg-indigo-100 text-indigo-700"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
-          >
-            {showPreview ? "Write" : "Preview"}
-          </button>
+          
+          <div className="w-px h-6 bg-gray-300" />
+          
+          {/* Preview Toggle */}
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
+                showPreview
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2`}
+            >
+              {showPreview ? "Write" : "Preview"}
+            </button>
+          </div>
         </div>
       </div>
 
