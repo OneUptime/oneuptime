@@ -15,9 +15,20 @@ describe("MarkdownEditor", () => {
     // Check for toolbar buttons
     expect(screen.getByTitle("Bold (Ctrl+B)")).toBeInTheDocument();
     expect(screen.getByTitle("Italic (Ctrl+I)")).toBeInTheDocument();
-    expect(screen.getByTitle("Heading")).toBeInTheDocument();
+    expect(screen.getByTitle("Underline")).toBeInTheDocument();
+    expect(screen.getByTitle("Strikethrough")).toBeInTheDocument();
+    expect(screen.getByTitle("Heading 1")).toBeInTheDocument();
+    expect(screen.getByTitle("Heading 2")).toBeInTheDocument();
+    expect(screen.getByTitle("Heading 3")).toBeInTheDocument();
+    expect(screen.getByTitle("Bullet List")).toBeInTheDocument();
+    expect(screen.getByTitle("Numbered List")).toBeInTheDocument();
+    expect(screen.getByTitle("Task List")).toBeInTheDocument();
     expect(screen.getByTitle("Link")).toBeInTheDocument();
+    expect(screen.getByTitle("Image")).toBeInTheDocument();
+    expect(screen.getByTitle("Table")).toBeInTheDocument();
     expect(screen.getByTitle("Code")).toBeInTheDocument();
+    expect(screen.getByTitle("Quote")).toBeInTheDocument();
+    expect(screen.getByTitle("Horizontal Rule")).toBeInTheDocument();
   });
 
   test("should toggle preview mode", () => {

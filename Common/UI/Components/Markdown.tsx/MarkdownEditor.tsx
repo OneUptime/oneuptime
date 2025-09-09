@@ -181,15 +181,21 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const formatActions = {
     bold: () => insertText("**", "**", "bold text"),
     italic: () => insertText("*", "*", "italic text"),
+    underline: () => insertText("<u>", "</u>", "underlined text"),
+    strikethrough: () => insertText("~~", "~~", "strikethrough text"),
     heading1: () => insertAtLineStart("# "),
     heading2: () => insertAtLineStart("## "),
     heading3: () => insertAtLineStart("### "),
     unorderedList: () => insertAtLineStart("- "),
     orderedList: () => insertAtLineStart("1. "),
+    taskList: () => insertAtLineStart("- [ ] "),
     link: () => insertText("[", "](url)", "link text"),
+    image: () => insertText("![", "](image-url)", "alt text"),
     code: () => insertText("`", "`", "code"),
     codeBlock: () => insertText("```\n", "\n```", "code block"),
     quote: () => insertAtLineStart("> "),
+    horizontalRule: () => insertText("\n---\n", "", ""),
+    table: () => insertText("\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n", "", ""),
   };
 
   let className: string = "";
@@ -233,14 +239,39 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     htmlContent = htmlContent
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
       .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      .replace(/<u>(.*?)<\/u>/g, '<u class="underline">$1</u>')
+      .replace(/~~(.*?)~~/g, '<s class="line-through">$1</s>')
       .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-4 mt-6 first:mt-0">$1</h1>')
       .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-3 mt-5 first:mt-0">$1</h2>')
       .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-2 mt-4 first:mt-0">$1</h3>')
       .replace(/^#### (.*$)/gm, '<h4 class="text-lg font-bold mb-2 mt-3 first:mt-0">$1</h4>')
+      .replace(/^\- \[ \] (.*$)/gm, '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" disabled> $1</li>')
+      .replace(/^\- \[x\] (.*$)/gm, '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" checked disabled> $1</li>')
       .replace(/^\- (.*$)/gm, '<li class="ml-6 mb-1 list-disc list-inside">$1</li>')
       .replace(/^\d+\. (.*$)/gm, '<li class="ml-6 mb-1 list-decimal list-inside">$1</li>')
       .replace(/^\> (.*$)/gm, '<blockquote class="border-l-4 border-blue-400 pl-4 py-2 mb-4 bg-blue-50 italic text-gray-700">$1</blockquote>')
+      .replace(/^---$/gm, '<hr class="border-t-2 border-gray-300 my-6">')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg shadow-sm my-4">')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Handle tables
+    htmlContent = htmlContent.replace(
+      /^\|(.+)\|\n\|(-+\|)+\n((?:\|.+\|\n?)*)/gm,
+      (_match: string, headerRow: string, _separatorRow: string, bodyRows: string) => {
+        const headers = headerRow.split('|').filter((cell: string) => cell.trim()).map((cell: string) => 
+          `<th class="px-4 py-2 bg-gray-50 font-semibold text-left border-b border-gray-300">${cell.trim()}</th>`
+        ).join('');
+        
+        const rows = bodyRows.split('\n').filter((row: string) => row.trim()).map((row: string) => {
+          const cells = row.split('|').filter((cell: string) => cell.trim()).map((cell: string) => 
+            `<td class="px-4 py-2 border-b border-gray-200">${cell.trim()}</td>`
+          ).join('');
+          return `<tr>${cells}</tr>`;
+        }).join('');
+        
+        return `<table class="w-full border-collapse border border-gray-300 my-4 rounded-lg overflow-hidden"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+      }
+    );
     
     // Handle line breaks (convert \n to <br> but avoid double breaks)
     htmlContent = htmlContent.replace(/\n\n/g, '</p><p class="mb-4">').replace(/\n/g, '<br>');
@@ -272,6 +303,16 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               icon={IconProp.Italic}
               title="Italic (Ctrl+I)"
               onClick={formatActions.italic}
+            />
+            <ToolbarButton
+              icon={IconProp.Underline}
+              title="Underline"
+              onClick={formatActions.underline}
+            />
+            <ToolbarButton
+              icon={IconProp.Minus}
+              title="Strikethrough"
+              onClick={formatActions.strikethrough}
             />
           </div>
           
@@ -317,6 +358,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               title="Numbered List"
               onClick={formatActions.orderedList}
             />
+            <ToolbarButton
+              icon={IconProp.Check}
+              title="Task List"
+              onClick={formatActions.taskList}
+            />
           </div>
           
           <div className="w-px h-6 bg-gray-300 mr-2" />
@@ -328,10 +374,33 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onClick={formatActions.link}
             />
             <ToolbarButton
+              icon={IconProp.Image}
+              title="Image"
+              onClick={formatActions.image}
+            />
+            <ToolbarButton
               icon={IconProp.Code}
               title="Code"
               onClick={formatActions.code}
             />
+          </div>
+          
+          <div className="w-px h-6 bg-gray-300 mr-2" />
+          
+          <div className="flex items-center space-x-1 mr-2">
+            <ToolbarButton
+              icon={IconProp.TableCells}
+              title="Table"
+              onClick={formatActions.table}
+            />
+            <button
+              type="button"
+              onClick={formatActions.horizontalRule}
+              title="Horizontal Rule"
+              className="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <span className="font-bold text-sm">—</span>
+            </button>
           </div>
           
           <div className="w-px h-6 bg-gray-300 mr-2" />
