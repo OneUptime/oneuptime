@@ -172,25 +172,54 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   }
 
   const renderPreview = (): ReactElement => {
-    // Simple markdown preview - you might want to use a proper markdown parser
-    const htmlContent = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 rounded">$1</code>')
-      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mb-2">$1</h1>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mb-2">$1</h2>')
-      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mb-2">$1</h3>')
-      .replace(/^\- (.*$)/gm, '<li class="ml-4">• $1</li>')
-      .replace(/^\d+\. (.*$)/gm, '<li class="ml-4">$1</li>')
-      .replace(/^\> (.*$)/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600">$1</blockquote>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-indigo-600 hover:text-indigo-800 underline">$1</a>')
-      .replace(/\n/g, '<br>');
+    // Enhanced markdown preview with proper code block handling
+    let htmlContent = text;
+    
+    // Handle code blocks first (before inline code)
+    htmlContent = htmlContent.replace(
+      /```([^`]*?)```/g,
+      (_match, code) => {
+        const escapedCode = code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+        return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4"><code class="text-sm font-mono whitespace-pre">${escapedCode}</code></pre>`;
+      }
+    );
+    
+    // Handle inline code (after code blocks to avoid conflicts)
+    htmlContent = htmlContent.replace(
+      /`([^`]+)`/g, 
+      '<code class="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>'
+    );
+    
+    // Handle other markdown elements
+    htmlContent = htmlContent
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-4 mt-6 first:mt-0">$1</h1>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-3 mt-5 first:mt-0">$1</h2>')
+      .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-2 mt-4 first:mt-0">$1</h3>')
+      .replace(/^#### (.*$)/gm, '<h4 class="text-lg font-bold mb-2 mt-3 first:mt-0">$1</h4>')
+      .replace(/^\- (.*$)/gm, '<li class="ml-6 mb-1 list-disc list-inside">$1</li>')
+      .replace(/^\d+\. (.*$)/gm, '<li class="ml-6 mb-1 list-decimal list-inside">$1</li>')
+      .replace(/^\> (.*$)/gm, '<blockquote class="border-l-4 border-blue-400 pl-4 py-2 mb-4 bg-blue-50 italic text-gray-700">$1</blockquote>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Handle line breaks (convert \n to <br> but avoid double breaks)
+    htmlContent = htmlContent.replace(/\n\n/g, '</p><p class="mb-4">').replace(/\n/g, '<br>');
+    
+    // Wrap in paragraphs if there's content
+    if (htmlContent.trim()) {
+      htmlContent = `<p class="mb-4">${htmlContent}</p>`;
+    }
 
     return (
-      <div
-        className="p-3 prose prose-sm max-w-none"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+      <div className="p-4 min-h-32 bg-white prose prose-sm max-w-none">
+        <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      </div>
     );
   };
 
