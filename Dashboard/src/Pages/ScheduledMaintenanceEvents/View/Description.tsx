@@ -7,6 +7,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const ScheduledMaintenanceDelete: FunctionComponent<
   PageComponentProps
@@ -21,6 +22,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<
         description:
           "Description of this scheduled maintenance. This is visible on Status Page and is in markdown format.",
       }}
+      createEditModalWidth={ModalWidth.Large}
       editButtonText="Edit Scheduled Maintenance Description"
       isEditable={true}
       formFields={[

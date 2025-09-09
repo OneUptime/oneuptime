@@ -7,6 +7,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const IncidentDelete: FunctionComponent<
   PageComponentProps
@@ -21,6 +22,7 @@ const IncidentDelete: FunctionComponent<
         description:
           "Why did this incident happen? Here is the root cause of this incident.",
       }}
+      createEditModalWidth={ModalWidth.Large}
       isEditable={true}
       editButtonText="Edit Root Cause"
       formFields={[
