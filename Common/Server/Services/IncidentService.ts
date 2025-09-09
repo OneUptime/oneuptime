@@ -65,6 +65,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Dictionary from "../../Types/Dictionary";
 import IncidentTemplateService from "./IncidentTemplateService";
+import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -496,18 +497,19 @@ export class Service extends DatabaseService<Model> {
       }
     } else if (createBy.data.createdIncidentTemplateId) {
       // If created from a template, check if template has a custom initial state
-      const incidentTemplate = await IncidentTemplateService.findOneBy({
-        query: {
-          _id: createBy.data.createdIncidentTemplateId.toString(),
-          projectId: projectId,
-        },
-        select: {
-          initialIncidentStateId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const incidentTemplate: IncidentTemplate | null =
+        await IncidentTemplateService.findOneBy({
+          query: {
+            _id: createBy.data.createdIncidentTemplateId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            initialIncidentStateId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
       if (incidentTemplate?.initialIncidentStateId) {
         initialIncidentStateId = incidentTemplate.initialIncidentStateId;

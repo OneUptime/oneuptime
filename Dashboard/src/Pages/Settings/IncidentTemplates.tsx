@@ -33,38 +33,39 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
     FormValues<IncidentTemplate>
   >({});
 
-  const fetchFirstIncidentState = async (): Promise<void> => {
-    try {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (!projectId) {
-        return;
-      }
+  const fetchFirstIncidentState: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          return;
+        }
 
-      const incidentStates: ListResult<IncidentState> =
-        await ModelAPI.getList<IncidentState>({
-          modelType: IncidentState,
-          query: {
-            projectId: projectId,
-          },
-          limit: 1,
-          skip: 0,
-          select: {
-            _id: true,
-          },
-          sort: {
-            order: SortOrder.Ascending,
-          },
-        });
+        const incidentStates: ListResult<IncidentState> =
+          await ModelAPI.getList<IncidentState>({
+            modelType: IncidentState,
+            query: {
+              projectId: projectId,
+            },
+            limit: 1,
+            skip: 0,
+            select: {
+              _id: true,
+            },
+            sort: {
+              order: SortOrder.Ascending,
+            },
+          });
 
-      if (incidentStates.data.length > 0) {
-        setCreateInitialValues({
-          initialIncidentState: incidentStates.data[0]!._id?.toString(),
-        });
+        if (incidentStates.data.length > 0) {
+          setCreateInitialValues({
+            initialIncidentState: incidentStates.data[0]!._id?.toString(),
+          });
+        }
+      } catch {
+        // Silently fail
       }
-    } catch (err) {
-      // Silently fail
-    }
-  };
+    };
 
   useEffect(() => {
     fetchFirstIncidentState();
@@ -230,7 +231,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
                     value: state._id?.toString() || "",
                   };
                 });
-              } catch (err) {
+              } catch {
                 // Silently fail and return empty array
                 return [];
               }

@@ -94,9 +94,10 @@ const IncidentCreate: FunctionComponent<
           });
 
         if (incidentStates.data.length > 0) {
-          const firstStateId = incidentStates.data[0]!._id?.toString();
+          const firstStateId: string | undefined =
+            incidentStates.data[0]!._id?.toString();
           if (firstStateId) {
-            setInitialValuesForIncident((prev) => {
+            setInitialValuesForIncident((prev: JSONObject) => {
               return {
                 ...prev,
                 currentIncidentState: firstStateId,
@@ -104,7 +105,7 @@ const IncidentCreate: FunctionComponent<
             });
           }
         }
-      } catch (err) {
+      } catch {
         // Silently fail to avoid breaking the form
       }
     };
@@ -324,7 +325,7 @@ const IncidentCreate: FunctionComponent<
                           value: state._id?.toString() || "",
                         };
                       });
-                    } catch (err) {
+                    } catch {
                       // Silently fail and return empty array
                       return [];
                     }

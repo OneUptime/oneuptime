@@ -285,7 +285,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               fieldType: FieldType.Entity,
               getElement: (item: IncidentTemplate): ReactElement => {
                 if (!item["initialIncidentState"]) {
-                  return <p>Uses default 'Created' state</p>;
+                  return <p>Uses default &apos;Created&apos; state</p>;
                 }
 
                 return (
