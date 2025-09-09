@@ -207,12 +207,12 @@ RunCron(
 
             // Get status page resources if monitors are specified
             let statusPageResources: Array<StatusPageResource> = [];
-            
+
             if (announcement.monitors && announcement.monitors.length > 0) {
               logger.debug(
                 `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
               );
-              
+
               statusPageResources = await StatusPageResourceService.findBy({
                 query: {
                   statusPageId: statuspage.id!,
@@ -238,7 +238,7 @@ RunCron(
                   statusPageId: true,
                 },
               });
-              
+
               logger.debug(
                 `Found ${statusPageResources.length} status page resource(s) for announcement ${announcement.id} on status page ${statuspage.id}.`,
               );

@@ -126,7 +126,8 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Monitors affected (Optional)",
             stepId: "resources-affected",
-            description: "Select monitors affected by this announcement template. If none selected, all subscribers will be notified.",
+            description:
+              "Select monitors affected by this announcement template. If none selected, all subscribers will be notified.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: Monitor,

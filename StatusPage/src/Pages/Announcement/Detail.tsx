@@ -51,7 +51,13 @@ type GetAnnouncementEventItemFunction = (
 export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
   data: GetAnnouncementEventItemFunctionProps,
 ): EventItemComponentProps => {
-  const { announcement, statusPageResources, monitorsInGroup, isPreviewPage, isSummary } = data;
+  const {
+    announcement,
+    statusPageResources,
+    monitorsInGroup,
+    isPreviewPage,
+    isSummary,
+  } = data;
 
   // Get affected resources based on monitors in the announcement
   const monitorIdsInThisAnnouncement: Array<string | undefined> =
@@ -61,7 +67,9 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
 
   let namesOfResources: Array<StatusPageResource> = statusPageResources.filter(
     (resource: StatusPageResource) => {
-      return monitorIdsInThisAnnouncement.includes(resource.monitorId?.toString());
+      return monitorIdsInThisAnnouncement.includes(
+        resource.monitorId?.toString(),
+      );
     },
   );
 
@@ -180,8 +188,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
           StatusPageResource,
         );
 
-      const monitorsInGroup: Dictionary<Array<ObjectID>> =
-        data["monitorsInGroup"] as Dictionary<Array<ObjectID>>;
+      const monitorsInGroup: Dictionary<Array<ObjectID>> = data[
+        "monitorsInGroup"
+      ] as Dictionary<Array<ObjectID>>;
 
       // save data. set()
       setAnnouncement(announcement);

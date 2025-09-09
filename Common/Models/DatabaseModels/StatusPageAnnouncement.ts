@@ -224,7 +224,8 @@ export default class StatusPageAnnouncement extends BaseModel {
     type: TableColumnType.EntityArray,
     modelType: Monitor,
     title: "Monitors",
-    description: "List of monitors affected by this announcement. If none are selected, all subscribers will be notified.",
+    description:
+      "List of monitors affected by this announcement. If none are selected, all subscribers will be notified.",
   })
   @ManyToMany(
     () => {

@@ -94,8 +94,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
           StatusPageResource,
         );
 
-      const monitorsInGroup: Dictionary<Array<ObjectID>> =
-        data["monitorsInGroup"] as Dictionary<Array<ObjectID>>;
+      const monitorsInGroup: Dictionary<Array<ObjectID>> = data[
+        "monitorsInGroup"
+      ] as Dictionary<Array<ObjectID>>;
 
       // save data. set()
       setAnnouncements(announcements);

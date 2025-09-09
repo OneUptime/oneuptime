@@ -84,11 +84,9 @@ const AnnouncementCreate: FunctionComponent<
               return statusPage.id!.toString();
             },
           ),
-          monitors: announcementTemplate.monitors?.map(
-            (monitor: Monitor) => {
-              return monitor.id!.toString();
-            },
-          ),
+          monitors: announcementTemplate.monitors?.map((monitor: Monitor) => {
+            return monitor.id!.toString();
+          }),
           showAnnouncementAt: OneUptimeDate.getCurrentDate(),
         };
 
@@ -226,7 +224,8 @@ const AnnouncementCreate: FunctionComponent<
                   },
                   title: "Monitors affected (Optional)",
                   stepId: "resources-affected",
-                  description: "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
+                  description:
+                    "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: Monitor,
@@ -240,7 +239,10 @@ const AnnouncementCreate: FunctionComponent<
                   ) => {
                     if (!item.monitors || !Array.isArray(item.monitors)) {
                       return (
-                        <p>No monitors selected. All subscribers will be notified.</p>
+                        <p>
+                          No monitors selected. All subscribers will be
+                          notified.
+                        </p>
                       );
                     }
 
