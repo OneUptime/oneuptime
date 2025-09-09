@@ -34,7 +34,7 @@ const ToolbarButton: FunctionComponent<ToolbarButtonProps> = ({
   title,
   onClick,
   isActive = false,
-}) => {
+}: ToolbarButtonProps): ReactElement => {
   return (
     <button
       type="button"
@@ -56,7 +56,8 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [text, setText] = useState<string>(props.initialValue || "");
   const [showPreview, setShowPreview] = useState<boolean>(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef: React.RefObject<HTMLTextAreaElement> =
+    useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (props.initialValue !== undefined) {
@@ -64,29 +65,33 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     }
   }, [props.initialValue]);
 
-  const handleChange = (value: string): void => {
+  const handleChange: (value: string) => void = (value: string): void => {
     setText(value);
     if (props.onChange) {
       props.onChange(value);
     }
   };
 
-  const insertText = (
+  const insertText: (
+    before: string,
+    after?: string,
+    placeholder?: string,
+  ) => void = (
     before: string,
     after: string = "",
     placeholder: string = "",
   ): void => {
-    const textarea = textareaRef.current;
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
     if (!textarea) {
       return;
     }
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = text.substring(start, end);
-    const textToInsert = selectedText || placeholder;
+    const start: number = textarea.selectionStart;
+    const end: number = textarea.selectionEnd;
+    const selectedText: string = text.substring(start, end);
+    const textToInsert: string = selectedText || placeholder;
 
-    const newText =
+    const newText: string =
       text.substring(0, start) +
       before +
       textToInsert +
@@ -112,27 +117,29 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     }, 0);
   };
 
-  const insertAtLineStart = (prefix: string): void => {
-    const textarea = textareaRef.current;
+  const insertAtLineStart: (prefix: string) => void = (
+    prefix: string,
+  ): void => {
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
     if (!textarea) {
       return;
     }
 
-    const start = textarea.selectionStart;
-    const lineStart = text.lastIndexOf("\n", start - 1) + 1;
-    const lineEnd = text.indexOf("\n", start);
-    const actualLineEnd = lineEnd === -1 ? text.length : lineEnd;
+    const start: number = textarea.selectionStart;
+    const lineStart: number = text.lastIndexOf("\n", start - 1) + 1;
+    const lineEnd: number = text.indexOf("\n", start);
+    const actualLineEnd: number = lineEnd === -1 ? text.length : lineEnd;
 
-    const currentLine = text.substring(lineStart, actualLineEnd);
+    const currentLine: string = text.substring(lineStart, actualLineEnd);
 
     // Special handling for headings - replace existing heading levels
     if (prefix.startsWith("#")) {
       // Remove any existing heading markers
-      const cleanLine = currentLine.replace(/^#+\s*/, "");
+      const cleanLine: string = currentLine.replace(/^#+\s*/, "");
 
       if (currentLine.startsWith(prefix)) {
         // Same heading level - remove it
-        const newText =
+        const newText: string =
           text.substring(0, lineStart) +
           cleanLine +
           text.substring(actualLineEnd);
@@ -146,55 +153,70 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         }, 0);
       } else {
         // Different heading level or no heading - apply new heading
-        const newText =
+        const newText: string =
           text.substring(0, lineStart) +
           prefix +
           cleanLine +
           text.substring(actualLineEnd);
         handleChange(newText);
         setTimeout(() => {
-          const adjustment =
+          const adjustment: number =
             prefix.length - (currentLine.length - cleanLine.length);
           textarea.setSelectionRange(start + adjustment, start + adjustment);
           textarea.focus();
         }, 0);
       }
+    } else if (currentLine.startsWith(prefix)) {
+      // Non-heading prefixes (lists, quotes) - remove prefix
+      const newText: string =
+        text.substring(0, lineStart) +
+        currentLine.substring(prefix.length) +
+        text.substring(actualLineEnd);
+      handleChange(newText);
+      setTimeout(() => {
+        textarea.setSelectionRange(
+          start - prefix.length,
+          start - prefix.length,
+        );
+        textarea.focus();
+      }, 0);
     } else {
-      // Non-heading prefixes (lists, quotes) - original logic
-      if (currentLine.startsWith(prefix)) {
-        // Remove prefix
-        const newText =
-          text.substring(0, lineStart) +
-          currentLine.substring(prefix.length) +
-          text.substring(actualLineEnd);
-        handleChange(newText);
-        setTimeout(() => {
-          textarea.setSelectionRange(
-            start - prefix.length,
-            start - prefix.length,
-          );
-          textarea.focus();
-        }, 0);
-      } else {
-        // Add prefix
-        const newText =
-          text.substring(0, lineStart) +
-          prefix +
-          currentLine +
-          text.substring(actualLineEnd);
-        handleChange(newText);
-        setTimeout(() => {
-          textarea.setSelectionRange(
-            start + prefix.length,
-            start + prefix.length,
-          );
-          textarea.focus();
-        }, 0);
-      }
+      // Add prefix
+      const newText: string =
+        text.substring(0, lineStart) +
+        prefix +
+        currentLine +
+        text.substring(actualLineEnd);
+      handleChange(newText);
+      setTimeout(() => {
+        textarea.setSelectionRange(
+          start + prefix.length,
+          start + prefix.length,
+        );
+        textarea.focus();
+      }, 0);
     }
   };
 
-  const formatActions = {
+  const formatActions: {
+    bold: () => void;
+    italic: () => void;
+    underline: () => void;
+    strikethrough: () => void;
+    heading1: () => void;
+    heading2: () => void;
+    heading3: () => void;
+    unorderedList: () => void;
+    orderedList: () => void;
+    taskList: () => void;
+    link: () => void;
+    image: () => void;
+    code: () => void;
+    codeBlock: () => void;
+    quote: () => void;
+    horizontalRule: () => void;
+    table: () => void;
+  } = {
     bold: () => {
       return insertText("**", "**", "bold text");
     },
@@ -265,20 +287,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
 
-  const renderPreview = (): ReactElement => {
+  const renderPreview: () => ReactElement = (): ReactElement => {
     // Enhanced markdown preview with proper code block handling
-    let htmlContent = text;
+    let htmlContent: string = text;
 
     // Handle code blocks first (before inline code)
-    htmlContent = htmlContent.replace(/```([^`]*?)```/g, (_match, code) => {
-      const escapedCode = code
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-      return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4"><code class="text-sm font-mono whitespace-pre">${escapedCode}</code></pre>`;
-    });
+    htmlContent = htmlContent.replace(
+      /```([^`]*?)```/g,
+      (_match: string, code: string) => {
+        const escapedCode: string = code
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+        return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4"><code class="text-sm font-mono whitespace-pre">${escapedCode}</code></pre>`;
+      },
+    );
 
     // Handle inline code (after code blocks to avoid conflicts)
     htmlContent = htmlContent.replace(
@@ -309,15 +334,15 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         '<h4 class="text-lg font-bold mb-2 mt-3 first:mt-0">$1</h4>',
       )
       .replace(
-        /^\- \[ \] (.*$)/gm,
+        /^- \[ \] (.*$)/gm,
         '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" disabled> $1</li>',
       )
       .replace(
-        /^\- \[x\] (.*$)/gm,
+        /^- \[x\] (.*$)/gm,
         '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" checked disabled> $1</li>',
       )
       .replace(
-        /^\- (.*$)/gm,
+        /^- (.*$)/gm,
         '<li class="ml-6 mb-1 list-disc list-inside">$1</li>',
       )
       .replace(
@@ -325,7 +350,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         '<li class="ml-6 mb-1 list-decimal list-inside">$1</li>',
       )
       .replace(
-        /^\> (.*$)/gm,
+        /^> (.*$)/gm,
         '<blockquote class="border-l-4 border-blue-400 pl-4 py-2 mb-4 bg-blue-50 italic text-gray-700">$1</blockquote>',
       )
       .replace(/^---$/gm, '<hr class="border-t-2 border-gray-300 my-6">')
@@ -347,7 +372,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         _separatorRow: string,
         bodyRows: string,
       ) => {
-        const headers = headerRow
+        const headers: string = headerRow
           .split("|")
           .filter((cell: string) => {
             return cell.trim();
@@ -357,13 +382,13 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           })
           .join("");
 
-        const rows = bodyRows
+        const rows: string = bodyRows
           .split("\n")
           .filter((row: string) => {
             return row.trim();
           })
           .map((row: string) => {
-            const cells = row
+            const cells: string = row
               .split("|")
               .filter((cell: string) => {
                 return cell.trim();
@@ -521,7 +546,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               title="Quote"
               className="p-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
-              <span className="font-bold text-sm">"</span>
+              <span className="font-bold text-sm">&quot;</span>
             </button>
             <button
               type="button"

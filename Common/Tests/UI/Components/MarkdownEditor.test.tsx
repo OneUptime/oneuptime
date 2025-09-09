@@ -39,7 +39,7 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    const previewButton = screen.getByText("Preview");
+    const previewButton: HTMLElement = screen.getByText("Preview");
     fireEvent.click(previewButton);
 
     // Should show preview
@@ -129,7 +129,7 @@ describe("MarkdownEditor", () => {
   });
 
   test("should handle onChange callback", () => {
-    const mockOnChange = jest.fn();
+    const mockOnChange: jest.Mock = jest.fn();
     render(
       <MarkdownEditor
         initialValue=""
@@ -138,7 +138,7 @@ describe("MarkdownEditor", () => {
       />,
     );
 
-    const textarea = screen.getByRole("textbox");
+    const textarea: HTMLElement = screen.getByRole("textbox");
     fireEvent.change(textarea, { target: { value: "new text" } });
 
     expect(mockOnChange).toHaveBeenCalledWith("new text");
