@@ -1,9 +1,44 @@
 import React from "react";
 import MarkdownEditor from "../../../UI/Components/Markdown.tsx/MarkdownEditor";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, test } from "@jest/globals";
 
-describe("MarkdownEditor with SpellCheck", () => {
+describe("MarkdownEditor", () => {
+  test("should render with toolbar buttons", () => {
+    render(
+      <MarkdownEditor
+        initialValue="This is a test"
+        placeholder="Enter markdown here..."
+      />,
+    );
+
+    // Check for toolbar buttons
+    expect(screen.getByTitle("Bold (Ctrl+B)")).toBeInTheDocument();
+    expect(screen.getByTitle("Italic (Ctrl+I)")).toBeInTheDocument();
+    expect(screen.getByTitle("Heading")).toBeInTheDocument();
+    expect(screen.getByTitle("Link")).toBeInTheDocument();
+    expect(screen.getByTitle("Code")).toBeInTheDocument();
+  });
+
+  test("should toggle preview mode", () => {
+    render(
+      <MarkdownEditor
+        initialValue="**bold text**"
+        placeholder="Enter markdown here..."
+      />,
+    );
+
+    const previewButton = screen.getByText("Preview");
+    fireEvent.click(previewButton);
+
+    // Should show preview
+    expect(screen.getByText("Write")).toBeInTheDocument();
+    
+    // Click to go back to write mode
+    fireEvent.click(screen.getByText("Write"));
+    expect(screen.getByText("Preview")).toBeInTheDocument();
+  });
+
   test("should enable spell check by default", () => {
     render(
       <MarkdownEditor
@@ -57,5 +92,32 @@ describe("MarkdownEditor with SpellCheck", () => {
 
     textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.spellcheck).toBe(false);
+  });
+
+  test("should show help text", () => {
+    render(
+      <MarkdownEditor
+        initialValue=""
+        placeholder="Enter markdown here..."
+      />,
+    );
+
+    expect(screen.getByText("Markdown help")).toBeInTheDocument();
+  });
+
+  test("should handle onChange callback", () => {
+    const mockOnChange = jest.fn();
+    render(
+      <MarkdownEditor
+        initialValue=""
+        placeholder="Enter markdown here..."
+        onChange={mockOnChange}
+      />,
+    );
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "new text" } });
+
+    expect(mockOnChange).toHaveBeenCalledWith("new text");
   });
 });
