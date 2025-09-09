@@ -119,37 +119,71 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     
     const currentLine = text.substring(lineStart, actualLineEnd);
     
-    // Check if line already has the prefix
-    if (currentLine.startsWith(prefix)) {
-      // Remove prefix
-      const newText = 
-        text.substring(0, lineStart) + 
-        currentLine.substring(prefix.length) + 
-        text.substring(actualLineEnd);
-      handleChange(newText);
-      setTimeout(() => {
-        textarea.setSelectionRange(start - prefix.length, start - prefix.length);
-        textarea.focus();
-      }, 0);
+    // Special handling for headings - replace existing heading levels
+    if (prefix.startsWith('#')) {
+      // Remove any existing heading markers
+      const cleanLine = currentLine.replace(/^#+\s*/, '');
+      
+      if (currentLine.startsWith(prefix)) {
+        // Same heading level - remove it
+        const newText = 
+          text.substring(0, lineStart) + 
+          cleanLine + 
+          text.substring(actualLineEnd);
+        handleChange(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(start - prefix.length, start - prefix.length);
+          textarea.focus();
+        }, 0);
+      } else {
+        // Different heading level or no heading - apply new heading
+        const newText = 
+          text.substring(0, lineStart) + 
+          prefix + 
+          cleanLine + 
+          text.substring(actualLineEnd);
+        handleChange(newText);
+        setTimeout(() => {
+          const adjustment = prefix.length - (currentLine.length - cleanLine.length);
+          textarea.setSelectionRange(start + adjustment, start + adjustment);
+          textarea.focus();
+        }, 0);
+      }
     } else {
-      // Add prefix
-      const newText = 
-        text.substring(0, lineStart) + 
-        prefix + 
-        currentLine + 
-        text.substring(actualLineEnd);
-      handleChange(newText);
-      setTimeout(() => {
-        textarea.setSelectionRange(start + prefix.length, start + prefix.length);
-        textarea.focus();
-      }, 0);
+      // Non-heading prefixes (lists, quotes) - original logic
+      if (currentLine.startsWith(prefix)) {
+        // Remove prefix
+        const newText = 
+          text.substring(0, lineStart) + 
+          currentLine.substring(prefix.length) + 
+          text.substring(actualLineEnd);
+        handleChange(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(start - prefix.length, start - prefix.length);
+          textarea.focus();
+        }, 0);
+      } else {
+        // Add prefix
+        const newText = 
+          text.substring(0, lineStart) + 
+          prefix + 
+          currentLine + 
+          text.substring(actualLineEnd);
+        handleChange(newText);
+        setTimeout(() => {
+          textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+          textarea.focus();
+        }, 0);
+      }
     }
   };
 
   const formatActions = {
     bold: () => insertText("**", "**", "bold text"),
     italic: () => insertText("*", "*", "italic text"),
-    heading: () => insertAtLineStart("# "),
+    heading1: () => insertAtLineStart("# "),
+    heading2: () => insertAtLineStart("## "),
+    heading3: () => insertAtLineStart("### "),
     unorderedList: () => insertAtLineStart("- "),
     orderedList: () => insertAtLineStart("1. "),
     link: () => insertText("[", "](url)", "link text"),
@@ -244,11 +278,30 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           <div className="w-px h-6 bg-gray-300 mr-2" />
           
           <div className="flex items-center space-x-1 mr-2">
-            <ToolbarButton
-              icon={IconProp.Bars3}
-              title="Heading"
-              onClick={formatActions.heading}
-            />
+            <button
+              type="button"
+              onClick={formatActions.heading1}
+              title="Heading 1"
+              className="px-2 py-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <span className="text-sm font-bold">H1</span>
+            </button>
+            <button
+              type="button"
+              onClick={formatActions.heading2}
+              title="Heading 2"
+              className="px-2 py-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <span className="text-sm font-bold">H2</span>
+            </button>
+            <button
+              type="button"
+              onClick={formatActions.heading3}
+              title="Heading 3"
+              className="px-2 py-2 rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              <span className="text-sm font-bold">H3</span>
+            </button>
           </div>
           
           <div className="w-px h-6 bg-gray-300 mr-2" />
