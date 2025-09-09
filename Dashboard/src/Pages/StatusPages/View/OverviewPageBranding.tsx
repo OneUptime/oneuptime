@@ -7,6 +7,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -31,6 +32,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           title: "Overview Page",
           description: "Essential branding elements for overview page.",
         }}
+        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         editButtonText={"Edit Branding"}
         formFields={[

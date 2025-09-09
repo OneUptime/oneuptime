@@ -7,6 +7,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -90,6 +91,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Note Template",
           description: "Here is the note template.",
         }}
+        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         formFields={[
           {
