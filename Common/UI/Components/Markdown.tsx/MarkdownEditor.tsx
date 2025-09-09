@@ -1,11 +1,11 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { 
-  FunctionComponent, 
-  ReactElement, 
-  useState, 
-  useRef, 
-  useEffect 
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+  useRef,
+  useEffect,
 } from "react";
 
 export interface ComponentProps {
@@ -74,36 +74,38 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const insertText = (
     before: string,
     after: string = "",
-    placeholder: string = ""
+    placeholder: string = "",
   ): void => {
     const textarea = textareaRef.current;
-    if (!textarea) return;
+    if (!textarea) {
+      return;
+    }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = text.substring(start, end);
     const textToInsert = selectedText || placeholder;
-    
-    const newText = 
-      text.substring(0, start) + 
-      before + 
-      textToInsert + 
-      after + 
+
+    const newText =
+      text.substring(0, start) +
+      before +
+      textToInsert +
+      after +
       text.substring(end);
-    
+
     handleChange(newText);
-    
+
     // Set cursor position after insertion
     setTimeout(() => {
       if (selectedText) {
         textarea.setSelectionRange(
           start + before.length,
-          start + before.length + textToInsert.length
+          start + before.length + textToInsert.length,
         );
       } else {
         textarea.setSelectionRange(
           start + before.length,
-          start + before.length + placeholder.length
+          start + before.length + placeholder.length,
         );
       }
       textarea.focus();
@@ -112,41 +114,47 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 
   const insertAtLineStart = (prefix: string): void => {
     const textarea = textareaRef.current;
-    if (!textarea) return;
+    if (!textarea) {
+      return;
+    }
 
     const start = textarea.selectionStart;
-    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd = text.indexOf('\n', start);
+    const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+    const lineEnd = text.indexOf("\n", start);
     const actualLineEnd = lineEnd === -1 ? text.length : lineEnd;
-    
+
     const currentLine = text.substring(lineStart, actualLineEnd);
-    
+
     // Special handling for headings - replace existing heading levels
-    if (prefix.startsWith('#')) {
+    if (prefix.startsWith("#")) {
       // Remove any existing heading markers
-      const cleanLine = currentLine.replace(/^#+\s*/, '');
-      
+      const cleanLine = currentLine.replace(/^#+\s*/, "");
+
       if (currentLine.startsWith(prefix)) {
         // Same heading level - remove it
-        const newText = 
-          text.substring(0, lineStart) + 
-          cleanLine + 
+        const newText =
+          text.substring(0, lineStart) +
+          cleanLine +
           text.substring(actualLineEnd);
         handleChange(newText);
         setTimeout(() => {
-          textarea.setSelectionRange(start - prefix.length, start - prefix.length);
+          textarea.setSelectionRange(
+            start - prefix.length,
+            start - prefix.length,
+          );
           textarea.focus();
         }, 0);
       } else {
         // Different heading level or no heading - apply new heading
-        const newText = 
-          text.substring(0, lineStart) + 
-          prefix + 
-          cleanLine + 
+        const newText =
+          text.substring(0, lineStart) +
+          prefix +
+          cleanLine +
           text.substring(actualLineEnd);
         handleChange(newText);
         setTimeout(() => {
-          const adjustment = prefix.length - (currentLine.length - cleanLine.length);
+          const adjustment =
+            prefix.length - (currentLine.length - cleanLine.length);
           textarea.setSelectionRange(start + adjustment, start + adjustment);
           textarea.focus();
         }, 0);
@@ -155,25 +163,31 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       // Non-heading prefixes (lists, quotes) - original logic
       if (currentLine.startsWith(prefix)) {
         // Remove prefix
-        const newText = 
-          text.substring(0, lineStart) + 
-          currentLine.substring(prefix.length) + 
+        const newText =
+          text.substring(0, lineStart) +
+          currentLine.substring(prefix.length) +
           text.substring(actualLineEnd);
         handleChange(newText);
         setTimeout(() => {
-          textarea.setSelectionRange(start - prefix.length, start - prefix.length);
+          textarea.setSelectionRange(
+            start - prefix.length,
+            start - prefix.length,
+          );
           textarea.focus();
         }, 0);
       } else {
         // Add prefix
-        const newText = 
-          text.substring(0, lineStart) + 
-          prefix + 
-          currentLine + 
+        const newText =
+          text.substring(0, lineStart) +
+          prefix +
+          currentLine +
           text.substring(actualLineEnd);
         handleChange(newText);
         setTimeout(() => {
-          textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+          textarea.setSelectionRange(
+            start + prefix.length,
+            start + prefix.length,
+          );
           textarea.focus();
         }, 0);
       }
@@ -181,23 +195,61 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   };
 
   const formatActions = {
-    bold: () => insertText("**", "**", "bold text"),
-    italic: () => insertText("*", "*", "italic text"),
-    underline: () => insertText("<u>", "</u>", "underlined text"),
-    strikethrough: () => insertText("~~", "~~", "strikethrough text"),
-    heading1: () => insertAtLineStart("# "),
-    heading2: () => insertAtLineStart("## "),
-    heading3: () => insertAtLineStart("### "),
-    unorderedList: () => insertAtLineStart("- "),
-    orderedList: () => insertAtLineStart("1. "),
-    taskList: () => insertAtLineStart("- [ ] "),
-    link: () => insertText("[", "](url)", "link text"),
-    image: () => insertText("![", "](image-url)", "alt text"),
-    code: () => insertText("`", "`", "code"),
-    codeBlock: () => insertText("```\n", "\n```", "code block"),
-    quote: () => insertAtLineStart("> "),
-    horizontalRule: () => insertText("\n---\n", "", ""),
-    table: () => insertText("\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n", "", ""),
+    bold: () => {
+      return insertText("**", "**", "bold text");
+    },
+    italic: () => {
+      return insertText("*", "*", "italic text");
+    },
+    underline: () => {
+      return insertText("<u>", "</u>", "underlined text");
+    },
+    strikethrough: () => {
+      return insertText("~~", "~~", "strikethrough text");
+    },
+    heading1: () => {
+      return insertAtLineStart("# ");
+    },
+    heading2: () => {
+      return insertAtLineStart("## ");
+    },
+    heading3: () => {
+      return insertAtLineStart("### ");
+    },
+    unorderedList: () => {
+      return insertAtLineStart("- ");
+    },
+    orderedList: () => {
+      return insertAtLineStart("1. ");
+    },
+    taskList: () => {
+      return insertAtLineStart("- [ ] ");
+    },
+    link: () => {
+      return insertText("[", "](url)", "link text");
+    },
+    image: () => {
+      return insertText("![", "](image-url)", "alt text");
+    },
+    code: () => {
+      return insertText("`", "`", "code");
+    },
+    codeBlock: () => {
+      return insertText("```\n", "\n```", "code block");
+    },
+    quote: () => {
+      return insertAtLineStart("> ");
+    },
+    horizontalRule: () => {
+      return insertText("\n---\n", "", "");
+    },
+    table: () => {
+      return insertText(
+        "\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n",
+        "",
+        "",
+      );
+    },
   };
 
   let className: string = "";
@@ -216,68 +268,123 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const renderPreview = (): ReactElement => {
     // Enhanced markdown preview with proper code block handling
     let htmlContent = text;
-    
+
     // Handle code blocks first (before inline code)
-    htmlContent = htmlContent.replace(
-      /```([^`]*?)```/g,
-      (_match, code) => {
-        const escapedCode = code
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-        return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4"><code class="text-sm font-mono whitespace-pre">${escapedCode}</code></pre>`;
-      }
-    );
-    
+    htmlContent = htmlContent.replace(/```([^`]*?)```/g, (_match, code) => {
+      const escapedCode = code
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+      return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4"><code class="text-sm font-mono whitespace-pre">${escapedCode}</code></pre>`;
+    });
+
     // Handle inline code (after code blocks to avoid conflicts)
     htmlContent = htmlContent.replace(
-      /`([^`]+)`/g, 
-      '<code class="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>'
+      /`([^`]+)`/g,
+      '<code class="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>',
     );
-    
+
     // Handle other markdown elements
     htmlContent = htmlContent
       .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
       .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
       .replace(/<u>(.*?)<\/u>/g, '<u class="underline">$1</u>')
       .replace(/~~(.*?)~~/g, '<s class="line-through">$1</s>')
-      .replace(/^# (.*$)/gm, '<h1 class="text-3xl font-bold mb-4 mt-6 first:mt-0">$1</h1>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold mb-3 mt-5 first:mt-0">$1</h2>')
-      .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold mb-2 mt-4 first:mt-0">$1</h3>')
-      .replace(/^#### (.*$)/gm, '<h4 class="text-lg font-bold mb-2 mt-3 first:mt-0">$1</h4>')
-      .replace(/^\- \[ \] (.*$)/gm, '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" disabled> $1</li>')
-      .replace(/^\- \[x\] (.*$)/gm, '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" checked disabled> $1</li>')
-      .replace(/^\- (.*$)/gm, '<li class="ml-6 mb-1 list-disc list-inside">$1</li>')
-      .replace(/^\d+\. (.*$)/gm, '<li class="ml-6 mb-1 list-decimal list-inside">$1</li>')
-      .replace(/^\> (.*$)/gm, '<blockquote class="border-l-4 border-blue-400 pl-4 py-2 mb-4 bg-blue-50 italic text-gray-700">$1</blockquote>')
+      .replace(
+        /^# (.*$)/gm,
+        '<h1 class="text-3xl font-bold mb-4 mt-6 first:mt-0">$1</h1>',
+      )
+      .replace(
+        /^## (.*$)/gm,
+        '<h2 class="text-2xl font-bold mb-3 mt-5 first:mt-0">$1</h2>',
+      )
+      .replace(
+        /^### (.*$)/gm,
+        '<h3 class="text-xl font-bold mb-2 mt-4 first:mt-0">$1</h3>',
+      )
+      .replace(
+        /^#### (.*$)/gm,
+        '<h4 class="text-lg font-bold mb-2 mt-3 first:mt-0">$1</h4>',
+      )
+      .replace(
+        /^\- \[ \] (.*$)/gm,
+        '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" disabled> $1</li>',
+      )
+      .replace(
+        /^\- \[x\] (.*$)/gm,
+        '<li class="ml-6 mb-1 flex items-center"><input type="checkbox" class="mr-2" checked disabled> $1</li>',
+      )
+      .replace(
+        /^\- (.*$)/gm,
+        '<li class="ml-6 mb-1 list-disc list-inside">$1</li>',
+      )
+      .replace(
+        /^\d+\. (.*$)/gm,
+        '<li class="ml-6 mb-1 list-decimal list-inside">$1</li>',
+      )
+      .replace(
+        /^\> (.*$)/gm,
+        '<blockquote class="border-l-4 border-blue-400 pl-4 py-2 mb-4 bg-blue-50 italic text-gray-700">$1</blockquote>',
+      )
       .replace(/^---$/gm, '<hr class="border-t-2 border-gray-300 my-6">')
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg shadow-sm my-4">')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>');
-    
+      .replace(
+        /!\[([^\]]*)\]\(([^)]+)\)/g,
+        '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg shadow-sm my-4">',
+      )
+      .replace(
+        /\[([^\]]+)\]\(([^)]+)\)/g,
+        '<a href="$2" class="text-blue-600 hover:text-blue-800 underline font-medium" target="_blank" rel="noopener noreferrer">$1</a>',
+      );
+
     // Handle tables
     htmlContent = htmlContent.replace(
       /^\|(.+)\|\n\|(-+\|)+\n((?:\|.+\|\n?)*)/gm,
-      (_match: string, headerRow: string, _separatorRow: string, bodyRows: string) => {
-        const headers = headerRow.split('|').filter((cell: string) => cell.trim()).map((cell: string) => 
-          `<th class="px-4 py-2 bg-gray-50 font-semibold text-left border-b border-gray-300">${cell.trim()}</th>`
-        ).join('');
-        
-        const rows = bodyRows.split('\n').filter((row: string) => row.trim()).map((row: string) => {
-          const cells = row.split('|').filter((cell: string) => cell.trim()).map((cell: string) => 
-            `<td class="px-4 py-2 border-b border-gray-200">${cell.trim()}</td>`
-          ).join('');
-          return `<tr>${cells}</tr>`;
-        }).join('');
-        
+      (
+        _match: string,
+        headerRow: string,
+        _separatorRow: string,
+        bodyRows: string,
+      ) => {
+        const headers = headerRow
+          .split("|")
+          .filter((cell: string) => {
+            return cell.trim();
+          })
+          .map((cell: string) => {
+            return `<th class="px-4 py-2 bg-gray-50 font-semibold text-left border-b border-gray-300">${cell.trim()}</th>`;
+          })
+          .join("");
+
+        const rows = bodyRows
+          .split("\n")
+          .filter((row: string) => {
+            return row.trim();
+          })
+          .map((row: string) => {
+            const cells = row
+              .split("|")
+              .filter((cell: string) => {
+                return cell.trim();
+              })
+              .map((cell: string) => {
+                return `<td class="px-4 py-2 border-b border-gray-200">${cell.trim()}</td>`;
+              })
+              .join("");
+            return `<tr>${cells}</tr>`;
+          })
+          .join("");
+
         return `<table class="w-full border-collapse border border-gray-300 my-4 rounded-lg overflow-hidden"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
-      }
+      },
     );
-    
+
     // Handle line breaks (convert \n to <br> but avoid double breaks)
-    htmlContent = htmlContent.replace(/\n\n/g, '</p><p class="mb-4">').replace(/\n/g, '<br>');
-    
+    htmlContent = htmlContent
+      .replace(/\n\n/g, '</p><p class="mb-4">')
+      .replace(/\n/g, "<br>");
+
     // Wrap in paragraphs if there's content
     if (htmlContent.trim()) {
       htmlContent = `<p class="mb-4">${htmlContent}</p>`;
@@ -318,9 +425,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onClick={formatActions.strikethrough}
             />
           </div>
-          
+
           <div className="w-px h-6 bg-gray-300" />
-          
+
           {/* Headings */}
           <div className="flex items-center gap-1">
             <button
@@ -348,9 +455,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               <span className="text-sm font-bold">H3</span>
             </button>
           </div>
-          
+
           <div className="w-px h-6 bg-gray-300" />
-          
+
           {/* Lists */}
           <div className="flex items-center gap-1">
             <ToolbarButton
@@ -369,9 +476,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onClick={formatActions.taskList}
             />
           </div>
-          
+
           <div className="w-px h-6 bg-gray-300" />
-          
+
           {/* Links and Media */}
           <div className="flex items-center gap-1">
             <ToolbarButton
@@ -390,9 +497,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               onClick={formatActions.code}
             />
           </div>
-          
+
           <div className="w-px h-6 bg-gray-300" />
-          
+
           {/* Advanced */}
           <div className="flex items-center gap-1">
             <ToolbarButton
@@ -425,14 +532,16 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               <span className="font-mono text-xs font-bold">{"{}"}</span>
             </button>
           </div>
-          
+
           <div className="w-px h-6 bg-gray-300" />
-          
+
           {/* Preview Toggle */}
           <div className="flex items-center">
             <button
               type="button"
-              onClick={() => setShowPreview(!showPreview)}
+              onClick={() => {
+                return setShowPreview(!showPreview);
+              }}
               className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200 ${
                 showPreview
                   ? "bg-indigo-100 text-indigo-700"
@@ -448,7 +557,9 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       {/* Editor/Preview Area */}
       <div className="relative">
         {showPreview ? (
-          <div className={`min-h-32 border border-gray-300 bg-white rounded-b-md ${props.error ? 'border-red-300' : ''}`}>
+          <div
+            className={`min-h-32 border border-gray-300 bg-white rounded-b-md ${props.error ? "border-red-300" : ""}`}
+          >
             {text.trim() ? (
               renderPreview()
             ) : (
@@ -463,7 +574,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
               placeholder={props.placeholder || "Type your markdown here..."}
               className={`${className} rounded-t-none min-h-32`}
               value={text}
-              spellCheck={props.disableSpellCheck === true ? false : true}
+              spellCheck={props.disableSpellCheck !== true}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                 handleChange(e.target.value);
               }}
@@ -481,11 +592,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
                 // Handle keyboard shortcuts
                 if (e.ctrlKey || e.metaKey) {
                   switch (e.key) {
-                    case 'b':
+                    case "b":
                       e.preventDefault();
                       formatActions.bold();
                       break;
-                    case 'i':
+                    case "i":
                       e.preventDefault();
                       formatActions.italic();
                       break;
@@ -497,7 +608,10 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             />
             {props.error && (
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <Icon icon={IconProp.ErrorSolid} className="h-5 w-5 text-red-500" />
+                <Icon
+                  icon={IconProp.ErrorSolid}
+                  className="h-5 w-5 text-red-500"
+                />
               </div>
             )}
           </div>
@@ -506,9 +620,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 
       {/* Error Message */}
       {props.error && (
-        <p className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
+        <p className="mt-1 text-sm text-red-400">{props.error}</p>
       )}
 
       {/* Help Text */}
@@ -516,8 +628,13 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         <details className="cursor-pointer">
           <summary className="hover:text-gray-700">Markdown help</summary>
           <div className="mt-2 space-y-1">
-            <div><strong>**bold**</strong> or <em>*italic*</em></div>
-            <div><code className="bg-gray-100 px-1 rounded">`code`</code> or ```code block```</div>
+            <div>
+              <strong>**bold**</strong> or <em>*italic*</em>
+            </div>
+            <div>
+              <code className="bg-gray-100 px-1 rounded">`code`</code> or
+              ```code block```
+            </div>
             <div># Heading 1, ## Heading 2, ### Heading 3</div>
             <div>- Bullet list or 1. Numbered list</div>
             <div>[Link text](url) or &gt; Quote</div>

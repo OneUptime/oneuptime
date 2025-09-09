@@ -478,7 +478,6 @@ const FormField: <T extends GenericObject>(
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               tabIndex={index}
-
               disableSpellCheck={props.field.disableSpellCheck}
               onChange={async (value: string) => {
                 onChange(value);

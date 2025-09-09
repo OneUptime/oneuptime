@@ -44,7 +44,7 @@ describe("MarkdownEditor", () => {
 
     // Should show preview
     expect(screen.getByText("Write")).toBeInTheDocument();
-    
+
     // Click to go back to write mode
     fireEvent.click(screen.getByText("Write"));
     expect(screen.getByText("Preview")).toBeInTheDocument();
@@ -122,10 +122,7 @@ describe("MarkdownEditor", () => {
 
   test("should show help text", () => {
     render(
-      <MarkdownEditor
-        initialValue=""
-        placeholder="Enter markdown here..."
-      />,
+      <MarkdownEditor initialValue="" placeholder="Enter markdown here..." />,
     );
 
     expect(screen.getByText("Markdown help")).toBeInTheDocument();
