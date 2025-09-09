@@ -466,24 +466,98 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
+    // Determine the initial incident state
+    let initialIncidentStateId: ObjectID | undefined = undefined;
+
+    // If currentIncidentStateId is already provided (manual selection), use it
+    if (createBy.data.currentIncidentStateId) {
+      initialIncidentStateId = createBy.data.currentIncidentStateId;
+      
+      // Validate that the provided state exists and belongs to the project
+      const providedState: IncidentState | null =
+        await IncidentStateService.findOneBy({
+          query: {
+            _id: initialIncidentStateId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!providedState) {
+        throw new BadDataException(
+          "Invalid incident state provided. The state does not exist or does not belong to this project.",
+        );
+      }
+    } else if (createBy.data.createdIncidentTemplateId) {
+      // If created from a template, check if template has a custom initial state
+      const incidentTemplate = await (
+        await import("./IncidentTemplateService")
+      ).default.findOneBy({
         query: {
+          _id: createBy.data.createdIncidentTemplateId.toString(),
           projectId: projectId,
-          isCreatedState: true,
         },
         select: {
-          _id: true,
+          currentIncidentStateId: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
-      );
+      if (incidentTemplate?.currentIncidentStateId) {
+        initialIncidentStateId = incidentTemplate.currentIncidentStateId;
+        
+        // Validate that the template's state exists and belongs to the project
+        const templateState: IncidentState | null =
+          await IncidentStateService.findOneBy({
+            query: {
+              _id: initialIncidentStateId.toString(),
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!templateState) {
+          // Fall back to default if template state is invalid
+          initialIncidentStateId = undefined;
+        }
+      }
+    }
+
+    // If no custom state is provided or found, fall back to default created state
+    if (!initialIncidentStateId) {
+      const incidentState: IncidentState | null =
+        await IncidentStateService.findOneBy({
+          query: {
+            projectId: projectId,
+            isCreatedState: true,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!incidentState || !incidentState.id) {
+        throw new BadDataException(
+          "Created incident state not found for this project. Please add created incident state from settings.",
+        );
+      }
+
+      initialIncidentStateId = incidentState.id;
     }
 
     let mutex: SemaphoreMutex | null = null;
@@ -517,7 +591,7 @@ export class Service extends DatabaseService<Model> {
         projectId: projectId,
       })) + 1;
 
-    createBy.data.currentIncidentStateId = incidentState.id;
+    createBy.data.currentIncidentStateId = initialIncidentStateId;
     createBy.data.incidentNumber = incidentNumberForThisIncident;
 
     if (

@@ -20,6 +20,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
@@ -130,6 +131,22 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             required: false,
             placeholder: "Incident Severity",
+          },
+          {
+            field: {
+              currentIncidentState: true,
+            },
+            title: "Initial Incident State",
+            stepId: "incident-details",
+            description: "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: IncidentState,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Initial State",
           },
           {
             field: {
@@ -252,6 +269,28 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <Pill
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                currentIncidentState: {
+                  color: true,
+                  name: true,
+                },
+              },
+              title: "Initial Incident State",
+              fieldType: FieldType.Entity,
+              getElement: (item: IncidentTemplate): ReactElement => {
+                if (!item["currentIncidentState"]) {
+                  return <p>Uses default 'Created' state</p>;
+                }
+
+                return (
+                  <Pill
+                    color={item.currentIncidentState.color || Black}
+                    text={item.currentIncidentState.name || "Unknown"}
                   />
                 );
               },

@@ -729,6 +729,77 @@ export default class IncidentTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ReadIncidentTemplate,
     ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "currentIncidentStateId",
+    type: TableColumnType.Entity,
+    modelType: IncidentState,
+    title: "Initial Incident State",
+    description:
+      "Relation to Incident State Object. Incidents created from this template will start in this state.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentState;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "currentIncidentStateId" })
+  public currentIncidentState?: IncidentState = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditIncidentTemplate,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Initial Incident State ID",
+    description:
+      "Relation to Incident State Object ID. Incidents created from this template will start in this state.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public currentIncidentStateId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateIncidentTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadIncidentTemplate,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

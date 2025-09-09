@@ -7,6 +7,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -128,6 +129,22 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: "Incident Severity",
+          },
+          {
+            field: {
+              currentIncidentState: true,
+            },
+            title: "Initial Incident State",
+            stepId: "incident-details",
+            description: "Select the initial state for incidents created from this template (defaults to 'Created' state if not selected)",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: IncidentState,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Initial State",
           },
           {
             field: {

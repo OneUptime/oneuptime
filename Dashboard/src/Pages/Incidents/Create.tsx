@@ -43,6 +43,7 @@ import FetchMonitorStatuses from "../../Components/MonitorStatus/FetchMonitorSta
 import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPolicies";
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
@@ -82,6 +83,7 @@ const IncidentCreate: FunctionComponent<
             title: true,
             description: true,
             incidentSeverityId: true,
+            currentIncidentStateId: true,
             monitors: true,
             onCallDutyPolicies: true,
             labels: true,
@@ -123,6 +125,7 @@ const IncidentCreate: FunctionComponent<
         const initialValue: JSONObject = {
           ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
           incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
+          currentIncidentState: incidentTemplate.currentIncidentStateId?.toString(),
           monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
             return monitor.id!.toString();
           }),
@@ -228,6 +231,29 @@ const IncidentCreate: FunctionComponent<
                         ]}
                       />
                     );
+                  },
+                },
+                {
+                  field: {
+                    currentIncidentState: true,
+                  },
+                  title: "Initial Incident State",
+                  stepId: "incident-details",
+                  description: "Select the initial state for this incident (defaults to 'Created' state if not selected)",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: IncidentState,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Select Initial State",
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    if (!item.currentIncidentState) {
+                      return <p>Will use default 'Created' state</p>;
+                    }
+
+                    return <p>Initial state will be set to selected state</p>;
                   },
                 },
                 {
