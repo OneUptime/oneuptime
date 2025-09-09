@@ -31,6 +31,7 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -44,6 +45,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Incident Template Details",
           description: "Here are more details for this incident template.",
         }}
+        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         formSteps={[
           {

@@ -21,6 +21,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Page from "Common/UI/Components/Page/Page";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
@@ -83,6 +84,7 @@ const AnnouncementView: FunctionComponent<
             title: "Status Page Announcement Details",
             description: "Here are more details for this announcement.",
           }}
+          createEditModalWidth={ModalWidth.Large}
           formSteps={[
             {
               title: "Basic Information",

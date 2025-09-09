@@ -14,6 +14,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPagesElement from "../../Components/StatusPage/StatusPagesElement";
 import CheckboxViewer from "Common/UI/Components/Checkbox/CheckboxViewer";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const StatusPageAnnouncementTemplateView: FunctionComponent<
   PageComponentProps
@@ -30,6 +31,7 @@ const StatusPageAnnouncementTemplateView: FunctionComponent<
           description:
             "Here are more details for this status page announcement template.",
         }}
+        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         formSteps={[
           {
