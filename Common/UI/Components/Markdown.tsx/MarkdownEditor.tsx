@@ -18,6 +18,7 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   error?: string | undefined;
   disableSpellCheck?: boolean | undefined;
+  dataTestId?: string | undefined;
 }
 
 interface ToolbarButtonProps {
@@ -289,7 +290,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="relative">
+    <div className="relative" data-testid={props.dataTestId}>
       {/* Toolbar */}
       <div className="flex items-center justify-between p-2 bg-gray-50 border border-gray-300 rounded-t-md border-b-0">
         <div className="flex items-center space-x-1">
