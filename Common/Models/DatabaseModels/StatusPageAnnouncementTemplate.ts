@@ -1,3 +1,4 @@
+import Monitor from "./Monitor";
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import User from "./User";
@@ -327,6 +328,52 @@ export default class StatusPageAnnouncementTemplate extends BaseModel {
     },
   })
   public statusPages?: Array<StatusPage> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateStatusPageAnnouncementTemplate,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ReadStatusPageAnnouncementTemplate,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.EditStatusPageAnnouncementTemplate,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Monitor,
+    title: "Monitors",
+    description: "List of monitors affected by this announcement template. If none are selected, all subscribers will be notified.",
+  })
+  @ManyToMany(
+    () => {
+      return Monitor;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AnnouncementTemplateMonitor",
+    inverseJoinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "announcementTemplateId",
+      referencedColumnName: "_id",
+    },
+  })
+  public monitors?: Array<Monitor> = undefined;
 
   @ColumnAccessControl({
     create: [

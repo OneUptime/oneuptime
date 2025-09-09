@@ -21,9 +21,13 @@ import StatusPageSubscriberService from "Common/Server/Services/StatusPageSubscr
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import logger from "Common/Server/Utils/Logger";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import ObjectID from "Common/Types/ObjectID";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageResourceService from "Common/Server/Services/StatusPageResourceService";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
@@ -99,6 +103,9 @@ RunCron(
           title: true,
           description: true,
           statusPages: {
+            _id: true,
+          },
+          monitors: {
             _id: true,
           },
           showAnnouncementAt: true,
@@ -198,6 +205,49 @@ RunCron(
               `Status page ${statuspage.id} (${statusPageName}) has ${subscribers.length} subscriber(s) for announcement ${announcement.id}.`,
             );
 
+            // Get status page resources if monitors are specified
+            let statusPageResources: Array<StatusPageResource> = [];
+            
+            if (announcement.monitors && announcement.monitors.length > 0) {
+              logger.debug(
+                `Announcement ${announcement.id} has ${announcement.monitors.length} monitor(s) specified. Filtering subscribers by affected resources.`,
+              );
+              
+              statusPageResources = await StatusPageResourceService.findBy({
+                query: {
+                  statusPageId: statuspage.id!,
+                  monitorId: QueryHelper.any(
+                    announcement.monitors
+                      .filter((m: Monitor) => {
+                        return m._id;
+                      })
+                      .map((m: Monitor) => {
+                        return new ObjectID(m._id!);
+                      }),
+                  ),
+                },
+                props: {
+                  isRoot: true,
+                  ignoreHooks: true,
+                },
+                skip: 0,
+                limit: LIMIT_MAX,
+                select: {
+                  _id: true,
+                  displayName: true,
+                  statusPageId: true,
+                },
+              });
+              
+              logger.debug(
+                `Found ${statusPageResources.length} status page resource(s) for announcement ${announcement.id} on status page ${statuspage.id}.`,
+              );
+            } else {
+              logger.debug(
+                `Announcement ${announcement.id} has no monitors specified. All subscribers will be notified.`,
+              );
+            }
+
             // Send email to Email subscribers.
 
             for (const subscriber of subscribers) {
@@ -212,7 +262,7 @@ RunCron(
                 const shouldNotifySubscriber: boolean =
                   StatusPageSubscriberService.shouldSendNotification({
                     subscriber: subscriber,
-                    statusPageResources: [], // this is an announcement so we don't care about resources
+                    statusPageResources: statusPageResources, // Use status page resources from monitors (if any)
                     statusPage: statuspage,
                     eventType: StatusPageEventType.Announcement,
                   });

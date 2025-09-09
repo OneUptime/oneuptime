@@ -6,12 +6,15 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { Blue500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
@@ -35,6 +38,8 @@ import useAsyncEffect from "use-async-effect";
 
 type GetAnnouncementEventItemFunctionProps = {
   announcement: StatusPageAnnouncement;
+  statusPageResources: Array<StatusPageResource>;
+  monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
   isSummary: boolean;
 };
@@ -46,11 +51,52 @@ type GetAnnouncementEventItemFunction = (
 export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
   data: GetAnnouncementEventItemFunctionProps,
 ): EventItemComponentProps => {
-  const { announcement, isPreviewPage, isSummary } = data;
+  const { announcement, statusPageResources, monitorsInGroup, isPreviewPage, isSummary } = data;
+
+  // Get affected resources based on monitors in the announcement
+  const monitorIdsInThisAnnouncement: Array<string | undefined> =
+    announcement.monitors?.map((monitor: Monitor) => {
+      return monitor._id;
+    }) || [];
+
+  let namesOfResources: Array<StatusPageResource> = statusPageResources.filter(
+    (resource: StatusPageResource) => {
+      return monitorIdsInThisAnnouncement.includes(resource.monitorId?.toString());
+    },
+  );
+
+  // add names of the groups as well.
+  namesOfResources = namesOfResources.concat(
+    statusPageResources.filter((resource: StatusPageResource) => {
+      if (!resource.monitorGroupId) {
+        return false;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      const monitorIdsInThisGroup: Array<ObjectID> =
+        monitorsInGroup[monitorGroupId]! || [];
+
+      for (const monitorId of monitorIdsInThisGroup) {
+        if (
+          monitorIdsInThisAnnouncement.find((id: string | undefined) => {
+            return id?.toString() === monitorId.toString();
+          })
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }),
+  );
 
   return {
     eventTitle: announcement.title || "",
     eventDescription: announcement.description,
+    eventResourcesAffected: namesOfResources.map((i: StatusPageResource) => {
+      return i.displayName || "";
+    }),
     eventTimeline: [],
     eventType: "Announcement",
     eventViewRoute: !isSummary
@@ -79,6 +125,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] =
     useState<StatusPageAnnouncement | null>(null);
+  const [statusPageResources, setStatusPageResources] = useState<
+    Array<StatusPageResource>
+  >([]);
+  const [monitorsInGroup, setMonitorsInGroup] = useState<
+    Dictionary<Array<ObjectID>>
+  >({});
   const [parsedData, setParsedData] = useState<EventItemComponentProps | null>(
     null,
   );
@@ -122,9 +174,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
         StatusPageAnnouncement,
       );
 
-      // save data. set()
+      const statusPageResources: Array<StatusPageResource> =
+        BaseModel.fromJSONArray(
+          (data["statusPageResources"] as JSONArray) || [],
+          StatusPageResource,
+        );
 
+      const monitorsInGroup: Dictionary<Array<ObjectID>> =
+        data["monitorsInGroup"] as Dictionary<Array<ObjectID>>;
+
+      // save data. set()
       setAnnouncement(announcement);
+      setStatusPageResources(statusPageResources);
+      setMonitorsInGroup(monitorsInGroup);
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -152,6 +214,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
     setParsedData(
       getAnnouncementEventItem({
         announcement,
+        statusPageResources,
+        monitorsInGroup,
         isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
         isSummary: false,
       }),

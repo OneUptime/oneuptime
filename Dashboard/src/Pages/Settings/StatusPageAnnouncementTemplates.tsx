@@ -6,6 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPagesElement from "../../Components/StatusPage/StatusPagesElement";
 import { RouteUtil } from "../../Utils/RouteMap";
@@ -47,6 +48,10 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
           {
             title: "Status Pages",
             id: "status-pages",
+          },
+          {
+            title: "Resources Affected",
+            id: "resources-affected",
           },
           {
             title: "Notification Settings",
@@ -114,6 +119,22 @@ const StatusPageAnnouncementTemplates: FunctionComponent<PageComponentProps> = (
             },
             required: false,
             placeholder: "Select Status Pages",
+          },
+          {
+            field: {
+              monitors: true,
+            },
+            title: "Monitors affected (Optional)",
+            stepId: "resources-affected",
+            description: "Select monitors affected by this announcement template. If none selected, all subscribers will be notified.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Monitor,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Monitors (Optional)",
           },
           {
             field: {

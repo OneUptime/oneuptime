@@ -631,6 +631,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                   <EventItem
                     {...getAnnouncementEventItem({
                       announcement,
+                      statusPageResources,
+                      monitorsInGroup,
                       isPreviewPage: StatusPageUtil.isPreviewPage(),
                       isSummary: true,
                     })}

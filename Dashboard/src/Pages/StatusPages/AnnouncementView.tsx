@@ -8,6 +8,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -93,6 +94,10 @@ const AnnouncementView: FunctionComponent<
               id: "status-pages",
             },
             {
+              title: "Resources Affected",
+              id: "resources-affected",
+            },
+            {
               title: "Schedule & Settings",
               id: "more",
             },
@@ -139,6 +144,22 @@ const AnnouncementView: FunctionComponent<
               },
               required: true,
               placeholder: "Select Status Pages",
+            },
+            {
+              field: {
+                monitors: true,
+              },
+              title: "Monitors affected (Optional)",
+              stepId: "resources-affected",
+              description: "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownModal: {
+                type: Monitor,
+                labelField: "name",
+                valueField: "_id",
+              },
+              required: false,
+              placeholder: "Select Monitors (Optional)",
             },
             {
               field: {

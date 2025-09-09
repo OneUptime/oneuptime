@@ -2076,6 +2076,10 @@ export default class StatusPageAPI extends BaseAPI<
           _id: true,
           showAnnouncementAt: true,
           endAnnouncementAt: true,
+          monitors: {
+            _id: true,
+            name: true,
+          },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -2096,6 +2100,7 @@ export default class StatusPageAPI extends BaseAPI<
           displayTooltip: true,
           displayDescription: true,
           displayName: true,
+          monitorGroupId: true,
           monitor: {
             _id: true,
             currentMonitorStatusId: true,
@@ -2109,6 +2114,65 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
 
+    const monitorGroupIds: Array<ObjectID> = statusPageResources
+      .map((resource: StatusPageResource) => {
+        return resource.monitorGroupId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    // get monitors in the group.
+    const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
+
+    // get monitor status charts.
+    const monitorsOnStatusPage: Array<ObjectID> = statusPageResources
+      .map((monitor: StatusPageResource) => {
+        return monitor.monitorId!;
+      })
+      .filter((id: ObjectID) => {
+        return Boolean(id); // remove nulls
+      });
+
+    for (const monitorGroupId of monitorGroupIds) {
+      // get monitors in the group.
+
+      const groupResources: Array<MonitorGroupResource> =
+        await MonitorGroupResourceService.findBy({
+          query: {
+            monitorGroupId: monitorGroupId,
+          },
+          select: {
+            monitorId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+        });
+
+      const monitorsInGroupIds: Array<ObjectID> = groupResources
+        .map((resource: MonitorGroupResource) => {
+          return resource.monitorId!;
+        })
+        .filter((id: ObjectID) => {
+          return Boolean(id); // remove nulls
+        });
+
+      for (const monitorId of monitorsInGroupIds) {
+        if (
+          !monitorsOnStatusPage.find((item: ObjectID) => {
+            return item.toString() === monitorId.toString();
+          })
+        ) {
+          monitorsOnStatusPage.push(monitorId);
+        }
+      }
+
+      monitorsInGroup[monitorGroupId.toString()] = monitorsInGroupIds;
+    }
+
     const response: JSONObject = {
       announcements: BaseModel.toJSONArray(
         announcements,
@@ -2118,6 +2182,7 @@ export default class StatusPageAPI extends BaseAPI<
         statusPageResources,
         StatusPageResource,
       ),
+      monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };
 
     return response;

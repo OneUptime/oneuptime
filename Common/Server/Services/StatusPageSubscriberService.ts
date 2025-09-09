@@ -804,7 +804,7 @@ Stay informed about service availability! 🚀`;
     if (
       data.statusPage.allowSubscribersToChooseResources &&
       !data.subscriber.isSubscribedToAllResources &&
-      data.eventType !== StatusPageEventType.Announcement // announcements dont have resources
+      !(data.eventType === StatusPageEventType.Announcement && data.statusPageResources.length === 0) // announcements with no monitors don't use resource filtering
     ) {
       logger.debug(
         "Subscriber can choose resources and is not subscribed to all resources.",

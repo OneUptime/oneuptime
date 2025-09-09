@@ -8,6 +8,7 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import PageComponentProps from "../PageComponentProps";
 import { getAnnouncementEventItem } from "./Detail";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -43,6 +44,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [announcements, setAnnouncements] = useState<
     Array<StatusPageAnnouncement>
   >([]);
+  const [statusPageResources, setStatusPageResources] = useState<
+    Array<StatusPageResource>
+  >([]);
+  const [monitorsInGroup, setMonitorsInGroup] = useState<
+    Dictionary<Array<ObjectID>>
+  >({});
 
   const [activeAnnounementsParsedData, setActiveAnnouncementsParsedData] =
     useState<EventHistoryListComponentProps | null>(null);
@@ -81,9 +88,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
           StatusPageAnnouncement,
         );
 
-      // save data. set()
+      const statusPageResources: Array<StatusPageResource> =
+        BaseModel.fromJSONArray(
+          (data["statusPageResources"] as JSONArray) || [],
+          StatusPageResource,
+        );
 
+      const monitorsInGroup: Dictionary<Array<ObjectID>> =
+        data["monitorsInGroup"] as Dictionary<Array<ObjectID>>;
+
+      // save data. set()
       setAnnouncements(announcements);
+      setStatusPageResources(statusPageResources);
+      setMonitorsInGroup(monitorsInGroup);
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -124,6 +141,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       days[dayString]?.items.push(
         getAnnouncementEventItem({
           announcement,
+          statusPageResources,
+          monitorsInGroup,
           isPreviewPage: Boolean(StatusPageUtil.isPreviewPage()),
           isSummary: true,
         }),

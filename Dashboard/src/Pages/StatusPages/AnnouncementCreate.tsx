@@ -15,6 +15,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Card from "Common/UI/Components/Card/Card";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageAnnouncementTemplate from "Common/Models/DatabaseModels/StatusPageAnnouncementTemplate";
@@ -24,6 +25,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FetchStatusPages from "../../Components/StatusPage/FetchStatusPages";
+import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
 import Page from "Common/UI/Components/Page/Page";
@@ -66,6 +68,7 @@ const AnnouncementCreate: FunctionComponent<
             title: true,
             description: true,
             statusPages: true,
+            monitors: true,
             shouldStatusPageSubscribersBeNotified: true,
           },
         });
@@ -79,6 +82,11 @@ const AnnouncementCreate: FunctionComponent<
           statusPages: announcementTemplate.statusPages?.map(
             (statusPage: StatusPage) => {
               return statusPage.id!.toString();
+            },
+          ),
+          monitors: announcementTemplate.monitors?.map(
+            (monitor: Monitor) => {
+              return monitor.id!.toString();
             },
           ),
           showAnnouncementAt: OneUptimeDate.getCurrentDate(),
@@ -214,6 +222,58 @@ const AnnouncementCreate: FunctionComponent<
                 },
                 {
                   field: {
+                    monitors: true,
+                  },
+                  title: "Monitors affected (Optional)",
+                  stepId: "resources-affected",
+                  description: "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Monitor,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Select Monitors (Optional)",
+                  getSummaryElement: (
+                    item: FormValues<StatusPageAnnouncement>,
+                  ) => {
+                    if (!item.monitors || !Array.isArray(item.monitors)) {
+                      return (
+                        <p>No monitors selected. All subscribers will be notified.</p>
+                      );
+                    }
+
+                    const monitorIds: Array<ObjectID> = [];
+
+                    for (const monitor of item.monitors) {
+                      if (typeof monitor === "string") {
+                        monitorIds.push(new ObjectID(monitor));
+                        continue;
+                      }
+
+                      if (monitor instanceof ObjectID) {
+                        monitorIds.push(monitor);
+                        continue;
+                      }
+
+                      if (monitor instanceof Monitor) {
+                        monitorIds.push(
+                          new ObjectID(monitor._id?.toString() || ""),
+                        );
+                        continue;
+                      }
+                    }
+
+                    return (
+                      <div>
+                        <FetchMonitors monitorIds={monitorIds} />
+                      </div>
+                    );
+                  },
+                },
+                {
+                  field: {
                     showAnnouncementAt: true,
                   },
                   stepId: "more",
@@ -256,6 +316,10 @@ const AnnouncementCreate: FunctionComponent<
                 {
                   title: "Status Pages",
                   id: "status-pages",
+                },
+                {
+                  title: "Resources Affected",
+                  id: "resources-affected",
                 },
                 {
                   title: "Schedule & Settings",
