@@ -276,9 +276,9 @@ const IncidentCreate: FunctionComponent<
                   field: {
                     currentIncidentState: true,
                   },
-                  title: "Initial Incident State",
+                  title: "Incident State",
                   stepId: "incident-details",
-                  description: "Select the initial state for this incident (automatically selects the first state by priority)",
+                  description: "Select the initial state for this incident to be in.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
