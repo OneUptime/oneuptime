@@ -44,6 +44,7 @@ import FetchOnCallDutyPolicies from "../../Components/OnCallPolicy/FetchOnCallPo
 import FetchMonitors from "../../Components/Monitor/FetchMonitors";
 import FetchIncidentSeverities from "../../Components/IncidentSeverity/FetchIncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
@@ -62,9 +63,47 @@ const IncidentCreate: FunctionComponent<
         ),
       );
     } else {
+      // Fetch the first incident state to set as default
+      fetchFirstIncidentState();
       setIsLoading(false);
     }
   }, []);
+
+  const fetchFirstIncidentState: () => Promise<void> = async (): Promise<void> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      return;
+    }
+
+    try {
+      const incidentStates: ListResult<IncidentState> = await ModelAPI.getList<IncidentState>({
+        modelType: IncidentState,
+        query: {
+          projectId: projectId,
+        },
+        limit: 1,
+        skip: 0,
+        select: {
+          _id: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+      });
+
+      if (incidentStates.data.length > 0) {
+        const firstStateId = incidentStates.data[0]!._id?.toString();
+        if (firstStateId) {
+          setInitialValuesForIncident((prev) => ({
+            ...prev,
+            currentIncidentState: firstStateId,
+          }));
+        }
+      }
+    } catch (err) {
+      // Silently fail to avoid breaking the form
+    }
+  };
 
   const fetchIncidentTemplate: (id: ObjectID) => Promise<void> = async (
     id: ObjectID,
@@ -83,7 +122,7 @@ const IncidentCreate: FunctionComponent<
             title: true,
             description: true,
             incidentSeverityId: true,
-            currentIncidentStateId: true,
+            initialIncidentStateId: true,
             monitors: true,
             onCallDutyPolicies: true,
             labels: true,
@@ -125,7 +164,7 @@ const IncidentCreate: FunctionComponent<
         const initialValue: JSONObject = {
           ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
           incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
-          currentIncidentState: incidentTemplate.currentIncidentStateId?.toString(),
+          currentIncidentState: incidentTemplate.initialIncidentStateId?.toString(),
           monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
             return monitor.id!.toString();
           }),
@@ -239,7 +278,7 @@ const IncidentCreate: FunctionComponent<
                   },
                   title: "Initial Incident State",
                   stepId: "incident-details",
-                  description: "Select the initial state for this incident (defaults to 'Identified' or first state if not selected)",
+                  description: "Select the initial state for this incident (automatically selects the first state by priority)",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
@@ -248,9 +287,43 @@ const IncidentCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select Initial State",
+                  fetchDropdownOptions: async () => {
+                    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+                    if (!projectId) {
+                      return [];
+                    }
+
+                    try {
+                      const incidentStates: ListResult<IncidentState> = await ModelAPI.getList<IncidentState>({
+                        modelType: IncidentState,
+                        query: {
+                          projectId: projectId,
+                        },
+                        limit: LIMIT_PER_PROJECT,
+                        skip: 0,
+                        select: {
+                          _id: true,
+                          name: true,
+                        },
+                        sort: {
+                          order: SortOrder.Ascending,
+                        },
+                      });
+
+                      return incidentStates.data.map((state: IncidentState) => {
+                        return {
+                          label: state.name || "",
+                          value: state._id?.toString() || "",
+                        };
+                      });
+                    } catch (err) {
+                      // Silently fail and return empty array
+                      return [];
+                    }
+                  },
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.currentIncidentState) {
-                      return <p>Will use default 'Created' state</p>;
+                      return <p>Will use first available state by priority</p>;
                     }
 
                     return <p>Initial state will be set to selected state</p>;
