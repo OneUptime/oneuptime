@@ -14,7 +14,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="max-w-none p-6 bg-white rounded-lg shadow-md border border-gray-200">
+    <div className="max-w-none p-3">
       <ReactMarkdown
         components={{
           // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled
@@ -75,12 +75,24 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             );
           },
 
-          pre: ({ ...props }: any) => {
+          pre: ({ children, ...rest }: any) => {
+            // Avoid double borders when SyntaxHighlighter is already styling the block.
+            const isSyntaxHighlighter: boolean =
+              React.isValidElement(children) &&
+              // name can be 'SyntaxHighlighter' or wrapped/minified; fall back to presence of 'children' prop with 'react-syntax-highlighter' data attribute.
+              (((children as any).type &&
+                ((children as any).type.name === "SyntaxHighlighter" ||
+                  (children as any).type.displayName === "SyntaxHighlighter")) ||
+                (children as any).props?.className?.includes("syntax-highlighter"));
+
+            const baseClass: string = isSyntaxHighlighter
+              ? "mt-4 mb-4 rounded-lg overflow-hidden"
+              : "bg-gray-900 text-gray-100 mt-4 mb-4 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700";
+
             return (
-              <pre
-                className="bg-gray-900 text-gray-100 mt-4 mb-4 p-4 rounded-lg text-sm overflow-x-auto border border-gray-700"
-                {...props}
-              />
+              <pre className={baseClass} {...rest}>
+                {children}
+              </pre>
             );
           },
           strong: ({ ...props }: any) => {
@@ -169,7 +181,8 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
                 children={content}
                 language={match[1]}
                 style={a11yDark}
-                className="rounded-lg mt-4 mb-4"
+                className="rounded-lg mt-4 mb-4 !bg-gray-900 !p-4 text-sm"
+                codeTagProps={{ className: "font-mono" }}
               />
             ) : (
               <code className={codeClassName} {...rest}>
