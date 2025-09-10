@@ -194,6 +194,7 @@ export default class WorkspaceUtil {
         await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
           userId: botUserId,
           authToken: projectAuthToken.authToken,
+          projectId: data.projectId,
           workspaceMessagePayload: messagePayloadByWorkspace,
         });
 
@@ -213,6 +214,7 @@ export default class WorkspaceUtil {
     projectOrUserAuthTokenForWorkspace: string;
     workspaceType: WorkspaceType;
     workspaceMessagePayload: WorkspaceMessagePayload;
+    projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
     logger.debug("postToWorkspaceChannels called with data:");
     logger.debug(data);
@@ -222,6 +224,7 @@ export default class WorkspaceUtil {
         userId: data.workspaceUserId,
         workspaceMessagePayload: data.workspaceMessagePayload,
         authToken: data.projectOrUserAuthTokenForWorkspace,
+        projectId: data.projectId,
       });
 
     logger.debug("Message posted to workspace channels successfully");
