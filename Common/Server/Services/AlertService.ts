@@ -273,109 +273,88 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentAlertStateId is required");
     }
 
-    // Get alert data for feed creation
-    const alert: Model | null = await this.findOneById({
-      id: createdItem.id,
-      select: {
-        projectId: true,
-        alertNumber: true,
-        title: true,
-        description: true,
-        alertSeverity: {
-          name: true,
-        },
-        rootCause: true,
-        remediationNotes: true,
-        currentAlertState: {
-          name: true,
-        },
-        labels: {
-          name: true,
-        },
-        monitor: {
-          name: true,
-          _id: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alert) {
-      throw new BadDataException("Alert not found");
-    }
-
-    // Execute core operations in parallel first
-    const coreOperations: Array<Promise<any>> = [];
-
-    // Create feed item asynchronously
-    coreOperations.push(this.createAlertFeedAsync(alert, createdItem));
-
-    // Handle state change asynchronously
-    coreOperations.push(this.handleAlertStateChangeAsync(createdItem));
-
-    // Handle owner assignment asynchronously
-    if (
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      coreOperations.push(
-        this.addOwners(
-          createdItem.projectId,
-          createdItem.id,
-          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-            [],
-          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-            [],
-          false,
-          onCreate.createBy.props,
-        ),
-      );
-    }
-
-    // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations)
-      .then((coreResults: any[]) => {
-        // Log any errors from core operations
-        coreResults.forEach((result: any, index: number) => {
-          if (result.status === "rejected") {
+    // Execute operations sequentially with error handling
+    Promise.resolve()
+      .then(async () => {
+        if (createdItem.projectId && createdItem.id) {
+          try {
+            return await this.handleAlertWorkspaceOperationsAsync(createdItem);
+          } catch (error) {
             logger.error(
-              `Core operation ${index} failed in AlertService.onCreateSuccess: ${result.reason}`,
+              `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
+            );
+            return Promise.resolve();
+          }
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        try {
+          return await this.createAlertFeedAsync(createdItem.id!);
+        } catch (error) {
+          logger.error(
+            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.handleAlertStateChangeAsync(createdItem);
+        } catch (error) {
+          logger.error(
+            `Handle alert state change failed in AlertService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps["ownerTeams"] ||
+              onCreate.createBy.miscDataProps["ownerUsers"])
+          ) {
+            return await this.addOwners(
+              createdItem.projectId!,
+              createdItem.id!,
+              (onCreate.createBy.miscDataProps![
+                "ownerUsers"
+              ] as Array<ObjectID>) || [],
+              (onCreate.createBy.miscDataProps![
+                "ownerTeams"
+              ] as Array<ObjectID>) || [],
+              false,
+              onCreate.createBy.props,
             );
           }
-        });
-
-        // Handle on-call duty policies asynchronously
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Add owners failed in AlertService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
         if (
           createdItem.onCallDutyPolicies?.length &&
           createdItem.onCallDutyPolicies?.length > 0
         ) {
-          this.executeAlertOnCallDutyPoliciesAsync(createdItem).catch(
-            (error: Error) => {
-              logger.error(
-                `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
-              );
-            },
-          );
+          try {
+            return await this.executeAlertOnCallDutyPoliciesAsync(createdItem);
+          } catch (error) {
+            logger.error(
+              `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
+            );
+            return Promise.resolve();
+          }
         }
-
-        // Handle workspace operations after core operations complete
-        if (createdItem.projectId && createdItem.id) {
-          // Run workspace operations in background without blocking response
-          this.handleAlertWorkspaceOperationsAsync(createdItem).catch(
-            (error: Error) => {
-              logger.error(
-                `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
-              );
-            },
-          );
-        }
+        return Promise.resolve();
       })
       .catch((error: Error) => {
         logger.error(
-          `Critical error in AlertService core operations: ${error}`,
+          `Critical error in AlertService sequential operations: ${error}`,
         );
       });
 
@@ -426,21 +405,57 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  private async createAlertFeedAsync(
-    alert: Model,
-    createdItem: Model,
-  ): Promise<void> {
+  private async createAlertFeedAsync(alertId: ObjectID): Promise<void> {
     try {
-      const createdByUserId: ObjectID | undefined | null =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
+      // Get alert data for feed creation
+      const alert: Model | null = await this.findOneById({
+        id: alertId,
+        select: {
+          projectId: true,
+          alertNumber: true,
+          title: true,
+          description: true,
+          alertSeverity: {
+            name: true,
+          },
+          rootCause: true,
+          createdByUserId: true,
+          createdByUser: {
+            _id: true,
+            name: true,
+            email: true,
+          },
+          remediationNotes: true,
+          currentAlertState: {
+            name: true,
+          },
+          labels: {
+            name: true,
+          },
+          monitor: {
+            name: true,
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-      let feedInfoInMarkdown: string = `#### 🚨 Alert ${createdItem.alertNumber?.toString()} Created: 
+      if (!alert) {
+        throw new BadDataException("Alert not found");
+      }
+
+      const createdByUserId: ObjectID | undefined | null =
+        alert.createdByUserId || alert.createdByUser?.id;
+
+      let feedInfoInMarkdown: string = `#### 🚨 Alert ${alert.alertNumber?.toString()} Created: 
            
-**${createdItem.title || "No title provided."}**:
+**${alert.title || "No title provided."}**:
      
-${createdItem.description || "No description provided."}
+${alert.description || "No description provided."}
      
-     `;
+`;
 
       if (alert.currentAlertState?.name) {
         feedInfoInMarkdown += `🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
@@ -454,25 +469,25 @@ ${createdItem.description || "No description provided."}
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
         const monitor: Monitor = alert.monitor;
-        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+        feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(alert.projectId!, monitor.id!)).toString()})\n`;
 
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (createdItem.rootCause) {
+      if (alert.rootCause) {
         feedInfoInMarkdown += `\n
 📄 **Root Cause**:
      
-${createdItem.rootCause || "No root cause provided."}
+${alert.rootCause || "No root cause provided."}
      
 `;
       }
 
-      if (createdItem.remediationNotes) {
+      if (alert.remediationNotes) {
         feedInfoInMarkdown += `\n 
 🎯 **Remediation Notes**:
      
-${createdItem.remediationNotes || "No remediation notes provided."}
+${alert.remediationNotes || "No remediation notes provided."}
      
      
      `;
@@ -480,13 +495,13 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 
       const alertCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
         await AlertWorkspaceMessages.getAlertCreateMessageBlocks({
-          alertId: createdItem.id!,
-          projectId: createdItem.projectId!,
+          alertId: alert.id!,
+          projectId: alert.projectId!,
         });
 
       await AlertFeedService.createAlertFeedItem({
-        alertId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        alertId: alert.id!,
+        projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.AlertCreated,
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,

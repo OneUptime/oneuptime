@@ -243,7 +243,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     eventTypeColor: Yellow,
     eventSecondDescription: scheduledMaintenance.startsAt
       ? "Scheduled at " +
-        OneUptimeDate.getDateAsLocalFormattedString(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           scheduledMaintenance.startsAt!,
         )
       : "",

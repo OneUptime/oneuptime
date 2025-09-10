@@ -224,7 +224,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                             </div>
                             <div>
                               <span className="text-sm leading-8 text-gray-500 whitespace-nowrap">
-                                {OneUptimeDate.getDateAsLocalFormattedString(
+                                {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                                   item.date,
                                 )}
                               </span>
@@ -269,7 +269,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                               </div>
                               <p className="mt-0.5 text-sm text-gray-500">
                                 posted on{" "}
-                                {OneUptimeDate.getDateAsLocalFormattedString(
+                                {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                                   item.date,
                                 )}
                               </p>

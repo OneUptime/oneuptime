@@ -2,6 +2,7 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import Dictionary from "Common/Types/Dictionary";
 
 // Fetch a list of resources used in the application
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
@@ -17,7 +18,7 @@ export default class ServiceHandler {
 
     // Get the 'page' parameter from the request
     const page: string | undefined = req.params["page"];
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
     // Set the default page title and description
     pageTitle = "Errors";

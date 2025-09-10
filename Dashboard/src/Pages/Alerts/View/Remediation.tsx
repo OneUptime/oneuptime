@@ -7,6 +7,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -19,6 +20,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         description:
           "What steps should be taken to resolve this alert? Here are the remediation notes.",
       }}
+      createEditModalWidth={ModalWidth.Large}
       editButtonText="Edit Remediation Notes"
       isEditable={true}
       formFields={[

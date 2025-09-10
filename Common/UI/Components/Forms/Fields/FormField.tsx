@@ -34,6 +34,7 @@ import React, { ReactElement, useEffect } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
 import HorizontalRule from "../../HorizontalRule/HorizontalRule";
+import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
 
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
@@ -473,11 +474,10 @@ const FormField: <T extends GenericObject>(
           )}
 
           {props.field.fieldType === FormFieldSchemaType.Markdown && (
-            <CodeEditor
+            <MarkdownEditor
               error={props.touched && props.error ? props.error : undefined}
               dataTestId={props.field.dataTestId}
               tabIndex={index}
-              type={CodeType.Markdown}
               disableSpellCheck={props.field.disableSpellCheck}
               onChange={async (value: string) => {
                 onChange(value);

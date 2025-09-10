@@ -6,6 +6,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
 
 export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
@@ -50,6 +52,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             validation: {
               minLength: 2,
             },
+            description: (
+              <p>
+                You can use dynamic templates here.{" "}
+                <Link
+                  to={new Route("/docs/monitor/incident-alert-templating")}
+                  openInNewTab={true}
+                  className="underline text-blue-600"
+                >
+                  Please refer to the documentation for more information.
+                </Link>
+              </p>
+            ),
           },
           {
             field: {
@@ -60,6 +74,18 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             placeholder: "Description",
+            description: (
+              <p>
+                You can use dynamic templates here.{" "}
+                <Link
+                  to={new Route("/docs/monitor/incident-alert-templating")}
+                  openInNewTab={true}
+                  className="underline text-blue-600"
+                >
+                  Please refer to the documentation for more information.
+                </Link>
+              </p>
+            ),
           },
           {
             field: {
@@ -104,8 +130,19 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             },
             title: "Remediation Notes",
             stepId: "incident-details",
-            description:
-              "Notes to help the on-call engineer resolve this incident.",
+            description: (
+              <p>
+                Notes for on-call engineer to resolve this incident. You can use
+                dynamic templates here.{" "}
+                <Link
+                  to={new Route("/docs/monitor/incident-alert-templating")}
+                  openInNewTab={true}
+                  className="underline text-blue-600"
+                >
+                  Please refer to the documentation for more information.
+                </Link>
+              </p>
+            ),
             fieldType: FormFieldSchemaType.Markdown,
             required: false,
             showIf: () => {

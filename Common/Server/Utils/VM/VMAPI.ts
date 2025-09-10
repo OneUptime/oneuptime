@@ -82,10 +82,19 @@ export default class VMUtil {
       }
 
       for (const variable of variablesInArgument) {
-        const valueToReplaceInPlace: string = VMUtil.deepFind(
+        const foundValue: JSONValue = VMUtil.deepFind(
           storageMap as any,
           variable as any,
-        ) as string;
+        );
+
+        let valueToReplaceInPlace: string;
+
+        // Properly serialize objects to JSON strings
+        if (typeof foundValue === "object" && foundValue !== null) {
+          valueToReplaceInPlace = JSON.stringify(foundValue, null, 2);
+        } else {
+          valueToReplaceInPlace = foundValue as string;
+        }
 
         if (valueToReplaceInPlaceCopy.trim() === "{{" + variable + "}}") {
           valueToReplaceInPlaceCopy = valueToReplaceInPlace;

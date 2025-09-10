@@ -4,6 +4,7 @@ import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
+import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
@@ -12,9 +13,9 @@ export default class ServiceHandler {
     _req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
-    pageData.selectCode = await LocalCache.getOrSetString(
+    pageData["selectCode"] = await LocalCache.getOrSetString(
       "data-type",
       "select",
       async () => {
@@ -22,7 +23,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.sortCode = await LocalCache.getOrSetString(
+    pageData["sortCode"] = await LocalCache.getOrSetString(
       "data-type",
       "sort",
       async () => {
@@ -30,7 +31,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.equalToCode = await LocalCache.getOrSetString(
+    pageData["equalToCode"] = await LocalCache.getOrSetString(
       "data-type",
       "equal-to",
       async () => {
@@ -38,7 +39,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.equalToOrNullCode = await LocalCache.getOrSetString(
+    pageData["equalToOrNullCode"] = await LocalCache.getOrSetString(
       "data-type",
       "equal-to-or-null",
       async () => {
@@ -48,7 +49,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.greaterThanCode = await LocalCache.getOrSetString(
+    pageData["greaterThanCode"] = await LocalCache.getOrSetString(
       "data-type",
       "greater-than",
       async () => {
@@ -58,7 +59,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.greaterThanOrEqualCode = await LocalCache.getOrSetString(
+    pageData["greaterThanOrEqualCode"] = await LocalCache.getOrSetString(
       "data-type",
       "greater-than-or-equal",
       async () => {
@@ -68,7 +69,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.lessThanCode = await LocalCache.getOrSetString(
+    pageData["lessThanCode"] = await LocalCache.getOrSetString(
       "data-type",
       "less-than",
       async () => {
@@ -78,7 +79,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.lessThanOrEqualCode = await LocalCache.getOrSetString(
+    pageData["lessThanOrEqualCode"] = await LocalCache.getOrSetString(
       "data-type",
       "less-than-or-equal",
       async () => {
@@ -88,7 +89,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.includesCode = await LocalCache.getOrSetString(
+    pageData["includesCode"] = await LocalCache.getOrSetString(
       "data-type",
       "includes",
       async () => {
@@ -98,7 +99,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.lessThanOrNullCode = await LocalCache.getOrSetString(
+    pageData["lessThanOrNullCode"] = await LocalCache.getOrSetString(
       "data-type",
       "less-than-or-equal",
       async () => {
@@ -108,7 +109,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.greaterThanOrNullCode = await LocalCache.getOrSetString(
+    pageData["greaterThanOrNullCode"] = await LocalCache.getOrSetString(
       "data-type",
       "less-than-or-equal",
       async () => {
@@ -118,7 +119,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.isNullCode = await LocalCache.getOrSetString(
+    pageData["isNullCode"] = await LocalCache.getOrSetString(
       "data-type",
       "is-null",
       async () => {
@@ -126,7 +127,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.notNullCode = await LocalCache.getOrSetString(
+    pageData["notNullCode"] = await LocalCache.getOrSetString(
       "data-type",
       "not-null",
       async () => {
@@ -134,7 +135,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.notEqualToCode = await LocalCache.getOrSetString(
+    pageData["notEqualToCode"] = await LocalCache.getOrSetString(
       "data-type",
       "not-equals",
       async () => {

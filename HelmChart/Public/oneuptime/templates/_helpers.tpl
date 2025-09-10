@@ -316,7 +316,7 @@ Usage:
   {{- if $.Values.redis.enabled }}
   valueFrom:
     secretKeyRef:
-        name: {{ printf "%s-%s" $.Release.Name "redis"  }}
+        name: {{ $.Release.Name }}-redis
         key: redis-password
   {{- else }}
   {{- if $.Values.externalRedis.password }}
@@ -722,6 +722,9 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
 spec:
   scaleTargetRef:
     name: {{ printf "%s-%s" .Release.Name .ServiceName }}
@@ -774,6 +777,9 @@ metadata:
     app.kubernetes.io/part-of: oneuptime
     app.kubernetes.io/managed-by: Helm
     appname: oneuptime
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
 spec:
   secretTargetRef:
     {{- if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}

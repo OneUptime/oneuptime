@@ -2,6 +2,7 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import Dictionary from "Common/Types/Dictionary";
 
 // Retrieve resources documentation
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
@@ -16,7 +17,7 @@ export default class ServiceHandler {
 
     // Extract page parameter from request
     const page: string | undefined = req.params["page"];
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
     // Set default page title and description for the authentication page
     pageTitle = "Authentication";

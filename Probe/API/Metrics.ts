@@ -14,6 +14,7 @@ import { JSONObject } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
+import ProxyConfig from "../Utils/ProxyConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -42,6 +43,8 @@ router.get(
           queueSizeUrl,
           requestBody,
           {},
+          undefined,
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
 
       if (result instanceof HTTPErrorResponse) {

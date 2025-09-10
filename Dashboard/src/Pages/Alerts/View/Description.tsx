@@ -6,6 +6,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -18,6 +19,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         description:
           "Description of this alert. This is visible on Status Page and is in markdown format.",
       }}
+      createEditModalWidth={ModalWidth.Large}
       editButtonText="Edit Alert Description"
       isEditable={true}
       formFields={[

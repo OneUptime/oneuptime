@@ -37,3 +37,17 @@ GROUP BY
     table
 ORDER BY size DESC;
 ```
+
+
+#### Check the size fo used and free space in Clickhouse
+
+```sql
+SELECT
+    d.name AS disk_name,
+    formatReadableSize(d.free_space) AS free_space,
+    formatReadableSize(d.total_space) AS total_space,
+    formatReadableSize(d.total_space - d.free_space) AS used_space,
+    round((d.total_space - d.free_space) / d.total_space * 100, 2) AS used_percent
+FROM system.disks d
+ORDER BY used_percent DESC;
+```

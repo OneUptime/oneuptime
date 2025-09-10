@@ -32,6 +32,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
+import ProxyConfig from "../ProxyConfig";
 
 export default class MonitorUtil {
   public static async probeMonitorTest(
@@ -74,6 +75,7 @@ export default class MonitorUtil {
           },
           {},
           {},
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
       }
 
@@ -123,6 +125,7 @@ export default class MonitorUtil {
           },
           {},
           {},
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
       }
 

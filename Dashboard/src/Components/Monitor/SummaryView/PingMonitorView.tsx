@@ -48,7 +48,7 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
               : "-"

@@ -261,7 +261,7 @@ export class Service extends DatabaseService<Model> {
           if (subscriber.slackIncomingWebhookUrl) {
             const slackMessage: string = `## 🔧 Scheduled Maintenance - ${event.title || ""}
 
-**Scheduled Date:** ${OneUptimeDate.getDateAsFormattedString(event.startsAt!)}
+**Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
 
 ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
@@ -305,6 +305,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                     OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                       date: event.startsAt!,
                       timezones: statuspage.subscriberTimezones || [],
+                      use12HourFormat: true,
                     }),
                   eventTitle: event.title || "",
                   eventDescription: await Markdown.convertToHTML(
@@ -610,6 +611,12 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         labels: {
           name: true,
         },
+        createdByUserId: true,
+        createdByUser: {
+          _id: true,
+          name: true,
+          email: true,
+        },
       },
       props: {
         isRoot: true,
@@ -620,71 +627,80 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       throw new BadDataException("Scheduled Maintenance not found");
     }
 
-    // Execute core operations in parallel first
-    const coreOperations: Array<Promise<any>> = [];
-
-    // Create feed item asynchronously
-    coreOperations.push(
-      this.createScheduledMaintenanceFeedAsync(
-        scheduledMaintenance,
-        createdItem,
-      ),
-    );
-
-    // Create state timeline asynchronously
-    coreOperations.push(
-      this.createScheduledMaintenanceStateTimelineAsync(createdItem),
-    );
-
-    // Handle owner assignment asynchronously
-    if (
-      createdItem.projectId &&
-      createdItem.id &&
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      coreOperations.push(
-        this.addOwners(
-          createdItem.projectId!,
-          createdItem.id!,
-          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-            [],
-          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-            [],
-          false,
-          onCreate.createBy.props,
-        ),
-      );
-    }
-
-    // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations)
-      .then((coreResults: any[]) => {
-        // Log any errors from core operations
-        coreResults.forEach((result: any, index: number) => {
-          if (result.status === "rejected") {
-            logger.error(
-              `Core operation ${index} failed in ScheduledMaintenanceService.onCreateSuccess: ${result.reason}`,
+    // Execute operations sequentially with error handling
+    Promise.resolve()
+      .then(async () => {
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            return await this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+              createdItem,
             );
           }
-        });
-
-        // Handle workspace operations after core operations complete
-        if (createdItem.projectId && createdItem.id) {
-          // Run workspace operations in background without blocking response
-          this.handleScheduledMaintenanceWorkspaceOperationsAsync(
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createScheduledMaintenanceFeedAsync(
+            scheduledMaintenance,
+          );
+        } catch (error) {
+          logger.error(
+            `Create scheduled maintenance feed failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createScheduledMaintenanceStateTimelineAsync(
             createdItem,
-          ).catch((error: Error) => {
-            logger.error(
-              `Workspace operations failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+        } catch (error) {
+          logger.error(
+            `Create scheduled maintenance state timeline failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps["ownerTeams"] ||
+              onCreate.createBy.miscDataProps["ownerUsers"])
+          ) {
+            return await this.addOwners(
+              createdItem.projectId!,
+              createdItem.id!,
+              (onCreate.createBy.miscDataProps[
+                "ownerUsers"
+              ] as Array<ObjectID>) || [],
+              (onCreate.createBy.miscDataProps[
+                "ownerTeams"
+              ] as Array<ObjectID>) || [],
+              false,
+              onCreate.createBy.props,
             );
-          });
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Add owners failed in ScheduledMaintenanceService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
         }
       })
       .catch((error: Error) => {
         logger.error(
-          `Critical error in ScheduledMaintenanceService core operations: ${error}`,
+          `Critical error in ScheduledMaintenanceService sequential operations: ${error}`,
         );
       });
 
@@ -738,27 +754,27 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   @CaptureSpan()
   private async createScheduledMaintenanceFeedAsync(
     scheduledMaintenance: Model,
-    createdItem: Model,
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
+        scheduledMaintenance.createdByUserId ||
+        scheduledMaintenance.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${createdItem.scheduledMaintenanceNumber?.toString()} Created: 
+      let feedInfoInMarkdown: string = `#### 🕒 Scheduled Maintenance ${scheduledMaintenance.scheduledMaintenanceNumber?.toString()} Created: 
             
-**${createdItem.title || "No title provided."}**:
+**${scheduledMaintenance.title || "No title provided."}**:
       
-${createdItem.description || "No description provided."}
+${scheduledMaintenance.description || "No description provided."}
       
 `;
 
       // add starts at and ends at.
       if (scheduledMaintenance.startsAt) {
-        feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
+        feedInfoInMarkdown += `**Starts At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.startsAt)} \n\n`;
       }
 
       if (scheduledMaintenance.endsAt) {
-        feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
+        feedInfoInMarkdown += `**Ends At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
       }
 
       if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {
@@ -772,7 +788,7 @@ ${createdItem.description || "No description provided."}
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
         for (const monitor of scheduledMaintenance.monitors) {
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(scheduledMaintenance.projectId!, monitor.id!)).toString()})\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
@@ -781,14 +797,14 @@ ${createdItem.description || "No description provided."}
       const scheduledMaintenanceCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
         await ScheduledMaintenanceWorkspaceMessages.getScheduledMaintenanceCreateMessageBlocks(
           {
-            scheduledMaintenanceId: createdItem.id!,
-            projectId: createdItem.projectId!,
+            scheduledMaintenanceId: scheduledMaintenance.id!,
+            projectId: scheduledMaintenance.projectId!,
           },
         );
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
-        scheduledMaintenanceId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        scheduledMaintenanceId: scheduledMaintenance.id!,
+        projectId: scheduledMaintenance.projectId!,
         scheduledMaintenanceFeedEventType:
           ScheduledMaintenanceFeedEventType.ScheduledMaintenanceCreated,
         displayColor: Red500,
@@ -1049,7 +1065,7 @@ ${onUpdate.updateBy.data.title || "No title provided."}
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Starts At**: 
-${OneUptimeDate.getDateAsLocalFormattedString(onUpdate.updateBy.data.startsAt as Date) || "No title provided."}
+${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(onUpdate.updateBy.data.startsAt as Date) || "No title provided."}
 `;
           shouldAddScheduledMaintenanceFeed = true;
         }
@@ -1058,7 +1074,7 @@ ${OneUptimeDate.getDateAsLocalFormattedString(onUpdate.updateBy.data.startsAt as
           // add scheduledMaintenance feed.
 
           feedInfoInMarkdown += `\n\n**Ends At**:
-${OneUptimeDate.getDateAsLocalFormattedString(onUpdate.updateBy.data.endsAt as Date) || "No title provided."}
+${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(onUpdate.updateBy.data.endsAt as Date) || "No title provided."}
 `;
           shouldAddScheduledMaintenanceFeed = true;
         }

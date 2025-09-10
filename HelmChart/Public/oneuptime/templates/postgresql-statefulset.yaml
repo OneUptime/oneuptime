@@ -1,0 +1,168 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postgresql
+    appname: oneuptime
+    helm.sh/release-name: {{ .Release.Name }}
+    helm.sh/release-namespace: {{ .Release.Namespace }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  serviceName: {{ .Release.Name }}-postgresql-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-postgresql
+      app.kubernetes.io/component: postgresql
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-postgresql
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: postgresql
+        appname: oneuptime
+      annotations:
+        checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-primary-configmap.yaml") . | sha256sum }}
+        checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-primary-hba-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.postgresql.primary.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.postgresql.primary.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.postgresql.primary.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.postgresql.primary.podSecurityContext }}
+      {{- with .Values.postgresql.primary.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else if .Values.podSecurityContext }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: postgresql
+        image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+        imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+        args:
+          - "-c"
+          - "config_file=/etc/postgresql/postgresql.conf"
+          - "-c"
+          - "hba_file=/etc/postgresql/pg_hba.conf"
+        {{- if .Values.postgresql.primary.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.postgresql.primary.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- end }}
+        ports:
+        - name: postgresql
+          containerPort: 5432
+          protocol: TCP
+        env:
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: {{ .Values.postgresql.auth.database | quote }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-postgresql
+              key: postgres-password
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/data"
+        - name: POSTGRES_INITDB_ARGS
+          value: "--auth-host=md5"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - exec pg_isready -U "postgres" -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+          successThreshold: 1
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - exec pg_isready -U "postgres" -d "dbname={{ .Values.postgresql.auth.database }}" -h 127.0.0.1 -p 5432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+          successThreshold: 1
+        {{- if .Values.postgresql.primary.terminationGracePeriodSeconds }}
+        terminationGracePeriodSeconds: {{ .Values.postgresql.primary.terminationGracePeriodSeconds }}
+        {{- end }}
+        {{- with .Values.postgresql.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgresql-hba
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: {{ .Release.Name }}-postgresql-primary-config
+      - name: postgresql-hba
+        configMap:
+          name: {{ .Release.Name }}-postgresql-primary-hba
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app: {{ .Release.Name }}-postgresql
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component: postgresql
+        appname: oneuptime
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      {{- if .Values.postgresql.primary.persistence.storageClass }}
+      {{- if (eq "-" .Values.postgresql.primary.persistence.storageClass) }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: {{ .Values.postgresql.primary.persistence.storageClass }}
+      {{- end }}
+      {{- else }}
+      {{- if .Values.global.storageClass }}
+      storageClassName: {{ .Values.global.storageClass }}
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.postgresql.primary.persistence.size }}
+{{- end }}

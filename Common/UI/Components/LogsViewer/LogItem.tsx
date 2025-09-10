@@ -144,7 +144,8 @@ const LogItem: FunctionComponent<ComponentProps> = (
             DATE TIME:
           </div>
           <div className="text-slate-500 courier-prime">
-            {OneUptimeDate.getDateAsFormattedString(props.log.time)} &nbsp;{" "}
+            {OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time)}{" "}
+            &nbsp;{" "}
           </div>
         </div>
       )}

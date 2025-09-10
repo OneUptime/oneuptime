@@ -4,6 +4,7 @@ import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import LocalFile from "Common/Server/Utils/LocalFile";
+import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources(); // Get all resources from ResourceUtil
 
@@ -15,14 +16,14 @@ export default class ServiceHandler {
     let pageTitle: string = ""; // Initialize page title
     let pageDescription: string = ""; // Initialize page description
     const page: string | undefined = req.params["page"]; // Get the page parameter from the request
-    const pageData: any = {}; // Initialize page data object
+    const pageData: Dictionary<unknown> = {}; // Initialize page data object
 
     // Set page title and description
     pageTitle = "Pagination";
     pageDescription = "Learn how to paginate requests with OneUptime API";
 
     // Get response and request code from LocalCache or LocalFile
-    pageData.responseCode = await LocalCache.getOrSetString(
+    pageData["responseCode"] = await LocalCache.getOrSetString(
       "pagination",
       "response",
       async () => {
@@ -33,7 +34,7 @@ export default class ServiceHandler {
       },
     );
 
-    pageData.requestCode = await LocalCache.getOrSetString(
+    pageData["requestCode"] = await LocalCache.getOrSetString(
       "pagination",
       "request",
       async () => {

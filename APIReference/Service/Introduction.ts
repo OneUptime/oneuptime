@@ -2,6 +2,7 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { ViewsPath } from "../Utils/Config";
 import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import Dictionary from "Common/Types/Dictionary";
 
 // Get all resources and featured resources from ResourceUtil
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
@@ -20,10 +21,10 @@ export default class ServiceHandler {
 
     // Get the requested page from the URL parameters
     const page: string | undefined = req.params["page"];
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
     // Set featured resources for the page
-    pageData.featuredResources = FeaturedResources;
+    pageData["featuredResources"] = FeaturedResources;
 
     // Set page title and description
     pageTitle = "Introduction";

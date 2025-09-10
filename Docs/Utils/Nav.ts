@@ -34,6 +34,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/installation/docker-compose",
       },
       {
+        title: "Upgrading",
+        url: "/docs/installation/upgrading",
+      },
+      {
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
       },
@@ -133,6 +137,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "JavaScript Expressions",
         url: "/docs/monitor/javascript-expression",
+      },
+      {
+        title: "Incident & Alert Templating",
+        url: "/docs/monitor/incident-alert-templating",
       },
       {
         title: "Monitor Secrets",

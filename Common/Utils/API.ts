@@ -13,12 +13,17 @@ import APIException from "../Types/Exception/ApiException";
 import { JSONArray, JSONObject } from "../Types/JSON";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Sleep from "../Types/Sleep";
+import type { Agent as HttpAgent } from "http";
+import type { Agent as HttpsAgent } from "https";
 
 export interface RequestOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
+  // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
+  httpAgent?: HttpAgent | undefined;
+  httpsAgent?: HttpsAgent | undefined;
 }
 
 export default class API {
@@ -398,6 +403,15 @@ export default class API {
 
           if (options?.doNotFollowRedirects) {
             axiosOptions.maxRedirects = 0;
+          }
+
+          // Attach proxy agents per request if provided (avoids global side-effects)
+          if (options?.httpAgent) {
+            (axiosOptions as AxiosRequestConfig).httpAgent = options.httpAgent;
+          }
+          if (options?.httpsAgent) {
+            (axiosOptions as AxiosRequestConfig).httpsAgent =
+              options.httpsAgent;
           }
 
           result = await axios(axiosOptions);

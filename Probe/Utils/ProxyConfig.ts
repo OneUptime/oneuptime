@@ -1,8 +1,13 @@
 import { HTTP_PROXY_URL, HTTPS_PROXY_URL } from "../Config";
-import axios, { AxiosInstance } from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import logger from "Common/Server/Utils/Logger";
+
+// Exported interface for proxy agents
+export interface ProxyAgents {
+  httpAgent?: HttpProxyAgent<string>;
+  httpsAgent?: HttpsProxyAgent<string>;
+}
 
 export default class ProxyConfig {
   private static isConfigured: boolean = false;
@@ -37,20 +42,7 @@ export default class ProxyConfig {
         this.httpsProxyAgent = new HttpsProxyAgent(HTTPS_PROXY_URL);
       }
 
-      // Configure axios defaults to use the proxy
-      if (this.httpProxyAgent) {
-        axios.defaults.httpAgent = this.httpProxyAgent;
-      }
-
-      if (this.httpsProxyAgent) {
-        axios.defaults.httpsAgent = this.httpsProxyAgent;
-      }
-
-      // Also configure proxy for axios instances
-      axios.defaults.proxy = false; // Disable axios built-in proxy to use our agents
-
       this.isConfigured = true;
-      logger.info("Proxy configuration completed successfully");
     } catch (error) {
       logger.error("Failed to configure proxy:");
       logger.error(error);
@@ -72,50 +64,21 @@ export default class ProxyConfig {
     return HTTPS_PROXY_URL;
   }
 
-  /**
-   * Get the HTTP proxy agent for HTTP requests
-   */
   public static getHttpProxyAgent(): HttpProxyAgent<string> | null {
     return this.httpProxyAgent;
   }
 
-  /**
-   * Get the HTTPS proxy agent for HTTPS requests
-   */
   public static getHttpsProxyAgent(): HttpsProxyAgent<string> | null {
     return this.httpsProxyAgent;
   }
 
-  /**
-   * Configure a specific axios instance to use the proxy
-   * This is useful for cases where axios.create() is used
-   */
-  public static configureAxiosInstance(instance: AxiosInstance): void {
-    if (!HTTP_PROXY_URL && !HTTPS_PROXY_URL) {
-      return;
+  public static getRequestProxyAgents(): Readonly<ProxyAgents> {
+    if (!this.isProxyConfigured()) {
+      return {};
     }
-
-    try {
-      if (HTTP_PROXY_URL) {
-        const httpProxyAgent: HttpProxyAgent<string> = new HttpProxyAgent(
-          HTTP_PROXY_URL,
-        );
-        instance.defaults.httpAgent = httpProxyAgent;
-      }
-
-      if (HTTPS_PROXY_URL) {
-        const httpsProxyAgent: HttpsProxyAgent<string> = new HttpsProxyAgent(
-          HTTPS_PROXY_URL,
-        );
-        instance.defaults.httpsAgent = httpsProxyAgent;
-      }
-
-      instance.defaults.proxy = false;
-
-      logger.debug("Configured axios instance to use proxy");
-    } catch (error) {
-      logger.error("Failed to configure axios instance for proxy:");
-      logger.error(error);
-    }
+    return {
+      ...(this.httpProxyAgent ? { httpAgent: this.httpProxyAgent } : {}),
+      ...(this.httpsProxyAgent ? { httpsAgent: this.httpsProxyAgent } : {}),
+    } as const;
   }
 }

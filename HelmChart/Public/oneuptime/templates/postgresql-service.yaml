@@ -1,0 +1,48 @@
+{{- if .Values.postgresql.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postgresql
+    appname: oneuptime
+spec:
+  type: {{ .Values.postgresql.primary.service.type | default "ClusterIP" }}
+  ports:
+  - port: {{ .Values.postgresql.primary.service.ports.postgresql | int }}
+    targetPort: postgresql
+    protocol: TCP
+    name: postgresql
+  selector:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/component: postgresql
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-postgresql-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: postgresql
+    appname: oneuptime
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: {{ .Values.postgresql.primary.service.ports.postgresql | int }}
+    targetPort: postgresql
+    protocol: TCP
+    name: postgresql
+  selector:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/component: postgresql
+{{- end }}

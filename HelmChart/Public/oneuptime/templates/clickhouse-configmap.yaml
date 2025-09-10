@@ -1,0 +1,17 @@
+{{- if .Values.clickhouse.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-clickhouse-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  config.xml: |
+    <?xml version="1.0"?>
+{{ .Values.clickhouse.configuration | indent 4 }}
+{{- end }}

@@ -1,0 +1,1 @@
+Please scan the project and fix "any" types with proper types. Please stop when you have 25 files fixed, so I can review. 

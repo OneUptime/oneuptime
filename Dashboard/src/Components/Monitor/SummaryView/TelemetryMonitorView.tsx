@@ -18,7 +18,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
           title="Monitored At"
           value={
             props.telemetryMonitorSummary?.lastCheckedAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.telemetryMonitorSummary?.lastCheckedAt,
                 )
               : "-"
@@ -29,7 +29,7 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
           title="Next Check At"
           value={
             props.telemetryMonitorSummary?.nextCheckAt
-              ? OneUptimeDate.getDateAsLocalFormattedString(
+              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.telemetryMonitorSummary?.nextCheckAt,
                 )
               : "-"

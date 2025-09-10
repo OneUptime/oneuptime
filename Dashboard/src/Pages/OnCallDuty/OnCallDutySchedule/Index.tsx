@@ -51,13 +51,13 @@ const OnCallDutyScheduleView: FunctionComponent<
               <span>
                 This user has been on the roster since{" "}
                 <strong>
-                  {OneUptimeDate.getDateAsLocalFormattedString(
+                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     onCallSchedule.rosterStartAt,
                   )}
                 </strong>{" "}
                 and will remain on the roster until{" "}
                 <strong>
-                  {OneUptimeDate.getDateAsLocalFormattedString(
+                  {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                     onCallSchedule.rosterHandoffAt,
                   )}
                 </strong>
@@ -94,13 +94,13 @@ const OnCallDutyScheduleView: FunctionComponent<
                 <span>
                   This user will be on the roster from{" "}
                   <strong>
-                    {OneUptimeDate.getDateAsLocalFormattedString(
+                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                       onCallSchedule.rosterNextStartAt,
                     )}
                   </strong>{" "}
                   and remain on the roster until{" "}
                   <strong>
-                    {OneUptimeDate.getDateAsLocalFormattedString(
+                    {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                       onCallSchedule.rosterNextHandoffAt,
                     )}
                   </strong>

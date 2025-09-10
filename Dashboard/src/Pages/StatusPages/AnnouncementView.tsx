@@ -8,6 +8,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageAnnouncement from "Common/Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -21,6 +22,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import Page from "Common/UI/Components/Page/Page";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const AnnouncementView: FunctionComponent<
   PageComponentProps
@@ -83,6 +85,7 @@ const AnnouncementView: FunctionComponent<
             title: "Status Page Announcement Details",
             description: "Here are more details for this announcement.",
           }}
+          createEditModalWidth={ModalWidth.Large}
           formSteps={[
             {
               title: "Basic Information",
@@ -91,6 +94,10 @@ const AnnouncementView: FunctionComponent<
             {
               title: "Status Pages",
               id: "status-pages",
+            },
+            {
+              title: "Resources Affected",
+              id: "resources-affected",
             },
             {
               title: "Schedule & Settings",
@@ -139,6 +146,23 @@ const AnnouncementView: FunctionComponent<
               },
               required: true,
               placeholder: "Select Status Pages",
+            },
+            {
+              field: {
+                monitors: true,
+              },
+              title: "Monitors affected (Optional)",
+              stepId: "resources-affected",
+              description:
+                "Select monitors affected by this announcement. If none selected, all subscribers will be notified.",
+              fieldType: FormFieldSchemaType.MultiSelectDropdown,
+              dropdownModal: {
+                type: Monitor,
+                labelField: "name",
+                valueField: "_id",
+              },
+              required: false,
+              placeholder: "Select Monitors (Optional)",
             },
             {
               field: {

@@ -64,6 +64,8 @@ import MetricType from "../../Models/DatabaseModels/MetricType";
 import UpdateBy from "../Types/Database/UpdateBy";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import Dictionary from "../../Types/Dictionary";
+import IncidentTemplateService from "./IncidentTemplateService";
+import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -466,24 +468,97 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    // Determine the initial incident state
+    let initialIncidentStateId: ObjectID | undefined = undefined;
 
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
-      );
+    // If currentIncidentStateId is already provided (manual selection), use it
+    if (createBy.data.currentIncidentStateId) {
+      initialIncidentStateId = createBy.data.currentIncidentStateId;
+
+      // Validate that the provided state exists and belongs to the project
+      const providedState: IncidentState | null =
+        await IncidentStateService.findOneBy({
+          query: {
+            _id: initialIncidentStateId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!providedState) {
+        throw new BadDataException(
+          "Invalid incident state provided. The state does not exist or does not belong to this project.",
+        );
+      }
+    } else if (createBy.data.createdIncidentTemplateId) {
+      // If created from a template, check if template has a custom initial state
+      const incidentTemplate: IncidentTemplate | null =
+        await IncidentTemplateService.findOneBy({
+          query: {
+            _id: createBy.data.createdIncidentTemplateId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            initialIncidentStateId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (incidentTemplate?.initialIncidentStateId) {
+        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+
+        // Validate that the template's state exists and belongs to the project
+        const templateState: IncidentState | null =
+          await IncidentStateService.findOneBy({
+            query: {
+              _id: initialIncidentStateId.toString(),
+              projectId: projectId,
+            },
+            select: {
+              _id: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+        if (!templateState) {
+          // Fall back to default if template state is invalid
+          initialIncidentStateId = undefined;
+        }
+      }
+    }
+
+    // If no custom state is provided or found, fall back to default created state
+    if (!initialIncidentStateId) {
+      const incidentState: IncidentState | null =
+        await IncidentStateService.findOneBy({
+          query: {
+            projectId: projectId,
+            isCreatedState: true,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!incidentState || !incidentState.id) {
+        throw new BadDataException(
+          "Created incident state not found for this project. Please add created incident state from settings.",
+        );
+      }
+
+      initialIncidentStateId = incidentState.id;
     }
 
     let mutex: SemaphoreMutex | null = null;
@@ -517,7 +592,7 @@ export class Service extends DatabaseService<Model> {
         projectId: projectId,
       })) + 1;
 
-    createBy.data.currentIncidentStateId = incidentState.id;
+    createBy.data.currentIncidentStateId = initialIncidentStateId;
     createBy.data.incidentNumber = incidentNumberForThisIncident;
 
     if (
@@ -597,6 +672,12 @@ export class Service extends DatabaseService<Model> {
           name: true,
         },
         rootCause: true,
+        createdByUserId: true,
+        createdByUser: {
+          _id: true,
+          name: true,
+          email: true,
+        },
         remediationNotes: true,
         currentIncidentState: {
           name: true,
@@ -618,90 +699,121 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Incident not found");
     }
 
-    // Execute core operations in parallel first
-    const coreOperations: Array<Promise<any>> = [];
-
-    // Create feed item asynchronously
-    coreOperations.push(this.createIncidentFeedAsync(incident, createdItem));
-
-    // Handle state change asynchronously
-    coreOperations.push(this.handleIncidentStateChangeAsync(createdItem));
-
-    // Handle owner assignment asynchronously
-    if (
-      onCreate.createBy.miscDataProps &&
-      (onCreate.createBy.miscDataProps["ownerTeams"] ||
-        onCreate.createBy.miscDataProps["ownerUsers"])
-    ) {
-      coreOperations.push(
-        this.addOwners(
-          createdItem.projectId,
-          createdItem.id,
-          (onCreate.createBy.miscDataProps["ownerUsers"] as Array<ObjectID>) ||
-            [],
-          (onCreate.createBy.miscDataProps["ownerTeams"] as Array<ObjectID>) ||
-            [],
-          false,
-          onCreate.createBy.props,
-        ),
-      );
-    }
-
-    // Handle monitor status change and active monitoring asynchronously
-    if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
-      coreOperations.push(
-        this.handleMonitorStatusChangeAsync(createdItem, onCreate),
-      );
-    }
-
-    coreOperations.push(
-      this.disableActiveMonitoringIfManualIncident(createdItem.id!),
-    );
-
     // Release mutex immediately
     this.releaseMutexAsync(onCreate, createdItem.projectId!);
 
-    // Execute core operations in parallel with error handling
-    Promise.allSettled(coreOperations)
-      .then((coreResults: any[]) => {
-        // Log any errors from core operations
-        coreResults.forEach((result: any, index: number) => {
-          if (result.status === "rejected") {
-            logger.error(
-              `Core operation ${index} failed in IncidentService.onCreateSuccess: ${result.reason}`,
+    // Execute operations sequentially with error handling
+    Promise.resolve()
+      .then(async () => {
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            return await this.handleIncidentWorkspaceOperationsAsync(
+              createdItem,
             );
           }
-        });
-
-        // Handle on-call duty policies asynchronously
-        if (
-          createdItem.onCallDutyPolicies?.length &&
-          createdItem.onCallDutyPolicies?.length > 0
-        ) {
-          this.executeOnCallDutyPoliciesAsync(createdItem).catch(
-            (error: Error) => {
-              logger.error(
-                `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
-              );
-            },
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
           );
+          return Promise.resolve();
         }
-
-        // Handle workspace operations after core operations complete
-        if (createdItem.projectId && createdItem.id) {
-          // Run workspace operations in background without blocking response
-          this.handleIncidentWorkspaceOperationsAsync(createdItem).catch(
-            (error: Error) => {
-              logger.error(
-                `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
-              );
-            },
+      })
+      .then(async () => {
+        try {
+          return await this.createIncidentFeedAsync(incident);
+        } catch (error) {
+          logger.error(
+            `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
           );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.handleIncidentStateChangeAsync(createdItem);
+        } catch (error) {
+          logger.error(
+            `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            onCreate.createBy.miscDataProps &&
+            (onCreate.createBy.miscDataProps["ownerTeams"] ||
+              onCreate.createBy.miscDataProps["ownerUsers"])
+          ) {
+            return await this.addOwners(
+              createdItem.projectId!,
+              createdItem.id!,
+              (onCreate.createBy.miscDataProps[
+                "ownerUsers"
+              ] as Array<ObjectID>) || [],
+              (onCreate.createBy.miscDataProps[
+                "ownerTeams"
+              ] as Array<ObjectID>) || [],
+              false,
+              onCreate.createBy.props,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Add owners failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+            return await this.handleMonitorStatusChangeAsync(
+              createdItem,
+              onCreate,
+            );
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Monitor status change failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.disableActiveMonitoringIfManualIncident(
+            createdItem.id!,
+          );
+        } catch (error) {
+          logger.error(
+            `Disable active monitoring failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          if (
+            createdItem.onCallDutyPolicies?.length &&
+            createdItem.onCallDutyPolicies?.length > 0
+          ) {
+            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `On-call duty policy execution failed in IncidentService.onCreateSuccess: ${error}`,
+          );
+          return Promise.resolve();
         }
       })
       .catch((error: Error) => {
         logger.error(
-          `Critical error in IncidentService core operations: ${error}`,
+          `Critical error in IncidentService sequential operations: ${error}`,
         );
       });
 
@@ -749,19 +861,16 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
-  private async createIncidentFeedAsync(
-    incident: Model,
-    createdItem: Model,
-  ): Promise<void> {
+  private async createIncidentFeedAsync(incident: Model): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
-        createdItem.createdByUserId || createdItem.createdByUser?.id;
+        incident.createdByUserId || incident.createdByUser?.id;
 
-      let feedInfoInMarkdown: string = `#### 🚨 Incident ${createdItem.incidentNumber?.toString()} Created: 
+      let feedInfoInMarkdown: string = `#### 🚨 Incident ${incident.incidentNumber?.toString()} Created: 
         
-**${createdItem.title || "No title provided."}**:
+**${incident.title || "No title provided."}**:
 
-${createdItem.description || "No description provided."}
+${incident.description || "No description provided."}
 
 `;
 
@@ -777,26 +886,26 @@ ${createdItem.description || "No description provided."}
         feedInfoInMarkdown += `🌎 **Resources Affected**:\n`;
 
         for (const monitor of incident.monitors) {
-          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(createdItem.projectId!, monitor.id!)).toString()})\n`;
+          feedInfoInMarkdown += `- [${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(incident.projectId!, monitor.id!)).toString()})\n`;
         }
 
         feedInfoInMarkdown += `\n\n`;
       }
 
-      if (createdItem.rootCause) {
+      if (incident.rootCause) {
         feedInfoInMarkdown += `\n
 📄 **Root Cause**:
 
-${createdItem.rootCause || "No root cause provided."}
+${incident.rootCause || "No root cause provided."}
 
 `;
       }
 
-      if (createdItem.remediationNotes) {
+      if (incident.remediationNotes) {
         feedInfoInMarkdown += `\n 
 🎯 **Remediation Notes**:
 
-${createdItem.remediationNotes || "No remediation notes provided."}
+${incident.remediationNotes || "No remediation notes provided."}
 
 
 `;
@@ -804,13 +913,13 @@ ${createdItem.remediationNotes || "No remediation notes provided."}
 
       const incidentCreateMessageBlocks: Array<MessageBlocksByWorkspaceType> =
         await IncidentWorkspaceMessages.getIncidentCreateMessageBlocks({
-          incidentId: createdItem.id!,
-          projectId: createdItem.projectId!,
+          incidentId: incident.id!,
+          projectId: incident.projectId!,
         });
 
       await IncidentFeedService.createIncidentFeedItem({
-        incidentId: createdItem.id!,
-        projectId: createdItem.projectId!,
+        incidentId: incident.id!,
+        projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.IncidentCreated,
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,

@@ -209,7 +209,9 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     anotherStatus: incident.incidentSeverity?.name,
     eventSecondDescription: incident.createdAt
       ? "Created at " +
-        OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!)
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          incident.createdAt!,
+        )
       : "",
     eventTypeColor: Red,
     labels:

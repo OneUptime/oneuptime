@@ -1,0 +1,162 @@
+{{- if .Values.clickhouse.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-clickhouse-shard0
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: clickhouse
+    app.kubernetes.io/part-of: clickhouse
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    shard: "0"
+spec:
+  serviceName: {{ .Release.Name }}-clickhouse-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: clickhouse
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: clickhouse
+      app.kubernetes.io/part-of: clickhouse
+      shard: "0"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: clickhouse
+        app.kubernetes.io/part-of: clickhouse
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        shard: "0"
+    spec:
+      serviceAccountName: {{ .Release.Name }}-clickhouse
+      {{- with .Values.clickhouse.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clickhouse.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clickhouse.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.clickhouse.podSecurityContext }}
+      {{- with .Values.clickhouse.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else if .Values.podSecurityContext }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: clickhouse
+        image: "{{ .Values.clickhouse.image.repository }}:{{ .Values.clickhouse.image.tag }}"
+        imagePullPolicy: {{ .Values.clickhouse.image.pullPolicy }}
+        {{- if .Values.clickhouse.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.clickhouse.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- else if .Values.containerSecurityContext }}
+        securityContext:
+          {{- with .Values.containerSecurityContext }}
+          {{- toYaml . | nindent 10 }}
+          {{- end }}
+        {{- end }}
+        ports:
+        - name: http
+          containerPort: 8123
+          protocol: TCP
+        - name: tcp
+          containerPort: 9000
+          protocol: TCP
+        - name: mysql
+          containerPort: 9004
+          protocol: TCP
+        - name: postgresql
+          containerPort: 9005
+          protocol: TCP
+        - name: interserver
+          containerPort: 9009
+          protocol: TCP
+        env:
+        - name: CLICKHOUSE_USER
+          value: {{ .Values.clickhouse.auth.username | quote }}
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-clickhouse
+              key: admin-password
+        - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+          value: "1"
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          failureThreshold: 3
+        {{- with .Values.clickhouse.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/clickhouse
+          subPath: data
+        - name: clickhouse-config
+          mountPath: /etc/clickhouse-server/config.d/custom.xml
+          subPath: config.xml
+        - name: clickhouse-initdb
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: clickhouse-config-template
+        configMap:
+          name: {{ .Release.Name }}-clickhouse-config
+      - name: clickhouse-config
+        emptyDir: {}
+      - name: clickhouse-secrets
+        secret:
+          secretName: {{ .Release.Name }}-clickhouse
+      - name: clickhouse-initdb
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        app.kubernetes.io/name: clickhouse
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: clickhouse
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      {{- if .Values.clickhouse.persistence.storageClass }}
+      {{- if eq .Values.clickhouse.persistence.storageClass "-" }}
+      storageClassName: ""
+      {{- else }}
+      storageClassName: {{ .Values.clickhouse.persistence.storageClass }}
+      {{- end }}
+      {{- else }}
+      {{- if .Values.global.storageClass }}
+      storageClassName: {{ .Values.global.storageClass }}
+      {{- end }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.clickhouse.persistence.size }}
+{{- end }}

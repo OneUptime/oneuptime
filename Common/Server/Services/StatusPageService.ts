@@ -877,7 +877,7 @@ export class Service extends DatabaseService<StatusPage> {
 
     const endDate: Date = OneUptimeDate.getCurrentDate();
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(numberOfDays);
-    const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsLocalFormattedString(endDate, true)})`;
+    const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(endDate, true)})`;
 
     if (statusPageResources.length === 0) {
       return {

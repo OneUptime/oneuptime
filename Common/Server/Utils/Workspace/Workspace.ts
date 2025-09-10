@@ -146,7 +146,7 @@ export default class WorkspaceUtil {
     messagePayloadsByWorkspace: Array<WorkspaceMessagePayload>;
   }): Promise<Array<WorkspaceSendMessageResponse>> {
     logger.debug("postToWorkspaceChannels called with data:");
-    logger.debug(data);
+    logger.debug(JSON.stringify(data, null, 2));
 
     const responses: Array<WorkspaceSendMessageResponse> = [];
 
@@ -210,7 +210,7 @@ export default class WorkspaceUtil {
 
     logger.debug("Message posted to workspace channels successfully");
     logger.debug("Returning thread IDs");
-    logger.debug(responses);
+    logger.debug(JSON.stringify(responses, null, 2));
 
     return responses;
   }

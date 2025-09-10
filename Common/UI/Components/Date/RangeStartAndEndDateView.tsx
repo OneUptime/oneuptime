@@ -29,10 +29,10 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
 
   const getContent: GetReactElementFunction = (): ReactElement => {
     const title: string = isCustomRange
-      ? `${OneUptimeDate.getDateAsLocalFormattedString(
+      ? `${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           props.dashboardStartAndEndDate.startAndEndDate?.startValue ||
             OneUptimeDate.getCurrentDate(),
-        )} - ${OneUptimeDate.getDateAsLocalFormattedString(
+        )} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           props.dashboardStartAndEndDate.startAndEndDate?.endValue ||
             OneUptimeDate.getCurrentDate(),
         )}`

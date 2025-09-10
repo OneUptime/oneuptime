@@ -11,6 +11,7 @@ import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
+import ProxyConfig from "../../ProxyConfig";
 
 export interface ProbeWebsiteResponse {
   url: URL;
@@ -64,6 +65,7 @@ export default class WebsiteMonitor {
         isHeadRequest: options.isHeadRequest,
         timeout: options.timeout?.toNumber() || 5000,
         doNotFollowRedirects: options.doNotFollowRedirects || false,
+        ...ProxyConfig.getRequestProxyAgents(),
       });
 
       if (
@@ -76,6 +78,7 @@ export default class WebsiteMonitor {
           isHeadRequest: false,
           timeout: options.timeout?.toNumber() || 5000,
           doNotFollowRedirects: options.doNotFollowRedirects || false,
+          ...ProxyConfig.getRequestProxyAgents(),
         });
       }
 

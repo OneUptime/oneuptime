@@ -19,6 +19,8 @@ import AlertStateTimelineService from "../../Services/AlertStateTimelineService"
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import { JSONObject } from "../../../Types/JSON";
 
 export default class MonitorAlert {
   @CaptureSpan()
@@ -130,9 +132,20 @@ export default class MonitorAlert {
         logger.debug(`${input.monitor.id?.toString()} - Create alert.`);
 
         const alert: Alert = new Alert();
+        const storageMap: JSONObject =
+          MonitorTemplateUtil.buildTemplateStorageMap({
+            monitorType: input.monitor.monitorType!,
+            dataToProcess: input.dataToProcess,
+          });
 
-        alert.title = criteriaAlert.title;
-        alert.description = criteriaAlert.description;
+        alert.title = MonitorTemplateUtil.processTemplateString({
+          value: criteriaAlert.title,
+          storageMap,
+        });
+        alert.description = MonitorTemplateUtil.processTemplateString({
+          value: criteriaAlert.description,
+          storageMap,
+        });
 
         if (!criteriaAlert.alertSeverityId) {
           // pick the critical criteria.
@@ -194,7 +207,10 @@ export default class MonitorAlert {
         }
 
         if (criteriaAlert.remediationNotes) {
-          alert.remediationNotes = criteriaAlert.remediationNotes;
+          alert.remediationNotes = MonitorTemplateUtil.processTemplateString({
+            value: criteriaAlert.remediationNotes,
+            storageMap,
+          });
         }
 
         if (DisableAutomaticAlertCreation) {

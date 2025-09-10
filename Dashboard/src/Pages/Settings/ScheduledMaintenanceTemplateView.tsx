@@ -29,6 +29,7 @@ import {
   getTemplateFormFields,
 } from "./ScheduledMaintenanceTemplates";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -43,6 +44,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description:
             "Here are more details for this ScheduledMaintenance template.",
         }}
+        createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         formSteps={getFormSteps({
           isViewPage: true,

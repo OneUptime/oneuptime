@@ -25,7 +25,7 @@ import Reviews from "./Utils/Reviews";
 
 // import jobs.
 import "./Jobs/UpdateBlog";
-import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { Host, IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 const HomeFeatureSet: FeatureSet = {
@@ -1376,6 +1376,36 @@ const HomeFeatureSet: FeatureSet = {
         }
       },
     );
+
+    // robots.txt (dynamic) - If domain is not oneuptime.com, disallow all.
+    app.get("/robots.txt", (_req: ExpressRequest, res: ExpressResponse) => {
+      let body: string = "";
+
+      if (Host !== "oneuptime.com") {
+        // Disallow everything on non-production / preview / on-prem domains so they are not indexed.
+        body = [
+          "User-agent: *",
+          "Disallow: /",
+          "# Disallowed because host is not oneuptime.com",
+        ].join("\n");
+      } else {
+        // Allow all and point to sitemap
+        // res.locals.homeUrl is set earlier middleware; fallback to canonical domain.
+        const homeUrl: string = (
+          res.locals["homeUrl"] || "https://oneuptime.com"
+        ).replace(/\/$/, "");
+        body = [
+          "User-agent: *",
+          "Allow: /",
+          `Sitemap: ${homeUrl}/sitemap.xml`,
+        ].join("\n");
+      }
+
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      // Encourage caches to revalidate often in case environment changes.
+      res.setHeader("Cache-Control", "public, max-age=300"); // 5 minutes
+      return res.status(200).send(body + "\n");
+    });
 
     /*
      * Cache policy for static contents

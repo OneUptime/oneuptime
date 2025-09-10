@@ -3,6 +3,7 @@ import ResourceUtil, { ModelDocumentation } from "../Utils/Resources";
 import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import Dictionary from "Common/Types/Dictionary";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 
@@ -17,14 +18,14 @@ export default class ServiceHandler {
 
     // Get the requested page
     const page: string | undefined = req.params["page"];
-    const pageData: any = {};
+    const pageData: Dictionary<unknown> = {};
 
     // Set page title and description
     pageTitle = "Permissions";
     pageDescription = "Learn how permissions work with OneUptime";
 
     // Filter permissions to only include those assignable to tenants
-    pageData.permissions = PermissionHelper.getAllPermissionProps().filter(
+    pageData["permissions"] = PermissionHelper.getAllPermissionProps().filter(
       (i: PermissionProps) => {
         return i.isAssignableToTenant;
       },

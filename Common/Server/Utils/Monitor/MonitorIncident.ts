@@ -19,6 +19,8 @@ import IncidentStateTimelineService from "../../Services/IncidentStateTimelineSe
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
+import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import { JSONObject } from "../../../Types/JSON";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -34,7 +36,7 @@ export default class MonitorIncident {
     // check active incidents and if there are open incidents, do not cretae anothr incident.
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
-        monitors: [input.monitorId] as any,
+        monitors: [input.monitorId],
         currentIncidentState: {
           isResolvedState: false,
         },
@@ -136,9 +138,20 @@ export default class MonitorIncident {
         logger.debug(`${input.monitor.id?.toString()} - Create incident.`);
 
         const incident: Incident = new Incident();
+        const storageMap: JSONObject =
+          MonitorTemplateUtil.buildTemplateStorageMap({
+            monitorType: input.monitor.monitorType!,
+            dataToProcess: input.dataToProcess,
+          });
 
-        incident.title = criteriaIncident.title;
-        incident.description = criteriaIncident.description;
+        incident.title = MonitorTemplateUtil.processTemplateString({
+          value: criteriaIncident.title,
+          storageMap,
+        });
+        incident.description = MonitorTemplateUtil.processTemplateString({
+          value: criteriaIncident.description,
+          storageMap,
+        });
 
         if (!criteriaIncident.incidentSeverityId) {
           // pick the critical criteria.
@@ -204,7 +217,12 @@ export default class MonitorIncident {
         }
 
         if (criteriaIncident.remediationNotes) {
-          incident.remediationNotes = criteriaIncident.remediationNotes;
+          incident.remediationNotes = MonitorTemplateUtil.processTemplateString(
+            {
+              value: criteriaIncident.remediationNotes,
+              storageMap,
+            },
+          );
         }
 
         if (DisableAutomaticIncidentCreation) {

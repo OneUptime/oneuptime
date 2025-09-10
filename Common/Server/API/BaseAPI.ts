@@ -235,13 +235,25 @@ export default class BaseAPI<
   ): Promise<void> {
     await this.onBeforeList(req, res);
 
-    const skip: PositiveNumber = req.query["skip"]
-      ? new PositiveNumber(req.query["skip"] as string)
-      : new PositiveNumber(0);
+    // Extract pagination parameters from query or body (for POST requests)
+    // Support both 'skip' and 'offset' parameters (offset is alias for skip)
+    let skipValue: number = 0;
+    let limitValue: number = DEFAULT_LIMIT;
 
-    const limit: PositiveNumber = req.query["limit"]
-      ? new PositiveNumber(req.query["limit"] as string)
-      : new PositiveNumber(DEFAULT_LIMIT);
+    if (req.query["skip"]) {
+      skipValue = parseInt(req.query["skip"] as string, 10) || 0;
+    } else if (req.body && req.body["skip"] !== undefined) {
+      skipValue = parseInt(req.body["skip"] as string, 10) || 0;
+    }
+
+    if (req.query["limit"]) {
+      limitValue = parseInt(req.query["limit"] as string, 10) || DEFAULT_LIMIT;
+    } else if (req.body && req.body["limit"] !== undefined) {
+      limitValue = parseInt(req.body["limit"] as string, 10) || DEFAULT_LIMIT;
+    }
+
+    const skip: PositiveNumber = new PositiveNumber(skipValue);
+    const limit: PositiveNumber = new PositiveNumber(limitValue);
 
     if (limit.toNumber() > LIMIT_PER_PROJECT) {
       throw new BadRequestException(

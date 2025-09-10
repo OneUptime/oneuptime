@@ -187,6 +187,8 @@ server {
     fastcgi_buffers  16 16k;
     fastcgi_buffer_size  32k;
 
+    set $billing_enabled ${BILLING_ENABLED};
+
 
     location / {
 

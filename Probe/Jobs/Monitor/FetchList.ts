@@ -20,6 +20,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import NumberUtil from "Common/Utils/Number";
 import Sleep from "Common/Types/Sleep";
+import ProxyConfig from "../../Utils/ProxyConfig";
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -41,7 +42,7 @@ const InitJob: VoidFunction = (): void => {
 
           new FetchListAndProbe("Worker " + currentWorker)
             .run()
-            .catch((err: any) => {
+            .catch((err: unknown) => {
               logger.error(`Worker ${currentWorker} failed: `);
               logger.error(err);
             });
@@ -101,6 +102,7 @@ class FetchListAndProbe {
           },
           {},
           {},
+          { ...ProxyConfig.getRequestProxyAgents() },
         );
 
       logger.debug("Fetched monitor list");
@@ -148,7 +150,7 @@ class FetchListAndProbe {
 
       if (err instanceof APIException) {
         logger.error("API Exception Error");
-        logger.error(JSON.stringify(err.error, null, 2));
+        logger.error(JSON.stringify((err as APIException).error, null, 2));
       }
     }
   }

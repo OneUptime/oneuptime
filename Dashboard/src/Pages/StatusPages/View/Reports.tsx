@@ -91,7 +91,7 @@ const StatusPageDelete: FunctionComponent<
         <Alert
           type={AlertType.INFO}
           strongTitle="Next report will be sent on"
-          title={`${OneUptimeDate.getDateAsLocalFormattedString(statusPage?.sendNextReportBy)}`}
+          title={`${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(statusPage?.sendNextReportBy)}`}
         />
       )}
 

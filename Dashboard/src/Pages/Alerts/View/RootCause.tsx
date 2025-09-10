@@ -5,6 +5,7 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import React, { FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 
 const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -17,6 +18,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         description:
           "Why did this alert happen? Here is the root cause of this alert.",
       }}
+      createEditModalWidth={ModalWidth.Large}
       isEditable={true}
       modelDetailProps={{
         showDetailsInNumberOfColumns: 1,

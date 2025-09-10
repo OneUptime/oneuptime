@@ -1,8 +1,10 @@
 global:
-  storageClass: microk8s-hostpath
+  storageClass: local-path
 
 host: localhost
 httpProtocol: http
 
 image:
   tag: test
+  registry: ghcr.io
+  repository: oneuptime

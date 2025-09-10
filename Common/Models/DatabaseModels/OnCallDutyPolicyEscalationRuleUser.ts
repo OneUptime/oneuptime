@@ -46,7 +46,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.EditProjectOnCallDutyPolicyEscalationRuleUser,
   ],
 })
-@CrudApiEndpoint(new Route("/on-call-duty-policy-esclation-rule-user"))
+@CrudApiEndpoint(new Route("/on-call-duty-policy-escalation-rule-user"))
 @Entity({
   name: "OnCallDutyPolicyEscalationRuleUser",
 })
