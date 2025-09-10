@@ -4,6 +4,7 @@ import MailAPI from "./API/Mail";
 import SmsAPI from "./API/SMS";
 import PushNotificationAPI from "./API/PushNotification";
 import SMTPConfigAPI from "./API/SMTPConfig";
+import WebhookAPI from "./API/Webhook";
 import "./Utils/Handlebars";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -19,6 +20,7 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/push`, "/push"], PushNotificationAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
+    app.use([`/${APP_NAME}/webhook`, "/webhook"], WebhookAPI);
   },
 };
 
