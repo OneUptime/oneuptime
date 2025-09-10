@@ -225,6 +225,7 @@ export default class SlackIncidentActions {
         await SlackUtil.sendMessage({
           authToken: projectAuthToken,
           userId: botUserId,
+          projectId: slackRequest.projectId!,
           workspaceMessagePayload: {
             _type: "WorkspaceMessagePayload",
             channelIds: [slackChannelId],
