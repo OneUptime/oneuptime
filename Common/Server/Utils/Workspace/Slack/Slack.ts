@@ -381,26 +381,24 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
-    const existingWorkspaceChannels: Dictionary<WorkspaceChannel> =
-      await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
 
     for (let channelName of data.channelNames) {
-      // if channel name starts with #, remove it
+      // Normalize channel name
       if (channelName && channelName.startsWith("#")) {
         channelName = channelName.substring(1);
       }
-
-      // convert channel name to lowercase
       channelName = channelName.toLowerCase();
-
-      // replace spaces with hyphens
       channelName = channelName.replace(/\s+/g, "-");
 
-      if (existingWorkspaceChannels[channelName]) {
+      // Check if channel exists using optimized method
+      const existingChannel: WorkspaceChannel | null = await this.getWorkspaceChannelByName({
+        authToken: data.authToken,
+        channelName: channelName,
+      });
+
+      if (existingChannel) {
         logger.debug(`Channel ${channelName} already exists.`);
-        workspaceChannels.push(existingWorkspaceChannels[channelName]!);
+        workspaceChannels.push(existingChannel);
         continue;
       }
 
@@ -429,22 +427,20 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Getting workspace channel ID from channel name with data:");
     logger.debug(data);
 
-    const channels: Dictionary<WorkspaceChannel> =
-      await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
+    const channel: WorkspaceChannel | null = await this.getWorkspaceChannelByName({
+      authToken: data.authToken,
+      channelName: data.channelName,
+    });
 
-    logger.debug("All workspace channels:");
-
-    if (!channels[data.channelName]) {
+    if (!channel) {
       logger.error("Channel not found.");
       throw new BadDataException("Channel not found.");
     }
 
-    logger.debug("Workspace channel ID obtained:");
-    logger.debug(channels[data.channelName]!.id);
+    logger.debug("Workspace channel obtained:");
+    logger.debug(channel);
 
-    return channels[data.channelName]!;
+    return channel;
   }
 
   @CaptureSpan()
@@ -585,6 +581,94 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
+  public static async getWorkspaceChannelByName(data: {
+    authToken: string;
+    channelName: string;
+  }): Promise<WorkspaceChannel | null> {
+    logger.debug("Getting workspace channel by name with data:");
+    logger.debug(data);
+
+    // Normalize channel name
+    let normalizedChannelName = data.channelName;
+    if (normalizedChannelName && normalizedChannelName.startsWith("#")) {
+      normalizedChannelName = normalizedChannelName.substring(1);
+    }
+    normalizedChannelName = normalizedChannelName.toLowerCase();
+
+    let cursor: string | undefined = undefined;
+    const maxPages = 10; // Limit search to prevent excessive API calls
+    let pageCount = 0;
+
+    do {
+      const requestBody: JSONObject = {
+        limit: 200, // Use smaller limit for faster searches
+        types: "public_channel,private_channel",
+      };
+
+      if (cursor) {
+        requestBody["cursor"] = cursor;
+      }
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post<JSONObject>(
+          URL.fromString("https://slack.com/api/conversations.list"),
+          requestBody,
+          {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+          {
+            retries: 3,
+            exponentialBackoff: true,
+          },
+        );
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error response from Slack API:");
+        logger.error(response);
+        throw response;
+      }
+
+      // check for ok response
+      if ((response.jsonData as JSONObject)?.["ok"] !== true) {
+        logger.error("Invalid response from Slack API:");
+        logger.error(response.jsonData);
+        const messageFromSlack: string = (response.jsonData as JSONObject)?.[
+          "error"
+        ] as string;
+        throw new BadRequestException("Error from Slack " + messageFromSlack);
+      }
+
+      for (const channel of (response.jsonData as JSONObject)[
+        "channels"
+      ] as Array<JSONObject>) {
+        if (!channel["id"] || !channel["name"]) {
+          continue;
+        }
+
+        const channelName = (channel["name"] as string).toLowerCase();
+        if (channelName === normalizedChannelName) {
+          logger.debug("Channel found:");
+          logger.debug(channel);
+          return {
+            id: channel["id"] as string,
+            name: channel["name"] as string,
+            workspaceType: WorkspaceType.Slack,
+          };
+        }
+      }
+
+      cursor = (
+        (response.jsonData as JSONObject)["response_metadata"] as JSONObject
+      )?.["next_cursor"] as string;
+      pageCount++;
+    } while (cursor && pageCount < maxPages);
+
+    logger.debug("Channel not found:");
+    return null;
+  }
+
+  @CaptureSpan()
   public static override getDividerBlock(): JSONObject {
     return {
       type: "divider",
@@ -660,18 +744,13 @@ export default class SlackUtil extends WorkspaceBase {
     // convert channel name to lowercase
     data.channelName = data.channelName.toLowerCase();
 
-    // get channel id from channel name
-    const channels: Dictionary<WorkspaceChannel> =
-      await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
+    // Check if channel exists using optimized method
+    const channel: WorkspaceChannel | null = await this.getWorkspaceChannelByName({
+      authToken: data.authToken,
+      channelName: data.channelName,
+    });
 
-    // if this channel exists
-    if (channels[data.channelName]) {
-      return true;
-    }
-
-    return false;
+    return channel !== null;
   }
 
   @CaptureSpan()
@@ -690,24 +769,19 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug("Blocks generated from workspace message payload:");
     logger.debug(blocks);
 
-    const existingWorkspaceChannels: Dictionary<WorkspaceChannel> =
-      await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
-
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
+    // Resolve channel names efficiently
     for (let channelName of data.workspaceMessagePayload.channelNames) {
       if (channelName && channelName.startsWith("#")) {
         // trim # from channel name
         channelName = channelName.substring(1);
       }
 
-      let channel: WorkspaceChannel | null = null;
-
-      if (existingWorkspaceChannels[channelName]) {
-        channel = existingWorkspaceChannels[channelName]!;
-      }
+      const channel: WorkspaceChannel | null = await this.getWorkspaceChannelByName({
+        authToken: data.authToken,
+        channelName: channelName,
+      });
 
       if (channel) {
         workspaceChannelsToPostTo.push(channel);
