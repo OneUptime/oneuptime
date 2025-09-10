@@ -244,7 +244,7 @@ export default class BaseAPI<
       skipValue = parseInt(req.query["skip"] as string, 10) || 0;
     } else if (req.body && req.body["skip"] !== undefined) {
       skipValue = parseInt(req.body["skip"] as string, 10) || 0;
-    } 
+    }
 
     if (req.query["limit"]) {
       limitValue = parseInt(req.query["limit"] as string, 10) || DEFAULT_LIMIT;
