@@ -18,13 +18,20 @@ import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import Permission from "../../Types/Permission";
 
 export interface MiscData {
-  [key: string]: string;
+  [key: string]: any;
 }
 
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
   botUserId: string;
+  channelCache?: {
+    [channelName: string]: {
+      id: string;
+      name: string;
+      lastUpdated: string;
+    };
+  };
 }
 
 @TenantColumn("projectId")

@@ -3,6 +3,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Dictionary from "../../../Types/Dictionary";
 import NotImplementedException from "../../../Types/Exception/NotImplementedException";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import WorkspaceChannelInvitationPayload from "../../../Types/Workspace/WorkspaceChannelInvitationPayload";
 import WorkspaceMessagePayload, {
   WorkspaceCheckboxBlock,
@@ -53,6 +54,7 @@ export default class WorkspaceBase {
   public static async doesChannelExist(_data: {
     authToken: string;
     channelName: string;
+    projectId: ObjectID;
   }): Promise<boolean> {
     throw new NotImplementedException();
   }
@@ -63,6 +65,7 @@ export default class WorkspaceBase {
     authToken: string;
     userId: string;
     sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
+    projectId: ObjectID;
   }): Promise<void> {
     throw new NotImplementedException();
   }
@@ -121,6 +124,7 @@ export default class WorkspaceBase {
   public static async inviteUsersToChannels(data: {
     authToken: string;
     workspaceChannelInvitationPayload: WorkspaceChannelInvitationPayload;
+    projectId: ObjectID;
   }): Promise<void> {
     for (const channelName of data.workspaceChannelInvitationPayload
       .channelNames) {
@@ -129,6 +133,7 @@ export default class WorkspaceBase {
         channelName: channelName,
         workspaceUserIds:
           data.workspaceChannelInvitationPayload.workspaceUserIds,
+        projectId: data.projectId,
       });
     }
   }
@@ -138,12 +143,14 @@ export default class WorkspaceBase {
     authToken: string;
     channelName: string;
     workspaceUserIds: Array<string>;
+    projectId: ObjectID;
   }): Promise<void> {
     for (const userId of data.workspaceUserIds) {
       await this.inviteUserToChannelByChannelName({
         authToken: data.authToken,
         channelName: data.channelName,
         workspaceUserId: userId,
+        projectId: data.projectId,
       });
     }
   }
@@ -153,6 +160,7 @@ export default class WorkspaceBase {
     authToken: string;
     channelName: string;
     workspaceUserId: string;
+    projectId: ObjectID;
   }): Promise<void> {
     throw new NotImplementedException();
   }
@@ -175,6 +183,7 @@ export default class WorkspaceBase {
   public static async createChannelsIfDoesNotExist(_data: {
     authToken: string;
     channelNames: Array<string>;
+    projectId: ObjectID;
   }): Promise<Array<WorkspaceChannel>> {
     throw new NotImplementedException();
   }
@@ -192,6 +201,7 @@ export default class WorkspaceBase {
     workspaceMessagePayload: WorkspaceMessagePayload;
     authToken: string; // which auth token should we use to send.
     userId: string;
+    projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
     throw new NotImplementedException();
   }
@@ -207,6 +217,7 @@ export default class WorkspaceBase {
   public static async getWorkspaceChannelFromChannelName(_data: {
     authToken: string;
     channelName: string;
+    projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
   }
@@ -215,6 +226,7 @@ export default class WorkspaceBase {
   public static async createChannel(_data: {
     authToken: string;
     channelName: string;
+    projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     throw new NotImplementedException();
   }

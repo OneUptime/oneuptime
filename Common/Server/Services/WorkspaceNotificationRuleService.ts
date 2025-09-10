@@ -214,6 +214,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             ).doesChannelExist({
               authToken: projectAuthToken,
               channelName: channelName,
+              projectId: data.projectId,
             });
 
           if (!channelExists) {
@@ -459,6 +460,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           workspaceType: workspaceType,
         }),
         sendMessageBeforeArchiving: data.sendMessageBeforeArchiving,
+        projectId: data.projectId,
       });
     }
   }
@@ -1032,6 +1034,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                   } as WorkspacePayloadMarkdown,
                 ],
               },
+              projectId: data.projectId,
             });
           } catch (e) {
             logger.error("Error in sending message to channel");
@@ -1059,6 +1062,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               }),
             workspaceUserIds: workspaceUserIds,
           },
+          projectId: data.projectId,
         });
       }
     }
@@ -1187,6 +1191,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                     } as WorkspacePayloadMarkdown,
                   ],
                 },
+                projectId: data.projectId,
               },
             );
           } catch (e) {
@@ -1216,6 +1221,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           channelNames: channelNames,
           workspaceUserIds: workspaceUserIds,
         },
+        projectId: data.projectId,
       });
 
       // Log user invitations
@@ -1373,6 +1379,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         ).createChannel({
           authToken: data.projectOrUserAuthTokenForWorkspace,
           channelName: notificationChannel.channelName,
+          projectId: data.projectId,
         });
 
       const notificationWorkspaceChannel: NotificationRuleWorkspaceChannel = {
