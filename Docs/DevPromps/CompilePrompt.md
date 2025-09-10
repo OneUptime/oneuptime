@@ -1,0 +1,1 @@
+Please run compile in <DIRECTORY> by "npm run compile" in that directory and fix all the issues that are reported by the compiler. Please continue until all the issues are fixed. Please do not add "any" types or disable any rules. Please go ahead without asking for any confirmation.
