@@ -1381,7 +1381,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
     if (projectAuth?.miscData) {
       const misc: MicrosoftTeamsMiscData =
         projectAuth.miscData as MicrosoftTeamsMiscData;
-      const refs = misc.botConversationReferences || {};
+      const refs: { [channelId: string]: any } =
+        misc.botConversationReferences || {};
       for (const channel of workspaceChannelsToPostTo) {
         if (refs[channel.id]) {
           logger.debug(
@@ -1616,7 +1617,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
   public static async getConversationReferenceStatus(data: {
     authToken: string;
   }): Promise<{ channels: Dictionary<boolean>; users: Dictionary<boolean> }> {
-    const status = {
+    const status: {
+      channels: Dictionary<boolean>;
+      users: Dictionary<boolean>;
+    } = {
       channels: {} as Dictionary<boolean>,
       users: {} as Dictionary<boolean>,
     };

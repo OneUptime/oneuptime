@@ -48,28 +48,42 @@ const teamsActionHandlers: Array<{
   handler: TeamsActionHandler;
 }> = [];
 
-export const registerTeamsActionHandler = (
+export const registerTeamsActionHandler: (
   prefix: string,
   handler: TeamsActionHandler,
-): void => {
+) => void = (prefix: string, handler: TeamsActionHandler): void => {
   teamsActionHandlers.push({ prefix, handler });
   logger.debug(`Registered Teams action handler for prefix '${prefix}'`);
 };
 
-const dispatchTeamsAction = async (params: {
+const dispatchTeamsAction: (params: {
+  actionId: string;
+  data: any;
+  context: TeamsActionContext;
+}) => Promise<{ status: number; body: any }> = async (params: {
   actionId: string;
   data: any;
   context: TeamsActionContext;
 }): Promise<{ status: number; body: any }> => {
   const { actionId, data, context } = params;
   // Find first matching handler by longest prefix match
-  const sortedHandlers = [...teamsActionHandlers].sort((a, b) => {
-    return b.prefix.length - a.prefix.length;
-  });
+  const sortedHandlers: Array<{ prefix: string; handler: TeamsActionHandler }> =
+    [...teamsActionHandlers].sort(
+      (
+        a: { prefix: string; handler: TeamsActionHandler },
+        b: { prefix: string; handler: TeamsActionHandler },
+      ) => {
+        return b.prefix.length - a.prefix.length;
+      },
+    );
   for (const entry of sortedHandlers) {
     if (actionId.startsWith(entry.prefix)) {
       try {
-        const result = await entry.handler({ actionId, data, context });
+        const result: {
+          status?: number;
+          message?: string;
+          responseBody?: any;
+        } = await entry.handler({ actionId, data, context });
         return {
           status: result.status || 200,
           body: {
@@ -264,11 +278,13 @@ router.post("/messages", async (req: Request, res: Response) => {
                   skip: 0,
                   props: { isRoot: true },
                 });
-              projectAuthMatches = projectAuthMatches.filter((pa) => {
-                return (
-                  (pa.miscData as MicrosoftTeamsMiscData)?.teamId === teamId
-                );
-              });
+              projectAuthMatches = projectAuthMatches.filter(
+                (pa: WorkspaceProjectAuthToken) => {
+                  return (
+                    (pa.miscData as MicrosoftTeamsMiscData)?.teamId === teamId
+                  );
+                },
+              );
             }
           } catch (matchErr) {
             logger.error(
@@ -277,15 +293,16 @@ router.post("/messages", async (req: Request, res: Response) => {
             logger.error(matchErr);
           }
 
-          const dispatchResult = await dispatchTeamsAction({
-            actionId,
-            data: value?.data || value,
-            context: {
-              turnContext: context,
-              rawActivity: activity,
-              projectAuthTokens: projectAuthMatches,
-            },
-          });
+          const dispatchResult: { status: number; body: any } =
+            await dispatchTeamsAction({
+              actionId,
+              data: value?.data || value,
+              context: {
+                turnContext: context,
+                rawActivity: activity,
+                projectAuthTokens: projectAuthMatches,
+              },
+            });
 
           await context.sendActivity({
             type: "invokeResponse",

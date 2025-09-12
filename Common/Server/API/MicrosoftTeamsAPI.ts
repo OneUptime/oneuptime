@@ -698,9 +698,10 @@ export default class MicrosoftTeamsAPI {
           const { default: MicrosoftTeams } = await import(
             "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams"
           );
-          const status = await MicrosoftTeams.getConversationReferenceStatus({
-            authToken: projectAuth.authToken!,
-          });
+          const status: JSONObject =
+            await MicrosoftTeams.getConversationReferenceStatus({
+              authToken: projectAuth.authToken!,
+            });
           return Response.sendJsonObjectResponse(req, res, status as any);
         } catch (err) {
           logger.error("Error in /teams/conversation-status endpoint:");
