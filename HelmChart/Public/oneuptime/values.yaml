@@ -754,6 +754,10 @@ slackApp:
   clientSecret:
   signingSecret:
 
+# Azure / Microsoft Teams App Configuration
+# IMPORTANT: Use the SECRET VALUE, not the SECRET ID from Azure App Registration
+# The secret value is typically longer and includes more characters
+# Client ID (Application (client) ID) is found in the app registration overview page
 microsoftTeamsApp:
   clientId:
   clientSecret:

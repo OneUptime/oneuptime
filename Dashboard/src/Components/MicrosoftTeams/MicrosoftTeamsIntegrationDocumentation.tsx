@@ -68,7 +68,6 @@ We use two permission models:
 3. Add a description and select expiration
 4. Copy the **Value** (this is your Client Secret)
 5. Go to **Overview** and copy the **Application (client) ID**
-6. Note your **Directory (tenant) ID** from the Overview page
 
 ##### Step 4: Configure OneUptime Environment Variables
 
@@ -87,6 +86,8 @@ microsoftTeamsApp:
   clientSecret: YOUR_CLIENT_SECRET
 \`\`\`
 
+
+
 ##### Step 5: Restart your OneUptime server
 
 You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Microsoft Teams" button on this page.
@@ -95,52 +96,7 @@ You need to restart your OneUptime server to apply these changes. Once you have 
 
 - Make sure your OneUptime instance is accessible from the internet for the OAuth flow to work
 - The redirect URI in your Azure app must exactly match your OneUptime API URL
-- Users will need to have appropriate permissions in Teams to add the integration to channels
-- If application (bot) posting fails, the system automatically falls back to user delegated token (message will appear authored by the installing user)
-- We explicitly request \`openid profile offline_access\` so we can reliably capture tenant id and refresh tokens.
 
-##### Posting as the App / Bot
-
-To have messages appear as the app instead of a user:
-1. Ensure Application permissions in Step 2 are added and granted consent.
-2. Restart OneUptime so the client credentials flow is active.
-3. Trigger a notification; logs should contain:
-  - \`Obtained new Microsoft Teams application (bot) access token.\`
-  - If failure: \`Posting with application token failed (status 403). Falling back to user delegated token.\`
-
-##### Troubleshooting 403 / Forbidden When Using App Token
-| Symptom | Likely Cause | Fix |
-|--------|--------------|-----|
-| 403 Forbidden + message about Teams not provisioned | App-only permissions not fully effective yet or Teams service not enabled for app context | Wait a few minutes; confirm admin consent; verify token roles |
-| 403 Forbidden ChannelMessage.Send | Missing \`ChannelMessage.Send\` (Application) or Resource Specific Consent (RSC) needed | Re-add permission and grant consent or add RSC manifest |
-| App token works for channel list but not send | RSC required for posting in that team | Deploy Teams app manifest with RSC permission |
-
-##### (Optional) Resource Specific Consent (RSC)
-Some tenants and scenarios require RSC for app-only channel posting.
-Add to your Teams app manifest:
-\`\`\`json
-"authorization": {
-  "permissions": {
-    "resourceSpecific": [
-      { "name": "ChannelMessage.Send", "type": "Application" },
-      { "name": "Channel.ReadBasic.All", "type": "Application" }
-    ]
-  }
-}
-\`\`\`
-Then install (or update) the app in the Team and approve permissions as a Team owner.
-
-##### Validate Application Token Roles
-Decode the JWT (second segment) of the app token (base64) and confirm it includes roles:
-\`ChannelMessage.Send\`, \`Channel.ReadBasic.All\`, \`Team.ReadBasic.All\`.
-
-##### Fallback Behavior
-If app posting fails with 401/403, OneUptime retries automatically with the user token so notifications still deliver.
-
-##### Security Considerations
-- Limit who can access the client secret.
-- Rotate the client secret before expiry; update the environment variable and restart.
-- Remove unused Application permissions to reduce blast radius.
 
 We would like to improve this integration, so feedback is more than welcome. Please send us any feedback at hello@oneuptime.com
     `;
