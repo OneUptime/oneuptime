@@ -1273,7 +1273,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const adaptiveCard: JSONObject | null = this.convertBlocksToAdaptiveCard(
         data.blocks,
       );
-      await adapter.continueConversation(
+      await adapter.continueConversationAsync(
+        MicrosoftTeamsAppClientId,
         convRef,
         async (turnContext: TurnContext) => {
           if (adaptiveCard) {
@@ -1478,7 +1479,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
       const adaptiveCard: JSONObject | null =
         this.convertBlocksToAdaptiveCard(blocks);
 
-      await adapter.continueConversation(
+      await adapter.continueConversationAsync(
+        MicrosoftTeamsAppClientId,
         convRef,
         async (turnContext: TurnContext) => {
           if (adaptiveCard) {
