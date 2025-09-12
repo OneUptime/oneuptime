@@ -524,29 +524,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         jsonData: response.jsonData,
       });
 
-      // Check for specific Microsoft Teams provisioning error
-      if (
-        response.statusCode === 403 &&
-        response.jsonData &&
-        typeof response.jsonData === "object" &&
-        "error" in response.jsonData
-      ) {
-        const errorObj: JSONObject = response.jsonData["error"] as JSONObject;
-        const errorMessage: string = errorObj["message"] as string;
-
-        if (
-          errorMessage &&
-          errorMessage.includes(
-            "Microsoft Teams hasn't been provisioned on the tenant",
-          )
-        ) {
-          throw new BadRequestException(
-            "Microsoft Teams is not properly configured for this tenant. " +
-              "Please ensure your organization has a valid Office 365 subscription with Microsoft Teams enabled. " +
-              "Contact your Office 365 administrator to provision Microsoft Teams for your tenant.",
-          );
-        }
-      }
+      throw response;
     }
 
     return response;

@@ -306,6 +306,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             }
           }
         } catch (err) {
+          // If it's already a BadRequestException with specific error message, re-throw it
+          if (err instanceof BadRequestException) {
+            throw err;
+          }
+
+          // For other errors, wrap them in BadDataException
           throw new BadDataException(
             "Cannot post message to channel. " + (err as Error)?.message
           );
@@ -382,6 +388,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             }
           }
         } catch (err) {
+          // If it's already a BadRequestException with specific error message, re-throw it
+          if (err instanceof BadRequestException) {
+            throw err;
+          }
+
+          // For other errors, wrap them in BadDataException
           throw new BadDataException(
             "Cannot post message to channel. " + (err as Error)?.message
           );
