@@ -754,13 +754,14 @@ slackApp:
   clientSecret:
   signingSecret:
 
-# Azure / Microsoft Teams App Configuration
-# IMPORTANT: Use the SECRET VALUE, not the SECRET ID from Azure App Registration
-# The secret value is typically longer and includes more characters
-# Client ID (Application (client) ID) is found in the app registration overview page
-microsoftTeamsApp:
-  clientId:
-  clientSecret:
+# Microsoft Teams Configuration
+#Please refer to the documentation for setting up Microsoft Teams integration.
+# https://oneuptime.com/docs/workspace-connections/microsoft-teams
+microsoftTeams:
+  appClientId:
+  appClientSecret:
+  botAppId: ""        # e.g. 00000000-0000-0000-0000-000000000000
+  botAppPassword: ""  # Bot (client secret) - USE SECRET VALUE
 
 keda:
   enabled: true
