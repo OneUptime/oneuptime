@@ -966,31 +966,78 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   Currently connected to: <strong>{teamsTeamName}</strong>.
                   Change the team to direct notifications elsewhere.
                 </p>
-                <Button
-                  className="md:-ml-3"
-                  title="Change Team"
-                  buttonStyle={SharedButtonStyleType.NORMAL}
-                  icon={IconProp.Settings}
-                  onClick={() => {
-                    if (!isUserAccountConnected) {
-                      return;
-                    }
-                    setShowTeamPicker(true);
-                    if (availableTeams.length === 0 && !isLoadingTeams) {
-                      fetchAvailableTeams().catch((err: Exception) => {
-                        setError(
-                          <div>
-                            Failed to fetch teams:{" "}
-                            {API.getFriendlyErrorMessage(err as Exception)}
-                          </div>,
-                        );
-                      });
-                    }
-                  }}
-                  isLoading={isLoadingTeams}
-                  disabled={isLoadingTeams || !isUserAccountConnected}
-                />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    className="md:-ml-3"
+                    title="Change Team"
+                    buttonStyle={SharedButtonStyleType.NORMAL}
+                    icon={IconProp.Settings}
+                    onClick={() => {
+                      if (!isUserAccountConnected) {
+                        return;
+                      }
+                      setShowTeamPicker(true);
+                      if (availableTeams.length === 0 && !isLoadingTeams) {
+                        fetchAvailableTeams().catch((err: Exception) => {
+                          setError(
+                            <div>
+                              Failed to fetch teams:{" "}
+                              {API.getFriendlyErrorMessage(err as Exception)}
+                            </div>,
+                          );
+                        });
+                      }
+                    }}
+                    isLoading={isLoadingTeams}
+                    disabled={isLoadingTeams || !isUserAccountConnected}
+                  />
+                  <Button
+                    title="Download Teams App"
+                    buttonStyle={SharedButtonStyleType.PRIMARY}
+                    icon={IconProp.Download}
+                    onClick={() => {
+                      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+                      if (projectId) {
+                        const downloadUrl: string = `${APP_API_URL}/teams/manifest-package/${projectId.toString()}`;
+                        // Create a temporary link to trigger download
+                        const link: HTMLAnchorElement = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = `oneuptime-teams-app-${teamsTeamName?.toLowerCase().replace(/\s+/g, '-') || 'app'}.zip`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }
+                    }}
+                  />
+                </div>
               </div>
+              
+              {/* Instructions Card */}
+              <div className="border rounded-md p-4 bg-blue-50">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">
+                  📱 Upload to Microsoft Teams
+                </h4>
+                <div className="text-xs text-blue-700 space-y-2">
+                  <p>After downloading the Teams app package above, follow these steps to install it:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-2">
+                    <li>Open <strong>Microsoft Teams</strong> in your browser or desktop app</li>
+                    <li>Go to <strong>Apps</strong> in the left sidebar</li>
+                    <li>Click <strong>"Manage your apps"</strong> at the bottom left</li>
+                    <li>Click <strong>"Upload an app"</strong> → <strong>"Upload a custom app"</strong></li>
+                    <li>Select the downloaded <code>.zip</code> file</li>
+                    <li>Click <strong>"Add"</strong> to install the OneUptime app to your team</li>
+                  </ol>
+                  <div className="mt-3 p-2 bg-blue-100 rounded border-l-4 border-blue-400">
+                    <p className="font-medium">✅ What happens next:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-2 mt-1">
+                      <li>The OneUptime bot will appear in your team's Apps section</li>
+                      <li>You can add it to channels to receive notifications</li>
+                      <li>Configure which alerts, incidents, and monitors send notifications in OneUptime</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
               <div className="border rounded-md p-4 bg-gray-50">
                 <h4 className="text-sm font-medium text-gray-800 mb-2">
                   User Session
