@@ -51,7 +51,6 @@ We use two permission models:
   - \`ChannelMember.Read.All\` (read the members of all channels)
   - \`ChannelMember.ReadWrite.All\` (add and remove members from all channels)
   - \`ChannelMessage.Read.All\` (read all channel messages)
-  - \`ChannelMessage.UpdatePolicyViolation.All\` (flag channel messages for violating policy)
   - \`ChatMessage.Read.All\` (read all chat messages)
   - \`Team.ReadBasic.All\` (get a list of all teams)
   - \`TeamMember.Read.All\` (read the members of all teams)

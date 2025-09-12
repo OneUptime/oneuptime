@@ -63,7 +63,6 @@ export default class MicrosoftTeams extends WorkspaceBase {
   // - ChannelMember.Read.All: Read channel membership
   // - ChannelMember.ReadWrite.All: Manage channel membership
   // - ChannelMessage.Read.All: Read all channel messages
-  // - ChannelMessage.UpdatePolicyViolation.All: Flag policy violations
   // - ChatMessage.Read.All: Read all chat messages
   // - Team.ReadBasic.All: Read all team information
   // - TeamMember.Read.All: Read team membership
