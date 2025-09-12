@@ -915,19 +915,7 @@ export default class MicrosoftTeamsAPI {
           if (fs.existsSync(colorIconPath)) {
             archive.file(colorIconPath, { name: "icon-color.png" });
           } else {
-            logger.warn(`Pre-resized color icon not found at ${colorIconPath}`);
-            // Fallback to original OneUptime PNG if pre-resized version missing
-            const fallbackIconPath: string = path.join(
-              __dirname,
-              "../../UI/Images/logos/OneUptimePNG/1.png"
-            );
-            if (fs.existsSync(fallbackIconPath)) {
-              archive.file(fallbackIconPath, { name: "icon-color.png" });
-            } else {
-              // Create a simple text placeholder if no icon file found
-              const placeholderIcon: string = "Color icon placeholder - 192x192px required";
-              archive.append(placeholderIcon, { name: "icon-color.png" });
-            }
+            throw new BadDataException(`Pre-resized color icon not found at ${colorIconPath}`);
           }
 
           // Add pre-resized outline icon (32x32)
@@ -939,19 +927,7 @@ export default class MicrosoftTeamsAPI {
           if (fs.existsSync(outlineIconPath)) {
             archive.file(outlineIconPath, { name: "icon-outline.png" });
           } else {
-            logger.warn(`Pre-resized outline icon not found at ${outlineIconPath}`);
-            // Fallback to original OneUptime PNG if pre-resized version missing
-            const fallbackIconPath: string = path.join(
-              __dirname,
-              "../../UI/Images/logos/OneUptimePNG/1.png"
-            );
-            if (fs.existsSync(fallbackIconPath)) {
-              archive.file(fallbackIconPath, { name: "icon-outline.png" });
-            } else {
-              // Create a simple text placeholder if no icon file found
-              const placeholderOutline: string = "Outline icon placeholder - 32x32px required";
-              archive.append(placeholderOutline, { name: "icon-outline.png" });
-            }
+            throw new BadDataException(`Pre-resized outline icon not found at ${outlineIconPath}`);
           }
 
           // Finalize the archive
