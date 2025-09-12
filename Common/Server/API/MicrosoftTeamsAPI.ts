@@ -909,7 +909,7 @@ export default class MicrosoftTeamsAPI {
           // Add pre-resized color icon (192x192)
           const colorIconPath: string = path.join(
             __dirname,
-            "../../../../Home/Static/img/Teams/icon-color-192x192.png"
+            "../Images/Teams/icon-color-192x192.png"
           );
           
           if (fs.existsSync(colorIconPath)) {
@@ -919,7 +919,7 @@ export default class MicrosoftTeamsAPI {
             // Fallback to original OneUptime PNG if pre-resized version missing
             const fallbackIconPath: string = path.join(
               __dirname,
-              "../../../../Home/Static/img/OneUptimePNG/1.png"
+              "../../UI/Images/logos/OneUptimePNG/1.png"
             );
             if (fs.existsSync(fallbackIconPath)) {
               archive.file(fallbackIconPath, { name: "icon-color.png" });
@@ -933,7 +933,7 @@ export default class MicrosoftTeamsAPI {
           // Add pre-resized outline icon (32x32)
           const outlineIconPath: string = path.join(
             __dirname,
-            "../../../../Home/Static/img/Teams/icon-outline-32x32.png"
+            "../Images/Teams/icon-outline-32x32.png"
           );
           
           if (fs.existsSync(outlineIconPath)) {
@@ -943,7 +943,7 @@ export default class MicrosoftTeamsAPI {
             // Fallback to original OneUptime PNG if pre-resized version missing
             const fallbackIconPath: string = path.join(
               __dirname,
-              "../../../../Home/Static/img/OneUptimePNG/1.png"
+              "../../UI/Images/logos/OneUptimePNG/1.png"
             );
             if (fs.existsSync(fallbackIconPath)) {
               archive.file(fallbackIconPath, { name: "icon-outline.png" });
