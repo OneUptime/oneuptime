@@ -16,6 +16,7 @@ import {
   DashboardClientUrl,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
+  HomeHostname,
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
@@ -23,6 +24,12 @@ import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenSer
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
+import fs from "fs";
+import path from "path";
+import archiver from "archiver";
+import crypto from "crypto";
+import ProjectService from "../Services/ProjectService";
+import Project from "../../Models/DatabaseModels/Project";
 
 export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
@@ -713,6 +720,253 @@ export default class MicrosoftTeamsAPI {
               "Failed to fetch conversation reference status",
             ),
           );
+        }
+      },
+    );
+
+    // Endpoint to generate and download Microsoft Teams app manifest package
+    router.get(
+      "/teams/manifest-package/:projectId",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const projectIdStr: string = req.params["projectId"] as string;
+
+          if (!projectIdStr) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project ID is required"),
+            );
+          }
+
+          // Validate project exists
+          const project: Project | null = await ProjectService.findOneById({
+            id: new ObjectID(projectIdStr),
+            select: {
+              _id: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!project || !project.name) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project not found"),
+            );
+          }
+
+          // Generate unique App ID for this project if not exists
+          let appId: string = MicrosoftTeamsAppClientId || "";
+          
+          // Check if project already has Teams integration to get existing App ID
+          const existingAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.findOneBy({
+              query: {
+                projectId: new ObjectID(projectIdStr),
+                workspaceType: WorkspaceType.MicrosoftTeams,
+              },
+              select: {
+                _id: true,
+                miscData: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          // Use existing app ID if available, otherwise generate a new GUID
+          if (existingAuth?.miscData && (existingAuth.miscData as any)?.appId) {
+            appId = (existingAuth.miscData as any).appId as string;
+          } else {
+            // Generate a new GUID for the app
+            appId = crypto.randomUUID();
+            
+            // Store the app ID in miscData for future use
+            if (existingAuth) {
+              const currentMiscData: JSONObject = (existingAuth.miscData as JSONObject) || {};
+              await WorkspaceProjectAuthTokenService.updateOneById({
+                id: existingAuth.id!,
+                data: {
+                  miscData: {
+                    ...currentMiscData,
+                    appId: appId,
+                  } as any,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+            }
+          }
+
+          // Create app manifest JSON
+          const manifest: JSONObject = {
+            $schema: "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
+            manifestVersion: "1.23",
+            version: "1.0.0",
+            id: appId,
+            developer: {
+              name: "OneUptime",
+              websiteUrl: `https://${HomeHostname || "oneuptime.com"}`,
+              privacyUrl: `https://${HomeHostname || "oneuptime.com"}/legal/privacy-policy`,
+              termsOfUseUrl: `https://${HomeHostname || "oneuptime.com"}/legal/terms-and-conditions`,
+            },
+            name: {
+              short: project.name.slice(0, 30),
+              full: `${project.name} - OneUptime Integration`.slice(0, 100),
+            },
+            description: {
+              short: `Monitor and manage ${project.name} infrastructure with OneUptime`.slice(0, 80),
+              full: `Get real-time monitoring, incident management, and status page updates for ${project.name}. Receive notifications about outages, performance issues, and system health directly in Microsoft Teams.`.slice(0, 4000),
+            },
+            icons: {
+              color: "icon-color.png",
+              outline: "icon-outline.png",
+            },
+            accentColor: "#3B82F6",
+            bots: [
+              {
+                botId: appId,
+                scopes: ["personal", "team", "groupChat"],
+                commandLists: [
+                  {
+                    scopes: ["personal"],
+                    commands: [
+                      {
+                        title: "Get Status",
+                        description: "Get current system status and health metrics",
+                      },
+                      {
+                        title: "List Incidents",
+                        description: "Show active and recent incidents",
+                      },
+                      {
+                        title: "Subscribe",
+                        description: "Subscribe to incident notifications",
+                      },
+                    ],
+                  },
+                  {
+                    scopes: ["team", "groupChat"],
+                    commands: [
+                      {
+                        title: "Status Report",
+                        description: "Get system status report for the team",
+                      },
+                      {
+                        title: "Recent Incidents",
+                        description: "Show recent incidents and their status",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+            permissions: ["identity"],
+            validDomains: [
+              HomeHostname || "oneuptime.com",
+              AppApiClientUrl.hostname,
+              DashboardClientUrl.hostname,
+            ].filter(Boolean),
+            webApplicationInfo: {
+              id: appId,
+              resource: `https://${AppApiClientUrl.hostname}`,
+            },
+          };
+
+          // Set response headers for zip download
+          const fileName: string = `oneuptime-teams-app-${project.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}.zip`;
+          res.setHeader("Content-Type", "application/zip");
+          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+          // Create zip archive
+          const archive: archiver.Archiver = archiver("zip", {
+            zlib: { level: 9 }, // Sets the compression level
+          });
+
+          // Handle archive errors
+          archive.on("error", (err: Error) => {
+            logger.error(err);
+            if (!res.headersSent) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException("Failed to create manifest package"),
+              );
+            }
+          });
+
+          // Pipe archive data to response
+          archive.pipe(res);
+
+          // Add manifest.json to zip
+          archive.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
+
+          // Add pre-resized color icon (192x192)
+          const colorIconPath: string = path.join(
+            __dirname,
+            "../../../../Home/Static/img/Teams/icon-color-192x192.png"
+          );
+          
+          if (fs.existsSync(colorIconPath)) {
+            archive.file(colorIconPath, { name: "icon-color.png" });
+          } else {
+            logger.warn(`Pre-resized color icon not found at ${colorIconPath}`);
+            // Fallback to original OneUptime PNG if pre-resized version missing
+            const fallbackIconPath: string = path.join(
+              __dirname,
+              "../../../../Home/Static/img/OneUptimePNG/1.png"
+            );
+            if (fs.existsSync(fallbackIconPath)) {
+              archive.file(fallbackIconPath, { name: "icon-color.png" });
+            } else {
+              // Create a simple text placeholder if no icon file found
+              const placeholderIcon: string = "Color icon placeholder - 192x192px required";
+              archive.append(placeholderIcon, { name: "icon-color.png" });
+            }
+          }
+
+          // Add pre-resized outline icon (32x32)
+          const outlineIconPath: string = path.join(
+            __dirname,
+            "../../../../Home/Static/img/Teams/icon-outline-32x32.png"
+          );
+          
+          if (fs.existsSync(outlineIconPath)) {
+            archive.file(outlineIconPath, { name: "icon-outline.png" });
+          } else {
+            logger.warn(`Pre-resized outline icon not found at ${outlineIconPath}`);
+            // Fallback to original OneUptime PNG if pre-resized version missing
+            const fallbackIconPath: string = path.join(
+              __dirname,
+              "../../../../Home/Static/img/OneUptimePNG/1.png"
+            );
+            if (fs.existsSync(fallbackIconPath)) {
+              archive.file(fallbackIconPath, { name: "icon-outline.png" });
+            } else {
+              // Create a simple text placeholder if no icon file found
+              const placeholderOutline: string = "Outline icon placeholder - 32x32px required";
+              archive.append(placeholderOutline, { name: "icon-outline.png" });
+            }
+          }
+
+          // Finalize the archive
+          await archive.finalize();
+
+        } catch (error) {
+          logger.error(error);
+          
+          if (!res.headersSent) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Failed to generate manifest package"),
+            );
+          }
         }
       },
     );
