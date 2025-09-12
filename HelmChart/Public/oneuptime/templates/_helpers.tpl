@@ -23,7 +23,7 @@ Usage:
 - name: SLACK_APP_CLIENT_ID
   value: {{ $.Values.slackApp.clientId | quote }}
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID
-  value: {{ $.Values.microsoftTeamsApp.clientId | quote }}
+  value: {{ $.Values.microsoftTeams.appClientId | quote }}
 - name: HOST
   value: {{ $.Values.host }}
 - name: STATUS_PAGE_CNAME_RECORD
@@ -174,7 +174,12 @@ Usage:
   value: {{ $.Values.slackApp.signingSecret }}
 
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
-  value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+  value: {{ $.Values.microsoftTeams.appClientSecret }}
+
+- name: MICROSOFT_TEAMS_BOT_APP_ID
+  value: {{ $.Values.microsoftTeams.botAppId | quote }}
+- name: MICROSOFT_TEAMS_BOT_APP_PASSWORD
+  value: {{ $.Values.microsoftTeams.botAppPassword | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
