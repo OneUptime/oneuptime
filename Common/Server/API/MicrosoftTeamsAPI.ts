@@ -62,10 +62,9 @@ export default class MicrosoftTeamsAPI {
           projectIdStr = stateData["projectId"] as string;
           userIdStr = stateData["userId"] as string;
 
-          if (!stateData?.['projectId']) {
+          if (!stateData?.["projectId"]) {
             throw new BadDataException("Invalid state data");
           }
-
         } catch {
           // Error is intentionally ignored
           return Response.sendErrorResponse(
@@ -650,31 +649,36 @@ export default class MicrosoftTeamsAPI {
       "/teams/conversation-status",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const authTokenId: string | undefined = req.query['authTokenId']?.toString();
-          const projectIdStr: string | undefined = req.query['projectId']?.toString();
+          const authTokenId: string | undefined =
+            req.query["authTokenId"]?.toString();
+          const projectIdStr: string | undefined =
+            req.query["projectId"]?.toString();
           if (!projectIdStr) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException('projectId is required'),
+              new BadDataException("projectId is required"),
             );
           }
 
-            // Validate project auth context (lightweight security gate)
-          const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.findOneBy({
-            query: {
-              projectId: new ObjectID(projectIdStr),
-              workspaceType: WorkspaceType.MicrosoftTeams,
-            },
-            select: { _id: true, authToken: true, miscData: true },
-            props: { isRoot: true },
-          });
+          // Validate project auth context (lightweight security gate)
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.findOneBy({
+              query: {
+                projectId: new ObjectID(projectIdStr),
+                workspaceType: WorkspaceType.MicrosoftTeams,
+              },
+              select: { _id: true, authToken: true, miscData: true },
+              props: { isRoot: true },
+            });
 
           if (!projectAuth) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException('Microsoft Teams integration not installed for this project'),
+              new BadDataException(
+                "Microsoft Teams integration not installed for this project",
+              ),
             );
           }
 
@@ -683,22 +687,30 @@ export default class MicrosoftTeamsAPI {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadRequestException('authTokenId does not match project integration'),
+              new BadRequestException(
+                "authTokenId does not match project integration",
+              ),
             );
           }
 
           // Reuse utility method
           // Dynamically import to avoid circular dependencies if any
-          const { default: MicrosoftTeams } = await import('../Utils/Workspace/MicrosoftTeams/MicrosoftTeams');
-          const status = await MicrosoftTeams.getConversationReferenceStatus({ authToken: projectAuth.authToken! });
+          const { default: MicrosoftTeams } = await import(
+            "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams"
+          );
+          const status = await MicrosoftTeams.getConversationReferenceStatus({
+            authToken: projectAuth.authToken!,
+          });
           return Response.sendJsonObjectResponse(req, res, status as any);
         } catch (err) {
-          logger.error('Error in /teams/conversation-status endpoint:');
+          logger.error("Error in /teams/conversation-status endpoint:");
           logger.error(err);
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException('Failed to fetch conversation reference status'),
+            new BadDataException(
+              "Failed to fetch conversation reference status",
+            ),
           );
         }
       },

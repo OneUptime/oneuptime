@@ -58,7 +58,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       } as any);
       return this.cloudAdapter;
     } catch (err) {
-      logger.error("Failed to initialize CloudAdapter for proactive Teams messaging:");
+      logger.error(
+        "Failed to initialize CloudAdapter for proactive Teams messaging:",
+      );
       logger.error(err);
       throw new BadRequestException("Failed to initialize Teams bot adapter.");
     }
@@ -90,10 +92,10 @@ export default class MicrosoftTeams extends WorkspaceBase {
   // - Teamwork.Migrate.All: Create messages with any identity/timestamp (for Import API, not currently used)
   // - Teamwork.Read.All: Read organizational teamwork settings
   //
-// IMPORTANT: This integration uses APPLICATION TOKENS (not delegated tokens) 
-// for sending messages via the Microsoft Teams Graph API. This provides better 
-// reliability and allows messages to be sent with the bot's identity.
-// The regular /messages endpoint is used for sending messages.  // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
+  // IMPORTANT: This integration uses APPLICATION TOKENS (not delegated tokens)
+  // for sending messages via the Microsoft Teams Graph API. This provides better
+  // reliability and allows messages to be sent with the bot's identity.
+  // The regular /messages endpoint is used for sending messages.  // Retrieve or mint an application (client credentials) token and persist it per project in miscData.
   private static async getOrCreateApplicationAccessToken(params: {
     projectAuth: WorkspaceProjectAuthToken | null;
   }): Promise<string | null> {
@@ -711,13 +713,16 @@ export default class MicrosoftTeams extends WorkspaceBase {
           return cached;
         }
       } catch (cacheErr) {
-        logger.error("Error reading Teams channel cache (continuing to Graph list):");
+        logger.error(
+          "Error reading Teams channel cache (continuing to Graph list):",
+        );
         logger.error(cacheErr);
       }
 
-      const allChannels: Dictionary<WorkspaceChannel> = await this.getAllWorkspaceChannels({
-        authToken: data.authToken,
-      });
+      const allChannels: Dictionary<WorkspaceChannel> =
+        await this.getAllWorkspaceChannels({
+          authToken: data.authToken,
+        });
       const channel: WorkspaceChannel | undefined = allChannels[normalized];
       if (!channel) {
         throw new BadRequestException(`Channel '${normalized}' not found`);
@@ -888,7 +893,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Existing Microsoft Teams channels:");
     logger.debug(existingWorkspaceChannels);
 
-  for (let channelName of data.channelNames) {
+    for (let channelName of data.channelNames) {
       // if channel name starts with #, remove it
       if (channelName.startsWith("#")) {
         channelName = channelName.substring(1);
@@ -931,10 +936,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
     channelName: string;
   }): Promise<WorkspaceChannel | null> {
     try {
-      const projectAuth: any = await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      });
+      const projectAuth: any =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: data.projectId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
       if (!projectAuth || !projectAuth.miscData) {
         return null;
       }
@@ -943,7 +949,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       if (!channelCache || !channelCache[data.channelName]) {
         return null;
       }
-      const cachedChannelData: WorkspaceChannel = channelCache[data.channelName] as WorkspaceChannel;
+      const cachedChannelData: WorkspaceChannel = channelCache[
+        data.channelName
+      ] as WorkspaceChannel;
       return {
         id: cachedChannelData.id,
         name: cachedChannelData.name,
@@ -963,10 +971,11 @@ export default class MicrosoftTeams extends WorkspaceBase {
     channel: WorkspaceChannel;
   }): Promise<void> {
     try {
-      const projectAuth: any = await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      });
+      const projectAuth: any =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: data.projectId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
       if (!projectAuth) {
         return; // nothing to update
       }
@@ -1197,7 +1206,8 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       // fetch project auth to determine projectId for cache / lookup parity
-      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       const projectAuthForApp: WorkspaceProjectAuthToken | null =
         projectAuth ||
         (await WorkspaceProjectAuthTokenService.getByAuthToken({
@@ -1243,36 +1253,51 @@ export default class MicrosoftTeams extends WorkspaceBase {
         );
       }
       const adapter: CloudAdapter = this.getOrCreateCloudAdapter();
-      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       let convRef: ConversationReference | undefined;
       if (projectAuth?.miscData) {
-        const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        const misc: MicrosoftTeamsMiscData =
+          projectAuth.miscData as MicrosoftTeamsMiscData;
         convRef = misc.botConversationReferences?.[data.workspaceChannel.id];
       }
       if (!convRef) {
-        logger.warn(`Attempt to send to Teams channel id=${data.workspaceChannel.id} name=${data.workspaceChannel.name} without conversation reference. Instruct user to add the OneUptime bot to that channel.`);
+        logger.warn(
+          `Attempt to send to Teams channel id=${data.workspaceChannel.id} name=${data.workspaceChannel.name} without conversation reference. Instruct user to add the OneUptime bot to that channel.`,
+        );
         throw new BadRequestException(
           "Channel not initialized for bot notifications. Add the OneUptime bot to this channel to capture a conversation reference.",
         );
       }
       const html: string = this.convertBlocksToTeamsMessage(data.blocks);
-      const adaptiveCard: JSONObject | null = this.convertBlocksToAdaptiveCard(data.blocks);
-  await adapter.continueConversation(convRef, async (turnContext: TurnContext) => {
-        if (adaptiveCard) {
-          await turnContext.sendActivity({
-            type: 'message',
-            attachments: [
-              {
-                contentType: 'application/vnd.microsoft.card.adaptive',
-                content: adaptiveCard,
-              },
-            ],
-          });
-        } else {
-          await turnContext.sendActivity({ type: 'message', channelData: { html } });
-        }
-      });
-      return { channel: data.workspaceChannel, threadId: data.workspaceChannel.id };
+      const adaptiveCard: JSONObject | null = this.convertBlocksToAdaptiveCard(
+        data.blocks,
+      );
+      await adapter.continueConversation(
+        convRef,
+        async (turnContext: TurnContext) => {
+          if (adaptiveCard) {
+            await turnContext.sendActivity({
+              type: "message",
+              attachments: [
+                {
+                  contentType: "application/vnd.microsoft.card.adaptive",
+                  content: adaptiveCard,
+                },
+              ],
+            });
+          } else {
+            await turnContext.sendActivity({
+              type: "message",
+              channelData: { html },
+            });
+          }
+        },
+      );
+      return {
+        channel: data.workspaceChannel,
+        threadId: data.workspaceChannel.id,
+      };
     } catch (error) {
       logger.error("Error sending message to Microsoft Teams channel:");
       logger.error(error);
@@ -1289,11 +1314,14 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
     // Refresh project auth ONLY to inspect conversation references (no Graph send path anymore)
-    const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await this.getRefreshedProjectAuthToken(data.authToken);
 
-    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload({
-      messageBlocks: data.workspaceMessagePayload.messageBlocks,
-    });
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
+      {
+        messageBlocks: data.workspaceMessagePayload.messageBlocks,
+      },
+    );
 
     logger.debug("Blocks generated from workspace message payload:");
     logger.debug(blocks);
@@ -1351,17 +1379,24 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     // Pre-flight conversation reference visibility
     if (projectAuth?.miscData) {
-      const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+      const misc: MicrosoftTeamsMiscData =
+        projectAuth.miscData as MicrosoftTeamsMiscData;
       const refs = misc.botConversationReferences || {};
       for (const channel of workspaceChannelsToPostTo) {
         if (refs[channel.id]) {
-          logger.debug(`Conversation reference present for Teams channel id=${channel.id} name=${channel.name}`);
+          logger.debug(
+            `Conversation reference present for Teams channel id=${channel.id} name=${channel.name}`,
+          );
         } else {
-          logger.warn(`No conversation reference for Teams channel id=${channel.id} name=${channel.name}. Bot must be added to the channel before sending will succeed.`);
+          logger.warn(
+            `No conversation reference for Teams channel id=${channel.id} name=${channel.name}. Bot must be added to the channel before sending will succeed.`,
+          );
         }
       }
     } else {
-      logger.warn("No miscData or botConversationReferences found on project auth token; all channel sends may fail if bot not previously added.");
+      logger.warn(
+        "No miscData or botConversationReferences found on project auth token; all channel sends may fail if bot not previously added.",
+      );
     }
 
     const workspaceMessageResponse: WorkspaceSendMessageResponse = {
@@ -1405,48 +1440,68 @@ export default class MicrosoftTeams extends WorkspaceBase {
 
     try {
       if (!(MicrosoftTeamsAppClientId && MicrosoftTeamsAppClientSecret)) {
-        throw new BadRequestException("Teams bot credentials not configured (MICROSOFT_TEAMS_APP_CLIENT_ID / MICROSOFT_TEAMS_APP_CLIENT_SECRET). Cannot send direct message.");
+        throw new BadRequestException(
+          "Teams bot credentials not configured (MICROSOFT_TEAMS_APP_CLIENT_ID / MICROSOFT_TEAMS_APP_CLIENT_SECRET). Cannot send direct message.",
+        );
       }
 
-      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       if (!projectAuth?.miscData) {
-        logger.warn("No project miscData found while attempting Teams direct message.");
+        logger.warn(
+          "No project miscData found while attempting Teams direct message.",
+        );
       }
       let convRef: ConversationReference | undefined;
       if (projectAuth?.miscData) {
-        const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        const misc: MicrosoftTeamsMiscData =
+          projectAuth.miscData as MicrosoftTeamsMiscData;
         convRef = misc.botUserConversationReferences?.[data.workspaceUserId];
       }
       if (!convRef) {
-        logger.warn(`Missing personal conversation reference for userId=${data.workspaceUserId}. User must have previously interacted with the OneUptime bot.`);
-        throw new BadRequestException("Direct message unavailable. The user has not initiated a personal chat with the OneUptime bot yet.");
+        logger.warn(
+          `Missing personal conversation reference for userId=${data.workspaceUserId}. User must have previously interacted with the OneUptime bot.`,
+        );
+        throw new BadRequestException(
+          "Direct message unavailable. The user has not initiated a personal chat with the OneUptime bot yet.",
+        );
       }
 
       const adapter: CloudAdapter = this.getOrCreateCloudAdapter();
 
-      const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload({
-        messageBlocks: data.messageBlocks,
-      });
+      const blocks: Array<JSONObject> =
+        this.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: data.messageBlocks,
+        });
       const html: string = this.convertBlocksToTeamsMessage(blocks);
-      const adaptiveCard: JSONObject | null = this.convertBlocksToAdaptiveCard(blocks);
+      const adaptiveCard: JSONObject | null =
+        this.convertBlocksToAdaptiveCard(blocks);
 
-  await adapter.continueConversation(convRef, async (turnContext: TurnContext) => {
-        if (adaptiveCard) {
-          await turnContext.sendActivity({
-            type: 'message',
-            attachments: [
-              {
-                contentType: 'application/vnd.microsoft.card.adaptive',
-                content: adaptiveCard,
-              },
-            ],
-          });
-        } else {
-          await turnContext.sendActivity({ type: 'message', channelData: { html } });
-        }
-      });
+      await adapter.continueConversation(
+        convRef,
+        async (turnContext: TurnContext) => {
+          if (adaptiveCard) {
+            await turnContext.sendActivity({
+              type: "message",
+              attachments: [
+                {
+                  contentType: "application/vnd.microsoft.card.adaptive",
+                  content: adaptiveCard,
+                },
+              ],
+            });
+          } else {
+            await turnContext.sendActivity({
+              type: "message",
+              channelData: { html },
+            });
+          }
+        },
+      );
 
-      logger.debug("Direct message sent successfully to Microsoft Teams user via bot conversation reference.");
+      logger.debug(
+        "Direct message sent successfully to Microsoft Teams user via bot conversation reference.",
+      );
     } catch (error) {
       logger.error("Error sending direct message to Microsoft Teams user:");
       logger.error(error);
@@ -1455,72 +1510,85 @@ export default class MicrosoftTeams extends WorkspaceBase {
   }
 
   // Basic Adaptive Card builder from generic workspace blocks (subset)
-  private static convertBlocksToAdaptiveCard(blocks: Array<JSONObject>): JSONObject | null {
+  private static convertBlocksToAdaptiveCard(
+    blocks: Array<JSONObject>,
+  ): JSONObject | null {
     try {
       const body: Array<JSONObject> = [];
       const actions: Array<JSONObject> = [];
       for (const block of blocks) {
-        const type: string = block['type'] as string;
+        const type: string = block["type"] as string;
         switch (type) {
-          case 'header':
+          case "header":
             body.push({
-              type: 'TextBlock',
-              text: (block['text'] as string) || '',
-              weight: 'Bolder',
-              size: 'Medium',
+              type: "TextBlock",
+              text: (block["text"] as string) || "",
+              weight: "Bolder",
+              size: "Medium",
               wrap: true,
             });
             break;
-          case 'section':
-            if (block['text']) {
+          case "section":
+            if (block["text"]) {
               body.push({
-                type: 'TextBlock',
-                text: block['text'] as string,
+                type: "TextBlock",
+                text: block["text"] as string,
                 wrap: true,
               });
             }
             break;
-          case 'divider':
-            body.push({ type: 'TextBlock', text: '---', spacing: 'Small' });
+          case "divider":
+            body.push({ type: "TextBlock", text: "---", spacing: "Small" });
             break;
-          case 'actions': {
-            const elems: Array<JSONObject> = (block['elements'] as Array<JSONObject>) || [];
+          case "actions": {
+            const elems: Array<JSONObject> =
+              (block["elements"] as Array<JSONObject>) || [];
             for (const el of elems) {
-              if (el['url']) {
+              if (el["url"]) {
                 actions.push({
-                  type: 'Action.OpenUrl',
-                  title: ((el['text'] as string) || (el['name'] as string) || 'Open').substring(0, 40),
-                  url: el['url'],
+                  type: "Action.OpenUrl",
+                  title: (
+                    (el["text"] as string) ||
+                    (el["name"] as string) ||
+                    "Open"
+                  ).substring(0, 40),
+                  url: el["url"],
                 });
-              } else if (el['action_id'] || el['value']) {
+              } else if (el["action_id"] || el["value"]) {
                 // Potential future submit action (no back-end handler wired yet)
                 actions.push({
-                  type: 'Action.Submit',
-                  title: ((el['text'] as string) || 'Submit').substring(0, 40),
+                  type: "Action.Submit",
+                  title: ((el["text"] as string) || "Submit").substring(0, 40),
                   data: {
-                    actionId: el['action_id'] || el['value'],
+                    actionId: el["action_id"] || el["value"],
                   },
                 });
               }
             }
             break;
           }
-          case 'image': {
-            const imageUrl: string | undefined = (block['image_url'] as string) || (block['url'] as string) || (block['src'] as string);
+          case "image": {
+            const imageUrl: string | undefined =
+              (block["image_url"] as string) ||
+              (block["url"] as string) ||
+              (block["src"] as string);
             if (imageUrl) {
               body.push({
-                type: 'Image',
+                type: "Image",
                 url: imageUrl,
-                altText: (block['alt_text'] as string) || (block['text'] as string) || 'Image',
+                altText:
+                  (block["alt_text"] as string) ||
+                  (block["text"] as string) ||
+                  "Image",
               });
             }
             break;
           }
           default:
-            if (block['text']) {
+            if (block["text"]) {
               body.push({
-                type: 'TextBlock',
-                text: block['text'] as string,
+                type: "TextBlock",
+                text: block["text"] as string,
                 wrap: true,
               });
             }
@@ -1531,32 +1599,41 @@ export default class MicrosoftTeams extends WorkspaceBase {
         return null;
       }
       return {
-        $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
-        type: 'AdaptiveCard',
-        version: '1.4',
+        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+        type: "AdaptiveCard",
+        version: "1.4",
         body: body,
         actions: actions.length ? actions : undefined,
       } as JSONObject;
     } catch (err) {
-      logger.error('Error building adaptive card, falling back to HTML only:');
+      logger.error("Error building adaptive card, falling back to HTML only:");
       logger.error(err);
       return null;
     }
   }
 
   // Conversation reference status for UI indicators
-  public static async getConversationReferenceStatus(data: { authToken: string }): Promise<{ channels: Dictionary<boolean>; users: Dictionary<boolean> }> {
-    const status = { channels: {} as Dictionary<boolean>, users: {} as Dictionary<boolean> };
+  public static async getConversationReferenceStatus(data: {
+    authToken: string;
+  }): Promise<{ channels: Dictionary<boolean>; users: Dictionary<boolean> }> {
+    const status = {
+      channels: {} as Dictionary<boolean>,
+      users: {} as Dictionary<boolean>,
+    };
     try {
-      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await this.getRefreshedProjectAuthToken(data.authToken);
       if (!projectAuth?.miscData) {
         return status;
       }
-      const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
-      status.channels = (misc.botConversationReferences || {}) as Dictionary<boolean>;
-      status.users = (misc.botUserConversationReferences || {}) as Dictionary<boolean>;
+      const misc: MicrosoftTeamsMiscData =
+        projectAuth.miscData as MicrosoftTeamsMiscData;
+      status.channels = (misc.botConversationReferences ||
+        {}) as Dictionary<boolean>;
+      status.users = (misc.botUserConversationReferences ||
+        {}) as Dictionary<boolean>;
     } catch (err) {
-      logger.error('Error fetching conversation reference status:');
+      logger.error("Error fetching conversation reference status:");
       logger.error(err);
     }
     return status;

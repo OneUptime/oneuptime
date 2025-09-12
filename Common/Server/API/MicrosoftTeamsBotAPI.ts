@@ -5,7 +5,9 @@ import {
   MicrosoftTeamsAppClientSecret,
 } from "../EnvironmentConfig";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceProjectAuthToken, { MicrosoftTeamsMiscData } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsMiscData,
+} from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
 import BadRequestException from "../../Types/Exception/BadRequestException";
@@ -46,7 +48,10 @@ const teamsActionHandlers: Array<{
   handler: TeamsActionHandler;
 }> = [];
 
-export const registerTeamsActionHandler = (prefix: string, handler: TeamsActionHandler): void => {
+export const registerTeamsActionHandler = (
+  prefix: string,
+  handler: TeamsActionHandler,
+): void => {
   teamsActionHandlers.push({ prefix, handler });
   logger.debug(`Registered Teams action handler for prefix '${prefix}'`);
 };
@@ -58,7 +63,9 @@ const dispatchTeamsAction = async (params: {
 }): Promise<{ status: number; body: any }> => {
   const { actionId, data, context } = params;
   // Find first matching handler by longest prefix match
-  const sortedHandlers = [...teamsActionHandlers].sort((a, b) => b.prefix.length - a.prefix.length);
+  const sortedHandlers = [...teamsActionHandlers].sort((a, b) => {
+    return b.prefix.length - a.prefix.length;
+  });
   for (const entry of sortedHandlers) {
     if (actionId.startsWith(entry.prefix)) {
       try {
@@ -68,7 +75,7 @@ const dispatchTeamsAction = async (params: {
           body: {
             ok: true,
             actionId,
-            message: result.message || 'Action processed successfully.',
+            message: result.message || "Action processed successfully.",
             ...(result.responseBody || {}),
           },
         };
@@ -77,7 +84,7 @@ const dispatchTeamsAction = async (params: {
         logger.error(err);
         return {
           status: 500,
-          body: { ok: false, actionId, error: 'Handler execution failed.' },
+          body: { ok: false, actionId, error: "Handler execution failed." },
         };
       }
     }
@@ -88,7 +95,8 @@ const dispatchTeamsAction = async (params: {
     body: {
       ok: true,
       actionId,
-      message: 'No handler registered for this action. (Default acknowledgement)'
+      message:
+        "No handler registered for this action. (Default acknowledgement)",
     },
   };
 };
@@ -119,7 +127,7 @@ router.post("/messages", async (req: Request, res: Response) => {
   }
 
   try {
-  await adapter.process(req, res, async (context: TurnContext) => {
+    await adapter.process(req, res, async (context: TurnContext) => {
       const activity: any = context.activity;
       if (!activity) {
         return;
@@ -129,12 +137,14 @@ router.post("/messages", async (req: Request, res: Response) => {
       if (activity.channelId === "msteams") {
         try {
           // getConversationReference returns Partial<ConversationReference> under strict optional settings
-          const convRef: Partial<ConversationReference> = TurnContext.getConversationReference(activity);
+          const convRef: Partial<ConversationReference> =
+            TurnContext.getConversationReference(activity);
           const teamId: string | undefined =
             activity?.channelData?.team?.id || activity?.conversation?.tenantId;
           const channelId: string | undefined =
             activity?.channelData?.channel?.id || activity?.conversation?.id;
-          const isPersonal: boolean = activity?.conversation?.conversationType === "personal";
+          const isPersonal: boolean =
+            activity?.conversation?.conversationType === "personal";
 
           if (teamId && channelId) {
             // Find matching WorkspaceProjectAuthToken by teamId in miscData
@@ -160,10 +170,13 @@ router.post("/messages", async (req: Request, res: Response) => {
                   misc.botConversationReferences || {};
                 if (isPersonal) {
                   // personal chat: store under user id
-                  const userAadId: string | undefined = activity?.from?.aadObjectId || activity?.from?.id;
+                  const userAadId: string | undefined =
+                    activity?.from?.aadObjectId || activity?.from?.id;
                   if (userAadId) {
-                    misc.botUserConversationReferences = misc.botUserConversationReferences || {};
-                    misc.botUserConversationReferences[userAadId] = convRef as ConversationReference;
+                    misc.botUserConversationReferences =
+                      misc.botUserConversationReferences || {};
+                    misc.botUserConversationReferences[userAadId] =
+                      convRef as ConversationReference;
                     logger.debug(
                       `Stored personal conversation reference for user ${userAadId} in team ${teamId}`,
                     );
@@ -173,7 +186,8 @@ router.post("/messages", async (req: Request, res: Response) => {
                     );
                   }
                 } else {
-                  misc.botConversationReferences[channelId] = convRef as ConversationReference;
+                  misc.botConversationReferences[channelId] =
+                    convRef as ConversationReference;
                   logger.debug(
                     `Stored conversation reference for team ${teamId}, channel ${channelId}`,
                   );
@@ -214,14 +228,18 @@ router.post("/messages", async (req: Request, res: Response) => {
           const name: string | undefined = activity.name;
           const value: any = activity.value;
           // We treat any submit as an acknowledgement for now; future: route by actionId
-          const actionId: string | undefined = value?.data?.actionId || value?.actionId || value?.actionID;
+          const actionId: string | undefined =
+            value?.data?.actionId || value?.actionId || value?.actionID;
           logger.debug("Received Action.Submit invoke from Teams bot:");
           logger.debug({ name, actionId, value });
 
           if (!actionId) {
             await context.sendActivity({
               type: "invokeResponse",
-              value: { status: 400, body: { ok: false, error: "Missing actionId" } },
+              value: {
+                status: 400,
+                body: { ok: false, error: "Missing actionId" },
+              },
             });
             return;
           }
@@ -229,19 +247,33 @@ router.post("/messages", async (req: Request, res: Response) => {
           // Gather matching project auth tokens by tenant/team if possible for handler context
           let projectAuthMatches: Array<WorkspaceProjectAuthToken> = [];
           try {
-            const teamId: string | undefined = activity?.channelData?.team?.id || activity?.conversation?.tenantId;
+            const teamId: string | undefined =
+              activity?.channelData?.team?.id ||
+              activity?.conversation?.tenantId;
             if (teamId) {
-              projectAuthMatches = await WorkspaceProjectAuthTokenService.findBy({
-                query: { workspaceType: WorkspaceType.MicrosoftTeams },
-                select: { _id: true, miscData: true, authToken: true, projectId: true },
-                limit: 50,
-                skip: 0,
-                props: { isRoot: true },
+              projectAuthMatches =
+                await WorkspaceProjectAuthTokenService.findBy({
+                  query: { workspaceType: WorkspaceType.MicrosoftTeams },
+                  select: {
+                    _id: true,
+                    miscData: true,
+                    authToken: true,
+                    projectId: true,
+                  },
+                  limit: 50,
+                  skip: 0,
+                  props: { isRoot: true },
+                });
+              projectAuthMatches = projectAuthMatches.filter((pa) => {
+                return (
+                  (pa.miscData as MicrosoftTeamsMiscData)?.teamId === teamId
+                );
               });
-              projectAuthMatches = projectAuthMatches.filter(pa => (pa.miscData as MicrosoftTeamsMiscData)?.teamId === teamId);
             }
           } catch (matchErr) {
-            logger.error('Error matching project auth tokens for action handler context:');
+            logger.error(
+              "Error matching project auth tokens for action handler context:",
+            );
             logger.error(matchErr);
           }
 
@@ -256,7 +288,7 @@ router.post("/messages", async (req: Request, res: Response) => {
           });
 
           await context.sendActivity({
-            type: 'invokeResponse',
+            type: "invokeResponse",
             value: { status: dispatchResult.status, body: dispatchResult.body },
           });
         } catch (invokeErr) {
