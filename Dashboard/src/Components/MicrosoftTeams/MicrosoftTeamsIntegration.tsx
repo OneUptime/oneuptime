@@ -923,7 +923,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 className="-ml-3"
-                title="Change Team"
+                title="Select Team"
                 buttonStyle={SharedButtonStyleType.OUTLINE}
                 icon={IconProp.Settings}
                 onClick={() => {
