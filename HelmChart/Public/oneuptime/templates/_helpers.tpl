@@ -176,10 +176,6 @@ Usage:
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
   value: {{ $.Values.microsoftTeams.appClientSecret }}
 
-- name: MICROSOFT_TEAMS_BOT_APP_ID
-  value: {{ $.Values.microsoftTeams.botAppId | quote }}
-- name: MICROSOFT_TEAMS_BOT_APP_PASSWORD
-  value: {{ $.Values.microsoftTeams.botAppPassword | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
   value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
