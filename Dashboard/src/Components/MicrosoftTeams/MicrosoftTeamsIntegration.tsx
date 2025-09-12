@@ -27,7 +27,6 @@ import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAu
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
-import MicrosoftTeamsConversationStatus from "./MicrosoftTeamsConversationStatus";
 import Link from "Common/UI/Components/Link/Link";
 import { JSONObject } from "Common/Types/JSON";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -773,12 +772,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return (
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="mb-4">
-                          {isProjectAccountConnected && (
-                            <MicrosoftTeamsConversationStatus
-                              authTokenId={projectAuthTokenId ? projectAuthTokenId.toString() : null}
-                              refreshTrigger={Number(isFinished)}
-                            />
-                          )}
+                          
               <h3 className="text-lg font-medium text-gray-900">
                 Step 2: Connect Your User Account
               </h3>

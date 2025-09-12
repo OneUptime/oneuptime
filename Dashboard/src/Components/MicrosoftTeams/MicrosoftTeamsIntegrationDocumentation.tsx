@@ -80,7 +80,6 @@ const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
     'MICROSOFT_TEAMS_APP_CLIENT_ID=<APP_CLIENT_ID_FROM_STEP_2>',
     'MICROSOFT_TEAMS_APP_CLIENT_SECRET=<CLIENT_SECRET_FROM_STEP_3>',
       '```',
-    '**Note**: When using a single App Registration (recommended), use the client secret value from your Azure AD App Registration.',
 
       '',
       '---',
