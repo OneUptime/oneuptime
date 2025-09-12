@@ -722,7 +722,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                className="-ml-3"
+                className="md:-ml-3"
                 title={
                   isProjectAccountConnected && adminConsentGranted
                     ? "Admin Consent Granted"
@@ -783,7 +783,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                className="-ml-3"
+                className="md:-ml-3"
                 title={
                   isUserAccountConnected
                     ? "Account Connected"
@@ -864,7 +864,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                className="-ml-3"
+                className="md:-ml-3"
                 title={currentTeamId ? "Change Team" : "Select Team"}
                 buttonStyle={SharedButtonStyleType.NORMAL}
                 icon={IconProp.Settings}
@@ -922,7 +922,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                className="-ml-3"
+                className="md:-ml-3"
                 title="Select Team"
                 buttonStyle={SharedButtonStyleType.OUTLINE}
                 icon={IconProp.Settings}
@@ -968,7 +968,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   Change the team to direct notifications elsewhere.
                 </p>
                 <Button
-                  className="-ml-3"
+                  className="md:-ml-3"
                   title="Change Team"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Settings}
@@ -1001,7 +1001,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                   permissions remain until you uninstall.
                 </p>
                 <Button
-                  className="-ml-3"
+                  className="md:-ml-3"
                   title="Log Out of Teams"
                   buttonStyle={SharedButtonStyleType.NORMAL}
                   icon={IconProp.Logout}
