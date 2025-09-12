@@ -612,15 +612,14 @@ export default class MicrosoftTeamsAPI {
                     displayName: string;
                     description?: string | undefined;
                   } = transformedTeams[0]!;
+                  const updatedMisc: any = {
+                    ...miscData,
+                    teamId: first.id as string,
+                    teamName: first.displayName as string,
+                  };
                   await WorkspaceProjectAuthTokenService.updateOneById({
                     id: projectAuth.id!,
-                    data: {
-                      miscData: {
-                        ...miscData,
-                        teamId: first.id,
-                        teamName: first.displayName,
-                      },
-                    },
+                    data: { miscData: updatedMisc },
                     props: { isRoot: true },
                   });
                 }
@@ -641,6 +640,65 @@ export default class MicrosoftTeamsAPI {
             req,
             res,
             new BadDataException("Failed to fetch teams"),
+          );
+        }
+      },
+    );
+
+    // Conversation reference status (channels & users) for diagnostics
+    router.get(
+      "/teams/conversation-status",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const authTokenId: string | undefined = req.query['authTokenId']?.toString();
+          const projectIdStr: string | undefined = req.query['projectId']?.toString();
+          if (!projectIdStr) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException('projectId is required'),
+            );
+          }
+
+            // Validate project auth context (lightweight security gate)
+          const projectAuth: WorkspaceProjectAuthToken | null = await WorkspaceProjectAuthTokenService.findOneBy({
+            query: {
+              projectId: new ObjectID(projectIdStr),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            },
+            select: { _id: true, authToken: true, miscData: true },
+            props: { isRoot: true },
+          });
+
+          if (!projectAuth) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException('Microsoft Teams integration not installed for this project'),
+            );
+          }
+
+          // Optionally ensure provided authTokenId matches existing (defense-in-depth)
+          if (authTokenId && authTokenId !== projectAuth.id?.toString()) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException('authTokenId does not match project integration'),
+            );
+          }
+
+          // Reuse utility method
+          // Dynamically import to avoid circular dependencies if any
+          const { default: MicrosoftTeams } = await import('../Utils/Workspace/MicrosoftTeams/MicrosoftTeams');
+          const status = await MicrosoftTeams.getConversationReferenceStatus({ authToken: projectAuth.authToken! });
+          return Response.sendJsonObjectResponse(req, res, status as any);
+        } catch (err) {
+          logger.error('Error in /teams/conversation-status endpoint:');
+          logger.error(err);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException('Failed to fetch conversation reference status'),
           );
         }
       },

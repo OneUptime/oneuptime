@@ -6,6 +6,7 @@ import PushNotificationAPI from "./API/PushNotification";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import "./Utils/Handlebars";
 import FeatureSet from "Common/Server/Types/FeatureSet";
+import MicrosoftTeamsBotAPI from "Common/Server/API/MicrosoftTeamsBotAPI";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import "ejs";
 
@@ -19,6 +20,7 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/push`, "/push"], PushNotificationAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);
+    app.use([`/${APP_NAME}/teams/bot`, "/teams/bot"], MicrosoftTeamsBotAPI);
   },
 };
 

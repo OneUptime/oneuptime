@@ -49,6 +49,16 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   adminConsentGranted?: boolean; // Whether admin has granted consent for application permissions
   adminConsentGrantedAt?: string; // ISO timestamp when admin consent was granted
   adminConsentGrantedBy?: string; // User ID who granted admin consent
+  // Bot Framework integration
+  botInstalled?: boolean; // whether the Bot Framework app is installed in the team
+  botConversationReferences?: {
+    // channelId -> conversation reference JSON
+    [channelId: string]: any;
+  };
+  botUserConversationReferences?: {
+    // workspaceUserId (AAD user id) -> conversation reference JSON for 1:1 chats
+    [userId: string]: any;
+  };
 }
 
 @TenantColumn("projectId")

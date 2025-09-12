@@ -2,6 +2,7 @@ import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 import API from "../../../../Utils/API";
 import logger from "../../Logger";
 import WorkspaceBase, {
@@ -35,13 +36,33 @@ import {
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
 } from "../../../EnvironmentConfig";
+import { CloudAdapter, ConversationReference, TurnContext } from "botbuilder";
 import MicrosoftTeamsTokenRefresher from "./MicrosoftTeamsTokenRefresher";
-
-// Error message constants
-const ADMIN_CONSENT_REQUIRED_ERROR: string =
-  "Microsoft Teams application access token unavailable. Please grant admin consent for application permissions (including ChannelMessage.Send for sending messages) in your Microsoft Teams integration settings.";
+// Legacy Graph channel send logic removed: bot conversation references are now the sole delivery path for notifications.
 
 export default class MicrosoftTeams extends WorkspaceBase {
+  private static cloudAdapter: CloudAdapter | null = null;
+  private static getOrCreateCloudAdapter(): CloudAdapter {
+    if (this.cloudAdapter) {
+      return this.cloudAdapter;
+    }
+    if (!(MicrosoftTeamsAppClientId && MicrosoftTeamsAppClientSecret)) {
+      throw new BadRequestException(
+        "Teams bot credentials not configured (MICROSOFT_TEAMS_APP_CLIENT_ID / MICROSOFT_TEAMS_APP_CLIENT_SECRET).",
+      );
+    }
+    try {
+      this.cloudAdapter = new CloudAdapter({
+        MicrosoftAppId: MicrosoftTeamsAppClientId,
+        MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
+      } as any);
+      return this.cloudAdapter;
+    } catch (err) {
+      logger.error("Failed to initialize CloudAdapter for proactive Teams messaging:");
+      logger.error(err);
+      throw new BadRequestException("Failed to initialize Teams bot adapter.");
+    }
+  }
   // Microsoft Teams API Permission Requirements:
   //
   // DELEGATED PERMISSIONS (for user context operations):
@@ -52,7 +73,6 @@ export default class MicrosoftTeams extends WorkspaceBase {
   // - User.Read: Basic user profile read access
   // - Team.ReadBasic.All: Read team names and descriptions
   // - Channel.ReadBasic.All: Read channel names and descriptions
-  // - ChannelMessage.Send: Send messages to channels as user
   // - TeamMember.ReadWrite.All: Manage team membership
   // - Teamwork.Read.All: Read organizational teamwork settings
   //
@@ -555,7 +575,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
         });
 
       if (!appToken) {
-        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+        throw new BadRequestException(
+          "Microsoft Teams application access token unavailable. Grant admin consent for required discovery permissions or proceed with bot-only messaging (channel sends require bot conversation reference).",
+        );
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
@@ -622,7 +644,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
         });
 
       if (!appToken) {
-        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+        throw new BadRequestException(
+          "Microsoft Teams application access token unavailable. Grant admin consent for required discovery permissions or proceed with limited functionality.",
+        );
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
@@ -660,6 +684,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
   public static override async getWorkspaceChannelFromChannelName(data: {
     authToken: string;
     channelName: string;
+    projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     logger.debug(
       "Getting Microsoft Teams channel from channel name with data:",
@@ -667,21 +692,36 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      const allChannels: Dictionary<WorkspaceChannel> =
-        await this.getAllWorkspaceChannels({
-          authToken: data.authToken,
+      // Normalize channel name
+      let normalized: string = data.channelName;
+      if (normalized.startsWith("#")) {
+        normalized = normalized.substring(1);
+      }
+      normalized = normalized.toLowerCase();
+
+      // Try cache first
+      try {
+        const cached: WorkspaceChannel | null = await this.getChannelFromCache({
+          projectId: data.projectId,
+          channelName: normalized,
         });
-
-      let channelName: string = data.channelName;
-      if (channelName.startsWith("#")) {
-        channelName = channelName.substring(1);
+        if (cached) {
+          logger.debug("Teams channel found in cache:");
+          logger.debug(cached);
+          return cached;
+        }
+      } catch (cacheErr) {
+        logger.error("Error reading Teams channel cache (continuing to Graph list):");
+        logger.error(cacheErr);
       }
 
-      const channel: WorkspaceChannel | undefined = allChannels[channelName];
+      const allChannels: Dictionary<WorkspaceChannel> = await this.getAllWorkspaceChannels({
+        authToken: data.authToken,
+      });
+      const channel: WorkspaceChannel | undefined = allChannels[normalized];
       if (!channel) {
-        throw new BadRequestException(`Channel '${channelName}' not found`);
+        throw new BadRequestException(`Channel '${normalized}' not found`);
       }
-
       return channel;
     } catch (error) {
       logger.error("Error getting Microsoft Teams channel by name:");
@@ -694,6 +734,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
   public static override async createChannel(data: {
     authToken: string;
     channelName: string;
+    projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     logger.debug("Creating Microsoft Teams channel with data:");
     logger.debug(data);
@@ -734,7 +775,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
         logger.error(
           "ERROR: Microsoft Teams application access token unavailable. Please grant admin consent for application permissions in your Microsoft Teams integration settings.",
         );
-        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+        throw new BadRequestException(
+          "Microsoft Teams application access token unavailable (team/channel enumeration). Bot-based message delivery does not use Graph channel POSTs.",
+        );
       }
 
       let channelName: string = data.channelName;
@@ -784,6 +827,17 @@ export default class MicrosoftTeams extends WorkspaceBase {
       logger.debug(
         "DEBUG: Microsoft Teams channel creation completed successfully",
       );
+      // Cache channel (best-effort) similar to Slack implementation
+      try {
+        await this.updateChannelCache({
+          projectId: data.projectId,
+          channelName: channel.name.toLowerCase(),
+          channel: channel,
+        });
+      } catch (cacheErr) {
+        logger.error("Error caching Microsoft Teams channel (non-fatal):");
+        logger.error(cacheErr);
+      }
       return channel;
     } catch (error) {
       logger.error("Error creating Microsoft Teams channel:");
@@ -820,7 +874,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
       });
 
     if (!appToken) {
-      throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+      throw new BadRequestException(
+        "Microsoft Teams application access token unavailable for channel listing. Ensure admin consent or reconnect integration. Bot delivery path unaffected if conversation references already captured.",
+      );
     }
 
     const workspaceChannels: Array<WorkspaceChannel> = [];
@@ -832,7 +888,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Existing Microsoft Teams channels:");
     logger.debug(existingWorkspaceChannels);
 
-    for (let channelName of data.channelNames) {
+  for (let channelName of data.channelNames) {
       // if channel name starts with #, remove it
       if (channelName.startsWith("#")) {
         channelName = channelName.substring(1);
@@ -849,6 +905,7 @@ export default class MicrosoftTeams extends WorkspaceBase {
         const channel: WorkspaceChannel = await this.createChannel({
           authToken: data.authToken,
           channelName: channelName,
+          projectId: projectAuthForApp?.projectId as ObjectID,
         });
 
         if (channel) {
@@ -865,6 +922,73 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Channels created or found:");
     logger.debug(workspaceChannels);
     return workspaceChannels;
+  }
+
+  // ---------------- Channel Cache (Parity with Slack) ----------------
+  @CaptureSpan()
+  public static async getChannelFromCache(data: {
+    projectId: ObjectID;
+    channelName: string;
+  }): Promise<WorkspaceChannel | null> {
+    try {
+      const projectAuth: any = await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+      if (!projectAuth || !projectAuth.miscData) {
+        return null;
+      }
+      const miscData: any = projectAuth.miscData;
+      const channelCache: any = miscData.channelCache;
+      if (!channelCache || !channelCache[data.channelName]) {
+        return null;
+      }
+      const cachedChannelData: WorkspaceChannel = channelCache[data.channelName] as WorkspaceChannel;
+      return {
+        id: cachedChannelData.id,
+        name: cachedChannelData.name,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      };
+    } catch (err) {
+      logger.error("Error retrieving Teams channel from cache:");
+      logger.error(err);
+      return null;
+    }
+  }
+
+  @CaptureSpan()
+  public static async updateChannelCache(data: {
+    projectId: ObjectID;
+    channelName: string;
+    channel: WorkspaceChannel;
+  }): Promise<void> {
+    try {
+      const projectAuth: any = await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+      if (!projectAuth) {
+        return; // nothing to update
+      }
+      const miscData: any = projectAuth.miscData || {};
+      const channelCache: any = miscData.channelCache || {};
+      channelCache[data.channelName] = {
+        id: data.channel.id,
+        name: data.channel.name,
+        lastUpdated: new Date().toISOString(),
+      };
+      miscData.channelCache = channelCache;
+      await WorkspaceProjectAuthTokenService.refreshAuthToken({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        authToken: projectAuth.authToken,
+        workspaceProjectId: projectAuth.workspaceProjectId,
+        miscData: miscData,
+      });
+    } catch (err) {
+      logger.error("Error updating Teams channel cache (non-fatal):");
+      logger.error(err);
+    }
   }
 
   @CaptureSpan()
@@ -894,7 +1018,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
         });
 
       if (!appToken) {
-        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+        throw new BadRequestException(
+          "Microsoft Teams application access token unavailable for membership management. Grant admin consent if membership automation is required.",
+        );
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
@@ -971,7 +1097,9 @@ export default class MicrosoftTeams extends WorkspaceBase {
         });
 
       if (!appToken) {
-        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
+        throw new BadRequestException(
+          "Microsoft Teams application access token unavailable for channel membership invite. Bot messaging itself does not require ChannelMessage.Send.",
+        );
       }
 
       const teamId: string = await this.getTeamId(data.authToken);
@@ -1068,10 +1196,23 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
+      // fetch project auth to determine projectId for cache / lookup parity
+      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      const projectAuthForApp: WorkspaceProjectAuthToken | null =
+        projectAuth ||
+        (await WorkspaceProjectAuthTokenService.getByAuthToken({
+          authToken: data.authToken,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        }));
       const channel: WorkspaceChannel =
         await this.getWorkspaceChannelFromChannelName({
           authToken: data.authToken,
           channelName: data.channelName,
+          projectId: projectAuthForApp?.projectId
+            ? ObjectID.fromString(projectAuthForApp.projectId.toString())
+            : ObjectID.fromString(
+                (projectAuthForApp?.workspaceProjectId || "").toString(),
+              ),
         });
 
       await this.inviteUserToChannelByChannelId({
@@ -1096,73 +1237,42 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      // Get project auth token for app token access
-      const projectAuth: WorkspaceProjectAuthToken | null =
-        await this.getRefreshedProjectAuthToken(data.authToken);
-
-      const teamId: string = await this.getTeamId(data.authToken);
-
-      // Fetch project auth token to pass context for per-project app token caching
-      const projectAuthForApp: WorkspaceProjectAuthToken | null =
-        projectAuth ||
-        (await WorkspaceProjectAuthTokenService.getByAuthToken({
-          authToken: data.authToken,
-          workspaceType: WorkspaceType.MicrosoftTeams,
-        }));
-
-      // Use application (bot) token for all Microsoft Teams API calls
-      const appToken: string | null =
-        await this.getOrCreateApplicationAccessToken({
-          projectAuth: projectAuthForApp,
-        });
-
-      if (!appToken) {
-        throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
-      }
-
-      logger.debug(
-        "Using application (bot) token for Microsoft Teams API call",
-      );
-
-      // Convert blocks to Teams message format
-      const messageBody: JSONObject = {
-        body: {
-          contentType: "html",
-          content: this.convertBlocksToTeamsMessage(data.blocks),
-        },
-        importance: "normal",
-        messageType: "message",
-      };
-
-      logger.debug(
-        `Attempting to send message to Microsoft Teams channel with application token`,
-      );
-      logger.debug(`Messages endpoint: /teams/${teamId}/channels/${data.workspaceChannel.id}/messages`);
-
-      // Use the regular messages endpoint
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await this.makeGraphApiCall(
-          `/teams/${teamId}/channels/${data.workspaceChannel.id}/messages`,
-          appToken,
-          "POST",
-          messageBody,
+      if (!(MicrosoftTeamsAppClientId && MicrosoftTeamsAppClientSecret)) {
+        throw new BadRequestException(
+          "Teams bot credentials not configured (MICROSOFT_TEAMS_APP_CLIENT_ID / MICROSOFT_TEAMS_APP_CLIENT_SECRET).",
         );
-
-      if (response instanceof HTTPErrorResponse) {
-        logger.error("Error response from Microsoft Graph API:");
-        logger.error(response);
-        throw response;
       }
-
-      const messageData: JSONObject = response.jsonData as JSONObject;
-      const thread: WorkspaceThread = {
-        channel: data.workspaceChannel,
-        threadId: messageData["id"] as string,
-      };
-
-      logger.debug("Message sent to Microsoft Teams channel successfully:");
-      logger.debug(thread);
-      return thread;
+      const adapter: CloudAdapter = this.getOrCreateCloudAdapter();
+      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      let convRef: ConversationReference | undefined;
+      if (projectAuth?.miscData) {
+        const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        convRef = misc.botConversationReferences?.[data.workspaceChannel.id];
+      }
+      if (!convRef) {
+        logger.warn(`Attempt to send to Teams channel id=${data.workspaceChannel.id} name=${data.workspaceChannel.name} without conversation reference. Instruct user to add the OneUptime bot to that channel.`);
+        throw new BadRequestException(
+          "Channel not initialized for bot notifications. Add the OneUptime bot to this channel to capture a conversation reference.",
+        );
+      }
+      const html: string = this.convertBlocksToTeamsMessage(data.blocks);
+      const adaptiveCard: JSONObject | null = this.convertBlocksToAdaptiveCard(data.blocks);
+  await adapter.continueConversation(convRef, async (turnContext: TurnContext) => {
+        if (adaptiveCard) {
+          await turnContext.sendActivity({
+            type: 'message',
+            attachments: [
+              {
+                contentType: 'application/vnd.microsoft.card.adaptive',
+                content: adaptiveCard,
+              },
+            ],
+          });
+        } else {
+          await turnContext.sendActivity({ type: 'message', channelData: { html } });
+        }
+      });
+      return { channel: data.workspaceChannel, threadId: data.workspaceChannel.id };
     } catch (error) {
       logger.error("Error sending message to Microsoft Teams channel:");
       logger.error(error);
@@ -1178,30 +1288,12 @@ export default class MicrosoftTeams extends WorkspaceBase {
   }): Promise<WorkspaceSendMessageResponse> {
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
+    // Refresh project auth ONLY to inspect conversation references (no Graph send path anymore)
+    const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
 
-    // Get project auth token for app token access
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await this.getRefreshedProjectAuthToken(data.authToken);
-    const projectAuthForApp: WorkspaceProjectAuthToken | null =
-      projectAuth ||
-      (await WorkspaceProjectAuthTokenService.getByAuthToken({
-        authToken: data.authToken,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      }));
-
-    // Use application (bot) token
-    const appToken: string | null =
-      await this.getOrCreateApplicationAccessToken({
-        projectAuth: projectAuthForApp,
-      });
-
-    if (!appToken) {
-      throw new BadRequestException(ADMIN_CONSENT_REQUIRED_ERROR);
-    }
-
-    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
-      data.workspaceMessagePayload,
-    );
+    const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload({
+      messageBlocks: data.workspaceMessagePayload.messageBlocks,
+    });
 
     logger.debug("Blocks generated from workspace message payload:");
     logger.debug(blocks);
@@ -1257,6 +1349,21 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug("Channels to post to:");
     logger.debug(workspaceChannelsToPostTo);
 
+    // Pre-flight conversation reference visibility
+    if (projectAuth?.miscData) {
+      const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+      const refs = misc.botConversationReferences || {};
+      for (const channel of workspaceChannelsToPostTo) {
+        if (refs[channel.id]) {
+          logger.debug(`Conversation reference present for Teams channel id=${channel.id} name=${channel.name}`);
+        } else {
+          logger.warn(`No conversation reference for Teams channel id=${channel.id} name=${channel.name}. Bot must be added to the channel before sending will succeed.`);
+        }
+      }
+    } else {
+      logger.warn("No miscData or botConversationReferences found on project auth token; all channel sends may fail if bot not previously added.");
+    }
+
     const workspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.MicrosoftTeams,
@@ -1297,89 +1404,162 @@ export default class MicrosoftTeams extends WorkspaceBase {
     logger.debug(data);
 
     try {
-      // Get project auth token for app token access
-      const projectAuth: WorkspaceProjectAuthToken | null =
-        await this.getRefreshedProjectAuthToken(data.authToken);
-      const projectAuthForApp: WorkspaceProjectAuthToken | null =
-        projectAuth ||
-        (await WorkspaceProjectAuthTokenService.getByAuthToken({
-          authToken: data.authToken,
-          workspaceType: WorkspaceType.MicrosoftTeams,
-        }));
-
-      // Use application (bot) token for direct messages
-      const appToken: string | null =
-        await this.getOrCreateApplicationAccessToken({
-          projectAuth: projectAuthForApp,
-        });
-
-      if (!appToken) {
-        throw new BadRequestException(
-          "Microsoft Teams application access token unavailable for direct messaging. Please grant admin consent for application permissions in your Microsoft Teams integration settings.",
-        );
+      if (!(MicrosoftTeamsAppClientId && MicrosoftTeamsAppClientSecret)) {
+        throw new BadRequestException("Teams bot credentials not configured (MICROSOFT_TEAMS_APP_CLIENT_ID / MICROSOFT_TEAMS_APP_CLIENT_SECRET). Cannot send direct message.");
       }
 
-      // First, create a chat with the user
-      const chatPayload: JSONObject = {
-        chatType: "oneOnOne",
-        members: [
-          {
-            "@odata.type": "#microsoft.graph.aadUserConversationMember",
-            "user@odata.bind": `https://graph.microsoft.com/v1.0/users/${data.workspaceUserId}`,
-            roles: ["member"],
-          },
-        ],
-      };
-
-      const chatResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await this.makeGraphApiCall("/chats", appToken, "POST", chatPayload);
-
-      if (chatResponse instanceof HTTPErrorResponse) {
-        logger.error("Error creating chat with user:");
-        logger.error(chatResponse);
-        throw chatResponse;
+      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      if (!projectAuth?.miscData) {
+        logger.warn("No project miscData found while attempting Teams direct message.");
+      }
+      let convRef: ConversationReference | undefined;
+      if (projectAuth?.miscData) {
+        const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        convRef = misc.botUserConversationReferences?.[data.workspaceUserId];
+      }
+      if (!convRef) {
+        logger.warn(`Missing personal conversation reference for userId=${data.workspaceUserId}. User must have previously interacted with the OneUptime bot.`);
+        throw new BadRequestException("Direct message unavailable. The user has not initiated a personal chat with the OneUptime bot yet.");
       }
 
-      const chatData: JSONObject = chatResponse.jsonData as JSONObject;
-      const chatId: string = chatData["id"] as string;
+      const adapter: CloudAdapter = this.getOrCreateCloudAdapter();
 
-      // Convert message blocks to Teams format
-      const blocks: Array<JSONObject> =
-        this.getBlocksFromWorkspaceMessagePayload({
-          messageBlocks: data.messageBlocks,
-        });
+      const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload({
+        messageBlocks: data.messageBlocks,
+      });
+      const html: string = this.convertBlocksToTeamsMessage(blocks);
+      const adaptiveCard: JSONObject | null = this.convertBlocksToAdaptiveCard(blocks);
 
-      // Use regular message format
-      const messageBody: JSONObject = {
-        body: {
-          contentType: "html",
-          content: this.convertBlocksToTeamsMessage(blocks),
-        },
-        importance: "normal",
-        messageType: "message",
-      };
+  await adapter.continueConversation(convRef, async (turnContext: TurnContext) => {
+        if (adaptiveCard) {
+          await turnContext.sendActivity({
+            type: 'message',
+            attachments: [
+              {
+                contentType: 'application/vnd.microsoft.card.adaptive',
+                content: adaptiveCard,
+              },
+            ],
+          });
+        } else {
+          await turnContext.sendActivity({ type: 'message', channelData: { html } });
+        }
+      });
 
-      // Note: For chats, we use the regular messages endpoint
-      const messageResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await this.makeGraphApiCall(
-          `/chats/${chatId}/messages`,
-          appToken,
-          "POST",
-          messageBody,
-        );
-
-      if (messageResponse instanceof HTTPErrorResponse) {
-        logger.error("Error sending direct message:");
-        logger.error(messageResponse);
-        throw messageResponse;
-      }
-
-      logger.debug("Direct message sent successfully to Microsoft Teams user.");
+      logger.debug("Direct message sent successfully to Microsoft Teams user via bot conversation reference.");
     } catch (error) {
       logger.error("Error sending direct message to Microsoft Teams user:");
       logger.error(error);
       throw error;
     }
+  }
+
+  // Basic Adaptive Card builder from generic workspace blocks (subset)
+  private static convertBlocksToAdaptiveCard(blocks: Array<JSONObject>): JSONObject | null {
+    try {
+      const body: Array<JSONObject> = [];
+      const actions: Array<JSONObject> = [];
+      for (const block of blocks) {
+        const type: string = block['type'] as string;
+        switch (type) {
+          case 'header':
+            body.push({
+              type: 'TextBlock',
+              text: (block['text'] as string) || '',
+              weight: 'Bolder',
+              size: 'Medium',
+              wrap: true,
+            });
+            break;
+          case 'section':
+            if (block['text']) {
+              body.push({
+                type: 'TextBlock',
+                text: block['text'] as string,
+                wrap: true,
+              });
+            }
+            break;
+          case 'divider':
+            body.push({ type: 'TextBlock', text: '---', spacing: 'Small' });
+            break;
+          case 'actions': {
+            const elems: Array<JSONObject> = (block['elements'] as Array<JSONObject>) || [];
+            for (const el of elems) {
+              if (el['url']) {
+                actions.push({
+                  type: 'Action.OpenUrl',
+                  title: ((el['text'] as string) || (el['name'] as string) || 'Open').substring(0, 40),
+                  url: el['url'],
+                });
+              } else if (el['action_id'] || el['value']) {
+                // Potential future submit action (no back-end handler wired yet)
+                actions.push({
+                  type: 'Action.Submit',
+                  title: ((el['text'] as string) || 'Submit').substring(0, 40),
+                  data: {
+                    actionId: el['action_id'] || el['value'],
+                  },
+                });
+              }
+            }
+            break;
+          }
+          case 'image': {
+            const imageUrl: string | undefined = (block['image_url'] as string) || (block['url'] as string) || (block['src'] as string);
+            if (imageUrl) {
+              body.push({
+                type: 'Image',
+                url: imageUrl,
+                altText: (block['alt_text'] as string) || (block['text'] as string) || 'Image',
+              });
+            }
+            break;
+          }
+          default:
+            if (block['text']) {
+              body.push({
+                type: 'TextBlock',
+                text: block['text'] as string,
+                wrap: true,
+              });
+            }
+            break;
+        }
+      }
+      if (!body.length) {
+        return null;
+      }
+      return {
+        $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+        type: 'AdaptiveCard',
+        version: '1.4',
+        body: body,
+        actions: actions.length ? actions : undefined,
+      } as JSONObject;
+    } catch (err) {
+      logger.error('Error building adaptive card, falling back to HTML only:');
+      logger.error(err);
+      return null;
+    }
+  }
+
+  // Conversation reference status for UI indicators
+  public static async getConversationReferenceStatus(data: { authToken: string }): Promise<{ channels: Dictionary<boolean>; users: Dictionary<boolean> }> {
+    const status = { channels: {} as Dictionary<boolean>, users: {} as Dictionary<boolean> };
+    try {
+      const projectAuth: WorkspaceProjectAuthToken | null = await this.getRefreshedProjectAuthToken(data.authToken);
+      if (!projectAuth?.miscData) {
+        return status;
+      }
+      const misc: MicrosoftTeamsMiscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+      status.channels = (misc.botConversationReferences || {}) as Dictionary<boolean>;
+      status.users = (misc.botUserConversationReferences || {}) as Dictionary<boolean>;
+    } catch (err) {
+      logger.error('Error fetching conversation reference status:');
+      logger.error(err);
+    }
+    return status;
   }
 
   // Helper method to convert basic markdown to HTML
