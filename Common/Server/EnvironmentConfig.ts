@@ -5,6 +5,7 @@ import {
   AppApiRoute,
   StatusPageApiRoute,
   DocsRoute,
+  HomeRoute
 } from "../ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Protocol from "../Types/API/Protocol";
@@ -324,6 +325,13 @@ export const AccountsClientUrl: URL = new URL(
   Host,
   AccountsRoute,
 );
+
+export const HomeClientUrl: URL = new URL(
+  HttpProtocol,
+  Host,
+  HomeRoute,
+);
+
 
 export const DocsClientUrl: URL = new URL(HttpProtocol, Host, DocsRoute);
 

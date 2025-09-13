@@ -17,6 +17,8 @@ import {
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
   HomeHostname,
+  Host,
+  HomeClientUrl,
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
@@ -735,13 +737,11 @@ export default class MicrosoftTeamsAPI {
             ],
             permissions: ["identity"],
             validDomains: [
-              HomeHostname || "oneuptime.com",
-              AppApiClientUrl.hostname,
-              DashboardClientUrl.hostname,
-            ].filter(Boolean),
+              Host.toString()
+            ],
             webApplicationInfo: {
               id: appId,
-              resource: `https://${AppApiClientUrl.hostname}`,
+              resource: `${HomeClientUrl}`,
             },
           };
 
