@@ -9,125 +9,124 @@ export interface ComponentProps {
 const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
   ComponentProps
 > = (_props: ComponentProps): ReactElement => {
-  const markdownText: string = [
-    "#### Microsoft Teams Integration – Step-by-Step Guide",
-    "",
-    "Follow these steps EXACTLY to enable Microsoft Teams notifications (channels + direct messages) in OneUptime.",
-    "",
-    "---",
-    "### 1. Prerequisites",
-    "1. You have OneUptime deployed and reachable publicly (via HTTPS).",
-    "2. You have Azure AD tenant admin (or sufficient) permissions to create an App Registration and grant admin consent.",
-    "",
-    "---",
-    "### 2. Create Azure AD App Registration (Bot + Graph)",
-    "1. Go to Azure Portal → Azure Active Directory → App registrations → New registration.",
-    "2. Name: 'OneUptime Teams Bot' (choose any descriptive name).",
-    "3. Supported account types: Accounts in any organizational directory (Multitenant).",
-    "4. Add these redirect URIs (you can adjust later if you add delegated OAuth features):",
-    "   - " + window.location.host + "/api/teams/auth",
-    "   - " + window.location.host + "/api/teams/admin-consent",
-    "5. Click Register.",
-    "6. Copy the Application (client) ID – this will be used for appClientId (single ID for both Bot and Graph features)",
-    "",
-    "Tip: You can use a single registration for both Bot Framework and Graph features to simplify management.",
-    "",
-    "---",
-    "### 3. Create Azure Bot Resource",
-    "You need to create a Bot resource that will handle Teams messages:",
-    '1. In Azure Portal, search for "Azure Bot" and click "Create".',
-    "2. Fill in the Bot details:",
-    '   - **Bot handle**: Choose a unique name (e.g., "oneuptime-teams-bot")',
-    "   - **Subscription**: Select your Azure subscription",
-    "   - **Resource group**: Use existing or create new",
-    "   - **Data residency**: Choose appropriate region",
-    "3. In the **Microsoft App ID** section:",
-    '   - Select "Use existing app registration"',
-    "   - Enter the App ID from step 2 (the Application client ID you copied)",
-    '4. Click "Review + create" and then "Create".',
-    "5. Once created, go to the Bot resource → **Configuration**:",
-    "   - Set **Messaging endpoint** to: `" +
-      window.location.host +
-      "/api/notification/teams/bot/messages`",
-    '   - Click "Apply" to save',
-    "6. Go back to your App Registration → **Certificates & secrets** → **New client secret**:",
-    '   - Add description (e.g., "OneUptime Bot Secret")',
-    "   - Choose expiration period",
-    '   - Click "Add" and **immediately copy the secret VALUE** (this will be your client secret for app authentication)',
-    "",
-    "**Note**: Since you're using a single App Registration, the client secret will be used for `appClientSecret`.",
-    "",
-    "---",
-    "### 4. Add Required Microsoft Graph Application Permissions",
-    "These Graph application permissions are required for channel discovery, creation, membership operations, and reliable notification delivery.",
-    "Required application permissions:",
-    "- Team.ReadBasic.All",
-    "- Channel.ReadBasic.All",
-    "- Channel.Create (optional)",
-    "- ChannelMember.ReadWrite.All (optional)",
-    'After adding: Click "Grant admin consent".',
-    "",
-    "---",
-    "### 5. Prepare the Teams App Manifest (Side-Load)",
-    "1. Download Microsoft's Teams app manifest sample or export an existing one.",
-    "2. Set the botId to your App (client) ID.",
-    "3. Ensure valid domains include your deployment host.",
-    "4. Add capabilities: team, groupChat, personal (so channel + 1:1 contexts work).",
-    "5. Zip the manifest (manifest.json + icon files) and side-load it in Teams (Developer Portal → Apps → Upload).",
-    "",
-    "---",
-    "### 6. Set Environment Variables (ALWAYS FULL SET)",
-    "Provide all required variables below:",
-    "```env",
-    "MICROSOFT_TEAMS_APP_CLIENT_ID=<APP_CLIENT_ID_FROM_STEP_2>",
-    "MICROSOFT_TEAMS_APP_CLIENT_SECRET=<CLIENT_SECRET_FROM_STEP_3>",
-    "```",
+  const markdownText: string = `
+#### Setting up Microsoft Teams Integration with OneUptime
 
-    "",
-    "---",
-    "### 7. Helm Values Configuration",
-    "In values.yaml:",
-    "```yaml",
-    "microsoftTeams:",
-    "  appClientId: <APP_CLIENT_ID_FROM_STEP_2>",
-    "  appClientSecret: <CLIENT_SECRET_FROM_STEP_3>",
-    "```",
-    "",
-    "---",
-    "### 9. Deploy / Restart",
-    "1. Apply updated values (helm upgrade ...).",
-    "2. Wait for pods to restart (check logs for Teams bot adapter initialization).",
-    "3. Confirm env vars inside a pod (kubectl exec + printenv | grep MICROSOFT_TEAMS).",
-    "",
-    "---",
-    "### 10. Install Bot into Teams",
-    "1. In Teams, add the uploaded app to each target Team.",
-    "2. Inside each Team, add the bot to the specific channel(s) for notifications.",
-    '3. For direct messages: have each user open a 1:1 chat with the bot (say "hi").',
-    "",
-    "---",
-    "### 11. Seed & Verify Conversation References",
-    "When the bot receives its first message in a channel or DM, a conversation reference is stored.",
-    "Verification methods:",
-    '- Trigger an event in OneUptime that would send a Teams notification and watch logs for: "conversation reference present".',
-    "- (If implemented) use any diagnostics endpoint in the UI to list references.",
-    "",
-    "If a channel lacks a reference: re-open channel, mention or message the bot once.",
-    "",
-    "---",
-    "### 12. Test Notification Flow",
-    "1. Create a test incident / alert in OneUptime with a Teams channel target.",
-    "2. Check channel: message should appear via bot identity.",
-    "3. Test user DM: send a direct notification to a user who seeded a 1:1 chat.",
-    "4. Review server logs for any warnings (missing reference / credentials).",
-    "",
-    "---",
-    "Need more? Reach us at hello@oneuptime.com",
-  ].join("\n");
+Microsoft Teams is not connected to OneUptime. Here are the steps you need to follow to integrate Microsoft Teams with your OneUptime Project:
+
+##### Step 1: Create an Azure AD Application
+
+1. Go to the [Azure Portal](https://portal.azure.com)
+2. Navigate to **App registrations** 
+3. Click **New registration**
+4. Fill in the application details:
+   - **Name**: OneUptime Integration
+   - **Supported account types**: Accounts in any organizational directory (Any Azure AD directory - Multitenant)
+   - **Redirect URI**: Select "Web" and add: \`${window.location.origin}/api/teams/auth\`
+5. Click **Register**
+
+##### Step 2: Configure App Permissions (Delegated + Application)
+
+We use two permission models:
+- **Delegated permissions (required)**: Used when a user signs in (interactive OAuth). Enables discovering teams/channels with the installing user's context and (optionally) managing membership.
+- **Application permissions (for bot-style posting)**: Used to post as the app (client credentials). Without these, messages will fall back to posting as the installing user.
+
+1. In your app registration, go to **API permissions**
+2. Click **Add a permission** → **Microsoft Graph**
+3. Add the following **Delegated permissions** (required):
+  - \`openid\` (returns an id_token so we can read tenant id)
+  - \`profile\` (basic user profile claims)
+  - \`offline_access\` (required for refresh tokens)
+  - \`email\` (view users' email address)
+  - \`User.Read\` (basic profile / required by most sign-ins)
+  - \`Team.ReadBasic.All\` (read the names and descriptions of teams)
+  - \`Channel.ReadBasic.All\` (read the names and descriptions of channels)
+  - \`ChannelMessage.Send\` (send channel messages)
+  - \`TeamMember.ReadWrite.All\` (add and remove members from teams)
+  - \`Teamwork.Read.All\` (read organizational teamwork settings)
+4. Add the following **Application permissions** (required for bot functionality):
+  - \`Channel.Create\` (create channels)
+  - \`Channel.Delete.All\` (delete channels)
+  - \`Channel.ReadBasic.All\` (read the names and descriptions of all channels)
+  - \`ChannelMember.Read.All\` (read the members of all channels)
+  - \`ChannelMember.ReadWrite.All\` (add and remove members from all channels)
+  - \`ChannelMessage.Read.All\` (read all channel messages)
+  - \`ChatMessage.Read.All\` (read all chat messages)
+  - \`Team.ReadBasic.All\` (get a list of all teams)
+  - \`TeamMember.Read.All\` (read the members of all teams)
+  - \`TeamMember.ReadWrite.All\` (add and remove members from all teams)
+  - \`Teamwork.Migrate.All\` (create chat and channel messages with anyone's identity and with any timestamp)
+  - \`Teamwork.Read.All\` (read organizational teamwork settings)
+6. Click **Add permissions**
+7. Click **Grant admin consent** for your organization (tenant admin required)
+8. Verify all granted Application permissions show a green check mark
+
+##### Step 3: Get Application Credentials
+
+1. Go to **Certificates & secrets**
+2. Click **New client secret**
+3. Add a description and select expiration
+4. Copy the **Value** (this is your Client Secret)
+5. Go to **Overview** and copy the **Application (client) ID**
+
+##### Step 4: Configure OneUptime Environment Variables
+
+Add these environment variables to your OneUptime configuration:
+
+\`\`\`text
+MICROSOFT_TEAMS_APP_CLIENT_ID=YOUR_APPLICATION_CLIENT_ID
+MICROSOFT_TEAMS_APP_CLIENT_SECRET=YOUR_CLIENT_SECRET
+\`\`\`
+
+If you are using Kubernetes with Helm, add these to your \`values.yaml\` file:
+
+\`\`\`yaml
+microsoftTeamsApp: 
+  clientId: YOUR_APPLICATION_CLIENT_ID
+  clientSecret: YOUR_CLIENT_SECRET
+\`\`\`
+
+
+
+##### Step 5: Restart your OneUptime server
+
+You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Microsoft Teams" button on this page.
+
+
+#### Step 6: Create a Azure Bot
+
+1. Go to the [Azure Portal](https://portal.azure.com)
+2. Click on **Create a resource** and search for **Bot Services**
+3. Click **Create**
+4. Fill in the bot details:
+   - **Bot handle**: OneUptimeBot (or any name you prefer)
+   - **Subscription**: Select your subscription
+   - **Resource group**: Create a new resource group or select an existing one
+   - **Location**: Select the location closest to your users
+   - **Pricing tier**: F0 (Free) is sufficient for basic usage
+   - **Microsoft App ID and password**: Use the Application (client) ID and Client Secret from Step 3
+5. Click **Review + create** and then **Create**
+
+##### Step 7: Configure Messaging Endpoint
+
+1. After the bot is created, go to the bot's resource page
+2. Navigate to **Settings**
+3. Set the **Messaging endpoint** to: \`${window.location.origin}/api/teams/bot/messages\`
+4. Click **Save**
+
+##### Additional Notes
+
+- Make sure your OneUptime instance is accessible from the internet for the OAuth flow to work
+- The redirect URI in your Azure app must exactly match your OneUptime API URL
+
+
+We would like to improve this integration, so feedback is more than welcome. Please send us any feedback at hello@oneuptime.com
+    `;
+
   return (
     <Card
       title={`Integrating Microsoft Teams with your OneUptime Project`}
-      description={`Microsoft Teams is not connected to OneUptime. Follow these step-by-step instructions to integrate Microsoft Teams with your OneUptime Project.`}
+      description={`Microsoft Teams is not connected to OneUptime. Here are some of the steps you need to do to integrate Microsoft Teams with your OneUptime Project`}
     >
       <MarkdownViewer text={markdownText} />
     </Card>
