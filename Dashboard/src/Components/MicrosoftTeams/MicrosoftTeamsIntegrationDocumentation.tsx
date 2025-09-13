@@ -22,7 +22,9 @@ Microsoft Teams is not connected to OneUptime. Here are the steps you need to fo
 4. Fill in the application details:
    - **Name**: OneUptime Integration
    - **Supported account types**: Accounts in any organizational directory (Any Azure AD directory - Multitenant)
-   - **Redirect URI**: Select "Web" and add: \`${window.location.origin}/api/teams/auth\`
+   - **Redirect URI**: Select "Web" and add: 
+      - \`${window.location.origin}/api/microsoft-teams/auth\`
+      - \`${window.location.origin}/api/microsoft-teams/admin-consent\`
 5. Click **Register**
 
 ##### Step 2: Configure App Permissions (Delegated + Application)
@@ -111,7 +113,7 @@ You need to restart your OneUptime server to apply these changes. Once you have 
 
 1. After the bot is created, go to the bot's resource page
 2. Navigate to **Settings**
-3. Set the **Messaging endpoint** to: \`${window.location.origin}/api/teams/bot/messages\`
+3. Set the **Messaging endpoint** to: \`${window.location.origin}/api/microsoft-bot/messages\`
 4. Click **Save**
 
 ##### Additional Notes

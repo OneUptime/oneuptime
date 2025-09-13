@@ -127,7 +127,7 @@ export default class MicrosoftBotAPI {
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
-    router.post("/microsoft-teams-bot/messages", async (req: Request, res: Response) => {
+    router.post("/microsoft-bot/messages", async (req: Request, res: Response) => {
       if (!adapter) {
         res.status(503).json({
           error:
