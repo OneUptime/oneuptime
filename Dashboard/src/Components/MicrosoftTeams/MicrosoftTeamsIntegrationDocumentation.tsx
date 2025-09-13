@@ -88,14 +88,7 @@ microsoftTeamsApp:
   clientSecret: YOUR_CLIENT_SECRET
 \`\`\`
 
-
-
-##### Step 5: Restart your OneUptime server
-
-You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Microsoft Teams" button on this page.
-
-
-#### Step 6: Create a Azure Bot
+#### Step 5: Create a Azure Bot
 
 1. Go to the [Azure Portal](https://portal.azure.com)
 2. Click on **Create a resource** and search for **Bot Services**
@@ -109,12 +102,26 @@ You need to restart your OneUptime server to apply these changes. Once you have 
    - **Microsoft App ID and password**: Use the Application (client) ID and Client Secret from Step 3
 5. Click **Review + create** and then **Create**
 
-##### Step 7: Configure Messaging Endpoint
+##### Step 6: Configure Messaging Endpoint
 
 1. After the bot is created, go to the bot's resource page
 2. Navigate to **Settings**
 3. Set the **Messaging endpoint** to: \`${window.location.origin}/api/microsoft-bot/messages\`
 4. Click **Save**
+
+
+#### Step 7: Add Channels to your Bot
+
+1. In your bot's resource page, go to **Channels**
+2. Click on the **Microsoft Teams** icon to add the Teams channel
+3. Review and configure any additional settings as needed
+4. Click **Save**
+
+##### Step 8: Restart your OneUptime server
+
+You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Microsoft Teams" button on this page.
+
+Once the server is restarted, come back to this page and click the "Connect to Microsoft Teams" button to complete the integration.
 
 ##### Additional Notes
 

@@ -1,5 +1,11 @@
 import { Request, Response } from "express";
-import { CloudAdapter, TurnContext, ConversationReference } from "botbuilder";
+import {
+  CloudAdapter,
+  TurnContext,
+  ConversationReference,
+  ConfigurationBotFrameworkAuthentication,
+  ConfigurationServiceClientCredentialFactory,
+} from "botbuilder";
 import {
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
@@ -111,16 +117,35 @@ const dispatchTeamsAction: (params: {
 let adapter: CloudAdapter | null = null;
 if (MicrosoftTeamsAppClientId && MicrosoftTeamsAppClientSecret) {
   try {
-    // CloudAdapter can accept an options object with credentials directly (simpler than custom factory for now)
-    adapter = new CloudAdapter({
-      MicrosoftAppId: MicrosoftTeamsAppClientId,
-      MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
-    } as any);
+    // Create credential factory explicitly instead of passing a plain object (which breaks CloudAdapter expectations)
+    const credentialsFactory: ConfigurationServiceClientCredentialFactory =
+      new ConfigurationServiceClientCredentialFactory({
+        MicrosoftAppId: MicrosoftTeamsAppClientId,
+        MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
+        // Optionally add tenant / app type here if needed in future:
+        // MicrosoftAppType: process.env.MicrosoftAppType,
+        // MicrosoftAppTenantId: process.env.MicrosoftAppTenantId,
+      });
+
+    const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
+      new ConfigurationBotFrameworkAuthentication(
+        {},
+        credentialsFactory,
+      );
+
+    adapter = new CloudAdapter(botFrameworkAuthentication);
+    logger.debug("Initialized CloudAdapter for Microsoft Teams bot.");
   } catch (err) {
-    logger.error("Failed to initialize CloudAdapter for Microsoft Teams bot:");
+    logger.error(
+      "Failed to initialize CloudAdapter for Microsoft Teams bot (authentication setup error):",
+    );
     logger.error(err);
     adapter = null;
   }
+} else {
+  logger.warn(
+    "Microsoft Teams bot credentials not present. Adapter will not be initialized.",
+  );
 }
 
 export default class MicrosoftBotAPI {
