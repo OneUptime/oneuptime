@@ -776,7 +776,7 @@ export default class MicrosoftTeamsAPI {
           // Add pre-resized color icon (192x192)
           const colorIconPath: string = path.join(
             __dirname,
-            "../Images/microsoft-teams/icon-color-192x192.png"
+            "../Images/MicrosoftTeams/icon-color-192x192.png"
           );
           
           if (await LocalFile.doesFileExist(colorIconPath)) {
@@ -788,7 +788,7 @@ export default class MicrosoftTeamsAPI {
           // Add pre-resized outline icon (32x32)
           const outlineIconPath: string = path.join(
             __dirname,
-            "../Images/microsoft-teams/icon-outline-32x32.png"
+            "../Images/MicrosoftTeams/icon-outline-32x32.png"
           );
 
           if (await LocalFile.doesFileExist(outlineIconPath)) {
