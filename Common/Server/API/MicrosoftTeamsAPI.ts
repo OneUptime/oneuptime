@@ -27,9 +27,7 @@ import logger from "../Utils/Logger";
 import fs from "fs";
 import path from "path";
 import archiver from "archiver";
-import crypto from "crypto";
-import ProjectService from "../Services/ProjectService";
-import Project from "../../Models/DatabaseModels/Project";
+import LocalFile from "../Utils/LocalFile";
 
 export default class MicrosoftTeamsAPI {
   public getRouter(): ExpressRouter {
@@ -651,157 +649,27 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Conversation reference status (channels & users) for diagnostics
+
+    // Endpoint to generate and download Microsoft Teams app manifest package
     router.get(
-      "/teams/conversation-status",
+      "/teams/manifest",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const authTokenId: string | undefined =
-            req.query["authTokenId"]?.toString();
-          const projectIdStr: string | undefined =
-            req.query["projectId"]?.toString();
-          if (!projectIdStr) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("projectId is required"),
-            );
-          }
 
-          // Validate project auth context (lightweight security gate)
-          const projectAuth: WorkspaceProjectAuthToken | null =
-            await WorkspaceProjectAuthTokenService.findOneBy({
-              query: {
-                projectId: new ObjectID(projectIdStr),
-                workspaceType: WorkspaceType.MicrosoftTeams,
-              },
-              select: { _id: true, authToken: true, miscData: true },
-              props: { isRoot: true },
-            });
-
-          if (!projectAuth) {
+          if(!MicrosoftTeamsAppClientId){
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "Microsoft Teams integration not installed for this project",
+                "Microsoft Teams App Client ID is not set",
               ),
             );
           }
 
-          // Optionally ensure provided authTokenId matches existing (defense-in-depth)
-          if (authTokenId && authTokenId !== projectAuth.id?.toString()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadRequestException(
-                "authTokenId does not match project integration",
-              ),
-            );
-          }
-
-          // Reuse utility method
-          // Dynamically import to avoid circular dependencies if any
-          const { default: MicrosoftTeams } = await import(
-            "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams"
-          );
-          const status: JSONObject =
-            await MicrosoftTeams.getConversationReferenceStatus({
-              authToken: projectAuth.authToken!,
-            });
-          return Response.sendJsonObjectResponse(req, res, status as any);
-        } catch (err) {
-          logger.error("Error in /teams/conversation-status endpoint:");
-          logger.error(err);
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException(
-              "Failed to fetch conversation reference status",
-            ),
-          );
-        }
-      },
-    );
-
-    // Endpoint to generate and download Microsoft Teams app manifest package
-    router.get(
-      "/teams/manifest-package/:projectId",
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const projectIdStr: string = req.params["projectId"] as string;
-
-          if (!projectIdStr) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project ID is required"),
-            );
-          }
-
-          // Validate project exists
-          const project: Project | null = await ProjectService.findOneById({
-            id: new ObjectID(projectIdStr),
-            select: {
-              _id: true,
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (!project || !project.name) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project not found"),
-            );
-          }
 
           // Generate unique App ID for this project if not exists
-          let appId: string = MicrosoftTeamsAppClientId || "";
+          let appId: string = MicrosoftTeamsAppClientId;
           
-          // Check if project already has Teams integration to get existing App ID
-          const existingAuth: WorkspaceProjectAuthToken | null =
-            await WorkspaceProjectAuthTokenService.findOneBy({
-              query: {
-                projectId: new ObjectID(projectIdStr),
-                workspaceType: WorkspaceType.MicrosoftTeams,
-              },
-              select: {
-                _id: true,
-                miscData: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          // Use existing app ID if available, otherwise generate a new GUID
-          if (existingAuth?.miscData && (existingAuth.miscData as any)?.appId) {
-            appId = (existingAuth.miscData as any).appId as string;
-          } else {
-            // Generate a new GUID for the app
-            appId = crypto.randomUUID();
-            
-            // Store the app ID in miscData for future use
-            if (existingAuth) {
-              const currentMiscData: JSONObject = (existingAuth.miscData as JSONObject) || {};
-              await WorkspaceProjectAuthTokenService.updateOneById({
-                id: existingAuth.id!,
-                data: {
-                  miscData: {
-                    ...currentMiscData,
-                    appId: appId,
-                  } as any,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            }
-          }
 
           // Create app manifest JSON
           const manifest: JSONObject = {
@@ -812,22 +680,22 @@ export default class MicrosoftTeamsAPI {
             developer: {
               name: "OneUptime",
               websiteUrl: `https://${HomeHostname || "oneuptime.com"}`,
-              privacyUrl: `https://${HomeHostname || "oneuptime.com"}/legal/privacy-policy`,
-              termsOfUseUrl: `https://${HomeHostname || "oneuptime.com"}/legal/terms-and-conditions`,
+              privacyUrl: `https://${HomeHostname || "oneuptime.com"}/legal/privacy`,
+              termsOfUseUrl: `https://${HomeHostname || "oneuptime.com"}/legal/terms`,
             },
             name: {
-              short: project.name.slice(0, 30),
-              full: `${project.name} - OneUptime Integration`.slice(0, 100),
+              short: "OneUptime",
+              full: "OneUptime - Complete monitoring and observability platform.",
             },
             description: {
-              short: `Monitor and manage ${project.name} infrastructure with OneUptime`.slice(0, 80),
-              full: `Get real-time monitoring, incident management, and status page updates for ${project.name}. Receive notifications about outages, performance issues, and system health directly in Microsoft Teams.`.slice(0, 4000),
+              short: `Complete monitoring and observability platform.`,
+              full: `OneUptime is the only complete monitoring and observability platform that combines incident management, telemetry, status pages, and uptime monitoring into a single, easy-to-use solution.`,
             },
             icons: {
               color: "icon-color.png",
               outline: "icon-outline.png",
             },
-            accentColor: "#3B82F6",
+            accentColor: "#000000ff",
             bots: [
               {
                 botId: appId,
@@ -879,7 +747,7 @@ export default class MicrosoftTeamsAPI {
           };
 
           // Set response headers for zip download
-          const fileName: string = `oneuptime-teams-app-${project.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}.zip`;
+          const fileName: string = `oneuptime-teams-app.zip`;
           res.setHeader("Content-Type", "application/zip");
           res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
 
@@ -912,7 +780,7 @@ export default class MicrosoftTeamsAPI {
             "../Images/Teams/icon-color-192x192.png"
           );
           
-          if (fs.existsSync(colorIconPath)) {
+          if (await LocalFile.doesFileExist(colorIconPath)) {
             archive.file(colorIconPath, { name: "icon-color.png" });
           } else {
             throw new BadDataException(`Pre-resized color icon not found at ${colorIconPath}`);
@@ -923,8 +791,8 @@ export default class MicrosoftTeamsAPI {
             __dirname,
             "../Images/Teams/icon-outline-32x32.png"
           );
-          
-          if (fs.existsSync(outlineIconPath)) {
+
+          if (await LocalFile.doesFileExist(outlineIconPath)) {
             archive.file(outlineIconPath, { name: "icon-outline.png" });
           } else {
             throw new BadDataException(`Pre-resized outline icon not found at ${outlineIconPath}`);
