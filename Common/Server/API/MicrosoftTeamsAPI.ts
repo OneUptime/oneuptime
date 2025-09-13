@@ -678,9 +678,9 @@ export default class MicrosoftTeamsAPI {
             id: appId,
             developer: {
               name: "OneUptime",
-              websiteUrl: `https://${HomeHostname || "oneuptime.com"}`,
-              privacyUrl: `https://${HomeHostname || "oneuptime.com"}/legal/privacy`,
-              termsOfUseUrl: `https://${HomeHostname || "oneuptime.com"}/legal/terms`,
+              websiteUrl: `https://oneuptime.com`,
+              privacyUrl: `https://oneuptime.com/legal/privacy`,
+              termsOfUseUrl: `https://oneuptime.com/legal/terms`,
             },
             name: {
               short: "OneUptime",
