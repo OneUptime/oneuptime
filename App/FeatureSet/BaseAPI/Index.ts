@@ -522,6 +522,7 @@ import ScheduledMaintenanceFeedService, {
 
 import SlackAPI from "Common/Server/API/SlackAPI";
 import MicrosoftTeamsAPI from "Common/Server/API/MicrosoftTeamsAPI";
+import MicrosoftBotAPI from "Common/Server/API/MicrosoftBotAPI";
 
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService, {
@@ -1624,6 +1625,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MicrosoftTeamsAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MicrosoftBotAPI().getRouter(),
     );
 
     app.use(
