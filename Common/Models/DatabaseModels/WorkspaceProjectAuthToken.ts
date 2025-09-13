@@ -34,6 +34,33 @@ export interface SlackMiscData extends MiscData {
   };
 }
 
+export interface MicrosoftTeamsMiscData extends MiscData {
+  teamId: string;
+  teamName: string;
+  tenantId: string;
+  // Below fields are optional and used for refreshing access tokens.
+  refreshToken?: string; // Microsoft OAuth refresh token
+  tokenExpiresAt?: string; // ISO date string of when current access token expires
+  // App-only (client credentials) token caching per project/tenant
+  appAccessToken?: string; // Microsoft Graph application access token
+  appAccessTokenExpiresAt?: string; // ISO expiry for app access token
+  lastAppTokenIssuedAt?: string; // ISO time when the current app token was minted
+  // Admin consent status for application permissions
+  adminConsentGranted?: boolean; // Whether admin has granted consent for application permissions
+  adminConsentGrantedAt?: string; // ISO timestamp when admin consent was granted
+  adminConsentGrantedBy?: string; // User ID who granted admin consent
+  // Bot Framework integration
+  botInstalled?: boolean; // whether the Bot Framework app is installed in the team
+  botConversationReferences?: {
+    // channelId -> conversation reference JSON
+    [channelId: string]: any;
+  };
+  botUserConversationReferences?: {
+    // workspaceUserId (AAD user id) -> conversation reference JSON for 1:1 chats
+    [userId: string]: any;
+  };
+}
+
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [

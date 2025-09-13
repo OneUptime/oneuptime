@@ -754,6 +754,15 @@ slackApp:
   clientSecret:
   signingSecret:
 
+# Microsoft Teams Configuration
+# Please refer to the documentation for setting up Microsoft Teams integration.
+# https://oneuptime.com/docs/workspace-connections/microsoft-teams
+# When using a single App Registration (recommended approach):
+# - appClientId: Application (client) ID from Azure AD App Registration
+# - appClientSecret: Client secret value from Azure AD App Registration
+microsoftTeams:
+  appClientId:
+  appClientSecret:
 
 keda:
   enabled: true

@@ -3093,6 +3093,12 @@ img,video {
     --tw-prose-underline-size:6px
 }
 
+/* OneUptime override (appended): remove decorative inline code backticks */
+:not(pre) > code::before,
+:not(pre) > code::after {
+    content: none !important;
+}
+
 .dark\:prose-code\:text-slate-300 :is(:where(code):not(:where([class~=not-prose],[class~=not-prose] *))):where(.dark,.dark *) {
     --tw-text-opacity: 1;
     color: rgb(203 213 225/var(--tw-text-opacity))

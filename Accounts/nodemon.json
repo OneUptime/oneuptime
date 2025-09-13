@@ -1,5 +1,11 @@
 {
-    "watch": ["./","../Common/UI", "../Common/Types", "../Common/Utils", "../Common/Models"],
+    "watch": [
+        "./",
+        "../Common/UI",
+        "../Common/Types",
+        "../Common/Utils",
+        "../Common/Models"
+    ],
     "ext": "ts,json,tsx,env,js,jsx,hbs",
     "ignore": [
         "./public/**",
@@ -10,5 +16,7 @@
         "./build/dist/**",
         "../Common/Server/**"
     ],
-    "exec": "npm run dev-build && npm run start"
+        "exec": "sh -c 'npm run dev-build && node esbuild.config.js --watch & npm run start'",
+    "delay": "200ms",
+    "legacyWatch": true
 }

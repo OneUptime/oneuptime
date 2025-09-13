@@ -109,7 +109,7 @@ class WorkspaceSetting extends BaseModel {
     unique: false,
     nullable: false,
   })
-  public settings?: SlackSettings = undefined;
+  public settings?: Settings = undefined;
 
   @ColumnAccessControl({
     create: [],
