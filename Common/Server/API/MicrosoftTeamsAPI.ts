@@ -16,7 +16,6 @@ import {
   DashboardClientUrl,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
-  HomeHostname,
   Host,
   HomeClientUrl,
 } from "../EnvironmentConfig";
@@ -656,8 +655,7 @@ export default class MicrosoftTeamsAPI {
       "/microsoft-teams/manifest",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-
-          if(!MicrosoftTeamsAppClientId){
+          if (!MicrosoftTeamsAppClientId) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -667,36 +665,57 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
+          // Validate GUID format – Teams requires GUID for id / botId
+          const guidRegex: RegExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+          if (!guidRegex.test(MicrosoftTeamsAppClientId)) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Microsoft Teams App Client ID must be a valid GUID. Update the environment variable.",
+              ),
+            );
+          }
 
-          // Generate unique App ID for this project if not exists
-          let appId: string = MicrosoftTeamsAppClientId;
-          
+          // Collect valid domains (strip protocol & paths)
+          const sanitizeDomain = (value: string): string =>
+            value.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").trim();
+          const domains: Array<string> = Array.from(
+            new Set(
+              [Host.toString(), HomeClientUrl.toString()]
+                .filter(Boolean)
+                .map(sanitizeDomain),
+            ),
+          );
 
-          // Create app manifest JSON
+          const appId: string = MicrosoftTeamsAppClientId;
+
           const manifest: JSONObject = {
-            $schema: "https://developer.microsoft.com/json-schemas/microsoft-teams/v1.23/MicrosoftTeams.schema.json",
+            $schema:
+              "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
             manifestVersion: "1.23",
             version: "1.0.0",
             id: appId,
             developer: {
               name: "OneUptime",
-              websiteUrl: `https://oneuptime.com`,
-              privacyUrl: `https://oneuptime.com/legal/privacy`,
-              termsOfUseUrl: `https://oneuptime.com/legal/terms`,
+              websiteUrl: "https://oneuptime.com",
+              privacyUrl: "https://oneuptime.com/legal/privacy",
+              termsOfUseUrl: "https://oneuptime.com/legal/terms",
             },
             name: {
               short: "OneUptime",
-              full: "OneUptime - Complete monitoring and observability platform.",
+              full: "OneUptime - Monitoring & Observability Platform",
             },
             description: {
-              short: `Complete monitoring and observability platform.`,
-              full: `OneUptime is the only complete monitoring and observability platform that combines incident management, telemetry, status pages, and uptime monitoring into a single, easy-to-use solution.`,
+              short: "Complete monitoring & observability platform.",
+              full:
+                "OneUptime unifies incident management, telemetry, status pages, uptime monitoring and on-call into a single platform.",
             },
             icons: {
               color: "icon-color.png",
               outline: "icon-outline.png",
             },
-            accentColor: "#000000ff",
+            accentColor: "#101828", // Valid 6-digit hex
             bots: [
               {
                 botId: appId,
@@ -736,26 +755,24 @@ export default class MicrosoftTeamsAPI {
               },
             ],
             permissions: ["identity"],
-            validDomains: [
-              Host.toString()
-            ],
+            validDomains: domains,
             webApplicationInfo: {
               id: appId,
-              resource: `${HomeClientUrl}`,
+              resource: HomeClientUrl.toString(),
             },
           };
 
-          // Set response headers for zip download
-          const fileName: string = `oneuptime-teams-app.zip`;
+          // Response headers for zip
+          const fileName: string = "oneuptime-teams-app.zip";
           res.setHeader("Content-Type", "application/zip");
-          res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+            res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${fileName}"`,
+          );
 
-          // Create zip archive
           const archive: archiver.Archiver = archiver("zip", {
-            zlib: { level: 9 }, // Sets the compression level
+            zlib: { level: 9 },
           });
-
-          // Handle archive errors
           archive.on("error", (err: Error) => {
             logger.error(err);
             if (!res.headersSent) {
@@ -766,43 +783,39 @@ export default class MicrosoftTeamsAPI {
               );
             }
           });
-
-          // Pipe archive data to response
           archive.pipe(res);
 
-          // Add manifest.json to zip
-          archive.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
+          archive.append(JSON.stringify(manifest, null, 2), {
+            name: "manifest.json",
+          });
 
-          // Add pre-resized color icon (192x192)
           const colorIconPath: string = path.join(
             __dirname,
-            "../Images/MicrosoftTeams/icon-color-192x192.png"
+            "../Images/MicrosoftTeams/icon-color-192x192.png",
           );
-          
           if (await LocalFile.doesFileExist(colorIconPath)) {
             archive.file(colorIconPath, { name: "icon-color.png" });
           } else {
-            throw new BadDataException(`Pre-resized color icon not found at ${colorIconPath}`);
+            throw new BadDataException(
+              `Pre-resized color icon not found at ${colorIconPath}`,
+            );
           }
 
-          // Add pre-resized outline icon (32x32)
           const outlineIconPath: string = path.join(
             __dirname,
-            "../Images/MicrosoftTeams/icon-outline-32x32.png"
+            "../Images/MicrosoftTeams/icon-outline-32x32.png",
           );
-
           if (await LocalFile.doesFileExist(outlineIconPath)) {
             archive.file(outlineIconPath, { name: "icon-outline.png" });
           } else {
-            throw new BadDataException(`Pre-resized outline icon not found at ${outlineIconPath}`);
+            throw new BadDataException(
+              `Pre-resized outline icon not found at ${outlineIconPath}`,
+            );
           }
 
-          // Finalize the archive
           await archive.finalize();
-
         } catch (error) {
           logger.error(error);
-          
           if (!res.headersSent) {
             return Response.sendErrorResponse(
               req,
