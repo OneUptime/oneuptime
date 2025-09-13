@@ -24,7 +24,6 @@ import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenSer
 import WorkspaceProjectAuthToken from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import logger from "../Utils/Logger";
-import fs from "fs";
 import path from "path";
 import archiver from "archiver";
 import LocalFile from "../Utils/LocalFile";
@@ -35,7 +34,7 @@ export default class MicrosoftTeamsAPI {
 
     // Admin consent endpoint for application permissions
     router.get(
-      "/teams/admin-consent",
+      "/microsoft-teams/admin-consent",
       async (req: ExpressRequest, res: ExpressResponse) => {
         if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
           return Response.sendErrorResponse(
@@ -187,7 +186,7 @@ export default class MicrosoftTeamsAPI {
 
     // OAuth redirect for project install (admin installs app in a team)
     router.get(
-      "/teams/auth",
+      "/microsoft-teams/auth",
       async (req: ExpressRequest, res: ExpressResponse) => {
         if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
           return Response.sendErrorResponse(
@@ -257,7 +256,7 @@ export default class MicrosoftTeamsAPI {
         }
 
         const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/teams/auth`,
+          `${AppApiClientUrl.toString()}/microsoft-teams/auth`,
         );
 
         // Exchange code for tokens - use 'common' endpoint for multi-tenant support
@@ -510,7 +509,7 @@ export default class MicrosoftTeamsAPI {
 
     // Endpoint to get available teams for a user
     router.post(
-      "/teams/get-teams",
+      "/microsoft-teams/get-teams",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           const userAuthTokenId: string = req.body["userAuthTokenId"] as string;
@@ -638,7 +637,7 @@ export default class MicrosoftTeamsAPI {
             teams: transformedTeams,
           });
         } catch (error) {
-          logger.error("Error in /teams/get-teams endpoint:");
+          logger.error("Error in /microsoft-teams/get-teams endpoint:");
           logger.error(error);
           return Response.sendErrorResponse(
             req,
@@ -652,7 +651,7 @@ export default class MicrosoftTeamsAPI {
 
     // Endpoint to generate and download Microsoft Teams app manifest package
     router.get(
-      "/teams/manifest",
+      "/microsoft-teams/manifest",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
 
@@ -673,7 +672,7 @@ export default class MicrosoftTeamsAPI {
 
           // Create app manifest JSON
           const manifest: JSONObject = {
-            $schema: "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
+            $schema: "https://developer.microsoft.com/json-schemas/microsoft-teams/v1.23/MicrosoftTeams.schema.json",
             manifestVersion: "1.23",
             version: "1.0.0",
             id: appId,
@@ -777,7 +776,7 @@ export default class MicrosoftTeamsAPI {
           // Add pre-resized color icon (192x192)
           const colorIconPath: string = path.join(
             __dirname,
-            "../Images/Teams/icon-color-192x192.png"
+            "../Images/microsoft-teams/icon-color-192x192.png"
           );
           
           if (await LocalFile.doesFileExist(colorIconPath)) {
@@ -789,7 +788,7 @@ export default class MicrosoftTeamsAPI {
           // Add pre-resized outline icon (32x32)
           const outlineIconPath: string = path.join(
             __dirname,
-            "../Images/Teams/icon-outline-32x32.png"
+            "../Images/microsoft-teams/icon-outline-32x32.png"
           );
 
           if (await LocalFile.doesFileExist(outlineIconPath)) {
