@@ -168,7 +168,8 @@ describe("LayerUtil getEvents - Daily Restrictions", () => {
   test("Should produce two segments for overnight window (23:00-11:00 next day)", () => {
     const util = new LayerUtil();
     const todayStart = OneUptimeDate.getStartOfDay(new Date());
-    const calendarEnd = OneUptimeDate.addRemoveDays(todayStart, 1); // 24h range
+    // Extend calendar to cover next day morning (till at least 12:00) so both segments can appear.
+    const calendarEnd = OneUptimeDate.addRemoveHours(todayStart, 36); // 24h + 12h
 
     const layer = buildLayerProps({
       users: ["u1"],
@@ -185,13 +186,18 @@ describe("LayerUtil getEvents - Daily Restrictions", () => {
 
     // Expect two events: 23:00 -> 23:59:59 (approx) and 00:00 -> 11:00 next day (depending on trimming logic)
     // We simplify by checking presence of one starting at 23:00 and one ending at 11:00.
-    expect(events.length).toBeGreaterThanOrEqual(1); // Could be 1 or 2 depending on merging logic; validate coverage below.
+  expect(events.length).toBeGreaterThanOrEqual(2); // Expect at least two distinct segments across midnight.
+    const has23Window = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "23:00");
+    // End might be 10:59 or 11:00 depending on second trimming; allow both 10 or 11 hour boundary.
+    const hasMorningCoverage = events.some(e => {
+      const startHM = OneUptimeDate.getLocalHourAndMinuteFromDate(e.start);
+      const endHM = OneUptimeDate.getLocalHourAndMinuteFromDate(e.end);
+      // Morning segment should end at or near 11:00 and start at or near 00:00
+      return (startHM === "00:00" || startHM === "00:01" || startHM === "23:59") && (endHM === "11:00" || endHM === "10:59" || endHM === "10:58");
+    });
 
-    const has23Start = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "23:00");
-    const has11End = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.end) === "11:00");
-
-    expect(has23Start).toBeTruthy();
-    expect(has11End).toBeTruthy();
+    expect(has23Window).toBeTruthy();
+    expect(hasMorningCoverage).toBeTruthy();
   });
 });
 
