@@ -288,9 +288,7 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             getElement: (event: SpanEvent) => {
               return (
                 <JSONTable
-                  json={JSONFunctions.nestJson(
-                    (event.attributes as any) || {},
-                  )}
+                  json={JSONFunctions.nestJson((event.attributes as any) || {})}
                   title="Attributes"
                 />
               );

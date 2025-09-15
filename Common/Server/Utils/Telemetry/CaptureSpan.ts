@@ -64,7 +64,7 @@ function CaptureSpan(data?: {
         name: name,
         options: {
           attributes: {
-            ...spanAttributes
+            ...spanAttributes,
           },
         },
         fn: (span: Span) => {

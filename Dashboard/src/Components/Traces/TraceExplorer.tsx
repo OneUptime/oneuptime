@@ -396,32 +396,37 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     }
     const serviceIdsInTrace: Set<string> = new Set(
       spans
-        .filter((s: Span) => !!s.serviceId)
-        .map((s: Span) => s.serviceId!.toString()),
+        .filter((s: Span) => {
+          return Boolean(s.serviceId);
+        })
+        .map((s: Span) => {
+          return s.serviceId!.toString();
+        }),
     );
-    return telemetryServices.filter((svc: TelemetryService) =>
-      serviceIdsInTrace.has(svc._id!.toString()),
-    );
+    return telemetryServices.filter((svc: TelemetryService) => {
+      return serviceIdsInTrace.has(svc._id!.toString());
+    });
   }, [telemetryServices, spans]);
 
   // Map serviceId -> { total, error }
-  const serviceSpanStats = React.useMemo(() => {
-    const stats: Record<string, { total: number; error: number }> = {};
-    for (const span of spans) {
-      const id: string | undefined = span.serviceId?.toString();
-      if (!id) {
-        continue;
+  const serviceSpanStats: Record<string, { total: number; error: number }> =
+    React.useMemo(() => {
+      const stats: Record<string, { total: number; error: number }> = {};
+      for (const span of spans) {
+        const id: string | undefined = span.serviceId?.toString();
+        if (!id) {
+          continue;
+        }
+        if (!stats[id]) {
+          stats[id] = { total: 0, error: 0 };
+        }
+        stats[id].total += 1;
+        if (span.statusCode === SpanStatus.Error) {
+          stats[id].error += 1;
+        }
       }
-      if (!stats[id]) {
-        stats[id] = { total: 0, error: 0 };
-      }
-      stats[id].total++;
-      if (span.statusCode === SpanStatus.Error) {
-        stats[id].error++;
-      }
-    }
-    return stats;
-  }, [spans]);
+      return stats;
+    }, [spans]);
 
   // Prune selected services if they disappear (new fetch)
   React.useEffect(() => {
@@ -429,11 +434,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       return;
     }
     const validIds: Set<string> = new Set(
-      servicesInTrace.map((s) => s._id!.toString()),
+      servicesInTrace.map((s: TelemetryService) => {
+        return s._id!.toString();
+      }),
     );
-    const stillValid: string[] = selectedServiceIds.filter((id) =>
-      validIds.has(id),
-    );
+    const stillValid: string[] = selectedServiceIds.filter((id: string) => {
+      return validIds.has(id);
+    });
     if (stillValid.length !== selectedServiceIds.length) {
       setSelectedServiceIds(stillValid);
     }
@@ -443,17 +450,26 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const displaySpans: Span[] = React.useMemo(() => {
     let filtered: Span[] = spans;
     if (showErrorsOnly) {
-      filtered = filtered.filter((s: Span) => s.statusCode === SpanStatus.Error);
+      filtered = filtered.filter((s: Span): boolean => {
+        return s.statusCode === SpanStatus.Error;
+      });
     }
     if (selectedServiceIds.length > 0) {
-      filtered = filtered.filter((s: Span) =>
-        s.serviceId ? selectedServiceIds.includes(s.serviceId.toString()) : false,
-      );
+      filtered = filtered.filter((s: Span): boolean => {
+        return s.serviceId
+          ? selectedServiceIds.includes(s.serviceId.toString())
+          : false;
+      });
     }
     return filtered;
   }, [spans, showErrorsOnly, selectedServiceIds]);
 
-  const spanStats = React.useMemo(() => {
+  const spanStats: {
+    totalSpans: number;
+    errorSpans: number;
+    servicesCount: number;
+    durationString: string;
+  } = React.useMemo(() => {
     if (spans.length === 0) {
       return {
         totalSpans: 0,
@@ -573,12 +589,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  const serviceLegend = (
+  const serviceLegend: ReactElement = (
     <div className="flex flex-wrap gap-2">
       {servicesInTrace.length > 0 ? (
         <button
           type="button"
-          onClick={() => setSelectedServiceIds([])}
+          onClick={() => {
+            return setSelectedServiceIds([]);
+          }}
           className={`group relative flex items-center space-x-1 rounded-md border text-[11px] font-medium px-2 py-1 transition-all backdrop-blur ${
             selectedServiceIds.length === 0
               ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
@@ -600,15 +618,18 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       {servicesInTrace.map((service: TelemetryService) => {
         const id: string = service._id!.toString();
         const isSelected: boolean = selectedServiceIds.includes(id);
-        const counts = serviceSpanStats[id];
+        const counts: { total: number; error: number } | undefined =
+          serviceSpanStats[id];
         return (
           <button
             key={id}
             type="button"
             onClick={() => {
-              setSelectedServiceIds((prev) => {
+              setSelectedServiceIds((prev: string[]): string[] => {
                 if (prev.includes(id)) {
-                  return prev.filter((p) => p !== id);
+                  return prev.filter((p: string) => {
+                    return p !== id;
+                  });
                 }
                 return [...prev, id];
               });
@@ -628,9 +649,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             <span
               className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10"
               style={{
-                backgroundColor:
-                  ((service.serviceColor as unknown as string) || "#6366f1") +
-                  "",
+                backgroundColor: String(
+                  (service.serviceColor as unknown as string) || "#6366f1",
+                ),
               }}
             />
             <span className="truncate max-w-28">{service.name}</span>
@@ -696,7 +717,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   className="group relative inline-flex items-center space-x-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 shadow-sm transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
                   aria-label="Copy trace id"
                 >
-                  <span className="inline-block h-3 w-3 text-gray-500 group-hover:text-gray-700">📋</span>
+                  <span className="inline-block h-3 w-3 text-gray-500 group-hover:text-gray-700">
+                    📋
+                  </span>
                   <span>Copy</span>
                 </button>
               </div>
@@ -718,18 +741,26 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           {/* Summary Stats */}
           <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Spans</div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Spans
+              </div>
               <div className="mt-1 text-lg font-semibold text-gray-800">
                 {spanStats.totalSpans}
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Errors</div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Errors
+              </div>
               <div className="mt-1 text-lg font-semibold text-red-600 flex items-center space-x-1">
                 <span>{spanStats.errorSpans}</span>
                 {spanStats.errorSpans > 0 ? (
                   <span className="text-[10px] font-medium bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
-                    {((spanStats.errorSpans / (spanStats.totalSpans || 1)) * 100).toFixed(0)}%
+                    {(
+                      (spanStats.errorSpans / (spanStats.totalSpans || 1)) *
+                      100
+                    ).toFixed(0)}
+                    %
                   </span>
                 ) : (
                   <></>
@@ -737,13 +768,17 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Services</div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Services
+              </div>
               <div className="mt-1 text-lg font-semibold text-gray-800">
                 {spanStats.servicesCount}
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Duration</div>
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Duration
+              </div>
               <div className="mt-1 text-lg font-semibold text-gray-800">
                 {spanStats.durationString}
               </div>
@@ -755,7 +790,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             <div className="flex items-center space-x-2">
               <button
                 type="button"
-                onClick={() => setShowErrorsOnly(false)}
+                onClick={() => {
+                  return setShowErrorsOnly(false);
+                }}
                 className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
                   !showErrorsOnly
                     ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
@@ -766,7 +803,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               </button>
               <button
                 type="button"
-                onClick={() => setShowErrorsOnly(true)}
+                onClick={() => {
+                  return setShowErrorsOnly(true);
+                }}
                 className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
                   showErrorsOnly
                     ? "bg-red-600 text-white border-red-600 shadow-sm"
@@ -775,7 +814,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               >
                 <span>Errors Only</span>
                 {spanStats.errorSpans > 0 ? (
-                  <span className="text-[10px] bg-white/20 rounded px-1">{spanStats.errorSpans}</span>
+                  <span className="text-[10px] bg-white/20 rounded px-1">
+                    {spanStats.errorSpans}
+                  </span>
                 ) : (
                   <></>
                 )}
@@ -802,11 +843,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           {servicesInTrace.length > 0 ? (
             <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gradient-to-br from-gray-50/60 to-white">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Services</div>
+                <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                  Services
+                </div>
                 {selectedServiceIds.length > 0 ? (
                   <button
                     type="button"
-                    onClick={() => setSelectedServiceIds([])}
+                    onClick={() => {
+                      return setSelectedServiceIds([]);
+                    }}
                     className="text-[10px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                   >
                     Clear Filters
@@ -818,9 +863,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               {serviceLegend}
               {selectedServiceIds.length > 0 ? (
                 <div className="mt-3 text-[11px] text-gray-500 flex items-center space-x-2">
-                  <span>{selectedServiceIds.length} filter{selectedServiceIds.length > 1 ? "s" : ""} active</span>
+                  <span>
+                    {selectedServiceIds.length} filter
+                    {selectedServiceIds.length > 1 ? "s" : ""} active
+                  </span>
                   <span className="inline-block h-1 w-1 rounded-full bg-gray-300" />
-                  <span>{displaySpans.length} span{displaySpans.length !== 1 ? "s" : ""} shown</span>
+                  <span>
+                    {displaySpans.length} span
+                    {displaySpans.length !== 1 ? "s" : ""} shown
+                  </span>
                 </div>
               ) : (
                 <></>

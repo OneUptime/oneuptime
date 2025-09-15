@@ -67,11 +67,19 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             );
           },
           p: ({ ...props }: any) => {
-            return <p className="text-base mt-3 mb-4 text-gray-700 leading-relaxed" {...props} />;
+            return (
+              <p
+                className="text-base mt-3 mb-4 text-gray-700 leading-relaxed"
+                {...props}
+              />
+            );
           },
           a: ({ ...props }: any) => {
             return (
-              <a className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors" {...props} />
+              <a
+                className="underline text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                {...props}
+              />
             );
           },
 
@@ -82,8 +90,11 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
               // name can be 'SyntaxHighlighter' or wrapped/minified; fall back to presence of 'children' prop with 'react-syntax-highlighter' data attribute.
               (((children as any).type &&
                 ((children as any).type.name === "SyntaxHighlighter" ||
-                  (children as any).type.displayName === "SyntaxHighlighter")) ||
-                (children as any).props?.className?.includes("syntax-highlighter"));
+                  (children as any).type.displayName ===
+                    "SyntaxHighlighter")) ||
+                (children as any).props?.className?.includes(
+                  "syntax-highlighter",
+                ));
 
             const baseClass: string = isSyntaxHighlighter
               ? "mt-4 mb-4 rounded-lg overflow-hidden"
@@ -105,7 +116,10 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
           li: ({ ...props }: any) => {
             return (
-              <li className="text-base mt-2 mb-1 text-gray-700 leading-relaxed" {...props} />
+              <li
+                className="text-base mt-2 mb-1 text-gray-700 leading-relaxed"
+                {...props}
+              />
             );
           },
           ul: ({ ...props }: any) => {
@@ -116,37 +130,43 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           },
           blockquote: ({ ...props }: any) => {
             return (
-              <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-600 bg-gray-50 py-2 my-4" {...props} />
+              <blockquote
+                className="border-l-4 border-blue-500 pl-4 italic text-gray-600 bg-gray-50 py-2 my-4"
+                {...props}
+              />
             );
           },
           table: ({ ...props }: any) => {
             return (
-              <table className="min-w-full table-auto border-collapse border border-gray-300 mt-4 mb-4" {...props} />
+              <table
+                className="min-w-full table-auto border-collapse border border-gray-300 mt-4 mb-4"
+                {...props}
+              />
             );
           },
           thead: ({ ...props }: any) => {
-            return (
-              <thead className="bg-gray-100" {...props} />
-            );
+            return <thead className="bg-gray-100" {...props} />;
           },
           tbody: ({ ...props }: any) => {
-            return (
-              <tbody {...props} />
-            );
+            return <tbody {...props} />;
           },
           tr: ({ ...props }: any) => {
-            return (
-              <tr className="border-b border-gray-200" {...props} />
-            );
+            return <tr className="border-b border-gray-200" {...props} />;
           },
           th: ({ ...props }: any) => {
             return (
-              <th className="px-4 py-2 text-left text-sm font-semibold text-gray-900 border border-gray-300" {...props} />
+              <th
+                className="px-4 py-2 text-left text-sm font-semibold text-gray-900 border border-gray-300"
+                {...props}
+              />
             );
           },
           td: ({ ...props }: any) => {
             return (
-              <td className="px-4 py-2 text-sm text-gray-700 border border-gray-300" {...props} />
+              <td
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300"
+                {...props}
+              />
             );
           },
           hr: ({ ...props }: any) => {
