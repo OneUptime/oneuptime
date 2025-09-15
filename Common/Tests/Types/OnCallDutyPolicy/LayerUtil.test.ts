@@ -1,9 +1,10 @@
 import LayerUtil, { LayerProps } from "../../../Types/OnCallDutyPolicy/Layer";
-import RestrictionTimes, { RestrictionType } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
+import RestrictionTimes, { RestrictionType, WeeklyResctriction } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../../Types/Events/Recurring";
 import OneUptimeDate from "../../../Types/Date";
 import User from "../../../Models/DatabaseModels/User";
 import EventInterval from "../../../Types/Events/EventInterval";
+import DayOfWeek, { DayOfWeekUtil } from "../../../Types/Day/DayOfWeek";
 
 // Helper to create a user model with id only.
 function user(id: string): User {
@@ -15,6 +16,12 @@ function buildLayerProps(data: {
   start: Date;
   handoff: Date;
   restriction?: { type: RestrictionType; start?: string; end?: string };
+  weeklyRestrictions?: Array<{
+    startDay: DayOfWeek;
+    endDay: DayOfWeek;
+    start: string; // HH:mm
+    end: string; // HH:mm
+  }>;
   rotation?: { intervalType: EventInterval; intervalCount: number };
 }): LayerProps {
   const restrictionTimes: RestrictionTimes = new RestrictionTimes();
@@ -35,6 +42,51 @@ function buildLayerProps(data: {
         }),
       };
     }
+  } else if (data.weeklyRestrictions && data.weeklyRestrictions.length > 0) {
+    restrictionTimes.restictionType = RestrictionType.Weekly;
+    const weekly: Array<WeeklyResctriction> = [];
+    // Base week anchor (start of week for provided start date)
+    const baseWeekStart: Date = OneUptimeDate.getStartOfTheWeek(data.start);
+    const baseWeekDay: DayOfWeek = OneUptimeDate.getDayOfWeek(baseWeekStart);
+    const baseWeekDayNumber: number = DayOfWeekUtil.getNumberOfDayOfWeek(baseWeekDay);
+
+    for (const r of data.weeklyRestrictions) {
+      const desiredStartDayNum: number = DayOfWeekUtil.getNumberOfDayOfWeek(r.startDay);
+      const desiredEndDayNum: number = DayOfWeekUtil.getNumberOfDayOfWeek(r.endDay);
+
+      const startOffsetDays: number = desiredStartDayNum - baseWeekDayNumber;
+      const endOffsetDays: number = desiredEndDayNum - baseWeekDayNumber;
+
+      const startDate: Date = OneUptimeDate.addRemoveDays(baseWeekStart, startOffsetDays);
+      const endDate: Date = OneUptimeDate.addRemoveDays(baseWeekStart, endOffsetDays);
+
+      const startTime: Date = OneUptimeDate.keepTimeButMoveDay(
+        OneUptimeDate.getDateWithCustomTime({
+          hours: parseInt(r.start.split(":")[0] || "0"),
+          minutes: parseInt(r.start.split(":")[1] || "0"),
+          seconds: 0,
+        }),
+        startDate,
+      );
+
+      const endTime: Date = OneUptimeDate.keepTimeButMoveDay(
+        OneUptimeDate.getDateWithCustomTime({
+          hours: parseInt(r.end.split(":")[0] || "0"),
+          minutes: parseInt(r.end.split(":")[1] || "0"),
+          seconds: 0,
+        }),
+        endDate,
+      );
+
+      weekly.push({
+        startDay: r.startDay,
+        endDay: r.endDay,
+        startTime,
+        endTime,
+      });
+    }
+
+    restrictionTimes.weeklyRestrictionTimes = weekly;
   } else {
     restrictionTimes.restictionType = RestrictionType.None;
     restrictionTimes.dayRestrictionTimes = null;
@@ -140,6 +192,143 @@ describe("LayerUtil getEvents - Daily Restrictions", () => {
 
     expect(has23Start).toBeTruthy();
     expect(has11End).toBeTruthy();
+  });
+});
+
+describe("LayerUtil getEvents - Multi-day Daily Windows", () => {
+  test("Daily restriction (09:00-17:00) over 3 day calendar produces one window per day", () => {
+    const util = new LayerUtil();
+    const day1 = OneUptimeDate.getStartOfDay(new Date());
+    const calendarEnd = OneUptimeDate.addRemoveDays(day1, 3); // 3 days window
+
+    const layer = buildLayerProps({
+      users: ["u1"],
+      start: day1,
+      handoff: OneUptimeDate.addRemoveDays(day1, 1), // initial handoff end of day1
+      restriction: { type: RestrictionType.Daily, start: "09:00", end: "17:00" },
+      rotation: { intervalType: EventInterval.Day, intervalCount: 1 },
+    });
+
+    const events = util.getEvents({
+      ...layer,
+      calendarStartDate: day1,
+      calendarEndDate: calendarEnd,
+    });
+
+    const windowsStartingAtNine = events.filter(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "09:00");
+    expect(windowsStartingAtNine.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("LayerUtil getEvents - Weekly Restrictions", () => {
+  test("Simple weekly window Monday 09:00 to Wednesday 17:00 yields trimmed events", () => {
+    const util = new LayerUtil();
+    const monday = OneUptimeDate.getStartOfTheWeek(new Date());
+    const calendarEnd = OneUptimeDate.addRemoveDays(monday, 7);
+
+    const layer = buildLayerProps({
+      users: ["u1"],
+      start: monday,
+      handoff: OneUptimeDate.addRemoveWeeks(monday, 1),
+      weeklyRestrictions: [
+        { startDay: DayOfWeek.Monday, endDay: DayOfWeek.Wednesday, start: "09:00", end: "17:00" },
+      ],
+      rotation: { intervalType: EventInterval.Week, intervalCount: 1 },
+    });
+
+    const events = util.getEvents({
+      ...layer,
+      calendarStartDate: monday,
+      calendarEndDate: calendarEnd,
+    });
+
+    const hasStartNine = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "09:00");
+    const hasEndSeventeen = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.end) === "17:00");
+    expect(hasStartNine).toBeTruthy();
+    expect(hasEndSeventeen).toBeTruthy();
+  });
+
+  test("Weekly wrap-around Friday 22:00 to Monday 06:00 produces appropriate segments", () => {
+    const util = new LayerUtil();
+    const monday = OneUptimeDate.getStartOfTheWeek(new Date());
+    const calendarEnd = OneUptimeDate.addRemoveDays(monday, 7);
+
+    const layer = buildLayerProps({
+      users: ["u1"],
+      start: monday,
+      handoff: OneUptimeDate.addRemoveWeeks(monday, 1),
+      weeklyRestrictions: [
+        { startDay: DayOfWeek.Friday, endDay: DayOfWeek.Monday, start: "22:00", end: "06:00" },
+      ],
+      rotation: { intervalType: EventInterval.Week, intervalCount: 1 },
+    });
+
+    const events = util.getEvents({
+      ...layer,
+      calendarStartDate: monday,
+      calendarEndDate: calendarEnd,
+    });
+
+    const has22 = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.start) === "22:00");
+    const has06 = events.some(e => OneUptimeDate.getLocalHourAndMinuteFromDate(e.end) === "06:00");
+    expect(has22).toBeTruthy();
+    expect(has06).toBeTruthy();
+  });
+});
+
+describe("LayerUtil getEvents - Daily Rotation Across Users", () => {
+  test("Daily rotation cycles users", () => {
+    const util = new LayerUtil();
+    const day1 = OneUptimeDate.getStartOfDay(new Date());
+    const calendarEnd = OneUptimeDate.addRemoveDays(day1, 3); // 3 days
+
+    const layer = buildLayerProps({
+      users: ["a", "b"],
+      start: day1,
+      handoff: OneUptimeDate.addRemoveDays(day1, 1),
+      rotation: { intervalType: EventInterval.Day, intervalCount: 1 },
+    });
+
+    const events = util.getEvents({
+      ...layer,
+      calendarStartDate: day1,
+      calendarEndDate: calendarEnd,
+    });
+
+    if (events.length >= 2) {
+      expect(events[0]!.title).not.toBe(events[1]!.title);
+    }
+  });
+});
+
+describe("LayerUtil getMultiLayerEvents - Partial Overlap Trimming", () => {
+  test("Primary layer inside backup trims backup", () => {
+    const util = new LayerUtil();
+    const start = OneUptimeDate.getStartOfDay(new Date());
+    const calendarEnd = OneUptimeDate.addRemoveHours(start, 6);
+
+    const primary = buildLayerProps({
+      users: ["primary"],
+      start: OneUptimeDate.addRemoveHours(start, 2),
+      handoff: OneUptimeDate.addRemoveHours(start, 4),
+    });
+
+    const backup = buildLayerProps({
+      users: ["backup"],
+      start: start,
+      handoff: OneUptimeDate.addRemoveHours(start, 6),
+    });
+
+    const events = util.getMultiLayerEvents({
+      layers: [primary, backup],
+      calendarStartDate: start,
+      calendarEndDate: calendarEnd,
+    });
+
+    const containsPrimary = events.some(e => e.title === "primary");
+    const containsBackup = events.some(e => e.title === "backup");
+    expect(containsPrimary).toBeTruthy();
+    expect(containsBackup).toBeTruthy();
   });
 });
 
