@@ -727,45 +727,58 @@ export default class LayerUtil {
       const results: Array<StartAndEndTime> = [];
 
       // We'll iterate day-by-day within the event range (max 31 iterations safeguard)
-      let currentDayStart: Date = OneUptimeDate.getStartOfDay(data.eventStartTime);
+      let currentDayStart: Date = OneUptimeDate.getStartOfDay(
+        data.eventStartTime,
+      );
       const absoluteEventEnd: Date = data.eventEndTime;
       let safetyCounter: number = 0;
       const maxDays: number = 62; // generous safeguard
 
-      while (OneUptimeDate.isOnOrBefore(currentDayStart, absoluteEventEnd) && safetyCounter < maxDays) {
+      while (
+        OneUptimeDate.isOnOrBefore(currentDayStart, absoluteEventEnd) &&
+        safetyCounter < maxDays
+      ) {
         safetyCounter++;
 
         const segmentNightStart: Date = OneUptimeDate.keepTimeButMoveDay(
           restrictionStartTime,
           currentDayStart,
         );
-        const segmentNightEnd: Date = OneUptimeDate.getEndOfDay(segmentNightStart);
+        const segmentNightEnd: Date =
+          OneUptimeDate.getEndOfDay(segmentNightStart);
 
-        const nextDayStart: Date = OneUptimeDate.addRemoveDays(currentDayStart, 1);
-        const segmentMorningStart: Date = OneUptimeDate.getStartOfDay(nextDayStart);
+        const nextDayStart: Date = OneUptimeDate.addRemoveDays(
+          currentDayStart,
+          1,
+        );
+        const segmentMorningStart: Date =
+          OneUptimeDate.getStartOfDay(nextDayStart);
         const segmentMorningEnd: Date = OneUptimeDate.keepTimeButMoveDay(
           restrictionEndTime,
           nextDayStart,
         );
 
         // helper to add intersection if it overlaps the event window
-        const addIntersection = (segStart: Date, segEnd: Date): void => {
+        const addIntersection: (segStart: Date, segEnd: Date) => void = (
+          segStart: Date,
+          segEnd: Date,
+        ): void => {
           // normalize zero / invalid lengths
           if (OneUptimeDate.isOnOrBefore(segEnd, segStart)) {
             return; // no length
           }
           // intersect with [eventStart, eventEnd]
-            const start: Date = OneUptimeDate.getGreaterDate(
-              segStart,
-              data.eventStartTime,
-            );
-            const end: Date = OneUptimeDate.getLesserDate(
-              segEnd,
-              data.eventEndTime,
-            );
-            if (OneUptimeDate.isAfter(end, start)) {
-              results.push({ startTime: start, endTime: end });
-            }
+          const start: Date = OneUptimeDate.getGreaterDate(
+            segStart,
+            data.eventStartTime,
+          );
+          const end: Date = OneUptimeDate.getLesserDate(
+            segEnd,
+            data.eventEndTime,
+          );
+          if (OneUptimeDate.isAfter(end, start)) {
+            results.push({ startTime: start, endTime: end });
+          }
         };
 
         addIntersection(segmentNightStart, segmentNightEnd);
