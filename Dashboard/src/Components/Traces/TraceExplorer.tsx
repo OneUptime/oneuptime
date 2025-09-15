@@ -77,6 +77,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       intervalUnit: IntervalUnit.Milliseconds,
     });
 
+  // Service Filter State
+  const [selectedServiceIds, setSelectedServiceIds] = React.useState<string[]>(
+    [],
+  );
+
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -384,12 +389,69 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }, []);
 
   // Derived values for summary / filtering
-  const displaySpans: Span[] = React.useMemo(() => {
-    if (!showErrorsOnly) {
-      return spans;
+  // Services involved in this trace only
+  const servicesInTrace: TelemetryService[] = React.useMemo(() => {
+    if (spans.length === 0) {
+      return [];
     }
-    return spans.filter((s: Span) => s.statusCode === SpanStatus.Error);
-  }, [spans, showErrorsOnly]);
+    const serviceIdsInTrace: Set<string> = new Set(
+      spans
+        .filter((s: Span) => !!s.serviceId)
+        .map((s: Span) => s.serviceId!.toString()),
+    );
+    return telemetryServices.filter((svc: TelemetryService) =>
+      serviceIdsInTrace.has(svc._id!.toString()),
+    );
+  }, [telemetryServices, spans]);
+
+  // Map serviceId -> { total, error }
+  const serviceSpanStats = React.useMemo(() => {
+    const stats: Record<string, { total: number; error: number }> = {};
+    for (const span of spans) {
+      const id: string | undefined = span.serviceId?.toString();
+      if (!id) {
+        continue;
+      }
+      if (!stats[id]) {
+        stats[id] = { total: 0, error: 0 };
+      }
+      stats[id].total++;
+      if (span.statusCode === SpanStatus.Error) {
+        stats[id].error++;
+      }
+    }
+    return stats;
+  }, [spans]);
+
+  // Prune selected services if they disappear (new fetch)
+  React.useEffect(() => {
+    if (selectedServiceIds.length === 0) {
+      return;
+    }
+    const validIds: Set<string> = new Set(
+      servicesInTrace.map((s) => s._id!.toString()),
+    );
+    const stillValid: string[] = selectedServiceIds.filter((id) =>
+      validIds.has(id),
+    );
+    if (stillValid.length !== selectedServiceIds.length) {
+      setSelectedServiceIds(stillValid);
+    }
+  }, [servicesInTrace, selectedServiceIds]);
+
+  // Final spans after applying filters
+  const displaySpans: Span[] = React.useMemo(() => {
+    let filtered: Span[] = spans;
+    if (showErrorsOnly) {
+      filtered = filtered.filter((s: Span) => s.statusCode === SpanStatus.Error);
+    }
+    if (selectedServiceIds.length > 0) {
+      filtered = filtered.filter((s: Span) =>
+        s.serviceId ? selectedServiceIds.includes(s.serviceId.toString()) : false,
+      );
+    }
+    return filtered;
+  }, [spans, showErrorsOnly, selectedServiceIds]);
 
   const spanStats = React.useMemo(() => {
     if (spans.length === 0) {
@@ -512,32 +574,98 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }
 
   const serviceLegend = (
-    <div className="flex flex-wrap gap-3">
-      {telemetryServices.slice(0, 12).map((service: TelemetryService) => {
-        return (
-          <div
-            key={service._id?.toString()}
-            className="flex items-center space-x-2 rounded-md bg-white/60 backdrop-blur px-2 py-1 border border-gray-200 hover:shadow-sm transition-shadow"
-            title={service.name || "Service"}
-          >
-            <div
-              className="h-3 w-3 rounded-sm ring-1 ring-gray-300"
-              style={{
-                // Cast to string because serviceColor is a Color type.
-                backgroundColor: (service.serviceColor as unknown as string) || "#6366f1",
-              }}
-            />
-            <span className="text-xs font-medium text-gray-700 max-w-32 truncate">
-              {service.name}
+    <div className="flex flex-wrap gap-2">
+      {servicesInTrace.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => setSelectedServiceIds([])}
+          className={`group relative flex items-center space-x-1 rounded-md border text-[11px] font-medium px-2 py-1 transition-all backdrop-blur ${
+            selectedServiceIds.length === 0
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white/60 text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-white"
+          }`}
+        >
+          <span>All</span>
+          {selectedServiceIds.length > 0 ? (
+            <span className="inline-block rounded bg-black/10 px-1 text-[10px] font-semibold">
+              {servicesInTrace.length}
             </span>
-          </div>
-        );
-      })}
-      {telemetryServices.length > 12 ? (
-        <span className="text-[11px] text-gray-500 px-1">+{telemetryServices.length - 12} more</span>
+          ) : (
+            <></>
+          )}
+        </button>
       ) : (
         <></>
       )}
+      {servicesInTrace.map((service: TelemetryService) => {
+        const id: string = service._id!.toString();
+        const isSelected: boolean = selectedServiceIds.includes(id);
+        const counts = serviceSpanStats[id];
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setSelectedServiceIds((prev) => {
+                if (prev.includes(id)) {
+                  return prev.filter((p) => p !== id);
+                }
+                return [...prev, id];
+              });
+            }}
+            title={
+              service.name +
+              (counts
+                ? ` – ${counts.total} span${counts.total !== 1 ? "s" : ""}`
+                : "")
+            }
+            className={`group relative flex items-center space-x-2 rounded-md border px-2 py-1 text-[11px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-indigo-500 ${
+              isSelected
+                ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-sm"
+                : "bg-white/60 border-gray-200 text-gray-700 hover:bg-white hover:border-gray-300"
+            }`}
+          >
+            <span
+              className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10"
+              style={{
+                backgroundColor:
+                  ((service.serviceColor as unknown as string) || "#6366f1") +
+                  "",
+              }}
+            />
+            <span className="truncate max-w-28">{service.name}</span>
+            {counts ? (
+              <span className="flex items-center space-x-1 text-[10px] font-semibold">
+                <span
+                  className={`px-1 rounded ${
+                    counts.error > 0
+                      ? "bg-red-100 text-red-600"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {counts.total}
+                </span>
+                {counts.error > 0 ? (
+                  <span className="px-1 rounded bg-rose-500/20 text-rose-600">
+                    {counts.error}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
+            {isSelected ? (
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[9px] shadow ring-1 ring-white">
+                ✓
+              </span>
+            ) : (
+              <></>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -646,10 +774,32 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           </div>
 
           {/* Service Legend */}
-          {telemetryServices.length > 0 ? (
-            <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gray-50/50">
-              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium mb-2">Services</div>
+          {servicesInTrace.length > 0 ? (
+            <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gradient-to-br from-gray-50/60 to-white">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">Services</div>
+                {selectedServiceIds.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedServiceIds([])}
+                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                  >
+                    Clear Filters
+                  </button>
+                ) : (
+                  <></>
+                )}
+              </div>
               {serviceLegend}
+              {selectedServiceIds.length > 0 ? (
+                <div className="mt-3 text-[11px] text-gray-500 flex items-center space-x-2">
+                  <span>{selectedServiceIds.length} filter{selectedServiceIds.length > 1 ? "s" : ""} active</span>
+                  <span className="inline-block h-1 w-1 rounded-full bg-gray-300" />
+                  <span>{displaySpans.length} span{displaySpans.length !== 1 ? "s" : ""} shown</span>
+                </div>
+              ) : (
+                <></>
+              )}
             </div>
           ) : (
             <></>
