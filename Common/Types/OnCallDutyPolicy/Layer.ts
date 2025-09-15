@@ -718,6 +718,79 @@ export default class LayerUtil {
     let restrictionStartTime: Date = dayRestrictionTimes.startTime;
     let restrictionEndTime: Date = dayRestrictionTimes.endTime;
 
+    // Special Case: Overnight (wrap-around) window where end time is logically on the next day.
+    // Example: 23:00 -> 11:00 (next day). Existing algorithm assumed end >= start within same day
+    // and returned no events. We explicitly expand such windows into two segments per day:
+    // 1) start -> endOfDay(start)
+    // 2) startOfNextDay -> end (moved to next day)
+    if (OneUptimeDate.isBefore(restrictionEndTime, restrictionStartTime)) {
+      const results: Array<StartAndEndTime> = [];
+
+      // We'll iterate day-by-day within the event range (max 31 iterations safeguard)
+      let currentDayStart: Date = OneUptimeDate.getStartOfDay(
+        data.eventStartTime,
+      );
+      const absoluteEventEnd: Date = data.eventEndTime;
+      let safetyCounter: number = 0;
+      const maxDays: number = 62; // generous safeguard
+
+      while (
+        OneUptimeDate.isOnOrBefore(currentDayStart, absoluteEventEnd) &&
+        safetyCounter < maxDays
+      ) {
+        safetyCounter++;
+
+        const segmentNightStart: Date = OneUptimeDate.keepTimeButMoveDay(
+          restrictionStartTime,
+          currentDayStart,
+        );
+        const segmentNightEnd: Date =
+          OneUptimeDate.getEndOfDay(segmentNightStart);
+
+        const nextDayStart: Date = OneUptimeDate.addRemoveDays(
+          currentDayStart,
+          1,
+        );
+        const segmentMorningStart: Date =
+          OneUptimeDate.getStartOfDay(nextDayStart);
+        const segmentMorningEnd: Date = OneUptimeDate.keepTimeButMoveDay(
+          restrictionEndTime,
+          nextDayStart,
+        );
+
+        // helper to add intersection if it overlaps the event window
+        const addIntersection: (segStart: Date, segEnd: Date) => void = (
+          segStart: Date,
+          segEnd: Date,
+        ): void => {
+          // normalize zero / invalid lengths
+          if (OneUptimeDate.isOnOrBefore(segEnd, segStart)) {
+            return; // no length
+          }
+          // intersect with [eventStart, eventEnd]
+          const start: Date = OneUptimeDate.getGreaterDate(
+            segStart,
+            data.eventStartTime,
+          );
+          const end: Date = OneUptimeDate.getLesserDate(
+            segEnd,
+            data.eventEndTime,
+          );
+          if (OneUptimeDate.isAfter(end, start)) {
+            results.push({ startTime: start, endTime: end });
+          }
+        };
+
+        addIntersection(segmentNightStart, segmentNightEnd);
+        addIntersection(segmentMorningStart, segmentMorningEnd);
+
+        // advance a day
+        currentDayStart = nextDayStart;
+      }
+
+      return results;
+    }
+
     let currentStartTime: Date = data.eventStartTime;
     const currentEndTime: Date = data.eventEndTime;
 
