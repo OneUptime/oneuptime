@@ -417,12 +417,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         if (!id) {
           continue;
         }
-        if (!stats[id]) {
-          stats[id] = { total: 0, error: 0 };
-        }
-        stats[id].total += 1;
+        const serviceStats: { total: number; error: number } =
+          stats[id] ?? (stats[id] = { total: 0, error: 0 });
+        serviceStats.total += 1;
         if (span.statusCode === SpanStatus.Error) {
-          stats[id].error += 1;
+          serviceStats.error += 1;
         }
       }
       return stats;

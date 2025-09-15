@@ -83,7 +83,9 @@ const JSONTable: FunctionComponent<JSONTableProps> = (
       if (!groupMap[prefix]) {
         groupMap[prefix] = [];
       }
-      groupMap[prefix].push({ index, value: working[key] });
+      // At this point groupMap[prefix] is initialized. Use a local ref so TS can narrow.
+      const entries: Array<GroupEntry> = groupMap[prefix]!;
+      entries.push({ index, value: working[key] });
       keysToRemove.add(key);
     }
 
