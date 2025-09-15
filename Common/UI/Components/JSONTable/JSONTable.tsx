@@ -66,12 +66,11 @@ const JSONTable: FunctionComponent<JSONTableProps> = (props: JSONTableProps): Re
 
     // Apply grouping where it makes sense (only if at least 2 items or at least 1 and prefix not already defined)
     for (const prefix in groupMap) {
-      // If prefix already exists as its own key (non-array) skip to avoid overwriting.
-      if (working.hasOwnProperty(prefix) && !keysToRemove.has(prefix)) { continue; }
       const arr: Array<{ index: number; value: any }> = groupMap[prefix] || [];
       if (arr.length === 0) { continue; }
       // Sort by numeric index
       arr.sort((a, b) => a.index - b.index);
+      // Always override / set grouped array representation.
       working[prefix] = arr.map(i => i.value);
     }
 
