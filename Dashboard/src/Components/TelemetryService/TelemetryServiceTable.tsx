@@ -13,6 +13,7 @@ import TelemetryService from "Common/Models/DatabaseModels/TelemetryService";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import TelemetryServiceElement from "./TelemetryServiceElement";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -35,6 +36,9 @@ const TelemetryServiceTable: FunctionComponent<ComponentProps> = (
       isEditable={false}
       userPreferencesKey="telemetry-services-table"
       query={props.query || {}}
+      // Default sort: by Name ascending
+      sortBy={"name"}
+      sortOrder={SortOrder.Ascending}
       actionButtons={props.actionButtons}
       isCreateable={!props.disableCreate}
       name="Services"

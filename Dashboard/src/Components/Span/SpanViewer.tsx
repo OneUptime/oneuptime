@@ -9,6 +9,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import Accordion from "Common/UI/Components/Accordion/Accordion";
 import AccordionGroup from "Common/UI/Components/Accordion/AccordionGroup";
 import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
+import JSONTable from "Common/UI/Components/JSONTable/JSONTable";
 import Detail from "Common/UI/Components/Detail/Detail";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -203,12 +204,11 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
               fieldType: FieldType.Element,
               getElement: (span: Span) => {
                 return (
-                  <CodeEditor
-                    type={CodeType.JSON}
-                    initialValue={JSONFunctions.toFormattedString(
-                      JSONFunctions.nestJson(span.attributes || {}),
+                  <JSONTable
+                    json={JSONFunctions.nestJson(
+                      (span.attributes as any) || {},
                     )}
-                    readOnly={true}
+                    title="Attributes"
                   />
                 );
               },
@@ -287,12 +287,9 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             fieldType: FieldType.Element,
             getElement: (event: SpanEvent) => {
               return (
-                <CodeEditor
-                  type={CodeType.JSON}
-                  initialValue={JSONFunctions.toFormattedString(
-                    JSONFunctions.nestJson(event.attributes || {}),
-                  )}
-                  readOnly={true}
+                <JSONTable
+                  json={JSONFunctions.nestJson((event.attributes as any) || {})}
+                  title="Attributes"
                 />
               );
             },
@@ -491,12 +488,11 @@ const SpanViewer: FunctionComponent<ComponentProps> = (
             fieldType: FieldType.Element,
             getElement: (exception: ExceptionInstance) => {
               return (
-                <CodeEditor
-                  type={CodeType.JSON}
-                  initialValue={JSONFunctions.toFormattedString(
-                    JSONFunctions.nestJson(exception.attributes || {}),
+                <JSONTable
+                  json={JSONFunctions.nestJson(
+                    (exception.attributes as any) || {},
                   )}
-                  readOnly={true}
+                  title="Attributes"
                 />
               );
             },

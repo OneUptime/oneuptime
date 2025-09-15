@@ -504,55 +504,58 @@ export default class API {
       }
     }
 
-    if (errorString.toLocaleLowerCase().includes("network error")) {
+    const status: number | undefined = (error as AxiosError)?.response?.status;
+    const lowerErr: string = errorString.toLocaleLowerCase();
+
+    if (status !== 400 && lowerErr.includes("network error")) {
       return "Network Error.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("timeout")) {
+    if (status !== 400 && lowerErr.includes("timeout")) {
       return "Timeout Error.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("request aborted")) {
+    if (status !== 400 && lowerErr.includes("request aborted")) {
       return "Request Aborted.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("canceled")) {
+    if (status !== 400 && lowerErr.includes("canceled")) {
       return "Request Canceled.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("connection refused")) {
+    if (status !== 400 && lowerErr.includes("connection refused")) {
       return "Connection Refused.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("connection reset")) {
+    if (status !== 400 && lowerErr.includes("connection reset")) {
       return "Connection Reset.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("connection closed")) {
+    if (status !== 400 && lowerErr.includes("connection closed")) {
       return "Connection Closed.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("connection failed")) {
+    if (status !== 400 && lowerErr.includes("connection failed")) {
       return "Connection Failed.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("enotfound")) {
+    if (status !== 400 && lowerErr.includes("enotfound")) {
       return "Cannot Find Host.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("econnreset")) {
+    if (status !== 400 && lowerErr.includes("econnreset")) {
       return "Connection Reset.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("econnrefused")) {
+    if (status !== 400 && lowerErr.includes("econnrefused")) {
       return "Connection Refused.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("econnaborted")) {
+    if (status !== 400 && lowerErr.includes("econnaborted")) {
       return "Connection Aborted.";
     }
 
-    if (errorString.toLocaleLowerCase().includes("certificate has expired")) {
+    if (status !== 400 && lowerErr.includes("certificate has expired")) {
       return "SSL Certificate Expired.";
     }
 

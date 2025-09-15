@@ -62,6 +62,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const [spans, setSpans] = React.useState<Span[]>([]);
 
+  // UI State Enhancements
+  const [showErrorsOnly, setShowErrorsOnly] = React.useState<boolean>(false);
+
   const [traceId, setTraceId] = React.useState<string | null>(null);
 
   const [ganttChart, setGanttChart] = React.useState<GanttChartProps | null>(
@@ -73,6 +76,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       divisibilityFactorNumber: 1000,
       intervalUnit: IntervalUnit.Milliseconds,
     });
+
+  // Service Filter State
+  const [selectedServiceIds, setSelectedServiceIds] = React.useState<string[]>(
+    [],
+  );
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -150,18 +158,20 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     const { span, timelineStartTimeUnixNano, divisibilityFactor } = data;
 
     return (
-      <div className="px-1 min-w-56 cursor-default">
-        <div className="bar-tooltip-title text-sm text-gray-700 font-medium my-2">
+      <div className="px-3 py-2 min-w-60 cursor-default rounded-md border border-gray-200 bg-white/90 backdrop-blur-sm shadow-lg">
+        <div className="bar-tooltip-title text-sm text-gray-800 font-semibold mb-3 leading-snug">
           {span.name}
         </div>
-        <div className="bar-tooltip-description text-gray-600 text-xs space-y-1.5 my-2">
-          <div className="">
-            <div className="font-semibold">Span ID:</div>{" "}
-            <div>{span.spanId?.toString()}</div>
+        <div className="bar-tooltip-description text-gray-600 text-[11px] space-y-2">
+          <div className="flex justify-between">
+            <div className="font-medium text-gray-700">Span ID</div>
+            <div className="ml-2 font-mono text-gray-800 truncate max-w-40">
+              {span.spanId?.toString()}
+            </div>
           </div>
-          <div className="">
-            <div className="font-semibold">Span Status:</div>{" "}
-            <div>
+          <div className="flex justify-between items-center">
+            <div className="font-medium text-gray-700">Status</div>
+            <div className="ml-2">
               <SpanStatusElement
                 spanStatusCode={span.statusCode!}
                 traceId={span.traceId?.toString()}
@@ -170,49 +180,53 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   SpanUtil.getSpanStatusCodeFriendlyName(span.statusCode!)
                 }
                 titleClassName="mt-0.5"
-              />{" "}
+              />
             </div>
           </div>
-          <div className="">
-            <div className="font-semibold">Seen at:</div>{" "}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             <div>
-              {OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                span.startTime!,
-              )}
+              <div className="font-medium text-gray-700">Seen</div>
+              <div className="text-gray-800">
+                {OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                  span.startTime!,
+                )}
+              </div>
             </div>
-          </div>
-          <div className="">
-            <div className="font-semibold">Start:</div>{" "}
             <div>
-              {SpanUtil.getSpanStartsAtAsString({
-                timelineStartTimeUnixNano,
-                divisibilityFactor: divisibilityFactor,
-                spanStartTimeUnixNano: span.startTimeUnixNano!,
-              })}
+              <div className="font-medium text-gray-700">Kind</div>
+              <div className="text-gray-800">
+                {SpanUtil.getSpanKindFriendlyName(span.kind!)}
+              </div>
             </div>
-          </div>
-          <div className="">
-            <div className="font-semibold">End:</div>{" "}
             <div>
-              {SpanUtil.getSpanEndsAtAsString({
-                timelineStartTimeUnixNano,
-                divisibilityFactor: divisibilityFactor,
-                spanEndTimeUnixNano: span.endTimeUnixNano!,
-              })}
+              <div className="font-medium text-gray-700">Start</div>
+              <div className="text-gray-800">
+                {SpanUtil.getSpanStartsAtAsString({
+                  timelineStartTimeUnixNano,
+                  divisibilityFactor: divisibilityFactor,
+                  spanStartTimeUnixNano: span.startTimeUnixNano!,
+                })}
+              </div>
             </div>
-          </div>
-          <div className="">
-            <div className="font-semibold">Duration:</div>{" "}
             <div>
-              {SpanUtil.getSpanDurationAsString({
-                spanDurationInUnixNano: span.durationUnixNano!,
-                divisibilityFactor: divisibilityFactor,
-              })}
+              <div className="font-medium text-gray-700">End</div>
+              <div className="text-gray-800">
+                {SpanUtil.getSpanEndsAtAsString({
+                  timelineStartTimeUnixNano,
+                  divisibilityFactor: divisibilityFactor,
+                  spanEndTimeUnixNano: span.endTimeUnixNano!,
+                })}
+              </div>
             </div>
-          </div>
-          <div className="">
-            <div className="font-semibold">Span Kind:</div>{" "}
-            <div>{SpanUtil.getSpanKindFriendlyName(span.kind!)}</div>
+            <div className="col-span-2">
+              <div className="font-medium text-gray-700">Duration</div>
+              <div className="text-gray-800">
+                {SpanUtil.getSpanDurationAsString({
+                  spanDurationInUnixNano: span.durationUnixNano!,
+                  divisibilityFactor: divisibilityFactor,
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -374,23 +388,145 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
+  // Derived values for summary / filtering
+  // Services involved in this trace only
+  const servicesInTrace: TelemetryService[] = React.useMemo(() => {
+    if (spans.length === 0) {
+      return [];
+    }
+    const serviceIdsInTrace: Set<string> = new Set(
+      spans
+        .filter((s: Span) => {
+          return Boolean(s.serviceId);
+        })
+        .map((s: Span) => {
+          return s.serviceId!.toString();
+        }),
+    );
+    return telemetryServices.filter((svc: TelemetryService) => {
+      return serviceIdsInTrace.has(svc._id!.toString());
+    });
+  }, [telemetryServices, spans]);
+
+  // Map serviceId -> { total, error }
+  const serviceSpanStats: Record<string, { total: number; error: number }> =
+    React.useMemo(() => {
+      const stats: Record<string, { total: number; error: number }> = {};
+      for (const span of spans) {
+        const id: string | undefined = span.serviceId?.toString();
+        if (!id) {
+          continue;
+        }
+        const serviceStats: { total: number; error: number } =
+          stats[id] ?? (stats[id] = { total: 0, error: 0 });
+        serviceStats.total += 1;
+        if (span.statusCode === SpanStatus.Error) {
+          serviceStats.error += 1;
+        }
+      }
+      return stats;
+    }, [spans]);
+
+  // Prune selected services if they disappear (new fetch)
+  React.useEffect(() => {
+    if (selectedServiceIds.length === 0) {
+      return;
+    }
+    const validIds: Set<string> = new Set(
+      servicesInTrace.map((s: TelemetryService) => {
+        return s._id!.toString();
+      }),
+    );
+    const stillValid: string[] = selectedServiceIds.filter((id: string) => {
+      return validIds.has(id);
+    });
+    if (stillValid.length !== selectedServiceIds.length) {
+      setSelectedServiceIds(stillValid);
+    }
+  }, [servicesInTrace, selectedServiceIds]);
+
+  // Final spans after applying filters
+  const displaySpans: Span[] = React.useMemo(() => {
+    let filtered: Span[] = spans;
+    if (showErrorsOnly) {
+      filtered = filtered.filter((s: Span): boolean => {
+        return s.statusCode === SpanStatus.Error;
+      });
+    }
+    if (selectedServiceIds.length > 0) {
+      filtered = filtered.filter((s: Span): boolean => {
+        return s.serviceId
+          ? selectedServiceIds.includes(s.serviceId.toString())
+          : false;
+      });
+    }
+    return filtered;
+  }, [spans, showErrorsOnly, selectedServiceIds]);
+
+  const spanStats: {
+    totalSpans: number;
+    errorSpans: number;
+    servicesCount: number;
+    durationString: string;
+  } = React.useMemo(() => {
+    if (spans.length === 0) {
+      return {
+        totalSpans: 0,
+        errorSpans: 0,
+        servicesCount: 0,
+        durationString: "-",
+      };
+    }
+
+    let minStart: number = spans[0]!.startTimeUnixNano!;
+    let maxEnd: number = spans[0]!.endTimeUnixNano!;
+    let errorCount: number = 0;
+    const serviceIds: Set<string> = new Set();
+
+    for (const span of spans) {
+      if (span.startTimeUnixNano! < minStart) {
+        minStart = span.startTimeUnixNano!;
+      }
+      if (span.endTimeUnixNano! > maxEnd) {
+        maxEnd = span.endTimeUnixNano!;
+      }
+      if (span.statusCode === SpanStatus.Error) {
+        errorCount++;
+      }
+      if (span.serviceId) {
+        serviceIds.add(span.serviceId.toString());
+      }
+    }
+
+    const durationString: string = SpanUtil.getSpanDurationAsString({
+      spanDurationInUnixNano: maxEnd - minStart,
+      divisibilityFactor,
+    });
+
+    return {
+      totalSpans: spans.length,
+      errorSpans: errorCount,
+      servicesCount: serviceIds.size,
+      durationString,
+    };
+  }, [spans, divisibilityFactor]);
+
   React.useEffect(() => {
     // convert spans to gantt chart
 
-    if (spans.length === 0) {
+    if (displaySpans.length === 0) {
+      setGanttChart(null);
       return;
     }
 
-    let timelineStartTimeUnixNano: number = spans[0]!.startTimeUnixNano!;
-
+    let timelineStartTimeUnixNano: number = displaySpans[0]!.startTimeUnixNano!;
     let timelineEndTimeUnixNano: number =
-      spans[spans.length - 1]!.endTimeUnixNano!;
+      displaySpans[displaySpans.length - 1]!.endTimeUnixNano!;
 
-    for (const span of spans) {
+    for (const span of displaySpans) {
       if (span.startTimeUnixNano! < timelineStartTimeUnixNano) {
         timelineStartTimeUnixNano = span.startTimeUnixNano!;
       }
-
       if (span.endTimeUnixNano! > timelineEndTimeUnixNano) {
         timelineEndTimeUnixNano = span.endTimeUnixNano!;
       }
@@ -398,39 +534,37 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
     const startTimeline: number = 0;
 
-    const divisibilityFactor: DivisibilityFactor =
+    const newDivisibilityFactor: DivisibilityFactor =
       SpanUtil.getDivisibilityFactor(
         timelineEndTimeUnixNano - timelineStartTimeUnixNano,
       );
 
-    setDivisibilityFactor(divisibilityFactor);
+    setDivisibilityFactor(newDivisibilityFactor);
 
     const divisibilityFactorNumber: number =
-      divisibilityFactor.divisibilityFactorNumber;
+      newDivisibilityFactor.divisibilityFactorNumber;
 
     const endTimeline: number =
       (timelineEndTimeUnixNano - timelineStartTimeUnixNano) /
-      divisibilityFactorNumber; // divide by 1000 to convert from nanoseconds to ms
+      divisibilityFactorNumber;
 
     const intervalTemp: number = Math.round(endTimeline / 100) * 10;
-
     const numberOfDigitsInIntervalTemp: number = intervalTemp.toString().length;
-
     const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
+
+    const rootSpan: Span =
+      displaySpans.find((span: Span) => {
+        return span.parentSpanId === null || span.parentSpanId === undefined;
+      }) || displaySpans[0]!;
 
     const ganttChart: GanttChartProps = {
       id: "chart",
       selectedBarIds: selectedSpans,
       rows: getRows({
-        rootSpan:
-          spans.find((span: Span) => {
-            return (
-              span.parentSpanId === null || span.parentSpanId === undefined
-            );
-          }) || spans[0]!,
-        allSpans: spans,
+        rootSpan: rootSpan,
+        allSpans: displaySpans,
         timelineStartTimeUnixNano,
-        divisibilityFactor,
+        divisibilityFactor: newDivisibilityFactor,
       }),
       onBarSelectChange(barIds: Array<string>) {
         setSelectedSpans(barIds);
@@ -439,12 +573,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         start: startTimeline,
         end: Math.ceil(endTimeline / interval) * interval,
         interval: interval,
-        intervalUnit: divisibilityFactor.intervalUnit,
+        intervalUnit: newDivisibilityFactor.intervalUnit,
       },
     };
 
     setGanttChart(ganttChart);
-  }, [spans, selectedSpans]);
+  }, [displaySpans, selectedSpans]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -454,12 +588,144 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
+  const serviceLegend: ReactElement = (
+    <div className="flex flex-wrap gap-2">
+      {servicesInTrace.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => {
+            return setSelectedServiceIds([]);
+          }}
+          className={`group relative flex items-center space-x-1 rounded-md border text-[11px] font-medium px-2 py-1 transition-all backdrop-blur ${
+            selectedServiceIds.length === 0
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white/60 text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-white"
+          }`}
+        >
+          <span>All</span>
+          {selectedServiceIds.length > 0 ? (
+            <span className="inline-block rounded bg-black/10 px-1 text-[10px] font-semibold">
+              {servicesInTrace.length}
+            </span>
+          ) : (
+            <></>
+          )}
+        </button>
+      ) : (
+        <></>
+      )}
+      {servicesInTrace.map((service: TelemetryService) => {
+        const id: string = service._id!.toString();
+        const isSelected: boolean = selectedServiceIds.includes(id);
+        const counts: { total: number; error: number } | undefined =
+          serviceSpanStats[id];
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setSelectedServiceIds((prev: string[]): string[] => {
+                if (prev.includes(id)) {
+                  return prev.filter((p: string) => {
+                    return p !== id;
+                  });
+                }
+                return [...prev, id];
+              });
+            }}
+            title={
+              service.name +
+              (counts
+                ? ` – ${counts.total} span${counts.total !== 1 ? "s" : ""}`
+                : "")
+            }
+            className={`group relative flex items-center space-x-2 rounded-md border px-2 py-1 text-[11px] font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-indigo-500 ${
+              isSelected
+                ? "bg-indigo-50 border-indigo-400 text-indigo-700 shadow-sm"
+                : "bg-white/60 border-gray-200 text-gray-700 hover:bg-white hover:border-gray-300"
+            }`}
+          >
+            <span
+              className="h-2.5 w-2.5 rounded-sm ring-1 ring-black/10"
+              style={{
+                backgroundColor: String(
+                  (service.serviceColor as unknown as string) || "#6366f1",
+                ),
+              }}
+            />
+            <span className="truncate max-w-28">{service.name}</span>
+            {counts ? (
+              <span className="flex items-center space-x-1 text-[10px] font-semibold">
+                <span
+                  className={`px-1 rounded ${
+                    counts.error > 0
+                      ? "bg-red-100 text-red-600"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {counts.total}
+                </span>
+                {counts.error > 0 ? (
+                  <span className="px-1 rounded bg-rose-500/20 text-rose-600">
+                    {counts.error}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
+            {isSelected ? (
+              <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[9px] shadow ring-1 ring-white">
+                ✓
+              </span>
+            ) : (
+              <></>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <Fragment>
-      <div className="mb-8">
+      <div className="mb-8 space-y-6">
         <Card
-          title={"Traces"}
-          description={"Traces for the request operation."}
+          title={"Trace Explorer"}
+          description={
+            traceId ? (
+              <div className="inline-flex items-center flex-wrap gap-2">
+                <span className="font-medium text-gray-600">Trace ID:</span>
+                <code className="text-xs font-mono px-2 py-1 rounded bg-gray-100 text-gray-800 border border-gray-200">
+                  {traceId}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(traceId)
+                      .then(() => {
+                        // Optional: could add a toast mechanism if available.
+                      })
+                      .catch(() => {
+                        // Silently fail; could add error toast.
+                      });
+                  }}
+                  className="group relative inline-flex items-center space-x-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 shadow-sm transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+                  aria-label="Copy trace id"
+                >
+                  <span className="inline-block h-3 w-3 text-gray-500 group-hover:text-gray-700">
+                    📋
+                  </span>
+                  <span>Copy</span>
+                </button>
+              </div>
+            ) : (
+              "Traces for the request operation."
+            )
+          }
           buttons={[
             {
               ...getRefreshButton(),
@@ -471,17 +737,162 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             },
           ]}
         >
-          <div className="overflow-x-auto">
+          {/* Summary Stats */}
+          <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Spans
+              </div>
+              <div className="mt-1 text-lg font-semibold text-gray-800">
+                {spanStats.totalSpans}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Errors
+              </div>
+              <div className="mt-1 text-lg font-semibold text-red-600 flex items-center space-x-1">
+                <span>{spanStats.errorSpans}</span>
+                {spanStats.errorSpans > 0 ? (
+                  <span className="text-[10px] font-medium bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
+                    {(
+                      (spanStats.errorSpans / (spanStats.totalSpans || 1)) *
+                      100
+                    ).toFixed(0)}
+                    %
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Services
+              </div>
+              <div className="mt-1 text-lg font-semibold text-gray-800">
+                {spanStats.servicesCount}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3">
+              <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                Duration
+              </div>
+              <div className="mt-1 text-lg font-semibold text-gray-800">
+                {spanStats.durationString}
+              </div>
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  return setShowErrorsOnly(false);
+                }}
+                className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all ${
+                  !showErrorsOnly
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                All Spans
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  return setShowErrorsOnly(true);
+                }}
+                className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all flex items-center space-x-1 ${
+                  showErrorsOnly
+                    ? "bg-red-600 text-white border-red-600 shadow-sm"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <span>Errors Only</span>
+                {spanStats.errorSpans > 0 ? (
+                  <span className="text-[10px] bg-white/20 rounded px-1">
+                    {spanStats.errorSpans}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-3 text-xs text-gray-500">
+              <div className="flex items-center space-x-1">
+                <div className="h-2 w-2 rounded-full bg-rose-500" />
+                <span>Error</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>OK</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="h-2 w-2 rounded-full bg-amber-500" />
+                <span>Other</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Service Legend */}
+          {servicesInTrace.length > 0 ? (
+            <div className="mb-4 border border-gray-100 rounded-lg p-3 bg-gradient-to-br from-gray-50/60 to-white">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] uppercase tracking-wide text-gray-500 font-medium">
+                  Services
+                </div>
+                {selectedServiceIds.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      return setSelectedServiceIds([]);
+                    }}
+                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                  >
+                    Clear Filters
+                  </button>
+                ) : (
+                  <></>
+                )}
+              </div>
+              {serviceLegend}
+              {selectedServiceIds.length > 0 ? (
+                <div className="mt-3 text-[11px] text-gray-500 flex items-center space-x-2">
+                  <span>
+                    {selectedServiceIds.length} filter
+                    {selectedServiceIds.length > 1 ? "s" : ""} active
+                  </span>
+                  <span className="inline-block h-1 w-1 rounded-full bg-gray-300" />
+                  <span>
+                    {displaySpans.length} span
+                    {displaySpans.length !== 1 ? "s" : ""} shown
+                  </span>
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
+
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
             {ganttChart ? (
               <GanttChart chart={ganttChart} />
             ) : (
-              <ErrorMessage message={"No spans found"} />
+              <div className="p-8">
+                <ErrorMessage message={"No spans found"} />
+              </div>
             )}
           </div>
         </Card>
 
-        {traceId && (
-          <div className="mt-5">
+        {traceId ? (
+          <div className="mt-2 md:mt-5">
             <DashboardLogsViewer
               id={"traces-logs-viewer"}
               noLogsMessage="No logs found for this trace."
@@ -490,9 +901,11 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               enableRealtime={false}
             />
           </div>
+        ) : (
+          <></>
         )}
 
-        {selectedSpans.length > 0 && (
+        {selectedSpans.length > 0 ? (
           <SideOver
             title="View Span"
             description="View the span details."
@@ -517,7 +930,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   );
 
                   if (!selectedSpan) {
-                    throw new BadDataException("Selected span not found"); // this should never happen
+                    throw new BadDataException("Selected span not found");
                   }
 
                   return (
@@ -529,6 +942,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               divisibilityFactor={divisibilityFactor}
             />
           </SideOver>
+        ) : (
+          <></>
         )}
       </div>
     </Fragment>

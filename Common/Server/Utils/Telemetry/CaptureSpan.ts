@@ -65,10 +65,6 @@ function CaptureSpan(data?: {
         options: {
           attributes: {
             ...spanAttributes,
-            hey: "there",
-            thisIsNumber: 123,
-            thisIsBoolean: true,
-            thisIsArray: [1, 2, 3],
           },
         },
         fn: (span: Span) => {
