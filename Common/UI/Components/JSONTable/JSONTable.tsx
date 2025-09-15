@@ -32,6 +32,54 @@ const JSONTable: FunctionComponent<JSONTableProps> = (props: JSONTableProps): Re
       JSONFunctions.nestJson(json),
     ) as { [key: string]: any };
 
+    // Post-process flattened keys to group primitive arrays: prefix.0, prefix.1 => prefix: [v0, v1]
+    // We ONLY group if all matching keys are simple (no deeper nesting like prefix.0.field)
+    type GroupMap = { [prefix: string]: Array<{ index: number; value: any }> };
+    const groupMap: GroupMap = {};
+    const keys: Array<string> = Object.keys(working);
+
+    // Track keys that should be removed after grouping
+    const keysToRemove: Set<string> = new Set();
+
+    // Helper to detect if a key has nested descendants
+    const hasNestedDescendant = (k: string): boolean => {
+      const descendantPrefix: string = k + "."; // e.g. arr.0.
+      return keys.some((other: string) => other.startsWith(descendantPrefix));
+    };
+
+    for (const key of keys) {
+      const match: RegExpMatchArray | null = key.match(/^(.*)\.(\d+)$/);
+      if (!match || match.length < 3) { continue; }
+      const prefix: string = match[1] as string;
+      const indexStr: string = match[2] as string;
+      const index: number = parseInt(indexStr, 10);
+
+      // Skip if this index key has further nesting (e.g., arr.0.field)
+      if (hasNestedDescendant(key)) { continue; }
+
+      if (!groupMap[prefix]) {
+        groupMap[prefix] = [];
+      }
+      groupMap[prefix].push({ index, value: working[key] });
+      keysToRemove.add(key);
+    }
+
+    // Apply grouping where it makes sense (only if at least 2 items or at least 1 and prefix not already defined)
+    for (const prefix in groupMap) {
+      // If prefix already exists as its own key (non-array) skip to avoid overwriting.
+      if (working.hasOwnProperty(prefix) && !keysToRemove.has(prefix)) { continue; }
+      const arr: Array<{ index: number; value: any }> = groupMap[prefix] || [];
+      if (arr.length === 0) { continue; }
+      // Sort by numeric index
+      arr.sort((a, b) => a.index - b.index);
+      working[prefix] = arr.map(i => i.value);
+    }
+
+    // Remove grouped index keys
+    for (const k of keysToRemove) {
+      delete working[k];
+    }
+
     return Object.keys(working)
       .sort()
       .map((key: string) => ({ key, value: normalizeValue(working[key]) }));
