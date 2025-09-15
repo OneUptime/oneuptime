@@ -675,9 +675,34 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         <Card
           title={"Trace Explorer"}
           description={
-            traceId
-              ? `Trace ${traceId.substring(0, 18)}${traceId.length > 18 ? "…" : ""}`
-              : "Traces for the request operation."
+            traceId ? (
+              <div className="inline-flex items-center flex-wrap gap-2">
+                <span className="font-medium text-gray-600">Trace ID:</span>
+                <code className="text-xs font-mono px-2 py-1 rounded bg-gray-100 text-gray-800 border border-gray-200">
+                  {traceId}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard
+                      .writeText(traceId)
+                      .then(() => {
+                        // Optional: could add a toast mechanism if available.
+                      })
+                      .catch(() => {
+                        // Silently fail; could add error toast.
+                      });
+                  }}
+                  className="group relative inline-flex items-center space-x-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50 active:bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600 shadow-sm transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+                  aria-label="Copy trace id"
+                >
+                  <span className="inline-block h-3 w-3 text-gray-500 group-hover:text-gray-700">📋</span>
+                  <span>Copy</span>
+                </button>
+              </div>
+            ) : (
+              "Traces for the request operation."
+            )
           }
           buttons={[
             {
