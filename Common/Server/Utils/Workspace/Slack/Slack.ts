@@ -758,7 +758,7 @@ export default class SlackUtil extends WorkspaceBase {
 
       logger.debug("Searching for "+normalizedChannelName);
       logger.debug("Searching channels in current page...");
-      logger.debug((response.jsonData as JSONObject)["channels"]);
+      logger.debug(JSON.stringify((response.jsonData as JSONObject)["channels"], null, 2));
 
       for (const channel of (response.jsonData as JSONObject)[
         "channels"
