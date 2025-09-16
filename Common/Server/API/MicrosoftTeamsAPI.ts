@@ -11,8 +11,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import {
   AppApiClientUrl,
   DashboardClientUrl,
+  HomeClientUrl,
   Host,
-  HttpProtocol,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
 } from "../EnvironmentConfig";
@@ -44,152 +44,82 @@ interface MicrosoftTeamsTeam {
 }
 
 export default class MicrosoftTeamsAPI {
+  private static getTeamsAppManifest(
+  ): JSONObject {
+
+    const manifest: JSONObject = {
+      $schema:
+        "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+      manifestVersion: "1.16",
+      version: "1.0.0",
+      id: MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+      packageName: "com.oneuptime.teams",
+      developer: {
+        name: "OneUptime",
+        websiteUrl: "https://oneuptime.com",
+        privacyUrl: "https://oneuptime.com/legal/privacy",
+        termsOfUseUrl: "https://oneuptime.com/legal/terms",
+      },
+      name: {
+        short: "OneUptime",
+        full: "OneUptime - Complete Observability Platform",
+      },
+      description: {
+        short: "Monitor your apps, websites, APIs, and more with OneUptime",
+        full: "OneUptime is a complete open-source observability platform that helps you monitor your applications, websites, APIs, and infrastructure. Get alerted when things go wrong and maintain your SLAs.",
+      },
+      icons: 
+       {
+            outline: "outline.png",
+            color: "color.png",
+          }
+       ,
+      accentColor: "#000000",
+      bots: [
+        {
+          botId:
+            MicrosoftTeamsAppClientId ||
+            "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+          needsChannelSelector: false,
+          isNotificationOnly: false,
+          scopes: ["team", "personal"],
+          supportsFiles: false,
+          supportsCalling: false,
+          supportsVideo: false,
+        },
+      ],
+      connectors: [
+        {
+          connectorId:
+            MicrosoftTeamsAppClientId ||
+            "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+          configurationUrl: `${HomeClientUrl.toString()}/microsoft-teams/connector-config`,
+        },
+      ],
+      permissions: ["identity", "messageTeamMembers"],
+      validDomains: [Host, "*.teams.microsoft.com"],
+      webApplicationInfo: {
+        id:
+          MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+        resource: "https://graph.microsoft.com",
+      },
+    };
+
+    return manifest;
+  }
+
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
-
-    // Teams app manifest endpoint
-    router.get(
-      "/microsoft-teams/app-manifest",
-      (req: ExpressRequest, res: ExpressResponse) => {
-        let ServerURL: string = URL.fromString(
-          `${HttpProtocol}://${Host}`,
-        ).toString();
-
-        if (ServerURL.endsWith("/")) {
-          ServerURL = ServerURL.slice(0, -1);
-        }
-
-        const manifest: JSONObject = {
-          $schema:
-            "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
-          manifestVersion: "1.16",
-          version: "1.0.0",
-          id: MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-          packageName: "com.oneuptime.teams",
-          developer: {
-            name: "OneUptime",
-            websiteUrl: "https://oneuptime.com",
-            privacyUrl: "https://oneuptime.com/legal/privacy",
-            termsOfUseUrl: "https://oneuptime.com/legal/terms",
-          },
-          name: {
-            short: "OneUptime",
-            full: "OneUptime - Complete Observability Platform",
-          },
-          description: {
-            short: "Monitor your apps, websites, APIs, and more with OneUptime",
-            full: "OneUptime is a complete open-source observability platform that helps you monitor your applications, websites, APIs, and infrastructure. Get alerted when things go wrong and maintain your SLAs.",
-          },
-          icons: {
-            outline: `${ServerURL}/img/OneUptimePNG/1-transparent.png`,
-            color: `${ServerURL}/img/OneUptimePNG/1-transparent.png`,
-          },
-          accentColor: "#000000",
-          bots: [
-            {
-              botId:
-                MicrosoftTeamsAppClientId ||
-                "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-              needsChannelSelector: false,
-              isNotificationOnly: false,
-              scopes: ["team", "personal"],
-              supportsFiles: false,
-              supportsCalling: false,
-              supportsVideo: false,
-            },
-          ],
-          connectors: [
-            {
-              connectorId:
-                MicrosoftTeamsAppClientId ||
-                "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-              configurationUrl: `${ServerURL}/microsoft-teams/connector-config`,
-            },
-          ],
-          permissions: ["identity", "messageTeamMembers"],
-          validDomains: [Host, "*.teams.microsoft.com"],
-          webApplicationInfo: {
-            id:
-              MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-            resource: "https://graph.microsoft.com",
-          },
-        };
-
-        return Response.sendJsonObjectResponse(req, res, manifest);
-      },
-    );
 
     // Teams app manifest ZIP endpoint
     router.get(
       "/microsoft-teams/app-manifest-zip",
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          let ServerURL: string = URL.fromString(
-            `${HttpProtocol}://${Host}`,
-          ).toString();
+         
 
-          if (ServerURL.endsWith("/")) {
-            ServerURL = ServerURL.slice(0, -1);
-          }
-
-          const manifest: JSONObject = {
-            $schema:
-              "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
-            manifestVersion: "1.16",
-            version: "1.0.0",
-            id:
-              MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-            packageName: "com.oneuptime.teams",
-            developer: {
-              name: "OneUptime",
-              websiteUrl: "https://oneuptime.com",
-              privacyUrl: "https://oneuptime.com/legal/privacy",
-              termsOfUseUrl: "https://oneuptime.com/legal/terms",
-            },
-            name: {
-              short: "OneUptime",
-              full: "OneUptime - Complete Observability Platform",
-            },
-            description: {
-              short:
-                "Monitor your apps, websites, APIs, and more with OneUptime",
-              full: "OneUptime is a complete open-source observability platform that helps you monitor your applications, websites, APIs, and infrastructure. Get alerted when things go wrong and maintain your SLAs.",
-            },
-            icons: {
-              outline: "outline.png",
-              color: "color.png",
-            },
-            accentColor: "#000000",
-            bots: [
-              {
-                botId:
-                  MicrosoftTeamsAppClientId ||
-                  "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-                needsChannelSelector: false,
-                isNotificationOnly: false,
-                scopes: ["team", "personal"],
-                supportsFiles: false,
-                supportsCalling: false,
-                supportsVideo: false,
-              },
-            ],
-            connectors: [
-              {
-                connectorId:
-                  MicrosoftTeamsAppClientId ||
-                  "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-                configurationUrl: `${ServerURL}/microsoft-teams/connector-config`,
-              },
-            ],
-            permissions: ["identity", "messageTeamMembers"],
-            validDomains: [Host, "*.teams.microsoft.com"],
-            webApplicationInfo: {
-              id:
-                MicrosoftTeamsAppClientId ||
-                "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-              resource: "https://graph.microsoft.com",
-            },
-          };
+          const manifest: JSONObject = MicrosoftTeamsAPI.getTeamsAppManifest(
+          );
 
           // Set response headers for zip download
           res.setHeader("Content-Type", "application/zip");
