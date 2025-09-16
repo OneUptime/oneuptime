@@ -213,6 +213,226 @@ export default class MicrosoftTeamsAPI {
     );
 
     // Microsoft Teams OAuth callback endpoint for project integration
+    // New (preferred) static redirect URI that uses state param to carry projectId and userId
+    // State format: <projectId>:<userId>
+    router.get(
+      "/microsoft-teams/auth",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        if (!MicrosoftTeamsAppClientId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Microsoft Teams App Client ID is not set"),
+          );
+        }
+
+        if (!MicrosoftTeamsAppClientSecret) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Microsoft Teams App Client Secret is not set"),
+          );
+        }
+
+        const error: string | undefined = req.query["error"]?.toString();
+        const stateParam: string | undefined = req.query["state"]?.toString();
+
+        if (!stateParam) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid request - state param not present"),
+          );
+        }
+
+        // Expect state in format projectId:userId
+        const stateParts: Array<string> = stateParam.split(":");
+        if (stateParts.length !== 2 || !stateParts[0] || !stateParts[1]) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Invalid state param"),
+          );
+        }
+
+        const projectId: string = stateParts[0]!;
+        const userId: string = stateParts[1]!;
+
+        const teamsIntegrationPageUrl: URL = URL.fromString(
+          DashboardClientUrl.toString() +
+            `/${projectId.toString()}/settings/microsoft-teams-integration`,
+        );
+
+        if (error) {
+          return Response.redirect(
+            req,
+            res,
+            teamsIntegrationPageUrl.addQueryParam("error", error),
+          );
+        }
+
+        const code: string | undefined = req.query["code"]?.toString();
+
+        if (!code) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException(
+              "Invalid request - no authorization code",
+            ),
+          );
+        }
+
+        try {
+          // Exchange code for access token
+          const redirectUri: URL = URL.fromString(
+            `${AppApiClientUrl.toString()}/microsoft-teams/auth`,
+          );
+
+          const tokenRequestBody: JSONObject = {
+            grant_type: "authorization_code",
+            code: code,
+            client_id: MicrosoftTeamsAppClientId,
+            client_secret: MicrosoftTeamsAppClientSecret,
+            redirect_uri: redirectUri.toString(),
+            scope:
+              "https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
+          };
+
+          logger.debug("Microsoft Teams Token Request Body (static redirect): ");
+          logger.debug(tokenRequestBody);
+
+          const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post(
+              URL.fromString(
+                "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+              ),
+              tokenRequestBody,
+              {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+            );
+
+          if (tokenResponse instanceof HTTPErrorResponse) {
+            logger.error("Error getting Teams token:");
+            logger.error(tokenResponse);
+            throw tokenResponse;
+          }
+
+          const tokenData: JSONObject = tokenResponse.data;
+            logger.debug("Microsoft Teams Token Response (static redirect): ");
+            logger.debug(tokenData);
+
+          if (!tokenData["access_token"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException(
+                "Failed to get access token from Microsoft Teams",
+              ),
+            );
+          }
+
+          const accessToken: string = tokenData["access_token"] as string;
+
+          // Get user profile and team information
+          const userProfileResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get(
+              URL.fromString("https://graph.microsoft.com/v1.0/me"),
+              {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            );
+
+          if (userProfileResponse instanceof HTTPErrorResponse) {
+            logger.error("Error getting user profile:");
+            logger.error(userProfileResponse);
+            throw userProfileResponse;
+          }
+
+          const userProfile: JSONObject = userProfileResponse.data;
+          logger.debug("User Profile: ");
+          logger.debug(userProfile);
+
+          // Get user's teams
+          const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.get(
+              URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+              {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            );
+
+          if (teamsResponse instanceof HTTPErrorResponse) {
+            logger.error("Error getting teams:");
+            logger.error(teamsResponse);
+            throw teamsResponse;
+          }
+
+          const teamsData: JSONObject = teamsResponse.data;
+          const teams: Array<JSONObject> =
+            (teamsData["value"] as Array<JSONObject>) || [];
+
+          if (teams.length === 0) {
+            return Response.redirect(
+              req,
+              res,
+              teamsIntegrationPageUrl.addQueryParam(
+                "error",
+                "You are not a member of any Microsoft Teams. Please join a team first.",
+              ),
+            );
+          }
+
+          // For now, use the first team. In future, allow user to select
+          const selectedTeam: JSONObject = teams[0]!;
+          const teamId: string = selectedTeam["id"] as string;
+          const teamName: string = selectedTeam["displayName"] as string;
+
+          // Store the integration
+          await WorkspaceProjectAuthTokenService.refreshAuthToken({
+            projectId: new ObjectID(projectId),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            authToken: accessToken,
+            workspaceProjectId: teamId,
+            miscData: {
+              tenantId: userProfile["id"] as string,
+              teamId: teamId,
+              teamName: teamName,
+              botId: MicrosoftTeamsAppClientId || "",
+            } as any,
+          });
+
+          await WorkspaceUserAuthTokenService.refreshAuthToken({
+            projectId: new ObjectID(projectId),
+            userId: new ObjectID(userId),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            authToken: accessToken,
+            workspaceUserId: userProfile["id"] as string,
+            miscData: {
+              userId: userProfile["id"] as string,
+              displayName: userProfile["displayName"] as string,
+              email:
+                (userProfile["mail"] as string) ||
+                (userProfile["userPrincipalName"] as string),
+            },
+          });
+
+          // Redirect back to dashboard
+          return Response.redirect(req, res, teamsIntegrationPageUrl);
+        } catch (err) {
+          logger.error("Error in static Microsoft Teams auth callback: ");
+          logger.error(err);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Failed to authenticate with Microsoft Teams"),
+          );
+        }
+      },
+    );
+
+    // Deprecated (legacy) route that had projectId and userId in path params. Kept for backward compatibility.
     router.get(
       "/microsoft-teams/auth/:projectId/:userId",
       async (req: ExpressRequest, res: ExpressResponse) => {

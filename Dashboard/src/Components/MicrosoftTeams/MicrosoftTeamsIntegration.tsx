@@ -241,21 +241,23 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const redirectUri: string = `${APP_API_URL}/microsoft-teams/auth/${projectId.toString()}/${userId.toString()}`;
-      const scopes: string = "https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
+  // Use static redirect URI (no projectId/userId in path) and encode both values in the state param.
+  const redirectUri: string = `${APP_API_URL}/microsoft-teams/auth`;
+  const scopes: string = "https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
+  const state: string = `${projectId.toString()}:${userId.toString()}`;
 
       if (!isProjectAccountConnected) {
         // Install the app and connect the project
         Navigation.navigate(
           URL.fromString(
-            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${projectId.toString()}`
+            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`
           ),
         );
       } else {
         // if project account is already connected then we just need to sign in with Teams and not install the app.
         Navigation.navigate(
           URL.fromString(
-            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${projectId.toString()}`
+            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`
           ),
         );
       }
