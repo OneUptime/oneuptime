@@ -32,6 +32,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
+import RadioButtons, { RadioButton as SelectionRadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -97,6 +98,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   const renderTeamGrid = (): ReactElement => {
+    const radioOptions: Array<SelectionRadioButton> = filteredTeams.map(t => ({
+      title: t.displayName,
+      description: ``,
+      value: t.id,
+    }));
+
     return (
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -123,62 +130,17 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             )}
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredTeams.map(team => {
-            const isSelected: boolean = selectedTeamId === team.id;
-            return (
-              <button
-                key={team.id}
-                type="button"
-                onClick={() => setSelectedTeamId(team.id)}
-                onDoubleClick={() => { setSelectedTeamId(team.id); confirmTeamSelection().catch(() => {}); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') { setSelectedTeamId(team.id); }
-                  if (e.key === 'Enter' && selectedTeamId === team.id) { confirmTeamSelection().catch(() => {}); }
-                }}
-                className={[
-                  'group relative w-full text-left rounded-lg border bg-white p-4 transition shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-                  isSelected ? 'border-primary-500 ring-1 ring-primary-500' : 'border-gray-200 hover:border-primary-300 hover:shadow',
-                ].join(' ')}
-                aria-pressed={isSelected}
-                aria-label={`Select team ${team.displayName}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="pr-6">
-                    <div className="font-medium text-sm text-gray-800 group-hover:text-primary-700 truncate">
-                      {team.displayName}
-                    </div>
-                    <div className="text-[11px] text-gray-400 break-all mt-1 select-text">ID: {team.id}</div>
-                  </div>
-                  <div className="flex items-center">
-                    <span
-                      className={[
-                        'inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold',
-                        isSelected
-                          ? 'bg-primary-500 border-primary-500 text-white shadow'
-                          : 'border-gray-300 text-transparent group-hover:text-gray-300'
-                      ].join(' ')}
-                    >
-                      ✓
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-[11px] text-gray-500">Double-click to confirm</span>
-                  {isSelected && (
-                    <span className="text-[10px] uppercase tracking-wide font-semibold text-primary-600">Selected</span>
-                  )}
-                </div>
-                <div className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-transparent group-hover:ring-primary-200/60 transition" />
-              </button>
-            );
-          })}
-          {filteredTeams.length === 0 && (
-            <div className="col-span-full text-sm text-gray-500 italic py-6 border border-dashed border-gray-300 rounded-md text-center">
-              No teams match "{teamSearch}".
-            </div>
-          )}
-        </div>
+        {radioOptions.length > 0 ? (
+          <RadioButtons
+            options={radioOptions}
+            initialValue={selectedTeamId || undefined}
+            onChange={(val: string) => setSelectedTeamId(val)}
+          />
+        ) : (
+          <div className="text-sm text-gray-500 italic py-6 border border-dashed border-gray-300 rounded-md text-center">
+            No teams match "{teamSearch}".
+          </div>
+        )}
       </div>
     );
   };
