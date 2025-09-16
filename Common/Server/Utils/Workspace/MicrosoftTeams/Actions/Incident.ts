@@ -1,7 +1,9 @@
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import Response from "../../../Response";
-import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
-import MicrosoftTeamsAuthAction from "./Auth";
+import MicrosoftTeamsAuthAction, {
+  MicrosoftTeamsAction,
+  MicrosoftTeamsRequest,
+} from "./Auth";
 import { MicrosoftTeamsIncidentActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -49,8 +51,6 @@ export default class MicrosoftTeamsIncidentActions {
             action,
           });
           break;
-
-
 
         case MicrosoftTeamsIncidentActionType.ViewIncident:
           // This is handled by opening the URL directly
@@ -116,14 +116,15 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Acknowledge the incident
-      const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-        teamsUserId: data.teamsRequest.userId || "",
-        projectId: data.teamsRequest.projectId,
-      });
+      const oneUptimeUserId: ObjectID =
+        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+          teamsUserId: data.teamsRequest.userId || "",
+          projectId: data.teamsRequest.projectId,
+        });
 
       await IncidentService.acknowledgeIncident(
         new ObjectID(incidentId),
-        oneUptimeUserId
+        oneUptimeUserId,
       );
 
       logger.debug("Incident acknowledged successfully");
@@ -180,14 +181,15 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       // Resolve the incident
-      const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-        teamsUserId: data.teamsRequest.userId || "",
-        projectId: data.teamsRequest.projectId,
-      });
+      const oneUptimeUserId: ObjectID =
+        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+          teamsUserId: data.teamsRequest.userId || "",
+          projectId: data.teamsRequest.projectId,
+        });
 
       await IncidentService.resolveIncident(
         new ObjectID(incidentId),
-        oneUptimeUserId
+        oneUptimeUserId,
       );
 
       logger.debug("Incident resolved successfully");
@@ -196,5 +198,4 @@ export default class MicrosoftTeamsIncidentActions {
       logger.error(error);
     }
   }
-
 }

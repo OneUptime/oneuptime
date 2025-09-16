@@ -5,11 +5,14 @@ import React, {
   useEffect,
 } from "react";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import URL from "Common/Types/API/URL";
-import { APP_API_URL, HOME_URL, MicrosoftTeamsAppClientId } from "Common/UI/Config";
+import {
+  APP_API_URL,
+  HOME_URL,
+  MicrosoftTeamsAppClientId,
+} from "Common/UI/Config";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
@@ -32,8 +35,12 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
-import RadioButtons, { RadioButton as SelectionRadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
-import Button, { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
+import RadioButtons, {
+  RadioButton as SelectionRadioButton,
+} from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Button, {
+  ButtonStyleType as SharedButtonStyle,
+} from "Common/UI/Components/Button/Button";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -58,29 +65,35 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [teamsTeamName, setTeamsTeamName] = React.useState<string | null>(null);
-  const [availableTeams, setAvailableTeams] = React.useState<Array<{ id: string; displayName: string }>>([]);
+  const [availableTeams, setAvailableTeams] = React.useState<
+    Array<{ id: string; displayName: string }>
+  >([]);
   const [isSelectingTeam, setIsSelectingTeam] = React.useState<boolean>(false);
   const [selectedTeamId, setSelectedTeamId] = React.useState<string>("");
- 
 
   const confirmTeamSelection: PromiseVoidFunction = async (): Promise<void> => {
-    if (!selectedTeamId || isButtonLoading) { return; }
+    if (!selectedTeamId || isButtonLoading) {
+      return;
+    }
     try {
       setIsButtonLoading(true);
       setError(null);
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
       const userId: ObjectID | null = UserUtil.getUserId();
       if (!projectId || !userId) {
-        throw new Error('Missing project or user context');
+        throw new Error("Missing project or user context");
       }
-      const result = await API.post(
-        URL.fromString(`${HOME_URL.toString()}/api/microsoft-teams/select-team`),
-        {
-          projectId: projectId.toString(),
+      const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post(
+          URL.fromString(
+            `${HOME_URL.toString()}/api/microsoft-teams/select-team`,
+          ),
+          {
+            projectId: projectId.toString(),
             userId: userId.toString(),
-          teamId: selectedTeamId,
-        } as JSONObject,
-      );
+            teamId: selectedTeamId,
+          } as JSONObject,
+        );
       if (result instanceof HTTPErrorResponse) {
         throw result;
       }
@@ -94,21 +107,26 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const renderTeamGrid = (): ReactElement => {
-    const radioOptions: Array<SelectionRadioButton> = availableTeams.map(t => ({
-      title: t.displayName,
-      description: ``,
-      value: t.id,
-    }));
+  const renderTeamGrid: () => ReactElement = (): ReactElement => {
+    const radioOptions: Array<SelectionRadioButton> = availableTeams.map(
+      (t: { id: string; displayName: string }) => {
+        return {
+          title: t.displayName,
+          description: ``,
+          value: t.id,
+        };
+      },
+    );
 
     return (
       <div className="space-y-4">
-
         {radioOptions.length > 0 ? (
           <RadioButtons
             options={radioOptions}
             initialValue={selectedTeamId || undefined}
-            onChange={(val: string) => setSelectedTeamId(val)}
+            onChange={(val: string) => {
+              return setSelectedTeamId(val);
+            }}
           />
         ) : (
           <div className="text-sm text-gray-500 italic py-6 border border-dashed border-gray-300 rounded-md text-center">
@@ -186,10 +204,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         const miscData: any = userAuth.data[0]!.miscData || {};
         if (miscData.availableTeams && Array.isArray(miscData.availableTeams)) {
           setAvailableTeams(
-            miscData.availableTeams.map((t: any) => ({
-              id: t.id as string,
-              displayName: t.displayName as string,
-            })),
+            miscData.availableTeams.map((t: any) => {
+              return {
+                id: t.id as string,
+                displayName: t.displayName as string,
+              };
+            }),
           );
           setIsSelectingTeam(true);
         }
@@ -201,7 +221,9 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         // fetch app manifest.
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.get<JSONObject>(
-            URL.fromString(`${HOME_URL.toString()}/api/microsoft-teams/app-manifest`),
+            URL.fromString(
+              `${HOME_URL.toString()}/api/microsoft-teams/app-manifest`,
+            ),
           );
 
         if (response instanceof HTTPErrorResponse) {
@@ -224,7 +246,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     if (error) {
       setError(
         <div>
-          There was an error while connecting with Microsoft Teams. Please try again.
+          There was an error while connecting with Microsoft Teams. Please try
+          again.
           <br />
           Error: {error}
         </div>,
@@ -245,7 +268,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
   // Show team selection UI if user has multiple teams available and project not yet connected.
-  if (isSelectingTeam && !isProjectAccountConnected && availableTeams.length > 0) {
+  if (
+    isSelectingTeam &&
+    !isProjectAccountConnected &&
+    availableTeams.length > 0
+  ) {
     return (
       <Fragment>
         <Card
@@ -257,22 +284,25 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           <div className="mt-6 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-3">
             <div className="w-full sm:w-auto">
               <Button
-                title={isButtonLoading ? 'Connecting...' : 'Confirm Selection'}
+                title={isButtonLoading ? "Connecting..." : "Confirm Selection"}
                 disabled={!selectedTeamId || isButtonLoading}
                 isLoading={isButtonLoading}
-                onClick={() => confirmTeamSelection().catch(() => {})}
+                onClick={() => {
+                  return confirmTeamSelection().catch(() => {});
+                }}
                 buttonStyle={SharedButtonStyle.PRIMARY}
               />
             </div>
             <div className="w-full sm:w-auto">
               <Button
                 title="Cancel"
-                onClick={() => setIsSelectingTeam(false)}
+                onClick={() => {
+                  return setIsSelectingTeam(false);
+                }}
                 buttonStyle={SharedButtonStyle.NORMAL}
               />
             </div>
           </div>
-          
         </Card>
       </Fragment>
     );
@@ -290,7 +320,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       {
         title: `Disconnect`,
         isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
+        buttonStyle: SharedButtonStyle.DANGER,
         onClick: async () => {
           try {
             setIsButtonLoading(true);
@@ -347,32 +377,34 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-  // Use static redirect URI (no projectId/userId in path) and encode both values in the state param.
-  const redirectUri: string = `${APP_API_URL}/microsoft-teams/auth`;
-  const scopes: string = "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
-  const state: string = `${projectId.toString()}:${userId.toString()}`;
+      // Use static redirect URI (no projectId/userId in path) and encode both values in the state param.
+      const redirectUri: string = `${APP_API_URL}/microsoft-teams/auth`;
+      const scopes: string =
+        "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
+      const state: string = `${projectId.toString()}:${userId.toString()}`;
 
       if (!isProjectAccountConnected) {
         // Install the app and connect the project
         Navigation.navigate(
           URL.fromString(
-            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`
+            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`,
           ),
         );
       } else {
         // if project account is already connected then we just need to sign in with Teams and not install the app.
         Navigation.navigate(
           URL.fromString(
-            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`
+            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`,
           ),
         );
       }
     } else {
       setError(
         <div>
-          Looks like the Microsoft Teams App Client ID is not set in the environment
-          variables when you installed OneUptime. For more information, please
-          check this guide to set up Microsoft Teams App properly:{" "}
+          Looks like the Microsoft Teams App Client ID is not set in the
+          environment variables when you installed OneUptime. For more
+          information, please check this guide to set up Microsoft Teams App
+          properly:{" "}
           <Link
             to={new Route("/docs/self-hosted/microsoft-teams-integration")}
             openInNewTab={true}
@@ -391,7 +423,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   ): CardButtonSchema => {
     return {
       title: title || `Connect with Microsoft Teams`,
-      buttonStyle: ButtonStyleType.PRIMARY,
+      buttonStyle: SharedButtonStyle.PRIMARY,
       onClick: () => {
         return connectWithTeams();
       },
@@ -409,7 +441,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       {
         title: `Uninstall OneUptime from Microsoft Teams`,
         isLoading: isButtonLoading,
-        buttonStyle: ButtonStyleType.DANGER,
+        buttonStyle: SharedButtonStyle.DANGER,
         onClick: async () => {
           try {
             setIsButtonLoading(true);
@@ -425,8 +457,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             } else {
               setError(
                 <div>
-                  Looks like the project auth token id is not set properly. Please
-                  try again.
+                  Looks like the project auth token id is not set properly.
+                  Please try again.
                 </div>,
               );
             }
@@ -449,7 +481,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   }
 
   if (!MicrosoftTeamsAppClientId) {
-    return <MicrosoftTeamsIntegrationDocumentation manifest={manifest as JSONObject} />;
+    return (
+      <MicrosoftTeamsIntegrationDocumentation
+        manifest={manifest as JSONObject}
+      />
+    );
   }
 
   return (

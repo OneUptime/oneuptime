@@ -6,15 +6,14 @@ const MicrosoftTeamsIntegrationPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   return (
-   
-      <MicrosoftTeamsIntegration
-        onConnected={() => {
-          // Handle connected state if needed
-        }}
-        onDisconnected={() => {
-          // Handle disconnected state if needed
-        }}
-      />
+    <MicrosoftTeamsIntegration
+      onConnected={() => {
+        // Handle connected state if needed
+      }}
+      onDisconnected={() => {
+        // Handle disconnected state if needed
+      }}
+    />
   );
 };
 

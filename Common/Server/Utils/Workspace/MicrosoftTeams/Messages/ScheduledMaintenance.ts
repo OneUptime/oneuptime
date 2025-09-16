@@ -51,7 +51,8 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
         data.scheduledMaintenanceId!,
       ),
       value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance,
+      actionId:
+        MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance,
     };
 
     buttons.push(viewScheduledMaintenanceButton);
@@ -83,7 +84,8 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
         _type: "WorkspaceMessagePayloadButton",
         title: "➡️ Change Scheduled Maintenance State",
         value: data.scheduledMaintenanceId?.toString() || "",
-        actionId: MicrosoftTeamsScheduledMaintenanceActionType.ScheduledMaintenanceStateChanged,
+        actionId:
+          MicrosoftTeamsScheduledMaintenanceActionType.ScheduledMaintenanceStateChanged,
       };
 
     buttons.push(changeScheduledMaintenanceStateButton);
@@ -93,7 +95,8 @@ export default class MicrosoftTeamsScheduledMaintenanceMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
       value: data.scheduledMaintenanceId?.toString() || "",
-      actionId: MicrosoftTeamsScheduledMaintenanceActionType.AddScheduledMaintenanceNote,
+      actionId:
+        MicrosoftTeamsScheduledMaintenanceActionType.AddScheduledMaintenanceNote,
     };
 
     buttons.push(addNoteButton);

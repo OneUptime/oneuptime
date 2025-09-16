@@ -1620,7 +1620,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new ResellerPlanAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new SlackAPI().getRouter());
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new MicrosoftTeamsAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new MicrosoftTeamsAPI().getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new GlobalConfigAPI().getRouter(),

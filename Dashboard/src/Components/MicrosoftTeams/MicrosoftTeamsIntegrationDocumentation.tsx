@@ -7,9 +7,9 @@ export interface ComponentProps {
   manifest: JSONObject;
 }
 
-const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
+const MicrosoftTeamsIntegrationDocumentation: FunctionComponent<
+  ComponentProps
+> = (props: ComponentProps): ReactElement => {
   const markdownText: string = `
 
 ##### Step 1: Since this is a self hosted install, you need to create a Microsoft Teams App with this manifest.

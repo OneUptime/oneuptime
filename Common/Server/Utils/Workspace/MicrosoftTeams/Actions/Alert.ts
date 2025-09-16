@@ -1,7 +1,9 @@
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import Response from "../../../Response";
-import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
-import MicrosoftTeamsAuthAction from "./Auth";
+import MicrosoftTeamsAuthAction, {
+  MicrosoftTeamsAction,
+  MicrosoftTeamsRequest,
+} from "./Auth";
 import { MicrosoftTeamsAlertActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -110,14 +112,15 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-        teamsUserId: data.teamsRequest.userId || "",
-        projectId: data.teamsRequest.projectId,
-      });
+      const oneUptimeUserId: ObjectID =
+        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+          teamsUserId: data.teamsRequest.userId || "",
+          projectId: data.teamsRequest.projectId,
+        });
 
       await AlertService.acknowledgeAlert(
         new ObjectID(alertId),
-        oneUptimeUserId
+        oneUptimeUserId,
       );
 
       logger.debug("Alert acknowledged successfully");
@@ -171,15 +174,13 @@ export default class MicrosoftTeamsAlertActions {
         return;
       }
 
-      const oneUptimeUserId: ObjectID = await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
-        teamsUserId: data.teamsRequest.userId || "",
-        projectId: data.teamsRequest.projectId,
-      });
+      const oneUptimeUserId: ObjectID =
+        await MicrosoftTeamsAuthAction.getOneUptimeUserIdFromTeamsUserId({
+          teamsUserId: data.teamsRequest.userId || "",
+          projectId: data.teamsRequest.projectId,
+        });
 
-      await AlertService.resolveAlert(
-        new ObjectID(alertId),
-        oneUptimeUserId
-      );
+      await AlertService.resolveAlert(new ObjectID(alertId), oneUptimeUserId);
 
       logger.debug("Alert resolved successfully");
     } catch (error) {

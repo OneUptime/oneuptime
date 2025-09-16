@@ -7,12 +7,17 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class MicrosoftTeamsScheduledMaintenanceActions {
   @CaptureSpan()
-  public static isScheduledMaintenanceAction(data: { actionType: string }): boolean {
+  public static isScheduledMaintenanceAction(data: {
+    actionType: string;
+  }): boolean {
     return (
       data.actionType.includes("scheduled-maintenance") ||
-      data.actionType === MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance ||
-      data.actionType === MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing ||
-      data.actionType === MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete
+      data.actionType ===
+        MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance ||
+      data.actionType ===
+        MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing ||
+      data.actionType ===
+        MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete
     );
   }
 
@@ -35,11 +40,15 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           break;
 
         default:
-          logger.debug(`Unhandled scheduled maintenance action: ${action.actionType}`);
+          logger.debug(
+            `Unhandled scheduled maintenance action: ${action.actionType}`,
+          );
           break;
       }
     } catch (error) {
-      logger.error("Error handling Microsoft Teams scheduled maintenance action:");
+      logger.error(
+        "Error handling Microsoft Teams scheduled maintenance action:",
+      );
       logger.error(error);
     }
 

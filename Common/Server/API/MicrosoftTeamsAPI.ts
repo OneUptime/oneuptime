@@ -23,6 +23,7 @@ import API from "../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
 import ObjectID from "../../Types/ObjectID";
 import WorkspaceUserAuthTokenService from "../Services/WorkspaceUserAuthTokenService";
+import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsRequest,
@@ -49,7 +50,7 @@ export default class MicrosoftTeamsAPI {
       "/microsoft-teams/app-manifest",
       (req: ExpressRequest, res: ExpressResponse) => {
         let ServerURL: string = URL.fromString(
-          `${HttpProtocol}://${Host}`
+          `${HttpProtocol}://${Host}`,
         ).toString();
 
         if (ServerURL.endsWith("/")) {
@@ -113,7 +114,7 @@ export default class MicrosoftTeamsAPI {
         };
 
         return Response.sendJsonObjectResponse(req, res, manifest);
-      }
+      },
     );
 
     // Teams app manifest ZIP endpoint
@@ -122,7 +123,7 @@ export default class MicrosoftTeamsAPI {
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           let ServerURL: string = URL.fromString(
-            `${HttpProtocol}://${Host}`
+            `${HttpProtocol}://${Host}`,
           ).toString();
 
           if (ServerURL.endsWith("/")) {
@@ -192,16 +193,16 @@ export default class MicrosoftTeamsAPI {
           res.setHeader("Content-Type", "application/zip");
           res.setHeader(
             "Content-Disposition",
-            'attachment; filename="oneuptime-teams-app.zip"'
+            'attachment; filename="oneuptime-teams-app.zip"',
           );
 
           // Create archive
-          const archive = archiver("zip", {
+          const archive: any = archiver("zip", {
             zlib: { level: 9 }, // Sets the compression level
           });
 
           // Handle archive errors
-          archive.on("error", (err) => {
+          archive.on("error", (err: Error) => {
             logger.error("Archive error: " + err);
             throw err;
           });
@@ -215,9 +216,9 @@ export default class MicrosoftTeamsAPI {
           });
 
           // Create simple placeholder icon (1x1 transparent PNG)
-          const placeholderIcon = Buffer.from(
+          const placeholderIcon: Buffer = Buffer.from(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-            "base64"
+            "base64",
           );
           archive.append(placeholderIcon, { name: "color.png" });
           archive.append(placeholderIcon, { name: "outline.png" });
@@ -229,10 +230,10 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Failed to create Teams app manifest zip")
+            new BadDataException("Failed to create Teams app manifest zip"),
           );
         }
-      }
+      },
     );
 
     // Microsoft Teams OAuth callback endpoint for project integration
@@ -245,7 +246,7 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Microsoft Teams App Client ID is not set")
+            new BadDataException("Microsoft Teams App Client ID is not set"),
           );
         }
 
@@ -253,7 +254,9 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Microsoft Teams App Client Secret is not set")
+            new BadDataException(
+              "Microsoft Teams App Client Secret is not set",
+            ),
           );
         }
 
@@ -264,7 +267,9 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid request - state param not present")
+            new BadRequestException(
+              "Invalid request - state param not present",
+            ),
           );
         }
 
@@ -274,7 +279,7 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid state param")
+            new BadRequestException("Invalid state param"),
           );
         }
 
@@ -283,14 +288,14 @@ export default class MicrosoftTeamsAPI {
 
         const teamsIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/microsoft-teams-integration`
+            `/${projectId.toString()}/settings/microsoft-teams-integration`,
         );
 
         if (error) {
           return Response.redirect(
             req,
             res,
-            teamsIntegrationPageUrl.addQueryParam("error", error)
+            teamsIntegrationPageUrl.addQueryParam("error", error),
           );
         }
 
@@ -300,14 +305,14 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid request - no authorization code")
+            new BadRequestException("Invalid request - no authorization code"),
           );
         }
 
         try {
           // Exchange code for access token
           const redirectUri: URL = URL.fromString(
-            `${AppApiClientUrl.toString()}/microsoft-teams/auth`
+            `${AppApiClientUrl.toString()}/microsoft-teams/auth`,
           );
 
           const tokenRequestBody: JSONObject = {
@@ -321,19 +326,19 @@ export default class MicrosoftTeamsAPI {
           };
 
           logger.debug(
-            "Microsoft Teams Token Request Body (static redirect): "
+            "Microsoft Teams Token Request Body (static redirect): ",
           );
           logger.debug(tokenRequestBody);
 
           const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.post(
               URL.fromString(
-                "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+                "https://login.microsoftonline.com/common/oauth2/v2.0/token",
               ),
               tokenRequestBody,
               {
                 "Content-Type": "application/x-www-form-urlencoded",
-              }
+              },
             );
 
           if (tokenResponse instanceof HTTPErrorResponse) {
@@ -351,8 +356,8 @@ export default class MicrosoftTeamsAPI {
               req,
               res,
               new BadRequestException(
-                "Failed to get access token from Microsoft Teams"
-              )
+                "Failed to get access token from Microsoft Teams",
+              ),
             );
           }
 
@@ -366,7 +371,7 @@ export default class MicrosoftTeamsAPI {
             undefined,
             {
               Authorization: `Bearer ${accessToken}`,
-            }
+            },
           );
 
           if (userProfileResponse instanceof HTTPErrorResponse) {
@@ -386,7 +391,7 @@ export default class MicrosoftTeamsAPI {
               undefined,
               {
                 Authorization: `Bearer ${accessToken}`,
-              }
+              },
             );
 
           if (teamsResponse instanceof HTTPErrorResponse) {
@@ -405,8 +410,8 @@ export default class MicrosoftTeamsAPI {
               res,
               teamsIntegrationPageUrl.addQueryParam(
                 "error",
-                "You are not a member of any Microsoft Teams. Please join a team first."
-              )
+                "You are not a member of any Microsoft Teams. Please join a team first.",
+              ),
             );
           }
           // Unified handling for single vs multiple teams (no if/else block)
@@ -416,7 +421,7 @@ export default class MicrosoftTeamsAPI {
                 id: t["id"] as string,
                 displayName: (t["displayName"] as string) || "Unnamed Team",
               };
-            }
+            },
           );
           await WorkspaceUserAuthTokenService.refreshAuthToken({
             projectId: new ObjectID(projectId),
@@ -437,7 +442,7 @@ export default class MicrosoftTeamsAPI {
           return Response.redirect(
             req,
             res,
-            teamsIntegrationPageUrl.addQueryParam("selectTeam", "true")
+            teamsIntegrationPageUrl.addQueryParam("selectTeam", "true"),
           );
         } catch (err) {
           logger.error("Error in static Microsoft Teams auth callback: ");
@@ -445,10 +450,10 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Failed to authenticate with Microsoft Teams")
+            new BadDataException("Failed to authenticate with Microsoft Teams"),
           );
         }
-      }
+      },
     );
 
     // Deprecated (legacy) route that had projectId and userId in path params. Kept for backward compatibility.
@@ -459,7 +464,7 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Microsoft Teams App Client ID is not set")
+            new BadDataException("Microsoft Teams App Client ID is not set"),
           );
         }
 
@@ -467,7 +472,9 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Microsoft Teams App Client Secret is not set")
+            new BadDataException(
+              "Microsoft Teams App Client Secret is not set",
+            ),
           );
         }
 
@@ -479,7 +486,7 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid ProjectID in request")
+            new BadDataException("Invalid ProjectID in request"),
           );
         }
 
@@ -487,7 +494,7 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid UserID in request")
+            new BadDataException("Invalid UserID in request"),
           );
         }
 
@@ -495,14 +502,14 @@ export default class MicrosoftTeamsAPI {
 
         const teamsIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/microsoft-teams-integration`
+            `/${projectId.toString()}/settings/microsoft-teams-integration`,
         );
 
         if (error) {
           return Response.redirect(
             req,
             res,
-            teamsIntegrationPageUrl.addQueryParam("error", error)
+            teamsIntegrationPageUrl.addQueryParam("error", error),
           );
         }
 
@@ -512,13 +519,13 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadRequestException("Invalid request - no authorization code")
+            new BadRequestException("Invalid request - no authorization code"),
           );
         }
 
         // Exchange code for access token
         const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/microsoft-teams/auth/${projectId}/${userId}`
+          `${AppApiClientUrl.toString()}/microsoft-teams/auth/${projectId}/${userId}`,
         );
 
         const tokenRequestBody: JSONObject = {
@@ -537,12 +544,12 @@ export default class MicrosoftTeamsAPI {
         const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.post(
             URL.fromString(
-              "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+              "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             ),
             tokenRequestBody,
             {
               "Content-Type": "application/x-www-form-urlencoded",
-            }
+            },
           );
 
         if (tokenResponse instanceof HTTPErrorResponse) {
@@ -560,8 +567,8 @@ export default class MicrosoftTeamsAPI {
             req,
             res,
             new BadRequestException(
-              "Failed to get access token from Microsoft Teams"
-            )
+              "Failed to get access token from Microsoft Teams",
+            ),
           );
         }
 
@@ -575,7 +582,7 @@ export default class MicrosoftTeamsAPI {
           undefined,
           {
             Authorization: `Bearer ${accessToken}`,
-          }
+          },
         );
 
         if (userProfileResponse instanceof HTTPErrorResponse) {
@@ -595,7 +602,7 @@ export default class MicrosoftTeamsAPI {
             undefined,
             {
               Authorization: `Bearer ${accessToken}`,
-            }
+            },
           );
 
         if (teamsResponse instanceof HTTPErrorResponse) {
@@ -614,8 +621,8 @@ export default class MicrosoftTeamsAPI {
             res,
             teamsIntegrationPageUrl.addQueryParam(
               "error",
-              "You are not a member of any Microsoft Teams. Please join a team first."
-            )
+              "You are not a member of any Microsoft Teams. Please join a team first.",
+            ),
           );
         }
 
@@ -625,7 +632,7 @@ export default class MicrosoftTeamsAPI {
               id: t["id"] as string,
               displayName: (t["displayName"] as string) || "Unnamed Team",
             };
-          }
+          },
         );
 
         await WorkspaceUserAuthTokenService.refreshAuthToken({
@@ -647,9 +654,9 @@ export default class MicrosoftTeamsAPI {
         Response.redirect(
           req,
           res,
-          teamsIntegrationPageUrl.addQueryParam("selectTeam", "true")
+          teamsIntegrationPageUrl.addQueryParam("selectTeam", "true"),
         );
-      }
+      },
     );
 
     // Endpoint to finalize team selection when multiple teams are available.
@@ -666,8 +673,8 @@ export default class MicrosoftTeamsAPI {
               req,
               res,
               new BadRequestException(
-                "projectId, userId and teamId are required"
-              )
+                "projectId, userId and teamId are required",
+              ),
             );
           }
 
@@ -675,19 +682,20 @@ export default class MicrosoftTeamsAPI {
           const userId: ObjectID = new ObjectID(userIdString);
 
           // Fetch user auth to get access token and available teams.
-          const userAuth = await WorkspaceUserAuthTokenService.getUserAuth({
-            projectId: projectId,
-            userId: userId,
-            workspaceType: WorkspaceType.MicrosoftTeams,
-          });
+          const userAuth: WorkspaceUserAuthToken | null =
+            await WorkspaceUserAuthTokenService.getUserAuth({
+              projectId: projectId,
+              userId: userId,
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
 
           if (!userAuth) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadRequestException(
-                "User Microsoft Teams auth not found. Please re-authenticate."
-              )
+                "User Microsoft Teams auth not found. Please re-authenticate.",
+              ),
             );
           }
 
@@ -696,15 +704,17 @@ export default class MicrosoftTeamsAPI {
           const availableTeams: Array<MicrosoftTeamsTeam> =
             (miscData.availableTeams as Array<MicrosoftTeamsTeam>) || [];
           const matchedTeam: MicrosoftTeamsTeam | undefined =
-            availableTeams.find((t: MicrosoftTeamsTeam) => t.id === teamId);
+            availableTeams.find((t: MicrosoftTeamsTeam) => {
+              return t.id === teamId;
+            });
 
           if (!matchedTeam) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadRequestException(
-                "Selected teamId is not in availableTeams list"
-              )
+                "Selected teamId is not in availableTeams list",
+              ),
             );
           }
 
@@ -747,10 +757,10 @@ export default class MicrosoftTeamsAPI {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Failed to select Microsoft Teams team")
+            new BadDataException("Failed to select Microsoft Teams team"),
           );
         }
-      }
+      },
     );
 
     // Microsoft Teams webhook endpoint for interactive messages
@@ -783,7 +793,7 @@ export default class MicrosoftTeamsAPI {
               req,
               res,
               authResult,
-              activity
+              activity,
             );
           } else if (activityType === "invoke") {
             // Handle adaptive card actions
@@ -791,7 +801,7 @@ export default class MicrosoftTeamsAPI {
               req,
               res,
               authResult,
-              activity
+              activity,
             );
           }
 
@@ -801,7 +811,7 @@ export default class MicrosoftTeamsAPI {
           logger.error(error);
           return Response.sendTextResponse(req, res, "");
         }
-      }
+      },
     );
 
     // Connector configuration endpoint
@@ -843,7 +853,7 @@ export default class MicrosoftTeamsAPI {
 
         res.setHeader("Content-Type", "text/html");
         return res.send(html);
-      }
+      },
     );
 
     return router;
@@ -853,7 +863,7 @@ export default class MicrosoftTeamsAPI {
     _req: ExpressRequest,
     res: ExpressResponse,
     authResult: MicrosoftTeamsRequest,
-    activity: JSONObject
+    activity: JSONObject,
   ): Promise<void> {
     // Handle direct messages to bot or @mentions
     const messageText: string = (activity["text"] as string) || "";
@@ -880,7 +890,7 @@ export default class MicrosoftTeamsAPI {
     req: ExpressRequest,
     res: ExpressResponse,
     authResult: MicrosoftTeamsRequest,
-    _activity: JSONObject
+    _activity: JSONObject,
   ): Promise<void> {
     // Handle adaptive card button clicks
     // const value: JSONObject = activity["value"] as JSONObject;
@@ -928,7 +938,7 @@ export default class MicrosoftTeamsAPI {
             action: action,
             req: req,
             res: res,
-          }
+          },
         );
       }
 

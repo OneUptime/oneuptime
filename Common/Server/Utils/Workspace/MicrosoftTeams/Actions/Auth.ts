@@ -153,7 +153,7 @@ export default class MicrosoftTeamsAuthAction {
       }
     } else if (activityType === "message") {
       // Handle text messages to the bot
-      const text: string = payload["text"] as string || "";
+      const text: string = (payload["text"] as string) || "";
       if (text.toLowerCase().includes("help")) {
         actions.push({
           actionType: "help",
@@ -201,16 +201,19 @@ export default class MicrosoftTeamsAuthAction {
         });
 
       if (workspaceUserAuthToken && workspaceUserAuthToken.userId) {
-        logger.debug("Found OneUptime user for Teams user: " + data.teamsUserId);
+        logger.debug(
+          "Found OneUptime user for Teams user: " + data.teamsUserId,
+        );
         return workspaceUserAuthToken.userId;
       }
 
       throw new BadDataException(
-        "No OneUptime user linked to this Microsoft Teams user. Please authenticate with Microsoft Teams."
+        "No OneUptime user linked to this Microsoft Teams user. Please authenticate with Microsoft Teams.",
       );
-
     } catch (error) {
-      logger.error("Error finding OneUptime user for Teams user: " + data.teamsUserId);
+      logger.error(
+        "Error finding OneUptime user for Teams user: " + data.teamsUserId,
+      );
       logger.error(error);
       throw error;
     }
