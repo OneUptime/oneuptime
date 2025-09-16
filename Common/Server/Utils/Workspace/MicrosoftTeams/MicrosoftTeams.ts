@@ -30,9 +30,11 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import OneUptimeDate from "../../../../Types/Date";
+import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
-  // Helper method to get the correct access token for Microsoft Graph API calls
+  // Helper method to get a valid access token, refreshing if necessary
   private static async getValidAccessToken(data: {
     authToken: string;
     projectId: ObjectID;
@@ -43,30 +45,137 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return data.authToken;
     }
 
-    // If authToken is not a JWT, try to get it from project auth miscData
-    try {
-      const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.MicrosoftTeams,
-      });
+    // Get project auth and check token expiration
+    const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+      projectId: data.projectId,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+    });
 
-      if (projectAuth && projectAuth.miscData) {
-        const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+    if (!projectAuth || !projectAuth.miscData) {
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project"
+      );
+    }
+
+    const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+    
+    // Check if token exists and is valid
+    if (miscData.appAccessToken && miscData.appAccessToken.includes('.')) {
+      // Check if token is expired
+      if (miscData.appAccessTokenExpiresAt) {
+        const expiryDate = OneUptimeDate.fromString(miscData.appAccessTokenExpiresAt);
         
-        // Check for appAccessToken in miscData
-        if (miscData.appAccessToken && miscData.appAccessToken.includes('.')) {
-          logger.debug("Using appAccessToken from miscData for Microsoft Graph API call");
+        // If token expires within the next 5 minutes, refresh it
+        if (OneUptimeDate.getSecondsTo(expiryDate) <= 300) {
+          logger.debug("Access token is expired or expiring soon, attempting to refresh");
+          const newToken = await this.refreshAccessToken({
+            projectId: data.projectId,
+            miscData,
+          });
+          if (newToken) {
+            return newToken;
+          }
+        } else {
+          logger.debug("Using cached appAccessToken from miscData for Microsoft Graph API call");
           return miscData.appAccessToken;
         }
+      } else {
+        // No expiry information, use the token but it might be expired
+        logger.debug("Using appAccessToken from miscData (no expiry info available)");
+        return miscData.appAccessToken;
       }
-    } catch (error) {
-      logger.error("Error getting project auth for token validation:");
-      logger.error(error);
     }
 
     // If we couldn't find a valid token, return the original (this will likely fail)
     logger.warn("Could not find valid JWT token, using original authToken (may fail)");
     return data.authToken;
+  }
+
+  // Method to refresh the Microsoft Teams access token
+  private static async refreshAccessToken(data: {
+    projectId: ObjectID;
+    miscData: MicrosoftTeamsMiscData;
+  }): Promise<string | null> {
+    try {
+      // Check if we have the necessary client credentials
+      if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+        logger.error("Microsoft Teams app client credentials are not configured");
+        logger.error("Please set MICROSOFT_TEAMS_APP_CLIENT_ID and MICROSOFT_TEAMS_APP_CLIENT_SECRET environment variables");
+        return null;
+      }
+
+      if (!data.miscData.tenantId) {
+        logger.error("Tenant ID not found in miscData, cannot refresh token");
+        return null;
+      }
+
+      logger.debug(`Attempting to refresh Microsoft Teams access token for project ${data.projectId.toString()}`);
+      logger.debug(`Using tenant ID: ${data.miscData.tenantId}`);
+
+      // Use OAuth 2.0 client credentials flow to get a new app access token
+      const tokenUrl = `https://login.microsoftonline.com/${data.miscData.tenantId}/oauth2/v2.0/token`;
+      
+      const tokenRequestBody = {
+        client_id: MicrosoftTeamsAppClientId,
+        client_secret: MicrosoftTeamsAppClientSecret,
+        grant_type: 'client_credentials',
+        scope: 'https://graph.microsoft.com/.default',
+      };
+
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+        URL.fromString(tokenUrl),
+        tokenRequestBody,
+        {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        }
+      );
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error refreshing Microsoft Teams access token:");
+        logger.error(response);
+        return null;
+      }
+
+      const tokenData = response.data;
+      const newAccessToken = tokenData['access_token'] as string;
+      const expiresIn = tokenData['expires_in'] as number; // seconds
+
+      if (!newAccessToken) {
+        logger.error("No access token received in token refresh response");
+        return null;
+      }
+
+      // Calculate expiry time
+      const now = OneUptimeDate.getCurrentDate();
+      const expiryDate = OneUptimeDate.addRemoveSeconds(now, expiresIn - 300); // Subtract 5 minutes buffer
+      
+      // Update the miscData with new token and expiry
+      const updatedMiscData: MicrosoftTeamsMiscData = {
+        ...data.miscData,
+        appAccessToken: newAccessToken,
+        appAccessTokenExpiresAt: OneUptimeDate.toString(expiryDate),
+        lastAppTokenIssuedAt: OneUptimeDate.toString(now),
+      };
+
+      // Save the updated token to the database
+      await WorkspaceProjectAuthTokenService.refreshAuthToken({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        authToken: newAccessToken,
+        workspaceProjectId: data.miscData.teamId,
+        miscData: updatedMiscData as any,
+      });
+
+      logger.debug("Microsoft Teams access token refreshed successfully");
+      logger.debug(`New token expires at: ${updatedMiscData.appAccessTokenExpiresAt}`);
+
+      return newAccessToken;
+    } catch (error) {
+      logger.error("Error refreshing Microsoft Teams access token:");
+      logger.error(error);
+      return null;
+    }
   }
 
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
