@@ -41,6 +41,7 @@ import RadioButtons, {
 import Button, {
   ButtonStyleType as SharedButtonStyle,
 } from "Common/UI/Components/Button/Button";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -497,6 +498,46 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           buttons={cardButtons}
         />
       </div>
+      {!isProjectAccountConnected && manifest && (
+        <div className="mt-6">
+          <Card
+            title="Manual App Installation"
+            description="If you prefer to install the OneUptime app manually in Microsoft Teams, download the app manifest zip file and follow the instructions below."
+            buttons={[
+              {
+                title: "Download App Manifest Zip",
+                buttonStyle: SharedButtonStyle.PRIMARY,
+                icon: IconProp.Download,
+                onClick: () => {
+                  window.open(
+                    `${HOME_URL.toString()}/api/microsoft-teams/app-manifest-zip`,
+                    "_blank",
+                  );
+                },
+              },
+            ]}
+          >
+            <MarkdownViewer
+              text={`
+##### Installation Steps:
+
+1. **Download the zip file** using the button above
+2. **Upload to Microsoft Teams:**
+   - Go to Microsoft Teams → Apps → Manage your apps
+   - Click "Upload an app" → "Upload a custom app"
+   - Select the downloaded zip file
+3. **Install the app:**
+   - Find "OneUptime" in your apps
+   - Click "Add" to install it for your team
+   - Grant the necessary permissions
+4. **Return here** and click "Connect with Microsoft Teams" to complete the setup
+
+The zip file contains the app manifest and required icons for Teams installation.
+              `}
+            />
+          </Card>
+        </div>
+      )}
     </Fragment>
   );
 };
