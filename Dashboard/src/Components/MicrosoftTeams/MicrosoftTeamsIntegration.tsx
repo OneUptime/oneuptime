@@ -56,6 +56,110 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [teamsTeamName, setTeamsTeamName] = React.useState<string | null>(null);
+  const [availableTeams, setAvailableTeams] = React.useState<Array<{ id: string; displayName: string }>>([]);
+  const [isSelectingTeam, setIsSelectingTeam] = React.useState<boolean>(false);
+  const [selectedTeamId, setSelectedTeamId] = React.useState<string>("");
+  const [teamSearch, setTeamSearch] = React.useState<string>("");
+  const filteredTeams = React.useMemo(() => {
+    if (!teamSearch) { return availableTeams; }
+    return availableTeams.filter(t => t.displayName.toLowerCase().includes(teamSearch.toLowerCase()));
+  }, [teamSearch, availableTeams]);
+
+  const confirmTeamSelection: PromiseVoidFunction = async (): Promise<void> => {
+    if (!selectedTeamId || isButtonLoading) { return; }
+    try {
+      setIsButtonLoading(true);
+      setError(null);
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const userId: ObjectID | null = UserUtil.getUserId();
+      if (!projectId || !userId) {
+        throw new Error('Missing project or user context');
+      }
+      const result = await API.post(
+        URL.fromString(`${HOME_URL.toString()}/api/microsoft-teams/select-team`),
+        {
+          projectId: projectId.toString(),
+            userId: userId.toString(),
+          teamId: selectedTeamId,
+        } as JSONObject,
+      );
+      if (result instanceof HTTPErrorResponse) {
+        throw result;
+      }
+      setIsSelectingTeam(false);
+      setAvailableTeams([]);
+      await loadItems();
+    } catch (err) {
+      setError(<div>{API.getFriendlyErrorMessage(err as Error)}</div>);
+    } finally {
+      setIsButtonLoading(false);
+    }
+  };
+
+  const renderTeamGrid = (): ReactElement => {
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>{filteredTeams.length} team{filteredTeams.length === 1 ? '' : 's'} {teamSearch && `(filtered)`}</div>
+          <input
+            placeholder="Search teams..."
+            value={teamSearch}
+            onChange={(e) => setTeamSearch(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              border: '1px solid var(--gray-300)',
+              borderRadius: 4,
+              width: '200px'
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: '12px'
+          }}
+        >
+          {filteredTeams.map(team => {
+            const isSelected: boolean = selectedTeamId === team.id;
+            return (
+              <div
+                key={team.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onClick={() => setSelectedTeamId(team.id)}
+                onDoubleClick={() => { setSelectedTeamId(team.id); confirmTeamSelection().catch(() => {}); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { setSelectedTeamId(team.id); }
+                  if (e.key === 'Enter' && selectedTeamId === team.id) { confirmTeamSelection().catch(() => {}); }
+                }}
+                style={{
+                  border: isSelected ? '2px solid var(--primary-500)' : '1px solid var(--gray-300)',
+                  padding: '12px 12px 14px 12px',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  background: isSelected ? 'linear-gradient(135deg,var(--primary-50), #ffffff)' : '#fff',
+                  boxShadow: isSelected ? '0 0 0 2px var(--primary-100)' : '0 1px 2px rgba(0,0,0,0.04)',
+                  transition: 'all 120ms ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                  <strong style={{ fontSize: 14, lineHeight: '18px' }}>{team.displayName}</strong>
+                  {isSelected && <span style={{ fontSize: 11, color: 'var(--primary-600)', fontWeight: 600 }}>Selected</span>}
+                </div>
+                <div style={{ fontSize: 11, opacity: 0.6, wordBreak: 'break-all' }}>ID: {team.id}</div>
+                <div style={{ fontSize: 11, opacity: 0.55, marginTop: 6 }}>Double-click or press Enter twice to confirm</div>
+              </div>
+            );
+          })}
+          {filteredTeams.length === 0 && (
+            <div style={{ fontSize: 13, opacity: 0.7 }}>No teams match "{teamSearch}".</div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -109,6 +213,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           },
           select: {
             _id: true,
+            miscData: true,
           },
           limit: 1,
           skip: 0,
@@ -120,6 +225,16 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       if (userAuth.data.length > 0) {
         setIsUserAccountConnected(true);
         setWorkspaceUserAuthTokenId(userAuth.data[0]!.id);
+        const miscData: any = userAuth.data[0]!.miscData || {};
+        if (miscData.availableTeams && Array.isArray(miscData.availableTeams)) {
+          setAvailableTeams(
+            miscData.availableTeams.map((t: any) => ({
+              id: t.id as string,
+              displayName: t.displayName as string,
+            })),
+          );
+          setIsSelectingTeam(true);
+        }
       }
 
       if (!isUserAccountConnected || !isProjectAccountConnected) {
@@ -170,6 +285,51 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   if (error) {
     return <ErrorMessage message={error} />;
+  }
+  // Show team selection UI if user has multiple teams available and project not yet connected.
+  if (isSelectingTeam && !isProjectAccountConnected && availableTeams.length > 0) {
+    return (
+      <Fragment>
+        <Card
+          title="Select a Microsoft Teams Team"
+          description="Choose which Microsoft Teams team you want to connect. You can only connect one team per project."
+          buttons={[]}
+        >
+          {renderTeamGrid()}
+          <div style={{ marginTop: '16px' }}>
+            <Card
+              title=""
+              description=""
+              buttons={[
+                {
+                  title: 'Confirm Selection',
+                  isLoading: isButtonLoading,
+                  buttonStyle: ButtonStyleType.PRIMARY,
+                  icon: IconProp.Check,
+                  onClick: async () => {
+                    confirmTeamSelection().catch(() => {});
+                  }
+                },
+                {
+                  title: 'Cancel',
+                  buttonStyle: ButtonStyleType.SECONDARY,
+                  icon: IconProp.Close,
+                  onClick: () => {
+                    setIsSelectingTeam(false);
+                  }
+                }
+              ]}
+            />
+            <div style={{ marginTop: 8, fontSize: 11, opacity: 0.65 }}>
+              Tip: Double-click a team card to confirm immediately.
+            </div>
+            <div style={{ marginTop: 4, fontSize: 11, opacity: 0.55 }}>
+              You can reconnect later to choose a different team (feature coming soon).
+            </div>
+          </div>
+        </Card>
+      </Fragment>
+    );
   }
 
   let cardTitle: string = "";
