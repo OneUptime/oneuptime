@@ -296,7 +296,7 @@ export default class MicrosoftTeamsAPI {
             client_secret: MicrosoftTeamsAppClientSecret,
             redirect_uri: redirectUri.toString(),
             scope:
-              "https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
+              "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
           };
 
           logger.debug("Microsoft Teams Token Request Body (static redirect): ");
@@ -339,6 +339,7 @@ export default class MicrosoftTeamsAPI {
           const userProfileResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.get(
               URL.fromString("https://graph.microsoft.com/v1.0/me"),
+              undefined,
               {
                 Authorization: `Bearer ${accessToken}`,
               },
@@ -358,6 +359,7 @@ export default class MicrosoftTeamsAPI {
           const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.get(
               URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+              undefined,
               {
                 Authorization: `Bearer ${accessToken}`,
               },
@@ -508,7 +510,7 @@ export default class MicrosoftTeamsAPI {
           client_id: MicrosoftTeamsAppClientId,
           client_secret: MicrosoftTeamsAppClientSecret,
           redirect_uri: redirectUri.toString(),
-          scope: "https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
+          scope: "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send",
         };
 
         logger.debug("Microsoft Teams Token Request Body: ");
@@ -547,6 +549,7 @@ export default class MicrosoftTeamsAPI {
         const userProfileResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.get(
             URL.fromString("https://graph.microsoft.com/v1.0/me"),
+            undefined,
             {
               Authorization: `Bearer ${accessToken}`,
             },
@@ -566,6 +569,7 @@ export default class MicrosoftTeamsAPI {
         const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.get(
             URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
+            undefined,
             {
               Authorization: `Bearer ${accessToken}`,
             },

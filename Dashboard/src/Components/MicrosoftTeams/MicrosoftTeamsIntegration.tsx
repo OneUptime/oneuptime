@@ -243,7 +243,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   // Use static redirect URI (no projectId/userId in path) and encode both values in the state param.
   const redirectUri: string = `${APP_API_URL}/microsoft-teams/auth`;
-  const scopes: string = "https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
+  const scopes: string = "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
   const state: string = `${projectId.toString()}:${userId.toString()}`;
 
       if (!isProjectAccountConnected) {
