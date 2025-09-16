@@ -1,7 +1,7 @@
 import ObjectID from "Common/Types/ObjectID";
 import Query from "Common/Types/BaseDatabase/Query";
 import Log from "Common/Models/AnalyticsModels/Log";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import AdvancedLogViewer from "./AdvancedLogViewer/AdvancedLogViewer";
 
 export interface ComponentProps {
