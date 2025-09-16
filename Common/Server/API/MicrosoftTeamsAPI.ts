@@ -89,7 +89,7 @@ export default class MicrosoftTeamsAPI {
                 MicrosoftTeamsAppClientId ||
                 "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
               needsChannelSelector: false,
-              isNotificationOnly: true,
+              isNotificationOnly: false,
               scopes: ["team", "personal"],
               supportsFiles: false,
               supportsCalling: false,
@@ -164,7 +164,7 @@ export default class MicrosoftTeamsAPI {
                   MicrosoftTeamsAppClientId ||
                   "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
                 needsChannelSelector: false,
-                isNotificationOnly: true,
+                isNotificationOnly: false,
                 scopes: ["team", "personal"],
                 supportsFiles: false,
                 supportsCalling: false,
@@ -718,6 +718,28 @@ export default class MicrosoftTeamsAPI {
             );
           }
 
+          // Decode JWT to get tenant ID
+          const tokenParts: Array<string> = accessToken.split('.');
+          if (tokenParts.length !== 3) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid JWT token"),
+            );
+          }
+          const payload: JSONObject = JSON.parse(
+            Buffer.from(tokenParts[1]!, 'base64').toString('utf-8'),
+          );
+          const tenantId: string = payload['tid'] as string;
+
+          if (!tenantId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Tenant ID not found in token"),
+            );
+          }
+
           // Persist project auth now that team is selected.
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
             projectId: projectId,
@@ -725,7 +747,7 @@ export default class MicrosoftTeamsAPI {
             authToken: accessToken,
             workspaceProjectId: teamId,
             miscData: {
-              tenantId: miscData.userId || "",
+              tenantId: tenantId,
               teamId: teamId,
               teamName: matchedTeam.displayName,
               botId: MicrosoftTeamsAppClientId || "",
