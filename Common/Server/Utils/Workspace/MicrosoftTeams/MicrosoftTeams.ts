@@ -188,6 +188,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get<JSONObject>(
         URL.fromString(`https://graph.microsoft.com/v1.0/users/${data.userId}`),
+        undefined, 
         {
           Authorization: `Bearer ${data.authToken}`,
           "Content-Type": "application/json",
@@ -420,6 +421,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         URL.fromString(
           `https://graph.microsoft.com/v1.0/teams/${teamId}/channels`,
         ),
+        undefined, 
         {
           Authorization: `Bearer ${data.authToken}`,
           "Content-Type": "application/json",
@@ -595,6 +597,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           URL.fromString(
             `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`,
           ),
+          undefined, 
           {
             Authorization: `Bearer ${data.authToken}`,
             "Content-Type": "application/json",
