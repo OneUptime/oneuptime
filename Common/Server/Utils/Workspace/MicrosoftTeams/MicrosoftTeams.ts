@@ -29,8 +29,46 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
+  // Helper method to get the correct access token for Microsoft Graph API calls
+  private static async getValidAccessToken(data: {
+    authToken: string;
+    projectId: ObjectID;
+  }): Promise<string> {
+    // Check if the authToken is a valid JWT (contains dots)
+    if (data.authToken && data.authToken.includes('.')) {
+      // It's a JWT token, use it directly
+      return data.authToken;
+    }
+
+    // If authToken is not a JWT, try to get it from project auth miscData
+    try {
+      const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+      if (projectAuth && projectAuth.miscData) {
+        const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+        
+        // Check for appAccessToken in miscData
+        if (miscData.appAccessToken && miscData.appAccessToken.includes('.')) {
+          logger.debug("Using appAccessToken from miscData for Microsoft Graph API call");
+          return miscData.appAccessToken;
+        }
+      }
+    } catch (error) {
+      logger.error("Error getting project auth for token validation:");
+      logger.error(error);
+    }
+
+    // If we couldn't find a valid token, return the original (this will likely fail)
+    logger.warn("Could not find valid JWT token, using original authToken (may fail)");
+    return data.authToken;
+  }
+
   private static buildMessageCardFromMarkdown(markdown: string): JSONObject {
     // Teams MessageCard has limited markdown support. Headings like '##' are not supported
     // and single newlines can collapse. Convert common patterns to a structured card.
@@ -181,16 +219,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static override async getUsernameFromUserId(data: {
     authToken: string;
     userId: string;
+    projectId: ObjectID;
   }): Promise<string | null> {
     logger.debug("Getting username from user ID with data:");
     logger.debug(data);
+
+    // Get valid access token
+    const accessToken = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get<JSONObject>(
         URL.fromString(`https://graph.microsoft.com/v1.0/users/${data.userId}`),
         undefined, 
         {
-          Authorization: `Bearer ${data.authToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       );
@@ -335,6 +380,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const teamId: string = projectAuth.workspaceProjectId;
 
+    // Get valid access token
+    const accessToken = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
+
     const channelPayload: JSONObject = {
       displayName: data.channelName,
       description: `OneUptime notifications for ${data.channelName}`,
@@ -351,7 +402,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         ),
         channelPayload,
         {
-          Authorization: `Bearer ${data.authToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       );
@@ -416,6 +467,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     const teamId: string = projectAuth.workspaceProjectId;
 
+    // Get valid access token
+    const accessToken = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.get(
         URL.fromString(
@@ -423,7 +480,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         ),
         undefined, 
         {
-          Authorization: `Bearer ${data.authToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       );
@@ -512,6 +569,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             authToken: data.authToken,
             channelId: channelId,
             teamId: teamId,
+            projectId: data.projectId,
           });
         workspaceChannelsToPostTo.push(channel);
       } catch (err) {
@@ -527,6 +585,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           teamId: teamId,
           workspaceChannel: channel,
           adaptiveCard: adaptiveCard,
+          projectId: data.projectId,
         });
 
         workspaceMessageResponse.threads.push(thread);
@@ -545,7 +604,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     teamId: string;
     workspaceChannel: WorkspaceChannel;
     adaptiveCard: JSONObject;
+    projectId: ObjectID;
   }): Promise<WorkspaceThread> {
+    // Get valid access token
+    const accessToken = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
+
     const chatMessage: JSONObject = {
       body: {
         contentType: "html",
@@ -566,7 +632,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         ),
         chatMessage,
         {
-          Authorization: `Bearer ${data.authToken}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       );
@@ -589,8 +655,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     channelId: string;
     teamId: string;
+    projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
     try {
+      // Get valid access token
+      const accessToken = await this.getValidAccessToken({
+        authToken: data.authToken,
+        projectId: data.projectId,
+      });
+
       // Fetch channel information from Microsoft Graph API
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get(
@@ -599,7 +672,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           ),
           undefined, 
           {
-            Authorization: `Bearer ${data.authToken}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
         );

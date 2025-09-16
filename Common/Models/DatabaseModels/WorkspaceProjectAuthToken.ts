@@ -39,6 +39,12 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   teamId: string;
   teamName: string;
   botId: string;
+  appAccessToken?: string;
+  adminConsentGranted?: boolean;
+  lastAppTokenIssuedAt?: string;
+  adminConsentGrantedAt?: string;
+  adminConsentGrantedBy?: string;
+  appAccessTokenExpiresAt?: string;
   channelCache?: {
     [channelName: string]: {
       id: string;
