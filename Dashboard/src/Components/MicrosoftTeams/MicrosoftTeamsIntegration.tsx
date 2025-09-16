@@ -98,63 +98,85 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   const renderTeamGrid = (): ReactElement => {
     return (
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 12, opacity: 0.7 }}>{filteredTeams.length} team{filteredTeams.length === 1 ? '' : 's'} {teamSearch && `(filtered)`}</div>
-          <input
-            placeholder="Search teams..."
-            value={teamSearch}
-            onChange={(e) => setTeamSearch(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              border: '1px solid var(--gray-300)',
-              borderRadius: 4,
-              width: '200px'
-            }}
-          />
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-xs text-gray-500 select-none">
+            <span className="font-medium text-gray-700">{filteredTeams.length}</span> team{filteredTeams.length === 1 ? '' : 's'} {teamSearch && <span className="text-gray-400">(filtered)</span>}
+          </div>
+          <div className="relative w-full sm:w-64">
+            <input
+              placeholder="Search teams..."
+              value={teamSearch}
+              onChange={(e) => setTeamSearch(e.target.value)}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
+              aria-label="Search teams"
+            />
+            {teamSearch && (
+              <button
+                type="button"
+                onClick={() => setTeamSearch("")}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '12px'
-          }}
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredTeams.map(team => {
             const isSelected: boolean = selectedTeamId === team.id;
             return (
-              <div
+              <button
                 key={team.id}
-                role="button"
-                tabIndex={0}
-                aria-pressed={isSelected}
+                type="button"
                 onClick={() => setSelectedTeamId(team.id)}
                 onDoubleClick={() => { setSelectedTeamId(team.id); confirmTeamSelection().catch(() => {}); }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') { setSelectedTeamId(team.id); }
                   if (e.key === 'Enter' && selectedTeamId === team.id) { confirmTeamSelection().catch(() => {}); }
                 }}
-                style={{
-                  border: isSelected ? '2px solid var(--primary-500)' : '1px solid var(--gray-300)',
-                  padding: '12px 12px 14px 12px',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  background: isSelected ? 'linear-gradient(135deg,var(--primary-50), #ffffff)' : '#fff',
-                  boxShadow: isSelected ? '0 0 0 2px var(--primary-100)' : '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 120ms ease'
-                }}
+                className={[
+                  'group relative w-full text-left rounded-lg border bg-white p-4 transition shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+                  isSelected ? 'border-primary-500 ring-1 ring-primary-500' : 'border-gray-200 hover:border-primary-300 hover:shadow',
+                ].join(' ')}
+                aria-pressed={isSelected}
+                aria-label={`Select team ${team.displayName}`}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                  <strong style={{ fontSize: 14, lineHeight: '18px' }}>{team.displayName}</strong>
-                  {isSelected && <span style={{ fontSize: 11, color: 'var(--primary-600)', fontWeight: 600 }}>Selected</span>}
+                <div className="flex items-start justify-between">
+                  <div className="pr-6">
+                    <div className="font-medium text-sm text-gray-800 group-hover:text-primary-700 truncate">
+                      {team.displayName}
+                    </div>
+                    <div className="text-[11px] text-gray-400 break-all mt-1 select-text">ID: {team.id}</div>
+                  </div>
+                  <div className="flex items-center">
+                    <span
+                      className={[
+                        'inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-semibold',
+                        isSelected
+                          ? 'bg-primary-500 border-primary-500 text-white shadow'
+                          : 'border-gray-300 text-transparent group-hover:text-gray-300'
+                      ].join(' ')}
+                    >
+                      ✓
+                    </span>
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, opacity: 0.6, wordBreak: 'break-all' }}>ID: {team.id}</div>
-                <div style={{ fontSize: 11, opacity: 0.55, marginTop: 6 }}>Double-click or press Enter twice to confirm</div>
-              </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-[11px] text-gray-500">Double-click to confirm</span>
+                  {isSelected && (
+                    <span className="text-[10px] uppercase tracking-wide font-semibold text-primary-600">Selected</span>
+                  )}
+                </div>
+                <div className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-transparent group-hover:ring-primary-200/60 transition" />
+              </button>
             );
           })}
           {filteredTeams.length === 0 && (
-            <div style={{ fontSize: 13, opacity: 0.7 }}>No teams match "{teamSearch}".</div>
+            <div className="col-span-full text-sm text-gray-500 italic py-6 border border-dashed border-gray-300 rounded-md text-center">
+              No teams match "{teamSearch}".
+            </div>
           )}
         </div>
       </div>
@@ -295,38 +317,30 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           description="Choose which Microsoft Teams team you want to connect. You can only connect one team per project."
           buttons={[]}
         >
-          {renderTeamGrid()}
-          <div style={{ marginTop: '16px' }}>
-            <Card
-              title=""
-              description=""
-              buttons={[
-                {
-                  title: 'Confirm Selection',
-                  isLoading: isButtonLoading,
-                  buttonStyle: ButtonStyleType.PRIMARY,
-                  icon: IconProp.Check,
-                  onClick: async () => {
-                    confirmTeamSelection().catch(() => {});
-                  }
-                },
-                {
-                  title: 'Cancel',
-                  buttonStyle: ButtonStyleType.SECONDARY,
-                  icon: IconProp.Close,
-                  onClick: () => {
-                    setIsSelectingTeam(false);
-                  }
-                }
-              ]}
-            />
-            <div style={{ marginTop: 8, fontSize: 11, opacity: 0.65 }}>
-              Tip: Double-click a team card to confirm immediately.
-            </div>
-            <div style={{ marginTop: 4, fontSize: 11, opacity: 0.55 }}>
-              You can reconnect later to choose a different team (feature coming soon).
-            </div>
+          <div className="mt-2">{renderTeamGrid()}</div>
+          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              type="button"
+              disabled={!selectedTeamId || isButtonLoading}
+              onClick={() => confirmTeamSelection().catch(() => {})}
+              className={[
+                'inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2',
+                (!selectedTeamId || isButtonLoading)
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
+              ].join(' ')}
+            >
+              {isButtonLoading ? 'Connecting...' : 'Confirm Selection'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsSelectingTeam(false)}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            >
+              Cancel
+            </button>
           </div>
+          
         </Card>
       </Fragment>
     );
