@@ -43,15 +43,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Project ID: ${data.projectId.toString()}`);
     logger.debug(`Auth token (first 20 chars): ${data.authToken?.substring(0, 20)}...`);
     
-    // Check if the authToken is a valid JWT (contains dots)
-    if (data.authToken && data.authToken.includes('.')) {
-      // It's a JWT token, use it directly
-      logger.debug("Auth token is a JWT, using directly");
-      return data.authToken;
-    }
-
-    logger.debug("Auth token is not a JWT, checking project auth for stored token");
-
     // Get project auth and check token expiration
     const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
       projectId: data.projectId,
@@ -107,9 +98,20 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    // If we couldn't find a valid token, return the original (this will likely fail)
-    logger.warn("Could not find valid JWT token, using original authToken (may fail)");
-    return data.authToken;
+    // If we couldn't find a valid token, try to refresh
+    logger.debug("No valid app access token found, attempting to refresh");
+    const newToken = await this.refreshAccessToken({
+      projectId: data.projectId,
+      miscData,
+    });
+    if (newToken) {
+      logger.debug("Successfully refreshed token");
+      return newToken;
+    }
+
+    // If refresh failed, throw error
+    logger.error("Could not obtain valid access token for Microsoft Teams");
+    throw new BadDataException("Could not obtain valid access token for Microsoft Teams");
   }
 
   // Method to refresh the Microsoft Teams access token
