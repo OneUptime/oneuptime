@@ -756,9 +756,14 @@ export default class SlackUtil extends WorkspaceBase {
         throw new BadRequestException("Error from Slack " + messageFromSlack);
       }
 
+      logger.debug("Searching for "+normalizedChannelName);
+      logger.debug("Searching channels in current page...");
+      logger.debug((response.jsonData as JSONObject)["channels"]);
+
       for (const channel of (response.jsonData as JSONObject)[
         "channels"
       ] as Array<JSONObject>) {
+
         if (!channel["id"] || !channel["name"]) {
           continue;
         }
