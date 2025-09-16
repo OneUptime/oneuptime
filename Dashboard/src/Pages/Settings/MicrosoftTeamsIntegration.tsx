@@ -1,18 +1,38 @@
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
-import ComingSoon from "Common/UI/Components/ComingSoon/ComingSoon";
+import MicrosoftTeamsIntegration from "../../Components/MicrosoftTeams/MicrosoftTeamsIntegration";
+import SideMenu from "./SideMenu";
+import Page from "Common/UI/Components/Page/Page";
+import RouteUtil from "../../Utils/RouteUtil";
 
-const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
+const MicrosoftTeamsIntegrationPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   return (
-    <div>
-      <ComingSoon
-        title="Microsoft Teams Integration is coming soon, but you can still integrate Teams with Workflows!"
-        description="We are working hard to bring you the Microsoft Teams integration. In the meantime, you can still integrate with Workflows to receive alerts in Microsoft Teams. Please click on Workflows in the top navigation to get started."
+    <Page
+      title="Microsoft Teams Integration"
+      breadcrumbLinks={[
+        {
+          title: "Project Settings",
+          to: RouteUtil.getRouteURL("/dashboard/project-settings"),
+        },
+        {
+          title: "Microsoft Teams Integration",
+          to: RouteUtil.getRouteURL("/dashboard/project-settings/microsoft-teams-integration"),
+        },
+      ]}
+      sideMenu={<SideMenu />}
+    >
+      <MicrosoftTeamsIntegration
+        onConnected={() => {
+          // Handle connected state if needed
+        }}
+        onDisconnected={() => {
+          // Handle disconnected state if needed
+        }}
       />
-    </div>
+    </Page>
   );
 };
 
-export default SlackIntegrationPage;
+export default MicrosoftTeamsIntegrationPage;
