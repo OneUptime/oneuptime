@@ -55,7 +55,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-  const [manifest, setManifest] = React.useState<JSONObject | null>(null);
   const [isUserAccountConnected, setIsUserAccountConnected] =
     React.useState<boolean>(false);
   const [userAuthTokenId, setWorkspaceUserAuthTokenId] =
@@ -216,23 +215,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         }
       }
 
-      if (!isUserAccountConnected || !isProjectAccountConnected) {
-        // if any of this is not connected then fetch the app manifest, so we can connect with Teams.
-
-        // fetch app manifest.
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get<JSONObject>(
-            URL.fromString(
-              `${HOME_URL.toString()}/api/microsoft-teams/app-manifest`,
-            ),
-          );
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        setManifest(response.data);
-      }
+     
     } catch (error) {
       setError(<div>{API.getFriendlyErrorMessage(error as Error)}</div>);
     } finally {
@@ -484,7 +467,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   if (!MicrosoftTeamsAppClientId) {
     return (
       <MicrosoftTeamsIntegrationDocumentation
-        manifest={manifest as JSONObject}
+       
       />
     );
   }
@@ -498,7 +481,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           buttons={cardButtons}
         />
       </div>
-      {!isProjectAccountConnected && manifest && (
+      {(
         <div className="mt-6">
           <Card
             title="Manual App Installation"
