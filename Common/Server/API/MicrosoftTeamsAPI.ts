@@ -35,6 +35,8 @@ import MicrosoftTeamsMonitorActions from "../Utils/Workspace/MicrosoftTeams/Acti
 import MicrosoftTeamsOnCallDutyActions from "../Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import archiver from "archiver";
+import fs from "fs";
+import path from "path";
 
 interface MicrosoftTeamsTeam {
   id: string;
@@ -215,13 +217,13 @@ export default class MicrosoftTeamsAPI {
             name: "manifest.json",
           });
 
-          // Create simple placeholder icon (1x1 transparent PNG)
-          const placeholderIcon: Buffer = Buffer.from(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-            "base64",
-          );
-          archive.append(placeholderIcon, { name: "color.png" });
-          archive.append(placeholderIcon, { name: "outline.png" });
+          // Read pre-resized icons
+          const iconsDir = path.join(__dirname, '..', '..', '..', 'Common', 'Server', 'Images', 'MicrosoftTeams');
+          const colorIcon = fs.readFileSync(path.join(iconsDir, 'color.png'));
+          const outlineIcon = fs.readFileSync(path.join(iconsDir, 'outline.png'));
+          
+          archive.append(colorIcon, { name: "color.png" });
+          archive.append(outlineIcon, { name: "outline.png" });
 
           // Finalize the archive
           await archive.finalize();
