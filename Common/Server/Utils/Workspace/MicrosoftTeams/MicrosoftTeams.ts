@@ -705,6 +705,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     for (const channel of workspaceChannelsToPostTo) {
       try {
+        logger.debug(`Attempting to send message to channel: ${JSON.stringify(channel)}`);
         const thread: WorkspaceThread = await this.sendAdaptiveCardToChannel({
           authToken: data.authToken,
           teamId: teamId,
@@ -713,6 +714,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           projectId: data.projectId,
         });
 
+        logger.debug(`Message sent successfully to channel ${channel.name}, thread: ${JSON.stringify(thread)}`);
         workspaceMessageResponse.threads.push(thread);
       } catch (e) {
         logger.error(`Error sending message to channel ID ${channel.id}:`);
@@ -734,11 +736,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     adaptiveCard: JSONObject;
     projectId: ObjectID;
   }): Promise<WorkspaceThread> {
+    logger.debug(`Sending adaptive card to channel: ${data.workspaceChannel.name} (${data.workspaceChannel.id})`);
+    logger.debug(`Team ID: ${data.teamId}`);
+    logger.debug(`Adaptive card: ${JSON.stringify(data.adaptiveCard)}`);
+
     // Get valid access token
     const accessToken = await this.getValidAccessToken({
       authToken: data.authToken,
       projectId: data.projectId,
     });
+
+    logger.debug("Access token obtained, preparing message");
 
     const chatMessage: JSONObject = {
       body: {
@@ -753,11 +761,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       ],
     };
 
+    logger.debug(`Chat message payload: ${JSON.stringify(chatMessage)}`);
+
+    const apiUrl = `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.workspaceChannel.id}/messages`;
+    logger.debug(`Posting to URL: ${apiUrl}`);
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post(
-        URL.fromString(
-          `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.workspaceChannel.id}/messages`,
-        ),
+        URL.fromString(apiUrl),
         chatMessage,
         {
           Authorization: `Bearer ${accessToken}`,
@@ -766,16 +777,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error response from Microsoft Graph API:");
+      logger.error("Error response from Microsoft Graph API when sending message:");
       logger.error(response);
       throw response;
     }
 
+    logger.debug("Message sent successfully, response:");
+    logger.debug(response);
+
     const messageData: JSONObject = response.data;
-    return {
+    const thread = {
       channel: data.workspaceChannel,
       threadId: messageData["id"] as string,
     };
+
+    logger.debug(`Created thread: ${JSON.stringify(thread)}`);
+    return thread;
   }
 
   @CaptureSpan()
