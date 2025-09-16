@@ -460,20 +460,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    // Add channels by ID
-    for (const channelId of data.workspaceMessagePayload.channelIds) {
-      try {
-        const channel: WorkspaceChannel = await this.getWorkspaceChannelFromChannelId({
-          authToken: data.authToken,
-          channelId: channelId,
-        });
-        workspaceChannelsToPostTo.push(channel);
-      } catch (err) {
-        logger.error(`Error getting channel info for channel ID ${channelId}:`);
-        logger.error(err);
-      }
-    }
-
     const workspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.MicrosoftTeams,
@@ -490,6 +476,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     const teamId: string = projectAuth.workspaceProjectId;
+
+    // Add channels by ID
+    for (const channelId of data.workspaceMessagePayload.channelIds) {
+      try {
+        const channel: WorkspaceChannel = await this.getWorkspaceChannelFromChannelId({
+          authToken: data.authToken,
+          channelId: channelId,
+          teamId: teamId,
+        });
+        workspaceChannelsToPostTo.push(channel);
+      } catch (err) {
+        logger.error(`Error getting channel info for channel ID ${channelId}:`);
+        logger.error(err);
+      }
+    }
 
     for (const channel of workspaceChannelsToPostTo) {
       try {
@@ -557,14 +558,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static override async getWorkspaceChannelFromChannelId(data: {
     authToken: string;
     channelId: string;
+    teamId: string;
   }): Promise<WorkspaceChannel> {
-    // We need the team ID to get channel info - this is a limitation we'll need to work around
-    // For now, we'll return a basic channel object
-    return {
-      id: data.channelId,
-      name: data.channelId, // We'll use channel ID as name if we can't get the actual name
-      workspaceType: WorkspaceType.MicrosoftTeams,
-    };
+   
+
+    try {
+      // Fetch channel information from Microsoft Graph API
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get(
+          URL.fromString(`https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`),
+          {
+            Authorization: `Bearer ${data.authToken}`,
+            "Content-Type": "application/json",
+          },
+        );
+
+      if (response instanceof HTTPErrorResponse) {
+        logger.error("Error getting channel info from Microsoft Graph API:");
+        logger.error(response);
+        // Fall back to basic channel object
+        return {
+          id: data.channelId,
+          name: data.channelId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        };
+      }
+
+      const channelData: JSONObject = response.data;
+      return {
+        id: channelData["id"] as string,
+        name: channelData["displayName"] as string,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      };
+    } catch (error) {
+      logger.error("Error fetching channel information:");
+      logger.error(error);
+      throw error;
+    }
   }
 
   private static buildAdaptiveCardFromMessageBlocks(data: {
