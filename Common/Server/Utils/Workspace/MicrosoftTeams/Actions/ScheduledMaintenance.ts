@@ -1,6 +1,7 @@
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import Response from "../../../Response";
 import { MicrosoftTeamsAction, MicrosoftTeamsRequest } from "./Auth";
+import { MicrosoftTeamsScheduledMaintenanceActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
@@ -9,9 +10,9 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   public static isScheduledMaintenanceAction(data: { actionType: string }): boolean {
     return (
       data.actionType.includes("scheduled-maintenance") ||
-      data.actionType === "view-scheduled-maintenance" ||
-      data.actionType === "start-scheduled-maintenance" ||
-      data.actionType === "end-scheduled-maintenance"
+      data.actionType === MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance ||
+      data.actionType === MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing ||
+      data.actionType === MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete
     );
   }
 
@@ -29,7 +30,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
 
     try {
       switch (action.actionType) {
-        case "view-scheduled-maintenance":
+        case MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance:
           // This is handled by opening the URL directly
           break;
 
