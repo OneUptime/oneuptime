@@ -405,6 +405,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           eventType: props.eventType,
+          workspaceType: props.workspaceType,
         }}
         userPreferencesKey="workspace-notification-rules-table"
         actionButtons={[
