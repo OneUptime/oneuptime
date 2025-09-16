@@ -552,20 +552,80 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     const numberOfDigitsInIntervalTemp: number = intervalTemp.toString().length;
     const interval: number = Math.pow(10, numberOfDigitsInIntervalTemp);
 
-    const rootSpan: Span =
-      displaySpans.find((span: Span) => {
-        return span.parentSpanId === null || span.parentSpanId === undefined;
-      }) || displaySpans[0]!;
+    // Improved root span detection:
+    // 1. Root if parentSpanId is null/undefined/empty string.
+    // 2. Root if parentSpanId does not exist among spanIds (orphan) – common when trace is truncated.
+    const allSpanIds: Set<string> = new Set(
+      displaySpans
+        .map((s: Span) => {
+          return s.spanId?.toString();
+        })
+        .filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+    );
+
+    const rootSpans: Span[] = displaySpans.filter((span: Span) => {
+      const p: string | undefined = span.parentSpanId?.toString();
+      if (!p || p.trim() === "") {
+        return true; // explicit root
+      }
+      if (!allSpanIds.has(p)) {
+        return true; // orphan -> treat as root
+      }
+      return false;
+    });
+
+    // If still no roots (edge case), just treat first as root to avoid empty array.
+    const effectiveRootSpans: Span[] =
+      rootSpans.length > 0 ? rootSpans : [displaySpans[0]!];
+
+    let allRows: GanttChartRow[] = effectiveRootSpans.flatMap(
+      (rootSpan: Span) => {
+        return getRows({
+          rootSpan,
+          allSpans: displaySpans,
+          timelineStartTimeUnixNano,
+          divisibilityFactor: newDivisibilityFactor,
+        });
+      },
+    );
+
+    // Fallback: If after building hierarchy we only have 1 row but many spans, the
+    // hierarchy likely failed (e.g., every span references a missing parent in a chain)
+    // or produced an unhelpful single path. Display a flat list so user can still see all.
+    if (allRows.length === 1 && displaySpans.length > 10) {
+      allRows = displaySpans.map((span: Span) => {
+        const telemetryService: TelemetryService | undefined =
+          telemetryServices.find((service: TelemetryService) => {
+            return service._id?.toString() === span.serviceId?.toString();
+          });
+        return {
+          rowInfo: {
+            id: ObjectID.generate().toString(),
+            title: <div className="truncate">{span.name || span.spanId}</div>,
+            description: telemetryService ? (
+              getRowDescription({ telemetryService, span })
+            ) : (
+              <></>
+            ),
+          },
+          bars: [
+            spanToBar({
+              span,
+              timelineStartTimeUnixNano,
+              divisibilityFactor: newDivisibilityFactor,
+            }),
+          ],
+          childRows: [],
+        } as GanttChartRow;
+      });
+    }
 
     const ganttChart: GanttChartProps = {
       id: "chart",
       selectedBarIds: selectedSpans,
-      rows: getRows({
-        rootSpan: rootSpan,
-        allSpans: displaySpans,
-        timelineStartTimeUnixNano,
-        divisibilityFactor: newDivisibilityFactor,
-      }),
+      rows: allRows,
       onBarSelectChange(barIds: Array<string>) {
         setSelectedSpans(barIds);
       },
