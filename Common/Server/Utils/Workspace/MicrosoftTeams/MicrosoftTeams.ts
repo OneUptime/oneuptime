@@ -39,11 +39,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     authToken: string;
     projectId: ObjectID;
   }): Promise<string> {
+    logger.debug("=== getValidAccessToken called ===");
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
+    logger.debug(`Auth token (first 20 chars): ${data.authToken?.substring(0, 20)}...`);
+    
     // Check if the authToken is a valid JWT (contains dots)
     if (data.authToken && data.authToken.includes('.')) {
       // It's a JWT token, use it directly
+      logger.debug("Auth token is a JWT, using directly");
       return data.authToken;
     }
+
+    logger.debug("Auth token is not a JWT, checking project auth for stored token");
 
     // Get project auth and check token expiration
     const projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
@@ -51,29 +58,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       workspaceType: WorkspaceType.MicrosoftTeams,
     });
 
+    logger.debug(`Project auth found: ${!!projectAuth}`);
+    if (projectAuth) {
+      logger.debug(`Project auth has miscData: ${!!projectAuth.miscData}`);
+    }
+
     if (!projectAuth || !projectAuth.miscData) {
+      logger.error("Microsoft Teams integration not found for this project - no project auth or miscData");
       throw new BadDataException(
         "Microsoft Teams integration not found for this project"
       );
     }
 
     const miscData = projectAuth.miscData as MicrosoftTeamsMiscData;
+    logger.debug(`MiscData appAccessToken exists: ${!!miscData.appAccessToken}`);
+    logger.debug(`MiscData appAccessTokenExpiresAt: ${miscData.appAccessTokenExpiresAt}`);
     
     // Check if token exists and is valid
     if (miscData.appAccessToken && miscData.appAccessToken.includes('.')) {
+      logger.debug("Found app access token in miscData");
       // Check if token is expired
       if (miscData.appAccessTokenExpiresAt) {
         const expiryDate = OneUptimeDate.fromString(miscData.appAccessTokenExpiresAt);
+        const secondsToExpiry = OneUptimeDate.getSecondsTo(expiryDate);
+        logger.debug(`Token expires in ${secondsToExpiry} seconds`);
         
         // If token expires within the next 5 minutes, refresh it
-        if (OneUptimeDate.getSecondsTo(expiryDate) <= 300) {
+        if (secondsToExpiry <= 300) {
           logger.debug("Access token is expired or expiring soon, attempting to refresh");
           const newToken = await this.refreshAccessToken({
             projectId: data.projectId,
             miscData,
           });
           if (newToken) {
+            logger.debug("Successfully refreshed token");
             return newToken;
+          } else {
+            logger.warn("Failed to refresh token, falling back to cached token");
           }
         } else {
           logger.debug("Using cached appAccessToken from miscData for Microsoft Graph API call");
@@ -96,6 +117,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     projectId: ObjectID;
     miscData: MicrosoftTeamsMiscData;
   }): Promise<string | null> {
+    logger.debug("=== refreshAccessToken called ===");
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
+    logger.debug(`Tenant ID: ${data.miscData.tenantId}`);
+    
     try {
       // Check if we have the necessary client credentials
       if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
@@ -103,6 +128,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.error("Please set MICROSOFT_TEAMS_APP_CLIENT_ID and MICROSOFT_TEAMS_APP_CLIENT_SECRET environment variables");
         return null;
       }
+
+      logger.debug("Client credentials are configured");
 
       if (!data.miscData.tenantId) {
         logger.error("Tenant ID not found in miscData, cannot refresh token");
@@ -114,6 +141,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       // Use OAuth 2.0 client credentials flow to get a new app access token
       const tokenUrl = `https://login.microsoftonline.com/${data.miscData.tenantId}/oauth2/v2.0/token`;
+      logger.debug(`Token URL: ${tokenUrl}`);
       
       const tokenRequestBody = {
         client_id: MicrosoftTeamsAppClientId,
@@ -122,6 +150,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         scope: 'https://graph.microsoft.com/.default',
       };
 
+      logger.debug("Making token refresh request to Microsoft");
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
         URL.fromString(tokenUrl),
         tokenRequestBody,
@@ -137,9 +166,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return null;
       }
 
+      logger.debug("Token refresh response received successfully");
       const tokenData = response.data;
       const newAccessToken = tokenData['access_token'] as string;
       const expiresIn = tokenData['expires_in'] as number; // seconds
+
+      logger.debug(`New access token received: ${!!newAccessToken}`);
+      logger.debug(`Token expires in: ${expiresIn} seconds`);
 
       if (!newAccessToken) {
         logger.error("No access token received in token refresh response");
@@ -150,6 +183,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const now = OneUptimeDate.getCurrentDate();
       const expiryDate = OneUptimeDate.addRemoveSeconds(now, expiresIn - 300); // Subtract 5 minutes buffer
       
+      logger.debug(`Token expiry calculated: ${OneUptimeDate.toString(expiryDate)}`);
+
       // Update the miscData with new token and expiry
       const updatedMiscData: MicrosoftTeamsMiscData = {
         ...data.miscData,
@@ -158,6 +193,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         lastAppTokenIssuedAt: OneUptimeDate.toString(now),
       };
 
+      logger.debug("Saving updated token to database");
       // Save the updated token to the database
       await WorkspaceProjectAuthTokenService.refreshAuthToken({
         projectId: data.projectId,
@@ -639,6 +675,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     userId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceSendMessageResponse> {
+    logger.debug("=== MicrosoftTeamsUtil.sendMessage called ===");
     logger.debug("Sending message to Microsoft Teams with data:");
     logger.debug(data);
 
@@ -646,7 +683,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       messageBlocks: data.workspaceMessagePayload.messageBlocks,
     });
 
+    logger.debug("Adaptive card built successfully:");
+    logger.debug(JSON.stringify(adaptiveCard, null, 2));
+
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
+
+    logger.debug(`Processing ${data.workspaceMessagePayload.channelNames.length} channel names`);
+    logger.debug(`Channel names: ${JSON.stringify(data.workspaceMessagePayload.channelNames)}`);
 
     // Resolve channel names
     for (const channelName of data.workspaceMessagePayload.channelNames) {
@@ -666,6 +709,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
+    logger.debug("=== Getting team ID from project auth ===");
     const workspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.MicrosoftTeams,
@@ -678,17 +722,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         workspaceType: WorkspaceType.MicrosoftTeams,
       });
 
+    logger.debug(`Project auth found: ${!!projectAuth}`);
+    if (projectAuth) {
+      logger.debug(`Project auth workspaceProjectId: ${projectAuth.workspaceProjectId}`);
+    }
+
     if (!projectAuth || !projectAuth.workspaceProjectId) {
+      logger.error("Microsoft Teams integration not found for this project - missing projectAuth or workspaceProjectId");
       throw new BadDataException(
         "Microsoft Teams integration not found for this project",
       );
     }
 
     const teamId: string = projectAuth.workspaceProjectId;
+    logger.debug(`Using team ID: ${teamId}`);
+
+    logger.debug(`Processing ${data.workspaceMessagePayload.channelIds.length} channel IDs`);
+    logger.debug(`Channel IDs: ${JSON.stringify(data.workspaceMessagePayload.channelIds)}`);
 
     // Add channels by ID
     for (const channelId of data.workspaceMessagePayload.channelIds) {
       try {
+        logger.debug(`Getting channel info for channel ID: ${channelId}`);
         const channel: WorkspaceChannel =
           await this.getWorkspaceChannelFromChannelId({
             authToken: data.authToken,
@@ -696,12 +751,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             teamId: teamId,
             projectId: data.projectId,
           });
+        logger.debug(`Channel info obtained: ${JSON.stringify(channel)}`);
         workspaceChannelsToPostTo.push(channel);
       } catch (err) {
         logger.error(`Error getting channel info for channel ID ${channelId}:`);
         logger.error(err);
       }
     }
+
+    logger.debug("=== Starting message sending loop ===");
+    logger.debug(`Total channels to post to: ${workspaceChannelsToPostTo.length}`);
+    logger.debug(`Channels: ${JSON.stringify(workspaceChannelsToPostTo)}`);
 
     for (const channel of workspaceChannelsToPostTo) {
       try {
@@ -722,8 +782,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
-    logger.debug(`Total channels to post to: ${workspaceChannelsToPostTo.length}`);
-    logger.debug(`Channels: ${JSON.stringify(workspaceChannelsToPostTo)}`);
+    logger.debug("=== Message sending completed ===");
+    logger.debug(`Final thread count: ${workspaceMessageResponse.threads.length}`);
+    logger.debug(`Final response: ${JSON.stringify(workspaceMessageResponse)}`);
 
     return workspaceMessageResponse;
   }
@@ -802,6 +863,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     teamId: string;
     projectId: ObjectID;
   }): Promise<WorkspaceChannel> {
+    logger.debug("=== getWorkspaceChannelFromChannelId called ===");
+    logger.debug(`Channel ID: ${data.channelId}`);
+    logger.debug(`Team ID: ${data.teamId}`);
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
+    
     try {
       // Get valid access token
       const accessToken = await this.getValidAccessToken({
@@ -809,12 +875,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectId: data.projectId,
       });
 
+      logger.debug("Access token obtained for channel info retrieval");
+
       // Fetch channel information from Microsoft Graph API
+      const apiUrl = `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`;
+      logger.debug(`Making API call to: ${apiUrl}`);
+      
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.get(
-          URL.fromString(
-            `https://graph.microsoft.com/v1.0/teams/${data.teamId}/channels/${data.channelId}`,
-          ),
+          URL.fromString(apiUrl),
           undefined, 
           {
             Authorization: `Bearer ${accessToken}`,
@@ -826,6 +895,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.error("Error getting channel info from Microsoft Graph API:");
         logger.error(response);
         // Fall back to basic channel object
+        logger.debug("Falling back to basic channel object");
         return {
           id: data.channelId,
           name: data.channelId,
@@ -833,12 +903,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         };
       }
 
+      logger.debug("Channel info API call successful");
       const channelData: JSONObject = response.data;
-      return {
+      const channel = {
         id: channelData["id"] as string,
         name: channelData["displayName"] as string,
         workspaceType: WorkspaceType.MicrosoftTeams,
       };
+      
+      logger.debug(`Channel info retrieved: ${JSON.stringify(channel)}`);
+      return channel;
     } catch (error) {
       logger.error("Error fetching channel information:");
       logger.error(error);
@@ -849,6 +923,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   private static buildAdaptiveCardFromMessageBlocks(data: {
     messageBlocks: Array<WorkspaceMessageBlock>;
   }): JSONObject {
+    logger.debug("=== buildAdaptiveCardFromMessageBlocks called ===");
+    logger.debug(`Number of message blocks: ${data.messageBlocks.length}`);
+    
     const card: JSONObject = {
       type: "AdaptiveCard",
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -861,17 +938,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const actions: Array<JSONObject> = [];
 
     for (const block of data.messageBlocks) {
+      logger.debug(`Processing message block of type: ${block._type}`);
+      
       if (block._type === "WorkspacePayloadMarkdown") {
+        const markdownBlock = block as WorkspacePayloadMarkdown;
+        logger.debug(`Markdown text: ${markdownBlock.text}`);
         body.push({
           type: "TextBlock",
-          text: (block as WorkspacePayloadMarkdown).text,
+          text: markdownBlock.text,
           wrap: true,
           markdown: true,
         });
       } else if (block._type === "WorkspacePayloadHeader") {
+        const headerBlock = block as WorkspacePayloadHeader;
+        logger.debug(`Header text: ${headerBlock.text}`);
         body.push({
           type: "TextBlock",
-          text: (block as WorkspacePayloadHeader).text,
+          text: headerBlock.text,
           size: "Large",
           weight: "Bolder",
           wrap: true,
@@ -879,7 +962,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       } else if (block._type === "WorkspacePayloadButtons") {
         const buttonsBlock: WorkspacePayloadButtons =
           block as WorkspacePayloadButtons;
+        logger.debug(`Processing ${buttonsBlock.buttons.length} buttons`);
         for (const button of buttonsBlock.buttons) {
+          logger.debug(`Button: ${button.title} -> ${button.url?.toString()}`);
           actions.push({
             type: "Action.OpenUrl",
             title: button.title,
@@ -892,14 +977,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     card["body"] = body;
     card["actions"] = actions;
 
+    logger.debug(`Built adaptive card with ${body.length} body elements and ${actions.length} actions`);
     return card;
   }
 
   private static convertAdaptiveCardToHtml(adaptiveCard: JSONObject): string {
+    logger.debug("=== convertAdaptiveCardToHtml called ===");
+    
     // Convert adaptive card to basic HTML for fallback
     let html: string = "";
     const body: Array<JSONObject> =
       (adaptiveCard["body"] as Array<JSONObject>) || [];
+
+    logger.debug(`Converting ${body.length} body elements to HTML`);
 
     for (const element of body) {
       if (element["type"] === "TextBlock") {
@@ -908,8 +998,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
         if (size === "Large") {
           html += `<h2>${text}</h2>`;
+          logger.debug(`Added header: ${text}`);
         } else {
           html += `<p>${text}</p>`;
+          logger.debug(`Added paragraph: ${text}`);
         }
       }
     }
@@ -917,17 +1009,20 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const actions: Array<JSONObject> =
       (adaptiveCard["actions"] as Array<JSONObject>) || [];
     if (actions.length > 0) {
+      logger.debug(`Converting ${actions.length} actions to HTML`);
       html += "<div>";
       for (const action of actions) {
         if (action["type"] === "Action.OpenUrl") {
           const title: string = action["title"] as string;
           const url: string = action["url"] as string;
           html += `<a href="${url}">${title}</a> `;
+          logger.debug(`Added link: ${title} -> ${url}`);
         }
       }
       html += "</div>";
     }
 
+    logger.debug(`Generated HTML length: ${html.length} characters`);
     return html;
   }
 
