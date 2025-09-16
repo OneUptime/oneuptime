@@ -33,6 +33,7 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import MicrosoftTeamsIntegrationDocumentation from "./MicrosoftTeamsIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import RadioButtons, { RadioButton as SelectionRadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import Button, { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -254,26 +255,22 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         >
           <div className="mt-2">{renderTeamGrid()}</div>
           <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <button
-              type="button"
-              disabled={!selectedTeamId || isButtonLoading}
-              onClick={() => confirmTeamSelection().catch(() => {})}
-              className={[
-                'inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2',
-                (!selectedTeamId || isButtonLoading)
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
-              ].join(' ')}
-            >
-              {isButtonLoading ? 'Connecting...' : 'Confirm Selection'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSelectingTeam(false)}
-              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              Cancel
-            </button>
+            <div className="w-full sm:w-auto">
+              <Button
+                title={isButtonLoading ? 'Connecting...' : 'Confirm Selection'}
+                disabled={!selectedTeamId || isButtonLoading}
+                isLoading={isButtonLoading}
+                onClick={() => confirmTeamSelection().catch(() => {})}
+                buttonStyle={SharedButtonStyle.PRIMARY}
+              />
+            </div>
+            <div className="w-full sm:w-auto">
+              <Button
+                title="Cancel"
+                onClick={() => setIsSelectingTeam(false)}
+                buttonStyle={SharedButtonStyle.SECONDARY}
+              />
+            </div>
           </div>
           
         </Card>
