@@ -254,7 +254,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           buttons={[]}
         >
           <div className="mt-2">{renderTeamGrid()}</div>
-          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-3">
             <div className="w-full sm:w-auto">
               <Button
                 title={isButtonLoading ? 'Connecting...' : 'Confirm Selection'}
@@ -268,7 +268,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               <Button
                 title="Cancel"
                 onClick={() => setIsSelectingTeam(false)}
-                buttonStyle={SharedButtonStyle.SECONDARY}
+                buttonStyle={SharedButtonStyle.NORMAL}
               />
             </div>
           </div>
