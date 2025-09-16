@@ -41,14 +41,14 @@ import LogDetailsSideOver from "./SubComponents/LogDetailsSideOver";
 // Props mirror existing simple LogsViewer container (Dashboard version)
 export interface ComponentProps {
   id: string;
-  telemetryServiceIds?: Array<ObjectID>;
-  enableRealtime?: boolean;
-  traceIds?: Array<string>;
-  spanIds?: Array<string>;
-  showFilters?: boolean;
-  noLogsMessage?: string;
-  logQuery?: Query<Log>;
-  limit?: number;
+  telemetryServiceIds?: Array<ObjectID> | undefined;
+  enableRealtime?: boolean | undefined;
+  traceIds?: Array<string> | undefined;
+  spanIds?: Array<string> | undefined;
+  showFilters?: boolean | undefined;
+  noLogsMessage?: string | undefined;
+  logQuery?: Query<Log> | undefined;
+  limit?: number | undefined;
 }
 export interface VirtualItem {
   index: number;
