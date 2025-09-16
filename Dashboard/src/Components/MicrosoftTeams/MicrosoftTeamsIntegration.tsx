@@ -60,11 +60,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [availableTeams, setAvailableTeams] = React.useState<Array<{ id: string; displayName: string }>>([]);
   const [isSelectingTeam, setIsSelectingTeam] = React.useState<boolean>(false);
   const [selectedTeamId, setSelectedTeamId] = React.useState<string>("");
-  const [teamSearch, setTeamSearch] = React.useState<string>("");
-  const filteredTeams = React.useMemo(() => {
-    if (!teamSearch) { return availableTeams; }
-    return availableTeams.filter(t => t.displayName.toLowerCase().includes(teamSearch.toLowerCase()));
-  }, [teamSearch, availableTeams]);
+ 
 
   const confirmTeamSelection: PromiseVoidFunction = async (): Promise<void> => {
     if (!selectedTeamId || isButtonLoading) { return; }
@@ -98,7 +94,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   const renderTeamGrid = (): ReactElement => {
-    const radioOptions: Array<SelectionRadioButton> = filteredTeams.map(t => ({
+    const radioOptions: Array<SelectionRadioButton> = availableTeams.map(t => ({
       title: t.displayName,
       description: ``,
       value: t.id,
@@ -106,30 +102,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="text-xs text-gray-500 select-none">
-            <span className="font-medium text-gray-700">{filteredTeams.length}</span> team{filteredTeams.length === 1 ? '' : 's'} {teamSearch && <span className="text-gray-400">(filtered)</span>}
-          </div>
-          <div className="relative w-full sm:w-64">
-            <input
-              placeholder="Search teams..."
-              value={teamSearch}
-              onChange={(e) => setTeamSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
-              aria-label="Search teams"
-            />
-            {teamSearch && (
-              <button
-                type="button"
-                onClick={() => setTeamSearch("")}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                aria-label="Clear search"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
+
         {radioOptions.length > 0 ? (
           <RadioButtons
             options={radioOptions}
@@ -138,7 +111,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           />
         ) : (
           <div className="text-sm text-gray-500 italic py-6 border border-dashed border-gray-300 rounded-md text-center">
-            No teams match "{teamSearch}".
+            No teams available.
           </div>
         )}
       </div>
