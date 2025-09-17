@@ -12,7 +12,6 @@ import {
   AppApiClientUrl,
   AppVersion,
   DashboardClientUrl,
-  HomeClientUrl,
   Host,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
@@ -54,8 +53,8 @@ export default class MicrosoftTeamsAPI {
 
     const manifest: JSONObject = {
       $schema:
-        "https://developer.microsoft.com/json-schemas/teams/v1.13/MicrosoftTeams.schema.json",
-      manifestVersion: "1.13",
+        "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
+      manifestVersion: "1.23",
       version: AppVersion.toLowerCase().includes("unknown") ? "1.0.0" : AppVersion,
       id: MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
       packageName: "com.oneuptime.teams",
@@ -86,21 +85,16 @@ export default class MicrosoftTeamsAPI {
             MicrosoftTeamsAppClientId,
           needsChannelSelector: false,
           isNotificationOnly: false,
-          scopes: ["team", "personal"],
+          // Include groupChat to align with latest schema capabilities
+          scopes: ["team", "personal", "groupChat"],
           supportsFiles: false,
           supportsCalling: false,
           supportsVideo: false,
         },
       ],
-      connectors: [
-        {
-          connectorId:
-            MicrosoftTeamsAppClientId,
-          configurationUrl: `${HomeClientUrl.toString()}microsoft-teams/connector-config`,
-        },
-      ],
-      permissions: ["identity", "messageTeamMembers"],
-      validDomains: [Host, "*.teams.microsoft.com"],
+  permissions: ["identity", "messageTeamMembers"],
+  // Only include domains you control
+  validDomains: [Host],
       webApplicationInfo: {
         id:
           MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
@@ -150,8 +144,35 @@ export default class MicrosoftTeamsAPI {
             name: "manifest.json",
           });
 
-          // Read pre-resized icons
-          const iconsDir = path.join(__dirname, '..', '..', '..', 'Common', 'Server', 'Images', 'MicrosoftTeams');
+          // Read pre-resized icons (try multiple likely locations to support dev/prod builds)
+          const candidateIconDirs: Array<string> = [
+            // When running from TS source (ts-node): Common/Server/API -> ../Images/MicrosoftTeams
+            path.join(__dirname, '..', 'Images', 'MicrosoftTeams'),
+            // When running from repo root as cwd
+            path.join(process.cwd(), 'Common', 'Server', 'Images', 'MicrosoftTeams'),
+          ];
+
+          let iconsDir: string | null = null;
+          for (const dir of candidateIconDirs) {
+            try {
+              if (
+                fs.existsSync(path.join(dir, 'color.png')) &&
+                fs.existsSync(path.join(dir, 'outline.png'))
+              ) {
+                iconsDir = dir;
+                break;
+              }
+            } catch (e) {
+              // ignore and try next
+            }
+          }
+
+          if (!iconsDir) {
+            throw new BadDataException(
+              'Microsoft Teams icons not found. Expected color.png and outline.png in Common/Server/Images/MicrosoftTeams',
+            );
+          }
+
           const colorIcon = fs.readFileSync(path.join(iconsDir, 'color.png'));
           const outlineIcon = fs.readFileSync(path.join(iconsDir, 'outline.png'));
           

@@ -69,6 +69,7 @@
         "@opentelemetry/semantic-conventions": "^1.26.0",
         "@remixicon/react": "^4.2.0",
         "@tippyjs/react": "^4.2.6",
+        "@types/archiver": "^6.0.3",
         "@types/crypto-js": "^4.2.2",
         "@types/qrcode": "^1.5.5",
         "@types/react-highlight": "^0.12.8",
