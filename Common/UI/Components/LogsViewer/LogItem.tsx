@@ -237,8 +237,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
         <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
           Message
           <div className="flex items-center gap-2 normal-case">
-            {getCopyButton(props.log.body?.toString() || "")}
-            {isBodyInJSON && getCopyButton(logBody)}
+            {getCopyButton((isBodyInJSON ? logBody : (props.log.body?.toString() || "")))}
           </div>
         </div>
         <div className="bg-slate-950 rounded p-1.5 border border-slate-800">
