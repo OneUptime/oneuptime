@@ -713,7 +713,7 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     let cursor: string | undefined = undefined;
-    const maxPages: number = 10; // Limit search to prevent excessive API calls
+    const maxPages: number = 100;
     let pageCount: number = 0;
 
     do {
