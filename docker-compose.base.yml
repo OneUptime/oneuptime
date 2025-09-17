@@ -132,6 +132,13 @@ x-common-server-variables: &common-server-variables
     SLACK_APP_CLIENT_SECRET: ${SLACK_APP_CLIENT_SECRET}
     SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
 
+    # Microsoft Teams Configuration
+    MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
+    MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
+
+    # App Version
+    APP_VERSION: ${APP_VERSION}
+
 services:
 
     
