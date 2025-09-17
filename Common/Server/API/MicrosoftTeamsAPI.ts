@@ -10,6 +10,7 @@ import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import {
   AppApiClientUrl,
+  AppVersion,
   DashboardClientUrl,
   HomeClientUrl,
   Host,
@@ -55,7 +56,7 @@ export default class MicrosoftTeamsAPI {
       $schema:
         "https://developer.microsoft.com/json-schemas/teams/v1.13/MicrosoftTeams.schema.json",
       manifestVersion: "1.13",
-      version: "1.0.0",
+      version: AppVersion || "1.0.0",
       id: MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
       packageName: "com.oneuptime.teams",
       developer: {
