@@ -204,15 +204,9 @@ export default class MicrosoftTeamsAPI {
           if (fs.existsSync(sizedColorPath) && fs.existsSync(sizedOutlinePath)) {
             colorIconBuffer = fs.readFileSync(sizedColorPath);
             outlineIconBuffer = fs.readFileSync(sizedOutlinePath);
-            iconColorName = "icon-color.png";
-            iconOutlineName = "icon-outline.png";
-          } else if (fs.existsSync(fallbackColorPath) && fs.existsSync(fallbackOutlinePath)) {
-            colorIconBuffer = fs.readFileSync(fallbackColorPath);
-            outlineIconBuffer = fs.readFileSync(fallbackOutlinePath);
-            // Switch manifest icon names to match fallback file names
             iconColorName = "color.png";
             iconOutlineName = "outline.png";
-          } else {
+          }  else {
             throw new BadDataException(
               "Microsoft Teams icons not found. Expected either pre-sized icon-color-192x192.png and icon-outline-32x32.png in Common/Server/Images/MicrosoftTeams, or fallback color.png and outline.png.",
             );
