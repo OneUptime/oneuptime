@@ -49,6 +49,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get(
           URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
+          ModelAPI.getCommonHeaders(),
         );
 
       if (response instanceof HTTPErrorResponse) {
@@ -193,9 +194,6 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       isBodyLoading={isLoading}
       isLoading={isSaving}
       error={error || validationError}
-      icon={IconProp.Slack}
-      iconType={IconType.Info}
-      modalWidth={ModalWidth.Large}
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between">
