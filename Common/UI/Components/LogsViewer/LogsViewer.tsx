@@ -152,7 +152,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     const scrollContainer: HTMLDivElement | null = scrollContainerRef.current;
     if (scrollContainer) {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      const isNearBottom: boolean =
+        scrollHeight - scrollTop - clientHeight < 100;
       setShowScrollToBottom(!isNearBottom && props.logs.length > 0);
     }
   };
@@ -166,7 +167,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.logs]);
 
   React.useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
+    const scrollContainer: HTMLDivElement | null = scrollContainerRef.current;
     if (scrollContainer) {
       scrollContainer.addEventListener("scroll", handleScroll);
       return () => {

@@ -41,6 +41,7 @@ import WorkspaceProjectAuthToken, {
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -664,7 +665,8 @@ export default class SlackAPI {
       "/slack/get-all-channels",
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
-        const props = await CommonAPI.getDatabaseCommonInteractionProps(req);
+        const props: DatabaseCommonInteractionProps =
+          await CommonAPI.getDatabaseCommonInteractionProps(req);
 
         if (!props.tenantId) {
           return Response.sendErrorResponse(
@@ -675,7 +677,7 @@ export default class SlackAPI {
         }
 
         // Get Slack project auth
-        const projectAuth =
+        const projectAuth: WorkspaceProjectAuthToken | null =
           await WorkspaceProjectAuthTokenService.getProjectAuth({
             projectId: props.tenantId,
             workspaceType: WorkspaceType.Slack,
@@ -693,6 +695,8 @@ export default class SlackAPI {
 
         // Fetch all channels (also updates cache under miscData.channelCache)
 
+        let updatedProjectAuth: WorkspaceProjectAuthToken | null = projectAuth;
+
         if (!(projectAuth.miscData as SlackMiscData)?.channelCache) {
           await SlackUtil.getAllWorkspaceChannels({
             authToken: projectAuth.authToken,
@@ -700,15 +704,21 @@ export default class SlackAPI {
           });
 
           // Re-fetch to return the latest cached object
-          const projectAuth =
+          updatedProjectAuth =
             await WorkspaceProjectAuthTokenService.getProjectAuth({
               projectId: props.tenantId,
               workspaceType: WorkspaceType.Slack,
             });
         }
 
-        const channelCache =
-          ((projectAuth?.miscData as SlackMiscData | undefined) || {})
+        const channelCache: {
+          [channelName: string]: {
+            id: string;
+            name: string;
+            lastUpdated: string;
+          };
+        } =
+          ((updatedProjectAuth?.miscData as SlackMiscData | undefined) || {})
             ?.channelCache || {};
 
         return Response.sendJsonObjectResponse(req, res, channelCache as any);

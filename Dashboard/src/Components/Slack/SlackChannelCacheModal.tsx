@@ -40,7 +40,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [rows, setRows] = React.useState<Array<ChannelEntry>>([]);
 
-  const loadChannels = async (): Promise<void> => {
+  const loadChannels: () => Promise<void> = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(undefined);
@@ -66,44 +66,48 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
         },
       );
       // sort alphabetically by name
-      newRows.sort((a, b) => {
+      newRows.sort((a: ChannelEntry, b: ChannelEntry) => {
         return a.name.localeCompare(b.name);
       });
       setRows(newRows);
-    } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Exception));
+    } catch (e: unknown) {
+      setError(API.getFriendlyErrorMessage(e as Exception));
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadChannels().catch((e) => {
+    loadChannels().catch((e: unknown) => {
       setError(API.getFriendlyErrorMessage(e as Exception));
     });
   }, []);
 
-  const addRow = (): void => {
-    setRows((prev) => {
+  const addRow: () => void = (): void => {
+    setRows((prev: Array<ChannelEntry>) => {
       return [{ name: "", id: "" }, ...prev];
     });
   };
 
-  const updateRow = (
+  const updateRow: (
+    index: number,
+    field: keyof ChannelEntry,
+    value: string,
+  ) => void = (
     index: number,
     field: keyof ChannelEntry,
     value: string,
   ): void => {
-    setRows((prev) => {
-      const copy = [...prev];
+    setRows((prev: Array<ChannelEntry>) => {
+      const copy: Array<ChannelEntry> = [...prev];
       copy[index] = { ...copy[index], [field]: value } as ChannelEntry;
       return copy;
     });
   };
 
-  const deleteRow = (index: number): void => {
-    setRows((prev) => {
-      return prev.filter((_, i) => {
+  const deleteRow: (index: number) => void = (index: number): void => {
+    setRows((prev: Array<ChannelEntry>) => {
+      return prev.filter((_: ChannelEntry, i: number) => {
         return i !== index;
       });
     });
@@ -111,11 +115,11 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
 
   const validationError: string | undefined = useMemo(() => {
     // Non-empty, unique names and ids
-    const names = new Set<string>();
-    const ids = new Set<string>();
+    const names: Set<string> = new Set<string>();
+    const ids: Set<string> = new Set<string>();
     for (const r of rows) {
-      const name = (r.name || "").trim();
-      const id = (r.id || "").trim();
+      const name: string = (r.name || "").trim();
+      const id: string = (r.id || "").trim();
       if (!name || !id) {
         return "All rows must have a channel name and an ID.";
       }
@@ -131,7 +135,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
     return undefined;
   }, [rows]);
 
-  const onSave = async (): Promise<void> => {
+  const onSave: () => Promise<void> = async (): Promise<void> => {
     if (validationError) {
       setError(validationError);
       return;
@@ -181,7 +185,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Slack Channels"
-      description="View and edit the cached list of Slack channels for this workspace. Add, edit, or delete entries."
+      description={`View and edit the cached list of Slack channels for this workspace. Add, edit, or delete entries.`}
       onClose={props.onClose}
       onSubmit={onSave}
       submitButtonText="Save Changes"
@@ -233,19 +237,21 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
                     colSpan={3}
                     className="px-4 py-8 text-center text-sm text-gray-500"
                   >
-                    No channels cached yet. Click "Add Row" to begin or use
-                    "View Channels" to fetch from Slack.
+                    No channels cached yet. Click &quot;Add Row&quot; to begin
+                    or use &quot;View Channels&quot; to fetch from Slack.
                   </td>
                 </tr>
               ) : (
-                rows.map((row, idx) => {
+                rows.map((row: ChannelEntry, idx: number) => {
                   return (
                     <tr key={idx} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <input
                           type="text"
                           value={row.name}
-                          onChange={(e) => {
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement>,
+                          ) => {
                             return updateRow(idx, "name", e.target.value);
                           }}
                           placeholder="incident-updates"
@@ -256,7 +262,9 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
                         <input
                           type="text"
                           value={row.id}
-                          onChange={(e) => {
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement>,
+                          ) => {
                             return updateRow(idx, "id", e.target.value);
                           }}
                           placeholder="C0123456789"

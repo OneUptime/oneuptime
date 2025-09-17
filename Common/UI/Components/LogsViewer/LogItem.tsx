@@ -91,7 +91,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
   let isBodyInJSON: boolean = false;
 
   try {
-    const parsed = JSON.parse(logBody);
+    const parsed: any = JSON.parse(logBody);
     logBody = JSON.stringify(parsed, null, 2);
     logBodyMinified = JSON.stringify(parsed);
     isBodyInJSON = true;
@@ -100,13 +100,15 @@ const LogItem: FunctionComponent<ComponentProps> = (
     isBodyInJSON = false;
   }
 
-  const toggleCollapsed = (): void => {
-    setIsCollapsed((v) => {
+  const toggleCollapsed: () => void = (): void => {
+    setIsCollapsed((v: boolean) => {
       return !v;
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+  const handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       toggleCollapsed();
@@ -220,7 +222,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             type="button"
             title="Collapse"
             aria-label="Collapse"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               toggleCollapsed();
             }}

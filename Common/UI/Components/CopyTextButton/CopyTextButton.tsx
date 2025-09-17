@@ -70,7 +70,7 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
         copied ? copiedClasses : variantClasses[variant]
       } ${sizeClasses[size]} ${props.className || ""}`}
       onClick={handleCopy}
-      onKeyDown={(e) => {
+      onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
         if (e.key === "Enter" || e.key === " ") {
           handleCopy(e as unknown as React.MouseEvent<HTMLButtonElement>);
         }
