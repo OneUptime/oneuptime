@@ -37,8 +37,6 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
   let bodyColor: string = "text-slate-200";
   let leftBorderColor: string = "border-l-slate-700";
-  let severityBadgeClasses: string =
-    "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200";
   let severityDotClass: string = "bg-slate-400";
 
   type GetCopyButtonFunction = (textToBeCopied: string) => ReactElement;
@@ -55,14 +53,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
   if (props.log.severityText === LogSeverity.Warning) {
     bodyColor = "text-amber-400";
   leftBorderColor = "border-l-amber-500/60";
-    severityBadgeClasses =
-      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200";
     severityDotClass = "bg-amber-500";
   } else if (props.log.severityText === LogSeverity.Error) {
     bodyColor = "text-rose-400";
   leftBorderColor = "border-l-rose-500/60";
-    severityBadgeClasses =
-      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200";
     severityDotClass = "bg-rose-500";
   } else if (
     props.log.severityText === LogSeverity.Trace ||
@@ -73,29 +67,24 @@ const LogItem: FunctionComponent<ComponentProps> = (
       props.log.severityText === LogSeverity.Debug
   ? "border-l-purple-500/60"
   : "border-l-slate-500/60";
-    severityBadgeClasses =
-      props.log.severityText === LogSeverity.Debug
-        ? "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200"
-        : "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200";
     severityDotClass = props.log.severityText === LogSeverity.Debug ? "bg-purple-500" : "bg-slate-500";
   } else if (props.log.severityText === LogSeverity.Information) {
   leftBorderColor = "border-l-blue-500/60";
-    severityBadgeClasses =
-      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200";
     severityDotClass = "bg-blue-500";
   } else if (props.log.severityText === LogSeverity.Fatal) {
   leftBorderColor = "border-l-rose-700/70";
-    severityBadgeClasses =
-      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-900 border border-red-300";
     severityDotClass = "bg-rose-700";
   }
 
   let logBody: string = props.log.body?.toString() || "";
+  let logBodyMinified: string = "";
 
   let isBodyInJSON: boolean = false;
 
   try {
-    logBody = JSON.stringify(JSON.parse(logBody), null, 2);
+    const parsed = JSON.parse(logBody);
+    logBody = JSON.stringify(parsed, null, 2);
+    logBodyMinified = JSON.stringify(parsed);
     isBodyInJSON = true;
   } catch (e) {
     Logger.error(e as Error);
@@ -152,7 +141,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
         {/* Log Message */}
         <div className={`${bodyColor} font-mono text-sm leading-snug flex-1 min-w-0`}>
           {isBodyInJSON ? (
-            <pre className="whitespace-pre-wrap truncate">{logBody.split('\n')[0]}...</pre>
+            <div className="truncate" title={logBodyMinified}>
+              {logBodyMinified}
+            </div>
           ) : (
             <div className="truncate" title={props.log.body?.toString()}>
               {props.log.body?.toString()}
@@ -249,7 +240,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             </div>
           )}
           {isBodyInJSON && (
-            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre-wrap overflow-auto max-h-56`}>
+            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre overflow-auto max-h-56 w-full block`}>
               {logBody}
             </pre>
           )}
@@ -303,7 +294,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <div className="bg-slate-950 rounded-md p-2 border border-slate-800">
-            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre-wrap overflow-auto max-h-56`}>
+            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre overflow-auto max-h-56 w-full block`}>
               {JSON.stringify(
                 JSONFunctions.unflattenObject(props.log.attributes || {}),
                 null,
