@@ -56,8 +56,7 @@ export default class MicrosoftTeamsAPI {
         "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
       manifestVersion: "1.23",
       version: AppVersion.toLowerCase().includes("unknown") ? "1.0.0" : AppVersion,
-      id: MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
-      packageName: "com.oneuptime.teams",
+      id: MicrosoftTeamsAppClientId,
       developer: {
         name: "OneUptime",
         websiteUrl: "https://oneuptime.com",
