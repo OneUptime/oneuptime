@@ -591,12 +591,12 @@ export default class SlackUtil extends WorkspaceBase {
         channels[channel["name"].toString()] = channelObj;
 
         // Add to local cache
-        const normalizedName = channel["name"].toString().toLowerCase();
+        const normalizedName: string = channel["name"].toString().toLowerCase();
         localChannelCache[normalizedName] = {
           id: channel["id"] as string,
           name: channel["name"] as string,
           workspaceType: WorkspaceType.Slack,
-          lastUpdated: new Date().toISOString(),
+          lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
         };
       }
 
@@ -626,8 +626,6 @@ export default class SlackUtil extends WorkspaceBase {
     projectId: ObjectID;
     channelCache: Dictionary<WorkspaceChannel>;
   }): Promise<void> {
-
-
     const projectAuth: any =
       await WorkspaceProjectAuthTokenService.getProjectAuth({
         projectId: data.projectId,
@@ -659,8 +657,6 @@ export default class SlackUtil extends WorkspaceBase {
 
     logger.debug("Channel cache updated successfully");
   }
-
-
 
   @CaptureSpan()
   public static async getChannelFromCache(data: {
@@ -730,7 +726,7 @@ export default class SlackUtil extends WorkspaceBase {
     channelCache[data.channelName] = {
       id: data.channel.id,
       name: data.channel.name,
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
     };
 
     // Update miscData
@@ -826,14 +822,15 @@ export default class SlackUtil extends WorkspaceBase {
         throw new BadRequestException("Error from Slack " + messageFromSlack);
       }
 
-      logger.debug("Searching for "+normalizedChannelName);
+      logger.debug("Searching for " + normalizedChannelName);
       logger.debug("Searching channels in current page...");
-      logger.debug(JSON.stringify((response.jsonData as JSONObject)["channels"], null, 2));
+      logger.debug(
+        JSON.stringify((response.jsonData as JSONObject)["channels"], null, 2),
+      );
 
       for (const channel of (response.jsonData as JSONObject)[
         "channels"
       ] as Array<JSONObject>) {
-
         if (!channel["id"] || !channel["name"]) {
           continue;
         }
