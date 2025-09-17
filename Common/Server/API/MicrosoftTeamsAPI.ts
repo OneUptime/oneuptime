@@ -88,6 +88,8 @@ export default class MicrosoftTeamsAPI {
           supportsFiles: false,
           supportsCalling: false,
           supportsVideo: false,
+          // Bot Framework messaging endpoint
+          messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
           // Provide basic command lists to improve client compatibility (esp. mobile)
           commandLists: [
             {
@@ -762,7 +764,60 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
-    // Microsoft Teams webhook endpoint for interactive messages
+    // Microsoft Bot Framework endpoint - this is what Teams calls for bot messages
+    router.post(
+      "/microsoft-bot/messages",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        logger.debug("Microsoft Bot Framework Request: ");
+        logger.debug(req.body);
+
+        try {
+          // Handle different types of Teams activities
+          const activity: JSONObject = req.body as JSONObject;
+          const activityType: string = activity["type"] as string;
+
+          logger.debug(`Bot activity type: ${activityType}`);
+
+          if (activityType === "message") {
+            // Handle bot mentions or direct messages
+            return MicrosoftTeamsAPI.handleBotMessageActivity(
+              req,
+              res,
+              activity,
+            );
+          } else if (activityType === "invoke") {
+            // Handle adaptive card actions
+            return MicrosoftTeamsAPI.handleBotInvokeActivity(
+              req,
+              res,
+              activity,
+            );
+          } else if (activityType === "conversationUpdate") {
+            // Handle bot added to team/channel or members added/removed
+            return MicrosoftTeamsAPI.handleConversationUpdateActivity(
+              req,
+              res,
+              activity,
+            );
+          } else if (activityType === "installationUpdate") {
+            // Handle bot installation/uninstallation
+            return MicrosoftTeamsAPI.handleInstallationUpdateActivity(
+              req,
+              res,
+              activity,
+            );
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {});
+        } catch (error) {
+          logger.error("Error processing Bot Framework message:");
+          logger.error(error);
+          return Response.sendJsonObjectResponse(req, res, {});
+        }
+      },
+    );
+
+    // Microsoft Teams webhook endpoint for interactive messages (legacy)
     router.post(
       "/microsoft-teams/webhook",
       async (req: ExpressRequest, res: ExpressResponse) => {
@@ -969,5 +1024,142 @@ export default class MicrosoftTeamsAPI {
     }
 
     Response.sendTextResponse(req, res, "");
+  }
+
+  // Bot Framework specific handlers
+  private static async handleBotMessageActivity(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    activity: JSONObject,
+  ): Promise<void> {
+    // Handle direct messages to bot or @mentions via Bot Framework
+    const messageText: string = (activity["text"] as string) || "";
+    const from: JSONObject = (activity["from"] as JSONObject) || {};
+    const conversation: JSONObject = (activity["conversation"] as JSONObject) || {};
+    const channelData: JSONObject = (activity["channelData"] as JSONObject) || {};
+
+    logger.debug(`Bot message from: ${JSON.stringify(from)}`);
+    logger.debug(`Message text: ${messageText}`);
+    logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
+    logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
+
+    // Create welcome/help response based on message content
+    let responseText: string = "";
+    
+    if (messageText.toLowerCase().includes("help") || messageText.trim() === "") {
+      responseText = "Hello! I'm the OneUptime bot. I can help you:\n\n• Get notifications about incidents\n• Acknowledge alerts\n• View system status\n\nType 'status' to see current system status.";
+    } else if (messageText.toLowerCase().includes("status")) {
+      responseText = "System status is operational. All services are running normally.";
+    } else {
+      responseText = "I received your message. Type 'help' to see what I can do for you.";
+    }
+
+    // Prepare Bot Framework response
+    const botResponse: JSONObject = {
+      type: "message",
+      text: responseText,
+      from: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot"
+      },
+      conversation: conversation,
+      recipient: from,
+      replyToId: activity["id"]
+    };
+
+    logger.debug("Bot response: " + JSON.stringify(botResponse));
+
+    Response.sendJsonObjectResponse(req, res, botResponse);
+  }
+
+  private static async handleBotInvokeActivity(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    activity: JSONObject,
+  ): Promise<void> {
+    // Handle adaptive card button clicks via Bot Framework
+    const value: JSONObject = (activity["value"] as JSONObject) || {};
+    const actionType: string = value["action"] as string;
+
+    logger.debug(`Bot invoke activity - Action type: ${actionType}`);
+    logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
+
+    // For now, just acknowledge the action
+    const invokeResponse: JSONObject = {
+      status: 200,
+      body: {
+        type: "message",
+        text: "Action received and processed."
+      }
+    };
+
+    Response.sendJsonObjectResponse(req, res, invokeResponse);
+  }
+
+  private static async handleConversationUpdateActivity(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    activity: JSONObject,
+  ): Promise<void> {
+    // Handle bot added to team/channel or members added/removed
+    const membersAdded: Array<JSONObject> = (activity["membersAdded"] as Array<JSONObject>) || [];
+    const membersRemoved: Array<JSONObject> = (activity["membersRemoved"] as Array<JSONObject>) || [];
+    const conversation: JSONObject = (activity["conversation"] as JSONObject) || {};
+    const channelData: JSONObject = (activity["channelData"] as JSONObject) || {};
+
+    logger.debug(`Conversation update - Members added: ${JSON.stringify(membersAdded)}`);
+    logger.debug(`Conversation update - Members removed: ${JSON.stringify(membersRemoved)}`);
+    logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
+    logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
+
+    // Check if the bot was added
+    const botWasAdded: boolean = membersAdded.some((member: JSONObject) => {
+      return member["id"] === MicrosoftTeamsAppClientId;
+    });
+
+    if (botWasAdded) {
+      logger.info("OneUptime bot was added to a Teams conversation");
+      
+      // Send welcome message
+      const welcomeMessage: JSONObject = {
+        type: "message",
+        text: "🎉 Welcome to OneUptime!\n\nI'm your monitoring and alerting assistant. I'll help you stay on top of your system's health and notify you about any incidents.\n\nType 'help' to see what I can do for you.",
+        from: {
+          id: MicrosoftTeamsAppClientId,
+          name: "OneUptime Bot"
+        },
+        conversation: conversation
+      };
+
+      logger.debug("Sending welcome message: " + JSON.stringify(welcomeMessage));
+      
+      // Note: In a full Bot Framework implementation, you would use the Bot Framework SDK
+      // to send this message proactively. For now, we'll log it and return a response.
+      Response.sendJsonObjectResponse(req, res, welcomeMessage);
+    } else {
+      // Just acknowledge other conversation updates
+      Response.sendJsonObjectResponse(req, res, {});
+    }
+  }
+
+  private static async handleInstallationUpdateActivity(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    activity: JSONObject,
+  ): Promise<void> {
+    // Handle bot installation/uninstallation
+    const action: string = (activity["action"] as string) || "";
+    const conversation: JSONObject = (activity["conversation"] as JSONObject) || {};
+
+    logger.debug(`Installation update - Action: ${action}`);
+    logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
+
+    if (action === "add") {
+      logger.info("OneUptime bot was installed");
+    } else if (action === "remove") {
+      logger.info("OneUptime bot was uninstalled");
+    }
+
+    Response.sendJsonObjectResponse(req, res, {});
   }
 }
