@@ -777,7 +777,7 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     let cursor: string | undefined = undefined;
-    const maxPages: number = 100;
+    const maxPages: number = 500;
     let pageCount: number = 0;
     const localChannelCache: Dictionary<any> = {};
 
