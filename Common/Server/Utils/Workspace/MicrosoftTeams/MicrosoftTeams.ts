@@ -1372,6 +1372,62 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
+  // Helper method to validate Bot Framework service URLs
+  private static isValidServiceUrl(serviceUrl: string): boolean {
+    try {
+      const url = URL.fromString(serviceUrl);
+      // Microsoft Teams Bot Framework service URLs
+      const validHosts = [
+        'smba.trafficmanager.net',
+        'api.botframework.com',
+        'europe.api.botframework.com',
+        'directline.botframework.com',
+        'webchat.botframework.com'
+      ];
+      
+      const hostname = url.hostname.toString();
+      return validHosts.some(host => hostname.includes(host));
+    } catch {
+      return false;
+    }
+  }
+
+  // Helper method to get Bot Framework access token
+  @CaptureSpan()
+  private static async getBotAccessToken(): Promise<string> {
+    if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+      throw new BadDataException("Microsoft Teams App credentials not configured");
+    }
+
+    logger.debug("Requesting Bot Framework access token...");
+    logger.debug(`Client ID: ${MicrosoftTeamsAppClientId}`);
+    
+    const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      URL.fromString("https://login.microsoftonline.com/common/oauth2/v2.0/token"),
+      {
+        grant_type: "client_credentials",
+        client_id: MicrosoftTeamsAppClientId,
+        client_secret: MicrosoftTeamsAppClientSecret,
+        scope: "https://api.botframework.com/.default"
+      },
+      {
+        "Content-Type": "application/x-www-form-urlencoded"
+      }
+    );
+
+    if (tokenResponse instanceof HTTPErrorResponse) {
+      logger.error("Error getting Bot Framework token:");
+      logger.error(`Status: ${tokenResponse.statusCode}`);
+      logger.error(`Response: ${JSON.stringify(tokenResponse.data)}`);
+      throw new BadDataException("Failed to get Bot Framework access token");
+    }
+
+    const accessToken: string = tokenResponse.data["access_token"] as string;
+    logger.debug("Successfully obtained Bot Framework access token");
+    
+    return accessToken;
+  }
+
   // Helper method to send messages via Bot Framework
   @CaptureSpan()
   public static async sendBotFrameworkMessage(params: {
@@ -1387,28 +1443,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       throw new BadDataException("Microsoft Teams App credentials not configured");
     }
 
+    // Validate service URL for security
+    if (!this.isValidServiceUrl(serviceUrl)) {
+      logger.error(`Invalid or untrusted service URL: ${serviceUrl}`);
+      throw new BadDataException("Invalid service URL");
+    }
+
     try {
       // Get Bot Framework access token
-      const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-        URL.fromString("https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"),
-        {
-          grant_type: "client_credentials",
-          client_id: MicrosoftTeamsAppClientId,
-          client_secret: MicrosoftTeamsAppClientSecret,
-          scope: "https://api.botframework.com/.default"
-        },
-        {
-          "Content-Type": "application/x-www-form-urlencoded"
-        }
-      );
-
-      if (tokenResponse instanceof HTTPErrorResponse) {
-        logger.error("Error getting Bot Framework token:");
-        logger.error(tokenResponse);
-        throw new BadDataException("Failed to get Bot Framework access token");
-      }
-
-      const accessToken: string = tokenResponse.data["access_token"] as string;
+      logger.debug(`Service URL: ${serviceUrl}`);
+      const accessToken: string = await this.getBotAccessToken();
 
       // Prepare the message activity
       const replyActivity: JSONObject = {
@@ -1438,13 +1482,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       if (messageResponse instanceof HTTPErrorResponse) {
         logger.error("Error sending message to Teams:");
-        logger.error(messageResponse);
+        logger.error(`Status: ${messageResponse.statusCode}`);
+        logger.error(`Headers: ${JSON.stringify(messageResponse.headers)}`);
+        logger.error(`Response: ${JSON.stringify(messageResponse.data)}`);
         throw new BadDataException("Failed to send message to Teams");
       }
 
       logger.info("Successfully sent message to Teams channel");
+      logger.debug(`Response: ${JSON.stringify(messageResponse.data)}`);
     } catch (error) {
-      logger.error("Error in sendBotFrameworkMessage: " + error);
+      logger.error("Error in sendBotFrameworkMessage:");
+      logger.error(error);
       throw error;
     }
   }
