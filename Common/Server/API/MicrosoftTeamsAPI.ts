@@ -126,7 +126,7 @@ export default class MicrosoftTeamsAPI {
           );
 
           // Create archive
-          const archive: any = archiver("zip", {
+          const archive : archiver.Archiver= archiver("zip", {
             zlib: { level: 9 }, // Sets the compression level
           });
 
