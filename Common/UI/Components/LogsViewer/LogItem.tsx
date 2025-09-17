@@ -15,6 +15,8 @@ import LogSeverity from "../../../Types/Log/LogSeverity";
 import TelemetryService from "../../../Models/DatabaseModels/TelemetryService";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import { Logger } from "../../Utils/Logger";
+import Icon from "../Icon/Icon";
+import IconProp from "../../../Types/Icon/IconProp";
 
 export interface ComponentProps {
   log: Log;
@@ -162,9 +164,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
         {/* Expand Indicator */}
         <div className="flex-none ml-1 text-slate-500 group-hover:text-slate-300 transition-transform duration-200">
-          <svg className="w-3 h-3 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <Icon icon={IconProp.ChevronDown} className="w-3 h-3" />
         </div>
       </div>
     );
@@ -206,9 +206,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
             }}
             className="flex-none text-slate-500 hover:text-slate-300 transition-colors"
           >
-            <svg className="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
+            <Icon icon={IconProp.ChevronUp} className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
