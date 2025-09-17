@@ -57,7 +57,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
-  const [showChannelsModal, setShowChannelsModal] = React.useState<boolean>(false);
+  const [showChannelsModal, setShowChannelsModal] =
+    React.useState<boolean>(false);
 
   useEffect(() => {
     if (isProjectAccountConnected) {
@@ -453,7 +454,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       {showChannelsModal && projectAuthTokenId ? (
         <SlackChannelCacheModal
           projectAuthTokenId={projectAuthTokenId}
-          onClose={() => setShowChannelsModal(false)}
+          onClose={() => {
+            return setShowChannelsModal(false);
+          }}
         />
       ) : null}
     </Fragment>

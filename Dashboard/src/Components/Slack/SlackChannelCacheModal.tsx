@@ -1,7 +1,16 @@
-import React, { FunctionComponent, ReactElement, useEffect, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+} from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Icon, { IconType, SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Icon, {
+  IconType,
+  SizeProp,
+  ThickProp,
+} from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import API from "Common/Utils/API";
 import URL from "Common/Types/API/URL";
@@ -37,9 +46,10 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       setError(undefined);
 
       // Trigger server to cache and return channel cache
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.get(
-        URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
-      );
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get(
+          URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
+        );
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
@@ -50,12 +60,15 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
         (key: string) => {
           const value: any = (cacheObj as any)[key];
           // value may be either {id, name} or just {id}. Prefer id
-          const id: string = (value?.id as string) || (value as any)?.toString?.() || "";
+          const id: string =
+            (value?.id as string) || (value as any)?.toString?.() || "";
           return { name: key, id };
         },
       );
       // sort alphabetically by name
-      newRows.sort((a, b) => a.name.localeCompare(b.name));
+      newRows.sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      });
       setRows(newRows);
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
@@ -71,10 +84,16 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
   }, []);
 
   const addRow = (): void => {
-    setRows((prev) => [{ name: "", id: "" }, ...prev]);
+    setRows((prev) => {
+      return [{ name: "", id: "" }, ...prev];
+    });
   };
 
-  const updateRow = (index: number, field: keyof ChannelEntry, value: string): void => {
+  const updateRow = (
+    index: number,
+    field: keyof ChannelEntry,
+    value: string,
+  ): void => {
     setRows((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value } as ChannelEntry;
@@ -83,7 +102,11 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
   };
 
   const deleteRow = (index: number): void => {
-    setRows((prev) => prev.filter((_, i) => i !== index));
+    setRows((prev) => {
+      return prev.filter((_, i) => {
+        return i !== index;
+      });
+    });
   };
 
   const validationError: string | undefined = useMemo(() => {
@@ -128,11 +151,13 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       }
 
       // Merge into miscData (preserve existing fields)
-      const existing: WorkspaceProjectAuthToken | null = await ModelAPI.getItem({
-        modelType: WorkspaceProjectAuthToken,
-        id: props.projectAuthTokenId,
-        select: { miscData: true },
-      });
+      const existing: WorkspaceProjectAuthToken | null = await ModelAPI.getItem(
+        {
+          modelType: WorkspaceProjectAuthToken,
+          id: props.projectAuthTokenId,
+          select: { miscData: true },
+        },
+      );
 
       const newMisc: SlackMiscData = {
         ...(existing?.miscData as SlackMiscData),
@@ -171,14 +196,19 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Channel name is the key (e.g., #general without the #). Value is the Slack channel ID.
+            Channel name is the key (e.g., #general without the #). Value is the
+            Slack channel ID.
           </div>
           <button
             type="button"
             onClick={addRow}
             className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none"
           >
-            <Icon icon={IconProp.Add} size={SizeProp.Small} thick={ThickProp.Thick} />
+            <Icon
+              icon={IconProp.Add}
+              size={SizeProp.Small}
+              thick={ThickProp.Thick}
+            />
             <span className="ml-2">Add Row</span>
           </button>
         </div>
@@ -187,55 +217,76 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Channel Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Channel ID</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Channel Name
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Channel ID
+                </th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-gray-500">No channels cached yet. Click "Add Row" to begin or use "View Channels" to fetch from Slack.</td>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-sm text-gray-500"
+                  >
+                    No channels cached yet. Click "Add Row" to begin or use
+                    "View Channels" to fetch from Slack.
+                  </td>
                 </tr>
               ) : (
-                rows.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        value={row.name}
-                        onChange={(e) => updateRow(idx, "name", e.target.value)}
-                        placeholder="incident-updates"
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        value={row.id}
-                        onChange={(e) => updateRow(idx, "id", e.target.value)}
-                        placeholder="C0123456789"
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => deleteRow(idx)}
-                        className="inline-flex items-center rounded-md bg-white px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-50 focus:outline-none"
-                        title="Delete row"
-                      >
-                        <Icon icon={IconProp.Trash} size={SizeProp.Small} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                rows.map((row, idx) => {
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={row.name}
+                          onChange={(e) => {
+                            return updateRow(idx, "name", e.target.value);
+                          }}
+                          placeholder="incident-updates"
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={row.id}
+                          onChange={(e) => {
+                            return updateRow(idx, "id", e.target.value);
+                          }}
+                          placeholder="C0123456789"
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            return deleteRow(idx);
+                          }}
+                          className="inline-flex items-center rounded-md bg-white px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-50 focus:outline-none"
+                          title="Delete row"
+                        >
+                          <Icon icon={IconProp.Trash} size={SizeProp.Small} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        <div className="text-xs text-gray-400">Note: Saving will overwrite the current channel list with the rows above.</div>
+        <div className="text-xs text-gray-400">
+          Note: Saving will overwrite the current channel list with the rows
+          above.
+        </div>
       </div>
     </Modal>
   );

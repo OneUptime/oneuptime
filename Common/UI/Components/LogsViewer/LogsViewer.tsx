@@ -50,10 +50,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     typeof window !== "undefined" ? window.innerHeight : 900,
   );
   const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
-  const [showScrollToBottom, setShowScrollToBottom] = React.useState<boolean>(false);
+  const [showScrollToBottom, setShowScrollToBottom] =
+    React.useState<boolean>(false);
   // removed wrapLines toggle for a cleaner toolbar
   const logsViewerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
-  const scrollContainerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
+  const scrollContainerRef: Ref<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
 
   const [logAttributes, setLogAttributes] = React.useState<Array<string>>([]);
 
@@ -166,8 +168,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   React.useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
-      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+      scrollContainer.addEventListener("scroll", handleScroll);
+      return () => {
+        return scrollContainer.removeEventListener("scroll", handleScroll);
+      };
     }
     return () => {}; // Return empty cleanup function if no scrollContainer
   }, []);
@@ -232,12 +236,19 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     <Toggle
                       title=""
                       value={autoScroll}
-                      onChange={(checked: boolean) => setAutoScroll(checked)}
+                      onChange={(checked: boolean) => {
+                        return setAutoScroll(checked);
+                      }}
                     />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">{autoScroll ? "Live" : "Paused"}</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-300">
+                      {autoScroll ? "Live" : "Paused"}
+                    </span>
                   </div>
                   <span className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-700" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{props.logs.length} result{props.logs.length !== 1 ? "s" : ""}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {props.logs.length} result
+                    {props.logs.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -246,7 +257,9 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Search}
                     buttonStyle={ButtonStyleType.NORMAL}
                     buttonSize={ButtonSize.Small}
-                    onClick={() => props.onFilterChanged(filterData)}
+                    onClick={() => {
+                      return props.onFilterChanged(filterData);
+                    }}
                   />
                 </div>
               </div>
@@ -264,7 +277,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             }}
           >
             {/* Custom Scrollbar Container */}
-            <div 
+            <div
               ref={scrollContainerRef}
               className={`h-full overflow-y-auto p-2 sm:p-3 antialiased`}
               onScroll={handleScroll}
@@ -282,9 +295,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               {props.logs.length === 0 && (
                 <div className="flex items-center justify-center h-full px-4">
                   <div className="text-center">
-                    <h3 className="text-sm font-medium text-slate-300 mb-1">No logs found</h3>
+                    <h3 className="text-sm font-medium text-slate-300 mb-1">
+                      No logs found
+                    </h3>
                     <p className="text-slate-500 text-xs">
-                      {props.noLogsMessage || "Adjust filters or check again later."}
+                      {props.noLogsMessage ||
+                        "Adjust filters or check again later."}
                     </p>
                   </div>
                 </div>
@@ -299,16 +315,28 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               className="absolute bottom-3 right-3 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-md shadow transition-all"
               title="Scroll to bottom"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
               </svg>
             </button>
           )}
         </div>
       )}
       {props.isLoading && (
-        <div className="rounded-md border border-slate-700 bg-slate-900 overflow-hidden"
-             style={{ height: Math.max(360, screenHeight - 360) }}>
+        <div
+          className="rounded-md border border-slate-700 bg-slate-900 overflow-hidden"
+          style={{ height: Math.max(360, screenHeight - 360) }}
+        >
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <ComponentLoader />

@@ -58,11 +58,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
   if (props.log.severityText === LogSeverity.Warning) {
     bodyColor = "text-amber-400";
-  leftBorderColor = "border-l-amber-500/60";
+    leftBorderColor = "border-l-amber-500/60";
     severityDotClass = "bg-amber-500";
   } else if (props.log.severityText === LogSeverity.Error) {
     bodyColor = "text-rose-400";
-  leftBorderColor = "border-l-rose-500/60";
+    leftBorderColor = "border-l-rose-500/60";
     severityDotClass = "bg-rose-500";
   } else if (
     props.log.severityText === LogSeverity.Trace ||
@@ -71,14 +71,17 @@ const LogItem: FunctionComponent<ComponentProps> = (
     bodyColor = "text-slate-400";
     leftBorderColor =
       props.log.severityText === LogSeverity.Debug
-  ? "border-l-purple-500/60"
-  : "border-l-slate-500/60";
-    severityDotClass = props.log.severityText === LogSeverity.Debug ? "bg-purple-500" : "bg-slate-500";
+        ? "border-l-purple-500/60"
+        : "border-l-slate-500/60";
+    severityDotClass =
+      props.log.severityText === LogSeverity.Debug
+        ? "bg-purple-500"
+        : "bg-slate-500";
   } else if (props.log.severityText === LogSeverity.Information) {
-  leftBorderColor = "border-l-blue-500/60";
+    leftBorderColor = "border-l-blue-500/60";
     severityDotClass = "bg-blue-500";
   } else if (props.log.severityText === LogSeverity.Fatal) {
-  leftBorderColor = "border-l-rose-700/70";
+    leftBorderColor = "border-l-rose-700/70";
     severityDotClass = "bg-rose-700";
   }
 
@@ -98,7 +101,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
   }
 
   const toggleCollapsed = (): void => {
-    setIsCollapsed((v) => !v);
+    setIsCollapsed((v) => {
+      return !v;
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
@@ -122,7 +127,12 @@ const LogItem: FunctionComponent<ComponentProps> = (
         {props.log.time && (
           <div className="flex items-center space-x-2 flex-none w-52">
             <div className="text-[10px] text-slate-400 font-mono tabular-nums">
-              {OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time).split(' ').slice(1).join(' ')}
+              {OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                props.log.time,
+              )
+                .split(" ")
+                .slice(1)
+                .join(" ")}
             </div>
             <div
               className="text-[11px] font-medium truncate"
@@ -137,7 +147,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
         {/* Severity Badge */}
         <div className="flex-none mr-1">
           <span className="inline-flex items-center gap-2">
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`} aria-hidden="true" />
+            <span
+              className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`}
+              aria-hidden="true"
+            />
             <span className="text-[9px] uppercase tracking-wide text-slate-400">
               {(props.log.severityText || "").toString() || "UNKNOWN"}
             </span>
@@ -145,7 +158,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
         </div>
 
         {/* Log Message */}
-        <div className={`${bodyColor} font-mono text-[13px] md:text-sm leading-5 tracking-tight subpixel-antialiased flex-1 min-w-0`}>
+        <div
+          className={`${bodyColor} font-mono text-[13px] md:text-sm leading-5 tracking-tight subpixel-antialiased flex-1 min-w-0`}
+        >
           {isBodyInJSON ? (
             <div className="truncate" title={logBodyMinified}>
               {logBodyMinified}
@@ -186,14 +201,19 @@ const LogItem: FunctionComponent<ComponentProps> = (
         )}
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-2">
-            <span className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`} aria-hidden="true" />
+            <span
+              className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`}
+              aria-hidden="true"
+            />
             <span className="text-[9px] uppercase tracking-wide text-slate-400">
               {(props.log.severityText || "").toString() || "UNKNOWN"}
             </span>
           </span>
           {props.log.time && (
             <div className="text-[11px] text-slate-400 font-mono tabular-nums">
-              {OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time)}
+              {OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                props.log.time,
+              )}
             </div>
           )}
           <button
@@ -216,15 +236,23 @@ const LogItem: FunctionComponent<ComponentProps> = (
         {props.log.time && (
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-wide">Timestamp</span>
-            <span className="text-slate-300 font-mono tabular-nums">{OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time)}</span>
+            <span className="text-slate-300 font-mono tabular-nums">
+              {OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                props.log.time,
+              )}
+            </span>
           </div>
         )}
         {props.log.severityText && (
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-wide">Severity</span>
             <span className="inline-flex items-center gap-2 text-slate-300">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`} />
-              <span className="text-[10px] uppercase">{(props.log.severityText || "").toString()}</span>
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${severityDotClass}`}
+              />
+              <span className="text-[10px] uppercase">
+                {(props.log.severityText || "").toString()}
+              </span>
             </span>
           </div>
         )}
@@ -235,7 +263,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
         <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
           Message
           <div className="flex items-center gap-2 normal-case">
-            {getCopyButton((isBodyInJSON ? logBody : (props.log.body?.toString() || "")))}
+            {getCopyButton(
+              isBodyInJSON ? logBody : props.log.body?.toString() || "",
+            )}
           </div>
         </div>
         <div className="bg-slate-950 rounded p-1.5 border border-slate-800">
@@ -245,7 +275,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
             </div>
           )}
           {isBodyInJSON && (
-            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre overflow-auto max-h-40 w-full block`}>
+            <pre
+              className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre overflow-auto max-h-40 w-full block`}
+            >
               {logBody}
             </pre>
           )}
@@ -261,7 +293,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 Trace ID
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}>
+                <div
+                  className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}
+                >
                   {props.log.traceId?.toString()}
                 </div>
                 {getCopyButton(props.log.traceId?.toString() || "")}
@@ -275,7 +309,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
                 Span ID
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}>
+                <div
+                  className={`${bodyColor} font-mono text-sm bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 flex-1 truncate`}
+                >
                   {props.log.spanId?.toString()}
                 </div>
                 {getCopyButton(props.log.spanId?.toString() || "")}
@@ -299,7 +335,9 @@ const LogItem: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <div className="bg-slate-950 rounded p-1.5 border border-slate-800">
-            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre overflow-auto max-h-40 w-full block`}>
+            <pre
+              className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre overflow-auto max-h-40 w-full block`}
+            >
               {JSON.stringify(
                 JSONFunctions.unflattenObject(props.log.attributes || {}),
                 null,

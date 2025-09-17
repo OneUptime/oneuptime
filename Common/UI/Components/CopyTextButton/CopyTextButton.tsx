@@ -81,7 +81,10 @@ const CopyTextButton: FunctionComponent<ComponentProps> = (
       {/* Icon */}
       <span aria-hidden="true" className="flex items-center justify-center">
         {copied ? (
-          <Icon icon={IconProp.Check} className={`${iconSizes[size]} text-emerald-400`} />
+          <Icon
+            icon={IconProp.Check}
+            className={`${iconSizes[size]} text-emerald-400`}
+          />
         ) : (
           <Icon icon={IconProp.Copy} className={`${iconSizes[size]}`} />
         )}

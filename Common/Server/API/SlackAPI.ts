@@ -115,7 +115,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-          `/${projectId.toString()}/settings/slack-integration`,
+            `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -327,7 +327,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-          `/${projectId.toString()}/settings/slack-integration`,
+            `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -471,7 +471,7 @@ export default class SlackAPI {
               slackIntegrationPageUrl.addQueryParam(
                 "error",
                 "Looks like you are trying to sign in to a different slack workspace. Please try again and sign in to the workspace " +
-                teamName,
+                  teamName,
               ),
             );
           }
@@ -675,10 +675,11 @@ export default class SlackAPI {
         }
 
         // Get Slack project auth
-        let projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
-          projectId: props.tenantId,
-          workspaceType: WorkspaceType.Slack,
-        });
+        const projectAuth =
+          await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: props.tenantId,
+            workspaceType: WorkspaceType.Slack,
+          });
 
         if (!projectAuth || !projectAuth.authToken) {
           return Response.sendErrorResponse(
@@ -706,10 +707,9 @@ export default class SlackAPI {
             });
         }
 
-
-        const channelCache = (
-          (projectAuth?.miscData as SlackMiscData | undefined) || {}
-        )?.channelCache || {};
+        const channelCache =
+          ((projectAuth?.miscData as SlackMiscData | undefined) || {})
+            ?.channelCache || {};
 
         return Response.sendJsonObjectResponse(req, res, channelCache as any);
       },
