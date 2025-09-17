@@ -698,7 +698,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(channel);
     return channel;
   }
-    @CaptureSpan()
+  @CaptureSpan()
   public static async updateChannelCache(data: {
     projectId: ObjectID;
     channelName: string;
