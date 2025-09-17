@@ -534,6 +534,7 @@ export default class SlackUtil extends WorkspaceBase {
       const requestBody: JSONObject = {
         limit: 999,
         types: "public_channel,private_channel",
+        exclude_archived: true,
       };
 
       if (cursor) {
@@ -720,6 +721,7 @@ export default class SlackUtil extends WorkspaceBase {
       const requestBody: JSONObject = {
         limit: 200, // Use smaller limit for faster searches
         types: "public_channel,private_channel",
+        exclude_archived: true,
       };
 
       if (cursor) {
