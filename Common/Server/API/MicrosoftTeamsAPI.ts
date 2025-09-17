@@ -166,21 +166,13 @@ export default class MicrosoftTeamsAPI {
           archive.pipe(res);
 
           const colorPath: string = path.join(
-            process.cwd(),
-            "Common",
-            "Server",
-            "Images",
-            "MicrosoftTeams",
-            "color.png",
+            __dirname, "../Images/MicrosoftTeams/color.png"
           );
           const outlinePath: string = path.join(
-            process.cwd(),
-            "Common",
-            "Server",
-            "Images",
-            "MicrosoftTeams",
-            "outline.png",
+            __dirname, "../Images/MicrosoftTeams/outline.png"
           );
+
+
 
           let colorIconBuffer: Buffer | null = null;
           let outlineIconBuffer: Buffer | null = null;

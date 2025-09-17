@@ -493,7 +493,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 icon: IconProp.Download,
                 onClick: () => {
                   window.open(
-                    `${HOME_URL.toString()}/api/microsoft-teams/app-manifest-zip`,
+                    `${HOME_URL.toString()}api/microsoft-teams/app-manifest-zip`,
                     "_blank",
                   );
                 },
