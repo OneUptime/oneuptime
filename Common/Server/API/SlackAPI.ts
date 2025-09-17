@@ -38,6 +38,9 @@ import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyP
 import WorkspaceProjectAuthToken, {
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import UserMiddleware from "../Middleware/UserAuthorization";
+import CommonAPI from "./CommonAPI";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -112,7 +115,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
+          `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -324,7 +327,7 @@ export default class SlackAPI {
 
         const slackIntegrationPageUrl: URL = URL.fromString(
           DashboardClientUrl.toString() +
-            `/${projectId.toString()}/settings/slack-integration`,
+          `/${projectId.toString()}/settings/slack-integration`,
         );
 
         if (error) {
@@ -468,7 +471,7 @@ export default class SlackAPI {
               slackIntegrationPageUrl.addQueryParam(
                 "error",
                 "Looks like you are trying to sign in to a different slack workspace. Please try again and sign in to the workspace " +
-                  teamName,
+                teamName,
               ),
             );
           }
@@ -653,6 +656,62 @@ export default class SlackAPI {
           res,
           new BadRequestException("Invalid request"),
         );
+      },
+    );
+
+    // Fetch and cache all Slack channels for current tenant's project
+    router.get(
+      "/slack/get-all-channels",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const props = await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+        if (!props.tenantId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("ProjectId (tenant) not found in request"),
+          );
+        }
+
+        // Get Slack project auth
+        let projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: props.tenantId,
+          workspaceType: WorkspaceType.Slack,
+        });
+
+        if (!projectAuth || !projectAuth.authToken) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException(
+              "Slack is not connected for this project. Please connect Slack first.",
+            ),
+          );
+        }
+
+        // Fetch all channels (also updates cache under miscData.channelCache)
+
+        if (!(projectAuth.miscData as SlackMiscData)?.channelCache) {
+          await SlackUtil.getAllWorkspaceChannels({
+            authToken: projectAuth.authToken,
+            projectId: props.tenantId,
+          });
+
+          // Re-fetch to return the latest cached object
+          const projectAuth =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: props.tenantId,
+              workspaceType: WorkspaceType.Slack,
+            });
+        }
+
+
+        const channelCache = (
+          (projectAuth?.miscData as SlackMiscData | undefined) || {}
+        )?.channelCache || {};
+
+        return Response.sendJsonObjectResponse(req, res, channelCache as any);
       },
     );
 
