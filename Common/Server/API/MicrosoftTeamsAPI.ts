@@ -165,23 +165,7 @@ export default class MicrosoftTeamsAPI {
           // Pipe archive data to the response
           archive.pipe(res);
 
-          // Prefer pre-resized icons (192x192 color, 32x32 outline)
-          const sizedColorPath: string = path.join(
-            __dirname,
-            "..",
-            "Images",
-            "MicrosoftTeams",
-            "icon-color-192x192.png",
-          );
-          const sizedOutlinePath: string = path.join(
-            __dirname,
-            "..",
-            "Images",
-            "MicrosoftTeams",
-            "icon-outline-32x32.png",
-          );
-
-          const fallbackColorPath: string = path.join(
+          const colorPath: string = path.join(
             process.cwd(),
             "Common",
             "Server",
@@ -189,7 +173,7 @@ export default class MicrosoftTeamsAPI {
             "MicrosoftTeams",
             "color.png",
           );
-          const fallbackOutlinePath: string = path.join(
+          const outlinePath: string = path.join(
             process.cwd(),
             "Common",
             "Server",
@@ -201,14 +185,9 @@ export default class MicrosoftTeamsAPI {
           let colorIconBuffer: Buffer | null = null;
           let outlineIconBuffer: Buffer | null = null;
 
-          if ((await LocalFile.doesFileExist(sizedColorPath)) && (await LocalFile.doesFileExist(sizedOutlinePath))) {
-            colorIconBuffer = await LocalFile.readAsBuffer(sizedColorPath);
-            outlineIconBuffer = await LocalFile.readAsBuffer(sizedOutlinePath);
-            iconColorName = "color.png";
-            iconOutlineName = "outline.png";
-          } else if ((await LocalFile.doesFileExist(fallbackColorPath)) && (await LocalFile.doesFileExist(fallbackOutlinePath))) {
-            colorIconBuffer = await LocalFile.readAsBuffer(fallbackColorPath);
-            outlineIconBuffer = await LocalFile.readAsBuffer(fallbackOutlinePath);
+         if ((await LocalFile.doesFileExist(colorPath)) && (await LocalFile.doesFileExist(outlinePath))) {
+            colorIconBuffer = await LocalFile.readAsBuffer(colorPath);
+            outlineIconBuffer = await LocalFile.readAsBuffer(outlinePath);
             iconColorName = "color.png";
             iconOutlineName = "outline.png";
           } else {
