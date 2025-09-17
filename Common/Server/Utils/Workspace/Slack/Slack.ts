@@ -783,7 +783,7 @@ export default class SlackUtil extends WorkspaceBase {
 
     do {
       const requestBody: JSONObject = {
-        limit: 200, // Use smaller limit for faster searches
+        limit: 999, // Use smaller limit for faster searches
         types: "public_channel,private_channel",
         exclude_archived: true,
       };
