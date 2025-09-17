@@ -346,6 +346,7 @@ export const MicrosoftTeamsAppClientId: string | null =
 export const MicrosoftTeamsAppClientSecret: string | null =
   process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
 
+
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =
   process.env["VAPID_PUBLIC_KEY"] || undefined;
