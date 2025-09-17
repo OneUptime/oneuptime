@@ -36,7 +36,7 @@ import MicrosoftTeamsMonitorActions from "../Utils/Workspace/MicrosoftTeams/Acti
 import MicrosoftTeamsOnCallDutyActions from "../Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import archiver from "archiver";
-import fs from "fs";
+import LocalFile from "../Utils/LocalFile";
 import path from "path";
 
 interface MicrosoftTeamsTeam {
@@ -201,12 +201,17 @@ export default class MicrosoftTeamsAPI {
           let colorIconBuffer: Buffer | null = null;
           let outlineIconBuffer: Buffer | null = null;
 
-          if (fs.existsSync(sizedColorPath) && fs.existsSync(sizedOutlinePath)) {
-            colorIconBuffer = fs.readFileSync(sizedColorPath);
-            outlineIconBuffer = fs.readFileSync(sizedOutlinePath);
+          if ((await LocalFile.doesFileExist(sizedColorPath)) && (await LocalFile.doesFileExist(sizedOutlinePath))) {
+            colorIconBuffer = await LocalFile.readAsBuffer(sizedColorPath);
+            outlineIconBuffer = await LocalFile.readAsBuffer(sizedOutlinePath);
             iconColorName = "color.png";
             iconOutlineName = "outline.png";
-          }  else {
+          } else if ((await LocalFile.doesFileExist(fallbackColorPath)) && (await LocalFile.doesFileExist(fallbackOutlinePath))) {
+            colorIconBuffer = await LocalFile.readAsBuffer(fallbackColorPath);
+            outlineIconBuffer = await LocalFile.readAsBuffer(fallbackOutlinePath);
+            iconColorName = "color.png";
+            iconOutlineName = "outline.png";
+          } else {
             throw new BadDataException(
               "Microsoft Teams icons not found. Expected either pre-sized icon-color-192x192.png and icon-outline-32x32.png in Common/Server/Images/MicrosoftTeams, or fallback color.png and outline.png.",
             );
