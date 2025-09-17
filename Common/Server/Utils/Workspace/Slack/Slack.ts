@@ -698,8 +698,7 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(channel);
     return channel;
   }
-
-  @CaptureSpan()
+    @CaptureSpan()
   public static async updateChannelCache(data: {
     projectId: ObjectID;
     channelName: string;
@@ -780,6 +779,7 @@ export default class SlackUtil extends WorkspaceBase {
     let cursor: string | undefined = undefined;
     const maxPages: number = 100;
     let pageCount: number = 0;
+    const localChannelCache: Dictionary<any> = {};
 
     do {
       const requestBody: JSONObject = {
@@ -835,33 +835,39 @@ export default class SlackUtil extends WorkspaceBase {
           continue;
         }
 
+        const channelObj: WorkspaceChannel = {
+          id: channel["id"] as string,
+          name: channel["name"] as string,
+          workspaceType: WorkspaceType.Slack,
+        };
+
+        // Add to local cache
+        const normalizedName: string = channel["name"].toString().toLowerCase();
+        localChannelCache[normalizedName] = {
+          id: channel["id"] as string,
+          name: channel["name"] as string,
+          workspaceType: WorkspaceType.Slack,
+          lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+        };
+
         const channelName: string = (channel["name"] as string).toLowerCase();
         if (channelName === normalizedChannelName) {
           logger.debug("Channel found:");
           logger.debug(channel);
 
-          const foundChannel: WorkspaceChannel = {
-            id: channel["id"] as string,
-            name: channel["name"] as string,
-            workspaceType: WorkspaceType.Slack,
-          };
-
-          // Update cache if projectId is provided
-          if (data.projectId) {
-            try {
-              await this.updateChannelCache({
-                projectId: data.projectId,
-                channelName: normalizedChannelName,
-                channel: foundChannel,
-              });
-            } catch (error) {
-              logger.error("Error updating channel cache:");
-              logger.error(error);
-              // Don't fail the request if cache update fails
-            }
+          // Update cache before returning
+          try {
+            await this.updateChannelsInCache({
+              projectId: data.projectId,
+              channelCache: localChannelCache,
+            });
+          } catch (error) {
+            logger.error("Error bulk updating channel cache:");
+            logger.error(error);
+            // Don't fail the request if caching fails
           }
 
-          return foundChannel;
+          return channelObj;
         }
       }
 
@@ -870,6 +876,18 @@ export default class SlackUtil extends WorkspaceBase {
       )?.["next_cursor"] as string;
       pageCount++;
     } while (cursor && pageCount < maxPages);
+
+    // Update cache even if channel not found
+    try {
+      await this.updateChannelsInCache({
+        projectId: data.projectId,
+        channelCache: localChannelCache,
+      });
+    } catch (error) {
+      logger.error("Error bulk updating channel cache:");
+      logger.error(error);
+      // Don't fail the request if caching fails
+    }
 
     logger.debug("Channel not found:");
     return null;
@@ -1226,10 +1244,16 @@ export default class SlackUtil extends WorkspaceBase {
 
     // Cache the created channel
     try {
-      await this.updateChannelCache({
+      const localCache: Dictionary<any> = {};
+      localCache[data.channelName] = {
+        id: channel.id,
+        name: channel.name,
+        workspaceType: WorkspaceType.Slack,
+        lastUpdated: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+      };
+      await this.updateChannelsInCache({
         projectId: data.projectId,
-        channelName: data.channelName,
-        channel: channel,
+        channelCache: localCache,
       });
     } catch (error) {
       logger.error("Error caching created channel:");
