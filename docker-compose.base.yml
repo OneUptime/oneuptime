@@ -72,6 +72,9 @@ x-common-variables: &common-variables
 
     SLACK_APP_CLIENT_ID: ${SLACK_APP_CLIENT_ID}
 
+
+    MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
+
 x-common-ui-variables: &common-ui-variables
     <<: *common-variables   
     IS_SERVER: "false"
@@ -133,7 +136,7 @@ x-common-server-variables: &common-server-variables
     SLACK_APP_SIGNING_SECRET: ${SLACK_APP_SIGNING_SECRET}
 
     # Microsoft Teams Configuration
-    MICROSOFT_TEAMS_APP_CLIENT_ID: ${MICROSOFT_TEAMS_APP_CLIENT_ID}
+    
     MICROSOFT_TEAMS_APP_CLIENT_SECRET: ${MICROSOFT_TEAMS_APP_CLIENT_SECRET}
 
 services:
