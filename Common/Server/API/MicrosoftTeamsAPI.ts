@@ -97,7 +97,7 @@ export default class MicrosoftTeamsAPI {
   validDomains: [Host],
       webApplicationInfo: {
         id:
-          MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+          MicrosoftTeamsAppClientId,
         resource: "https://graph.microsoft.com",
       },
     };
