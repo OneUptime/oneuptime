@@ -51,7 +51,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   );
   const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
   const [showScrollToBottom, setShowScrollToBottom] = React.useState<boolean>(false);
-  const [wrapLines, setWrapLines] = React.useState<boolean>(true);
+  // removed wrapLines toggle for a cleaner toolbar
   const logsViewerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
 
@@ -236,10 +236,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     />
                     <span className="text-xs text-slate-600 dark:text-slate-300">{autoScroll ? "Live" : "Paused"}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Toggle title="" value={wrapLines} onChange={setWrapLines} />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">Wrap</span>
-                  </div>
                   <span className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-700" />
                   <span className="text-xs text-slate-500 dark:text-slate-400">{props.logs.length} result{props.logs.length !== 1 ? "s" : ""}</span>
                 </div>
@@ -252,87 +248,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     buttonSize={ButtonSize.Small}
                     onClick={() => props.onFilterChanged(filterData)}
                   />
-                  <Button
-                    title="Copy"
-                    icon={IconProp.Copy}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    onClick={() => {
-                      try {
-                        const text: string = props.logs
-                          .map((l) => {
-                            const iso = l.time
-                              ? (l.time instanceof Date
-                                ? l.time.toISOString()
-                                : new Date(l.time as unknown as any).toISOString())
-                              : "";
-                            return `${iso} ${l.severityText || ""} ${l.body || ""}`;
-                          })
-                          .join("\n");
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                          navigator.clipboard.writeText(text).catch(() => {});
-                        } else {
-                          const ta = document.createElement("textarea");
-                          ta.value = text; document.body.appendChild(ta); ta.select();
-                          document.execCommand("copy"); document.body.removeChild(ta);
-                        }
-                      } catch {}
-                    }}
-                  />
-                  <Button
-                    title="Download"
-                    icon={IconProp.Download}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    onClick={() => {
-                      const blob = new Blob([JSON.stringify(props.logs, null, 2)], { type: "application/json" });
-                      const url = (window.URL || URL).createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url; a.download = `logs-${Date.now()}.json`; a.click();
-                      (window.URL || URL).revokeObjectURL(url);
-                    }}
-                  />
                 </div>
-              </div>
-
-              {/* Quick severity filters (lightweight chips) */}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {(
-                  [
-                    { label: "All", value: undefined },
-                    { label: "Info", value: LogSeverity.Information },
-                    { label: "Warn", value: LogSeverity.Warning },
-                    { label: "Error", value: LogSeverity.Error },
-                    { label: "Debug", value: LogSeverity.Debug },
-                    { label: "Trace", value: LogSeverity.Trace },
-                  ] as Array<{ label: string; value: LogSeverity | undefined }>
-                ).map((opt) => {
-                  const isActive = (filterData as any)["severityText"] === opt.value ||
-                    (opt.value === undefined && !("severityText" in filterData));
-                  return (
-                    <button
-                      key={opt.label}
-                      type="button"
-                      className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
-                        isActive
-                          ? "bg-slate-800 text-white border-slate-700"
-                          : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      }`}
-                      onClick={() => {
-                        const next: Query<Log> = { ...filterData };
-                        if (opt.value) {
-                          (next as any).severityText = opt.value;
-                        } else {
-                          delete (next as any).severityText;
-                        }
-                        setFilterData(next);
-                        props.onFilterChanged(next);
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
               </div>
             </div>
           </Card>
@@ -350,7 +266,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             {/* Custom Scrollbar Container */}
             <div 
               ref={scrollContainerRef}
-              className={`h-full overflow-y-auto p-2 sm:p-3 antialiased ${wrapLines ? "" : "whitespace-nowrap"}`}
+              className={`h-full overflow-y-auto p-2 sm:p-3 antialiased`}
               onScroll={handleScroll}
             >
               <ul role="list" className="divide-y divide-slate-800">
