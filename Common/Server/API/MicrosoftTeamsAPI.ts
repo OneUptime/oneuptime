@@ -782,32 +782,28 @@ export default class MicrosoftTeamsAPI {
 
           if (activityType === "message") {
             // Handle bot mentions or direct messages
-            return MicrosoftTeamsAPI.handleBotMessageActivity(
-              req,
-              res,
-              activity,
-            );
+            await MicrosoftTeamsUtil.handleBotMessageActivity({
+              activity: activity,
+            });
+            return Response.sendJsonObjectResponse(req, res, { status: "Message processed" });
           } else if (activityType === "invoke") {
             // Handle adaptive card actions
-            return MicrosoftTeamsAPI.handleBotInvokeActivity(
-              req,
-              res,
-              activity,
-            );
+            await MicrosoftTeamsUtil.handleBotInvokeActivity({
+              activity: activity,
+            });
+            return Response.sendJsonObjectResponse(req, res, { status: "Invoke processed" });
           } else if (activityType === "conversationUpdate") {
             // Handle bot added to team/channel or members added/removed
-            return MicrosoftTeamsAPI.handleConversationUpdateActivity(
-              req,
-              res,
-              activity,
-            );
+            await MicrosoftTeamsUtil.handleConversationUpdateActivity({
+              activity: activity,
+            });
+            return Response.sendJsonObjectResponse(req, res, { status: "Conversation update processed" });
           } else if (activityType === "installationUpdate") {
             // Handle bot installation/uninstallation
-            return MicrosoftTeamsAPI.handleInstallationUpdateActivity(
-              req,
-              res,
-              activity,
-            );
+            await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
+              activity: activity,
+            });
+            return Response.sendJsonObjectResponse(req, res, { status: "Installation update processed" });
           }
 
           logger.debug(`Unhandled activity type: ${activityType}`);
@@ -1051,224 +1047,5 @@ export default class MicrosoftTeamsAPI {
     }
 
     Response.sendTextResponse(req, res, "");
-  }
-
-  // Bot Framework specific handlers
-  private static async handleBotMessageActivity(
-    req: ExpressRequest,
-    res: ExpressResponse,
-    activity: JSONObject,
-  ): Promise<void> {
-    // Handle direct messages to bot or @mentions via Bot Framework
-    const messageText: string = (activity["text"] as string) || "";
-    const from: JSONObject = (activity["from"] as JSONObject) || {};
-    const conversation: JSONObject = (activity["conversation"] as JSONObject) || {};
-    const channelData: JSONObject = (activity["channelData"] as JSONObject) || {};
-    const serviceUrl: string = (activity["serviceUrl"] as string) || "";
-    const activityId: string = (activity["id"] as string) || "";
-
-    logger.debug(`Bot message from: ${JSON.stringify(from)}`);
-    logger.debug(`Message text: ${messageText}`);
-    logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
-    logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
-
-    // Clean the message text by removing bot mentions
-    const cleanText: string = messageText.replace(/<at[^>]*>.*?<\/at>/g, '').trim();
-
-    // Create welcome/help response based on message content
-    let responseText: string = "";
-    
-    if (cleanText.toLowerCase().includes("help") || cleanText === "") {
-      responseText = "Hello! I'm the OneUptime bot. I can help you:\n\n• Get notifications about incidents\n• Acknowledge alerts\n• View system status\n\nType 'status' to see current system status.";
-    } else if (cleanText.toLowerCase().includes("status")) {
-      responseText = "System status is operational. All services are running normally.";
-    } else {
-      responseText = `I received your message: "${cleanText}". Type 'help' to see what I can do for you.`;
-    }
-
-    try {
-      // Send response back to Teams using Bot Framework messaging
-      await MicrosoftTeamsAPI.sendBotFrameworkMessage({
-        serviceUrl: serviceUrl,
-        conversationId: conversation["id"] as string,
-        activityId: activityId,
-        messageText: responseText,
-        from: from,
-      });
-
-      // Acknowledge the request
-      Response.sendJsonObjectResponse(req, res, { status: "Message sent" });
-    } catch (error) {
-      logger.error("Error sending bot message: " + error);
-      Response.sendJsonObjectResponse(req, res, { status: "Error sending message" });
-    }
-  }
-
-  private static async handleBotInvokeActivity(
-    req: ExpressRequest,
-    res: ExpressResponse,
-    activity: JSONObject,
-  ): Promise<void> {
-    // Handle adaptive card button clicks via Bot Framework
-    const value: JSONObject = (activity["value"] as JSONObject) || {};
-    const actionType: string = value["action"] as string;
-
-    logger.debug(`Bot invoke activity - Action type: ${actionType}`);
-    logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
-
-    // For now, just acknowledge the action
-    const invokeResponse: JSONObject = {
-      status: 200,
-      body: {
-        type: "message",
-        text: "Action received and processed."
-      }
-    };
-
-    Response.sendJsonObjectResponse(req, res, invokeResponse);
-  }
-
-  private static async handleConversationUpdateActivity(
-    req: ExpressRequest,
-    res: ExpressResponse,
-    activity: JSONObject,
-  ): Promise<void> {
-    // Handle bot added to team/channel or members added/removed
-    const membersAdded: Array<JSONObject> = (activity["membersAdded"] as Array<JSONObject>) || [];
-    const membersRemoved: Array<JSONObject> = (activity["membersRemoved"] as Array<JSONObject>) || [];
-    const conversation: JSONObject = (activity["conversation"] as JSONObject) || {};
-    const channelData: JSONObject = (activity["channelData"] as JSONObject) || {};
-    const serviceUrl: string = (activity["serviceUrl"] as string) || "";
-    const activityId: string = (activity["id"] as string) || "";
-
-    logger.debug(`Conversation update - Members added: ${JSON.stringify(membersAdded)}`);
-    logger.debug(`Conversation update - Members removed: ${JSON.stringify(membersRemoved)}`);
-    logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
-    logger.debug(`Channel data: ${JSON.stringify(channelData)}`);
-
-    // Check if the bot was added
-    const botWasAdded: boolean = membersAdded.some((member: JSONObject) => {
-      return member["id"] === MicrosoftTeamsAppClientId;
-    });
-
-    if (botWasAdded) {
-      logger.info("OneUptime bot was added to a Teams conversation");
-      
-      const welcomeText: string = "🎉 Welcome to OneUptime!\n\nI'm your monitoring and alerting assistant. I'll help you stay on top of your system's health and notify you about any incidents.\n\nType 'help' to see what I can do for you.";
-
-      try {
-        // Send welcome message using Bot Framework
-        await MicrosoftTeamsAPI.sendBotFrameworkMessage({
-          serviceUrl: serviceUrl,
-          conversationId: conversation["id"] as string,
-          activityId: activityId,
-          messageText: welcomeText,
-          from: {},
-        });
-
-        logger.info("Welcome message sent successfully");
-      } catch (error) {
-        logger.error("Error sending welcome message: " + error);
-      }
-    }
-
-    Response.sendJsonObjectResponse(req, res, {});
-  }
-
-  private static async handleInstallationUpdateActivity(
-    req: ExpressRequest,
-    res: ExpressResponse,
-    activity: JSONObject,
-  ): Promise<void> {
-    // Handle bot installation/uninstallation
-    const action: string = (activity["action"] as string) || "";
-    const conversation: JSONObject = (activity["conversation"] as JSONObject) || {};
-
-    logger.debug(`Installation update - Action: ${action}`);
-    logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
-
-    if (action === "add") {
-      logger.info("OneUptime bot was installed");
-    } else if (action === "remove") {
-      logger.info("OneUptime bot was uninstalled");
-    }
-
-    Response.sendJsonObjectResponse(req, res, {});
-  }
-
-  // Helper method to send messages via Bot Framework
-  private static async sendBotFrameworkMessage(params: {
-    serviceUrl: string;
-    conversationId: string;
-    activityId: string;
-    messageText: string;
-    from: JSONObject;
-  }): Promise<void> {
-    const { serviceUrl, conversationId, activityId, messageText } = params;
-
-    if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
-      throw new BadDataException("Microsoft Teams App credentials not configured");
-    }
-
-    try {
-      // Get Bot Framework access token
-      const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-        URL.fromString("https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"),
-        {
-          grant_type: "client_credentials",
-          client_id: MicrosoftTeamsAppClientId,
-          client_secret: MicrosoftTeamsAppClientSecret,
-          scope: "https://api.botframework.com/.default"
-        },
-        {
-          "Content-Type": "application/x-www-form-urlencoded"
-        }
-      );
-
-      if (tokenResponse instanceof HTTPErrorResponse) {
-        logger.error("Error getting Bot Framework token:");
-        logger.error(tokenResponse);
-        throw new BadDataException("Failed to get Bot Framework access token");
-      }
-
-      const accessToken: string = tokenResponse.data["access_token"] as string;
-
-      // Prepare the message activity
-      const replyActivity: JSONObject = {
-        type: "message",
-        text: messageText,
-        from: {
-          id: MicrosoftTeamsAppClientId,
-          name: "OneUptime Bot"
-        },
-        replyToId: activityId
-      };
-
-      // Send the message to Teams
-      const conversationUrl: string = `${serviceUrl}v3/conversations/${conversationId}/activities`;
-      
-      logger.debug(`Sending message to: ${conversationUrl}`);
-      logger.debug(`Message payload: ${JSON.stringify(replyActivity)}`);
-
-      const messageResponse: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-        URL.fromString(conversationUrl),
-        replyActivity,
-        {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
-        }
-      );
-
-      if (messageResponse instanceof HTTPErrorResponse) {
-        logger.error("Error sending message to Teams:");
-        logger.error(messageResponse);
-        throw new BadDataException("Failed to send message to Teams");
-      }
-
-      logger.info("Successfully sent message to Teams channel");
-    } catch (error) {
-      logger.error("Error in sendBotFrameworkMessage: " + error);
-      throw error;
-    }
   }
 }
