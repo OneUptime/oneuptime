@@ -5,7 +5,6 @@ import React, {
 } from "react";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
 import Dictionary from "Common/UI/Components/Dictionary/Dictionary";
 import API from "Common/Utils/API";
 import URL from "Common/Types/API/URL";
@@ -44,6 +43,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get(
           URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
+          undefined,
           ModelAPI.getCommonHeaders(),
         );
 
