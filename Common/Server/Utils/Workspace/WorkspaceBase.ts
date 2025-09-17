@@ -210,6 +210,7 @@ export default class WorkspaceBase {
   @CaptureSpan()
   public static async getAllWorkspaceChannels(_data: {
     authToken: string;
+    projectId: ObjectID;
   }): Promise<Dictionary<WorkspaceChannel>> {
     throw new NotImplementedException();
   }

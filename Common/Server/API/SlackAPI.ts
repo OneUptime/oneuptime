@@ -38,6 +38,10 @@ import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyP
 import WorkspaceProjectAuthToken, {
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import UserMiddleware from "../Middleware/UserAuthorization";
+import CommonAPI from "./CommonAPI";
+import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -653,6 +657,71 @@ export default class SlackAPI {
           res,
           new BadRequestException("Invalid request"),
         );
+      },
+    );
+
+    // Fetch and cache all Slack channels for current tenant's project
+    router.get(
+      "/slack/get-all-channels",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const props: DatabaseCommonInteractionProps =
+          await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+        if (!props.tenantId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("ProjectId (tenant) not found in request"),
+          );
+        }
+
+        // Get Slack project auth
+        const projectAuth: WorkspaceProjectAuthToken | null =
+          await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: props.tenantId,
+            workspaceType: WorkspaceType.Slack,
+          });
+
+        if (!projectAuth || !projectAuth.authToken) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException(
+              "Slack is not connected for this project. Please connect Slack first.",
+            ),
+          );
+        }
+
+        // Fetch all channels (also updates cache under miscData.channelCache)
+
+        let updatedProjectAuth: WorkspaceProjectAuthToken | null = projectAuth;
+
+        if (!(projectAuth.miscData as SlackMiscData)?.channelCache) {
+          await SlackUtil.getAllWorkspaceChannels({
+            authToken: projectAuth.authToken,
+            projectId: props.tenantId,
+          });
+
+          // Re-fetch to return the latest cached object
+          updatedProjectAuth =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: props.tenantId,
+              workspaceType: WorkspaceType.Slack,
+            });
+        }
+
+        const channelCache: {
+          [channelName: string]: {
+            id: string;
+            name: string;
+            lastUpdated: string;
+          };
+        } =
+          ((updatedProjectAuth?.miscData as SlackMiscData | undefined) || {})
+            ?.channelCache || {};
+
+        return Response.sendJsonObjectResponse(req, res, channelCache as any);
       },
     );
 
