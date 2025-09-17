@@ -1,7 +1,10 @@
 {
     "watch": ["./*","../Common/UI", "../Common/Types", "../Common/Utils", "../Common/Models"],
-    "ext": "ts,json,tsx,env,js,jsx,hbs",
+    "ext": "ts,tsx",
     "ignore": [
+        "./node_modules/**",
+        "./public/**",
+        "./bin/**",
         "./public/**",
         "./public/dist/**",
         "./build/*",
