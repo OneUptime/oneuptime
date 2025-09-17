@@ -1,3 +1,11 @@
+/**
+ * LogItem UI
+ * - Collapsed row: compact line with timestamp, service, severity badge, message preview, quick copy.
+ * - Expanded panel: left severity-colored border, header with service, severity, timestamp; sections for Message, JSON body, Trace/Span IDs, and Attributes, each with copy buttons.
+ * - Accessibility: entire item is keyboard-activatable (Enter/Space) and exposes aria-expanded.
+ * - Styling hooks: severityBadgeClasses and leftBorderColor derive from props.log.severityText for consistent theming.
+ * - Non-breaking: props and behavior remain backward compatible.
+ */
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
@@ -28,6 +36,10 @@ const LogItem: FunctionComponent<ComponentProps> = (
   }, []);
 
   let bodyColor: string = "text-slate-200";
+  let leftBorderColor: string = "border-l-slate-700";
+  let severityBadgeClasses: string =
+    "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200";
+  let severityDotClass: string = "bg-slate-400";
 
   type GetCopyButtonFunction = (textToBeCopied: string) => ReactElement;
 
@@ -42,13 +54,40 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
   if (props.log.severityText === LogSeverity.Warning) {
     bodyColor = "text-amber-400";
+  leftBorderColor = "border-l-amber-500/60";
+    severityBadgeClasses =
+      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200";
+    severityDotClass = "bg-amber-500";
   } else if (props.log.severityText === LogSeverity.Error) {
     bodyColor = "text-rose-400";
+  leftBorderColor = "border-l-rose-500/60";
+    severityBadgeClasses =
+      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200";
+    severityDotClass = "bg-rose-500";
   } else if (
     props.log.severityText === LogSeverity.Trace ||
     props.log.severityText === LogSeverity.Debug
   ) {
     bodyColor = "text-slate-400";
+    leftBorderColor =
+      props.log.severityText === LogSeverity.Debug
+  ? "border-l-purple-500/60"
+  : "border-l-slate-500/60";
+    severityBadgeClasses =
+      props.log.severityText === LogSeverity.Debug
+        ? "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200"
+        : "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200";
+    severityDotClass = props.log.severityText === LogSeverity.Debug ? "bg-purple-500" : "bg-slate-500";
+  } else if (props.log.severityText === LogSeverity.Information) {
+  leftBorderColor = "border-l-blue-500/60";
+    severityBadgeClasses =
+      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200";
+    severityDotClass = "bg-blue-500";
+  } else if (props.log.severityText === LogSeverity.Fatal) {
+  leftBorderColor = "border-l-rose-700/70";
+    severityBadgeClasses =
+      "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-900 border border-red-300";
+    severityDotClass = "bg-rose-700";
   }
 
   let logBody: string = props.log.body?.toString() || "";
@@ -63,22 +102,35 @@ const LogItem: FunctionComponent<ComponentProps> = (
     isBodyInJSON = false;
   }
 
+  const toggleCollapsed = (): void => {
+    setIsCollapsed((v) => !v);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleCollapsed();
+    }
+  };
+
   if (isCollapsed) {
     return (
       <div
-        className="group relative text-slate-200 flex cursor-pointer hover:bg-slate-700/30 px-4 py-3 border-transparent border border-l-4 rounded-r-md hover:border-l-indigo-500/50 transition-all duration-200 ease-in-out mb-1 bg-slate-800/50"
-        onClick={() => {
-          setIsCollapsed(false);
-        }}
+        className={`group relative text-slate-200 flex items-center gap-2.5 cursor-pointer hover:bg-slate-800/40 px-2 py-1 border border-transparent border-l-2 ${leftBorderColor} rounded-sm transition-colors duration-100`}
+        onClick={toggleCollapsed}
+        role="button"
+        aria-expanded={!isCollapsed}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
       >
         {/* Timestamp and Service Name */}
         {props.log.time && (
-          <div className="flex items-center space-x-3 flex-none w-64">
-            <div className="text-xs text-slate-400 courier-prime font-medium">
+          <div className="flex items-center space-x-2 flex-none w-60">
+            <div className="text-[11px] text-slate-400 font-mono tabular-nums">
               {OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time).split(' ').slice(1).join(' ')}
             </div>
             <div
-              className="text-sm courier-prime font-semibold truncate"
+              className="text-xs font-semibold truncate"
               style={{ color: serviceColor }}
               title={serviceName}
             >
@@ -88,46 +140,17 @@ const LogItem: FunctionComponent<ComponentProps> = (
         )}
 
         {/* Severity Badge */}
-        <div className="flex-none mr-4">
-          {props.log.severityText === LogSeverity.Information && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-              INFO
+        <div className="flex-none mr-1">
+          <span className="inline-flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${severityDotClass}`} aria-hidden="true" />
+            <span className="text-[10px] uppercase tracking-wide text-slate-400">
+              {(props.log.severityText || "").toString() || "UNKNOWN"}
             </span>
-          )}
-          {props.log.severityText === LogSeverity.Warning && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-              WARN
-            </span>
-          )}
-          {props.log.severityText === LogSeverity.Trace && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-              TRACE
-            </span>
-          )}
-          {props.log.severityText === LogSeverity.Debug && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-              DEBUG
-            </span>
-          )}
-          {props.log.severityText === LogSeverity.Error && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-              ERROR
-            </span>
-          )}
-          {props.log.severityText === LogSeverity.Fatal && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-900 border border-red-300">
-              FATAL
-            </span>
-          )}
-          {(props.log.severityText === LogSeverity.Unspecified || !props.log.severityText) && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-              UNKNOWN
-            </span>
-          )}
+          </span>
         </div>
 
         {/* Log Message */}
-        <div className={`${bodyColor} courier-prime text-sm leading-relaxed flex-1 min-w-0`}>
+        <div className={`${bodyColor} font-mono text-sm leading-snug flex-1 min-w-0`}>
           {isBodyInJSON ? (
             <pre className="whitespace-pre-wrap truncate">{logBody.split('\n')[0]}...</pre>
           ) : (
@@ -137,9 +160,14 @@ const LogItem: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
+        {/* Quick copy button (message) */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+          {getCopyButton(props.log.body?.toString() || "")}
+        </div>
+
         {/* Expand Indicator */}
-        <div className="flex-none ml-3 text-slate-400 group-hover:text-slate-300 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex-none ml-1 text-slate-500 group-hover:text-slate-300 transition-transform duration-200">
+          <svg className="w-3.5 h-3.5 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -149,98 +177,79 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="group relative text-slate-200 cursor-pointer bg-slate-800 border border-slate-700 rounded-lg p-6 mb-3 hover:border-slate-600 transition-all duration-200 ease-in-out shadow-lg"
-      onClick={() => {
-        setIsCollapsed(true);
-      }}
+      className={`group relative text-slate-200 cursor-pointer bg-slate-950/70 border ${leftBorderColor} border-l-2 border-slate-900 rounded-sm p-2.5 hover:border-slate-700 transition-colors`}
+      onClick={toggleCollapsed}
+      role="button"
+      aria-expanded={!isCollapsed}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
     >
       {/* Header with Service Name and Close Indicator */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-700">
+      <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-slate-800/80">
         {serviceName && (
           <div
-            className="text-lg courier-prime font-bold"
+            className="text-sm font-semibold"
             style={{ color: serviceColor }}
           >
             {serviceName}
           </div>
         )}
-        <div className="flex-none text-slate-400 group-hover:text-slate-300 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Metadata Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        {props.log.time && (
-          <div className="flex flex-col space-y-1">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-              Timestamp
-            </div>
-            <div className="text-sm text-slate-300 courier-prime font-medium">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${severityDotClass}`} aria-hidden="true" />
+            <span className="text-[10px] uppercase tracking-wide text-slate-400">
+              {(props.log.severityText || "").toString() || "UNKNOWN"}
+            </span>
+          </span>
+          {props.log.time && (
+            <div className="text-[11px] text-slate-400 font-mono tabular-nums">
               {OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time)}
             </div>
-          </div>
-        )}
-
-        <div className="flex flex-col space-y-1">
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            Severity
-          </div>
-          <div>
-            {props.log.severityText === LogSeverity.Information && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                INFO
-              </span>
-            )}
-            {props.log.severityText === LogSeverity.Unspecified && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                UNKNOWN
-              </span>
-            )}
-            {props.log.severityText === LogSeverity.Warning && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-200">
-                WARN
-              </span>
-            )}
-            {props.log.severityText === LogSeverity.Trace && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                TRACE
-              </span>
-            )}
-            {props.log.severityText === LogSeverity.Debug && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                DEBUG
-              </span>
-            )}
-            {props.log.severityText === LogSeverity.Error && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 border border-red-200">
-                ERROR
-              </span>
-            )}
-            {props.log.severityText === LogSeverity.Fatal && (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-900 border border-red-300">
-                FATAL
-              </span>
-            )}
+          )}
+          <div className="flex-none text-slate-500 group-hover:text-slate-300">
+            <svg className="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
           </div>
         </div>
       </div>
 
-      {/* Log Message */}
-      <div className="mb-4">
-        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+      {/* Meta row (compact) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2 text-xs text-slate-400">
+        {props.log.time && (
+          <div className="flex items-center gap-2">
+            <span className="uppercase tracking-wide">Timestamp</span>
+            <span className="text-slate-300 font-mono tabular-nums">{OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time)}</span>
+          </div>
+        )}
+        {props.log.severityText && (
+          <div className="flex items-center gap-2">
+            <span className="uppercase tracking-wide">Severity</span>
+            <span className="inline-flex items-center gap-2 text-slate-300">
+              <span className={`inline-block w-2 h-2 rounded-full ${severityDotClass}`} />
+              <span className="text-[11px] uppercase">{(props.log.severityText || "").toString()}</span>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Message */}
+      <div className="mb-2">
+        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
           Message
+          <div className="flex items-center gap-2 normal-case">
+            {getCopyButton(props.log.body?.toString() || "")}
+            {isBodyInJSON && getCopyButton(logBody)}
+          </div>
         </div>
-        <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+        <div className="bg-slate-950 rounded-md p-2 border border-slate-800">
           {!isBodyInJSON && (
-            <div className={`${bodyColor} courier-prime text-sm leading-relaxed`}>
+            <div className={`${bodyColor} font-mono text-sm leading-snug`}>
               {props.log.body?.toString()}
             </div>
           )}
           {isBodyInJSON && (
-            <pre className={`${bodyColor} courier-prime text-sm leading-relaxed whitespace-pre-wrap overflow-x-auto`}>
+            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre-wrap overflow-auto max-h-56`}>
               {logBody}
             </pre>
           )}
@@ -249,14 +258,14 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
       {/* Trace and Span Information */}
       {(props.log.traceId || props.log.spanId) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
           {props.log.traceId && (
             <div className="flex flex-col space-y-2">
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
                 Trace ID
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`${bodyColor} courier-prime text-sm bg-slate-900 px-3 py-2 rounded border border-slate-700 flex-1 truncate`}>
+                <div className={`${bodyColor} font-mono text-sm bg-slate-950 px-3 py-2 rounded border border-slate-800 flex-1 truncate`}>
                   {props.log.traceId?.toString()}
                 </div>
                 {getCopyButton(props.log.traceId?.toString() || "")}
@@ -266,11 +275,11 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
           {props.log.spanId && (
             <div className="flex flex-col space-y-2">
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
                 Span ID
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`${bodyColor} courier-prime text-sm bg-slate-900 px-3 py-2 rounded border border-slate-700 flex-1 truncate`}>
+                <div className={`${bodyColor} font-mono text-sm bg-slate-950 px-3 py-2 rounded border border-slate-800 flex-1 truncate`}>
                   {props.log.spanId?.toString()}
                 </div>
                 {getCopyButton(props.log.spanId?.toString() || "")}
@@ -283,11 +292,18 @@ const LogItem: FunctionComponent<ComponentProps> = (
       {/* Attributes */}
       {props.log.attributes && (
         <div>
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">
             Attributes
+            {getCopyButton(
+              JSON.stringify(
+                JSONFunctions.unflattenObject(props.log.attributes || {}),
+                null,
+                2,
+              ) || "",
+            )}
           </div>
-          <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
-            <pre className={`${bodyColor} courier-prime text-sm leading-relaxed whitespace-pre-wrap overflow-x-auto`}>
+          <div className="bg-slate-950 rounded-md p-2 border border-slate-800">
+            <pre className={`${bodyColor} font-mono text-sm leading-snug whitespace-pre-wrap overflow-auto max-h-56`}>
               {JSON.stringify(
                 JSONFunctions.unflattenObject(props.log.attributes || {}),
                 null,

@@ -47,10 +47,11 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   );
 
   const [screenHeight, setScreenHeight] = React.useState<number>(
-    window.innerHeight,
+    typeof window !== "undefined" ? window.innerHeight : 900,
   );
   const [autoScroll, setAutoScroll] = React.useState<boolean>(true);
   const [showScrollToBottom, setShowScrollToBottom] = React.useState<boolean>(false);
+  const [wrapLines, setWrapLines] = React.useState<boolean>(true);
   const logsViewerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef: Ref<HTMLDivElement> = React.useRef<HTMLDivElement>(null);
 
@@ -224,44 +225,114 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             </div>
 
             {/* Enhanced Controls Section */}
-            <div className="bg-slate-50 -mx-6 -mb-6 px-6 py-4 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                {/* Auto Scroll Toggle */}
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
+            <div className="-mx-6 -mb-6 px-6 py-3 border-t border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
                     <Toggle
                       title=""
                       value={autoScroll}
-                      onChange={(checked: boolean) => {
-                        setAutoScroll(checked);
-                      }}
+                      onChange={(checked: boolean) => setAutoScroll(checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700 cursor-pointer">
-                      Auto-scroll to new logs
-                    </label>
+                    <span className="text-xs text-slate-600 dark:text-slate-300">{autoScroll ? "Live" : "Paused"}</span>
                   </div>
-                  {autoScroll && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                      Live
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Toggle title="" value={wrapLines} onChange={setWrapLines} />
+                    <span className="text-xs text-slate-600 dark:text-slate-300">Wrap</span>
+                  </div>
+                  <span className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-700" />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{props.logs.length} result{props.logs.length !== 1 ? "s" : ""}</span>
                 </div>
 
-                {/* Search Button */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-500 hidden sm:block">
-                    {props.logs.length} log{props.logs.length !== 1 ? 's' : ''} found
-                  </span>
+                <div className="flex items-center gap-2">
                   <Button
                     title="Apply Filters"
                     icon={IconProp.Search}
-                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    buttonSize={ButtonSize.Small}
+                    onClick={() => props.onFilterChanged(filterData)}
+                  />
+                  <Button
+                    title="Copy"
+                    icon={IconProp.Copy}
+                    buttonStyle={ButtonStyleType.OUTLINE}
                     buttonSize={ButtonSize.Small}
                     onClick={() => {
-                      props.onFilterChanged(filterData);
+                      try {
+                        const text: string = props.logs
+                          .map((l) => {
+                            const iso = l.time
+                              ? (l.time instanceof Date
+                                ? l.time.toISOString()
+                                : new Date(l.time as unknown as any).toISOString())
+                              : "";
+                            return `${iso} ${l.severityText || ""} ${l.body || ""}`;
+                          })
+                          .join("\n");
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                          navigator.clipboard.writeText(text).catch(() => {});
+                        } else {
+                          const ta = document.createElement("textarea");
+                          ta.value = text; document.body.appendChild(ta); ta.select();
+                          document.execCommand("copy"); document.body.removeChild(ta);
+                        }
+                      } catch {}
+                    }}
+                  />
+                  <Button
+                    title="Download"
+                    icon={IconProp.Download}
+                    buttonStyle={ButtonStyleType.OUTLINE}
+                    buttonSize={ButtonSize.Small}
+                    onClick={() => {
+                      const blob = new Blob([JSON.stringify(props.logs, null, 2)], { type: "application/json" });
+                      const url = (window.URL || URL).createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url; a.download = `logs-${Date.now()}.json`; a.click();
+                      (window.URL || URL).revokeObjectURL(url);
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Quick severity filters (lightweight chips) */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {(
+                  [
+                    { label: "All", value: undefined },
+                    { label: "Info", value: LogSeverity.Information },
+                    { label: "Warn", value: LogSeverity.Warning },
+                    { label: "Error", value: LogSeverity.Error },
+                    { label: "Debug", value: LogSeverity.Debug },
+                    { label: "Trace", value: LogSeverity.Trace },
+                  ] as Array<{ label: string; value: LogSeverity | undefined }>
+                ).map((opt) => {
+                  const isActive = (filterData as any)["severityText"] === opt.value ||
+                    (opt.value === undefined && !("severityText" in filterData));
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      className={`px-2.5 py-1 rounded-md text-xs border transition-colors ${
+                        isActive
+                          ? "bg-slate-800 text-white border-slate-700"
+                          : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      }`}
+                      onClick={() => {
+                        const next: Query<Log> = { ...filterData };
+                        if (opt.value) {
+                          (next as any).severityText = opt.value;
+                        } else {
+                          delete (next as any).severityText;
+                        }
+                        setFilterData(next);
+                        props.onFilterChanged(next);
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Card>
@@ -271,32 +342,33 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         <div className="relative">
           <div
             ref={logsViewerRef}
-            className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden"
+            className="rounded-md border border-slate-700 bg-slate-900 overflow-hidden"
             style={{
-              height: screenHeight - 520,
+              height: Math.max(360, screenHeight - 360),
             }}
           >
             {/* Custom Scrollbar Container */}
             <div 
               ref={scrollContainerRef}
-              className="h-full overflow-y-auto scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600 hover:scrollbar-thumb-slate-500 p-4"
+              className={`h-full overflow-y-auto p-2 sm:p-3 antialiased ${wrapLines ? "" : "whitespace-nowrap"}`}
               onScroll={handleScroll}
             >
-              {props.logs.map((log: Log, i: number) => {
-                return <LogItem serviceMap={serviceMap} key={i} log={log} />;
-              })}
+              <ul role="list" className="divide-y divide-slate-800">
+                {props.logs.map((log: Log, i: number) => {
+                  return (
+                    <li key={i} className="py-1 first:pt-0 last:pb-0">
+                      <LogItem serviceMap={serviceMap} log={log} />
+                    </li>
+                  );
+                })}
+              </ul>
 
               {props.logs.length === 0 && (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex items-center justify-center h-full px-4">
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 text-slate-500">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-full h-full">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-medium text-slate-300 mb-2">No logs found</h3>
-                    <p className="text-slate-500 text-sm">
-                      {props.noLogsMessage || "Try adjusting your filters or check back later for new log entries."}
+                    <h3 className="text-sm font-medium text-slate-300 mb-1">No logs found</h3>
+                    <p className="text-slate-500 text-xs">
+                      {props.noLogsMessage || "Adjust filters or check again later."}
                     </p>
                   </div>
                 </div>
@@ -308,7 +380,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           {showScrollToBottom && (
             <button
               onClick={scrollToBottom}
-              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="absolute bottom-3 right-3 bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-md shadow transition-all"
               title="Scroll to bottom"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -319,8 +391,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         </div>
       )}
       {props.isLoading && (
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden"
-             style={{ height: screenHeight - 520 }}>
+        <div className="rounded-md border border-slate-700 bg-slate-900 overflow-hidden"
+             style={{ height: Math.max(360, screenHeight - 360) }}>
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <ComponentLoader />
