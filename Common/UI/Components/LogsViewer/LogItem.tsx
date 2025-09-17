@@ -172,12 +172,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className={`group relative text-slate-200 cursor-pointer bg-slate-950/70 border ${leftBorderColor} border-l border-slate-900 rounded-sm p-2 hover:border-slate-700 transition-colors`}
-      onClick={toggleCollapsed}
-      role="button"
-      aria-expanded={!isCollapsed}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
+      className={`group relative text-slate-200 bg-slate-950/70 border ${leftBorderColor} border-l border-slate-900 rounded-sm p-2 hover:border-slate-700 transition-colors`}
     >
       {/* Header with Service Name and Close Indicator */}
       <div className="flex items-center justify-between mb-1 pb-1 border-b border-slate-800/80">
@@ -201,11 +196,20 @@ const LogItem: FunctionComponent<ComponentProps> = (
               {OneUptimeDate.getDateAsUserFriendlyFormattedString(props.log.time)}
             </div>
           )}
-          <div className="flex-none text-slate-500 group-hover:text-slate-300">
+          <button
+            type="button"
+            title="Collapse"
+            aria-label="Collapse"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCollapsed();
+            }}
+            className="flex-none text-slate-500 hover:text-slate-300 transition-colors"
+          >
             <svg className="w-3.5 h-3.5 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
             </svg>
-          </div>
+          </button>
         </div>
       </div>
 
