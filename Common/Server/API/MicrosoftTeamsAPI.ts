@@ -12,6 +12,7 @@ import {
   AppApiClientUrl,
   AppVersion,
   DashboardClientUrl,
+  HomeClientUrl,
   Host,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
@@ -44,8 +45,7 @@ interface MicrosoftTeamsTeam {
 }
 
 export default class MicrosoftTeamsAPI {
-  private static getTeamsAppManifest(
-  ): JSONObject {
+  private static getTeamsAppManifest(): JSONObject {
 
     if(!MicrosoftTeamsAppClientId){
       throw new BadDataException("Microsoft Teams App Client ID is not set");
@@ -55,7 +55,7 @@ export default class MicrosoftTeamsAPI {
       $schema:
         "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
       manifestVersion: "1.23",
-      version: AppVersion.toLowerCase().includes("unknown") ? "1.0.0" : AppVersion,
+      version: AppVersion.toLowerCase().includes("unknown") ? "2.0.0" : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {
         name: "OneUptime",
@@ -71,12 +71,11 @@ export default class MicrosoftTeamsAPI {
         short: "Monitor your apps, websites, APIs, and more with OneUptime",
         full: "OneUptime is a complete open-source observability platform that helps you monitor your applications, websites, APIs, and infrastructure. Get alerted when things go wrong and maintain your SLAs.",
       },
-      icons: 
-       {
-            outline: "outline.png",
+      // Default to size-specific names; route will adjust if fallbacks are used
+      icons: {
+        outline: "outline.png",
             color: "color.png",
-          }
-       ,
+      },
       accentColor: "#000000",
       bots: [
         {
@@ -89,15 +88,31 @@ export default class MicrosoftTeamsAPI {
           supportsFiles: false,
           supportsCalling: false,
           supportsVideo: false,
+          // Provide basic command lists to improve client compatibility (esp. mobile)
+          commandLists: [
+            {
+              scopes: ["personal"],
+              commands: [
+                { title: "Get Status", description: "Get current system status and health metrics" },
+                { title: "List Incidents", description: "Show active and recent incidents" },
+                { title: "Subscribe", description: "Subscribe to incident notifications" },
+              ],
+            },
+            {
+              scopes: ["team", "groupChat"],
+              commands: [
+                { title: "Status Report", description: "Get system status report for the team" },
+                { title: "Recent Incidents", description: "Show recent incidents and their status" },
+              ],
+            },
+          ],
         },
       ],
-  permissions: ["identity", "messageTeamMembers"],
-  // Only include domains you control
-  validDomains: [Host],
+      permissions: ["identity"],
+      validDomains: [Host],
       webApplicationInfo: {
-        id:
-          MicrosoftTeamsAppClientId,
-        resource: "https://graph.microsoft.com",
+        id: MicrosoftTeamsAppClientId,
+        resource: HomeClientUrl.toString(),
       },
     };
 
@@ -113,9 +128,21 @@ export default class MicrosoftTeamsAPI {
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
          
+          // Validate GUID format – Teams requires GUID for id / botId
+          const guidRegex: RegExp = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+          if (!guidRegex.test(MicrosoftTeamsAppClientId || "")) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Microsoft Teams App Client ID must be a valid GUID. Update the environment variable.",
+              ),
+            );
+          }
 
-          const manifest: JSONObject = MicrosoftTeamsAPI.getTeamsAppManifest(
-          );
+          // Decide icon files and names included in the package
+          let iconColorName: string = "icon-color.png";
+          let iconOutlineName: string = "icon-outline.png";
 
           // Set response headers for zip download
           res.setHeader("Content-Type", "application/zip");
@@ -138,45 +165,70 @@ export default class MicrosoftTeamsAPI {
           // Pipe archive data to the response
           archive.pipe(res);
 
-          // Add manifest.json to zip
-          archive.append(JSON.stringify(manifest, null, 2), {
-            name: "manifest.json",
-          });
+          // Prefer pre-resized icons (192x192 color, 32x32 outline)
+          const sizedColorPath: string = path.join(
+            __dirname,
+            "..",
+            "Images",
+            "MicrosoftTeams",
+            "icon-color-192x192.png",
+          );
+          const sizedOutlinePath: string = path.join(
+            __dirname,
+            "..",
+            "Images",
+            "MicrosoftTeams",
+            "icon-outline-32x32.png",
+          );
 
-          // Read pre-resized icons (try multiple likely locations to support dev/prod builds)
-          const candidateIconDirs: Array<string> = [
-            // When running from TS source (ts-node): Common/Server/API -> ../Images/MicrosoftTeams
-            path.join(__dirname, '..', 'Images', 'MicrosoftTeams'),
-            // When running from repo root as cwd
-            path.join(process.cwd(), 'Common', 'Server', 'Images', 'MicrosoftTeams'),
-          ];
+          const fallbackColorPath: string = path.join(
+            process.cwd(),
+            "Common",
+            "Server",
+            "Images",
+            "MicrosoftTeams",
+            "color.png",
+          );
+          const fallbackOutlinePath: string = path.join(
+            process.cwd(),
+            "Common",
+            "Server",
+            "Images",
+            "MicrosoftTeams",
+            "outline.png",
+          );
 
-          let iconsDir: string | null = null;
-          for (const dir of candidateIconDirs) {
-            try {
-              if (
-                fs.existsSync(path.join(dir, 'color.png')) &&
-                fs.existsSync(path.join(dir, 'outline.png'))
-              ) {
-                iconsDir = dir;
-                break;
-              }
-            } catch (e) {
-              // ignore and try next
-            }
-          }
+          let colorIconBuffer: Buffer | null = null;
+          let outlineIconBuffer: Buffer | null = null;
 
-          if (!iconsDir) {
+          if (fs.existsSync(sizedColorPath) && fs.existsSync(sizedOutlinePath)) {
+            colorIconBuffer = fs.readFileSync(sizedColorPath);
+            outlineIconBuffer = fs.readFileSync(sizedOutlinePath);
+            iconColorName = "icon-color.png";
+            iconOutlineName = "icon-outline.png";
+          } else if (fs.existsSync(fallbackColorPath) && fs.existsSync(fallbackOutlinePath)) {
+            colorIconBuffer = fs.readFileSync(fallbackColorPath);
+            outlineIconBuffer = fs.readFileSync(fallbackOutlinePath);
+            // Switch manifest icon names to match fallback file names
+            iconColorName = "color.png";
+            iconOutlineName = "outline.png";
+          } else {
             throw new BadDataException(
-              'Microsoft Teams icons not found. Expected color.png and outline.png in Common/Server/Images/MicrosoftTeams',
+              "Microsoft Teams icons not found. Expected either pre-sized icon-color-192x192.png and icon-outline-32x32.png in Common/Server/Images/MicrosoftTeams, or fallback color.png and outline.png.",
             );
           }
 
-          const colorIcon = fs.readFileSync(path.join(iconsDir, 'color.png'));
-          const outlineIcon = fs.readFileSync(path.join(iconsDir, 'outline.png'));
-          
-          archive.append(colorIcon, { name: "color.png" });
-          archive.append(outlineIcon, { name: "outline.png" });
+          // Build manifest now that icon names are known
+          const manifest: JSONObject = MicrosoftTeamsAPI.getTeamsAppManifest();
+          (manifest["icons"] as JSONObject)["color"] = iconColorName;
+          (manifest["icons"] as JSONObject)["outline"] = iconOutlineName;
+
+          // Add manifest.json to zip
+          archive.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
+
+          // Add icons to zip under the selected names
+          archive.append(colorIconBuffer, { name: iconColorName });
+          archive.append(outlineIconBuffer, { name: iconOutlineName });
 
           // Finalize the archive
           await archive.finalize();
