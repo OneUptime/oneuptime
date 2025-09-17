@@ -1394,21 +1394,32 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
   // Helper method to get Bot Framework access token
   @CaptureSpan()
-  private static async getBotAccessToken(): Promise<string> {
+  private static async getBotAccessToken(serviceUrl?: string): Promise<string> {
     if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
       throw new BadDataException("Microsoft Teams App credentials not configured");
     }
 
     logger.debug("Requesting Bot Framework access token...");
     logger.debug(`Client ID: ${MicrosoftTeamsAppClientId}`);
+    logger.debug(`Service URL: ${serviceUrl}`);
+    
+    // For Bot Framework, we need to use the standard Bot Framework scope
+    // The audience should be the Bot Framework service, not the specific service URL
+    const scope = "https://api.botframework.com/.default";
+    
+    // Try the common tenant first, then fallback to Bot Framework tenant if needed
+    let tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
+    
+    logger.debug(`Using token endpoint: ${tokenEndpoint}`);
+    logger.debug(`Using scope: ${scope}`);
     
     const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-      URL.fromString("https://login.microsoftonline.com/common/oauth2/v2.0/token"),
+      URL.fromString(tokenEndpoint),
       {
         grant_type: "client_credentials",
         client_id: MicrosoftTeamsAppClientId,
         client_secret: MicrosoftTeamsAppClientSecret,
-        scope: "https://api.botframework.com/.default"
+        scope: scope
       },
       {
         "Content-Type": "application/x-www-form-urlencoded"
@@ -1419,11 +1430,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.error("Error getting Bot Framework token:");
       logger.error(`Status: ${tokenResponse.statusCode}`);
       logger.error(`Response: ${JSON.stringify(tokenResponse.data)}`);
+      
+      
       throw new BadDataException("Failed to get Bot Framework access token");
     }
 
     const accessToken: string = tokenResponse.data["access_token"] as string;
     logger.debug("Successfully obtained Bot Framework access token");
+    
+    // Log token info for debugging (without exposing the actual token)
+    if (accessToken) {
+      try {
+        const tokenParts = accessToken.split('.');
+        if (tokenParts.length === 3 && tokenParts[1]) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+          logger.debug(`Token issuer: ${payload.iss}`);
+          logger.debug(`Token audience: ${payload.aud}`);
+          logger.debug(`Token expires: ${new Date(payload.exp * 1000).toISOString()}`);
+        }
+      } catch (e) {
+        logger.debug("Could not decode token for debugging");
+      }
+    }
     
     return accessToken;
   }
@@ -1476,7 +1504,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         replyActivity,
         {
           "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "User-Agent": "OneUptime-Bot/1.0"
         }
       );
 

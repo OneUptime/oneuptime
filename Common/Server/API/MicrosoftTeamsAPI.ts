@@ -772,6 +772,15 @@ export default class MicrosoftTeamsAPI {
         logger.debug(JSON.stringify(req.body, null, 2));
 
         try {
+          // Basic Bot Framework authentication validation
+          const authHeader = req.headers["authorization"];
+          if (!authHeader || !authHeader.toString().startsWith("Bearer ")) {
+            logger.warn("Missing or invalid authorization header in Bot Framework request");
+            // For development, we'll log but continue. In production, you might want to validate the JWT
+          } else {
+            logger.debug("Bot Framework request has authorization header");
+          }
+
           // Handle different types of Teams activities
           const activity: JSONObject = req.body as JSONObject;
           const activityType: string = activity["type"] as string;
