@@ -143,7 +143,7 @@ const LogItem: FunctionComponent<ComponentProps> = (
         </div>
 
         {/* Log Message */}
-        <div className={`${bodyColor} font-mono text-sm leading-snug flex-1 min-w-0`}>
+        <div className={`${bodyColor} font-mono text-[13px] md:text-sm leading-5 tracking-tight subpixel-antialiased flex-1 min-w-0`}>
           {isBodyInJSON ? (
             <div className="truncate" title={logBodyMinified}>
               {logBodyMinified}
