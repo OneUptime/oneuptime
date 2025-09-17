@@ -529,6 +529,8 @@ export default class SlackUtil extends WorkspaceBase {
 
     const channels: Dictionary<WorkspaceChannel> = {};
     let cursor: string | undefined = undefined;
+    const maxPages: number = 100;
+    let pageCount: number = 0;
 
     do {
       const requestBody: JSONObject = {
@@ -588,7 +590,8 @@ export default class SlackUtil extends WorkspaceBase {
       cursor = (
         (response.jsonData as JSONObject)["response_metadata"] as JSONObject
       )?.["next_cursor"] as string;
-    } while (cursor);
+      pageCount++;
+    } while (cursor && pageCount < maxPages);
 
     logger.debug("All workspace channels obtained:");
     return channels;
