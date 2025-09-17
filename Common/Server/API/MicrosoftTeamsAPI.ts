@@ -47,10 +47,14 @@ export default class MicrosoftTeamsAPI {
   private static getTeamsAppManifest(
   ): JSONObject {
 
+    if(!MicrosoftTeamsAppClientId){
+      throw new BadDataException("Microsoft Teams App Client ID is not set");
+    }
+
     const manifest: JSONObject = {
       $schema:
-        "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
-      manifestVersion: "1.16",
+        "https://developer.microsoft.com/json-schemas/teams/v1.13/MicrosoftTeams.schema.json",
+      manifestVersion: "1.13",
       version: "1.0.0",
       id: MicrosoftTeamsAppClientId || "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
       packageName: "com.oneuptime.teams",
@@ -78,8 +82,7 @@ export default class MicrosoftTeamsAPI {
       bots: [
         {
           botId:
-            MicrosoftTeamsAppClientId ||
-            "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+            MicrosoftTeamsAppClientId,
           needsChannelSelector: false,
           isNotificationOnly: false,
           scopes: ["team", "personal"],
@@ -91,8 +94,7 @@ export default class MicrosoftTeamsAPI {
       connectors: [
         {
           connectorId:
-            MicrosoftTeamsAppClientId ||
-            "{{MICROSOFT_TEAMS_APP_CLIENT_ID}}",
+            MicrosoftTeamsAppClientId,
           configurationUrl: `${HomeClientUrl.toString()}microsoft-teams/connector-config`,
         },
       ],
