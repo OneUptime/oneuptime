@@ -34,7 +34,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
 // Bot Framework SDK imports
-import { CloudAdapter, ConfigurationBotFrameworkAuthentication, Activity, ConversationReference, TeamsActivityHandler, TurnContext } from 'botbuilder';
+import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext } from 'botbuilder';
 import { ExpressRequest, ExpressResponse } from "../../Express";
 
 
@@ -1274,14 +1274,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   @CaptureSpan()
   public static async handleBotMessageActivity(data: {
     activity: JSONObject;
+    turnContext: TurnContext;
   }): Promise<void> {
     // Handle direct messages to bot or @mentions via Bot Framework
     const messageText: string = (data.activity["text"] as string) || "";
     const from: JSONObject = (data.activity["from"] as JSONObject) || {};
     const conversation: JSONObject = (data.activity["conversation"] as JSONObject) || {};
     const channelData: JSONObject = (data.activity["channelData"] as JSONObject) || {};
-    const serviceUrl: string = (data.activity["serviceUrl"] as string) || "";
-    const activityId: string = (data.activity["id"] as string) || "";
 
     logger.debug(`Bot message from: ${JSON.stringify(from)}`);
     logger.debug(`Message text: ${messageText}`);
@@ -1303,18 +1302,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     try {
-      // Send response back to Teams using Bot Framework messaging
-      await this.sendBotFrameworkMessage({
-        serviceUrl: serviceUrl,
-        conversationId: conversation["id"] as string,
-        activityId: activityId,
-        messageText: responseText,
-        from: from,
-      });
-
-      logger.debug("Bot message sent successfully");
+      // Send response directly using TurnContext - this is the recommended Bot Framework pattern
+      await data.turnContext.sendActivity(responseText);
+      logger.debug("Bot message sent successfully using TurnContext");
     } catch (error) {
-      logger.error("Error sending bot message: " + error);
+      logger.error("Error sending bot message via TurnContext: " + error);
       throw error;
     }
   }
@@ -1322,6 +1314,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   @CaptureSpan()
   public static async handleBotInvokeActivity(data: {
     activity: JSONObject;
+    turnContext: TurnContext;
   }): Promise<void> {
     // Handle adaptive card button clicks via Bot Framework
     const value: JSONObject = (data.activity["value"] as JSONObject) || {};
@@ -1337,14 +1330,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   @CaptureSpan()
   public static async handleConversationUpdateActivity(data: {
     activity: JSONObject;
+    turnContext: TurnContext;
   }): Promise<void> {
     // Handle bot added to team/channel or members added/removed
     const membersAdded: Array<JSONObject> = (data.activity["membersAdded"] as Array<JSONObject>) || [];
     const membersRemoved: Array<JSONObject> = (data.activity["membersRemoved"] as Array<JSONObject>) || [];
     const conversation: JSONObject = (data.activity["conversation"] as JSONObject) || {};
     const channelData: JSONObject = (data.activity["channelData"] as JSONObject) || {};
-    const serviceUrl: string = (data.activity["serviceUrl"] as string) || "";
-    const activityId: string = (data.activity["id"] as string) || "";
 
     logger.debug(`Conversation update - Members added: ${JSON.stringify(membersAdded)}`);
     logger.debug(`Conversation update - Members removed: ${JSON.stringify(membersRemoved)}`);
@@ -1362,18 +1354,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       const welcomeText: string = "🎉 Welcome to OneUptime!\n\nI'm your monitoring and alerting assistant. I'll help you stay on top of your system's health and notify you about any incidents.\n\nType 'help' to see what I can do for you.";
 
       try {
-        // Send welcome message using Bot Framework
-        await this.sendBotFrameworkMessage({
-          serviceUrl: serviceUrl,
-          conversationId: conversation["id"] as string,
-          activityId: activityId,
-          messageText: welcomeText,
-          from: {},
-        });
-
-        logger.debug("Welcome message sent successfully");
+        // Send welcome message directly using TurnContext
+        await data.turnContext.sendActivity(welcomeText);
+        logger.debug("Welcome message sent successfully using TurnContext");
       } catch (error) {
-        logger.error("Error sending welcome message: " + error);
+        logger.error("Error sending welcome message via TurnContext: " + error);
       }
     }
   }
@@ -1425,6 +1410,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             logger.debug("Handling message activity: " + JSON.stringify(context.activity));
             await MicrosoftTeamsUtil.handleBotMessageActivity({
               activity: context.activity as unknown as JSONObject,
+              turnContext: context,
             });
             await next();
           });
@@ -1433,6 +1419,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             logger.debug("Handling members added activity: " + JSON.stringify(context.activity));
             await MicrosoftTeamsUtil.handleConversationUpdateActivity({
               activity: context.activity as unknown as JSONObject,
+              turnContext: context,
             });
             await next();
           });
@@ -1442,6 +1429,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.debug("Handling invoke activity: " + JSON.stringify(context.activity));
           await MicrosoftTeamsUtil.handleBotInvokeActivity({
             activity: context.activity as unknown as JSONObject,
+            turnContext: context,
           });
           // Return empty response for invoke activities
           return { status: 200 };
@@ -1473,83 +1461,4 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
   }
 
-  // Helper method to validate Bot Framework service URLs
-  private static isValidServiceUrl(serviceUrl: string): boolean {
-    try {
-      const url = URL.fromString(serviceUrl);
-      // Microsoft Teams Bot Framework service URLs
-      const validHosts = [
-        'smba.trafficmanager.net',
-        'api.botframework.com',
-        'europe.api.botframework.com',
-        'directline.botframework.com',
-        'webchat.botframework.com'
-      ];
-      
-      const hostname = url.hostname.toString();
-      return validHosts.some(host => hostname.includes(host));
-    } catch {
-      return false;
-    }
-  }
-
-  // Helper method to send messages via Bot Framework
-  @CaptureSpan()
-  public static async sendBotFrameworkMessage(params: {
-    serviceUrl: string;
-    conversationId: string;
-    activityId: string;
-    messageText: string;
-    from: JSONObject;
-  }): Promise<void> {
-    const { serviceUrl, conversationId, activityId, messageText } = params;
-
-    if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
-      throw new BadDataException("Microsoft Teams App credentials not configured");
-    }
-
-    // Validate service URL for security
-    if (!this.isValidServiceUrl(serviceUrl)) {
-      logger.error(`Invalid or untrusted service URL: ${serviceUrl}`);
-      throw new BadDataException("Invalid service URL");
-    }
-
-    try {
-      // Get Bot Framework adapter
-      const adapter = this.getBotAdapter();
-
-      // Create conversation reference
-      const conversationReference: Partial<ConversationReference> = {
-        serviceUrl: serviceUrl,
-        conversation: {
-          id: conversationId,
-          isGroup: true, // Assuming it's a channel conversation
-          conversationType: 'channel',
-          name: 'Teams Channel',
-        },
-        activityId: activityId,
-      };
-
-      // Use continueConversationAsync to send the message (continueConversation is deprecated)
-      await adapter.continueConversationAsync(
-        MicrosoftTeamsAppClientId || "",
-        conversationReference,
-        async (turnContext) => {
-          const replyActivity: Partial<Activity> = {
-            type: "message",
-            text: messageText,
-            replyToId: activityId,
-          };
-
-          await turnContext.sendActivity(replyActivity);
-        },
-      );
-
-      logger.debug("Successfully sent message to Teams channel using Bot Framework SDK");
-    } catch (error) {
-      logger.error("Error in sendBotFrameworkMessage:");
-      logger.error(error);
-      throw error;
-    }
-  }
 }
