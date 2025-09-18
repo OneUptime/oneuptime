@@ -33,6 +33,9 @@ import { MicrosoftTeamsMiscData } from "../../../../Models/DatabaseModels/Worksp
 import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
+// Microsoft Teams apps should always be multi-tenant
+const MICROSOFT_TEAMS_APP_TYPE = "MultiTenant";
+
 // Bot Framework SDK imports
 import { CloudAdapter, ConfigurationBotFrameworkAuthentication, TeamsActivityHandler, TurnContext } from 'botbuilder';
 import { ExpressRequest, ExpressResponse } from "../../Express";
@@ -49,12 +52,24 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         throw new BadDataException("Microsoft Teams App credentials not configured");
       }
 
-      const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication({
+      logger.debug("Creating Bot Framework adapter with authentication configuration");
+      logger.debug(`App ID: ${MicrosoftTeamsAppClientId}`);
+      logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
+
+      const authConfig: any = {
         MicrosoftAppId: MicrosoftTeamsAppClientId,
         MicrosoftAppPassword: MicrosoftTeamsAppClientSecret,
-      });
+        MicrosoftAppType: MICROSOFT_TEAMS_APP_TYPE, // Always MultiTenant for Teams apps
+      };
 
+      // For multi-tenant apps, we omit tenantId to allow the bot to work with any tenant
+      // This is the recommended approach for Teams apps that need to work across organizations
+      logger.debug("Configuring multi-tenant bot - omitting specific tenant ID to work with any tenant");
+
+      const botFrameworkAuthentication = new ConfigurationBotFrameworkAuthentication(authConfig);
       this.botAdapter = new CloudAdapter(botFrameworkAuthentication);
+
+      logger.debug("Bot Framework adapter created successfully");
     }
     return this.botAdapter;
   }
