@@ -44,108 +44,7 @@ interface MicrosoftTeamsTeam {
   displayName: string;
 }
 
-  export default class MicrosoftTeamsAPI {
-  /**
-   * Validates Bot Framework JWT tokens for security.
-   * 
-   * This method validates incoming JWT tokens from Microsoft Teams Bot Framework
-   * to ensure they are legitimate requests from Microsoft. It checks:
-   * - Token format (valid JWT structure)
-   * - Issuer (must be from Microsoft)
-   * - Audience (must match our bot's client ID)
-   * - Expiration (token must not be expired)
-   * - App ID (must match our bot's client ID)
-   * 
-   * Note: This implementation validates the JWT structure and claims but does not
-   * verify the cryptographic signature. For full security in production, you should
-   * also verify the signature using Microsoft's public keys.
-   * 
-   * @param authHeader - The Authorization header containing the Bearer token
-   * @returns Promise<boolean> - true if validation passes, false otherwise
-   */
-  private static async validateBotFrameworkJWT(authHeader: string): Promise<boolean> {
-    try {
-      if (!authHeader.startsWith("Bearer ")) {
-        logger.error("Invalid authorization header format");
-        return false;
-      }
-
-      const token = authHeader.substring(7); // Remove "Bearer " prefix
-      const tokenParts = token.split('.');
-      
-      if (tokenParts.length !== 3) {
-        logger.error("Invalid JWT token format");
-        return false;
-      }
-
-      // Decode the JWT header and payload (without verifying signature for now)
-      if (!tokenParts[0] || !tokenParts[1]) {
-        logger.error("Invalid JWT token parts");
-        return false;
-      }
-
-      // Use base64 instead of base64url for Node.js compatibility
-      const header = JSON.parse(Buffer.from(tokenParts[0], 'base64').toString());
-      const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-
-      logger.debug("JWT Header: " + JSON.stringify(header));
-      logger.debug("JWT Payload (sanitized): " + JSON.stringify({
-        iss: payload.iss,
-        aud: payload.aud,
-        exp: payload.exp,
-        appid: payload.appid,
-        ver: payload.ver
-      }));
-
-      // Validate issuer - should be from Microsoft
-      const validIssuers = [
-        'https://api.botframework.com',
-        'https://sts.windows.net/',
-        'https://login.microsoftonline.com/',
-        'https://login.windows.net/'
-      ];
-
-      const isValidIssuer = validIssuers.some(validIssuer => 
-        payload.iss && payload.iss.startsWith(validIssuer)
-      );
-
-      if (!isValidIssuer) {
-        logger.error(`Invalid JWT issuer: ${payload.iss}`);
-        return false;
-      }
-
-      // Validate audience - should include our Bot ID
-      if (payload.aud !== MicrosoftTeamsAppClientId) {
-        logger.error(`Invalid JWT audience. Expected: ${MicrosoftTeamsAppClientId}, Got: ${payload.aud}`);
-        return false;
-      }
-
-      // Validate expiration
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
-        logger.error("JWT token has expired");
-        return false;
-      }
-
-      // Validate app ID matches our bot
-      if (payload.appid && payload.appid !== MicrosoftTeamsAppClientId) {
-        logger.error(`Invalid app ID in JWT. Expected: ${MicrosoftTeamsAppClientId}, Got: ${payload.appid}`);
-        return false;
-      }
-
-      // Additional validation: Check if token is issued for Bot Framework
-      if (payload.ver !== '1.0' && payload.ver !== '2.0') {
-        logger.warn(`Unexpected JWT version: ${payload.ver}`);
-      }
-
-      logger.debug("JWT validation passed");
-      return true;
-
-    } catch (error) {
-      logger.error("Error validating Bot Framework JWT: " + error);
-      return false;
-    }
-  }
+export default class MicrosoftTeamsAPI {
   private static getTeamsAppManifest(): JSONObject {
 
     if(!MicrosoftTeamsAppClientId){
@@ -866,87 +765,18 @@ interface MicrosoftTeamsTeam {
     );
 
     // Microsoft Bot Framework endpoint - this is what Teams calls for bot messages
-    // JWT validation is controlled by MICROSOFT_TEAMS_VALIDATE_JWT environment variable
-    // - Enabled by default in production (NODE_ENV=production)
-    // - Can be explicitly enabled in development by setting MICROSOFT_TEAMS_VALIDATE_JWT=true
-    // - Disabled by default in development for easier testing
+    // Now uses the Bot Framework SDK's adapter.processActivity for proper protocol handling
     router.post(
       "/microsoft-bot/messages",
       async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.debug("Microsoft Bot Framework Request: ");
-        logger.debug(JSON.stringify(req.body, null, 2));
-
         try {
-          // Bot Framework JWT validation for security
-          const authHeader = req.headers["authorization"];
-          if (!authHeader || !authHeader.toString().startsWith("Bearer ")) {
-            logger.warn("Missing or invalid authorization header in Bot Framework request");
-            
-            // Only require JWT validation in production or when explicitly enabled
-           
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException("Missing or invalid authorization header")
-              );
-           
-          } 
-
-
-            // Validate the JWT token from Microsoft Bot Framework when enabled
-            const isValidJWT = await MicrosoftTeamsAPI.validateBotFrameworkJWT(authHeader.toString());
-            if (!isValidJWT) {
-              logger.error("Bot Framework JWT validation failed");
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new BadRequestException("Invalid Bot Framework authentication")
-              );
-            }
-            logger.debug("Bot Framework JWT validation passed");
-          
-          
-
-          // Handle different types of Teams activities
-          const activity: JSONObject = req.body as JSONObject;
-          const activityType: string = activity["type"] as string;
-          const serviceUrl: string = activity["serviceUrl"] as string;
-
-          logger.debug(`Bot activity type: ${activityType}`);
-          logger.debug(`Service URL: ${serviceUrl}`);
-
-          if (activityType === "message") {
-            // Handle bot mentions or direct messages
-            await MicrosoftTeamsUtil.handleBotMessageActivity({
-              activity: activity,
-            });
-            return Response.sendJsonObjectResponse(req, res, { status: "Message processed" });
-          } else if (activityType === "invoke") {
-            // Handle adaptive card actions
-            await MicrosoftTeamsUtil.handleBotInvokeActivity({
-              activity: activity,
-            });
-            return Response.sendJsonObjectResponse(req, res, { status: "Invoke processed" });
-          } else if (activityType === "conversationUpdate") {
-            // Handle bot added to team/channel or members added/removed
-            await MicrosoftTeamsUtil.handleConversationUpdateActivity({
-              activity: activity,
-            });
-            return Response.sendJsonObjectResponse(req, res, { status: "Conversation update processed" });
-          } else if (activityType === "installationUpdate") {
-            // Handle bot installation/uninstallation
-            await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
-              activity: activity,
-            });
-            return Response.sendJsonObjectResponse(req, res, { status: "Installation update processed" });
-          }
-
-          logger.debug(`Unhandled activity type: ${activityType}`);
-          return Response.sendJsonObjectResponse(req, res, {});
+          // Delegate to MicrosoftTeamsUtil which uses the Bot Framework SDK
+          await MicrosoftTeamsUtil.processBotActivity(req, res);
         } catch (error) {
-          logger.error("Error processing Bot Framework message:");
-          logger.error(error);
-          return Response.sendJsonObjectResponse(req, res, {});
+          logger.error("Error in Bot Framework endpoint: " + error);
+          if (!res.headersSent) {
+            Response.sendJsonObjectResponse(req, res, { error: "Internal server error" });
+          }
         }
       },
     );

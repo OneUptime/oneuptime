@@ -34,7 +34,9 @@ import OneUptimeDate from "../../../../Types/Date";
 import { MicrosoftTeamsAppClientId, MicrosoftTeamsAppClientSecret } from "../../../EnvironmentConfig";
 
 // Bot Framework SDK imports
-import { CloudAdapter, ConfigurationBotFrameworkAuthentication, Activity, ConversationReference } from 'botbuilder';
+import { CloudAdapter, ConfigurationBotFrameworkAuthentication, Activity, ConversationReference, TeamsActivityHandler, TurnContext } from 'botbuilder';
+import { ExpressRequest, ExpressResponse } from "../../Express";
+
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
   // Bot Framework adapter instance
@@ -1391,6 +1393,83 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug("OneUptime bot was installed");
     } else if (action === "remove") {
       logger.debug("OneUptime bot was uninstalled");
+    }
+  }
+
+  /**
+   * Process Bot Framework activity using the botbuilder SDK adapter.processActivity
+   * This replaces the manual JWT validation and activity handling with proper SDK methods
+   */
+  @CaptureSpan()
+  public static async processBotActivity(req: ExpressRequest, res: ExpressResponse): Promise<void> {
+    logger.debug("Processing Bot Framework activity using adapter.processActivity");
+    logger.debug("Request body: " + JSON.stringify(req.body, null, 2));
+
+    try {
+      if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+        logger.error("Microsoft Teams App credentials not configured");
+        res.status(500).json({ error: "Bot credentials not configured" });
+        return;
+      }
+
+      // Get Bot Framework adapter
+      const adapter = this.getBotAdapter();
+
+      // Create custom activity handler class that extends TeamsActivityHandler
+      class OneUptimeTeamsActivityHandler extends TeamsActivityHandler {
+        constructor() {
+          super();
+          
+          // Set up message handlers using the proper API
+          this.onMessage(async (context: TurnContext, next: () => Promise<void>) => {
+            logger.debug("Handling message activity: " + JSON.stringify(context.activity));
+            await MicrosoftTeamsUtil.handleBotMessageActivity({
+              activity: context.activity as unknown as JSONObject,
+            });
+            await next();
+          });
+
+          this.onMembersAdded(async (context: TurnContext, next: () => Promise<void>) => {
+            logger.debug("Handling members added activity: " + JSON.stringify(context.activity));
+            await MicrosoftTeamsUtil.handleConversationUpdateActivity({
+              activity: context.activity as unknown as JSONObject,
+            });
+            await next();
+          });
+        }
+
+        protected override async onInvokeActivity(context: TurnContext): Promise<any> {
+          logger.debug("Handling invoke activity: " + JSON.stringify(context.activity));
+          await MicrosoftTeamsUtil.handleBotInvokeActivity({
+            activity: context.activity as unknown as JSONObject,
+          });
+          // Return empty response for invoke activities
+          return { status: 200 };
+        }
+      }
+
+      // Create activity handler instance
+      const activityHandler = new OneUptimeTeamsActivityHandler();
+
+      // Use the adapter's process method with Express-style req/res
+      await adapter.process(req, res, async (context: TurnContext) => {
+        logger.debug("Processing activity with TurnContext: " + JSON.stringify({
+          activityType: context.activity.type,
+          activityId: context.activity.id,
+          from: context.activity.from?.name,
+          conversationId: context.activity.conversation?.id,
+        }));
+
+        // Run the activity through our activity handler
+        await activityHandler.run(context);
+      });
+
+      logger.debug("Bot Framework activity processed successfully");
+    } catch (error) {
+      logger.error("Error processing Bot Framework activity: " + error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to process bot activity" });
+      }
     }
   }
 
