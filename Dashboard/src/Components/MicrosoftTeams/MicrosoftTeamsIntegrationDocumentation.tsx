@@ -39,7 +39,17 @@ Please create a Microsoft Teams App with the following manifest. You can do this
 3. Add a description and set expiration (recommend 24 months)
 4. Click "Add" and copy the secret value immediately - you won't be able to see it again
 
-##### Step 5: Add these environment variables to your OneUptime server
+##### Step 5: Configure Bot Messaging Endpoint
+
+Your OneUptime bot needs a publicly reachable HTTPS messaging endpoint so Microsoft Teams can deliver activities (messages, card actions, installation events, etc.). This is automatically included in the manifest we generate, but you must make sure it resolves publicly.
+
+1. Ensure your OneUptime installation is accessible over HTTPS at your domain
+2. The bot messaging endpoint (what goes into the Teams app manifest) must point to:
+   - \`${window.location.origin}/api/microsoft-bot/messages\`
+   
+Once this endpoint is reachable, Teams will deliver events to it after the app (bot) is installed.
+
+##### Step 6: Add these environment variables to your OneUptime server
 
 If you are using Docker Compose then,
 
@@ -56,7 +66,7 @@ microsoftTeamsApp:
   clientSecret:
 \`\`\`
 
-##### Step 6: Upload Teams App Manifest
+##### Step 7: Upload Teams App Manifest
 
 1. Save the above JSON manifest as "manifest.json"
 2. Create a folder with the manifest.json and app icons
@@ -64,14 +74,14 @@ microsoftTeamsApp:
 4. In Microsoft Teams, go to "Apps" → "Manage your apps" → "Upload an app"
 5. Select "Upload a custom app" and choose your zip file
 
-##### Step 7: Install the App in Teams
+##### Step 8: Install the App in Teams
 
 1. In Microsoft Teams, find your OneUptime app
 2. Click "Add" to install it for your team
 3. Grant the necessary permissions
 4. Return to OneUptime dashboard and complete the integration setup
 
-##### Step 8: Restart your OneUptime server
+##### Step 9: Restart your OneUptime server
 
 You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Microsoft Teams" button on this page.
 
