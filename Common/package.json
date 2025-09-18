@@ -80,6 +80,7 @@
         "airtable": "^0.12.2",
         "archiver": "^7.0.1",
         "axios": "^1.12.0",
+        "botbuilder": "^4.23.3",
         "bullmq": "^5.3.3",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
