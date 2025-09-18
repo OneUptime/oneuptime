@@ -1310,7 +1310,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         from: from,
       });
 
-      logger.info("Bot message sent successfully");
+      logger.debug("Bot message sent successfully");
     } catch (error) {
       logger.error("Error sending bot message: " + error);
       throw error;
@@ -1329,7 +1329,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Bot invoke value: ${JSON.stringify(value)}`);
 
     // For now, just log the action - this can be extended to handle specific actions
-    logger.info(`Bot Framework invoke action processed: ${actionType}`);
+    logger.debug(`Bot Framework invoke action processed: ${actionType}`);
   }
 
   @CaptureSpan()
@@ -1355,7 +1355,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     });
 
     if (botWasAdded) {
-      logger.info("OneUptime bot was added to a Teams conversation");
+      logger.debug("OneUptime bot was added to a Teams conversation");
       
       const welcomeText: string = "🎉 Welcome to OneUptime!\n\nI'm your monitoring and alerting assistant. I'll help you stay on top of your system's health and notify you about any incidents.\n\nType 'help' to see what I can do for you.";
 
@@ -1369,7 +1369,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           from: {},
         });
 
-        logger.info("Welcome message sent successfully");
+        logger.debug("Welcome message sent successfully");
       } catch (error) {
         logger.error("Error sending welcome message: " + error);
       }
@@ -1388,9 +1388,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
 
     if (action === "add") {
-      logger.info("OneUptime bot was installed");
+      logger.debug("OneUptime bot was installed");
     } else if (action === "remove") {
-      logger.info("OneUptime bot was uninstalled");
+      logger.debug("OneUptime bot was uninstalled");
     }
   }
 
@@ -1451,21 +1451,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         activityId: activityId,
       };
 
-      logger.debug(`Sending message to conversation: ${conversationId}`);
-      logger.debug(`Message text: ${messageText}`);
+      // Use continueConversationAsync to send the message (continueConversation is deprecated)
+      await adapter.continueConversationAsync(
+        MicrosoftTeamsAppClientId || "",
+        conversationReference,
+        async (turnContext) => {
+          const replyActivity: Partial<Activity> = {
+            type: "message",
+            text: messageText,
+            replyToId: activityId,
+          };
 
-      // Use continueConversation to send the message
-      await adapter.continueConversation(conversationReference, async (turnContext) => {
-        const replyActivity: Partial<Activity> = {
-          type: 'message',
-          text: messageText,
-          replyToId: activityId,
-        };
+          await turnContext.sendActivity(replyActivity);
+        },
+      );
 
-        await turnContext.sendActivity(replyActivity);
-      });
-
-      logger.info("Successfully sent message to Teams channel using Bot Framework SDK");
+      logger.debug("Successfully sent message to Teams channel using Bot Framework SDK");
     } catch (error) {
       logger.error("Error in sendBotFrameworkMessage:");
       logger.error(error);
