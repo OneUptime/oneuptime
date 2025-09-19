@@ -108,17 +108,17 @@ export class MailService extends BaseService {
       body["teamId"] = options.teamId.toString();
     }
 
-    return await API.post<EmptyResponseData>(
-      new URL(
+    return await API.post<EmptyResponseData>({
+      url: new URL(
         Protocol.HTTP,
         AppApiHostname,
         new Route("/api/notification/email/send"),
       ),
-      body,
-      {
+      data: body,
+      headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
-    );
+    });
   }
 }
 

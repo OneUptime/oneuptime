@@ -964,11 +964,11 @@ const HomeFeatureSet: FeatureSet = {
         gitHubContributors = [...contributors];
       }
 
-      const response: HTTPResponse<JSONObject> = await API.get(
-        URL.fromString(
+      const response: HTTPResponse<JSONObject> = await API.get({
+        url: URL.fromString(
           "https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1",
         ),
-      );
+      });
 
       if (gitHubCommits === "-") {
         // this is of type: '<https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=22486>; rel="last"',
@@ -985,9 +985,11 @@ const HomeFeatureSet: FeatureSet = {
         ).toLocaleString();
 
         if (!gitHubBasicInfo) {
-          const basicInfo: HTTPResponse<JSONObject> = await API.get(
-            URL.fromString("https://api.github.com/repos/oneuptime/oneuptime"),
-          );
+          const basicInfo: HTTPResponse<JSONObject> = await API.get({
+            url: URL.fromString(
+              "https://api.github.com/repos/oneuptime/oneuptime",
+            ),
+          });
 
           gitHubBasicInfo = basicInfo.data as JSONObject;
         }

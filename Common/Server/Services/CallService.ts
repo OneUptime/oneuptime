@@ -70,17 +70,17 @@ export class CallService extends BaseService {
       onCallScheduleId: options.onCallScheduleId?.toString(),
     };
 
-    return await API.post<EmptyResponseData>(
-      new URL(
+    return await API.post<EmptyResponseData>({
+      url: new URL(
         Protocol.HTTP,
         AppApiHostname,
         new Route("/api/notification/call/make-call"),
       ),
-      body,
-      {
+      data: body,
+      headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
-    );
+    });
   }
 }
 

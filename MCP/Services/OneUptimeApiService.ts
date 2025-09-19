@@ -86,20 +86,32 @@ export default class OneUptimeApiService {
       let response: HTTPResponse<any> | HTTPErrorResponse;
 
       // Create a direct URL to avoid base route accumulation
-      const url: any = new URL(this.api.protocol, this.api.hostname, route);
+      const url: URL = new URL(this.api.protocol, this.api.hostname, route);
 
       switch (operation) {
         case OneUptimeOperation.Create:
         case OneUptimeOperation.Count:
         case OneUptimeOperation.List:
         case OneUptimeOperation.Read:
-          response = await API.post(url, data, headers);
+          response = await API.post({
+            url: url,
+            data: data,
+            headers: headers,
+          });
           break;
         case OneUptimeOperation.Update:
-          response = await API.put(url, data, headers);
+          response = await API.put({
+            url: url,
+            data: data,
+            headers: headers,
+          });
           break;
         case OneUptimeOperation.Delete:
-          response = await API.delete(url, data, headers);
+          response = await API.delete({
+            url: url,
+            data: data,
+            headers: headers,
+          });
           break;
         default:
           throw new Error(`Unsupported operation: ${operation}`);

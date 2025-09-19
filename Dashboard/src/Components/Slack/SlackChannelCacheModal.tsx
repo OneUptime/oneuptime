@@ -1,8 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dictionary from "Common/UI/Components/Dictionary/Dictionary";
@@ -53,7 +49,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
 
       const cacheObj: JSONObject = response.data || {};
       const newChannelCache: { [channelName: string]: string } = {};
-      
+
       Object.keys(cacheObj).forEach((key: string) => {
         const value: any = (cacheObj as any)[key];
         // value may be either {id, name} or just {id}. Prefer id
@@ -61,7 +57,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
           (value?.id as string) || (value as any)?.toString?.() || "";
         newChannelCache[key] = id;
       });
-      
+
       setChannelCache(newChannelCache);
     } catch (e: unknown) {
       setError(API.getFriendlyErrorMessage(e as Exception));

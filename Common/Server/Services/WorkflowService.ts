@@ -68,17 +68,17 @@ export class Service extends DatabaseService<Model> {
 
     logger.debug("Updating workflow on the workflow service");
 
-    await API.post<EmptyResponseData>(
-      new URL(
+    await API.post<EmptyResponseData>({
+      url: new URL(
         Protocol.HTTP,
         WorkflowHostname,
         new Route("/workflow/update/" + onUpdate.updateBy.query._id!),
       ),
-      {},
-      {
+      data: {},
+      headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
-    );
+    });
 
     logger.debug("Updated workflow on the workflow service");
 

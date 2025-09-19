@@ -61,18 +61,17 @@ export default class ApiMonitor {
 
       let startTime: [number, number] = process.hrtime();
       let result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.fetch(
-          requestType,
-          url,
-          options.requestBody || undefined,
-          options.requestHeaders || undefined,
-          undefined,
-          {
+        await API.fetch({
+          method: requestType,
+          url: url,
+          data: options.requestBody,
+          headers: options.requestHeaders || undefined,
+          options: {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
             ...ProxyConfig.getRequestProxyAgents(),
           },
-        );
+        });
 
       if (
         result.statusCode >= 400 &&
@@ -80,18 +79,22 @@ export default class ApiMonitor {
         requestType === HTTPMethod.HEAD
       ) {
         startTime = process.hrtime();
-        result = await API.fetch(
-          HTTPMethod.GET,
-          url,
-          options.requestBody || undefined,
-          options.requestHeaders || undefined,
-          undefined,
-          {
+        const fetchOptions: any = {
+          method: HTTPMethod.GET,
+          url: url,
+          headers: options.requestHeaders || undefined,
+          options: {
             timeout: options.timeout?.toNumber() || 5000,
             doNotFollowRedirects: options.doNotFollowRedirects || false,
             ...ProxyConfig.getRequestProxyAgents(),
           },
-        );
+        };
+
+        if (options.requestBody) {
+          fetchOptions.data = options.requestBody;
+        }
+
+        result = await API.fetch(fetchOptions);
       }
 
       if (result.statusCode >= 500 && result.statusCode < 600) {
