@@ -15,9 +15,9 @@ Please create a Microsoft Teams App with the following manifest. You can do this
 1. Go to the [Azure Portal](https://portal.azure.com)
 2. Navigate to "App registrations" and click "New registration"
 3. Fill out the registration form:
-   - **Name:** OneUptime Bot
-   - **Supported account types:** Accounts in any organizational directory and personal Microsoft accounts
-   - **Redirect URI:** Web - \`${window.location.origin}/api/microsoft-teams/auth/[PROJECT_ID]/[USER_ID]\`
+   - **Name:** oneuptime
+   - **Supported account types:** Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)
+   - **Redirect URI:** Web - \`${window.location.origin}/api/microsoft-teams/auth\`
 4. Click "Register"
 5. Note down the "Application (client) ID" - you'll need this later
 
