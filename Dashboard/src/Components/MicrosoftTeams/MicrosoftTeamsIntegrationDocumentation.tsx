@@ -71,17 +71,6 @@ Azure Account - You can create one by going to https://azure.com.
 
 3. Click "Grant admin consent" for your organization
 
-**Note:** 
-- **Delegated permissions** are used when OneUptime acts on behalf of a signed-in user
-- **Application permissions** are used when OneUptime acts as itself (automated scenarios)
-- For automated incident management, OneUptime primarily uses **application permissions**
-- The permissions above enable full functionality including:
-  - Sending messages to Teams channels
-  - Creating new channels
-  - Creating one-on-one and group chats
-  - Sending direct messages to users
-  - Inviting users to channels and chats
-  - Reading team and user information
 
 ##### Step 4: Create Client Secret
 
