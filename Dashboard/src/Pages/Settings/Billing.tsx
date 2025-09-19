@@ -122,7 +122,8 @@ const Settings: FunctionComponent<ComponentProps> = (
           URL.fromString(APP_API_URL.toString()).addRoute(
             `/billing/customer-balance`,
           ),
-          ModelAPI.getCommonHeaders(),
+          undefined, // data
+          ModelAPI.getCommonHeaders(), // headers
         );
         const balanceData: JSONObject = balanceResponse.data;
         setBalance(balanceData["balance"] as number);
