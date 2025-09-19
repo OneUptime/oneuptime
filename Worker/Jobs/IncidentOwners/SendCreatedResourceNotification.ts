@@ -207,6 +207,7 @@ Notification sent to owners because [Incident ${incidentNumber}](${(await Incide
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
+            incidentId: incident.id!,
             eventType:
               NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
           });
