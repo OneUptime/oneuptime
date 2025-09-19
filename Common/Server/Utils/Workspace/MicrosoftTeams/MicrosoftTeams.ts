@@ -192,14 +192,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       };
 
       logger.debug("Making token refresh request to Microsoft");
-      const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
-        URL.fromString(tokenUrl),
-        tokenRequestBody,
-        {
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post({
+        url: URL.fromString(tokenUrl),
+        data: tokenRequestBody,
+        headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json',
         }
-      );
+      });
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error refreshing Microsoft Teams access token:");
@@ -420,14 +420,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     });
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get<JSONObject>(
-        URL.fromString(`https://graph.microsoft.com/v1.0/users/${data.userId}`),
-        undefined, 
-        {
+      await API.get<JSONObject>({
+        url: URL.fromString(`https://graph.microsoft.com/v1.0/users/${data.userId}`),
+        headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      );
+      });
 
     logger.debug("Response from Microsoft Graph API for getting user info:");
     logger.debug(response);
@@ -472,16 +471,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       ],
     };
 
-    await API.post(
-      URL.fromString(
+    await API.post({
+      url: URL.fromString(
         `https://graph.microsoft.com/v1.0/chats/${data.workspaceUserId}/messages`,
       ),
-      chatMessage,
-      {
+      data: chatMessage,
+      headers: {
         Authorization: `Bearer ${data.authToken}`,
         "Content-Type": "application/json",
       },
-    );
+    });
   }
 
   @CaptureSpan()
@@ -585,16 +584,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(channelPayload);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString(
+      await API.post({
+        url: URL.fromString(
           `https://graph.microsoft.com/v1.0/teams/${teamId}/channels`,
         ),
-        channelPayload,
-        {
+        data: channelPayload,
+        headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       logger.error("Error response from Microsoft Graph API:");
@@ -668,16 +667,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     logger.debug("Making API call to get channels");
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get(
-        URL.fromString(
+      await API.get({
+        url: URL.fromString(
           `https://graph.microsoft.com/v1.0/teams/${teamId}/channels`,
         ),
-        undefined, 
-        {
+        headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       logger.error("Error response from Microsoft Graph API:");
@@ -872,14 +870,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`Posting to URL: ${apiUrl}`);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString(apiUrl),
-        chatMessage,
-        {
+      await API.post({
+        url: URL.fromString(apiUrl),
+        data: chatMessage,
+        headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       logger.error("Error response from Microsoft Graph API when sending message:");
@@ -926,14 +924,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       logger.debug(`Making API call to: ${apiUrl}`);
       
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(
-          URL.fromString(apiUrl),
-          undefined, 
-          {
+        await API.get({
+          url: URL.fromString(apiUrl),
+          headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
-        );
+        });
 
       if (response instanceof HTTPErrorResponse) {
         logger.error("Error getting channel info from Microsoft Graph API:");
