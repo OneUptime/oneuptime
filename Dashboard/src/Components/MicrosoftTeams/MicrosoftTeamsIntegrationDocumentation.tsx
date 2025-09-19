@@ -90,12 +90,13 @@ Please note: Do not copy the secret ID, you need the secret VALUE which is typic
    - **Resource group:** Create a new one or use an existing one
    - **Location:** Choose a location close to your users
    - **Pricing tier:** F0 (Free) is sufficient for testing
-   - **Messaging endpoint:** \`${window.location.origin}/api/microsoft-bot/messages\`
+   - Please use the App ID and Tenant ID from your app registration created earlier
+
 3. Click "Review + create" and then "Create"
+
 4. Once deployed, go to your bot resource and navigate to "Configuration"
-5. Set the "Microsoft App ID" to the Application (client) ID from your app registration
-6. Set the "Microsoft App password" to the client secret value you created earlier
-7. Save the configuration.
+5. Set the "Messaging endpoint" to \`${window.location.origin}/api/microsoft-bot/messages\`
+6. Save the configuration.
 
 ##### Step 6: Add these environment variables to your OneUptime server
 
