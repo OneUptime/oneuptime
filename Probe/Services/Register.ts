@@ -73,19 +73,18 @@ export default class Register {
         hostname: HOSTNAME,
       };
 
-      await API.fetch<JSONObject>(
-        HTTPMethod.POST,
-        URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
           "/probe/status-report/offline",
         ),
-        {
+        data: {
           ...ProbeAPIRequest.getDefaultRequestBody(),
           statusReport: stausReport as any,
         },
-        {},
-        {},
-        { ...ProxyConfig.getRequestProxyAgents() },
-      );
+        headers: {},
+        options: { ...ProxyConfig.getRequestProxyAgents() },
+      });
     }
   }
 
@@ -124,17 +123,16 @@ export default class Register {
       logger.debug("Registering Probe...");
       logger.debug("Sending request to: " + probeRegistrationUrl.toString());
 
-      const result: HTTPResponse<JSONObject> = await API.post(
-        probeRegistrationUrl,
-        {
+      const result: HTTPResponse<JSONObject> = await API.post({
+        url: probeRegistrationUrl,
+        data: {
           probeKey: PROBE_KEY,
           probeName: PROBE_NAME,
           probeDescription: PROBE_DESCRIPTION,
           clusterKey: ClusterKeyAuthorization.getClusterKey(),
         },
-        undefined,
-        { ...ProxyConfig.getRequestProxyAgents() },
-      );
+        options: { ...ProxyConfig.getRequestProxyAgents() },
+      });
 
       if (result.isSuccess()) {
         logger.debug("Probe Registered");
@@ -151,15 +149,14 @@ export default class Register {
         return process.exit();
       }
 
-      await API.post(
-        URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
-        {
+      await API.post({
+        url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
+        data: {
           probeKey: PROBE_KEY.toString(),
           probeId: PROBE_ID.toString(),
         },
-        undefined,
-        { ...ProxyConfig.getRequestProxyAgents() },
-      );
+        options: { ...ProxyConfig.getRequestProxyAgents() },
+      });
 
       LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID.toString() as string);
     }

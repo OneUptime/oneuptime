@@ -42,11 +42,11 @@ export default class ApiDelete extends ComponentCode {
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
     try {
-      apiResult = await API.delete(
-        args["url"] as URL,
-        args["request-body"] as JSONObject,
-        args["request-headers"] as Dictionary<string>,
-      );
+      apiResult = await API.delete({
+        url: args["url"] as URL,
+        data: args["request-body"] as JSONObject,
+        headers: args["request-headers"] as Dictionary<string>,
+      });
 
       return Promise.resolve({
         returnValues: ApiComponentUtils.getReturnValues(apiResult),

@@ -38,14 +38,14 @@ const DocumentationViewer: FunctionComponent<ComponentProps> = (
     if (props.documentationLink) {
       try {
         setIsLoading(true);
-        const body: HTTPResponse<any> = await API.get(
-          new URL(HTTP_PROTOCOL, HOST, props.documentationLink),
-          {},
-          {
+        const body: HTTPResponse<any> = await API.get({
+          url: new URL(HTTP_PROTOCOL, HOST, props.documentationLink),
+          data: {},
+          headers: {
             Accept: "text/plain",
             "Content-Type": "text/plain",
           },
-        );
+        });
         setMarkdown(populateWithEnvVars((body.data as any).data.toString()));
         setIsLoading(false);
       } catch (err) {

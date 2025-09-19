@@ -64,19 +64,18 @@ export default class MonitorUtil {
       if (result) {
         // report this back to Probe API.
 
-        await API.fetch<JSONObject>(
-          HTTPMethod.POST,
-          URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+        await API.fetch<JSONObject>({
+          method: HTTPMethod.POST,
+          url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
             "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
           ),
-          {
+          data: {
             ...ProbeAPIRequest.getDefaultRequestBody(),
             probeMonitorResponse: result as any,
           },
-          {},
-          {},
-          { ...ProxyConfig.getRequestProxyAgents() },
-        );
+          headers: {},
+          options: { ...ProxyConfig.getRequestProxyAgents() },
+        });
       }
 
       results.push(result);
@@ -114,19 +113,18 @@ export default class MonitorUtil {
       if (result) {
         // report this back to Probe API.
 
-        await API.fetch<JSONObject>(
-          HTTPMethod.POST,
-          URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+        await API.fetch<JSONObject>({
+          method: HTTPMethod.POST,
+          url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
             "/probe/response/ingest",
           ),
-          {
+          data: {
             ...ProbeAPIRequest.getDefaultRequestBody(),
             probeMonitorResponse: result as any,
           },
-          {},
-          {},
-          { ...ProxyConfig.getRequestProxyAgents() },
-        );
+          headers: {},
+          options: { ...ProxyConfig.getRequestProxyAgents() },
+        });
       }
 
       results.push(result);

@@ -71,17 +71,17 @@ export class SmsService extends BaseService {
       teamId: options.teamId?.toString(),
     };
 
-    return await API.post<EmptyResponseData>(
-      new URL(
+    return await API.post<EmptyResponseData>({
+      url: new URL(
         Protocol.HTTP,
         AppApiHostname,
         new Route("/api/notification/sms/send"),
       ),
-      body,
-      {
+      data: body,
+      headers: {
         ...ClusterKeyAuthorization.getClusterKeyHeaders(),
       },
-    );
+    });
   }
 }
 

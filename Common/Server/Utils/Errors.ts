@@ -2,6 +2,7 @@ export default {
   BillingService: {
     BILLING_NOT_ENABLED: "Billing is not enabled for this server.",
     CLIENT_SECRET_MISSING: "client_secret not returned by payment provider.",
+    CUSTOMER_NOT_FOUND: "Customer not found.",
     INVOICE_NOT_GENERATED: "Invoice not generated.",
     MIN_REQUIRED_PAYMENT_METHOD_NOT_MET:
       "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account.",

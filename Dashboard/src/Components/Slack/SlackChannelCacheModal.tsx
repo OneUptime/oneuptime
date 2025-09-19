@@ -1,8 +1,4 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-} from "react";
+import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import Modal from "Common/UI/Components/Modal/Modal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dictionary from "Common/UI/Components/Dictionary/Dictionary";
@@ -41,11 +37,12 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
 
       // Trigger server to cache and return channel cache
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get(
-          URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
-          undefined,
-          ModelAPI.getCommonHeaders(),
-        );
+        await API.get({
+          url: URL.fromString(
+            `${HOME_URL.toString()}/api/slack/get-all-channels`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
@@ -53,7 +50,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
 
       const cacheObj: JSONObject = response.data || {};
       const newChannelCache: { [channelName: string]: string } = {};
-      
+
       Object.keys(cacheObj).forEach((key: string) => {
         const value: any = (cacheObj as any)[key];
         // value may be either {id, name} or just {id}. Prefer id
@@ -61,7 +58,7 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
           (value?.id as string) || (value as any)?.toString?.() || "";
         newChannelCache[key] = id;
       });
-      
+
       setChannelCache(newChannelCache);
     } catch (e: unknown) {
       setError(API.getFriendlyErrorMessage(e as Exception));

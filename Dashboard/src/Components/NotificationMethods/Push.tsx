@@ -118,11 +118,11 @@ const Push: () => JSX.Element = (): ReactElement => {
 
       // Create device registration through API
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post(
-          URL.fromString(APP_API_URL.toString()).addRoute(
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
             "/user-push/register",
           ),
-          {
+          data: {
             projectId: ProjectUtil.getCurrentProjectId()!,
             deviceToken: JSON.stringify(subscription),
             deviceType: "web",
@@ -130,7 +130,7 @@ const Push: () => JSX.Element = (): ReactElement => {
               (data["deviceName"] as string)?.trim() ||
               `${browserName} on ${platformName}`,
           },
-        );
+        });
 
       if (response.isFailure()) {
         const errorMessage: string = API.getFriendlyMessage(response);
@@ -181,14 +181,14 @@ const Push: () => JSX.Element = (): ReactElement => {
               try {
                 // Send test notification
                 const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-                  await API.post(
-                    URL.fromString(APP_API_URL.toString()).addRoute(
+                  await API.post({
+                    url: URL.fromString(APP_API_URL.toString()).addRoute(
                       "/user-push/" + item._id + "/test-notification",
                     ),
-                    {
+                    data: {
                       projectId: ProjectUtil.getCurrentProjectId()!,
                     },
-                  );
+                  });
 
                 if (response.isFailure()) {
                   onError(new Error(API.getFriendlyMessage(response)));

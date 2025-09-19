@@ -54,9 +54,9 @@ const DashboardFooter: () => JSX.Element = () => {
   const fetchAppVersion: (appName: string) => Promise<JSONObject> = async (
     appName: string,
   ): Promise<JSONObject> => {
-    const response: HTTPResponse<JSONObject> = await API.get<JSONObject>(
-      URL.fromString(`${HTTP_PROTOCOL}/${HOST}${appName}/version`),
-    );
+    const response: HTTPResponse<JSONObject> = await API.get<JSONObject>({
+      url: URL.fromString(`${HTTP_PROTOCOL}/${HOST}${appName}/version`),
+    });
 
     if (response.data) {
       return response.data as JSONObject;

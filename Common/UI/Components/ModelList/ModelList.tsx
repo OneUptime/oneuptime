@@ -111,11 +111,11 @@ const ModelList: <TBaseModel extends BaseModel>(
       };
 
       if (props.overrideFetchApiUrl) {
-        const result: HTTPResponse<JSONArray> = (await API.post(
-          props.overrideFetchApiUrl,
-          {},
-          {},
-        )) as HTTPResponse<JSONArray>;
+        const result: HTTPResponse<JSONArray> = (await API.post({
+          url: props.overrideFetchApiUrl,
+          data: {},
+          headers: {},
+        })) as HTTPResponse<JSONArray>;
 
         listResult = {
           data: BaseModel.fromJSONArray(

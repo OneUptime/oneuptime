@@ -39,9 +39,12 @@ export default class CopilotPullRequestService {
     );
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(url, {
-        copilotPullRequestId: data.copilotPullRequest.id?.toString(),
-        copilotPullRequestStatus: currentState,
+      await API.post({
+        url: url,
+        data: {
+          copilotPullRequestId: data.copilotPullRequest.id?.toString(),
+          copilotPullRequestStatus: currentState,
+        },
       });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {
@@ -64,7 +67,9 @@ export default class CopilotPullRequestService {
     );
 
     const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.get(url);
+      await API.get({
+        url: url,
+      });
 
     if (codeRepositoryResult instanceof HTTPErrorResponse) {
       throw codeRepositoryResult;
@@ -114,11 +119,14 @@ export default class CopilotPullRequestService {
       );
 
       const codeRepositoryResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post(url, {
-          copilotPullRequest: CopilotPullRequest.toJSON(
-            copilotPullRequest,
-            CopilotPullRequest,
-          ),
+        await API.post({
+          url: url,
+          data: {
+            copilotPullRequest: CopilotPullRequest.toJSON(
+              copilotPullRequest,
+              CopilotPullRequest,
+            ),
+          },
         });
 
       if (codeRepositoryResult instanceof HTTPErrorResponse) {

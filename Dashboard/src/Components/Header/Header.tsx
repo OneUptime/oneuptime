@@ -214,15 +214,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
         if (projectId) {
           const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-            await API.get<JSONObject>(
-              URL.fromString(APP_API_URL.toString()).addRoute(
+            await API.get<JSONObject>({
+              url: URL.fromString(APP_API_URL.toString()).addRoute(
                 `/${
                   new OnCallDutyPolicy().crudApiPath
                 }/current-on-duty-escalation-policies`,
               ),
-              {},
-              ModelAPI.getCommonHeaders(),
-            );
+              data: {},
+              headers: ModelAPI.getCommonHeaders(),
+            });
 
           if (response.isFailure()) {
             throw response;

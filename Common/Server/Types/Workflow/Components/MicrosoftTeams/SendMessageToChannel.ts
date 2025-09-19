@@ -74,29 +74,32 @@ export default class SendMessageToChannel extends ComponentCode {
 
     try {
       // https://github.com/OfficeDev/Microsoft-Teams-Samples/blob/main/samples/incoming-webhook/nodejs/api/server/index.js#L28
-      apiResult = await API.post(args["webhook-url"] as URL, {
-        type: "message",
-        attachments: [
-          {
-            contentType: "application/vnd.microsoft.card.adaptive",
-            contentUrl: null,
-            content: {
-              $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-              msteams: {
-                width: "Full",
-              },
-              type: "AdaptiveCard",
-              version: "1.2",
-              body: [
-                {
-                  type: "TextBlock",
-                  wrap: "true",
-                  text: `${args["text"]}`,
+      apiResult = await API.post({
+        url: args["webhook-url"] as URL,
+        data: {
+          type: "message",
+          attachments: [
+            {
+              contentType: "application/vnd.microsoft.card.adaptive",
+              contentUrl: null,
+              content: {
+                $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                msteams: {
+                  width: "Full",
                 },
-              ],
+                type: "AdaptiveCard",
+                version: "1.2",
+                body: [
+                  {
+                    type: "TextBlock",
+                    wrap: "true",
+                    text: `${args["text"]}`,
+                  },
+                ],
+              },
             },
-          },
-        ],
+          ],
+        },
       });
 
       if (apiResult instanceof HTTPErrorResponse) {

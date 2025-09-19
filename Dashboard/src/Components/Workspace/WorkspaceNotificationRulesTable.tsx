@@ -106,13 +106,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
       // test rule
       const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
-        await API.get(
-          URL.fromString(APP_API_URL.toString()).addRoute(
+        await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
             `/workspace-notification-rule/test/${ruleId.toString()}`,
           ),
-
-          {},
-        );
+          data: {},
+        });
       if (response.isSuccess()) {
         setIsTestLoading(false);
         setShowTestModal(false);

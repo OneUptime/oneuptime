@@ -100,15 +100,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const fetchLogAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
           "/telemetry/logs/get-attributes",
         ),
-        {},
-        {
+        data: {},
+        headers: {
           ...ModelAPI.getCommonHeaders(),
         },
-      );
+      });
 
     if (attributeRepsonse instanceof HTTPErrorResponse) {
       throw attributeRepsonse;
@@ -122,15 +122,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const fetchSpanAttributes: PromiseVoidFunction = async (): Promise<void> => {
     const attributeRepsonse: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post(
-        URL.fromString(APP_API_URL.toString()).addRoute(
+      await API.post({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
           "/telemetry/traces/get-attributes",
         ),
-        {},
-        {
+        data: {},
+        headers: {
           ...ModelAPI.getCommonHeaders(),
         },
-      );
+      });
 
     if (attributeRepsonse instanceof HTTPErrorResponse) {
       throw attributeRepsonse;
