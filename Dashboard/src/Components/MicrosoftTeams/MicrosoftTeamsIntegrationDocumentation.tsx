@@ -81,15 +81,21 @@ Azure Account - You can create one by going to https://azure.com.
 
 Please note: Do not copy the secret ID, you need the secret VALUE which is typically longer and includes more characters.
 
-##### Step 5: Configure Bot Messaging Endpoint
+##### Step 5: Cretae a Bot Service
 
-Your OneUptime bot needs a publicly reachable HTTPS messaging endpoint so Microsoft Teams can deliver activities (messages, card actions, installation events, etc.). This is automatically included in the manifest we generate, but you must make sure it resolves publicly.
-
-1. Ensure your OneUptime installation is accessible over HTTPS at your domain
-2. The bot messaging endpoint (what goes into the Teams app manifest) must point to:
-   - \`${window.location.origin}/api/microsoft-bot/messages\`
-   
-Once this endpoint is reachable, Teams will deliver events to it after the app (bot) is installed.
+1. In the Azure Portal, navigate to "Azure Bot" and click "Create"
+2. Fill out the bot creation form:
+   - **Bot handle:** oneuptime-bot
+   - **Subscription:** Your Azure subscription
+   - **Resource group:** Create a new one or use an existing one
+   - **Location:** Choose a location close to your users
+   - **Pricing tier:** F0 (Free) is sufficient for testing
+   - **Messaging endpoint:** \`${window.location.origin}/api/microsoft-bot/messages\`
+3. Click "Review + create" and then "Create"
+4. Once deployed, go to your bot resource and navigate to "Configuration"
+5. Set the "Microsoft App ID" to the Application (client) ID from your app registration
+6. Set the "Microsoft App password" to the client secret value you created earlier
+7. Save the configuration.
 
 ##### Step 6: Add these environment variables to your OneUptime server
 
