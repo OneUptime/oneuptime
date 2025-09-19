@@ -257,13 +257,13 @@ describe("fetch", () => {
 
     mockedAxios.mockResolvedValueOnce(mockedAxiosResponse);
 
-    const response: HTTPResponse<typeof responseData> = await API.fetch(
-      HTTPMethod.POST,
-      new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact")),
-      requestData,
-      requestHeaders,
+    const response: HTTPResponse<typeof responseData> = await API.fetch({
+      method: HTTPMethod.POST,
+      url: new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact")),
+      data: requestData,
+      headers: requestHeaders,
       params,
-    );
+    });
 
     // Check method, url (protocol, hostname, parameters), headers, request data
     expect(axios).toBeCalledWith({
@@ -295,10 +295,10 @@ describe("fetch", () => {
 
     mockedAxios.mockRejectedValueOnce(mockedAxiosError);
 
-    const httpErrorResponse: HTTPResponse<JSONObject> = await API.fetch(
-      HTTPMethod.GET,
-      new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact")),
-    );
+    const httpErrorResponse: HTTPResponse<JSONObject> = await API.fetch({
+      method: HTTPMethod.GET,
+      url: new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact")),
+    });
 
     expect(axios).toBeCalledWith({
       method: "GET",
@@ -316,10 +316,10 @@ describe("fetch", () => {
     });
 
     await expect(async () => {
-      await API.fetch(
-        HTTPMethod.GET,
-        new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact")),
-      );
+      await API.fetch({
+        method: HTTPMethod.GET,
+        url: new URL(Protocol.HTTPS, "catfact.ninja", new Route("fact")),
+      });
     }).rejects.toThrowError(APIException);
   });
 });
@@ -376,11 +376,11 @@ describe.each(httpMethodTests)("$name", ({ name, method }: HTTPMethodType) => {
       "catfact.ninja",
       new Route("fact"),
     );
-    const got: HTTPResponse<JSONObject> = await (API as any)[name](
+    const got: HTTPResponse<JSONObject> = await (API as any)[name]({
       url,
-      requestData,
-      requestHeaders,
-    );
+      data: requestData,
+      headers: requestHeaders,
+    });
 
     // Check method, url, headers, request data
     expect(axios).toBeCalledWith(
@@ -403,11 +403,12 @@ describe.each(httpMethodTests)(".$name", ({ name, method }: HTTPMethodType) => {
 
     mockedAxios.mockResolvedValueOnce(createAxiosResponse());
 
-    const got: HTTPResponse<JSONObject> = await (api as any)[name](
-      new Route(route),
-      requestData,
-      requestHeaders,
-    );
+    const url = new URL(api.protocol, api.hostname, api.baseRoute.addRoute(route));
+    const got: HTTPResponse<JSONObject> = await (api as any)[name]({
+      url,
+      data: requestData,
+      headers: requestHeaders,
+    });
 
     // Check method, url (protocol, hostname, route), headers, request data
     expect(axios).toBeCalledWith(
