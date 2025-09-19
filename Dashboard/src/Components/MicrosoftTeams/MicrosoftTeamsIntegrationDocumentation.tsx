@@ -79,6 +79,8 @@ Azure Account - You can create one by going to https://azure.com.
 3. Add a description and set expiration (recommend 24 months)
 4. Click "Add" and copy the secret value immediately - you won't be able to see it again
 
+Please note: Do not copy the secret ID, you need the secret VALUE which is typically longer and includes more characters.
+
 ##### Step 5: Configure Bot Messaging Endpoint
 
 Your OneUptime bot needs a publicly reachable HTTPS messaging endpoint so Microsoft Teams can deliver activities (messages, card actions, installation events, etc.). This is automatically included in the manifest we generate, but you must make sure it resolves publicly.
