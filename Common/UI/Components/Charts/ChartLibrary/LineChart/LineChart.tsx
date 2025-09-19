@@ -321,7 +321,7 @@ const Legend: React.ForwardRefExoticComponent<
                 // base
                 "absolute bottom-0 right-0 top-0 flex h-full items-center justify-center pr-1",
                 // background color
-                "bg-white dark:bg-gray-950",
+                "bg-white",
               )}
             >
               <ScrollButton
@@ -463,9 +463,9 @@ const ChartTooltip: ({
           // base
           "rounded-md border text-sm shadow-md",
           // border color
-          "border-gray-200 dark:border-gray-800",
+          "border-gray-200",
           // background color
-          "bg-white dark:bg-gray-950",
+          "bg-white",
         )}
       >
         <div className={cx("border-b border-inherit px-4 py-2")}>
@@ -474,7 +474,7 @@ const ChartTooltip: ({
               // base
               "font-medium",
               // text color
-              "text-gray-900 dark:text-gray-50",
+              "text-gray-900",
             )}
           >
             {label}
@@ -501,7 +501,7 @@ const ChartTooltip: ({
                         // base
                         "whitespace-nowrap text-right",
                         // text color
-                        "text-gray-700 dark:text-gray-300",
+                        "text-gray-700",
                       )}
                     >
                       {category}
@@ -512,7 +512,7 @@ const ChartTooltip: ({
                       // base
                       "whitespace-nowrap text-right font-medium tabular-nums",
                       // text color
-                      "text-gray-900 dark:text-gray-50",
+                      "text-gray-900",
                     )}
                   >
                     {valueFormatter(value)}
@@ -711,7 +711,7 @@ const LineChart: React.ForwardRefExoticComponent<
           >
             {showGridLines ? (
               <CartesianGrid
-                className={cx("stroke-gray-200 stroke-1 dark:stroke-gray-800")}
+                className={cx("stroke-gray-200 stroke-1")}
                 horizontal={true}
                 vertical={false}
               />
@@ -736,7 +736,7 @@ const LineChart: React.ForwardRefExoticComponent<
                 // base
                 "text-xs",
                 // text fill
-                "fill-gray-500 dark:fill-gray-500",
+                "fill-gray-500",
               )}
               tickLine={false}
               axisLine={false}
@@ -746,7 +746,7 @@ const LineChart: React.ForwardRefExoticComponent<
                 <Label
                   position="insideBottom"
                   offset={-20}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-gray-800 text-sm font-medium"
                 >
                   {xAxisLabel}
                 </Label>
@@ -766,7 +766,7 @@ const LineChart: React.ForwardRefExoticComponent<
                 // base
                 "text-xs",
                 // text fill
-                "fill-gray-500 dark:fill-gray-500",
+                "fill-gray-500",
               )}
               tickFormatter={valueFormatter}
               allowDecimals={allowDecimals}
@@ -777,7 +777,7 @@ const LineChart: React.ForwardRefExoticComponent<
                   style={{ textAnchor: "middle" }}
                   angle={-90}
                   offset={-15}
-                  className="fill-gray-800 text-sm font-medium dark:fill-gray-200"
+                  className="fill-gray-800 text-sm font-medium"
                 >
                   {yAxisLabel}
                 </Label>
@@ -884,7 +884,7 @@ const LineChart: React.ForwardRefExoticComponent<
                     return (
                       <Dot
                         className={cx(
-                          "stroke-white dark:stroke-gray-950",
+                          "stroke-white",
                           onValueChange ? "cursor-pointer" : "",
                           getColorClassName(
                             categoryColors.get(
@@ -940,7 +940,7 @@ const LineChart: React.ForwardRefExoticComponent<
                           strokeLinejoin={strokeLinejoin}
                           strokeWidth={strokeWidth}
                           className={cx(
-                            "stroke-white dark:stroke-gray-950",
+                            "stroke-white",
                             onValueChange ? "cursor-pointer" : "",
                             getColorClassName(
                               categoryColors.get(
