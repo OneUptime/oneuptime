@@ -118,19 +118,19 @@ const Settings: FunctionComponent<ComponentProps> = (
 
       // Fetch customer balance
       try {
-        const balanceResponse: HTTPResponse<JSONObject> = await BaseAPI.get<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/billing/customer-balance`,
-          ),
-          headers: ModelAPI.getCommonHeaders(), // headers
-        });
+        const balanceResponse: HTTPResponse<JSONObject> =
+          await BaseAPI.get<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/billing/customer-balance`,
+            ),
+            headers: ModelAPI.getCommonHeaders(), // headers
+          });
         const balanceData: JSONObject = balanceResponse.data;
         setBalance(balanceData["balance"] as number);
-      } catch (balanceErr) {
+      } catch {
         // Balance might not be available, set to 0
         setBalance(0);
       }
-
     } catch (err) {
       setError(BaseAPI.getFriendlyMessage(err));
     }
@@ -142,13 +142,15 @@ const Settings: FunctionComponent<ComponentProps> = (
     try {
       setIsModalLoading(true);
 
-      const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>({
-        url: URL.fromString(APP_API_URL.toString()).addRoute(
-          `/billing-payment-methods/setup`,
-        ),
-        data: {},
-        headers: ModelAPI.getCommonHeaders(),
-      });
+      const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
+        {
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/billing-payment-methods/setup`,
+          ),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        },
+      );
       const data: JSONObject = response.data;
 
       setSetupIntent(data["setupIntent"] as string);

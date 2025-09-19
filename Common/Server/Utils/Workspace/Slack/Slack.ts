@@ -53,22 +53,20 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(data);
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>(
-        {
-          url: URL.fromString("https://slack.com/api/users.info"),
-          data: {
-            user: data.userId,
-          },
-          headers: {
-            Authorization: `Bearer ${data.authToken}`,
-            ["Content-Type"]: "application/x-www-form-urlencoded",
-          },
-          options: {
-            retries: 3,
-            exponentialBackoff: true,
-          },
+      await API.post<JSONObject>({
+        url: URL.fromString("https://slack.com/api/users.info"),
+        data: {
+          user: data.userId,
         },
-      );
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
+      });
 
     logger.debug("Response from Slack API for getting user info:");
     logger.debug(response);

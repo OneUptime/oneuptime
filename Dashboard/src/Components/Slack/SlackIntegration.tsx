@@ -131,7 +131,9 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         // fetch app manifest.
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.get<JSONObject>({
-            url: URL.fromString(`${HOME_URL.toString()}/api/slack/app-manifest`),
+            url: URL.fromString(
+              `${HOME_URL.toString()}/api/slack/app-manifest`,
+            ),
           });
 
         if (response instanceof HTTPErrorResponse) {

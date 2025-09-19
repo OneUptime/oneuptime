@@ -403,7 +403,11 @@ describe.each(httpMethodTests)(".$name", ({ name, method }: HTTPMethodType) => {
 
     mockedAxios.mockResolvedValueOnce(createAxiosResponse());
 
-    const url = new URL(api.protocol, api.hostname, api.baseRoute.addRoute(route));
+    const url: URL = new URL(
+      api.protocol,
+      api.hostname,
+      api.baseRoute.addRoute(route),
+    );
     const got: HTTPResponse<JSONObject> = await (api as any)[name]({
       url,
       data: requestData,

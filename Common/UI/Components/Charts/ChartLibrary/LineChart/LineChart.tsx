@@ -80,8 +80,7 @@ const LegendItem: ({
           "truncate whitespace-nowrap text-xs",
           // text color
           "text-gray-700",
-          hasOnValueChange &&
-            "group-hover:text-gray-900",
+          hasOnValueChange && "group-hover:text-gray-900",
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
       >

@@ -99,7 +99,10 @@ export default class ModelAPI {
     const result:
       | HTTPErrorResponse
       | HTTPResponse<
-          JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
+          | JSONObject
+          | JSONArray
+          | TAnalyticsBaseModel
+          | Array<TAnalyticsBaseModel>
         > = await API.fetch<
       JSONObject | JSONArray | TAnalyticsBaseModel | Array<TAnalyticsBaseModel>
     >({

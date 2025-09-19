@@ -301,14 +301,7 @@ export default class API {
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
   >(options: APIFetchOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    const {
-      method,
-      url,
-      data,
-      headers,
-      params,
-      options: newOptions,
-    } = options;
+    const { method, url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }

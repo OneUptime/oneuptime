@@ -1671,10 +1671,7 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BillingInvoiceAPI().getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BillingAPI().getRouter(),
-    );
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new BillingAPI().getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

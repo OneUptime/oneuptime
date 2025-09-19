@@ -1292,17 +1292,12 @@ export default class Project extends TenantModel {
   })
   public letCustomerSupportAccessProject?: boolean = undefined;
 
-
   // This is an internal field. This is used for internal analytics for example: Metabase.
   // Values can be between 0 and 100.
   @ColumnAccessControl({
     create: [],
-    read: [
-     
-    ],
-    update: [
-    
-    ],
+    read: [],
+    update: [],
   })
   @TableColumn({
     required: true,
