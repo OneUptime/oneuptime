@@ -627,10 +627,10 @@ const Settings: FunctionComponent<ComponentProps> = (
             }}
           />
 
-          {balance > 0 && (
+          {balance < 0 && (
             <Card
               title="Customer Balance"
-              description={`You have a credit balance of $${balance.toFixed(2)} that will be applied to future invoices.`}
+              description={`Your current customer balance is $${(balance * -1)}. This balance will be applied to your next invoice.`}
             />
           )}
 
