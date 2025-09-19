@@ -116,7 +116,7 @@ microsoftTeamsApp:
 \`\`\`
 
 
-Restart your OneUptime server after adding these environment variables.
+Restart your OneUptime server after adding these environment variables. So, that they take effect.
 
 ##### Step 7: Upload Teams App Manifest
 
