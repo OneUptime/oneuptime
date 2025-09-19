@@ -2,21 +2,26 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import BillingService from "../Services/BillingService";
 import ProjectService from "../Services/ProjectService";
-import {
+import Express, {
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Permission, { UserPermission } from "../../Types/Permission";
 import Project from "../../Models/DatabaseModels/Project";
+import CommonAPI from "./CommonAPI";
+import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
-export default class BillingAPI extends BaseAPI<any, any> {
+export default class BillingAPI {
+  public router: ExpressRouter;
+
   public constructor() {
-    super(null as any, null as any);
+    this.router = Express.getRouter();
 
     this.router.get(
       `/billing/customer-balance`,
@@ -80,5 +85,39 @@ export default class BillingAPI extends BaseAPI<any, any> {
         }
       },
     );
+  }
+
+  public async getPermissionsForTenant(
+    req: ExpressRequest,
+  ): Promise<Array<UserPermission>> {
+    const permissions: Array<UserPermission> = [];
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (
+      props &&
+      props.userTenantAccessPermission &&
+      props.userTenantAccessPermission[props.tenantId?.toString() || ""]
+    ) {
+      return (
+        props.userTenantAccessPermission[props.tenantId?.toString() || ""]
+          ?.permissions || []
+      );
+    }
+
+    return permissions;
+  }
+
+  public getTenantId(req: ExpressRequest): ObjectID | null {
+    if ((req as OneUptimeRequest).tenantId) {
+      return (req as OneUptimeRequest).tenantId as ObjectID;
+    }
+
+    return null;
+  }
+
+  public getRouter(): ExpressRouter {
+    return this.router;
   }
 }
