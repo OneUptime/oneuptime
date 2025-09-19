@@ -37,11 +37,10 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
 
       // Trigger server to cache and return channel cache
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get(
-          URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
-          undefined,
-          ModelAPI.getCommonHeaders(),
-        );
+        await API.get({
+          url: URL.fromString(`${HOME_URL.toString()}/api/slack/get-all-channels`),
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
