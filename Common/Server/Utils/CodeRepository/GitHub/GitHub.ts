@@ -218,20 +218,22 @@ export default class GitHubUtil extends HostedCodeRepository {
       `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls`,
     );
 
-    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post({
-      url: url,
-      data: {
-        base: data.baseBranchName,
-        head: data.headBranchName,
-        title: data.title,
-        body: data.body,
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: url,
+        data: {
+          base: data.baseBranchName,
+          head: data.headBranchName,
+          title: data.title,
+          body: data.body,
+        },
+        headers: {
+          Authorization: `Bearer ${gitHubToken}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
       },
-      headers: {
-        Authorization: `Bearer ${gitHubToken}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
+    );
 
     if (result instanceof HTTPErrorResponse) {
       throw result;

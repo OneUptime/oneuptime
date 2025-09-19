@@ -118,21 +118,23 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(JSON.stringify(modalJson, null, 2));
 
     // use view.open API to show modal
-    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post({
-      url: URL.fromString("https://slack.com/api/views.open"),
-      data: {
-        trigger_id: data.triggerId,
-        view: modalJson,
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString("https://slack.com/api/views.open"),
+        data: {
+          trigger_id: data.triggerId,
+          view: modalJson,
+        },
+        headers: {
+          Authorization: `Bearer ${data.authToken}`,
+          ["Content-Type"]: "application/json",
+        },
+        options: {
+          retries: 3,
+          exponentialBackoff: true,
+        },
       },
-      headers: {
-        Authorization: `Bearer ${data.authToken}`,
-        ["Content-Type"]: "application/json",
-      },
-      options: {
-        retries: 3,
-        exponentialBackoff: true,
-      },
-    });
+    );
 
     if (result instanceof HTTPErrorResponse) {
       logger.error("Error response from Slack API:");

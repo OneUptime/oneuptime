@@ -85,41 +85,31 @@ export default class API {
 
   public async get<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.get<T>(options);
   }
 
   public async delete<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.delete<T>(options);
   }
 
   public async head<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.head<T>(options);
   }
 
   public async put<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.put<T>(options);
   }
 
   public async patch<
     T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     return await API.patch<T>(options);
   }
 
@@ -180,9 +170,7 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
   public static async get<
     T extends
       | JSONObject
@@ -207,21 +195,26 @@ export default class API {
         undefined,
         options,
       );
-    } else {
-      // New signature
-      const { url, data: newData, headers: newHeaders, params, options: newOptions } = urlOrOptions;
-      if (!url) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetch<T>(
-        HTTPMethod.GET,
-        url,
-        newData || undefined,
-        newHeaders,
-        params,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      url,
+      data: newData,
+      headers: newHeaders,
+      params,
+      options: newOptions,
+    } = urlOrOptions;
+    if (!url) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetch<T>(
+      HTTPMethod.GET,
+      url,
+      newData || undefined,
+      newHeaders,
+      params,
+      newOptions,
+    );
   }
 
   public static async delete<
@@ -246,9 +239,7 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
   public static async delete<
     T extends
       | JSONObject
@@ -273,21 +264,26 @@ export default class API {
         undefined,
         options,
       );
-    } else {
-      // New signature
-      const { url, data: newData, headers: newHeaders, params, options: newOptions } = urlOrOptions;
-      if (!url) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetch(
-        HTTPMethod.DELETE,
-        url,
-        newData || undefined,
-        newHeaders,
-        params,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      url,
+      data: newData,
+      headers: newHeaders,
+      params,
+      options: newOptions,
+    } = urlOrOptions;
+    if (!url) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetch(
+      HTTPMethod.DELETE,
+      url,
+      newData || undefined,
+      newHeaders,
+      params,
+      newOptions,
+    );
   }
 
   public static async head<
@@ -312,9 +308,7 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
   public static async head<
     T extends
       | JSONObject
@@ -339,21 +333,26 @@ export default class API {
         undefined,
         options,
       );
-    } else {
-      // New signature
-      const { url, data: newData, headers: newHeaders, params, options: newOptions } = urlOrOptions;
-      if (!url) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetch(
-        HTTPMethod.HEAD,
-        url,
-        newData || undefined,
-        newHeaders,
-        params,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      url,
+      data: newData,
+      headers: newHeaders,
+      params,
+      options: newOptions,
+    } = urlOrOptions;
+    if (!url) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetch(
+      HTTPMethod.HEAD,
+      url,
+      newData || undefined,
+      newHeaders,
+      params,
+      newOptions,
+    );
   }
 
   public static async put<
@@ -378,9 +377,7 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
   public static async put<
     T extends
       | JSONObject
@@ -405,21 +402,26 @@ export default class API {
         undefined,
         options,
       );
-    } else {
-      // New signature
-      const { url, data: newData, headers: newHeaders, params, options: newOptions } = urlOrOptions;
-      if (!url) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetch(
-        HTTPMethod.PUT,
-        url,
-        newData || undefined,
-        newHeaders,
-        params,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      url,
+      data: newData,
+      headers: newHeaders,
+      params,
+      options: newOptions,
+    } = urlOrOptions;
+    if (!url) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetch(
+      HTTPMethod.PUT,
+      url,
+      newData || undefined,
+      newHeaders,
+      params,
+      newOptions,
+    );
   }
 
   public static async patch<
@@ -444,9 +446,7 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    options: APIRequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
   public static async patch<
     T extends
       | JSONObject
@@ -471,21 +471,26 @@ export default class API {
         undefined,
         options,
       );
-    } else {
-      // New signature
-      const { url, data: newData, headers: newHeaders, params, options: newOptions } = urlOrOptions;
-      if (!url) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetch(
-        HTTPMethod.PATCH,
-        url,
-        newData || undefined,
-        newHeaders,
-        params,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      url,
+      data: newData,
+      headers: newHeaders,
+      params,
+      options: newOptions,
+    } = urlOrOptions;
+    if (!url) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetch(
+      HTTPMethod.PATCH,
+      url,
+      newData || undefined,
+      newHeaders,
+      params,
+      newOptions,
+    );
   }
 
   public static async post<
@@ -512,21 +517,26 @@ export default class API {
         undefined,
         options,
       );
-    } else {
-      // New signature
-      const { url, data: newData, headers: newHeaders, params, options: newOptions } = urlOrOptions;
-      if (!url) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetch(
-        HTTPMethod.POST,
-        url,
-        newData || undefined,
-        newHeaders,
-        params,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      url,
+      data: newData,
+      headers: newHeaders,
+      params,
+      options: newOptions,
+    } = urlOrOptions;
+    if (!url) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetch(
+      HTTPMethod.POST,
+      url,
+      newData || undefined,
+      newHeaders,
+      params,
+      newOptions,
+    );
   }
 
   public static async fetch<
@@ -555,21 +565,27 @@ export default class API {
         params,
         options,
       );
-    } else {
-      // New signature
-      const { method, url: newUrl, data: newData, headers: newHeaders, params: newParams, options: newOptions } = methodOrOptions;
-      if (!newUrl) {
-        throw new APIException("URL is required for static method");
-      }
-      return await this.fetchInternal(
-        method,
-        newUrl,
-        newData,
-        newHeaders,
-        newParams,
-        newOptions,
-      );
     }
+    // New signature
+    const {
+      method,
+      url: newUrl,
+      data: newData,
+      headers: newHeaders,
+      params: newParams,
+      options: newOptions,
+    } = methodOrOptions;
+    if (!newUrl) {
+      throw new APIException("URL is required for static method");
+    }
+    return await this.fetchInternal(
+      method,
+      newUrl,
+      newData,
+      newHeaders,
+      newParams,
+      newOptions,
+    );
   }
 
   private static async fetchInternal<

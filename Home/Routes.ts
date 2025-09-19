@@ -986,7 +986,9 @@ const HomeFeatureSet: FeatureSet = {
 
         if (!gitHubBasicInfo) {
           const basicInfo: HTTPResponse<JSONObject> = await API.get({
-            url: URL.fromString("https://api.github.com/repos/oneuptime/oneuptime"),
+            url: URL.fromString(
+              "https://api.github.com/repos/oneuptime/oneuptime",
+            ),
           });
 
           gitHubBasicInfo = basicInfo.data as JSONObject;
