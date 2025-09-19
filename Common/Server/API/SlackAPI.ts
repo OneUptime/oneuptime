@@ -157,13 +157,13 @@ export default class SlackAPI {
         // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
 
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post(
-            URL.fromString("https://slack.com/api/oauth.v2.access"),
-            requestBody,
-            {
+          await API.post({
+            url: URL.fromString("https://slack.com/api/oauth.v2.access"),
+            data: requestBody,
+            headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
-          );
+          });
 
         if (response instanceof HTTPErrorResponse) {
           throw response;
@@ -369,13 +369,13 @@ export default class SlackAPI {
         // send the request to slack api to get the access token https://slack.com/api/oauth.v2.access
 
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post(
-            URL.fromString("https://slack.com/api/openid.connect.token"),
-            requestBody,
-            {
+          await API.post({
+            url: URL.fromString("https://slack.com/api/openid.connect.token"),
+            data: requestBody,
+            headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
-          );
+          });
 
         if (response instanceof HTTPErrorResponse) {
           throw response;

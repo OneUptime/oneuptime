@@ -376,7 +376,7 @@ describe.each(httpMethodTests)("$name", ({ name, method }: HTTPMethodType) => {
       "catfact.ninja",
       new Route("fact"),
     );
-    const got: HTTPResponse<JSONObject> = await API[name](
+    const got: HTTPResponse<JSONObject> = await (API as any)[name](
       url,
       requestData,
       requestHeaders,
@@ -403,7 +403,7 @@ describe.each(httpMethodTests)(".$name", ({ name, method }: HTTPMethodType) => {
 
     mockedAxios.mockResolvedValueOnce(createAxiosResponse());
 
-    const got: HTTPResponse<JSONObject> = await api[name](
+    const got: HTTPResponse<JSONObject> = await (api as any)[name](
       new Route(route),
       requestData,
       requestHeaders,

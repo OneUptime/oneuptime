@@ -122,7 +122,9 @@ export default class ClickhouseDatabase {
       }
 
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get(URL.fromString(dbUrl.toString()));
+        await API.get({
+          url: URL.fromString(dbUrl.toString()),
+        });
 
       logger.debug("Clickhouse Connection Status Result");
       logger.debug(result);

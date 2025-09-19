@@ -1122,8 +1122,8 @@ export default class AnalyticsDatabaseService<
     triggerType: DatabaseTriggerType
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
-      API.post(
-        new URL(
+      API.post({
+        url: new URL(
           Protocol.HTTP,
           WorkflowHostname,
           new Route(
@@ -1132,15 +1132,13 @@ export default class AnalyticsDatabaseService<
             )}/${triggerType}`
           )
         ),
-        {
-          data: {
-            _id: id.toString(),
-          },
+        data: {
+          _id: id.toString(),
         },
-        {
+        headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
-        }
-      ).catch((error: Error) => {
+        },
+      }).catch((error: Error) => {
         logger.error(error);
       });
     }

@@ -78,11 +78,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             `Pinging the API with statusPageIdOrDomain: ${statusPageIdOrDomain}`,
           );
           const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-            await API.get(
-              URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
+            await API.get({
+              url: URL.fromString(StatusPageApiClientUrl.toString()).addRoute(
                 `/seo/${statusPageIdOrDomain}`,
               ),
-            );
+            });
 
           if (response instanceof HTTPErrorResponse) {
             logger.debug(`Received error response from API: ${response}`);

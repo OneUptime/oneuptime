@@ -36,12 +36,11 @@ const InitJob: VoidFunction = (): void => {
 
       logger.debug("Probe ID: " + probeId.toString());
 
-      const result: HTTPResponse<JSONObject> = await API.post(
-        URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
-        ProbeAPIRequest.getDefaultRequestBody(),
-        undefined,
-        { ...ProxyConfig.getRequestProxyAgents() },
-      );
+      const result: HTTPResponse<JSONObject> = await API.post({
+        url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute("/alive"),
+        data: ProbeAPIRequest.getDefaultRequestBody(),
+        options: { ...ProxyConfig.getRequestProxyAgents() },
+      });
 
       if (result.isSuccess()) {
         logger.debug("Probe update sent to server successfully.");
