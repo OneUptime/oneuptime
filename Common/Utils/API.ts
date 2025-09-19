@@ -156,65 +156,20 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    url: URL,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async get<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async get<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(
-    urlOrOptions: URL | APIRequestOptions,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (urlOrOptions instanceof URL) {
-      // Old signature
-      return await this.fetch<T>(
-        HTTPMethod.GET,
-        urlOrOptions,
-        data,
-        headers,
-        undefined,
-        options,
-      );
-    }
-    // New signature
-    const {
-      url,
-      data: newData,
-      headers: newHeaders,
-      params,
-      options: newOptions,
-    } = urlOrOptions;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const { url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetch<T>(
-      HTTPMethod.GET,
+    const fetchOptions: APIFetchOptions = {
+      method: HTTPMethod.GET,
       url,
-      newData || undefined,
-      newHeaders,
-      params,
-      newOptions,
-    );
+      ...(data && { data }),
+      ...(headers && { headers }),
+      ...(params && { params }),
+      ...(newOptions && { options: newOptions }),
+    };
+    return await this.fetch<T>(fetchOptions);
   }
 
   public static async delete<
@@ -225,65 +180,20 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    url: URL,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async delete<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async delete<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(
-    urlOrOptions: URL | APIRequestOptions,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (urlOrOptions instanceof URL) {
-      // Old signature
-      return await this.fetch(
-        HTTPMethod.DELETE,
-        urlOrOptions,
-        data,
-        headers,
-        undefined,
-        options,
-      );
-    }
-    // New signature
-    const {
-      url,
-      data: newData,
-      headers: newHeaders,
-      params,
-      options: newOptions,
-    } = urlOrOptions;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const { url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetch(
-      HTTPMethod.DELETE,
+    const fetchOptions: APIFetchOptions = {
+      method: HTTPMethod.DELETE,
       url,
-      newData || undefined,
-      newHeaders,
-      params,
-      newOptions,
-    );
+      ...(data && { data }),
+      ...(headers && { headers }),
+      ...(params && { params }),
+      ...(newOptions && { options: newOptions }),
+    };
+    return await this.fetch<T>(fetchOptions);
   }
 
   public static async head<
@@ -294,65 +204,20 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    url: URL,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async head<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async head<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(
-    urlOrOptions: URL | APIRequestOptions,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (urlOrOptions instanceof URL) {
-      // Old signature
-      return await this.fetch(
-        HTTPMethod.HEAD,
-        urlOrOptions,
-        data,
-        headers,
-        undefined,
-        options,
-      );
-    }
-    // New signature
-    const {
-      url,
-      data: newData,
-      headers: newHeaders,
-      params,
-      options: newOptions,
-    } = urlOrOptions;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const { url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetch(
-      HTTPMethod.HEAD,
+    const fetchOptions: APIFetchOptions = {
+      method: HTTPMethod.HEAD,
       url,
-      newData || undefined,
-      newHeaders,
-      params,
-      newOptions,
-    );
+      ...(data && { data }),
+      ...(headers && { headers }),
+      ...(params && { params }),
+      ...(newOptions && { options: newOptions }),
+    };
+    return await this.fetch<T>(fetchOptions);
   }
 
   public static async put<
@@ -363,65 +228,20 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    url: URL,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async put<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async put<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(
-    urlOrOptions: URL | APIRequestOptions,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (urlOrOptions instanceof URL) {
-      // Old signature
-      return await this.fetch(
-        HTTPMethod.PUT,
-        urlOrOptions,
-        data,
-        headers,
-        undefined,
-        options,
-      );
-    }
-    // New signature
-    const {
-      url,
-      data: newData,
-      headers: newHeaders,
-      params,
-      options: newOptions,
-    } = urlOrOptions;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const { url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetch(
-      HTTPMethod.PUT,
+    const fetchOptions: APIFetchOptions = {
+      method: HTTPMethod.PUT,
       url,
-      newData || undefined,
-      newHeaders,
-      params,
-      newOptions,
-    );
+      ...(data && { data }),
+      ...(headers && { headers }),
+      ...(params && { params }),
+      ...(newOptions && { options: newOptions }),
+    };
+    return await this.fetch<T>(fetchOptions);
   }
 
   public static async patch<
@@ -432,65 +252,20 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    url: URL,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async patch<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse>;
-  public static async patch<
-    T extends
-      | JSONObject
-      | JSONArray
-      | BaseModel
-      | Array<BaseModel>
-      | AnalyticsBaseModel
-      | Array<AnalyticsBaseModel>,
-  >(
-    urlOrOptions: URL | APIRequestOptions,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (urlOrOptions instanceof URL) {
-      // Old signature
-      return await this.fetch(
-        HTTPMethod.PATCH,
-        urlOrOptions,
-        data,
-        headers,
-        undefined,
-        options,
-      );
-    }
-    // New signature
-    const {
-      url,
-      data: newData,
-      headers: newHeaders,
-      params,
-      options: newOptions,
-    } = urlOrOptions;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const { url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetch(
-      HTTPMethod.PATCH,
+    const fetchOptions: APIFetchOptions = {
+      method: HTTPMethod.PATCH,
       url,
-      newData || undefined,
-      newHeaders,
-      params,
-      newOptions,
-    );
+      ...(data && { data }),
+      ...(headers && { headers }),
+      ...(params && { params }),
+      ...(newOptions && { options: newOptions }),
+    };
+    return await this.fetch<T>(fetchOptions);
   }
 
   public static async post<
@@ -501,42 +276,20 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    urlOrOptions: URL | APIRequestOptions,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (urlOrOptions instanceof URL) {
-      // Old signature
-      return await this.fetch(
-        HTTPMethod.POST,
-        urlOrOptions,
-        data,
-        headers,
-        undefined,
-        options,
-      );
-    }
-    // New signature
-    const {
-      url,
-      data: newData,
-      headers: newHeaders,
-      params,
-      options: newOptions,
-    } = urlOrOptions;
+  >(options: APIRequestOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
+    const { url, data, headers, params, options: newOptions } = options;
     if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetch(
-      HTTPMethod.POST,
+    const fetchOptions: APIFetchOptions = {
+      method: HTTPMethod.POST,
       url,
-      newData || undefined,
-      newHeaders,
-      params,
-      newOptions,
-    );
+      ...(data && { data }),
+      ...(headers && { headers }),
+      ...(params && { params }),
+      ...(newOptions && { options: newOptions }),
+    };
+    return await this.fetch<T>(fetchOptions);
   }
 
   public static async fetch<
@@ -547,43 +300,24 @@ export default class API {
       | Array<BaseModel>
       | AnalyticsBaseModel
       | Array<AnalyticsBaseModel>,
-  >(
-    methodOrOptions: HTTPMethod | APIFetchOptions,
-    url?: URL,
-    data?: JSONObject | JSONArray,
-    headers?: Headers,
-    params?: Dictionary<string>,
-    options?: RequestOptions,
-  ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    if (typeof methodOrOptions === "string") {
-      // Old signature
-      return await this.fetchInternal(
-        methodOrOptions,
-        url!,
-        data,
-        headers,
-        params,
-        options,
-      );
-    }
-    // New signature
+  >(options: APIFetchOptions): Promise<HTTPResponse<T> | HTTPErrorResponse> {
     const {
       method,
-      url: newUrl,
-      data: newData,
-      headers: newHeaders,
-      params: newParams,
+      url,
+      data,
+      headers,
+      params,
       options: newOptions,
-    } = methodOrOptions;
-    if (!newUrl) {
+    } = options;
+    if (!url) {
       throw new APIException("URL is required for static method");
     }
-    return await this.fetchInternal(
+    return await this.fetchInternal<T>(
       method,
-      newUrl,
-      newData,
-      newHeaders,
-      newParams,
+      url,
+      data,
+      headers,
+      params,
       newOptions,
     );
   }
