@@ -195,6 +195,7 @@ RunCron(
             smsMessage: sms,
             callRequestMessage: callMessage,
             pushNotificationMessage: pushMessage,
+            alertId: alert.id!,
             eventType:
               NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
           });

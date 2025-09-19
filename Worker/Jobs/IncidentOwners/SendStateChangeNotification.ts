@@ -223,6 +223,7 @@ RunCron(
           smsMessage: sms,
           callRequestMessage: callMessage,
           pushNotificationMessage: pushMessage,
+          incidentId: incident.id!,
           eventType:
             NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
         });
