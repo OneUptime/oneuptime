@@ -230,7 +230,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             </div>
 
             {/* Enhanced Controls Section */}
-            <div className="-mx-6 -mb-6 px-6 py-3 border-t border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/50">
+            <div className="-mx-6 -mb-6 px-6 py-3 border-t border-slate-200 bg-white/50">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
@@ -241,12 +241,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                         return setAutoScroll(checked);
                       }}
                     />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">
+                    <span className="text-xs text-slate-600">
                       {autoScroll ? "Live" : "Paused"}
                     </span>
                   </div>
-                  <span className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-700" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                  <span className="hidden sm:block h-4 w-px bg-slate-200" />
+                  <span className="text-xs text-slate-500">
                     {props.logs.length} result
                     {props.logs.length !== 1 ? "s" : ""}
                   </span>
