@@ -115,34 +115,18 @@ microsoftTeamsApp:
   clientSecret:
 \`\`\`
 
+
+Restart your OneUptime server after adding these environment variables.
+
 ##### Step 7: Upload Teams App Manifest
 
-1. Save the above JSON manifest as "manifest.json"
-2. Create a folder with the manifest.json and app icons
-3. Zip the folder
-4. In Microsoft Teams, go to "Apps" → "Manage your apps" → "Upload an app"
-5. Select "Upload a custom app" and choose your zip file
-
-##### Step 8: Install the App in Teams
-
-1. In Microsoft Teams, find your OneUptime app
-2. Click "Add" to install it for your team
-3. Grant the necessary permissions
-4. Return to OneUptime dashboard and complete the integration setup
-
-##### Step 9: Restart your OneUptime server
-
-You need to restart your OneUptime server to apply these changes. Once you have restarted the server, you should see the "Connect to Microsoft Teams" button on this page.
-
-##### Features
-
-Once configured, OneUptime will be able to:
-
-- Send incident alerts to Teams channels
-- Send alert notifications to Teams channels
-- Create dedicated channels for incidents
-- Send interactive cards with action buttons (Acknowledge, Resolve, etc.)
-- Send scheduled maintenance notifications
+1. Go to project Settings -> Integrations -> Microsoft Teams
+2. Download the Teams app manifest from there
+3. Go to Microsoft Teams, click on "Apps" in the sidebar
+4. At the bottom, click "Manage your apps"
+5. Click "Upload a custom app"
+6. Select "Upload for me or my teams"
+7. Upload the manifest zip file you downloaded earlier
 
 ##### Troubleshooting
 
