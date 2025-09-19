@@ -151,13 +151,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
       if (!id) {
         throw new BadDataException("Status Page ID is required");
       }
-      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>(
-        URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+      const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
+        url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
           `/scheduled-maintenance-events/${id.toString()}`,
         ),
-        {},
-        API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
-      );
+        data: {},
+        headers: API.getDefaultHeaders(StatusPageUtil.getStatusPageId()!),
+      });
 
       if (!response.isSuccess()) {
         throw response;

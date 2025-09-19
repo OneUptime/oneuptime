@@ -60,18 +60,23 @@ export default class ApiMonitor {
       );
 
       let startTime: [number, number] = process.hrtime();
+      const fetchOptions: any = {
+        method: requestType,
+        url: url,
+        headers: options.requestHeaders || undefined,
+        options: {
+          timeout: options.timeout?.toNumber() || 5000,
+          doNotFollowRedirects: options.doNotFollowRedirects || false,
+          ...ProxyConfig.getRequestProxyAgents(),
+        },
+      };
+
+      if (options.requestBody) {
+        fetchOptions.data = options.requestBody;
+      }
+
       let result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.fetch({
-          method: requestType,
-          url: url,
-          data: options.requestBody,
-          headers: options.requestHeaders || undefined,
-          options: {
-            timeout: options.timeout?.toNumber() || 5000,
-            doNotFollowRedirects: options.doNotFollowRedirects || false,
-            ...ProxyConfig.getRequestProxyAgents(),
-          },
-        });
+        await API.fetch(fetchOptions);
 
       if (
         result.statusCode >= 400 &&

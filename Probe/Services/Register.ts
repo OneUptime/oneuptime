@@ -73,19 +73,18 @@ export default class Register {
         hostname: HOSTNAME,
       };
 
-      await API.fetch<JSONObject>(
-        HTTPMethod.POST,
-        URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
           "/probe/status-report/offline",
         ),
-        {
+        data: {
           ...ProbeAPIRequest.getDefaultRequestBody(),
           statusReport: stausReport as any,
         },
-        {},
-        {},
-        { ...ProxyConfig.getRequestProxyAgents() },
-      );
+        headers: {},
+        options: { ...ProxyConfig.getRequestProxyAgents() },
+      });
     }
   }
 

@@ -57,16 +57,16 @@ const StatusPageDelete: FunctionComponent<
 
       // get status page id by hostname.
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>(
-          URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+        await API.post<JSONObject>({
+          url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
             `/test-email-report`,
           ),
-          {
+          data: {
             statusPageId: modelId.toString(),
             email: testEmail.email.toString(),
           },
-          {},
-        );
+          headers: {},
+        });
 
       if (response instanceof HTTPErrorResponse) {
         setError(API.getFriendlyMessage(response));

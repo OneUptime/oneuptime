@@ -64,11 +64,11 @@ const CopilotDocuementationPage: FunctionComponent<
         // http://localhost/docs/copilot/introduction
 
         const documentation: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          (await API.get(
-            URL.fromString(DOCS_URL.toString()).addRoute(
+          (await API.get({
+            url: URL.fromString(DOCS_URL.toString()).addRoute(
               "/as-markdown/copilot/introduction",
             ),
-          )) as HTTPErrorResponse | HTTPResponse<JSONObject>;
+          })) as HTTPErrorResponse | HTTPResponse<JSONObject>;
 
         if (documentation instanceof HTTPErrorResponse) {
           setError(API.getFriendlyMessage(documentation));

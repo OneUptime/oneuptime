@@ -128,11 +128,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setError("");
 
     try {
-      await API.get(
-        URL.fromString(APP_API_URL.toString()).addRoute(
+      await API.get({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
           "/monitor/refresh-status/" + modelId.toString(),
         ),
-      );
+      });
 
       const monitorStatus: ListResult<MonitorStatusTimeline> =
         await ModelAPI.getList({
