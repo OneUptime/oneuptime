@@ -1,5 +1,6 @@
 import BaseAPI from "Common/Server/API/BaseAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
+import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "Common/Server/API/BillingPaymentMethodAPI";
 import CopilotCodeRepositoryAPI from "Common/Server/API/CopilotCodeRepositoryAPI";
@@ -1668,6 +1669,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BillingInvoiceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BillingAPI().getRouter(),
     );
 
     app.use(

@@ -74,6 +74,8 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   const [resellerPlan, setResellerPlan] = useState<ResellerPlan | null>(null);
 
+  const [balance, setBalance] = useState<number>(0);
+
   const formRef: any = useRef<any>(null);
 
   useAsyncEffect(async () => {
@@ -113,6 +115,22 @@ const Settings: FunctionComponent<ComponentProps> = (
       if (project?.resellerPlan) {
         setResellerPlan(project.resellerPlan);
       }
+
+      // Fetch customer balance
+      try {
+        const balanceResponse: HTTPResponse<JSONObject> = await BaseAPI.get<JSONObject>(
+          URL.fromString(APP_API_URL.toString()).addRoute(
+            `/billing/customer-balance`,
+          ),
+          ModelAPI.getCommonHeaders(),
+        );
+        const balanceData: JSONObject = balanceResponse.data;
+        setBalance(balanceData["balance"] as number);
+      } catch (balanceErr) {
+        // Balance might not be available, set to 0
+        setBalance(0);
+      }
+
     } catch (err) {
       setError(BaseAPI.getFriendlyMessage(err));
     }
@@ -606,6 +624,13 @@ const Settings: FunctionComponent<ComponentProps> = (
               modelId: ProjectUtil.getCurrentProjectId()!,
             }}
           />
+
+          {balance > 0 && (
+            <Card
+              title="Customer Balance"
+              description={`You have a credit balance of $${balance.toFixed(2)} that will be applied to future invoices.`}
+            />
+          )}
 
           {!reseller && (
             <Card
