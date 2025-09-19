@@ -5,9 +5,9 @@ import Card from "Common/UI/Components/Card/Card";
 const MicrosoftTeamsIntegrationDocumentation: FunctionComponent = (): ReactElement => {
   const markdownText: string = `
 
-##### Step 1: Since this is a self hosted install, you need to create a Microsoft Teams App with this manifest.
+##### Step 1: Prerequisites
 
-Please create a Microsoft Teams App with the following manifest. You can do this by going to https://portal.azure.com and creating a new app registration.
+Azure Account - You can create one by going to https://azure.com.
 
 
 ##### Step 2: Create Azure App Registration
