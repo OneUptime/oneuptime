@@ -25,12 +25,63 @@ Azure Account - You can create one by going to https://azure.com.
 
 1. In your app registration, go to "API permissions"
 2. Click "Add a permission" and select "Microsoft Graph"
-3. Select "Delegated permissions" and add:
-   - Team.ReadBasic.All
-   - Channel.ReadBasic.All
-   - ChannelMessage.Send
-   - User.Read
-4. Click "Grant admin consent" for your organization
+
+**Add Delegated Permissions** (when acting on behalf of a signed-in user):
+   - **For basic user information:**
+     - User.Read
+   - **For reading team and channel information:**
+     - Team.ReadBasic.All
+     - Channel.ReadBasic.All
+   - **For sending messages to channels:**
+     - ChannelMessage.Send
+   - **For creating channels:**
+     - Channel.Create
+   - **For personal and group chats:**
+     - Chat.Create
+     - ChatMessage.Send
+     - Chat.ReadWrite
+
+**Add Application Permissions** (when acting as the app itself, without a signed-in user):
+   - **For reading team and channel information:**
+     - Team.ReadBasic.All
+     - Channel.ReadBasic.All
+     - ChannelSettings.Read.All
+   - **For creating and managing channels:**
+     - Channel.Create
+     - Channel.Delete.All (optional)
+     - ChannelSettings.ReadWrite.All
+   - **For channel messages:**
+     - ChannelMessage.Read.All (to read messages)
+   - **For managing channel members:**
+     - ChannelMember.Read.All
+     - ChannelMember.ReadWrite.All
+   - **For creating and managing chats:**
+     - Chat.Create
+     - Chat.ReadBasic.All
+     - Chat.ReadWrite.All
+   - **For chat messages:**
+     - ChatMessage.Read.All
+   - **For managing chat members:**
+     - ChatMember.Read.All
+     - ChatMember.ReadWrite.All
+   - **For team management:**
+     - TeamMember.Read.All
+   - **For user information:**
+     - User.Read.All (to get user details)
+
+3. Click "Grant admin consent" for your organization
+
+**Note:** 
+- **Delegated permissions** are used when OneUptime acts on behalf of a signed-in user
+- **Application permissions** are used when OneUptime acts as itself (automated scenarios)
+- For automated incident management, OneUptime primarily uses **application permissions**
+- The permissions above enable full functionality including:
+  - Sending messages to Teams channels
+  - Creating new channels
+  - Creating one-on-one and group chats
+  - Sending direct messages to users
+  - Inviting users to channels and chats
+  - Reading team and user information
 
 ##### Step 4: Create Client Secret
 
