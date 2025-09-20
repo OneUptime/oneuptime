@@ -28,9 +28,9 @@ export default class Llama extends LlmBase {
     const serverUrl: URL = GetLlmServerUrl();
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post(
-        URL.fromString(serverUrl.toString()).addRoute("/prompt/"),
-        {
+      await API.post<JSONObject>({
+        url: URL.fromString(serverUrl.toString()).addRoute("/prompt/"),
+        data: {
           messages: data.messages.map((message: Prompt) => {
             return {
               content: message.content,
@@ -39,12 +39,12 @@ export default class Llama extends LlmBase {
           }),
           // secretkey: GetRepositorySecretKey(),
         },
-        {},
-        {
+        headers: {},
+        options: {
           retries: 3,
           exponentialBackoff: true,
         },
-      );
+      });
 
     if (response instanceof HTTPErrorResponse) {
       throw response;
@@ -79,18 +79,18 @@ export default class Llama extends LlmBase {
       }
 
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.post(
-          URL.fromString(serverUrl.toString()).addRoute(`/prompt-result/`),
-          {
+        await API.post<JSONObject>({
+          url: URL.fromString(serverUrl.toString()).addRoute(`/prompt-result/`),
+          data: {
             id: idOfPrompt,
             // secretkey: GetRepositorySecretKey(),
           },
-          {},
-          {
+          headers: {},
+          options: {
             retries: 3,
             exponentialBackoff: true,
           },
-        );
+        });
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
