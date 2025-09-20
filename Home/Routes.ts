@@ -944,12 +944,12 @@ const HomeFeatureSet: FeatureSet = {
 
         while (hasMoreContributors) {
           const response: HTTPResponse<Array<JSONObject>> | HTTPErrorResponse =
-            await API.get<Array<JSONObject>>(
-              URL.fromString(
+            await API.get<Array<JSONObject>>({
+              url: URL.fromString(
                 "https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" +
                   pageNumber,
               ),
-            );
+            });
           pageNumber++;
           if ((response.data as Array<JSONObject>).length < 30) {
             hasMoreContributors = false;
