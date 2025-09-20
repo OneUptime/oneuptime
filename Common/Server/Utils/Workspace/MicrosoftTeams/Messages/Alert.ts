@@ -7,7 +7,7 @@ import {
   WorkspacePayloadDivider,
 } from "../../../../../Types/Workspace/WorkspaceMessagePayload";
 import AlertService from "../../../../Services/AlertService";
-import MicrosoftTeamsActionType from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
+import { MicrosoftTeamsAlertActionType } from "../../../../Utils/Workspace/MicrosoftTeams/Actions/ActionTypes";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
 export default class MicrosoftTeamsAlertMessages {
@@ -51,7 +51,7 @@ export default class MicrosoftTeamsAlertMessages {
         data.alertId!,
       ),
       value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewAlert,
+      actionId: MicrosoftTeamsAlertActionType.ViewAlert,
     };
 
     buttons.push(viewAlertButton);
@@ -61,7 +61,7 @@ export default class MicrosoftTeamsAlertMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📞 Execute On Call",
       value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewExecuteAlertOnCallPolicy,
+      actionId: MicrosoftTeamsAlertActionType.ExecuteAlertOnCallPolicy,
     };
 
     buttons.push(executeOnCallButton);
@@ -71,7 +71,7 @@ export default class MicrosoftTeamsAlertMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "👀 Acknowledge Alert",
       value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.AcknowledgeAlert,
+      actionId: MicrosoftTeamsAlertActionType.AckAlert,
     };
 
     buttons.push(acknowledgeAlertButton);
@@ -81,7 +81,7 @@ export default class MicrosoftTeamsAlertMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "✅ Resolve Alert",
       value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ResolveAlert,
+      actionId: MicrosoftTeamsAlertActionType.ResolveAlert,
     };
 
     buttons.push(resolveAlertButton);
@@ -91,7 +91,7 @@ export default class MicrosoftTeamsAlertMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "➡️ Change Alert State",
       value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewChangeAlertState,
+      actionId: MicrosoftTeamsAlertActionType.AlertStateChanged,
     };
 
     buttons.push(changeAlertStateButton);
@@ -101,7 +101,7 @@ export default class MicrosoftTeamsAlertMessages {
       _type: "WorkspaceMessagePayloadButton",
       title: "📄 Add Note",
       value: data.alertId?.toString() || "",
-      actionId: MicrosoftTeamsActionType.ViewAddAlertNote,
+      actionId: MicrosoftTeamsAlertActionType.AddAlertNote,
     };
 
     buttons.push(addNoteButton);

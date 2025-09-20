@@ -5,6 +5,7 @@ import {
   AppApiRoute,
   StatusPageApiRoute,
   DocsRoute,
+  HomeRoute,
 } from "../ServiceRoute";
 import BillingConfig from "./BillingConfig";
 import Protocol from "../Types/API/Protocol";
@@ -305,6 +306,8 @@ export const AdminDashboardClientURL: URL = new URL(
   AdminDashboardRoute,
 );
 
+export const HomeClientUrl: URL = new URL(HttpProtocol, Host, HomeRoute);
+
 export const AppApiClientUrl: URL = new URL(HttpProtocol, Host, AppApiRoute);
 
 export const StatusPageApiClientUrl: URL = new URL(
@@ -336,6 +339,13 @@ export const SlackAppClientSecret: string | null =
   process.env["SLACK_APP_CLIENT_SECRET"] || null;
 export const SlackAppSigningSecret: string | null =
   process.env["SLACK_APP_SIGNING_SECRET"] || null;
+
+// Microsoft Teams Configuration
+export const MicrosoftTeamsAppClientId: string | null =
+  process.env["MICROSOFT_TEAMS_APP_CLIENT_ID"] || null;
+export const MicrosoftTeamsAppClientSecret: string | null =
+  process.env["MICROSOFT_TEAMS_APP_CLIENT_SECRET"] || null;
+
 
 // VAPID Configuration for Web Push Notifications
 export const VapidPublicKey: string | undefined =

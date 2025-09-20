@@ -34,6 +34,26 @@ export interface SlackMiscData extends MiscData {
   };
 }
 
+export interface MicrosoftTeamsMiscData extends MiscData {
+  tenantId: string;
+  teamId: string;
+  teamName: string;
+  botId: string;
+  appAccessToken?: string;
+  adminConsentGranted?: boolean;
+  lastAppTokenIssuedAt?: string;
+  adminConsentGrantedAt?: string;
+  adminConsentGrantedBy?: string;
+  appAccessTokenExpiresAt?: string;
+  channelCache?: {
+    [channelName: string]: {
+      id: string;
+      name: string;
+      lastUpdated: string;
+    };
+  };
+}
+
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [

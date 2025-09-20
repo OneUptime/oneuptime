@@ -74,6 +74,7 @@ export default class WorkspaceBase {
   public static async getUsernameFromUserId(_data: {
     authToken: string;
     userId: string;
+    projectId: ObjectID;
   }): Promise<string | null> {
     throw new NotImplementedException();
   }
