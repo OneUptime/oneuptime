@@ -630,7 +630,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           {balance < 0 && (
             <Card
               title="Customer Balance"
-              description={`Your current customer balance is $${(balance * -1)}. This balance will be applied to your next invoice.`}
+              description={`Your current customer balance is $${balance * -1}. This balance will be applied to your next invoice.`}
             />
           )}
 
