@@ -81,7 +81,7 @@ Azure Account - You can create one by going to https://azure.com.
 
 Please note: Do not copy the secret ID, you need the secret VALUE which is typically longer and includes more characters.
 
-##### Step 5: Cretae a Bot Service
+##### Step 5: Create a Bot Service
 
 1. In the Azure Portal, navigate to "Azure Bot" and click "Create"
 2. Fill out the bot creation form:
@@ -90,7 +90,7 @@ Please note: Do not copy the secret ID, you need the secret VALUE which is typic
    - **Resource group:** Create a new one or use an existing one
    - **Location:** Choose a location close to your users
    - **Pricing tier:** F0 (Free) is sufficient for testing
-   - Please use the App ID and Tenant ID from your app registration created earlier
+  - Please use the App (client) ID and Tenant ID from your app registration created earlier
 
 3. Click "Review + create" and then "Create"
 
@@ -98,7 +98,14 @@ Please note: Do not copy the secret ID, you need the secret VALUE which is typic
 5. Set the "Messaging endpoint" to \`${window.location.origin}/api/microsoft-bot/messages\`
 6. Save the configuration.
 
-##### Step 6: Add these environment variables to your OneUptime server
+##### Step 6: Add Microsoft Teams Channel to the Bot
+
+1. In your Azure Bot resource, navigate to "Channels"
+2. Find and select "Microsoft Teams" and click "Open" or "Add"
+3. Review the settings (enable for Teams, keep default messaging options unless you have specific needs)
+4. Click "Save" (and "Done"/"Publish" if prompted) to enable the Teams channel
+
+##### Step 7: Add these environment variables to your OneUptime server
 
 If you are using Docker Compose then,
 
@@ -116,9 +123,9 @@ microsoftTeamsApp:
 \`\`\`
 
 
-Restart your OneUptime server after adding these environment variables. So, that they take effect.
+Restart your OneUptime server after adding these environment variables so they take effect.
 
-##### Step 7: Upload Teams App Manifest
+##### Step 8: Upload Teams App Manifest
 
 1. Go to project Settings -> Integrations -> Microsoft Teams
 2. Download the Teams app manifest from there
