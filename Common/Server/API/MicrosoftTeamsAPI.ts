@@ -745,6 +745,244 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
+    // Admin consent - start flow (tenant-wide admin consent)
+    // Uses state in the same format as OAuth: <projectId>:<userId>
+    router.get(
+      "/microsoft-teams/admin-consent",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          if (!MicrosoftTeamsAppClientId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Microsoft Teams App Client ID is not set"),
+            );
+          }
+
+          const stateParam: string | undefined = req.query["state"]?.toString();
+          if (!stateParam) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid request - state param not present"),
+            );
+          }
+
+          const stateParts: Array<string> = stateParam.split(":");
+          if (stateParts.length !== 2 || !stateParts[0] || !stateParts[1]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid state param"),
+            );
+          }
+
+          const projectId: string = stateParts[0]!;
+          // Try to use tenant from existing project auth, otherwise default to "organizations"
+          let tenantForConsent: string = "organizations";
+          try {
+            const existingAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: new ObjectID(projectId),
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
+            const existingTenant: string | undefined = (existingAuth?.miscData as any)?.tenantId;
+            if (existingTenant) {
+              tenantForConsent = existingTenant;
+            }
+          } catch (e) {
+            // ignore and fall back to default
+          }
+
+          const redirectUri: URL = URL.fromString(
+            `${AppApiClientUrl.toString()}/microsoft-teams/admin-consent/callback`,
+          );
+
+          const adminConsentUrl: string = `https://login.microsoftonline.com/${encodeURIComponent(
+            tenantForConsent,
+          )}/v2.0/adminconsent?client_id=${encodeURIComponent(
+            MicrosoftTeamsAppClientId,
+          )}&redirect_uri=${encodeURIComponent(redirectUri.toString())}&state=${encodeURIComponent(
+            stateParam,
+          )}`;
+
+          return Response.redirect(req, res, URL.fromString(adminConsentUrl));
+        } catch (error) {
+          logger.error("Error starting Teams admin consent: ");
+          logger.error(error);
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Failed to start Microsoft Teams admin consent"),
+          );
+        }
+      },
+    );
+
+    // Admin consent - callback handler
+    // Receives: state=<projectId>:<userId>, tenant=<tenantId>, admin_consent=True | error params
+    router.get(
+      "/microsoft-teams/admin-consent/callback",
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const error: string | undefined = req.query["error"]?.toString();
+          const errorDescription: string | undefined = req.query["error_description"]?.toString();
+          const stateParam: string | undefined = req.query["state"]?.toString();
+          const tenantId: string | undefined = req.query["tenant"]?.toString();
+
+          if (!stateParam) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid request - state param not present"),
+            );
+          }
+
+          const stateParts: Array<string> = stateParam.split(":");
+          if (stateParts.length !== 2 || !stateParts[0] || !stateParts[1]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadRequestException("Invalid state param"),
+            );
+          }
+
+          const projectId: string = stateParts[0]!;
+
+          const teamsIntegrationPageUrl: URL = URL.fromString(
+            DashboardClientUrl.toString() +
+              `/${projectId.toString()}/settings/microsoft-teams-integration`,
+          );
+
+          if (error) {
+            return Response.redirect(
+              req,
+              res,
+              teamsIntegrationPageUrl.addQueryParam(
+                "error",
+                `${error}${errorDescription ? ": " + errorDescription : ""}`,
+              ),
+            );
+          }
+
+          if (!tenantId) {
+            return Response.redirect(
+              req,
+              res,
+              teamsIntegrationPageUrl.addQueryParam(
+                "error",
+                "Missing tenant information from admin consent callback",
+              ),
+            );
+          }
+
+          if (!MicrosoftTeamsAppClientId || !MicrosoftTeamsAppClientSecret) {
+            return Response.redirect(
+              req,
+              res,
+              teamsIntegrationPageUrl.addQueryParam(
+                "error",
+                "Microsoft Teams App credentials are not configured",
+              ),
+            );
+          }
+
+          // Fetch any existing project auth to merge
+          const existingAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: new ObjectID(projectId),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
+
+          // Acquire an application token for the specific tenant using client credentials
+          const tokenResp: HTTPErrorResponse | HTTPResponse<JSONObject> =
+            await API.post<JSONObject>({
+              url: URL.fromString(
+                `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+              ),
+              data: {
+                client_id: MicrosoftTeamsAppClientId,
+                client_secret: MicrosoftTeamsAppClientSecret,
+                grant_type: "client_credentials",
+                scope: "https://graph.microsoft.com/.default",
+              },
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            });
+
+          if (tokenResp instanceof HTTPErrorResponse) {
+            logger.error("Error getting app token after admin consent:");
+            logger.error(tokenResp);
+            return Response.redirect(
+              req,
+              res,
+              teamsIntegrationPageUrl.addQueryParam(
+                "error",
+                "Failed to get Graph app token after admin consent",
+              ),
+            );
+          }
+
+          const tokenData: JSONObject = tokenResp.data;
+          const appAccessToken: string = (tokenData["access_token"] as string) || "";
+          const expiresInSec: number = Number(tokenData["expires_in"] || 0);
+          const expiresAtIso: string = new Date(
+            Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
+          ).toISOString();
+
+          // Merge and persist project auth with tenantId and app token
+          const mergedMiscData: any = {
+            ...(existingAuth?.miscData as any),
+            tenantId: tenantId,
+            appAccessToken: appAccessToken,
+            appAccessTokenExpiresAt: expiresAtIso,
+          };
+
+          await WorkspaceProjectAuthTokenService.refreshAuthToken({
+            projectId: new ObjectID(projectId),
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            authToken: existingAuth?.authToken || "",
+            workspaceProjectId: existingAuth?.workspaceProjectId || (existingAuth?.miscData as any)?.teamId || "",
+            miscData: mergedMiscData,
+          });
+
+          return Response.redirect(
+            req,
+            res,
+            teamsIntegrationPageUrl
+              .addQueryParam("adminConsent", "success")
+              .addQueryParam("tenantId", tenantId),
+          );
+        } catch (err) {
+          logger.error("Error in Microsoft Teams admin consent callback: ");
+          logger.error(err);
+          // Best-effort redirect to integration page with error
+          try {
+            const stateParam: string | undefined = req.query["state"]?.toString();
+            const projectId: string | undefined = stateParam?.split(":")[0];
+            if (projectId) {
+              const teamsIntegrationPageUrl: URL = URL.fromString(
+                DashboardClientUrl.toString() +
+                  `/${projectId.toString()}/settings/microsoft-teams-integration`,
+              );
+              return Response.redirect(
+                req,
+                res,
+                teamsIntegrationPageUrl.addQueryParam(
+                  "error",
+                  "Failed to finalize Microsoft Teams admin consent",
+                ),
+              );
+            }
+          } catch {
+            // ignore
+          }
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Failed to finalize Microsoft Teams admin consent"),
+          );
+        }
+      },
+    );
+
     // Microsoft Bot Framework endpoint - this is what Teams calls for bot messages
     // Now uses the Bot Framework SDK's adapter.processActivity for proper protocol handling
     router.post(

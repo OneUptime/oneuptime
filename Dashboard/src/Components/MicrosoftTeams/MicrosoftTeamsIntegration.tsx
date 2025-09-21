@@ -226,6 +226,10 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     // if this page has a query param with error, then there was the error in authentication.
     const error: string | null = Navigation.getQueryStringByName("error");
+    const adminConsent: string | null = Navigation.getQueryStringByName(
+      "adminConsent",
+    );
+    // const adminConsentTenant: string | null = Navigation.getQueryStringByName("tenantId");
 
     if (error) {
       setError(
@@ -237,6 +241,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         </div>,
       );
       return;
+    }
+
+    if (adminConsent === "success") {
+      // Show a light-weight success inline note by temporarily setting error to null
+      // and reloading items so any new app token is picked up by the backend when needed
+      setError(null);
     }
 
     loadItems().catch((error: Exception) => {
@@ -415,6 +425,23 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     };
   };
 
+  const startAdminConsent: VoidFunction = (): void => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    const userId: ObjectID | null = UserUtil.getUserId();
+    if (!projectId || !userId) {
+      setError(<div>Missing project or user context.</div>);
+      return;
+    }
+    const state: string = `${projectId.toString()}:${userId.toString()}`;
+    Navigation.navigate(
+      URL.fromString(
+        `${HOME_URL.toString()}api/microsoft-teams/admin-consent?state=${encodeURIComponent(
+          state,
+        )}`,
+      ),
+    );
+  };
+
   // if user is not connected and the project is connected with Teams.
   if (!isUserAccountConnected && isProjectAccountConnected) {
     cardTitle = `You are disconnected from Microsoft Teams (but OneUptime is already installed in ${teamsTeamName} team)`;
@@ -479,6 +506,20 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           title={cardTitle}
           description={cardDescription}
           buttons={cardButtons}
+        />
+      </div>
+      <div className="mt-6">
+        <Card
+          title="Grant Admin Consent (Tenant-wide)"
+          description="Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
+          buttons={[
+            {
+              title: "Open Admin Consent",
+              buttonStyle: SharedButtonStyle.PRIMARY,
+              icon: IconProp.Download,
+              onClick: () => startAdminConsent(),
+            },
+          ]}
         />
       </div>
       {(
