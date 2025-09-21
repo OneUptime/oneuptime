@@ -239,7 +239,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           Error: {error}
         </div>,
       );
-      return;
     }
 
     loadItems().catch((error: Exception) => {
