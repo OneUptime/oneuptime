@@ -55,7 +55,7 @@ export default class MicrosoftTeamsAPI {
       $schema:
         "https://developer.microsoft.com/json-schemas/teams/v1.23/MicrosoftTeams.schema.json",
       manifestVersion: "1.23",
-      version: AppVersion.toLowerCase().includes("unknown") ? "2.0.0" : AppVersion,
+      version: AppVersion.toLowerCase().includes("unknown") ? "2.1.0" : AppVersion,
       id: MicrosoftTeamsAppClientId,
       developer: {
         name: "OneUptime",
@@ -94,7 +94,21 @@ export default class MicrosoftTeamsAPI {
           ],
         },
       ],
-      permissions: ["identity"],
+      permissions: ["identity", "messageTeamMembers"],
+      "authorization": {
+        "permissions": {
+            "resourceSpecific": [
+                {
+                    "type": "Application",
+                    "name": "ChannelSettings.Read.Group"
+                },
+                {
+                    "type": "Delegated",
+                    "name": "ChannelMeetingParticipant.Read.Group"
+                }
+            ]
+        }
+    },
       validDomains: [Host],
       webApplicationInfo: {
         id: MicrosoftTeamsAppClientId,
