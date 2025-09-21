@@ -64,6 +64,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   const [isProjectAccountConnected, setIsProjectAccountConnected] =
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
+  const [isAdminConsentCompleted, setIsAdminConsentCompleted] =
+    React.useState<boolean>(false);
   const [teamsTeamName, setTeamsTeamName] = React.useState<string | null>(null);
   const [availableTeams, setAvailableTeams] = React.useState<
     Array<{ id: string; displayName: string }>
@@ -247,6 +249,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       // Show a light-weight success inline note by temporarily setting error to null
       // and reloading items so any new app token is picked up by the backend when needed
       setError(null);
+      setIsAdminConsentCompleted(true);
+      // Store admin consent completion in localStorage for persistence across page reloads
+      localStorage.setItem("msTeamsAdminConsentCompleted", "true");
+    } else {
+      // Check if admin consent was previously completed
+      const storedConsent = localStorage.getItem("msTeamsAdminConsentCompleted");
+      if (storedConsent === "true") {
+        setIsAdminConsentCompleted(true);
+      }
     }
 
     loadItems().catch((error: Exception) => {
@@ -501,25 +512,54 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <div>
-        <Card
-          title={cardTitle}
-          description={cardDescription}
-          buttons={cardButtons}
-        />
-      </div>
+      {isAdminConsentCompleted && (
+        <div>
+          <Card
+            title={cardTitle}
+            description={cardDescription}
+            buttons={cardButtons}
+          />
+        </div>
+      )}
+      {!isAdminConsentCompleted && (
+        <div>
+          <Card
+            title="Complete Admin Consent First"
+            description="Before you can connect your account with Microsoft Teams, an admin must grant tenant-wide consent for the OneUptime app. Please complete the admin consent step below first."
+            buttons={[]}
+          />
+        </div>
+      )}
       <div className="mt-6">
         <Card
-          title="Grant Admin Consent (Tenant-wide)"
-          description="Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
-          buttons={[
-            {
-              title: "Open Admin Consent",
-              buttonStyle: SharedButtonStyle.PRIMARY,
-              icon: IconProp.Download,
-              onClick: () => startAdminConsent(),
-            },
-          ]}
+          title={isAdminConsentCompleted ? "Admin Consent Completed ✓" : "Grant Admin Consent (Tenant-wide)"}
+          description={
+            isAdminConsentCompleted
+              ? "Admin consent has been successfully granted for the OneUptime Microsoft Teams app. You can now proceed to connect your account."
+              : "Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
+          }
+          buttons={
+            isAdminConsentCompleted
+              ? [
+                  {
+                    title: "Reset Admin Consent",
+                    buttonStyle: SharedButtonStyle.NORMAL,
+                    icon: IconProp.Refresh,
+                    onClick: () => {
+                      localStorage.removeItem("msTeamsAdminConsentCompleted");
+                      setIsAdminConsentCompleted(false);
+                    },
+                  },
+                ]
+              : [
+                  {
+                    title: "Open Admin Consent",
+                    buttonStyle: SharedButtonStyle.PRIMARY,
+                    icon: IconProp.Download,
+                    onClick: () => startAdminConsent(),
+                  },
+                ]
+          }
         />
       </div>
       {(
