@@ -35,7 +35,7 @@ import MicrosoftTeamsScheduledMaintenanceActions from "../Utils/Workspace/Micros
 import MicrosoftTeamsMonitorActions from "../Utils/Workspace/MicrosoftTeams/Actions/Monitor";
 import MicrosoftTeamsOnCallDutyActions from "../Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
-import archiver from "archiver";
+import archiver, { Archiver } from "archiver";
 import LocalFile from "../Utils/LocalFile";
 import path from "path";
 
@@ -88,25 +88,9 @@ export default class MicrosoftTeamsAPI {
           supportsFiles: false,
           supportsCalling: false,
           supportsVideo: false,
-          // Bot Framework messaging endpoint
-          messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
           // Provide basic command lists to improve client compatibility (esp. mobile)
           commandLists: [
-            {
-              scopes: ["personal"],
-              commands: [
-                { title: "Get Status", description: "Get current system status and health metrics" },
-                { title: "List Incidents", description: "Show active and recent incidents" },
-                { title: "Subscribe", description: "Subscribe to incident notifications" },
-              ],
-            },
-            {
-              scopes: ["team", "groupChat"],
-              commands: [
-                { title: "Status Report", description: "Get system status report for the team" },
-                { title: "Recent Incidents", description: "Show recent incidents and their status" },
-              ],
-            },
+        
           ],
         },
       ],
@@ -154,7 +138,7 @@ export default class MicrosoftTeamsAPI {
           );
 
           // Create archive
-          const archive : archiver.Archiver= archiver("zip", {
+          const archive: Archiver = archiver("zip", {
             zlib: { level: 9 }, // Sets the compression level
           });
 
@@ -310,15 +294,15 @@ export default class MicrosoftTeamsAPI {
           logger.debug(tokenRequestBody);
 
           const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-            await API.post(
-              URL.fromString(
+            await API.post<JSONObject>({
+              url: URL.fromString(
                 "https://login.microsoftonline.com/common/oauth2/v2.0/token",
               ),
-              tokenRequestBody,
-              {
+              data: tokenRequestBody,
+              headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
               },
-            );
+            });
 
           if (tokenResponse instanceof HTTPErrorResponse) {
             logger.error("Error getting Teams token:");
@@ -345,13 +329,12 @@ export default class MicrosoftTeamsAPI {
           // Get user profile and team information
           const userProfileResponse:
             | HTTPErrorResponse
-            | HTTPResponse<JSONObject> = await API.get(
-            URL.fromString("https://graph.microsoft.com/v1.0/me"),
-            undefined,
-            {
+            | HTTPResponse<JSONObject> = await API.get<JSONObject>({
+            url: URL.fromString("https://graph.microsoft.com/v1.0/me"),
+            headers: {
               Authorization: `Bearer ${accessToken}`,
             },
-          );
+          });
 
           if (userProfileResponse instanceof HTTPErrorResponse) {
             logger.error("Error getting user profile:");
@@ -365,13 +348,14 @@ export default class MicrosoftTeamsAPI {
 
           // Get user's teams
           const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-            await API.get(
-              URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
-              undefined,
-              {
+            await API.get<JSONObject>({
+              url: URL.fromString(
+                "https://graph.microsoft.com/v1.0/me/joinedTeams",
+              ),
+              headers: {
                 Authorization: `Bearer ${accessToken}`,
               },
-            );
+            });
 
           if (teamsResponse instanceof HTTPErrorResponse) {
             logger.error("Error getting teams:");
@@ -521,15 +505,15 @@ export default class MicrosoftTeamsAPI {
         logger.debug(tokenRequestBody);
 
         const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post(
-            URL.fromString(
+          await API.post<JSONObject>({
+            url: URL.fromString(
               "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             ),
-            tokenRequestBody,
-            {
+            data: tokenRequestBody,
+            headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
-          );
+          });
 
         if (tokenResponse instanceof HTTPErrorResponse) {
           logger.error("Error getting Teams token:");
@@ -556,13 +540,11 @@ export default class MicrosoftTeamsAPI {
         // Get user profile and team information
         const userProfileResponse:
           | HTTPErrorResponse
-          | HTTPResponse<JSONObject> = await API.get(
-          URL.fromString("https://graph.microsoft.com/v1.0/me"),
-          undefined,
-          {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        );
+          | HTTPResponse<JSONObject> = await API.get<JSONObject>({
+          url: URL.fromString("https://graph.microsoft.com/v1.0/me"),
+          headers: {
+            Authorization: `Bearer ${accessToken}`},
+        });
 
         if (userProfileResponse instanceof HTTPErrorResponse) {
           logger.error("Error getting user profile:");
@@ -576,13 +558,12 @@ export default class MicrosoftTeamsAPI {
 
         // Get user's teams
         const teamsResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get(
-            URL.fromString("https://graph.microsoft.com/v1.0/me/joinedTeams"),
-            undefined,
-            {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          );
+          await API.get<JSONObject>({
+            url: URL.fromString(
+              "https://graph.microsoft.com/v1.0/me/joinedTeams",
+            ),
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
 
         if (teamsResponse instanceof HTTPErrorResponse) {
           logger.error("Error getting teams:");
