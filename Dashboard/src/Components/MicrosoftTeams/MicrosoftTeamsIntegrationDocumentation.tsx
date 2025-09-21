@@ -18,6 +18,7 @@ Azure Account - You can create one by going to https://azure.com.
    - **Name:** oneuptime
    - **Supported account types:** Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)
    - **Redirect URI:** Web - \`${window.location.origin}/api/microsoft-teams/auth\`
+   - Please also add: \`${window.location.origin}/api/microsoft-teams/admin-consent/callback\`
 4. Click "Register"
 5. Note down the "Application (client) ID" - you'll need this later
 
