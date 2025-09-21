@@ -173,6 +173,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
+        setIsAdminConsentCompleted(true); // Admin consent is granted if WorkspaceProjectAuthToken exists
         const teamsTeamName: string | undefined = (
           projectAuth.data[0]!.miscData! as MicrosoftTeamsMiscData
         ).teamName;
@@ -228,10 +229,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     // if this page has a query param with error, then there was the error in authentication.
     const error: string | null = Navigation.getQueryStringByName("error");
-    const adminConsent: string | null = Navigation.getQueryStringByName(
-      "adminConsent",
-    );
-    // const adminConsentTenant: string | null = Navigation.getQueryStringByName("tenantId");
 
     if (error) {
       setError(
@@ -243,21 +240,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         </div>,
       );
       return;
-    }
-
-    if (adminConsent === "success") {
-      // Show a light-weight success inline note by temporarily setting error to null
-      // and reloading items so any new app token is picked up by the backend when needed
-      setError(null);
-      setIsAdminConsentCompleted(true);
-      // Store admin consent completion in localStorage for persistence across page reloads
-      localStorage.setItem("msTeamsAdminConsentCompleted", "true");
-    } else {
-      // Check if admin consent was previously completed
-      const storedConsent = localStorage.getItem("msTeamsAdminConsentCompleted");
-      if (storedConsent === "true") {
-        setIsAdminConsentCompleted(true);
-      }
     }
 
     loadItems().catch((error: Exception) => {
@@ -475,6 +457,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
               });
 
               setIsProjectAccountConnected(false);
+              setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
               setWorkspaceProjectAuthTokenId(null);
             } else {
               setError(
@@ -546,7 +529,6 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                     buttonStyle: SharedButtonStyle.NORMAL,
                     icon: IconProp.Refresh,
                     onClick: () => {
-                      localStorage.removeItem("msTeamsAdminConsentCompleted");
                       setIsAdminConsentCompleted(false);
                     },
                   },
